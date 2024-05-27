@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom UI</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="blur"></div>
+    <div class="taskbar">
+      <div class="taskbar-buttons">
+        <div class="title">
+            <h1 class="title_text">osu-stuff</h1>
+        </div>
+    </div>
+    </div>
+    <div class="container">
+
+        <div class="tabs">
+            <button class="tab-button" data-tab="tools">tools</button>
+            <button class="tab-button active" data-tab="config">config</button>
+            <button class="tab-button" data-tab="status">download status</button>
+        </div>
+
+        <div class="tab-content">
+            <div class="tab-pane" id="maps_tab">
+
+                <div class="tab-shit">
+                    <h1 style="margin-bottom: 10px;">missing beatmaps stuff</h1>
+                    <div class="buttons-row" style="display: flex; justify-content:space-evenly; width: 100%;">
+                        <button id="get_missing_beatmaps" style="max-width: 45%;">get missing beatmaps</button>
+                        <button id="export_missing_beatmaps" style="max-width: 45%;">export missing beatmaps</button>
+                    </div>
+
+                </div>
+
+                <div class="tab-shit">
+                    <h1>osu!Collector stuff</h1>
+                    <label for="oscurl">url</label>
+                    <input type="url" name="oscurl" id="oscurl">
+                    <div class="buttons-row" style="display: flex; justify-content:space-evenly; width: 100%;">
+                        <!-- <button id="collector_test">test 2 collections</button> -->
+                        <button id="get_beatmaps_collector">download</button>
+                        <button id="add_beatmaps_collector">add to osu</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane active" id="config_tab">
+
+            </div>
+
+            <div class="tab-pane" id="download_tab">
+                
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./scripts/tabs.js"></script>
+    <script type="module" src="./scripts/function.js"></script>
+</body>
+</html>
