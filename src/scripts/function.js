@@ -4,17 +4,10 @@ import { add_collection } from "./stuff/collector.js";
 
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_export_missing_beatmaps = document.getElementById("export_missing_beatmaps");
-// const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
+const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
 const get_beatmaps_collector = document.getElementById("get_beatmaps_collector");
 const add_betamps_collector = document.getElementById("add_beatmaps_collector");
-
-// btn_download_from_json.addEventListener("click", () => {
-
-// });
-
-// btn_remove_invalid_maps.addEventListener("click", () => {
-
-// });
+const btn_download_from_json = document.getElementById("download_from_json");
 
 // document.getElementById("collector_test").addEventListener("click", async () => {
 
@@ -39,6 +32,14 @@ const add_betamps_collector = document.getElementById("add_beatmaps_collector");
 //         add_task({ id: id, url: id }, "collector");
 //     }
 // });
+
+btn_download_from_json.addEventListener("click", () => {
+    add_alert("TODO");
+});
+
+btn_remove_invalid_maps.addEventListener("click", () => {
+    add_alert("TODO");
+});
 
 btn_export_missing_beatmaps.addEventListener("click", async () => {
 

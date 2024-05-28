@@ -69,7 +69,7 @@ const add_config_shit = async () => {
     h1.innerText = "Config";
 
     config_tab.classList.add("tab-shit");
-    config_tab.appendChild(h1);
+    document.getElementById("config_tab").appendChild(h1);
     
     const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
 

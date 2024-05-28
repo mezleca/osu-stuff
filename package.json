@@ -5,7 +5,7 @@
   "description": "osu stuff",
   "main": "src/index.js",
   "scripts": {
-    "start": "electron .",
+    "start": "cross-env NODE_ENV=cleide electron .",
     "package": "electron-packager . osu_stuff --platform=win32 --arch=x64 --out=release-builds",
     "make": "electron-builder",
     "publish": "electron-forge publish",
@@ -44,6 +44,8 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.2",
+    "cross-env": "^7.0.3",
+    "electron-reload": "^2.0.0-alpha.1",
     "electron-squirrel-startup": "^1.0.1",
     "osu-api-extended": "^2.8.4",
     "p-map": "^7.0.2"

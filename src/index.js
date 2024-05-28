@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
+const electronReload = require('electron-reload');
 
 // im still learning about electron but im pretty sure this is way better than the terminal.
 
@@ -10,7 +11,10 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
-console.log(__dirname);
+if (process.env.NODE_ENV == "cleide") {
+    electronReload(__dirname);
+    console.log("using hot reload");
+}
 
 const createWindow = () => {
 
@@ -21,7 +25,7 @@ const createWindow = () => {
       frame: true,
       icon: __dirname + "/icon.png",
       webPreferences: {
-          devTools: false,
+          devTools: process.env.NODE_ENV == "cleide" ? true : false,
           preload: path.join(__dirname, 'preload.js'),
           nodeIntegration: true,
           contextIsolation: false,

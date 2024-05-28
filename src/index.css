@@ -12,7 +12,6 @@ html {
     height: 100vh;
     padding: 0;
     margin: 0;
-    
 }
 
 body::-webkit-scrollbar {
@@ -97,10 +96,12 @@ body {
     font-size: 0.7em;
     font-weight: bold;
     border-radius: 0px;
+    transition: transform 0.1s ease;
+    background-color: #1f1f1f;
 }
 
-.tab-button:hover,
 .tab-button.active {
+    transform: scale();
     background-color: #1ABC9C;
 }
 
@@ -138,10 +139,18 @@ body {
     max-width: 100%;
     border: 1px solid grey;
     margin-bottom: 15px;
+    padding-top: 25px;
 }
 
 .tab-shit.row {
     flex-direction: row;
+}
+
+.buttons-row {
+    display: flex; 
+    justify-content:space-evenly; 
+    width: 100%; 
+    flex-wrap: wrap;
 }
 
 .tab-shit > input {
@@ -150,7 +159,7 @@ body {
     border: none;
     border-radius: 5px;
     margin-top: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 hr {
@@ -161,12 +170,19 @@ hr {
     display: flex;
 }
 
-.tab-shit > h1 {
+.tab-shit > h1, .tab-pane > h1 {
     color: white;
-    font-size: 1.35em;
+    font-size: 1.20em;
     margin-left: 5px;
+    transform:translateY(100%);
+    margin-top: -10px;
     margin-bottom: 10px;
-    text-align: center;
+    background-color: #1f1f1f;
+    width: auto;
+    padding-right: 10px;
+    padding-left: 10px;
+    align-self: flex-start;
+    margin-left: 15px;
 }
 
 .tab-shit > h2 {
@@ -180,19 +196,23 @@ hr {
 }
 
 button {
-    width: 30%;
+    width: 35%;
+    min-height: 30px;
     text-align: center;
-    padding: 0.60em;
+    padding: 0.45em;
     border-radius: 5px;
-    background-color: #1ab1bc;
-    color: white;
-    font-size: 1em;
+    background-color: #1ABC9C;
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    font-size: 0.92em;
     border: 1px solid rgba(0, 0, 0, 0.452);
     margin-bottom: 15px;
+    transition: transform 0.1s ease;
 }
 
-button:focus {
-    background-color: rgb(119, 119, 119);
+button:active {
+    transform: scale(0.95);
+    background-color: aqua;
 }
 
 .progress-container {
