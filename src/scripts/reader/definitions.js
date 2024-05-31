@@ -2,10 +2,12 @@ export const osu_db = {
     version: Number,
     folders: Number,
     account_unlocked: Boolean,
+    last_unlocked_time: Number,
     player_name: String,
     beatmaps_count: Number,
     beatmaps: [
         {
+            beatmap_start: Number,
             entry: Number,
             artist_name: String,
             artist_name_unicode: String,
@@ -73,9 +75,11 @@ export const osu_db = {
             visual_override: Boolean,
             unknown: Number,
             last_modified: Number,
-            mania_scroll_speed: Number
+            mania_scroll_speed: Number,
+            beatmap_end: Number
         }
     ],
+    extra_start: Number,
     permissions_id: Number,
     permission: String
 };

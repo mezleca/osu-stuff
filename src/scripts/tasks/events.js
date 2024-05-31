@@ -5,6 +5,9 @@ export const events = new EventEmitter();
 import { current_tasks } from "../tabs.js";
 import { download_collector } from "../stuff/collector.js"
 import { missing_download, export_missing } from "../stuff/missing.js";
+import { download_from_json } from "../stuff/download_json.js";
+import { add_alert } from "../popup/alert.js";
+import { remove_maps } from "../stuff/remove_maps.js";
 
 const all_content = [...document.querySelectorAll(".tab-pane")];
 
@@ -22,6 +25,15 @@ events.on("task-start", (data) => {
         case "export_missing":
             export_missing(data.id);
             break;
+        case "json":
+            download_from_json(data.id);
+            break;
+        case "remove_maps":
+            remove_maps(data.id);
+            break;
+        default:
+            add_alert("option not found");
+            break;
     }
 });
 
@@ -34,6 +46,7 @@ events.on("progress-update", (data) => {
         return;
     }
 
+    status.text.innerText = `${data.i} / ${data.l}`
     status.bar.style.width = `${data.perc}%`;
 });
 

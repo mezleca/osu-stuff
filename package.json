@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "0.9.0",
+  "version": "0.9.5",
   "description": "osu stuff",
   "main": "src/index.js",
   "scripts": {
@@ -26,9 +26,15 @@
     "electron-installer-squirrel-windows": "^1.3.0",
     "electron-packager": "^17.1.2"
   },
+  "nsis": {
+    "guid": "c20afe8f-91d5-4b12-aed6-88684e4c7ed3",
+    "oneClick": true,
+    "perMachine": true
+  },
   "build": {
     "appId": "com.osustuff.app",
     "win": {
+      "requestedExecutionLevel": "requireAdministrator",
       "target": "nsis",
       "icon": "src/icon.png"
     },

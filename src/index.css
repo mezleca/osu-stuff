@@ -185,6 +185,13 @@ hr {
     margin-left: 15px;
 }
 
+.download-shit > h1 {
+    transform: none;
+    margin: 0;
+    margin-left: 5px;
+    align-self: center;
+}
+
 .tab-shit > h2 {
     color: white;
     font-size: 0.90em;
@@ -306,6 +313,31 @@ label {
     min-height: 45%;
     max-height: 45%;
     margin-right: 10px;
+}
+
+.popup-content button:hover {
+    background: #0056b3;
+}
+
+.popup-content input[type="text"],
+.popup-content input[type="file"] {
+    margin: 10px 0;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.popup-content input[type="file"] {
+    padding: 5px;
+}
+
+.popup-content input[type="text"]:focus,
+.popup-content input[type="file"]:focus {
+    outline: none;
+    border-color: #007BFF;
 }
 
 .progress-bar {

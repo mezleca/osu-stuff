@@ -235,11 +235,13 @@ export const add_task = (data, type) => {
     const bar = document.createElement("div");
 
     tab.classList.add("tab-shit");
+    tab.classList.add("download-shit");
+
     tab.id = id;
     bar.style = "height: 1.5em; background-color: rgb(50, 120, 200); width: 0%; max-width: 100%;";
 
-    h1.innerText = "status";
-    h2.innerText = id;
+    h1.innerText = id;
+    h2.innerText = "waiting to start";
 
     tab.appendChild(h1);
     tab.appendChild(h2);
@@ -247,7 +249,7 @@ export const add_task = (data, type) => {
 
     const dtab = document.getElementById("download_tab");
 
-    current_tasks.set(id, { started: false, tab: dtab, Fdiv: tab, bar: bar });
+    current_tasks.set(id, { started: false, tab: dtab, Fdiv: tab, bar: bar, text: h2 });
 
     // TODO: enable progress stuff when the task actually start.
     dtab.appendChild(tab);

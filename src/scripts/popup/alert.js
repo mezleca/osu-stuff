@@ -91,13 +91,24 @@ export const add_get_extra_info = (infoArray) => {
 
         infoArray.forEach(info => {
 
+            const important = info?.important ? info.important : false;
+
+            console.log(important, info);
+
             if (info.type === 'confirmation' && info.text) {
-                createConfirmationPopup(info.text, resolve, info.important || false);
+                createConfirmationPopup(info.text, resolve, important);
             } 
             else if (info.type === 'list' && Array.isArray(info.value)) {
-                createListPopup(info.value, resolve, info.important || false);
+                createListPopup(info.value, resolve, important);
             } 
+            else if (info.type == "input" && info.text) {
+                createInputPopup(info.text, resolve, important);
+            }
+            else if (info.type == "file" && info.text) {
+                createFilePopup(info.text, resolve, important);
+            }
             else {
+                console.log(infoArray);
                 reject("Invalid object in array");
             }
         });
@@ -146,6 +157,91 @@ const createConfirmationPopup = (text, resolve, important) => {
             }
         });
     }
+};
+
+const createInputPopup = (text, resolve, important) => {
+
+    const div = document.createElement("div");
+    div.classList.add("popup-container");
+
+    const content = document.createElement("div");
+    content.classList.add("popup-content");
+
+    const header = document.createElement("h1");
+    header.innerText = text;
+    content.appendChild(header);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    content.appendChild(input);
+
+    const submitButton = document.createElement("button");
+    submitButton.innerText = "Submit";
+    submitButton.addEventListener("click", () => {
+        if (input.value) {
+            resolve(input.value);
+            document.body.removeChild(div);
+        } else {
+            alert("Please enter a value");
+        }
+    });
+
+    content.appendChild(submitButton);
+    div.appendChild(content);
+    document.body.appendChild(div);
+
+    if (important) {
+        return;
+    }
+
+    div.addEventListener("click", (event) => {
+        if (event.target === div) {
+            document.body.removeChild(div);
+        }
+    });
+};
+
+const createFilePopup = (text, resolve, important) => {
+
+    const div = document.createElement("div");
+    div.classList.add("popup-container");
+
+    const content = document.createElement("div");
+    content.classList.add("popup-content");
+
+    const header = document.createElement("h1");
+    header.innerText = text;
+    content.appendChild(header);
+
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept =".json";
+    content.appendChild(fileInput);
+
+    const submitButton = document.createElement("button");
+    submitButton.innerText = "Submit";
+    submitButton.addEventListener("click", () => {
+        if (fileInput.files.length > 0) {
+            resolve(fileInput.files[0]);
+            document.body.removeChild(div);
+        } else {
+            alert("Please select a file");
+        }
+    });
+
+    content.appendChild(submitButton);
+    div.appendChild(content);
+    document.body.appendChild(div);
+
+    if (important) {
+        return;
+    }
+
+    div.addEventListener("click", (event) => {
+        if (event.target === div) {
+            document.body.removeChild(div);
+        }
+    });
 };
 
 const createListPopup = (values, resolve, important) => {

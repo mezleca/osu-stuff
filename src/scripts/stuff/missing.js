@@ -21,7 +21,7 @@ export const export_missing = async (id) => {
 
     try {
 
-        add_alert("started task export beatmaps");
+        add_alert("started beatmap export");
 
         const osu_path = config.get("osu_path");
         const osu_file = files.get("osu");

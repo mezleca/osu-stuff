@@ -25,7 +25,7 @@ const createWindow = () => {
       frame: true,
       icon: __dirname + "/icon.png",
       webPreferences: {
-          devTools: process.env.NODE_ENV == "cleide" ? true : false,
+          devTools: true,
           preload: path.join(__dirname, 'preload.js'),
           nodeIntegration: true,
           contextIsolation: false,
@@ -35,6 +35,10 @@ const createWindow = () => {
         symbolColor: '#ffffff'
       }
     });
+
+    if (process.env.NODE_ENV == "cleide") {
+        mainWindow.webContents.openDevTools();
+    }
 
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
     mainWindow.setMenuBarVisibility(false);

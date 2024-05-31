@@ -85,12 +85,14 @@ class MapDownloader {
 
     get_buffer = async (url, data) => {
 
+        const id = data?.id ? data.id : data;
+
         try {
 
-            const response = await fetch(`${url}${data.id}`, { method: "GET", headers: { responseType: "arraybuffer" } });
+            const response = await fetch(`${url}${id}`, { method: "GET", headers: { responseType: "arraybuffer" } });
 
             if (response.status != 200) {
-                this.log = `failed to download: ${data.id}`;
+                console.log(`failed to download: ${id}`);
                 return null;
             }
 
@@ -98,6 +100,7 @@ class MapDownloader {
             const buffer = Buffer.from(bmdata);
             
             if (!buffer) {
+                console.log("Invalid buffer", id);
                 return null;
             }
 
@@ -157,8 +160,6 @@ class MapDownloader {
 
         const perc = Math.floor(this.current_index / this.m_length * 100);
 
-        events.emit("progress-update", { id: this.id, perc: perc });
-
         if (!map.id) {
         
             if (!map.hash) {
@@ -198,18 +199,16 @@ class MapDownloader {
             const osz_buffer = Object.keys(map).length > 1 ? await this.find_map(mirrors, map) : await this.find_map(mirrors, map.id);
         
             if (osz_buffer == null) {
+                console.log("Invalid buffer", id);
                 return;
             }
 
+            events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
+
             fs.writeFileSync(Path, Buffer.from(osz_buffer));
-            this.log = `saved beatmap ${map.id}`;
         }
         catch(err) {
             console.log(err);
-        }
-
-        if (map.length - index <= 0) {
-            cancel_download();
         }
     }
 
@@ -223,6 +222,8 @@ class MapDownloader {
         this.m_length = this.maps.length;
 
         await pMap(this.maps, this.download, { concurrency: 5 });
+
+        console.log("Finished downloading");
 
         this.finish(this.id);
     } 
