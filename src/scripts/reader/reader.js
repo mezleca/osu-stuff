@@ -227,50 +227,48 @@ export class OsuReader {
             file.on("error", (err) => {
                 console.log(err);
                 rej(err);
-            });  
+            });
         });
     };
 
-    write_collections_data = () => {
+    write_collections_data = (p) => {
         
-        return new Promise(async (r, rj) => {
+        return new Promise(async (resolve, reject) => {
 
             if (!this.collections) {
                 console.log("No collections found");
                 return;
             }
 
-            this.offset = 0;
-
-            const buffer_array = [];
             const data = this.collections;
+            const file = fs.createWriteStream(p);
 
-            buffer_array.push(this.#writeInt(data.version));
-            buffer_array.push(this.#writeInt(data.beatmaps.length)); 
+            file.write(this.#writeInt(data.version));
+            file.write(this.#writeInt(data.beatmaps.length)); 
 
             for (let i = 0; i < data.length; i++) {
                     
                 const collection = data.beatmaps[i];
 
-                buffer_array.push(this.#writeString(collection.name));
-                buffer_array.push(this.#writeInt(collection.maps.length));
+                file.write(this.#writeString(collection.name));
+                file.write(this.#writeInt(collection.maps.length));
 
                 for (let i = 0; i < collection.maps.length; i++) {
-                    const data = this.#writeString(collection.maps[i]);
-                    buffer_array.push(data);
+                    file.write(this.#writeString(collection.maps[i]));
                 }
             };
 
-            const concate = buffer_array.reduce((acc, curr) => {
-                const newBuffer = new Uint8Array(acc.byteLength + curr.byteLength);
-                newBuffer.set(new Uint8Array(acc), 0);
-                newBuffer.set(new Uint8Array(curr), acc.byteLength);
-                return newBuffer.buffer;
-            }, new ArrayBuffer(0));
+            file.end();
 
-            this.buffer = concate;
+            file.on("finish", () => {
+                console.log("finished");
+                resolve();
+            });
 
-            r(this.buffer);
+            file.on("error", (err) => {
+                console.log(err);
+                reject();
+            });
         });
     };
 

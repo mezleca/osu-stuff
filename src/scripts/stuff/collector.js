@@ -179,13 +179,13 @@ export const add_collection = async (url) => {
 
     reader.collections.length++;
 
-    const buffer = await reader.write_collections_data();
-    const backup_name = `collection_backup_${Date.now()}.db`;
-
+    
     // backup 
+    const backup_name = `collection_backup_${Date.now()}.db`;
     fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
-    // write the new one
-    fs.writeFileSync(path.resolve(config.get("osu_path"), "collection.db"), Buffer.from(buffer));
+
+    // write the new file
+    reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
 
     add_alert(`\nYour collection file has been updated!\nA backup file named ${backup_name} has been created in your osu directory\nrename it to collection.db in case the new one is corrupted`);
 }

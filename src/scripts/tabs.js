@@ -21,8 +21,6 @@ export const check_login = async (id, secret) => {
 
         const auth_login = await auth.login(id, secret, ['public']);
 
-        console.log(login, config);
-
         if (auth_login.access_token) { 
             return auth_login;  
         }
