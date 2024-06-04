@@ -179,7 +179,6 @@ export const add_collection = async (url) => {
 
     reader.collections.length++;
 
-    
     // backup 
     const backup_name = `collection_backup_${Date.now()}.db`;
     fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));

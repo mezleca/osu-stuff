@@ -9,7 +9,7 @@ let in_progress = false;
 
 export const download_from_json = async (id) => {
 
-    const p = await add_get_extra_info([{ type: "file", text: 'Make sure your json file have this format:\n["https://osu.ppy.sh/beatmapsets/2114717"]\n\nfile', important: true }]);
+    const p = await add_get_extra_info([{ type: "file", text: 'Make sure your json file have this format:\n["https://osu.ppy.sh/beatmapsets/2114717"]\n\nfile'}]);
 
     if (!p) {
         add_alert("Failed to get file...");

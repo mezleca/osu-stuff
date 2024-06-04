@@ -1,3 +1,5 @@
+import { events } from "../tasks/events.js";
+
 const alerts = new Map();
 const max_popup_size = 6, padding = 5;
 
@@ -154,6 +156,7 @@ const createConfirmationPopup = (text, resolve, important) => {
         div.addEventListener("click", (event) => {
             if (event.target === div) {
                 document.body.removeChild(div);
+                resolve(null);
             }
         });
     }
@@ -197,6 +200,7 @@ const createInputPopup = (text, resolve, important) => {
     div.addEventListener("click", (event) => {
         if (event.target === div) {
             document.body.removeChild(div);
+            resolve(null);
         }
     });
 };
@@ -240,6 +244,7 @@ const createFilePopup = (text, resolve, important) => {
     div.addEventListener("click", (event) => {
         if (event.target === div) {
             document.body.removeChild(div);
+            resolve(null);
         }
     });
 };
@@ -273,7 +278,93 @@ const createListPopup = (values, resolve, important) => {
         div.addEventListener("click", (event) => {
             if (event.target === div) {
                 document.body.removeChild(div);
+                resolve(null);
             }
         });
     }
+};
+
+export const createCustomList = (status, id) => {
+
+    return new Promise((resolve, reject) => {
+
+        const html = 
+        `
+            <div class="popup-container">
+                <div class="popup-content-flex" style="flex-direction: column;">
+                    <h1>Options</h1>
+                    <div class="input-double-balls">
+                        <div class="slider-thing"></div>
+                        <input type="range" name="ball0" id="min_sr" min="0" max="30" value="0">
+                        <input type="range" name="ball1" id="max_sr" min="0" max="30" value="10">
+                        <p class="slider1">min: 0</p>
+                        <p class="slider2">max: 10</p>
+                    </div>
+                    <label for="status">Status</label>
+                    <select name="status" id="status">
+                        ${status.map(status => `<option value="${status}">${status}</option>`)}
+                    </select>
+                    <div>
+                        <input type="checkbox" id="exclude_collections" name="exclude_collections"></input>
+                        <label for="exclude_collections">Ignore Beatmaps from Collections</label>
+                    </div>
+                    <button id="custom_list_submit">Submit</button>
+                </div>
+            </div>
+        `;
+
+        document.querySelector(".container").insertAdjacentHTML("beforebegin", html);
+
+        const min_sr = document.getElementById('min_sr');
+        const max_sr = document.getElementById('max_sr');
+
+        const slider1 = document.querySelector('.slider1');
+        const slider2 = document.querySelector('.slider2');
+
+        slider1.innerText = `min: ${min_sr.value}`;
+        slider2.innerText = `max: ${max_sr.value}`;
+
+        min_sr.addEventListener('input', () => {
+
+            if (parseInt(min_sr.value) > parseInt(max_sr.value)) {
+                min_sr.value = max_sr.value;
+            }
+
+            slider1.innerText = `min: ${min_sr.value}`;
+        });
+
+        max_sr.addEventListener('input', () => {
+
+            if (parseInt(max_sr.value) < parseInt(min_sr.value)) {
+                max_sr.value = min_sr.value;
+            }
+
+            slider2.innerText = `max: ${max_sr.value}`;
+        });
+
+        document.getElementById("custom_list_submit").addEventListener("click", () => {
+
+            const div = document.querySelector(".popup-container");
+
+            const status = document.getElementById("status").value;
+            const exclude_collections = document.getElementById("exclude_collections").checked;
+
+            if (min_sr.value == "0" && max_sr.value == "0") {
+                add_alert("min sr and max sr cannot be both 0");
+                return;
+            }
+
+            resolve({ min_sr: parseInt(min_sr.value), max_sr: parseInt(max_sr.value), status, exclude_collections });
+            document.body.removeChild(div);
+        });
+
+        const div = document.querySelector(".popup-container");
+        div.addEventListener("click", (event) => {
+            if (event.target === div) {
+                document.body.removeChild(div);
+                events.emit("progress-end", id);
+                reject("Cancelled");
+            }
+        });
+    });
 };

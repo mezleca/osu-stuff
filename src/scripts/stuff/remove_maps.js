@@ -2,11 +2,12 @@ const fs = require("fs");
 const path = require("path");
 
 import { reader, files } from "./collector.js";
-import { add_alert, add_get_extra_info } from "../popup/alert.js";
+import { add_alert, add_get_extra_info, createCustomList } from "../popup/alert.js";
 import { events } from "../tasks/events.js";
 import { config } from "../tabs.js";
 
-const status = {
+const stats = {
+    "all": -1,
     "unknown": 0,
     "unsubmitted": 1,
     "pending/wip/graveyard": 2,
@@ -21,8 +22,26 @@ export const remove_maps = async (id) => {
 
     try {
 
+        let failed_to_remove = false;
+        let { min_sr, max_sr, status, exclude_collections } = await createCustomList(Object.keys(stats), id);
+
+        status = stats[status];
+
+        console.log(status);
+
+        const off = [], deleted_folders = [], hashes = [];
+
         const osu_path = config.get("osu_path");
         const osu_file = files.get("osu");
+        const collection_file = files.get("collection");
+
+        // read collection
+        reader.set_type("collection");
+        reader.set_buffer(collection_file, true);
+
+        if (reader.collections.length == 0) {
+            await reader.get_collections_data();
+        }
         
         // initialize for reading osu!.db
         reader.set_type("osu");
@@ -33,47 +52,61 @@ export const remove_maps = async (id) => {
             await reader.get_osu_data();
         }
 
-        const type = await add_get_extra_info([{ important: true, type: "list", value: [...Object.keys(status)] }]);
-        const stat = status[type];
+        for (let i = 0; i < reader.collections.beatmaps.length; i++) {
 
-        if (stat < 0) {
-            add_alert("Invalid type", stat);
-            events.emit("progress-end", id);
-            return;
+            const beatmap = reader.collections.beatmaps[i];
+
+            for (let j = 0; j < beatmap.maps.length; j++) {
+
+                if (hashes.includes(beatmap.maps[j])) {
+                    continue;
+                }
+
+                hashes.push(beatmap.maps[j]);
+            }
         }
 
-        console.log("Selected type", type, stat);
-
-        const maps = [];
+        const filtered_maps = [];
 
         for (let i = 0; i < reader.osu.beatmaps.length; i++) {
             
-            const map = reader.osu.beatmaps[i];
+            const b = reader.osu.beatmaps[i];
 
-            if (map.status == stat) {
-                maps.push(map);
+            if (b.status != status && status != -1) {
+                filtered_maps.push(b);
+                continue;
             }
 
+            // fuck all the other gamemodes me and my homies only play standard
+            if (!b.sr[0]) {
+                filtered_maps.push(b);
+                continue;
+            }
+
+            if (!b.sr[0].sr[0]) {
+                filtered_maps.push(b);
+                continue;
+            }
+
+            const sr = b.sr[0].sr[0][1];
+
+            if (sr < min_sr || sr > max_sr) {
+                filtered_maps.push(b);
+                continue;
+            }
+
+            if (hashes.includes(b.md5) && exclude_collections) {
+                filtered_maps.push(b);
+                continue;
+            }
+
+            const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name);
+
+            off.push({ sr: b.sr, path: song_path, start: b.beatmap_start, end: b.beatmap_end});
         }
 
-        const ammout = maps.length;
-
-        if (ammout == 0) {
-            add_alert("found 0 maps...");
-            events.emit("progress-end", id);
-            return;
-        }
-
-        let ammount_to_delete = await add_get_extra_info([{ important: true, type: "input", text: `found ${ammout} maps\nhow much do you wanna delete?` }]);
-
-        if (!ammount_to_delete) {
-            events.emit("progress-end", id);
-            return;
-        }
-
-        if (ammount_to_delete > ammout) {
-            ammount_to_delete = ammout;
-        }
+        add_alert("Found " + off.length + " beatmaps to delete");
+        console.log(off);
 
         const confirmation = await add_get_extra_info([{ important: true, type: "confirmation" , text: ` Are you sure? `}]);
 
@@ -88,57 +121,41 @@ export const remove_maps = async (id) => {
         // alert the user that shit code will lag everything
         await new Promise(res => setInterval(res, 2000));
 
-        let deleted = 0, failed_to_remove = false;
+        reader.osu.beatmaps = filtered_maps;
 
-        const off = [];
-        const deleted_folders = [];
+        // TODO: fix osu recognizing a non existing folder on "refresh beatmaps"
         
-        reader.osu.beatmaps = reader.osu.beatmaps.filter((b) => {
+        for (let i = 0; i < off.length; i++) {
 
-            if (deleted < ammount_to_delete && b.status == stat) {
+            try {
 
+                if (!fs.existsSync(off[i].path)) {
+                    deleted_folders.push(off[i].path);
+                    reader.osu.beatmaps_count -= 1;
+                    continue;
+                }
+    
+                reader.osu.folders -= 1;
                 reader.osu.beatmaps_count -= 1;
 
-                const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name);
-
-                console.log(song_path);
-
-                off.push({ start: b.beatmap_start, end: b.beatmap_end});
-
-                if (fs.existsSync(song_path) && !deleted_folders.includes(b.folder_name)) {
-
-                    deleted_folders.push(b.folder_name);
-                    reader.osu.folders -= 1;
-
-                    if (!failed_to_remove) {
-                        try {
-                            fs.rm(song_path, { recursive: true, force: true }, (err) => {
-                                if (err) {
-                                    console.log(err);
-                                    add_alert("Failed to remove osu beatmap due to: no directory permission");
-                                    failed_to_remove = true;
-                                }
-                            });
-                        } 
-                        catch(err) {
-                            console.log(err);
-                            add_alert("Failed to remove osu beatmapdue to: no directory permission");
-                            failed_to_remove = true;
-                        } 
-                    }      
+                if (failed_to_remove) {
+                    continue;
                 }
 
-                deleted++;
-                return false;
-            }
-            return true;
-        });
+                fs.rmdirSync(off[i].path, { recursive: true, force: true });
+
+            } catch(err) {
+                console.error("removing beatmap error", err);
+                failed_to_remove = true;
+                break;
+            }     
+        }
 
         if (reader.osu.beatmaps_count < 0) {
             reader.osu.beatmaps_count = 0;
         }
 
-        //fs.renameSync(path.resolve(config.get("osu_path"), "osu!.db"), path.resolve(config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
+        fs.renameSync(path.resolve(config.get("osu_path"), "osu!.db"), path.resolve(config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
         await reader.write_osu_data(off, path.resolve(config.get("osu_path"), "osu!.db"));
 
         add_alert("done!");

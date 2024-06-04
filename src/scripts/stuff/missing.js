@@ -23,6 +23,8 @@ export const export_missing = async (id) => {
 
         add_alert("started beatmap export");
 
+        const ids = [];
+
         const osu_path = config.get("osu_path");
         const osu_file = files.get("osu");
         const collection_file = files.get("collection");
@@ -81,7 +83,16 @@ export const export_missing = async (id) => {
 
         console.log("Done verifying missing maps");
 
-        if (await add_get_extra_info([{ important: true, type: "confirmation", text: "Export from a specific collection?" }]) == "Yes") {
+        const confirm = await add_get_extra_info([{ type: "confirmation", text: "Export from a specific collection?" }]);
+
+        if (confirm == null) {
+            add_alert("Cancelled");
+            events.emit("progress-end", id);
+            in_progress = false
+            return;
+        }
+
+        if (confirm == "Yes") {
 
             const collections = [...new Set(missing_maps.map(a => a.collection_name))];
             const obj = [];
@@ -92,7 +103,14 @@ export const export_missing = async (id) => {
                 }
             }
     
-            const name = await add_get_extra_info([{ important: true, type: "list", value: [...obj] }])
+            const name = await add_get_extra_info([{ type: "list", value: [...obj] }]);
+
+            if (name == null) {
+                events.emit("progress-end", id);
+                add_alert("Cancelled");
+                in_progress = false
+                return;
+            }
     
             missing_maps = missing_maps.filter((a) => { return a.collection_name == name })
     
@@ -105,8 +123,6 @@ export const export_missing = async (id) => {
         }
     
         console.log("\nsearching beatmap id's... ( this might take a while )");
-
-        const ids = [];
     
         await new Promise(async (re) => {
     
@@ -216,7 +232,18 @@ export const missing_download = async (id) => {
 
         console.log(`found ${missing_maps.length} missing maps`);
 
-        if (await add_get_extra_info([{ important: true, type: "confirmation", text: "Download from a specific collection?" }]) == "Yes") {
+        const confirm = await add_get_extra_info([{ type: "confirmation", text: "Download from a specific collection?" }]);
+
+        // TODO: a better way to cancel the task
+
+        if (confirm == null) {
+            add_alert("Cancelled");
+            events.emit("progress-end", id);
+            in_progress = false
+            return;
+        }
+
+        if (confirm == "Yes") {
 
             const collections = [...new Set(missing_maps.map(a => a.collection_name))];
             const obj = [];
@@ -227,7 +254,15 @@ export const missing_download = async (id) => {
                 }
             }
 
-            const name = await add_get_extra_info([{ important: true, type: "list", value: [...obj] }])
+            const name = await add_get_extra_info([{ type: "list", value: [...obj] }]);
+
+            if (!name) {
+                add_alert("Cancelled");
+                events.emit("progress-end", id);
+                in_progress = false
+                return;
+            }
+
             const abc = missing_maps;
 
             missing_maps = [];
