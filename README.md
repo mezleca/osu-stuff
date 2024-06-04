@@ -7,6 +7,5 @@
 
 terminal version: [osu-stuff-old](https://github.com/mezleca/osu-stuff-old)
 # TODO
-- beatmap filter
-- remove invalid maps
-- download from json
+- fix things
+- build instructions
