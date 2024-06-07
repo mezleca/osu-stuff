@@ -7,5 +7,4 @@
 
 terminal version: [osu-stuff-old](https://github.com/mezleca/osu-stuff-old)
 # TODO
-- fix things
 - build instructions
