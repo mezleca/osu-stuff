@@ -291,8 +291,6 @@ export class OsuReader {
             const player_name = this.#string();
             const beatmaps_count = this.#int();
 
-            console.log(version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count);
-
             this.beatmap_offset_start = this.offset;
 
             const modes = {

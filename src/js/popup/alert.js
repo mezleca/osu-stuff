@@ -95,8 +95,6 @@ export const add_get_extra_info = (infoArray) => {
 
             const important = info?.important ? info.important : false;
 
-            console.log(important, info);
-
             if (info.type === 'confirmation' && info.text) {
                 createConfirmationPopup(info.text, resolve, important);
             } 

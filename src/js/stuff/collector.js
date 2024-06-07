@@ -6,7 +6,7 @@ import { OsuReader } from "../reader/reader.js";
 import { events } from "../tasks/events.js";
 import { add_alert } from "../popup/alert.js";
 import { download_maps } from "./utils/download_maps.js";
-import { login, config } from "../tabs.js";
+import { login, config } from "./utils/config.js";
 
 export const reader = new OsuReader();
 export const files  = new Map();

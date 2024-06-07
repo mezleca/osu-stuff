@@ -1,7 +1,8 @@
 import { add_alert } from "./popup/alert.js";
-import { add_task, login } from "./tabs.js";
+import { add_task } from "./tabs.js";
 import { add_collection } from "./stuff/collector.js";
 import { is_running } from "./stuff/utils/process.js";
+import { login } from "./stuff/utils/config.js";
 
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_export_missing_beatmaps = document.getElementById("export_missing_beatmaps");

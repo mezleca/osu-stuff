@@ -2,23 +2,17 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const electronReload = require('electron-reload');
 
-// im still learning about electron but im pretty sure this is way better than the terminal.
-
-/** @type {BrowserWindow} */
-let mainWindow;
-
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
 if (process.env.NODE_ENV == "cleide") {
     electronReload(__dirname);
-    console.log("using hot reload");
 }
 
 const createWindow = () => {
 
-    mainWindow = new BrowserWindow({
+    const mainWindow = new BrowserWindow({
       width: 800,
       height: 600,
       titleBarStyle: 'hidden',
@@ -40,16 +34,11 @@ const createWindow = () => {
         mainWindow.webContents.openDevTools();
     }
 
-    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, './gui/index.html'));
     mainWindow.setMenuBarVisibility(false);
 
-    ipcMain.handle('is-window-full', () => {
-        return mainWindow.isMaximized();
-    });
-  
-    ipcMain.on('close-window', () => {
-        app.quit();
-    });
+    ipcMain.handle('is-window-full', () => mainWindow.isMaximized());
+    ipcMain.on('close-window', () => app.quit());
 };
 
 app.whenReady().then(() => {
@@ -58,16 +47,13 @@ app.whenReady().then(() => {
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+          createWindow();
       }
     });
-
 });
 
 app.on('window-all-closed', () => {
-
     if (process.platform !== 'darwin') {
-      app.quit();
+        app.quit();
     }
-
 });

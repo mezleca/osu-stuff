@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 
-import { config } from "../../tabs.js";
+import { config } from "./config.js";
 import { add_alert } from "../../popup/alert.js";
 import { events } from "../../tasks/events.js";
-import { login } from "../../tabs.js";
+import { login } from "./config.js";
 
 import pMap from 'https://cdn.jsdelivr.net/npm/p-map@7.0.2/+esm';
 

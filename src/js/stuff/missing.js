@@ -5,7 +5,8 @@ import { reader, files } from "./collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
 import { download_maps, search_map_id } from "./utils/download_maps.js";
 import { events } from "../tasks/events.js";
-import { config } from "../tabs.js";
+import { config, og_path } from "./utils/config.js";
+import { open_og_folder } from "./utils/process.js";
 
 let in_progress = false;
 
@@ -140,7 +141,7 @@ export const export_missing = async (id) => {
                     ids.push(`https://osu.ppy.sh/beatmapsets/${info.beatmapset_id}`);
                 }
 
-                events.emit("progress-update", { id: id, perc: (i / missing_maps.length * 100)})
+                events.emit("progress-update", { id: id, perc: (i / missing_maps.length * 100), i: i, l: missing_maps.length });
             }
     
             re();
@@ -149,9 +150,11 @@ export const export_missing = async (id) => {
         // remove duplicate maps.
         const o = [...new Set(ids)];
     
-        fs.writeFileSync(path.resolve("./data/beatmaps.json"), JSON.stringify(o, null , 4));
+        fs.writeFileSync(path.resolve(og_path, "exported_beatmaps.json"), JSON.stringify(o, null , 4));
+
+        open_og_folder();
     
-        add_alert("Done\nbeatmaps.json file has been created in the data folder\n");
+        add_alert("finished export");
         
         events.emit("progress-end", id);
     } 
