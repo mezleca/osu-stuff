@@ -22,7 +22,7 @@ In case you wanna build yourself, use the Build instructions.
 3. Open your terminal on osu-stuff folder and enter the following commands:
     ```
     npm install
-    npm install -tg electron-builder
+    npm install -g electron-builder
     ```
 
 4. Build the project for the current platform:
@@ -32,7 +32,7 @@ In case you wanna build yourself, use the Build instructions.
    electron-builder build --platform=<platform>
    ```
 
-Replace `<platform>` with the desired platform (e.g., `win`, `mac`, `linux`).
+    Replace `<platform>` with the desired platform (e.g., `win`, `mac`, `linux`).
 
 5. In case you just wanna start without any build process, just run:
     ```
