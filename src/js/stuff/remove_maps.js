@@ -48,8 +48,7 @@ export const remove_maps = async (id) => {
 
     try {
 
-        let failed_to_remove = false;
-        let { min_sr, max_sr, status, exclude_collections } = await createCustomList(Object.keys(stats), id);
+        let { min_sr, max_sr, status, exclude_collections, sr_enabled } = await createCustomList(Object.keys(stats), id);
 
         status = stats[status];
 
@@ -94,6 +93,9 @@ export const remove_maps = async (id) => {
             
             const b = reader.osu.beatmaps[i];
 
+            const sp = path.resolve(config.get("osu_songs_path"), b.folder_name);    
+            const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name, b.file);
+
             if (b.status != status && status != -1) {
                 filtered_maps.push(b);
                 continue;
@@ -106,14 +108,12 @@ export const remove_maps = async (id) => {
 
             const diff = check_difficulty_sr(b, min_sr, max_sr);
 
-            if (!diff) {
+            if (!diff && sr_enabled) {
                 filtered_maps.push(b.sr);
                 continue;
             }
 
-            const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name);
-
-            off.push({ sr: b.sr, path: song_path, start: b.beatmap_start, end: b.beatmap_end});
+            off.push({ sr: b.sr, path: song_path, folder_path: sp, start: b.beatmap_start, end: b.beatmap_end});
         }
 
         add_alert("Found " + off.length + " beatmaps to delete");
@@ -128,39 +128,56 @@ export const remove_maps = async (id) => {
 
         add_alert("deleting beatmaps in 2 seconds\nthe app may freeze for a while :3");
 
-        // alert the user that shit code will lag everything
         await new Promise(res => setInterval(res, 2000));
 
         reader.osu.beatmaps = filtered_maps;
 
-        // TODO: something is wrong here, need to fix later.
-        // not sure what it is but it makes osu remove that option for refreshing beatmaps, cuz osu tries to read some non existent folder.
-        
         for (let i = 0; i < off.length; i++) {
 
             try {
 
                 if (!fs.existsSync(off[i].path)) {
-                    deleted_folders.push(off[i].path);
-                    reader.osu.beatmaps_count -= 1;
-                    continue;
-                }
-    
-                reader.osu.folders -= 1;
-                reader.osu.beatmaps_count -= 1;
-
-                if (failed_to_remove) {
                     continue;
                 }
 
-                fs.rmdirSync(off[i].path, { recursive: true, force: true });
+                fs.unlinkSync(off[i].path);
 
             } catch(err) {
-                console.error("removing beatmap error", err);
-                failed_to_remove = true;
-                break;
+                console.error("removing beatmap error", err, off[i].path);
             }     
         }
+
+        for (let i = 0; i < off.length; i++) {
+
+            try {
+            
+                const folder = fs.readdirSync(off[i].folder_path);
+
+                let has_osu = false;
+
+                for (let j = 0; j < folder.length; j++) {
+                    if (folder[j].endsWith(".osu")) {
+                        console.log("found .osu in", off[i].folder_path);
+                        has_osu = true;
+                        continue;
+                    }
+                }
+
+                if (has_osu || deleted_folders.includes(off[i].folder_path)) {
+                    continue;
+                }
+
+                fs.rmdirSync(off[i].folder_path, { recursive: true });
+
+                deleted_folders.push(off[i].folder_path);
+
+            } catch(err) {
+                console.error("removing folder error", err, off[i].folder_path);
+            }
+        }
+
+        reader.osu.folders = fs.readdirSync(config.get("osu_songs_path")).length;
+        reader.osu.beatmaps_count = filtered_maps.length;
 
         if (reader.osu.beatmaps_count < 0) {
             reader.osu.beatmaps_count = 0;

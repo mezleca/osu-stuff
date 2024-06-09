@@ -121,6 +121,7 @@ export const add_config_shit = async () => {
         login = await check_login(options.osu_id, options.osu_secret);
 
         if (login == null) {
+            add_alert("invalid osu_id / secret");
             return;
         }
 
@@ -142,6 +143,8 @@ export const add_config_shit = async () => {
         }
 
         fs.writeFileSync(config_path, JSON.stringify(options, null, 4));
+
+        add_alert("config updated");
     });
 
     // get files

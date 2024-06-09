@@ -8,6 +8,8 @@ import { events } from "../tasks/events.js";
 import { config, og_path } from "./utils/config.js";
 import { open_og_folder } from "./utils/process.js";
 
+const downloaded_maps = [];
+
 let in_progress = false;
 
 export const export_missing = async (id) => {
@@ -196,11 +198,6 @@ export const missing_download = async (id) => {
         if (!reader.osu.beatmaps) {
             await reader.get_osu_data();
         }
-        
-        // only the hash/id will be used
-        reader.osu.beatmaps.map((b, i) => {
-            reader.osu.beatmaps[i] = { hash: b.md5, id: b.beatmap_id };
-        });
 
         // initialize for reading collection.db
         reader.set_type("collection");
@@ -210,8 +207,9 @@ export const missing_download = async (id) => {
             await reader.get_collections_data();
         }
         
-        const hashes = new Set(reader.osu.beatmaps.map(b => b.hash));
+        const hashes = reader.osu.beatmaps.map(b => b.md5);
         const Maps = reader.collections.beatmaps.map((b) => { return { name: b.name, maps: b.maps } });
+        const missing_hashes = new Map();
 
         // verify things
         for (const map of Maps) {
@@ -222,18 +220,22 @@ export const missing_download = async (id) => {
                     continue;
                 }
 
-                if (hashes.has(m)) {
+                if (hashes.includes(m)) {
                     continue;
                 }
 
-                if (m != "4294967295") {
-                    missing_maps.push({ collection_name: map.name, hash: m });
+                if (m != "4294967295" && !missing_hashes.has(m) && !downloaded_maps.includes(m)) {
+                    missing_hashes.set(m, map.name);
                 }
 
             }
         }
 
-        console.log(`found ${missing_maps.length} missing maps`);
+        for (const [key, value] of missing_hashes) {
+            missing_maps.push({ hash: key, collection_name: value });
+        }
+        
+        add_alert(`found ${missing_maps.length} missing maps`);
 
         const confirm = await add_get_extra_info([{ type: "confirmation", text: "Download from a specific collection?" }]);
 
@@ -288,6 +290,15 @@ export const missing_download = async (id) => {
         }
 
         await download_maps(missing_maps, id);
+
+        for (const map of missing_maps) {
+
+            if (downloaded_maps.includes(map.hash)) {
+                continue;
+            }
+
+            downloaded_maps.push(map.hash);
+        }
 
         in_progress = false;
     }

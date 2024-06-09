@@ -7,6 +7,8 @@ import { events } from "../tasks/events.js";
 
 let in_progress = false;
 
+const downloaded_maps = [];
+
 export const download_from_json = async (id) => {
 
     const p = await add_get_extra_info([{ type: "file", text: 'Make sure your json file have this format:\n["https://osu.ppy.sh/beatmapsets/2114717"]\n\nfile'}]);
@@ -40,6 +42,10 @@ export const download_from_json = async (id) => {
         const a = json[i].split("/");
         const id = a[a.length - 1];
 
+        if (downloaded_maps.includes(id)) {
+            continue;
+        }
+
         if (id) {
             ids.push({ id: id });
         }
@@ -55,6 +61,8 @@ export const download_from_json = async (id) => {
     add_alert("downloading", json.length, "maps...\n");
 
     await download_maps(ids, id);
+
+    downloaded_maps.push(...ids);
 
     add_alert("done download from json");
 

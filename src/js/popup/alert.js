@@ -291,7 +291,7 @@ export const createCustomList = (status, id) => {
             <div class="popup-container">
                 <div class="popup-content-flex" style="flex-direction: column;">
                     <h1>Options</h1>
-                    <div class="input-double-balls">
+                    <div class="input-double-balls" style="display: none;">
                         <div class="slider-thing"></div>
                         <input type="range" name="ball0" id="min_sr" min="0" max="30" value="0">
                         <input type="range" name="ball1" id="max_sr" min="0" max="30" value="10">
@@ -302,9 +302,17 @@ export const createCustomList = (status, id) => {
                     <select name="status" id="status">
                         ${status.map(status => `<option value="${status}">${status}</option>`)}
                     </select>
-                    <div>
-                        <input type="checkbox" id="exclude_collections" name="exclude_collections"></input>
-                        <label for="exclude_collections">Ignore Beatmaps from Collections</label>
+                    <div style="display: flex; width: 100%; align-items: center; flex-direction: column; justify-content: center; margin: 0;">
+                        <div>
+                            <input type="checkbox" id="piru" name="piru"></input>
+                            <label for="piru" style="margin: 0; margin-left: 2px;">Enable star rating check</label>
+                        </div>    
+
+                        <div>
+                            <input type="checkbox" id="exclude_collections" name="exclude_collections"></input>
+                            <label for="exclude_collections">Ignore Beatmaps from Collections</label>
+                        </div>  
+
                     </div>
                     <button id="custom_list_submit">Submit</button>
                 </div>
@@ -321,6 +329,21 @@ export const createCustomList = (status, id) => {
 
         slider1.innerText = `min: ${min_sr.value}`;
         slider2.innerText = `max: ${max_sr.value}`;
+
+        const enable_sr = document.getElementById('piru');
+        
+        let sr_enabled = false;
+
+        enable_sr.addEventListener('change', () => {
+
+            sr_enabled = enable_sr.checked;
+
+            if (enable_sr.checked) {
+                document.querySelector(".input-double-balls").style.display = "flex";
+            } else {
+                document.querySelector(".input-double-balls").style.display = "none";
+            }
+        });
 
         min_sr.addEventListener('input', () => {
 
@@ -352,7 +375,7 @@ export const createCustomList = (status, id) => {
                 return;
             }
 
-            resolve({ min_sr: parseInt(min_sr.value), max_sr: parseInt(max_sr.value), status, exclude_collections });
+            resolve({ min_sr: parseInt(min_sr.value), max_sr: parseInt(max_sr.value), status, exclude_collections, sr_enabled });
             document.body.removeChild(div);
         });
 
