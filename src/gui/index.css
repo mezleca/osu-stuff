@@ -374,8 +374,7 @@ label {
     background: #0056b3;
 }
 
-.popup-content > input[type="text"],
-.popup-content > input[type="file"] {
+.popup-content > input, .popup-content-flex > input {
     margin: 10px 0px;
     padding: 10px;
     font-size: 16px;

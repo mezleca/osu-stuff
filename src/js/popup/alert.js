@@ -93,8 +93,9 @@ export const add_get_extra_info = (infoArray) => {
 
         infoArray.forEach(info => {
 
-            const important = info?.important ? info.important : false;
-            const column = info?.column ? info.column : false;
+            const important  = info?.important ? info.important : false,
+                  column     = info?.column ? info.column : false,
+                  input_type = info?.input_type ? info.input_type : false;
 
             if (info.type === 'confirmation' && info.text) {
                 createConfirmationPopup(info.text, resolve, important);
@@ -103,7 +104,7 @@ export const add_get_extra_info = (infoArray) => {
                 createListPopup(info.value, resolve, important, column);
             } 
             else if (info.type == "input" && info.text) {
-                createInputPopup(info.text, resolve, important);
+                createInputPopup(info.text, resolve, important, input_type);
             }
             else if (info.type == "file" && info.text) {
                 createFilePopup(info.text, resolve, important);
@@ -161,7 +162,7 @@ const createConfirmationPopup = (text, resolve, important) => {
     }
 };
 
-const createInputPopup = (text, resolve, important) => {
+const createInputPopup = (text, resolve, important, type) => {
 
     const div = document.createElement("div");
     div.classList.add("popup-container");
@@ -174,18 +175,20 @@ const createInputPopup = (text, resolve, important) => {
     content.appendChild(header);
 
     const input = document.createElement("input");
-    input.type = "text";
+    input.type = type ? type : "text";
     content.appendChild(input);
 
     const submitButton = document.createElement("button");
     submitButton.innerText = "Submit";
     submitButton.addEventListener("click", () => {
-        if (input.value) {
-            resolve(input.value);
-            document.body.removeChild(div);
-        } else {
+
+        if (!input.value) {
             alert("Please enter a value");
+            return;
         }
+
+        resolve(input.value);
+        document.body.removeChild(div);   
     });
 
     content.appendChild(submitButton);

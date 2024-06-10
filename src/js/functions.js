@@ -99,5 +99,5 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    add_task({ id: "first_place" }, "first_place");
+    add_task({ id: "download_from_players" }, "download_from_players");
 });
