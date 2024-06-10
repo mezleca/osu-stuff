@@ -94,12 +94,13 @@ export const add_get_extra_info = (infoArray) => {
         infoArray.forEach(info => {
 
             const important = info?.important ? info.important : false;
+            const column = info?.column ? info.column : false;
 
             if (info.type === 'confirmation' && info.text) {
                 createConfirmationPopup(info.text, resolve, important);
             } 
             else if (info.type === 'list' && Array.isArray(info.value)) {
-                createListPopup(info.value, resolve, important);
+                createListPopup(info.value, resolve, important, column);
             } 
             else if (info.type == "input" && info.text) {
                 createInputPopup(info.text, resolve, important);
@@ -247,13 +248,17 @@ const createFilePopup = (text, resolve, important) => {
     });
 };
 
-const createListPopup = (values, resolve, important) => {
+const createListPopup = (values, resolve, important, column) => {
 
     const div = document.createElement("div");
     div.classList.add("popup-container");
 
     const content = document.createElement("div");
     content.classList.add("popup-content");
+
+    if (column) {
+        content.classList.add("popup-content-flex");
+    }
 
     const header = document.createElement("h1");
     header.innerText = "Select an option:";

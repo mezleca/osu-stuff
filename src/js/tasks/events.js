@@ -8,6 +8,7 @@ import { missing_download, export_missing } from "../stuff/missing.js";
 import { download_from_json } from "../stuff/download_json.js";
 import { add_alert } from "../popup/alert.js";
 import { remove_maps } from "../stuff/remove_maps.js";
+import { first_place } from "../stuff/first_place.js";
 
 const all_content = [...document.querySelectorAll(".tab-pane")];
 
@@ -30,6 +31,9 @@ events.on("task-start", (data) => {
             break;
         case "remove_maps":
             remove_maps(data.id);
+            break;
+        case "first_place":
+            first_place(data.id);
             break;
         default:
             add_alert("option not found");

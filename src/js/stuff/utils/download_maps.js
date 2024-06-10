@@ -199,7 +199,7 @@ class MapDownloader {
             const osz_buffer = Object.keys(map).length > 1 ? await this.find_map(mirrors, map) : await this.find_map(mirrors, map.id);
         
             if (osz_buffer == null) {
-                console.log("Invalid buffer", id);
+                console.log("Invalid buffer", map.id);
                 return;
             }
 

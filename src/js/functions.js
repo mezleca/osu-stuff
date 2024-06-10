@@ -10,6 +10,7 @@ const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
 const get_beatmaps_collector = document.getElementById("get_beatmaps_collector");
 const add_betamps_collector = document.getElementById("add_beatmaps_collector");
 const btn_download_from_json = document.getElementById("download_from_json");
+const get_player_beatmaps = document.getElementById("get_player_beatmaps");
 
 btn_download_from_json.addEventListener("click", async () => {
 
@@ -89,4 +90,14 @@ get_beatmaps_collector.addEventListener("click", () => {
     }
 
     add_task({ id: id.value, url: id.value }, "collector");
+});
+
+get_player_beatmaps.addEventListener("click", async () => {
+
+    if (login == null) {
+        add_alert("Did you forgor to setup your config?");
+        return;
+    }
+
+    add_task({ id: "first_place" }, "first_place");
 });
