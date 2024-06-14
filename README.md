@@ -8,8 +8,8 @@
 terminal version: [osu-stuff-old](https://github.com/mezleca/osu-stuff-old)
 
 # Setup Instructions
-You can download the latest version for windows using the [releases](https://github.com/mezleca/osu-stuff/releases/) tab on this repository.
-In case you wanna build yourself, use the Build instructions.
+You can download the stable version for windows using the [releases](https://github.com/mezleca/osu-stuff/releases/) tab on this repository.
+In case you wanna use the latest version, follow the Build Instructions.
 
 # Build Instructions
 1. Install nodejs-lts and npm.

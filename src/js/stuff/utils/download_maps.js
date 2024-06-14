@@ -8,8 +8,6 @@ import { login } from "./config.js";
 
 import pMap from 'https://cdn.jsdelivr.net/npm/p-map@7.0.2/+esm';
 
-// import { filter } from "../functions/filter.js";
-
 const downloaded_maps = [];
 
 export const search_map_id = async (hash) => {
@@ -40,7 +38,7 @@ export const search_map_id = async (hash) => {
     }
 };
 
-export const mirrors = [
+export let mirrors = [
     {
         name: "direct",
         url: "https://api.osu.direct/d/"
@@ -48,6 +46,10 @@ export const mirrors = [
     {
         name: "nerinyan",
         url: "https://api.nerinyan.moe/d/"
+    },
+    {
+        name: "beatconnect",
+        url: "https://beatconnect.io/b/"
     }
 ];
 
@@ -57,7 +59,8 @@ export const download_maps = async (maps, id) => {
         return add_alert("Missing id");
     }
 
-    add_alert("started download for " + id);
+    console.log("started download for " + id);
+    add_alert("started download");
 
     const new_download = new MapDownloader(maps, id);
 
@@ -90,6 +93,31 @@ class MapDownloader {
         try {
 
             const response = await fetch(`${url}${id}`, { method: "GET", headers: { responseType: "arraybuffer" } });
+
+            if (response.status == 504) {
+
+                const old_mirror = new Object(mirrors);
+
+                const mirror_index = old_mirror.findIndex(mirror => mirror.url == url); 
+                const current_mirror = old_mirror[mirror_index];
+
+                mirrors = [];
+
+                for (let i = 0; i < old_mirror.length; i++) {
+
+                    if (i == mirror_index) {
+                        continue;
+                    }
+
+                    mirrors.push(old_mirror[i]);
+                }
+
+                mirrors.push(current_mirror);
+
+                this.log = `gateway error in: ${url}`;
+
+                return null;
+            }
 
             if (response.status != 200) {
                 console.log(`failed to download: ${id}`);

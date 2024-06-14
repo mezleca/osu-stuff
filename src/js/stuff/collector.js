@@ -37,7 +37,7 @@ const get_tournament_maps = async(id) => {
 
 const setup_collector = async (url) => {
 
-    const osu_file = files.get("osu");
+    const task_id = collector_queue[0].id;
 
     if (!login) {
         add_alert("forgot to configurate? :P");
@@ -46,17 +46,9 @@ const setup_collector = async (url) => {
         return;
     }
 
-    // get collection id
     const url_array = url.split("/");
     const collection_id = url_array[url_array.length - 2];
-
-    if (!collection_id) {
-        add_alert("invalid URL");
-        events.emit("progress-end", task_id);
-        return;
-    }
-
-    // request collection data from osuCollector api
+    const osu_file = files.get("osu");
     const is_tournament = url_array.includes("tournaments");
     const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
     const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await axios.get(collection_url);
@@ -109,7 +101,7 @@ const setup_collector = async (url) => {
 const collector_queue = [];
 let interval;
 
-const interval_func = async () => {
+const interval_func = async (id) => {
 
     if (collector_queue.length == 0) {
         return;
@@ -136,12 +128,21 @@ const init_func = async () => {
 
     const queue = collector_queue[0];
 
-    const id = queue.id;
-    const url = queue.url;
+    const { id, url } = queue;
 
     queue.status = "wip";
 
     events.emit("progress-update", { id: id, perc: 0 });
+  
+    const url_array = url.split("/");
+    const collection_id = url_array[url_array.length - 2];
+
+    if (!collection_id) {
+        add_alert("invalid URL");
+        events.emit("progress-end", id);
+        collector_queue.shift();
+        return;
+    }
 
     const { maps } = await setup_collector(url);
 
