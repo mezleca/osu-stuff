@@ -1,3 +1,5 @@
+const shell = require("electron").shell;
+
 import { events } from "../tasks/events.js";
 
 const alerts = new Map();
@@ -12,8 +14,15 @@ const change_alert_opacity = (div, value) => {
 export const add_alert = async (...texts) => {
 
     let text = "";
+    let append_html = false;
 
     for (let i = 0; i < texts.length; i++) {
+
+        if (typeof texts[i] == "boolean") {
+            append_html = true;
+            continue;
+        }
+        
         text += texts[i] + " "; 
     }
 
@@ -30,7 +39,12 @@ export const add_alert = async (...texts) => {
     div.style = `top: ${popup_height}px`;
 
     const alert_text = document.createElement("h2");
-    alert_text.innerText = text;
+
+    if (append_html) {
+        alert_text.innerHTML = text;
+    } else {
+        alert_text.innerText = text;
+    }
 
     div.appendChild(alert_text);
     alerts.set(id, div);
@@ -45,6 +59,17 @@ export const add_alert = async (...texts) => {
         remove_alert(div, id);
         deleted = true;
     });
+
+    if (append_html) {
+        const all = div.querySelectorAll('a[href^="http"]');
+
+        for (let i = 0; i < all.length; i++) {
+            all[i].addEventListener("click", (e) => {
+                e.preventDefault();
+                shell.openExternal(e.target.href)       
+            });
+        }
+    }
 
     // sleep 2 seconds before the fading animation
     await new Promise(resolve => setTimeout(resolve, 2000));

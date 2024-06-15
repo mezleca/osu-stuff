@@ -13,7 +13,16 @@ export const og_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stu
 
 export let login = null;
 
+const tooltips = {
+    "osu_id": "Your Oauth app id.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and get paste the id</a>",
+    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and get paste the Client secret</a>",
+    "osu_path": "Path to your osu! folder.<br>For example: C:\\osu!",
+    "osu_songs_path": "Path to your osu! songs folder.<br>For example: C:\\osu\\Songs\\",
+}
+
 export const add_config_shit = async () => {
+
+    // TODO: rewrite this horrendous code
 
     const config_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff", "config.json");
     
@@ -86,6 +95,15 @@ export const add_config_shit = async () => {
 
         const input = document.createElement("input");
         input.setAttribute("name", label_name);
+
+        const toolbox = document.createElement("div");
+        
+        toolbox.classList.add("tooltip");
+        toolbox.id = label_name;
+        toolbox.innerText = "(?)";
+
+        label.appendChild(toolbox);
+
         input.type = label_name == "osu_id" || label_name == "osu_secret" ? "password" : "text";
         input.value = options[label_name];
 
@@ -163,4 +181,13 @@ export const add_config_shit = async () => {
     }
 
     document.getElementById("config_tab").appendChild(config_tab);
+
+    const all_tooltips = document.querySelectorAll(".tooltip");
+    
+    for (let i = 0; i < all_tooltips.length; i++) {
+        all_tooltips[i].addEventListener("click", (e) => {
+            const text = tooltips[e.target.id];
+            add_alert(text, true);
+        });
+    }
 };

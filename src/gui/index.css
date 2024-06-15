@@ -236,6 +236,7 @@ label {
     font-size: 0.95em;
     font-weight: bold;
     margin-left: -3px;
+    height: 1.35em;
 }
 
 .blur {
@@ -508,4 +509,18 @@ input[type="range"]:active::-webkit-slider-thumb {
     z-index: 2000;
     top: 0.01em;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    min-width: 50%;
+    margin-left: 5px;
+}
+
+a {
+    color: rgb(58, 218, 247);
+    text-decoration: underline;
+    cursor: pointer;
 }
