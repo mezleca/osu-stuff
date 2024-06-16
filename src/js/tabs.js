@@ -30,12 +30,12 @@ export const add_task = (data, type) => {
     const id = data.id;
 
     if (!id) {
-        add_alert("Missing id");
+        add_alert("Missing id", { type: "error" });
         return;
     }
 
     if (current_tasks.has(id)) {
-        add_alert("theres already a download for this task");
+        add_alert("theres already a download for this task", { type: "warning" });
         return;
     }
     

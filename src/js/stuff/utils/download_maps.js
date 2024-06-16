@@ -56,7 +56,7 @@ export let mirrors = [
 export const download_maps = async (maps, id) => {
 
     if (!id) {
-        return add_alert("Missing id");
+        return add_alert("Missing id", { type: "error" });
     }
 
     console.log("started download for " + id);
@@ -78,7 +78,7 @@ class MapDownloader {
     }
 
     finish = (id) => {
-        add_alert("Finished downloading", id);
+        add_alert("Finished downloading", id, { type: "success" });
         events.emit("progress-end", this.id);
     };
 

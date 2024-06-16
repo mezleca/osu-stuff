@@ -93,7 +93,7 @@ export const download_from_players = async (id) => {
     }
 
     if (!url_is_valid(player)) {
-        add_alert("Invalid player url:", player);
+        add_alert("Invalid player url:", player, { type: "error" });
         events.emit("progress-end", id);
         return;
     }
@@ -102,7 +102,7 @@ export const download_from_players = async (id) => {
     const player_req = await axios.get(`${player}/extra-pages/top_ranks?mode=osu`);
 
     if (player_req.status != 200) {
-        add_alert("Invalid player url", player);
+        add_alert("Invalid player url", player, { type: "error" });
         events.emit("progress-end", id);
         return;
     }
@@ -110,7 +110,7 @@ export const download_from_players = async (id) => {
     const count = player_req.data[method].count;
 
     if (count == 0) {
-        add_alert("No beatmaps was found", player);
+        add_alert("No beatmaps was found", player, { type: "error" });
         events.emit("progress-end", id);
         return;
     }
@@ -157,7 +157,7 @@ export const download_from_players = async (id) => {
     }
 
     if (maps.length == 0) {
-        add_alert("No beatmaps was found");
+        add_alert("No beatmaps was found", { type: "warning" });
         events.emit("progress-end", id);
         return;
     }

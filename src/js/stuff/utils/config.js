@@ -41,11 +41,11 @@ export const add_config_shit = async () => {
         try {
             login = await check_login(options.osu_id, options.osu_secret);
             if (login == null) {
-                add_alert("invalid osu_id / secret");
+                add_alert("invalid osu_id / secret", { type: "error" });
             }
         } catch(e) {
             console.log(e);
-            add_alert("invalid osu_id / secret");
+            add_alert("invalid osu_id / secret", { type: "error" });
         }   
     }
 
@@ -66,7 +66,7 @@ export const add_config_shit = async () => {
     const songs_path = fs.existsSync(songs);
                                                             
     if (!osu_path && !options.osu_path) {
-        add_alert("failed to get osu_path automatically");
+        add_alert("failed to get osu_path automatically", { type: "error" });
     }
 
     if (osu_path && !options.osu_path) { 
@@ -74,7 +74,7 @@ export const add_config_shit = async () => {
     }
 
     if (!songs_path && !options.osu_songs_path) {
-        add_alert("failed to get osu_songs_path automatically");
+        add_alert("failed to get osu_songs_path automatically", { type: "error" });
     }
 
     if (songs_path && !options.osu_songs_path) { 
@@ -127,7 +127,7 @@ export const add_config_shit = async () => {
             const label_name = Dlabels[i].label.innerText;
             
             if (input_value == "") {
-                add_alert("Missing value for " + label_name);
+                add_alert("Missing value for " + label_name, { type: "error" });
                 return; 
             }
 
@@ -139,7 +139,7 @@ export const add_config_shit = async () => {
         login = await check_login(options.osu_id, options.osu_secret);
 
         if (login == null) {
-            add_alert("invalid osu_id / secret");
+            add_alert("invalid osu_id / secret", { type: "error" });
             return;
         }
 
@@ -149,7 +149,7 @@ export const add_config_shit = async () => {
             const collection_file = fs.readFileSync(path.resolve(config.get("osu_path"), "collection.db"));
 
             if (!osu_file || !collection_file) {
-                add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct");
+                add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
                 return;
             }
     
@@ -157,12 +157,12 @@ export const add_config_shit = async () => {
             files.set("collection", collection_file);         
         } 
         else {
-            add_alert("Failed to get osu directory\nMake sure the path is correct");
+            add_alert("Failed to get osu directory\nMake sure the path is correct", { type: "error" });
         }
 
         fs.writeFileSync(config_path, JSON.stringify(options, null, 4));
 
-        add_alert("config updated");
+        add_alert("config updated", { type: "success" });
     });
 
     // get files
@@ -172,7 +172,7 @@ export const add_config_shit = async () => {
         const collection_file = fs.readFileSync(path.resolve(options.osu_path, "collection.db"));
 
         if (!osu_file || !collection_file) {
-            add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct");
+            add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
             return;
         }
 
@@ -187,7 +187,7 @@ export const add_config_shit = async () => {
     for (let i = 0; i < all_tooltips.length; i++) {
         all_tooltips[i].addEventListener("click", (e) => {
             const text = tooltips[e.target.id];
-            add_alert(text, true);
+            add_alert(text, true, { append_html: true });
         });
     }
 };

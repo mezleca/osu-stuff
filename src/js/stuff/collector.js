@@ -55,13 +55,13 @@ const setup_collector = async (url) => {
     const collection = is_tournament ? Rcollection : Rcollection.data;
 
     if (Rcollection.status != 200) {
-        add_alert("invalid collection");
+        add_alert("invalid collection", { type: "error" });
         events.emit("progress-end", task_id);
         return;
     }
 
     if (!collection.beatmapsets) {
-        add_alert("Failed to get collection from osu collector");
+        add_alert("Failed to get collection from osu collector", { type: "error" });
         events.emit("progress-end", task_id);
         return;
     }
@@ -138,7 +138,7 @@ const init_func = async () => {
     const collection_id = url_array[url_array.length - 2];
 
     if (!collection_id) {
-        add_alert("invalid URL");
+        add_alert("invalid URL", { type: "error" });
         events.emit("progress-end", id);
         collector_queue.shift();
         return;
@@ -187,5 +187,5 @@ export const add_collection = async (url) => {
     // write the new file
     reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
 
-    add_alert(`\nYour collection file has been updated!\nA backup file named ${backup_name} has been created in your osu directory\nrename it to collection.db in case the new one is corrupted`);
+    add_alert(`\nYour collection file has been updated!\nA backup file named ${backup_name} has been created in your osu directory\nrename it to collection.db in case the new one is corrupted`, { type: "success" });
 }

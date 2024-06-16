@@ -13,13 +13,18 @@ const change_alert_opacity = (div, value) => {
 
 export const add_alert = async (...texts) => {
 
-    let text = "";
-    let append_html = false;
+    let text = "", type = "default", append_html = false, test = false, color = "rgb(36, 153, 242)", border = "2px solid rgb(0, 103, 181)";
 
     for (let i = 0; i < texts.length; i++) {
 
-        if (typeof texts[i] == "boolean") {
-            append_html = true;
+        if (typeof texts[i] == "object") {
+            type = texts[i].type || "default";
+            append_html = texts[i].append_html || false;
+            test = texts[i].test || false;
+            continue;
+        }
+
+        if (typeof texts[i] != "string") {
             continue;
         }
         
@@ -34,19 +39,78 @@ export const add_alert = async (...texts) => {
     const id = Date.now();
 
     const div = document.createElement("div");
+
+    const alert_icon = document.createElement("i");
+    const alert_text = document.createElement("h2");
+    const alert_close = document.createElement("i");
+
     div.classList.add("alert-popup");
+
     div.id = id;
     div.style = `top: ${popup_height}px`;
 
-    const alert_text = document.createElement("h2");
+    console.log(type);
+
+    switch (type) {
+        case "error":
+
+            alert_icon.classList.add("bi");
+            alert_icon.classList.add("bi-x-circle-fill");
+
+            color = "rgb(242, 36, 36)";
+            border = "2px solid rgb(181, 0, 0)";
+
+            break;
+        case "success":
+
+            alert_icon.classList.add("bi");
+            alert_icon.classList.add("bi-check-circle-fill");
+
+            color = "rgb(36, 153, 242)";
+            border = "2px solid rgb(0, 103, 181)";
+
+            break;
+        case "warning":
+            
+            alert_icon.classList.add("bi");
+            alert_icon.classList.add("bi-exclamation-triangle-fill");
+
+            color = "rgb(227, 227, 79)";
+            border = "2px solid rgb(255, 255, 31)";
+
+            break;
+        case "info":
+
+            break;
+        case "default":
+            alert_icon.classList.add("bi");
+            alert_icon.classList.add("bi-exclamation-circle");
+            break;
+        default:
+            alert_icon.classList.add("bi");
+            alert_icon.classList.add("bi-exclamation-circle");
+            break;
+    }
+
+    div.style.backgroundColor = color;
+    div.style.border = border;
+
+    alert_icon.classList.add("alert-icon");
+
+    alert_close.classList.add("bi");
+    alert_close.classList.add("bi-x");
+    alert_close.classList.add("alert-close");
 
     if (append_html) {
         alert_text.innerHTML = text;
     } else {
         alert_text.innerText = text;
     }
-
+        
+    div.appendChild(alert_icon);
     div.appendChild(alert_text);
+    div.appendChild(alert_close);
+
     alerts.set(id, div);
     
     document.querySelector(".container").appendChild(div);
@@ -55,7 +119,7 @@ export const add_alert = async (...texts) => {
 
     let deleted = false;
 
-    div.addEventListener("click", () => { 
+    alert_close.addEventListener("click", () => { 
         remove_alert(div, id);
         deleted = true;
     });
@@ -71,6 +135,10 @@ export const add_alert = async (...texts) => {
         }
     }
 
+    if (test) {
+        return;
+    }
+
     // sleep 2 seconds before the fading animation
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -83,6 +151,7 @@ export const add_alert = async (...texts) => {
         }
         
         change_alert_opacity(div, opacity);
+
         opacity -= 2;
 
         if (opacity <= 0) {
@@ -92,6 +161,20 @@ export const add_alert = async (...texts) => {
 
     }, 10);
 };
+
+/*
+    add_alert("info", { type: "success", append_html: false });
+
+    // add 1 second delay before adding the warning
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    add_alert("warning 3123123 123 123", { type: "error", append_html: false });
+
+    // add 1 second delay before adding the warning
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    add_alert("default test");
+*/
 
 export const remove_alert = (div, id) => {
     
@@ -404,7 +487,7 @@ export const createCustomList = (status, id) => {
             const exclude_collections = document.getElementById("exclude_collections").checked;
 
             if (min_sr.value == "0" && max_sr.value == "0") {
-                add_alert("min sr and max sr cannot be both 0");
+                add_alert("min sr and max sr cannot be both 0", { type: "warning" });
                 return;
             }
 

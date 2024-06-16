@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const electronReload = require('electron-reload');
+
+const { app, BrowserWindow, ipcMain } = require('electron');
 
 if (require('electron-squirrel-startup')) {
     app.quit();

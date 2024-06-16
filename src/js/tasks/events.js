@@ -36,7 +36,7 @@ events.on("task-start", (data) => {
             download_from_players(data.id);
             break;
         default:
-            add_alert("option not found");
+            add_alert("option not found", { type: "error" });
             break;
     }
 });

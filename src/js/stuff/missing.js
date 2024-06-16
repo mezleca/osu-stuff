@@ -89,7 +89,7 @@ export const export_missing = async (id) => {
         const confirm = await add_get_extra_info([{ type: "confirmation", text: "Export from a specific collection?" }]);
 
         if (confirm == null) {
-            add_alert("Cancelled");
+            add_alert("Cancelled", { type: "error" });
             events.emit("progress-end", id);
             in_progress = false
             return;
@@ -110,7 +110,7 @@ export const export_missing = async (id) => {
 
             if (name == null) {
                 events.emit("progress-end", id);
-                add_alert("Cancelled");
+                add_alert("Cancelled", { type: "error" });
                 in_progress = false
                 return;
             }
@@ -118,7 +118,7 @@ export const export_missing = async (id) => {
             missing_maps = missing_maps.filter((a) => { return a.collection_name == name })
     
             if (!missing_maps) {
-                add_alert("collection not found.");
+                add_alert("collection not found.", { type: "error" });
                 return;
             }
             
@@ -156,7 +156,7 @@ export const export_missing = async (id) => {
 
         open_og_folder();
     
-        add_alert("finished export");
+        add_alert("finished export", { type: "success" });
         
         events.emit("progress-end", id);
     } 
@@ -170,7 +170,7 @@ export const export_missing = async (id) => {
 export const missing_download = async (id) => {
 
     if (in_progress) {
-        add_alert("There is already a download for missing stuff");
+        add_alert("There is already a download for missing stuff", { type: "warning" });
         events.emit("progress-end", id);
         return;
     }

@@ -14,19 +14,19 @@ export const download_from_json = async (id) => {
     const p = await add_get_extra_info([{ type: "file", text: 'Make sure your json file have this format:\n["https://osu.ppy.sh/beatmapsets/2114717"]\n\nfile'}]);
 
     if (!p) {
-        add_alert("Failed to get file...");
+        add_alert("Failed to get file...", { type: "error" });
         events.emit("progress-end", id);
         return;
     }
 
     if (in_progress) {
-        add_alert("There is already a download for json stuff");
+        add_alert("There is already a download for json stuff", { type: "warning" });
         events.emit("progress-end", id);
         return;
     }
     
     if (!fs.existsSync(path.resolve(p.path))) {
-        add_alert("\nfile not found\n");
+        add_alert("\nfile not found\n", { type: "error" });
         return;
     }
 
@@ -52,7 +52,7 @@ export const download_from_json = async (id) => {
     }
 
     if (ids.length == 0) {
-        add_alert("hmm\nno maps found in this file ;-;");
+        add_alert("hmm\no maps found in this file ;-;", { type: "error" });
         events.emit("progress-end", id);
         in_progress = false;
         return;
@@ -64,7 +64,7 @@ export const download_from_json = async (id) => {
 
     downloaded_maps.push(...ids);
 
-    add_alert("done download from json");
+    add_alert("done download from json", { type: "success" });
 
     in_progress = false;
 };

@@ -126,7 +126,7 @@ export const remove_maps = async (id) => {
             return;
         }
 
-        add_alert("deleting beatmaps in 2 seconds\nthe app may freeze for a while :3");
+        add_alert("deleting beatmaps in 2 seconds\nthe app may freeze for a while :3", { type: "warning" });
 
         await new Promise(res => setInterval(res, 2000));
 
@@ -186,7 +186,7 @@ export const remove_maps = async (id) => {
         fs.renameSync(path.resolve(config.get("osu_path"), "osu!.db"), path.resolve(config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
         await reader.write_osu_data(off, path.resolve(config.get("osu_path"), "osu!.db"));
 
-        add_alert("done!");
+        add_alert("done!", { type: "success" });
 
         events.emit("progress-end", id);
 
