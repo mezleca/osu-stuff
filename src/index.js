@@ -16,8 +16,12 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
       width: 800,
       height: 600,
+      minWidth: 800,
+      minHeight: 600,
       titleBarStyle: 'hidden',
       frame: true,
+      fullscreenable: false,
+      resizable: false,
       icon: __dirname + "/icon.png",
       webPreferences: {
           devTools: true,
@@ -26,7 +30,7 @@ const createWindow = () => {
           contextIsolation: false,
       },
       titleBarOverlay: {
-        color: '#1f1f1f',
+        color: 'rgb(26, 26, 46)',
         symbolColor: '#ffffff'
       }
     });
@@ -37,6 +41,9 @@ const createWindow = () => {
 
     mainWindow.loadFile(path.join(__dirname, './gui/index.html'));
     mainWindow.setMenuBarVisibility(false);
+
+    // nah
+    mainWindow.on('maximize', () => mainWindow.unmaximize());
 
     ipcMain.handle('is-window-full', () => mainWindow.isMaximized());
     ipcMain.on('close-window', () => app.quit());

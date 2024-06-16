@@ -13,22 +13,29 @@ const change_alert_opacity = (div, value) => {
 
 export const add_alert = async (...texts) => {
 
-    let text = "", type = "default", append_html = false, test = false, color = "rgb(36, 153, 242)", border = "2px solid rgb(0, 103, 181)";
+    const options = {
+        type: "default",
+        append_html: false,
+        test: false,
+        color: "rgb(36, 153, 242)",
+        border: "2px solid rgb(0, 103, 181)",
+        text: "",
+        seconds: 3  
+    };
 
     for (let i = 0; i < texts.length; i++) {
 
         if (typeof texts[i] == "object") {
-            type = texts[i].type || "default";
-            append_html = texts[i].append_html || false;
-            test = texts[i].test || false;
+            options.type = texts[i].type || "default";
+            options.append_html = texts[i].append_html || false;
+            options.test = texts[i].test || false;
+            options.seconds = texts[i].seconds || 3;
             continue;
         }
 
-        if (typeof texts[i] != "string") {
-            continue;
+        if (typeof texts[i] == "string" || typeof texts[i] == "number") {
+            options.text += texts[i] + " "; 
         }
-        
-        text += texts[i] + " "; 
     }
 
     if (alerts.size > max_popup_size) {
@@ -49,16 +56,14 @@ export const add_alert = async (...texts) => {
     div.id = id;
     div.style = `top: ${popup_height}px`;
 
-    console.log(type);
-
-    switch (type) {
+    switch (options.type) {
         case "error":
 
             alert_icon.classList.add("bi");
             alert_icon.classList.add("bi-x-circle-fill");
 
-            color = "rgb(242, 36, 36)";
-            border = "2px solid rgb(181, 0, 0)";
+            options.color = "rgb(242, 36, 36)";
+            options.border = "2px solid rgb(181, 0, 0)";
 
             break;
         case "success":
@@ -66,8 +71,8 @@ export const add_alert = async (...texts) => {
             alert_icon.classList.add("bi");
             alert_icon.classList.add("bi-check-circle-fill");
 
-            color = "rgb(36, 153, 242)";
-            border = "2px solid rgb(0, 103, 181)";
+            options.color = "rgb(36, 153, 242)";
+            options.border = "2px solid rgb(0, 103, 181)";
 
             break;
         case "warning":
@@ -75,8 +80,8 @@ export const add_alert = async (...texts) => {
             alert_icon.classList.add("bi");
             alert_icon.classList.add("bi-exclamation-triangle-fill");
 
-            color = "rgb(227, 227, 79)";
-            border = "2px solid rgb(255, 255, 31)";
+            options.color = "rgb(227, 227, 79)";
+            options.border = "2px solid rgb(255, 255, 31)";
 
             break;
         case "info":
@@ -92,8 +97,8 @@ export const add_alert = async (...texts) => {
             break;
     }
 
-    div.style.backgroundColor = color;
-    div.style.border = border;
+    div.style.backgroundColor = options.color;
+    div.style.border = options.border;
 
     alert_icon.classList.add("alert-icon");
 
@@ -101,10 +106,10 @@ export const add_alert = async (...texts) => {
     alert_close.classList.add("bi-x");
     alert_close.classList.add("alert-close");
 
-    if (append_html) {
-        alert_text.innerHTML = text;
+    if (options.append_html) {
+        alert_text.innerHTML = options.text;
     } else {
-        alert_text.innerText = text;
+        alert_text.innerText = options.text;
     }
         
     div.appendChild(alert_icon);
@@ -124,7 +129,7 @@ export const add_alert = async (...texts) => {
         deleted = true;
     });
 
-    if (append_html) {
+    if (options.append_html) {
         const all = div.querySelectorAll('a[href^="http"]');
 
         for (let i = 0; i < all.length; i++) {
@@ -135,12 +140,12 @@ export const add_alert = async (...texts) => {
         }
     }
 
-    if (test) {
+    if (options.test) {
         return;
     }
 
     // sleep 2 seconds before the fading animation
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, options.seconds * 1000));
 
     let opacity = 255;
 
@@ -161,20 +166,6 @@ export const add_alert = async (...texts) => {
 
     }, 10);
 };
-
-/*
-    add_alert("info", { type: "success", append_html: false });
-
-    // add 1 second delay before adding the warning
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    add_alert("warning 3123123 123 123", { type: "error", append_html: false });
-
-    // add 1 second delay before adding the warning
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    add_alert("default test");
-*/
 
 export const remove_alert = (div, id) => {
     

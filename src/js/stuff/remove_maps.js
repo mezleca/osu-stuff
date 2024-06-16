@@ -126,8 +126,6 @@ export const remove_maps = async (id) => {
             return;
         }
 
-        add_alert("deleting beatmaps in 2 seconds\nthe app may freeze for a while :3", { type: "warning" });
-
         await new Promise(res => setInterval(res, 2000));
 
         reader.osu.beatmaps = filtered_maps;

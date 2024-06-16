@@ -52,7 +52,7 @@ events.on("progress-update", (data) => {
 
     const index = data.i || 0;
     const length = data.l || 0;
-    const perc = (index / length) * 100;
+    const perc = (index / length) * 100 || 0;
 
     status.text.innerText = `${index} / ${length} (${perc.toFixed(0)}%)`;
     status.bar.style.width = `${perc}%`;

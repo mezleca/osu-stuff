@@ -60,7 +60,6 @@ export const download_maps = async (maps, id) => {
     }
 
     console.log("started download for " + id);
-    add_alert("started download");
 
     const new_download = new MapDownloader(maps, id);
 

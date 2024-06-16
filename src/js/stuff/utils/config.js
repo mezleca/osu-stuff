@@ -14,10 +14,10 @@ export const og_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stu
 export let login = null;
 
 const tooltips = {
-    "osu_id": "Your Oauth app id.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and get paste the id</a>",
-    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and get paste the Client secret</a>",
-    "osu_path": "Path to your osu! folder.<br>For example: C:\\osu!",
-    "osu_songs_path": "Path to your osu! songs folder.<br>For example: C:\\osu\\Songs\\",
+    "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
+    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>",
+    "osu_path": "Your osu! folder.<br>For example: C:\\osu!",
+    "osu_songs_path": "Your osu! songs folder.<br>For example: C:\\osu!\\Songs\\",
 }
 
 export const add_config_shit = async () => {
@@ -187,7 +187,7 @@ export const add_config_shit = async () => {
     for (let i = 0; i < all_tooltips.length; i++) {
         all_tooltips[i].addEventListener("click", (e) => {
             const text = tooltips[e.target.id];
-            add_alert(text, true, { append_html: true });
+            add_alert(text, true, { append_html: true, seconds: 5 });
         });
     }
 };

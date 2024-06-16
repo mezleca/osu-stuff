@@ -121,8 +121,8 @@ export const export_missing = async (id) => {
                 add_alert("collection not found.", { type: "error" });
                 return;
             }
-            
-            add_alert("Found:", missing_maps.length, "missing maps");
+
+            console.log("Done finding missing maps");
         }
     
         console.log("\nsearching beatmap id's... ( this might take a while )");
