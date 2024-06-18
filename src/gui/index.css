@@ -183,14 +183,22 @@ button:hover {
     cursor: pointer;
 }
 
-.tab-shit > input {
+input {
     padding: 10px;
     max-width: 100%;
     border: none;
-    border-radius: 5px;
-    margin-top: 10px;
+    border-radius: 2px;
+    height: 2.5em;
+    margin-top: 5px;
     margin-bottom: 20px;
+    justify-self: center;
 }
+
+input:active, input:focus {
+    outline: none;
+}
+
+
 
 hr {
     color: rgba(255, 255, 255, 0.164);
@@ -263,9 +271,8 @@ button:active {
 }
 
 label {
-    font-size: 0.95em;
+    font-size: 1em;
     font-weight: bold;
-    margin-left: -3px;
     height: 1.35em;
 }
 
@@ -370,7 +377,7 @@ label {
     max-width: 70%;
 }
 
-.popup-content-flex label {
+.popup-content-flex > label {
     font-size: 0.95em;
     font-weight: bold;
     margin-left: -3px;
@@ -396,7 +403,7 @@ label {
     padding: 5px;
     font-size: 16px;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 2px;
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 10px;
@@ -409,9 +416,7 @@ label {
 }
 
 .popup-content-flex button {
-    max-width: 45%;
-    min-height: 45%;
-    max-height: 45%;
+    width: 75%;
     margin-right: 10px;
     margin-top: 10px;
     margin-bottom: 10px;
@@ -538,6 +543,38 @@ input[type="range"]::-ms-thumb {
 input[type="range"]:active::-webkit-slider-thumb {
     background-color: #ffffff;
     border: 1px solid #3264fe;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 8px;
+    width: 0.4em;
+    height: 0.4em;
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    cursor: pointer;
+    margin: 0;
+    margin-right: 5px;
+    align-self: center;
+}
+
+.checkbox-container input[type="checkbox"]:checked {
+    background-color: #3264fe;
+    border: 1px solid #3264fe;
+}
+
+.checkbox-container label {
+    color: rgb(253, 255, 226);
+    font-size: 14px;
 }
 
 .slider-thing {

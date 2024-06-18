@@ -71,7 +71,8 @@ export const download_from_players = async (id) => {
         type: "list",
         value: Object.keys(methods),
         important: false,
-        column: true
+        column: true,
+        title: "Select a method"
     }]);
 
     const method = methods[_method];
