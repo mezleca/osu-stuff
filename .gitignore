@@ -142,3 +142,4 @@ package-lock.json
 # some other folders that i create sometimes to test/ etc
 bench/
 test/
+tests/

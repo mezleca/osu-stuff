@@ -44,7 +44,6 @@ export const add_config_shit = async () => {
                 add_alert("invalid osu_id / secret", { type: "error" });
             }
         } catch(e) {
-            console.log(e);
             add_alert("invalid osu_id / secret", { type: "error" });
         }   
     }
@@ -124,7 +123,7 @@ export const add_config_shit = async () => {
         for (let i = 0; i < Dlabels.length; i++) {
 
             const input_value = Dlabels[i].input.value;
-            const label_name = Dlabels[i].label.innerText;
+            const label_name = Dlabels[i].label.children[0].id; // ...
             
             if (input_value == "") {
                 add_alert("Missing value for " + label_name, { type: "error" });
