@@ -1,8 +1,7 @@
-<p align="center" style="font-size: 2em; font-weight: bold;">osu-stuff</p>
-<p align="center" style="font-size: 1em; font-weight: bold;">a app created to do a bunch of osu related stuff</p>
+<h1 align="center">osu-stuff</h1>
 
 <p align="center">
-    <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/src/icon.png"></img>
+    <img width="70%" height="70%" src="https://cdn.discordapp.com/attachments/1197017157393989814/1256717362678333550/image.png?ex=6681c8bf&is=6680773f&hm=76184a1ca543bbb1c7a017cf37bd1a61d816687d3f8bf93b4901216f5ba8d2c1&"></img>
 </p>
 
 terminal version: [osu-stuff-old](https://github.com/mezleca/osu-stuff-old)
