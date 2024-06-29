@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "v1.0.5",
+  "version": "v1.0.6",
   "description": "osu stuff",
   "main": "src/index.js",
   "scripts": {
