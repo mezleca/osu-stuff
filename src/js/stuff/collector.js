@@ -47,10 +47,13 @@ const setup_collector = async (url) => {
     }
 
     const url_array = url.split("/");
-    const collection_id = url_array[url_array.length - 2];
+    const collection_id = url_array.find((a) => Number(a)); // erm
     const osu_file = files.get("osu");
     const is_tournament = url_array.includes("tournaments");
     const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
+
+    console.log(`Fetching collection ${collection_id}...`);
+
     const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await axios.get(collection_url);
     const collection = is_tournament ? Rcollection : Rcollection.data;
 

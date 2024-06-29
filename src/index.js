@@ -30,7 +30,7 @@ const createWindow = () => {
           contextIsolation: false,
       },
       titleBarOverlay: {
-        color: 'rgb(26, 26, 46)',
+        color: '#202020',
         symbolColor: '#ffffff'
       }
     });

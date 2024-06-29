@@ -20,16 +20,16 @@
     <div class="container">
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="tools">tools</button>
-            <button class="tab-button" data-tab="config">config</button>
-            <button class="tab-button" data-tab="status">download status</button>
+            <div class="tab-button active" data-tab="tools">tools</div>
+            <div class="tab-button" data-tab="config">config</div>
+            <div class="tab-button" data-tab="status">download status</div>
         </div>
 
         <div class="tab-content">
             <div class="tab-pane active" id="maps_tab">
 
-                <h1 style="margin-bottom: 10px;">beatmaps stuff</h1>
                 <div class="tab-shit">
+                    <h1 style="margin-bottom: 10px;">beatmaps stuff</h1>
                     <div class="buttons-row">
                         <button id="get_missing_beatmaps" style="max-width: 45%;">get missing beatmaps</button>
                         <button id="export_missing_beatmaps" style="max-width: 45%;">export missing beatmaps</button>
@@ -37,11 +37,10 @@
                         <button id="download_from_json" style="max-width: 45%;">download from json</button>
                         <button id="get_player_beatmaps" style="max-width: 45%;">get player beatmaps</button>
                     </div>
-
                 </div>
 
-                <h1>osu!Collector stuff</h1>
                 <div class="tab-shit">
+                    <h1>osu!Collector stuff</h1>
                     <label for="oscurl">url</label>
                     <input type="url" name="oscurl" id="oscurl">
                     <div class="buttons-row">

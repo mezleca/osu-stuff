@@ -49,12 +49,13 @@ export const add_config_shit = async () => {
     }
 
     const config_tab = document.createElement("div");
-    const h1 = document.createElement("h1");
 
+    const h1 = document.createElement("h1");
     h1.innerText = "Config";
 
+    config_tab.appendChild(h1);
+
     config_tab.classList.add("tab-shit");
-    document.getElementById("config_tab").appendChild(h1);
     
     const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
 

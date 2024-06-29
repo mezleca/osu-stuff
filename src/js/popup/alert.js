@@ -217,6 +217,12 @@ export const add_get_extra_info = (infoArray) => {
     });
 };
 
+const remove_popup = async (popup) => {
+    popup.classList.add("removed");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    document.body.removeChild(popup);
+};
+
 const createConfirmationPopup = (text, resolve, important) => {
 
     const div = document.createElement("div");
@@ -234,7 +240,7 @@ const createConfirmationPopup = (text, resolve, important) => {
 
     yesButton.addEventListener("click", () => {
         resolve("Yes");
-        document.body.removeChild(div);
+        remove_popup(div);
     });
 
     const noButton = document.createElement("button");
@@ -242,7 +248,7 @@ const createConfirmationPopup = (text, resolve, important) => {
 
     noButton.addEventListener("click", () => {
         resolve("No");
-        document.body.removeChild(div);
+        remove_popup(div);
     });
 
     content.appendChild(yesButton);
@@ -255,7 +261,7 @@ const createConfirmationPopup = (text, resolve, important) => {
     if (!important) {
         div.addEventListener("click", (event) => {
             if (event.target === div) {
-                document.body.removeChild(div);
+                remove_popup(div);
                 resolve(null);
             }
         });
@@ -288,7 +294,7 @@ const createInputPopup = (text, resolve, important, type) => {
         }
 
         resolve(input.value);
-        document.body.removeChild(div);   
+        remove_popup(div); 
     });
 
     content.appendChild(submitButton);
@@ -301,7 +307,7 @@ const createInputPopup = (text, resolve, important, type) => {
 
     div.addEventListener("click", (event) => {
         if (event.target === div) {
-            document.body.removeChild(div);
+            remove_popup(div);
             resolve(null);
         }
     });
@@ -329,7 +335,7 @@ const createFilePopup = (text, resolve, important) => {
     submitButton.addEventListener("click", () => {
         if (fileInput.files.length > 0) {
             resolve(fileInput.files[0]);
-            document.body.removeChild(div);
+            remove_popup(div);
         } else {
             alert("Please select a file");
         }
@@ -345,7 +351,7 @@ const createFilePopup = (text, resolve, important) => {
 
     div.addEventListener("click", (event) => {
         if (event.target === div) {
-            document.body.removeChild(div);
+            remove_popup(div);
             resolve(null);
         }
     });
@@ -372,7 +378,7 @@ const createListPopup = (values, resolve, important, column, title) => {
         button.innerText = value;
         button.addEventListener("click", () => {
             resolve(value);
-            document.body.removeChild(div);
+            remove_popup(div);
         });
         content.appendChild(button);
     });
@@ -383,7 +389,7 @@ const createListPopup = (values, resolve, important, column, title) => {
     if (!important) {
         div.addEventListener("click", (event) => {
             if (event.target === div) {
-                document.body.removeChild(div);
+                remove_popup(div);
                 resolve(null);
             }
         });
@@ -484,13 +490,13 @@ export const createCustomList = (status, id) => {
             }
 
             resolve({ min_sr: parseInt(min_sr.value), max_sr: parseInt(max_sr.value), status, exclude_collections, sr_enabled });
-            document.body.removeChild(div);
+            remove_popup(div);
         });
 
         const div = document.querySelector(".popup-container");
         div.addEventListener("click", (event) => {
             if (event.target === div) {
-                document.body.removeChild(div);
+                remove_popup(div);
                 events.emit("progress-end", id);
                 reject("Cancelled");
             }
