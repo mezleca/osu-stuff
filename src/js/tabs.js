@@ -3,7 +3,6 @@ const all_content = [...document.querySelectorAll(".tab-pane")];
 
 import { events } from "./tasks/events.js";
 import { add_alert } from "./popup/alert.js";
-import { add_config_shit } from "./stuff/utils/config.js";
 
 export const current_tasks = new Map();
 
@@ -66,5 +65,3 @@ export const add_task = (data, type) => {
 
     events.emit("task-start", { id: id, type: type, ...data});
 };
-
-add_config_shit();

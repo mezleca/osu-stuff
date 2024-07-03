@@ -20,44 +20,61 @@ const tooltips = {
     "osu_songs_path": "Your osu! songs folder.<br>For example: C:\\osu!\\Songs\\",
 }
 
-export const add_config_shit = async () => {
+export const setup_tooltip = () => {
 
-    // TODO: rewrite this horrendous code
+    const all_tooltips = document.querySelectorAll(".tooltip");
+    
+    for (let i = 0; i < all_tooltips.length; i++) {
+        all_tooltips[i].addEventListener("click", (e) => {
+            const text = tooltips[e.target.id];
+            add_alert(text, true, { append_html: true, seconds: 5 });
+        });
+    }
+}
+
+export const osu_login = async (id, secret) => {
+
+    const auth_login = await check_login(id, secret);
+
+    if (!auth_login || !auth_login.access_token) {
+        return null;
+    }
+
+    return auth_login;
+}
+
+export const get_files = (osu) => {
+
+    const osu_file = fs.readFileSync(path.resolve(osu, "osu!.db"));
+    const collection_file = fs.readFileSync(path.resolve(osu, "collection.db"));
+
+    if (!osu_file || !collection_file) {
+        add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
+        return;
+    }
+
+    files.set("osu", osu_file);
+    files.set("collection", collection_file);
+}
+
+export const add_config_shit = async () => {
 
     const config_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff", "config.json");
     
     if (!fs.existsSync(og_path)) {
-        console.log(og_path);
         fs.mkdirSync(og_path);
     }
 
     const options = fs.existsSync(config_path) ? JSON.parse(fs.readFileSync(config_path, "utf-8")) : { osu_id: "", osu_secret: "", osu_path: "", osu_songs_path: "" };
+    const can_login = options.osu_id && options.osu_secret;
 
     if (!fs.existsSync(config_path)) {
         fs.writeFileSync(config_path, JSON.stringify(options));
     }
 
-    if (options.osu_id && options.osu_secret) {
-        try {
-            login = await check_login(options.osu_id, options.osu_secret);
-            if (login == null) {
-                add_alert("invalid osu_id / secret", { type: "error" });
-            }
-        } catch(e) {
-            add_alert("invalid osu_id / secret", { type: "error" });
-        }   
+    if (can_login) {
+        await osu_login(options.osu_id, options.osu_secret);   
     }
-
-    const config_tab = document.createElement("div");
-
-    const h1 = document.createElement("h1");
-    h1.innerText = "Config";
-
-    config_tab.appendChild(h1);
-
-    config_tab.classList.add("tab-shit");
-    
-    const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
 
     const osu = path.resolve(process.env.APPDATA, "..", "Local", "osu!");
     const songs = path.resolve(process.env.APPDATA, "..", "Local", "osu!", "Songs");
@@ -70,7 +87,7 @@ export const add_config_shit = async () => {
     }
 
     if (osu_path && !options.osu_path) { 
-        options.osu_path = osu 
+        options.osu_path = osu;
     }
 
     if (!songs_path && !options.osu_songs_path) {
@@ -78,48 +95,49 @@ export const add_config_shit = async () => {
     }
 
     if (songs_path && !options.osu_songs_path) { 
-        options.osu_songs_path = songs
+        options.osu_songs_path = songs;
     }
+
+    const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
+    const label_content = [];
 
     for (let i = 0; i < labels.length; i++) {
         
         const label_name = labels[i];
 
-        if (options[label_name]) {
-            config.set(label_name, options[label_name]);
-        }
+        label_content.push(
+            `
+                <div class="input-container">
+                    <label for="${label_name}">
+                        ${label_name}
+                        <div class="tooltip" id="${label_name}">(?)</div>
+                    </label>
+                    <input type="text" name="${label_name}" id="${label_name}" value="${options[label_name]}">        
+                </div>
 
-        const label = document.createElement("label");
-        label.setAttribute("for", label_name);
-        label.innerText = label_name;
-
-        const input = document.createElement("input");
-        input.setAttribute("name", label_name);
-
-        const toolbox = document.createElement("div");
-        
-        toolbox.classList.add("tooltip");
-        toolbox.id = label_name;
-        toolbox.innerText = "(?)";
-
-        label.appendChild(toolbox);
-
-        input.type = label_name == "osu_id" || label_name == "osu_secret" ? "password" : "text";
-        input.value = options[label_name];
-
-        Dlabels.push({ label: label, input: input });
-
-        config_tab.appendChild(label);
-        config_tab.appendChild(input);
+            `
+        )
     }
 
-    const update_btn = document.createElement("button");
-    update_btn.classList.add("update_config");
-    update_btn.innerText = "update";
+    const html = 
+    `
+    <div class="tab-shit">
+        <h1>Config</h1>
+        ${label_content.join("")}
+        <button class="update_config">update</button>
+    </div>
+    `
 
-    config_tab.appendChild(update_btn);
+    document.getElementById("config_tab").insertAdjacentHTML("afterbegin", html);
 
-    update_btn.addEventListener("click", async () => {
+    if (!options.osu_path || !options.osu_songs_path) {
+        add_alert("Failed to get osu / songs directory\nMake sure the path is correct", { type: "error" });       
+        return;
+    }
+
+    get_files(options.osu_path);
+
+    document.querySelector(".update_config").addEventListener("click", async () => {
 
         for (let i = 0; i < Dlabels.length; i++) {
 
@@ -135,59 +153,26 @@ export const add_config_shit = async () => {
             options[label_name] = input_value;
         }
 
-        // check if the login shit is valid
-        login = await check_login(options.osu_id, options.osu_secret);
-
-        if (login == null) {
-            add_alert("invalid osu_id / secret", { type: "error" });
+        const login = await osu_login(options.osu_id, options.osu_secret);
+        
+        if (!login) {
+            add_alert("Failed to login", { type: "error" });
             return;
         }
 
-        if (config.get("osu_path") && config.get("osu_songs_path")) {
-
-            const osu_file = fs.readFileSync(path.resolve(config.get("osu_path"), "osu!.db"));
-            const collection_file = fs.readFileSync(path.resolve(config.get("osu_path"), "collection.db"));
-
-            if (!osu_file || !collection_file) {
-                add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
-                return;
-            }
-    
-            files.set("osu", osu_file);
-            files.set("collection", collection_file);         
-        } 
-        else {
-            add_alert("Failed to get osu directory\nMake sure the path is correct", { type: "error" });
+        if (!config.get("osu_path") || !config.get("osu_songs_path")) {
+            add_alert("Failed to get osu / songs directory\nMake sure the path is correct", { type: "error" });            
+            return;
         }
+
+        get_files(config.get("osu_path"));
 
         fs.writeFileSync(config_path, JSON.stringify(options, null, 4));
 
         add_alert("config updated", { type: "success" });
     });
 
-    // get files
-    if (options.osu_path && options.osu_songs_path) {
+    setup_tooltip();
 
-        const osu_file = fs.readFileSync(path.resolve(options.osu_path, "osu!.db"));
-        const collection_file = fs.readFileSync(path.resolve(options.osu_path, "collection.db"));
-
-        if (!osu_file || !collection_file) {
-            add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
-            return;
-        }
-
-        files.set("osu", osu_file);
-        files.set("collection", collection_file);
-    }
-
-    document.getElementById("config_tab").appendChild(config_tab);
-
-    const all_tooltips = document.querySelectorAll(".tooltip");
-    
-    for (let i = 0; i < all_tooltips.length; i++) {
-        all_tooltips[i].addEventListener("click", (e) => {
-            const text = tooltips[e.target.id];
-            add_alert(text, true, { append_html: true, seconds: 5 });
-        });
-    }
+    console.log("config loaded");
 };

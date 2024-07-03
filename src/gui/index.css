@@ -1,5 +1,4 @@
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css");
-/* @import url('https://fonts.cdnfonts.com/css/franklin-gothic'); */
 
 :root {
     --bg-color: #202020;
@@ -33,7 +32,6 @@ body::-webkit-scrollbar {
     display: none;
 }
 
-/* create a fixed border around all the website */
 .border {
     position: fixed;
     top: 0;
@@ -606,4 +604,32 @@ a {
     color: rgb(58, 218, 247);
     text-decoration: underline;
     cursor: pointer;
+}
+
+#loading-screen {
+    z-index: 10000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.2s ease-out, background-color 0.3s ease;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--button-color);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
