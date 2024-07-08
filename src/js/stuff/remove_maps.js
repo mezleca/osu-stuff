@@ -126,7 +126,7 @@ export const remove_maps = async (id) => {
             return;
         }
 
-        await new Promise(res => setInterval(res, 2000));
+        add_alert("removing beatmaps...");
 
         reader.osu.beatmaps = filtered_maps;
 
