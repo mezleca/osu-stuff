@@ -1,15 +1,8 @@
 import { add_config_shit } from "./stuff/utils/config.js";
-
-/* 
-* Wait for the DOM to be loaded before loading the scripts
-* So the user know the app is still loading and not frozen.
-*/
+import * as fn from "./functions.js";
 
 const remove_loading_screen = async (tab) => {
-
-    // wait the fading animation (200ms)
     await new Promise(resolve => setTimeout(resolve, 200));
-
     document.body.removeChild(tab);
 }
 

@@ -15,7 +15,7 @@ const all_content = [...document.querySelectorAll(".tab-pane")];
 events.on("task-start", (data) => {
 
     const option = data.type;
-
+    
     switch (option) {
         case "collector":
             download_collector(data.id, data.url)

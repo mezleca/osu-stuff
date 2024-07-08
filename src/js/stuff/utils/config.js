@@ -37,8 +37,12 @@ export const osu_login = async (id, secret) => {
     const auth_login = await check_login(id, secret);
 
     if (!auth_login || !auth_login.access_token) {
+        add_alert("Failed to login", { type: "error" });
+        console.log("Failed to login");
         return null;
     }
+
+    login = auth_login;
 
     return auth_login;
 }
@@ -66,7 +70,7 @@ export const add_config_shit = async () => {
     }
 
     const options = fs.existsSync(config_path) ? JSON.parse(fs.readFileSync(config_path, "utf-8")) : { osu_id: "", osu_secret: "", osu_path: "", osu_songs_path: "" };
-    const can_login = options.osu_id && options.osu_secret;
+    const can_login = (options.osu_id && options.osu_secret) ? true : false;
 
     if (!fs.existsSync(config_path)) {
         fs.writeFileSync(config_path, JSON.stringify(options));
