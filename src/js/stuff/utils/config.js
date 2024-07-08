@@ -109,6 +109,8 @@ export const add_config_shit = async () => {
         
         const label_name = labels[i];
 
+        config.set(label_name, options[label_name]);
+
         label_content.push(
             `
                 <div class="input-container">
