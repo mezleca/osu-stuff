@@ -1,7 +1,7 @@
 <h1 align="center">osu-stuff</h1>
 
 <p align="center">
-    <img width="70%" height="70%" src="..."></img>
+    <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/src/images/menu.png"></img>
 </p>
 
 > [!NOTE] 
