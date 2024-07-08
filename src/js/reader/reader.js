@@ -1,7 +1,6 @@
 import { osu_db, collections_db } from "./definitions.js";
 
 const fs = require("fs");
-const path = require("path");
 
 export class OsuReader {
 
@@ -276,9 +275,11 @@ export class OsuReader {
 
         return new Promise(async (resolve) => {
 
-            if (!this.osu.beatmaps) {
+            if (this.osu.beatmaps?.length) {
                 resolve();
             }
+
+            console.log("Reading osu! data...");
 
             const beatmaps = [];
 
@@ -328,8 +329,6 @@ export class OsuReader {
                 data.slider_velocity = this.#double();
                 data.sr = [];
                 data.timing_points = [];
-
-                // console.log(data);
 
                 for (let i = 0; i < 4; i++) {
 
@@ -443,6 +442,12 @@ export class OsuReader {
     get_collections_data = (limit) => {
 
         return new Promise(async (resolve) => {
+
+            if (this.collections?.beatmaps) {
+                return resolve(this.collections);
+            }
+
+            console.log("Reading collections data...");
 
             const beatmaps = [];
 

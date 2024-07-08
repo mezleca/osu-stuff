@@ -1,14 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 
-import { config } from "./config.js";
-import { add_alert } from "../../popup/alert.js";
-import { events } from "../../tasks/events.js";
-import { login } from "./config.js";
+import { config } from "../config/config.js";
+import { add_alert } from "../../../popup/alert.js";
+import { events } from "../../../tasks/events.js";
+import { login } from "../config/config.js";
 
 import pMap from 'https://cdn.jsdelivr.net/npm/p-map@7.0.2/+esm';
 
 const downloaded_maps = [];
+const is_testing = process.env.NODE_ENV == "cleide";
 
 export const search_map_id = async (hash) => {
 
@@ -33,12 +34,16 @@ export const search_map_id = async (hash) => {
         return data;
 
     } catch(err) {
-        //console.log(err);
+        console.log("Failed to search map id", id);
         return null;
     }
 };
 
 export let mirrors = [
+    {
+        name: "beatconnect",
+        url: "https://beatconnect.io/b/"
+    },
     {
         name: "direct",
         url: "https://api.osu.direct/d/"
@@ -47,10 +52,6 @@ export let mirrors = [
         name: "nerinyan",
         url: "https://api.nerinyan.moe/d/"
     },
-    {
-        name: "beatconnect",
-        url: "https://beatconnect.io/b/"
-    }
 ];
 
 export const download_maps = async (maps, id) => {
@@ -59,7 +60,10 @@ export const download_maps = async (maps, id) => {
         return add_alert("Missing id", { type: "error" });
     }
 
-    console.log("started download for " + id);
+    if (maps) {
+        add_alert("started download for\n" + id);
+        console.log("started download for " + id, maps);
+    }
 
     const new_download = new MapDownloader(maps, id);
 
@@ -74,11 +78,6 @@ class MapDownloader {
         this.m_length = 0;
         this.id = id;
         this.log = "";
-    }
-
-    finish = (id) => {
-        add_alert("Finished downloading", id, { type: "success" });
-        events.emit("progress-end", this.id);
     };
 
     get_progress = () => {
@@ -206,6 +205,7 @@ class MapDownloader {
             }
 
             if (downloaded_maps.includes(beatmap.beatmapset_id)) {
+                console.log(`beatmap: ${beatmap.beatmapset_id} is already downloaded`);
                 return;
             }
     
@@ -218,7 +218,7 @@ class MapDownloader {
     
         try {
 
-            if (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`))) {
+            if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`)))) {
                 console.log(`beatmap: ${map.id} already exists in your songs folder`);
                 return;
             }
@@ -232,6 +232,12 @@ class MapDownloader {
 
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
 
+            downloaded_maps.push(map.id);
+
+            if (is_testing) {
+                return;
+            }
+            
             fs.writeFileSync(Path, Buffer.from(osz_buffer));
         }
         catch(err) {
@@ -250,8 +256,6 @@ class MapDownloader {
 
         await pMap(this.maps, this.download, { concurrency: 5 });
 
-        console.log("Finished downloading");
-
-        this.finish(this.id);
+        events.emit("progress-end", this.id, true);
     } 
 };

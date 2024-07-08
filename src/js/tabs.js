@@ -59,9 +59,5 @@ export const add_task = (data, type) => {
     const dtab = document.getElementById("download_tab");
 
     current_tasks.set(id, { started: false, tab: dtab, Fdiv: tab, bar: bar, text: h2 });
-
-    // TODO: enable progress stuff when the task actually start.
-    dtab.appendChild(tab);
-
-    events.emit("task-start", { id: id, type: type, ...data});
+    events.emit("task-start", { id: id, type: type, ...data, dtab, tab});
 };

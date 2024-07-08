@@ -1,21 +1,15 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "v1.0.7",
+  "version": "v1.0.9",
   "description": "osu stuff",
   "main": "src/index.js",
   "scripts": {
+    "start": "electron .",
     "dev": "cross-env NODE_ENV=cleide electron .",
     "make": "electron-builder"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.4.0",
-    "@electron-forge/maker-deb": "^7.4.0",
-    "@electron-forge/maker-rpm": "^7.4.0",
-    "@electron-forge/maker-squirrel": "^7.4.0",
-    "@electron-forge/maker-zip": "^7.4.0",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
-    "@electron-forge/plugin-fuses": "^7.4.0",
     "@electron/fuses": "^1.8.0",
     "autoprefixer": "^10.4.19",
     "electron": "30.0.7",
@@ -50,6 +44,7 @@
   "dependencies": {
     "axios": "^1.7.2",
     "cross-env": "^7.0.3",
+    "electron-localshortcut": "^3.2.1",
     "electron-reload": "^2.0.0-alpha.1",
     "electron-squirrel-startup": "^1.0.1",
     "osu-api-extended": "^2.8.4",

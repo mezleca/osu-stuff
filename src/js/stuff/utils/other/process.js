@@ -1,10 +1,8 @@
 const { exec } = require("child_process");
 
-import { og_path } from "./config.js";
+export const open_folder = (path) => {
 
-export const open_og_folder = () => {
-
-    const cmd = `start "" "${og_path}"`;
+    const cmd = `start "" "${path}"`;
 
     exec(cmd, (err, stdout, stderr) => {
         if (err) {

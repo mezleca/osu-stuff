@@ -4,7 +4,9 @@
     <img width="70%" height="70%" src="https://cdn.discordapp.com/attachments/1197017157393989814/1256717362678333550/image.png?ex=6681c8bf&is=6680773f&hm=76184a1ca543bbb1c7a017cf37bd1a61d816687d3f8bf93b4901216f5ba8d2c1&"></img>
 </p>
 
-terminal version: [osu-stuff-old](https://github.com/mezleca/osu-stuff-old)
+> [!NOTE] 
+> In case you find any errors, please open the devtools by pressing "F12" and share the logs on my [osu](https://osu.ppy.sh/users/mzle) dm or in a issue in this repo.
+> Make sure you dont leak any information like osuid / osusecret.
 
 # Setup Instructions
 You can download the stable version for windows using the [releases](https://github.com/mezleca/osu-stuff/releases/) tab on this repository.
@@ -36,4 +38,5 @@ In case you wanna use the latest version, follow the Build Instructions.
 5. In case you just wanna start without any build process, just run:
     ```
     npm run dev
+    
     ```

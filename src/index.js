@@ -1,5 +1,6 @@
 const path = require('node:path');
 const electronReload = require('electron-reload');
+const electronShortcut = require('electron-localshortcut');
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 
@@ -38,6 +39,14 @@ const createWindow = () => {
     if (process.env.NODE_ENV == "cleide") {
         mainWindow.webContents.openDevTools();
     }
+
+    electronShortcut.register(mainWindow, 'F12', () => {
+        mainWindow.webContents.openDevTools();
+    });
+
+    electronShortcut.register(mainWindow, 'Ctrl+R', () => {
+        mainWindow.reload();
+    });
 
     mainWindow.loadFile(path.join(__dirname, './gui/index.html'));
     mainWindow.setMenuBarVisibility(false);

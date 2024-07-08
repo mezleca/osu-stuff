@@ -4,9 +4,10 @@ const path = require("path");
 
 const Dlabels = [];
 
-import { add_alert } from "../../popup/alert.js";
-import { files } from "../collector.js";
-import { check_login } from "./login.js";
+import { add_alert } from "../../../popup/alert.js";
+import { files } from "../../collector.js";
+import { check_login } from "../other/login.js";
+import { reader } from "../../collector.js";
 
 export const config = new Map();
 export const og_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff");
@@ -47,7 +48,18 @@ export const osu_login = async (id, secret) => {
     return auth_login;
 }
 
-export const get_files = (osu) => {
+export const update_status = (status) => {
+
+    const status_div = document.querySelector(".loading-status");
+
+    if (!status_div) {
+        return;
+    }
+
+    status_div.innerText = status;
+}
+
+export const get_files = async (osu) => {
 
     const osu_file = fs.readFileSync(path.resolve(osu, "osu!.db"));
     const collection_file = fs.readFileSync(path.resolve(osu, "collection.db"));
@@ -57,11 +69,27 @@ export const get_files = (osu) => {
         return;
     }
 
+    update_status("Reading collection file...");
+
     files.set("osu", osu_file);
     files.set("collection", collection_file);
+    
+    reader.set_type("collection");
+    reader.set_buffer(collection_file, true);
+    await reader.get_collections_data();
+
+    update_status("Reading osu.db file...");
+
+    reader.set_type("osu")
+    reader.set_buffer(osu_file, true);
+    await reader.get_osu_data();
+
+    console.log(reader);
 }
 
 export const add_config_shit = async () => {
+
+    update_status("Checking config...");
 
     const config_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff", "config.json");
     
@@ -118,7 +146,7 @@ export const add_config_shit = async () => {
                         ${label_name}
                         <div class="tooltip" id="${label_name}">(?)</div>
                     </label>
-                    <input type="text" name="${label_name}" id="${label_name}" value="${options[label_name]}">        
+                    <input type="${label_name == "osu_id" || label_name == "osu_secret" ? "password" : "text"}" name="${label_name}" id="${label_name}" value="${options[label_name]}">        
                 </div>
 
             `
@@ -141,7 +169,7 @@ export const add_config_shit = async () => {
         return;
     }
 
-    get_files(options.osu_path);
+    await get_files(options.osu_path);
 
     document.querySelector(".update_config").addEventListener("click", async () => {
 
@@ -171,7 +199,7 @@ export const add_config_shit = async () => {
             return;
         }
 
-        get_files(config.get("osu_path"));
+        await get_files(config.get("osu_path"));
 
         fs.writeFileSync(config_path, JSON.stringify(options, null, 4));
 

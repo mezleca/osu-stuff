@@ -5,11 +5,12 @@ const path = require("path");
 import { OsuReader } from "../reader/reader.js";
 import { events } from "../tasks/events.js";
 import { add_alert } from "../popup/alert.js";
-import { download_maps } from "./utils/download_maps.js";
-import { login, config } from "./utils/config.js";
+import { login, config } from "./utils/config/config.js";
 
 export const reader = new OsuReader();
 export const files  = new Map();
+
+const is_testing = process.env.NODE_ENV == "cleide";
 
 const get_tournament_maps = async(id) => {
 
@@ -35,19 +36,16 @@ const get_tournament_maps = async(id) => {
     return collection;
 };
 
-const setup_collector = async (url) => {
-
-    const task_id = collector_queue[0].id;
+const setup_collector = async (url, id) => {
 
     if (!login) {
         add_alert("forgot to configurate? :P");
-        events.emit("progress-end", task_id);
         console.log("\nPlease restart the script to use this feature\n");
         return;
     }
 
     const url_array = url.split("/");
-    const collection_id = url_array.find((a) => Number(a)); // erm
+    const collection_id = url_array.find((a) => Number(a));
     const osu_file = files.get("osu");
     const is_tournament = url_array.includes("tournaments");
     const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
@@ -59,20 +57,18 @@ const setup_collector = async (url) => {
 
     if (Rcollection.status != 200) {
         add_alert("invalid collection", { type: "error" });
-        events.emit("progress-end", task_id);
         return;
     }
 
     if (!collection.beatmapsets) {
-        add_alert("Failed to get collection from osu collector", { type: "error" });
-        events.emit("progress-end", task_id);
+        add_alert("Failed to get collection from osuo cllector", { type: "error" });
         return;
     }
 
     reader.set_type("osu");
     reader.set_buffer(osu_file, true);
 
-    if (!reader.osu.beatmaps) {
+    if (!reader.osu.beatmaps?.length) {
         console.log("reading osu.db file...\n");
         await reader.get_osu_data();
     }
@@ -101,94 +97,62 @@ const setup_collector = async (url) => {
     return { maps: maps, c_maps: collection_hashes, collection: collection };
 };
 
-const collector_queue = [];
-let interval;
+export const download_collector = async (url, id) => {
 
-const interval_func = async (id) => {
-
-    if (collector_queue.length == 0) {
-        return;
-    }
-
-    const queue = collector_queue[0];
-
-    if (queue.status == "wip") {
-        return;
-    }
-    
-    if (queue.status == "waiting") {
-        console.log("Found a task", queue);
-        await queue.init();
-    }
-
-    if (queue.status == "finished") {
-        console.log("Finished task");
-        collector_queue.shift();
-    }
-};
-
-const init_func = async () => {
-
-    const queue = collector_queue[0];
-
-    const { id, url } = queue;
-
-    queue.status = "wip";
-
-    events.emit("progress-update", { id: id, perc: 0 });
+    return new Promise(async (resolve, reject) => {
+        
+        events.emit("progress-update", { id: id, perc: 0 });
   
-    const url_array = url.split("/");
-    const collection_id = url_array[url_array.length - 2];
+        const url_array = url.split("/");
+        const collection_id = url_array[url_array.length - 2];
 
-    if (!collection_id) {
-        add_alert("invalid URL", { type: "error" });
-        events.emit("progress-end", id);
-        collector_queue.shift();
-        return;
-    }
+        if (!collection_id) {
+            reject("invalid url");
+            return;
+        }
 
-    const { maps } = await setup_collector(url);
+        const setup = await setup_collector(url);
 
-    await download_maps(maps, id);
-
-    queue.status = "finished";
-};
-
-export const download_collector = async (url, task_id) => {
-
-    if (!interval) { 
-        interval = setInterval(interval_func, 1000);
-    }
-
-    collector_queue.push({ status: "waiting", url: url, init: init_func, id: task_id});
+        resolve(setup.maps);
+    });
 }
 
 export const add_collection = async (url) => {
 
-    const { c_maps, collection } = await setup_collector(url);
+    return new Promise(async (resolve, reject) => {
 
-    const collection_file = files.get("collection");
+        const { c_maps, collection } = await setup_collector(url);
 
-    reader.set_type("collection");
-    reader.set_buffer(collection_file, true);
-
-    if (reader.collections.length == 0) {
-        await reader.get_collections_data();
-    }
-
-    reader.collections.beatmaps.push({
-        name: "!stuff - " + collection.name,
-        maps: c_maps
+        const collection_file = files.get("collection");
+    
+        reader.set_type("collection");
+        reader.set_buffer(collection_file, true);
+    
+        if (reader.collections.beatmaps?.length == 0) {
+            await reader.get_collections_data();
+        }
+    
+        reader.collections.beatmaps.push({
+            name: "!stuff - " + collection.name,
+            maps: c_maps
+        });
+    
+        reader.collections.beatmaps.length++;
+    
+        if (is_testing) {
+            resolve(`Your collection file has been updated!`);
+            return;
+        }
+    
+        // backup 
+        const backup_name = `collection_backup_${Date.now()}.db`;
+        fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
+    
+        // write the new file
+        reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
+    
+        resolve(`Your collection file has been updated!`);
     });
 
-    reader.collections.length++;
-
-    // backup 
-    const backup_name = `collection_backup_${Date.now()}.db`;
-    fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
-
-    // write the new file
-    reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
-
-    add_alert(`\nYour collection file has been updated!\nA backup file named ${backup_name} has been created in your osu directory\nrename it to collection.db in case the new one is corrupted`, { type: "success" });
+    
 }

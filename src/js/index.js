@@ -1,4 +1,4 @@
-import { add_config_shit } from "./stuff/utils/config.js";
+import { add_config_shit } from "./stuff/utils/config/config.js";
 import * as fn from "./functions.js";
 
 const remove_loading_screen = async (tab) => {
