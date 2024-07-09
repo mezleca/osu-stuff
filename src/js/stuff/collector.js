@@ -40,36 +40,42 @@ const setup_collector = async (url, id) => {
 
     if (!login) {
         add_alert("forgot to configurate? :P");
-        console.log("\nPlease restart the script to use this feature\n");
-        return;
+        console.log("[Collector] Login not found\n");
+        return null;
     }
 
     const url_array = url.split("/");
     const collection_id = url_array.find((a) => Number(a));
+
+    if (!collection_id) {
+        add_alert("invalid url", { type: "error" });
+        return null;
+    }
+
     const osu_file = files.get("osu");
     const is_tournament = url_array.includes("tournaments");
     const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
 
-    console.log(`Fetching collection ${collection_id}...`);
+    console.log(`[Collector] Fetching collection ${collection_id}...`);
 
     const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await axios.get(collection_url);
     const collection = is_tournament ? Rcollection : Rcollection.data;
 
     if (Rcollection.status != 200) {
         add_alert("invalid collection", { type: "error" });
-        return;
+        return null;
     }
 
     if (!collection.beatmapsets) {
         add_alert("Failed to get collection from osuo cllector", { type: "error" });
-        return;
+        return null;
     }
 
     reader.set_type("osu");
     reader.set_buffer(osu_file, true);
 
     if (!reader.osu.beatmaps?.length) {
-        console.log("reading osu.db file...\n");
+        console.log("[Collector] reading osu.db file...\n");
         await reader.get_osu_data();
     }
 
@@ -113,6 +119,11 @@ export const download_collector = async (url, id) => {
 
         const setup = await setup_collector(url);
 
+        if (!setup) {
+            reject("Invalid collection");
+            return;
+        }
+
         resolve(setup.maps);
     });
 }
@@ -152,7 +163,5 @@ export const add_collection = async (url) => {
         reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
     
         resolve(`Your collection file has been updated!`);
-    });
-
-    
+    });  
 }

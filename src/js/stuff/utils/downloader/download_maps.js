@@ -112,13 +112,10 @@ class MapDownloader {
 
                 mirrors.push(current_mirror);
 
-                this.log = `gateway error in: ${url}`;
-
                 return null;
             }
 
             if (response.status != 200) {
-                console.log(`failed to download: ${id}`);
                 return null;
             }
 
@@ -133,8 +130,6 @@ class MapDownloader {
             return buffer;
 
         } catch(err) {
-            console.log(err);
-            this.log = `failed to download: ${id}`;
             return null;
         }
     }
@@ -241,7 +236,7 @@ class MapDownloader {
             fs.writeFileSync(Path, Buffer.from(osz_buffer));
         }
         catch(err) {
-            console.log(err);
+            //console.log(err);
         }
     }
 

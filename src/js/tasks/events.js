@@ -14,22 +14,74 @@ import { download_maps } from "../stuff/utils/downloader/download_maps.js";
 const queue = [];
 const all_content = [...document.querySelectorAll(".tab-pane")];
 
+const create_queue_div = () => {
+
+    console.log("[Create Queue] Creating Queue Div");
+
+    const html = 
+    `
+    <div class="tab-shit download-shit" id="queue list">
+        <h1>queue list</h1>
+        <div class="queue-list">
+            
+        </div>
+    </div>
+    `;
+
+    all_content[2].insertAdjacentHTML("afterbegin", html);
+};
+
+const update_queue_div = (id) => {
+
+    const div_exist = document.querySelector(".queue-list");
+
+    if (!div_exist && queue.length != 0) {
+        create_queue_div();
+    }
+
+    if (queue.length == 0 && div_exist) {
+        all_content[2].removeChild(document.getElementById("queue list"));
+        return;
+    }
+
+    if (queue.length <= 1) {
+        return;
+    }
+
+    const div = document.querySelector(".queue-list");
+    const html = `<h1 class="queue-item" id="${id}">${id}</h1>`;
+
+    div.insertAdjacentHTML("afterbegin", html);
+};
+
+const remove_queue_div = (id) => {
+
+    console.log("[Remove Queue] Removing Queue Div", id);
+
+    const div = document.querySelector(`.queue-item[id="${id}"]`);
+
+    if (div) {
+        document.querySelector(".queue-list").removeChild(div);
+    }
+}
+
 // queue interval
 setInterval(() => {
    
     if (queue.length == 0) {
+        update_queue_div(0);
         return;
     }
 
     const _queue = queue[0];
 
     if (_queue.status == "wip") {
-        console.log("Theres a download in progress", queue);
         return;
     }
 
     if (_queue.status == "finished") {
         queue.shift();
+        remove_queue_div(_queue.id);
         return;
     }
 
@@ -37,66 +89,48 @@ setInterval(() => {
 
     events.emit("progress-update", { id: _queue.id, perc: 0 });
 
-    _queue.dtab.appendChild(_queue.tab);
+    _queue.dtab.prepend(_queue.tab);
     _queue.status = "wip";
+
 }, 500);
 
-// this code looks ass but it works so fuck it
 const handle_event = async (data, callback, ...args) => {
 
     const type = data.type;
     const download_types = ["collector", "missing", "download_from_players", "json"];
 
-    if (download_types.includes(type)) {
+    try {
 
-        await callback(...args)
-            .then((list) => {
+        const callback_value = await callback(...args);
 
-                console.log("list value", list);
-            
-                if (!list) {
-                    console.log("No maps to download");
-                    current_tasks.delete(data.id);
-                    return;
-                }
+        console.log("[HANDLE EVENT] callback value", callback_value);
+        
+        if (!callback_value && download_types.includes(type)) {
+            console.log("[HANDLE EVENT] No maps to download");
+            current_tasks.delete(data.id);
+            return;
+        }
 
-                if (queue.length != 0) {
-                    add_alert(`Added Download to queue`, { type: "success" });
-                }
+        if (queue.length != 0) {
+            add_alert(`Added Download to queue`, { type: "success" });
+        }
 
-                queue.push({ type: type, id: data.id, list: list, status: "waiting", dtab: data.dtab, tab: data.tab });
-            })
-            .catch((msg) => {
+        queue.push({ type: type, id: data.id, list: callback_value, status: "waiting", dtab: data.dtab, tab: data.tab });
 
-                current_tasks.delete(data.id);
+        update_queue_div(data.id);
 
-                if (msg == "cancelled") {
-                    return;
-                }
+    } catch(err) {
 
-                add_alert(msg, { type: "error" });
-            });
+        current_tasks.delete(data.id);
 
-        return;
+        if (err == "cancelled" || err == "Cancelled") {
+            return;
+        }
+
+        console.log(err);
+
+        add_alert(err, { type: "error" });
     }
-
-    callback(...args)
-        .then((msg) => {
-            current_tasks.delete(data.id);
-            console.log("finished", data.id);
-            add_alert(msg, { type: "success" });
-        })
-        .catch((msg) => {
-
-            current_tasks.delete(data.id);
-            console.log("error", msg, data.id);
-
-            if (msg == "cancelled") {
-                return;
-            }
-
-            add_alert(msg, { type: "error" });
-        });
 }
 
 events.on("task-start", async (data) => {
@@ -133,12 +167,12 @@ events.on("progress-update", (data) => {
     const status = current_tasks.get(data.id);
 
     if (!status) {
-        console.log("oops");
+        console.log("[PROGRESS-UPDATE] status not found", data.id);
         return;
     }
 
     const index = data.i || 0;
-    const length = data.l || 0;
+    const length = !data.l ? "???" : data.l;
     const perc = (index / length) * 100 || 0;
 
     status.text.innerText = `${index} / ${length} (${perc.toFixed(0)}%)`;
@@ -152,7 +186,7 @@ events.on("progress-end", (id, is_download) => {
     const status = current_tasks.get(id).Fdiv;
 
     if (!status) {
-        console.log("oops");
+        console.log("[PROGRESS-END] status not found", data.id);
         return;
     }
 

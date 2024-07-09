@@ -18,6 +18,10 @@ const url_is_valid = (url) => {
             return false;
         }
 
+        if (!player_url.pathname.match(/\d+/g)) {
+            return false;
+        }
+
         return true;
 
     } catch(err) {
@@ -183,7 +187,7 @@ export const download_from_players = async (id) => {
 
         const list = maps.map((s) => { return { id: s.beatmap.beatmapset_id }});
         
-        console.log("player beatmap list", list);
+        console.log("[Download from players] player beatmap list", list);
 
         resolve(list);
     });

@@ -219,7 +219,7 @@ export class OsuReader {
             file.end();
 
             file.on("finish", () => {
-                console.log("finished");
+                console.log("[Reader] finished writing osu.db");
                 res();
             });
 
@@ -235,7 +235,7 @@ export class OsuReader {
         return new Promise(async (resolve, reject) => {
 
             if (!this.collections) {
-                console.log("No collections found");
+                console.log("[Reader] No collections found");
                 return;
             }
 
@@ -260,7 +260,7 @@ export class OsuReader {
             file.end();
 
             file.on("finish", () => {
-                console.log("finished");
+                console.log("[Reader] finished writing collections.db");
                 resolve();
             });
 
@@ -279,7 +279,7 @@ export class OsuReader {
                 resolve();
             }
 
-            console.log("Reading osu! data...");
+            console.log("[Reader] Reading osu! data...");
 
             const beatmaps = [];
 
@@ -447,7 +447,7 @@ export class OsuReader {
                 return resolve(this.collections);
             }
 
-            console.log("Reading collections data...");
+            console.log("[Reader] Reading collections data...");
 
             const beatmaps = [];
 

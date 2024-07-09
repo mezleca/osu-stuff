@@ -635,6 +635,15 @@ a {
     animation: spin 1s linear infinite;
 }
 
+.queue-list > h1 {
+    font-size: 0.80em;
+    color: rgb(253, 255, 226);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 25em;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
