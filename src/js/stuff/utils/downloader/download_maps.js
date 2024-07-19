@@ -214,7 +214,7 @@ class MapDownloader {
         try {
 
             if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`)))) {
-                console.log(`beatmap: ${map.id} already exists in your songs folder`);
+                // console.log(`beatmap: ${map.id} already exists in your songs folder`);
                 return;
             }
         
