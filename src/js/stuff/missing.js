@@ -3,7 +3,7 @@ const path = require("path");
 
 import { reader, files } from "./collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
-import { download_maps, search_map_id } from "./utils/downloader/download_maps.js";
+import { search_map_id } from "./utils/downloader/download_maps.js";
 import { events } from "../tasks/events.js";
 import { config, og_path } from "./utils/config/config.js";
 import { open_folder } from "./utils/other/process.js";
@@ -94,15 +94,12 @@ export const export_missing = async (id) => {
             await new Promise(async (re) => {
         
                 for (let i = 0; i < missing_maps.length; i++) {
-
-                    console.log("searching", i);
         
                     const map = missing_maps[i];     
                     const hash = map.hash;
                     const info = await search_map_id(hash);   
         
                     if (info == null) {
-                        console.log("failed to search", hash);
                         continue;
                     }
                     
@@ -129,7 +126,7 @@ export const export_missing = async (id) => {
             resolve("Finished exporting");
         } 
         catch (err) {
-            console.log("Fucking error:\n", err);
+            console.log(`[EXPORT MISSING] Error: ${err}`);
             reject("Something went wrong");
         }
     });
@@ -227,7 +224,7 @@ export const missing_download = async (id) => {
             resolve(missing_maps);
         }
         catch(err) {
-            console.log("Fucking error:\n", err);
+            console.log(`[MISSING DOWNLOAD] Error: ${err}`);
             reject("Something went wrong");
         }
     });
