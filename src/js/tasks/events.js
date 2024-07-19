@@ -99,18 +99,23 @@ const handle_event = async (data, callback, ...args) => {
     const type = data.type;
     const download_types = ["collector", "missing", "download_from_players", "json"];
 
+    console.log(`[HANDLE EVENT] received event: ${type}`, data);
+
     try {
 
+        // run the callback and get the value
         const callback_value = await callback(...args);
 
         console.log("[HANDLE EVENT] callback value", callback_value);
         
-        if (!callback_value && download_types.includes(type)) {
+        // if theres no value in the callback, it means the function is not part of the: download bullshit
+        if ((!callback_value && download_types.includes(type)) || typeof callback_value != "object") {
             console.log("[HANDLE EVENT] No maps to download");
             current_tasks.delete(data.id);
             return;
         }
 
+        // add the download to the queue
         if (queue.length != 0) {
             add_alert(`Added Download to queue`, { type: "success" });
         }
