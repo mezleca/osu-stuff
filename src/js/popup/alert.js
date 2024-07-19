@@ -80,7 +80,7 @@ export const add_alert = async (...texts) => {
             alert_icon.classList.add("bi");
             alert_icon.classList.add("bi-exclamation-triangle-fill");
 
-            options.color = "rgb(227, 227, 79)";
+            options.color = "rgb(217, 210, 9)";
             options.border = "2px solid rgb(255, 255, 31)";
 
             break;
