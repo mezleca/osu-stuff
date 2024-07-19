@@ -3,9 +3,7 @@ const shell = require("electron").shell;
 import { events } from "../tasks/events.js";
 
 const alerts = new Map();
-const max_popup_size = 6, padding = 5;
-
-let popup_height = document.querySelector(".taskbar").getBoundingClientRect().height + padding;
+const max_popup_size = 6;
 
 const change_alert_opacity = (div, value) => {
     div.style.opacity = value / 255;
@@ -52,9 +50,7 @@ export const add_alert = async (...texts) => {
     const alert_close = document.createElement("i");
 
     div.classList.add("alert-popup");
-
     div.id = id;
-    div.style = `top: ${popup_height}px`;
 
     switch (options.type) {
         case "error":
@@ -118,9 +114,7 @@ export const add_alert = async (...texts) => {
 
     alerts.set(id, div);
     
-    document.querySelector(".container").appendChild(div);
-
-    popup_height += div.offsetHeight + padding;
+    document.querySelector(".alert-container").appendChild(div);
 
     let deleted = false;
 
@@ -174,11 +168,9 @@ export const remove_alert = (div, id) => {
         return;
     }
 
-    popup_height -= div.offsetHeight + padding;
-
     alerts.delete(id);
 
-    document.querySelector(".container").removeChild(div);
+    document.querySelector(".alert-container").removeChild(div);
 };
 
 export const add_get_extra_info = (infoArray) => {

@@ -11,6 +11,11 @@ const remove_loading_screen = async (tab) => {
     document.body.removeChild(tab);
 }
 
+const enable_popup_test = () => {
+    const button = document.querySelector("#test_popup");
+    button.style.display = "block";
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Loaded DOM");
@@ -19,6 +24,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await remove_loading_screen(document.getElementById('loading-screen'));
 
     if (in_dev_mode) {
+
+        enable_popup_test();
+
         gui_title.innerText = "osu-stuff - (dev mode)";
         add_alert("You're running in dev mode", { type: "warning" });
     }

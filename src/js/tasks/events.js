@@ -138,6 +138,14 @@ const handle_event = async (data, callback, ...args) => {
     }
 }
 
+const test_alerts = async () => {
+  
+    for (let i = 0; i < 3; i++) {
+        add_alert("Popup", i, { seconds: 60 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+};
+
 events.on("task-start", async (data) => {
 
     const option = data.type;
@@ -160,6 +168,9 @@ events.on("task-start", async (data) => {
             break;
         case "download_from_players":
             await handle_event(data, download_from_players, data.id);
+            break;
+        case "test_popup":
+            test_alerts();
             break;
         default:
             add_alert("option not found", { type: "error" });

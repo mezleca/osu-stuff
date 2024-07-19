@@ -3,6 +3,7 @@ import { add_task } from "./tabs.js";
 import { add_collection } from "./stuff/collector.js";
 import { is_running } from "./stuff/utils/other/process.js";
 import { login } from "./stuff/utils/config/config.js";
+import { events } from "./tasks/events.js";
 
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_export_missing_beatmaps = document.getElementById("export_missing_beatmaps");
@@ -11,6 +12,7 @@ const get_beatmaps_collector = document.getElementById("get_beatmaps_collector")
 const add_betamps_collector = document.getElementById("add_beatmaps_collector");
 const btn_download_from_json = document.getElementById("download_from_json");
 const get_player_beatmaps = document.getElementById("get_player_beatmaps");
+const test_popup = document.getElementById("test_popup");
 
 btn_download_from_json.addEventListener("click", async () => {
 
@@ -100,4 +102,9 @@ get_player_beatmaps.addEventListener("click", async () => {
     }
 
     add_task({ id: "download_from_players" }, "download_from_players");
+});
+
+test_popup.addEventListener("click", () => {
+
+    events.emit("task-start", { type: "test_popup" });
 });
