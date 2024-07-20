@@ -1,4 +1,3 @@
-const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
 
@@ -100,14 +99,15 @@ export const download_from_players = async (id) => {
         }
         
         const url = `${player}/scores/${method}?mode=osu`;
-        const player_req = await axios.get(`${player}/extra-pages/top_ranks?mode=osu`);
+        const player_req = await fetch(`${player}/extra-pages/top_ranks?mode=osu`);
+        const player_data = await player_req.json();
 
         if (player_req.status != 200) {
             reject(`invalid player url: ${player}`);
             return;
         }
 
-        const count = player_req.data[method].count;
+        const count = player_data[method].count;
 
         if (count == 0) {
             reject("no beatmaps found");
@@ -116,9 +116,9 @@ export const download_from_players = async (id) => {
 
         add_alert(`Searching ${count} beatmaps...`);
         
-        let offset = player_req.data[method].items.length;
+        let offset = player_data[method].items.length;
 
-        maps.push(...player_req.data[method].items);
+        maps.push(...player_data[method].items);
 
         for (let i = 0; i < count; i++) {
 
@@ -132,8 +132,8 @@ export const download_from_players = async (id) => {
 
             const max_limit = count - offset < 100 ? count - offset : 100;
 
-            const response = await axios.get(`${url}&limit=${max_limit}&offset=${offset}`);
-            const data = response.data;
+            const response = await fetch(`${url}&limit=${max_limit}&offset=${offset}`);
+            const data = response.json();
             
             if (response.status != 200) {
                 offset += max_limit;

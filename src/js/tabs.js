@@ -1,11 +1,13 @@
-const all_tabs = [...document.querySelectorAll(".tab-button")];
-const all_content = [...document.querySelectorAll(".tab-pane")];
-
 import { events } from "./tasks/events.js";
 import { add_alert } from "./popup/alert.js";
 
-export const current_tasks = new Map();
+export const all_tabs = [...document.querySelectorAll(".tab-button")];
+export const all_content = [...document.querySelectorAll(".tab-pane")];
 
+export const current_tasks = new Map();
+export const download_types = ["collector", "missing", "download_from_players", "json"];
+
+// set the active tab
 all_tabs.map((tab, i) => {
     
     tab.addEventListener("click", (e) => {
@@ -24,6 +26,32 @@ all_tabs.map((tab, i) => {
     });
 });
 
+// get the current active tab
+export const get_current_tab = () => {
+    
+    for (let i = 0; i < all_tabs.length; i++) {
+
+        if (all_tabs[i].classList.contains("active")) {
+            return all_content[i].id;
+        }
+    }
+
+    return null;
+};
+
+// make a tab blink until the user clicks on it
+export const blink = (tab) => {
+
+    tab.style = "animation: blinker 1s linear infinite;";
+
+    tab.addEventListener("click", () => {
+
+        tab.style = "";
+        tab.removeEventListener("click", () => {});
+    });
+};
+
+// add a task (yep)
 export const add_task = (data, type) => {
 
     const id = data.id;

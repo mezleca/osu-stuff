@@ -1,4 +1,3 @@
-const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
@@ -14,8 +13,8 @@ const is_testing = process.env.NODE_ENV == "cleide";
 
 const get_tournament_maps = async(id) => {
 
-    const response = await axios.get(`https://osucollector.com/api/tournaments/${id}`);
-    const data = response.data;
+    const response = await fetch(`https://osucollector.com/api/tournaments/${id}`);
+    const data = await response.json();
 
     const maps = [];
     const collection = {};
@@ -58,8 +57,8 @@ const setup_collector = async (url, id) => {
 
     console.log(`[Collector] Fetching collection ${collection_id}...`);
 
-    const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await axios.get(collection_url);
-    const collection = is_tournament ? Rcollection : Rcollection.data;
+    const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await fetch(collection_url);
+    const collection = is_tournament ? Rcollection : (await Rcollection.json());
 
     if (Rcollection.status != 200) {
         add_alert("invalid collection", { type: "error" });

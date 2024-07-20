@@ -4,6 +4,7 @@
     --bg-color: #202020;
     --content-bg: #222222;
     --text-color: #ecebd2;
+    --blink-color: #db2a0a;
     --accent-color: #3177e8;
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
@@ -662,4 +663,9 @@ a {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@keyframes blinker {
+    0% { color: var(--blink-color) }
+    50% { color: var(--text-color) }
 }

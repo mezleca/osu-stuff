@@ -2,7 +2,7 @@ const EventEmitter = require("events");
 
 export const events = new EventEmitter();
 
-import { current_tasks } from "../tabs.js";
+import { current_tasks, all_tabs, blink, download_types } from "../tabs.js";
 import { download_collector } from "../stuff/collector.js"
 import { missing_download, export_missing } from "../stuff/missing.js";
 import { download_from_json } from "../stuff/download_json.js";
@@ -97,7 +97,6 @@ setInterval(() => {
 const handle_event = async (data, callback, ...args) => {
 
     const type = data.type;
-    const download_types = ["collector", "missing", "download_from_players", "json"];
 
     console.log(`[HANDLE EVENT] received event: ${type}`, data);
 
@@ -113,6 +112,14 @@ const handle_event = async (data, callback, ...args) => {
             console.log("[HANDLE EVENT] No maps to download");
             current_tasks.delete(data.id);
             return;
+        }
+
+        const download_button = all_tabs[2];
+
+        // in case the next task will be a downloadeble one
+        // make it blink so the user knows something is happening
+        if (download_types.includes(type)) {
+            blink(download_button);
         }
 
         // add the download to the queue
