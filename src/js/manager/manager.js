@@ -4,14 +4,6 @@ import { config } from "../stuff/utils/config/config.js";
 import { reader } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
 
-/*                                      TODO LIST:
-        - [ ] Instead of appending every single map from every single colelection
-              only append the maps from the current selected collection
-              so it will use less memory and maybe will perform better?
-        - [ ] All the functions needed to (rename / delete / import) collections.
-        - [ ] 
-*/
-
 const collections = new Map();
 
 const collection_list = document.querySelector(".collection-list");
