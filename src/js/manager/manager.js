@@ -1,3 +1,5 @@
+const path = require("path");
+
 import { config } from "../stuff/utils/config/config.js";
 import { reader } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
@@ -34,18 +36,56 @@ const get_collection_name = () => {
     return "";
 };
 
-/*
+const render_tab = (tab, beatmaps) => {
 
-    -- collection example
-    <div class="collection-item selected" id="collection_id">Collection 1</div>
+    for (let i = 0; i < beatmaps.length; i++) {
 
-    -- map example
-     <div class="map-item" id="map_id">
-        <div class="map-content">Artist - Title 1</div>
-     </div>
-*/
+        const beatmap = beatmaps[i];
 
-const create_containers = (name) => {
+        const map_item = document.createElement("div");
+        const map_content = document.createElement("div");
+        const map_item_bg = document.createElement("div");
+        const map_item_content = document.createElement("h1");
+        const map_image = document.createElement("img");
+
+        const has_beatmap = Boolean(beatmap.artist_name);
+        const text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)"
+
+        map_item.id = beatmap.md5;
+
+        const img_path = path.resolve(`${config.get("osu_path")}`, `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
+
+        map_image.src = img_path;
+        map_image.className = "map-item-img";
+
+        map_item.className = "map-item";
+        map_item_content.className = "map-item-content";
+        map_item_bg.className = "map-item-bg";
+
+        map_content.className = "map-content";
+        map_item_content.innerText = text;
+
+        map_item_bg.appendChild(map_image);
+        map_content.appendChild(map_item_content);
+        map_content.appendChild(map_item_bg);
+        map_item.appendChild(map_content);
+        
+        tab.appendChild(map_item);
+    }
+};
+
+const remove_container = () => {
+
+    const container = document.querySelector(".collection-container");
+
+    if (!main_content.hasChildNodes() || !container) {
+        return;
+    }
+
+    main_content.removeChild(container);
+};
+
+const create_container = (name) => {
 
     const container = document.createElement("div");
     
@@ -55,31 +95,6 @@ const create_containers = (name) => {
     main_content.appendChild(container);
 
     return container;
-};
-
-const append_beatmaps = (beatmaps, name) => {
-
-    const container = create_containers(name);
-
-    for (let i = 0; i < beatmaps.length; i++) {
-
-        const beatmap = beatmaps[i];
-
-        const map_item = document.createElement("div");
-        const map_content = document.createElement("div");
-
-        const has_beatmap = Boolean(beatmap.artist_name);
-        const text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)"
-
-        map_item.id = beatmap.md5;
-
-        map_item.className = "map-item";
-        map_content.className = "map-content";
-        map_content.innerText = text;
-
-        map_item.appendChild(map_content);
-        container.appendChild(map_item);
-    }
 };
 
 // TODO: popup asking the user the osu collector url  
@@ -115,32 +130,28 @@ const setup_manager = () => {
         new_collection.className = "collection-item";
         new_collection.innerText = k;
 
-        new_collection.addEventListener("click", (ev) => {     
+        new_collection.addEventListener("click", () => {
+            
+            const collection_text = document.getElementById("collection_text");
+
+            if (collection_text) {
+                collection_text.remove();
+            }
             
             const all_collections_text = Array.from(collection_list.children);
-            const all_collections_container = document.querySelectorAll(".collection-container");
 
-            all_collections_container.forEach((v) => {
+            // remove the old container and create the new one
+            remove_container();
+            const container = create_container(k);
 
-                const currrent_id = ev.target.innerHTML;
-                const it_id = v.id.split("cl-")[1];
-
-                if (currrent_id != it_id) {
-                    return;
-                }
-
-                all_collections_container.forEach((e) => e.classList.remove("cl-selected"));
-                v.classList.toggle("cl-selected");
-            });
+            // append all beatmaps to the current container
+            render_tab(container, collections.get(k));
 
             all_collections_text.map((e) => e.classList.remove("selected"));
-
             new_collection.classList.toggle("selected");
         });
 
         collection_list.appendChild(new_collection);
-
-        append_beatmaps(v, k);
     });
 };
 
