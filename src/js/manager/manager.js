@@ -31,9 +31,7 @@ const get_collection_name = () => {
 const render_tab = (tab, beatmaps) => {
 
     for (let i = 0; i < beatmaps.length; i++) {
-
         const beatmap = beatmaps[i];
-
         const map_item = document.createElement("div");
         const map_content = document.createElement("div");
         const map_item_bg = document.createElement("div");
@@ -47,9 +45,11 @@ const render_tab = (tab, beatmaps) => {
 
         const img_path = path.resolve(`${config.get("osu_path")}`, `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
 
-        map_image.src = img_path;
-        map_image.className = "map-item-img";
-
+        if (has_beatmap) {
+            map_image.dataset.src = img_path;
+            map_image.className = "map-item-img lazy";
+        }
+        
         map_item.className = "map-item";
         map_item_content.className = "map-item-content";
         map_item_bg.className = "map-item-bg";
@@ -64,6 +64,7 @@ const render_tab = (tab, beatmaps) => {
         
         tab.appendChild(map_item);
     }
+    lazyLoad();
 };
 
 const remove_container = () => {
@@ -114,6 +115,33 @@ btn_remove.addEventListener("click", async () => {
     }
 });
 
+// yep i stole that code
+function lazyLoad() {
+    const lazyImages = document.querySelectorAll('img.lazy');
+    const options = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+    };
+
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                observer.unobserve(img);
+            }
+        });
+    }, options);
+
+    lazyImages.forEach(img => imageObserver.observe(img));
+}
+
+window.addEventListener('scroll', lazyLoad);
+window.addEventListener('resize', lazyLoad);
+window.addEventListener('orientationchange', lazyLoad);
+
 const setup_manager = () => {
 
     collections.forEach((v, k) => {
@@ -132,12 +160,12 @@ const setup_manager = () => {
             
             const all_collections_text = Array.from(collection_list.children);
 
-            // remove the old container and create the new one
             remove_container();
             const container = create_container(k);
 
-            // append all beatmaps to the current container
             render_tab(container, collections.get(k));
+
+            setTimeout(lazyLoad, 100);
 
             all_collections_text.map((e) => e.classList.remove("selected"));
             new_collection.classList.toggle("selected");
