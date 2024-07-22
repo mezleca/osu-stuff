@@ -15,10 +15,10 @@ if (process.env.NODE_ENV == "cleide") {
 const createWindow = () => {
 
     const mainWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      minWidth: 800,
-      minHeight: 600,
+      width: 1024,
+      height: 768,
+      minWidth: 1024,
+      minHeight: 768,
       titleBarStyle: 'hidden',
       frame: true,
       fullscreenable: false,

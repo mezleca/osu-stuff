@@ -276,7 +276,8 @@ export class OsuReader {
         return new Promise(async (resolve) => {
 
             if (this.osu.beatmaps?.length) {
-                resolve();
+                resolve(this.osu);
+                return;
             }
 
             console.log("[Reader] Reading osu! data...");
@@ -435,7 +436,7 @@ export class OsuReader {
             this.offset = 0;
             this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permissions_id, permission }; 
 
-            resolve();     
+            resolve(this.osu);     
         });
     };
 

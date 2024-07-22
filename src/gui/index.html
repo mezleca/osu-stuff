@@ -29,11 +29,13 @@
 
         <div class="tabs">
             <div class="tab-button active" data-tab="tools">tools</div>
+            <div class="tab-button" data-tab="collections">collections</div>
             <div class="tab-button" data-tab="config">config</div>
-            <div class="tab-button" data-tab="status">download status</div>
+            <div class="tab-button" data-tab="status">status</div>
         </div>
 
         <div class="tab-content">
+
             <div class="tab-pane active" id="maps_tab">
 
                 <div class="tab-shit">
@@ -57,6 +59,34 @@
                         <button id="add_beatmaps_collector">add to osu</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="tab-pane" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
+
+                <div class="collections_container">
+                     <!-- collection manager -->
+                     <div class="sidebar">
+                        <h2>Collections</h2>
+                        <div class="collection-list">
+
+                        </div>
+                        <div class="collection-actions">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" placeholder="New collection name" aria-label="New collection name">
+                                <button class="btn btn-custom btn-rename" id="rename_collection" type="button">Rename</button>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-custom btn-add" id="add_new_collection" type="button">Add</button>
+                                <button class="btn btn-custom btn-delete" id="delete_collection"  type="button">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="main-content">
+                        <!-- <h2>Maps in Current Collection</h2> -->
+                    </div>
+
+                </div>     
+
             </div>
 
             <div class="tab-pane" id="config_tab">

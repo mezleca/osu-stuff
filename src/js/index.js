@@ -1,5 +1,6 @@
 import { add_config_shit } from "./stuff/utils/config/config.js";
 import { add_alert } from "./popup/alert.js";
+import { initialize } from "./manager/manager.js";
 
 import * as fn from "./functions.js";
 
@@ -21,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("Loaded DOM");
 
     await add_config_shit();
+    await initialize();
     await remove_loading_screen(document.getElementById('loading-screen'));
 
     if (in_dev_mode) {
