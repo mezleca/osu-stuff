@@ -77,7 +77,7 @@ body {
 
 .title_text {
     font-family: 'Helvetica' !important;
-    font-size: 0.95em !important;
+    font-size: 1 !important;
 }
 
 .title_buttons {
@@ -94,7 +94,7 @@ body {
     color: rgb(253, 255, 226);
     cursor: pointer;
     padding: 15px;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .container {
@@ -119,11 +119,11 @@ body {
 
 .tab-button {
     flex: 1 1 0px;
-    padding: 10px 20px;
+    padding: 10px 25px;
     cursor: pointer;
     transition: all 0.3s ease;
     border-bottom: 2px solid transparent;
-    font-weight: 500;
+    font-weight: 600;
     align-self: center;
     text-align: center;
 }
@@ -146,7 +146,7 @@ body {
 }
 
 .title_text {
-    font-size: 0.8em;
+    font-size: 0.9em;
 }
 
 .tab-pane {
@@ -188,19 +188,19 @@ body {
 
 button {
     font-family: Arial;
-    font-size: 0.85em;
+    font-size: 0.95em;
     font-weight: bold;
     min-width: 35%;
     background-color: var(--button-color);
     color: var(--text-color);
     border: none;
-    padding: 10px 20px;
+    padding: 15px 25px;
     margin: 10px 0;
     margin-right: 10px;
     cursor: pointer;
     transition: background-color 0.3s;
-    border-radius: 4px;
-    font-weight: 500;
+    border-radius: 3px;
+    font-weight: 600;
 }
 
 button:hover {
@@ -246,7 +246,7 @@ hr {
 
 .tab-shit > h1, .tab-pane > h1 {
     color: rgb(253, 255, 226);
-    font-size: 1.35em;
+    font-size: 1.5em;
     margin-left: 5px;
     margin-bottom: 10px;
     width: auto;
