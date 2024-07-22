@@ -12,13 +12,15 @@ if (process.env.NODE_ENV == "cleide") {
     electronReload(__dirname);
 }
 
+const w = 968, h = 720;
+
 const createWindow = () => {
 
     const mainWindow = new BrowserWindow({
-      width: 1024,
-      height: 720,
-      minWidth: 1024,
-      minHeight: 768,
+      width: w,
+      height: h,
+      minWidth: w,
+      minHeight: h,
       titleBarStyle: 'hidden',
       frame: true,
       fullscreenable: false,
