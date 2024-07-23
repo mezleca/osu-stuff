@@ -28,7 +28,7 @@ const create_queue_div = () => {
     </div>
     `;
 
-    all_content[2].insertAdjacentHTML("afterbegin", html);
+    all_content[3].insertAdjacentHTML("afterbegin", html);
 };
 
 const update_queue_div = (id) => {
@@ -40,7 +40,7 @@ const update_queue_div = (id) => {
     }
 
     if (queue.length == 0 && div_exist) {
-        all_content[2].removeChild(document.getElementById("queue list"));
+        all_content[3].removeChild(document.getElementById("queue list"));
         return;
     }
 
@@ -114,7 +114,7 @@ const handle_event = async (data, callback, ...args) => {
             return;
         }
 
-        const download_button = all_tabs[2];
+        const download_button = all_tabs[3];
 
         // in case the next task will be a downloadeble one
         // make it blink so the user knows something is happening
@@ -217,8 +217,8 @@ events.on("progress-end", (id, is_download) => {
         queue[0].status = "finished";
     }
 
-    if (all_content[2].contains(status)) {
-        all_content[2].removeChild(status);
+    if (all_content[3].contains(status)) {
+        all_content[3].removeChild(status);
     }
 
     current_tasks.delete(id);

@@ -1,16 +1,26 @@
 const path = require("path");
+const shell = require("electron").shell;
 
 import { config } from "../stuff/utils/config/config.js";
 import { reader } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
+
+let current_name = "";
 
 const collections = new Map();
 
 const collection_list = document.querySelector(".collection-list");
 const main_content = document.querySelector(".main-content");
 
-const btn_add = document.querySelector(".btn-add");
+const btn_add    = document.querySelector(".btn-add");
 const btn_remove = document.querySelector(".btn-delete");
+const btn_rename = document.getElementById("rename_collection");
+const btn_update = document.getElementById("update_collections");
+
+const change_input_value = (name) => {
+    const input = document.getElementById("collection_input_name");
+    input.value = name;
+};
 
 const get_collection_name = () => {
 
@@ -30,8 +40,12 @@ const get_collection_name = () => {
 
 const render_tab = (tab, beatmaps) => {
 
+    console.log("Rendering",tab, beatmaps);
+
     for (let i = 0; i < beatmaps.length; i++) {
+        
         const beatmap = beatmaps[i];
+
         const map_item = document.createElement("div");
         const map_content = document.createElement("div");
         const map_item_bg = document.createElement("div");
@@ -58,6 +72,11 @@ const render_tab = (tab, beatmaps) => {
         map_item_content.innerText = text;
 
         map_item_bg.appendChild(map_image);
+
+        map_item.addEventListener("click", () => {
+            shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
+        });
+
         map_content.appendChild(map_item_content);
         map_content.appendChild(map_item_bg);
         map_item.appendChild(map_content);
@@ -90,9 +109,54 @@ const create_container = (name) => {
     return container;
 };
 
+btn_rename.addEventListener("click", () => {
+
+    const input = document.getElementById("collection_input_name");
+
+    // value dit not changed
+    if (input.value == current_name) {
+        return;
+    }
+
+    const collection_already_exists = collections.get(input.value);
+
+    if (collection_already_exists) {
+        add_alert("This collection already exists");
+        return;
+    }
+
+    const old_value = collections.get(current_name);
+
+    // remove the old key and add the new one
+    collections.delete(current_name);
+    collections.set(input.value, old_value);
+
+    // update everything
+    setup_manager();
+
+    // remove the current container and re-render the new tab
+    document.querySelector(".collection-container").remove();
+    render_tab(create_container(input.value), collections.get(input.value));
+
+    current_name = input.value;
+});
+
 // TODO: popup asking the user the osu collector url  
 btn_add.addEventListener("click", () => {
     
+});
+
+btn_update.addEventListener("click", async () => {
+
+    const confirm = await add_get_extra_info([{ type: "confirmation", text: "Are you sure?\nIf you click yes you current collection file will be rewrited"}]);
+
+    if (!confirm) {
+        return;
+    }
+
+    // TODO: the logic to rewrite the file
+
+    add_alert("Done!");
 });
 
 btn_remove.addEventListener("click", async () => {
@@ -144,6 +208,8 @@ window.addEventListener('orientationchange', lazyLoad);
 
 const setup_manager = () => {
 
+    collection_list.innerHTML = "";
+
     collections.forEach((v, k) => {
 
         const new_collection = document.createElement("div");
@@ -165,10 +231,13 @@ const setup_manager = () => {
 
             render_tab(container, collections.get(k));
 
+            change_input_value(k);
             setTimeout(lazyLoad, 100);
 
             all_collections_text.map((e) => e.classList.remove("selected"));
             new_collection.classList.toggle("selected");
+
+            current_name = k;
         });
 
         collection_list.appendChild(new_collection);
@@ -197,4 +266,6 @@ export const initialize = async () => {
     };
 
     setup_manager();
+
+
 };

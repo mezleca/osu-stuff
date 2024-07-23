@@ -66,18 +66,21 @@
                 <div class="collections_container">
                      <!-- collection manager -->
                      <div class="sidebar">
-                        <h2>Collections</h2>
+                        <h2>collections</h2>
                         <div class="collection-list">
 
                         </div>
                         <div class="collection-actions">
                             <div class="input-group mb-2">
-                                <input type="text" class="form-control" placeholder="New collection name" aria-label="New collection name">
-                                <button class="btn btn-custom btn-rename" id="rename_collection" type="button">Rename</button>
+                                <input type="text" class="form-control" id="collection_input_name" placeholder="New collection name" aria-label="new collection name">
+                                <div class="btn-group">
+                                    <button class="btn btn-custom btn-rename" id="rename_collection" type="button">rename</button>
+                                    <button class="btn btn-custom btn-rename" id="update_collections" type="button">update</button>
+                                </div>
                             </div>
                             <div class="btn-group">
-                                <button class="btn btn-custom btn-add" id="add_new_collection" type="button">Add</button>
-                                <button class="btn btn-custom btn-delete" id="delete_collection"  type="button">Delete</button>
+                                <button class="btn btn-custom btn-add" id="add_new_collection" type="button">add collection</button>
+                                <button class="btn btn-custom btn-delete" id="delete_collection"  type="button">delete collection</button>
                             </div>
                         </div>
                     </div>
