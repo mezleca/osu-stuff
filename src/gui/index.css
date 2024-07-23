@@ -20,6 +20,7 @@
     -ms-user-select: none;
     user-select: none;
     box-sizing: border-box;
+    -webkit-backface-visibility: hidden;
 }
 
 html {
@@ -758,56 +759,6 @@ a {
     background: #555;
 }
 
-.map-item {
-    width: 100%;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    align-self: center;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-}
-
-.map-item-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
-
-.map-item-img {  
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: blur(4px);
-}
-
-.map-item-content {
-    font-size: 1em;
-    color: white;
-    padding: 10px;
-    background-color: #1e1e1e;
-    border-radius: 6px;
-    z-index: 2;
-    align-self: center;
-}
-
-.map-content {
-    position: relative;
-    height: 120px;
-    background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: white;
-    text-wrap: balance;
-    text-align: center;
-    z-index: 1;
-}
-
 .collection-actions {
     display: flex;
     flex-direction: column;
@@ -872,6 +823,86 @@ a {
     display: flex;
     justify-content: center;
     gap: 8px;
+}
+
+.mini-container {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    align-items: center;
+    width: 95%;
+    height: 75px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    align-self: center;
+    padding-left: 0;
+    background: linear-gradient(90deg, rgba(99,99,99,1) 0%, rgba(45,45,45,1) 32%, rgba(0,0,0,1) 100%);
+    border: 1px solid grey;
+}
+
+.bg-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    filter: brightness(50%);
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+}
+
+.small-image {
+    max-height: 100%;
+    width: auto;
+    border-radius: 0 5px 5px 0;
+    margin-right: 10px;
+    object-fit: cover;
+}
+
+.text-container {
+    min-width: 45%;
+    max-width: calc(75% - 40px);
+    flex-grow: 1;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 10px;
+}
+
+.title {
+    font-weight: bold;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.subtitle {
+    font-size: 0.8em;
+    color: #ddd;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    max-width: 15%;
+    min-width: 40px;
+    padding: 10px 5px;
 }
 
 @keyframes spin {

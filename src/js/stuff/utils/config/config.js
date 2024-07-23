@@ -92,7 +92,7 @@ export const add_config_shit = async () => {
     update_status("Checking config...");
 
     const config_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff", "config.json");
-    
+
     if (!fs.existsSync(og_path)) {
         fs.mkdirSync(og_path);
     }

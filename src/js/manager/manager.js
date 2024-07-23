@@ -1,6 +1,9 @@
 const path = require("path");
+const fs = require("fs");
 const shell = require("electron").shell;
+const osu_parser = require("osu-parser");
 
+import { beatmaps_schema } from "../reader/definitions.js";
 import { config } from "../stuff/utils/config/config.js";
 import { reader } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
@@ -44,44 +47,71 @@ const render_tab = (tab, beatmaps) => {
 
     for (let i = 0; i < beatmaps.length; i++) {
         
+        /** @type {beatmaps_schema} */
         const beatmap = beatmaps[i];
 
         const map_item = document.createElement("div");
         const map_content = document.createElement("div");
-        const map_item_bg = document.createElement("div");
-        const map_item_content = document.createElement("h1");
-        const map_image = document.createElement("img");
+        const map_small_bg = document.createElement("img");
+        const map_big_bg = document.createElement("img");
+        const text_container = document.createElement("div");
+        const title = document.createElement("p");
+        const subtitle = document.createElement("p");
 
         const has_beatmap = Boolean(beatmap.artist_name);
-        const text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)"
+
+        const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)";
+        const mapper_text = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
         map_item.id = beatmap.md5;
 
-        const img_path = path.resolve(`${config.get("osu_path")}`, `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
+        title.innerText = title_text;
+        subtitle.innerText = mapper_text;
+
+        const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
 
         if (has_beatmap) {
-            map_image.dataset.src = img_path;
-            map_image.className = "map-item-img lazy";
+            map_small_bg.dataset.src = small_img_path;
+            // would love to use this but its kinda slow so yeah
+            // const osu_file_path = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, beatmap.file);
+            // osu_parser.parseFile(osu_file_path, (err, b) => {
+            //     map_big_bg.dataset.src = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, b.bgFilename);
+            // });
         }
         
-        map_item.className = "map-item";
-        map_item_content.className = "map-item-content";
-        map_item_bg.className = "map-item-bg";
+        map_small_bg.className = "small-image lazy";
+        map_big_bg.className = "bg-image";
+        map_item.className = "mini-container";
+        map_content.className = "content";
+        text_container.className = "text-container";
+        title.className = "title";
+        subtitle.className = "subtitle";
 
-        map_content.className = "map-content";
-        map_item_content.innerText = text;
-
-        map_item_bg.appendChild(map_image);
-
-        map_item.addEventListener("click", () => {
+        map_small_bg.addEventListener("click", () => {
             shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
         });
 
-        map_content.appendChild(map_item_content);
-        map_content.appendChild(map_item_bg);
+        text_container.appendChild(title);
+        text_container.appendChild(subtitle);
+
+        map_content.insertAdjacentHTML("afterbegin", 
+            `<button class="remove-btn" id="bn_${beatmap.beatmap_id}">
+                <i class="bi bi-trash-fill"></i>
+            </button>`);
+        map_content.prepend(text_container);
+        map_content.prepend(map_small_bg);
+
+        map_item.appendChild(map_big_bg);
         map_item.appendChild(map_content);
         
         tab.appendChild(map_item);
+
+        map_content.querySelectorAll(`#bn_${beatmap.beatmap_id}`).forEach((map) => map.addEventListener("click", () => {
+            
+            console.log("removing beatmap", beatmap.song_title);
+
+            // TODO:
+        }));
     }
     lazyLoad();
 };
@@ -171,16 +201,22 @@ btn_remove.addEventListener("click", async () => {
     const confirm = await add_get_extra_info([{ type: "confirmation", text: `Delete ${collection_name}?` }]);
 
     if (confirm) {
+        
+        collections.delete(collection_name);
+
+        // update everything
+        setup_manager();
+
+        // remove the current container and re-render the new tab
+        document.querySelector(".collection-container").remove();
 
         add_alert(collection_name, "has been deleted");
-
-        // TODO: delete the collection from the collections map and replace the collection file with the updated one.
-
     }
 });
 
 // yep i stole that code
 function lazyLoad() {
+
     const lazyImages = document.querySelectorAll('img.lazy');
     const options = {
         root: null,
