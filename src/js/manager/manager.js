@@ -10,6 +10,7 @@ import { add_alert, add_get_extra_info } from "../popup/alert.js";
 let current_name = "";
 
 const collections = new Map();
+const placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const collection_list = document.querySelector(".collection-list");
 const main_content = document.querySelector(".main-content");
@@ -95,7 +96,7 @@ const render_tab = (tab, beatmaps) => {
             //     map_big_bg.dataset.src = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, b.bgFilename);
             // });
         } else {
-            map_small_bg.dataset.src = `${__dirname}/../images/no-image.png`;
+            map_small_bg.dataset.src = placeholder_img;
         }
         
         map_small_bg.className = "small-image lazy";
@@ -263,7 +264,7 @@ function lazyLoad() {
 
                 if (img.src && !img.dataset.src) {
                     img.dataset.src = img.src;
-                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Placeholder transparente
+                    img.src = placeholder_img;
                 }
             }
         });
@@ -313,25 +314,23 @@ const setup_manager = () => {
 
 export const initialize = async () => {
 
+    const osu_beatmaps = new Map();
+
     // get the current collection list
     const collections_array = await reader.get_collections_data();
     const osu_info =  await reader.get_osu_data();
 
-    const osu_beatmaps = new Map();
     osu_info.beatmaps.forEach(element => {
-        //console.log(element);
         osu_beatmaps.set(element.md5, element);
     });
 
-    for (let i = 0; i < collections_array.beatmaps.length; i++) {
-        
-        const current_collection = collections_array.beatmaps[i];
-        const { name, maps } = current_collection;
+    for (const current_collection of collections_array.beatmaps) {
 
-        const info = maps.map((map) => osu_beatmaps.get(map) || map);
+        let { name, maps } = current_collection;
+        let info = maps.map((map) => osu_beatmaps.get(map) || map);
 
         collections.set(name, info);
-    };
+    }
 
     setup_manager();
 };

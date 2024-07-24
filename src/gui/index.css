@@ -861,6 +861,7 @@ a {
 
 .small-image {
     width: 25%;
+    background-color: white;
     border-radius: 0 5px 5px 0;
     margin-right: 10px;
     object-fit: cover;
