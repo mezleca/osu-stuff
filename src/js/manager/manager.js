@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs");
 const shell = require("electron").shell;
-const osu_parser = require("osu-parser");
 
 import { beatmaps_schema } from "../reader/definitions.js";
 import { config } from "../stuff/utils/config/config.js";
@@ -41,9 +40,27 @@ const get_collection_name = () => {
     return "";
 };
 
-const render_tab = (tab, beatmaps) => {
+const remove_beatmap = (hash) => {
 
-    console.log("Rendering",tab, beatmaps);
+    /** @type {Array} */
+    const beatmaps = collections.get(current_name);
+    
+    for (let i = 0; i < beatmaps.length; i++) {
+
+        const beatmap = beatmaps[i];
+
+        if (beatmap.md5 == hash) {
+            console.log("Removing hash", hash);
+            beatmaps.splice(i, 1);
+        }
+    };
+
+    document.querySelector(".collection-container").remove();
+
+    setup_manager();
+};
+
+const render_tab = (tab, beatmaps) => {
 
     for (let i = 0; i < beatmaps.length; i++) {
         
@@ -57,13 +74,13 @@ const render_tab = (tab, beatmaps) => {
         const text_container = document.createElement("div");
         const title = document.createElement("p");
         const subtitle = document.createElement("p");
+        const remove_c_btn = document.createElement("button");
+        const remove_c_icon = document.createElement("i");
 
         const has_beatmap = Boolean(beatmap.artist_name);
 
         const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)";
         const mapper_text = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
-
-        map_item.id = beatmap.md5;
 
         title.innerText = title_text;
         subtitle.innerText = mapper_text;
@@ -88,6 +105,11 @@ const render_tab = (tab, beatmaps) => {
         text_container.className = "text-container";
         title.className = "title";
         subtitle.className = "subtitle";
+        remove_c_btn.className = "remove-btn";
+        remove_c_icon.className = "bi bi-trash-fill";
+        
+        map_item.id = beatmap.md5;
+        remove_c_btn.id = `bn_${beatmap.beatmap_id}`;
 
         map_small_bg.addEventListener("click", () => {
             shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
@@ -96,25 +118,23 @@ const render_tab = (tab, beatmaps) => {
         text_container.appendChild(title);
         text_container.appendChild(subtitle);
 
-        map_content.insertAdjacentHTML("afterbegin", 
-            `<button class="remove-btn" id="bn_${beatmap.beatmap_id}">
-                <i class="bi bi-trash-fill"></i>
-            </button>`);
-        map_content.prepend(text_container);
-        map_content.prepend(map_small_bg);
+        remove_c_btn.appendChild(remove_c_icon);
+
+        map_content.appendChild(map_small_bg);
+        map_content.appendChild(text_container);
+        map_content.appendChild(remove_c_btn);
 
         map_item.appendChild(map_big_bg);
         map_item.appendChild(map_content);
         
         tab.appendChild(map_item);
 
-        map_content.querySelectorAll(`#bn_${beatmap.beatmap_id}`).forEach((map) => map.addEventListener("click", () => {
-            
-            console.log("removing beatmap", beatmap.song_title);
-
-            // TODO:
-        }));
+        remove_c_btn.addEventListener("click", () => {   
+            console.log("removing beatmap", beatmap.song_title, current_name, beatmap.md5);  
+            remove_beatmap(beatmap.md5);
+        });
     }
+
     lazyLoad();
 };
 
@@ -204,13 +224,13 @@ btn_remove.addEventListener("click", async () => {
 
     if (confirm) {
         
-        collections.delete(collection_name);
+        collections.delete(collection_name);   
+        
+        // remove the current container and re-render the new tab
+        document.querySelector(".collection-container").remove();
 
         // update everything
         setup_manager();
-
-        // remove the current container and re-render the new tab
-        document.querySelector(".collection-container").remove();
 
         add_alert(collection_name, "has been deleted");
     }
@@ -219,30 +239,38 @@ btn_remove.addEventListener("click", async () => {
 // yep i stole that code
 function lazyLoad() {
 
-    const lazyImages = document.querySelectorAll('img.lazy');
+    const images = document.querySelectorAll('img.lazy');
     const options = {
         root: null,
-        rootMargin: '0px',
+        rootMargin: '200px',
         threshold: 0.1
     };
 
     const imageObserver = new IntersectionObserver((entries, observer) => {
+
         entries.forEach(entry => {
+
+            const img = entry.target;
+
             if (entry.isIntersecting) {
-                const img = entry.target;
-                img.src = img.dataset.src;
-                img.classList.remove('lazy');
-                observer.unobserve(img);
+                
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                }
+
+            } else {
+
+                if (img.src && !img.dataset.src) {
+                    img.dataset.src = img.src;
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Placeholder transparente
+                }
             }
         });
     }, options);
 
-    lazyImages.forEach(img => imageObserver.observe(img));
+    images.forEach(img => imageObserver.observe(img));
 }
-
-window.addEventListener('scroll', lazyLoad);
-window.addEventListener('resize', lazyLoad);
-window.addEventListener('orientationchange', lazyLoad);
 
 const setup_manager = () => {
 
@@ -270,7 +298,6 @@ const setup_manager = () => {
             render_tab(container, collections.get(k));
 
             change_input_value(k);
-            setTimeout(lazyLoad, 100);
 
             all_collections_text.map((e) => e.classList.remove("selected"));
             new_collection.classList.toggle("selected");
@@ -280,6 +307,8 @@ const setup_manager = () => {
 
         collection_list.appendChild(new_collection);
     });
+    
+    lazyLoad();
 };
 
 export const initialize = async () => {

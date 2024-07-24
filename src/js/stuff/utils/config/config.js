@@ -68,6 +68,9 @@ export const get_files = async (osu) => {
         add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
         return;
     }
+    
+    reader.osu = {};
+    reader.collections = {};
 
     update_status("Reading collection file...");
 
