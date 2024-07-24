@@ -271,18 +271,24 @@ export class OsuReader {
         });
     };
 
+    /**
+     * 
+     * @returns { Promise<osu_db> } 
+     * 
+    */
     get_osu_data = () => {
 
         return new Promise(async (resolve) => {
 
-            if (this.osu.beatmaps?.length) {
+            if (this.osu.beatmaps?.size) {
                 resolve(this.osu);
                 return;
             }
 
             console.log("[Reader] Reading osu! data...");
 
-            const beatmaps = [];
+            const beatmaps = new Set();
+            const md5_set = new Set();
 
             const version = this.#int();
             const folders = this.#int();
@@ -399,7 +405,8 @@ export class OsuReader {
                 data.last_modified = this.#int();	
                 data.mania_scroll_speed = this.#byte();
 
-                beatmaps.push(data);
+                beatmaps.add(data);
+                md5_set.add(data.md5);
 
                 data.beatmap_end = this.offset;                        
             }
@@ -434,12 +441,17 @@ export class OsuReader {
             }
 
             this.offset = 0;
-            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permissions_id, permission }; 
+            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, md5_set, extra_start, permissions_id, permission }; 
 
             resolve(this.osu);     
         });
     };
 
+    /**
+     * 
+     * @returns { Promise<collections_db> } 
+     * 
+    */
     get_collections_data = (limit) => {
 
         return new Promise(async (resolve) => {

@@ -69,7 +69,7 @@ export const beatmaps_schema = {
     last_modified: Number,
     mania_scroll_speed: Number,
     beatmap_end: Number
-}
+};
 
 export const osu_db = {
     version: Number,
@@ -78,19 +78,20 @@ export const osu_db = {
     last_unlocked_time: Number,
     player_name: String,
     beatmaps_count: Number,
-    beatmaps: [beatmaps_schema],
+    beatmaps: new Set(),
+    md5_set: new Set(),
     extra_start: Number,
     permissions_id: Number,
     permission: String
 };
 
+export const collection_beatmap = {
+    name: String,
+    maps: Array
+};
+
 export const collections_db = {
     version: Number,
     length: Number,
-    beatmaps: [
-        {
-            name: String,
-            maps: Array
-        }
-    ]
+    beatmaps: [collection_beatmap]
 };

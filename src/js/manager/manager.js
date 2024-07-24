@@ -77,6 +77,8 @@ const render_tab = (tab, beatmaps) => {
             // osu_parser.parseFile(osu_file_path, (err, b) => {
             //     map_big_bg.dataset.src = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, b.bgFilename);
             // });
+        } else {
+            map_small_bg.dataset.src = `${__dirname}/../images/no-image.png`;
         }
         
         map_small_bg.className = "small-image lazy";
@@ -288,6 +290,7 @@ export const initialize = async () => {
 
     const osu_beatmaps = new Map();
     osu_info.beatmaps.forEach(element => {
+        //console.log(element);
         osu_beatmaps.set(element.md5, element);
     });
 
@@ -302,6 +305,4 @@ export const initialize = async () => {
     };
 
     setup_manager();
-
-
 };

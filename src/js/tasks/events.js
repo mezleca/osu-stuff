@@ -109,7 +109,7 @@ const handle_event = async (data, callback, ...args) => {
         
         // if theres no value in the callback, it means the function is not part of the: download bullshit
         if ((!callback_value && download_types.includes(type)) || typeof callback_value != "object") {
-            console.log("[HANDLE EVENT] No maps to download");
+            // console.log("[HANDLE EVENT] No maps to download");
             current_tasks.delete(data.id);
             return;
         }
@@ -139,7 +139,7 @@ const handle_event = async (data, callback, ...args) => {
             return;
         }
 
-        console.log(err);
+        console.log(data.type, err);
 
         add_alert(err, { type: "error" });
     }

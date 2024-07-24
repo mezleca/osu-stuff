@@ -39,7 +39,7 @@ const add_to_collection = (maps, id, name, type) => {
     reader.set_type("collection");
     reader.set_buffer(collection, true);
 
-    if (reader.collections.beatmaps?.length == 0) {
+    if (reader.collections.beatmaps?.length) {
         reader.get_collections_data();
     }
 
@@ -48,7 +48,7 @@ const add_to_collection = (maps, id, name, type) => {
         maps: [...maps]
     });
 
-    reader.collections.beatmaps.length++;
+    reader.collections.length++;
 
     console.log(reader.collections);
 
@@ -133,7 +133,7 @@ export const download_from_players = async (id) => {
             const max_limit = count - offset < 100 ? count - offset : 100;
 
             const response = await fetch(`${url}&limit=${max_limit}&offset=${offset}`);
-            const data = response.json();
+            const data = await response.json();
             
             if (response.status != 200) {
                 offset += max_limit;

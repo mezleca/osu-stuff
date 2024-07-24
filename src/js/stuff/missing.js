@@ -21,17 +21,13 @@ export const export_missing = async (id) => {
             const collection_file = files.get("collection");
     
             let missing_maps = [];
-
-            
+     
             // initialize for reading osu!.db
             reader.set_type("osu");
             reader.set_directory(osu_path);
             reader.set_buffer(osu_file, true);
     
-            if (!reader.osu.beatmaps?.length) {
-                console.log("no beatmaps", reader.osu);
-                await reader.get_osu_data();
-            }
+            await reader.get_osu_data();
     
             // initialize for reading collection.db
             reader.set_type("collection");
@@ -41,12 +37,11 @@ export const export_missing = async (id) => {
                 await reader.get_collections_data();
             }
             
-            const hashes = new Set(reader.osu.beatmaps.map(b => b.md5));
             const Maps = reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !hashes.has(m)) {
+                    if (m && !reader.osu.md5_set.has(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }
@@ -149,11 +144,8 @@ export const missing_download = async (id) => {
             reader.set_directory(osu_path);
             reader.set_buffer(osu_file, true);
     
-            if (!reader.osu.beatmaps?.length) {
-                console.log("no beatmaps", reader.osu);
-                await reader.get_osu_data();
-            }
-    
+            await reader.get_osu_data();
+
             // initialize for reading collection.db
             reader.set_type("collection");
             reader.set_buffer(collection_file, true);
@@ -161,13 +153,12 @@ export const missing_download = async (id) => {
             if (reader.collections.beatmaps?.length == 0) {
                 await reader.get_collections_data();
             }
-            
-            const hashes = new Set(reader.osu.beatmaps.map(b => b.md5));
+
             const Maps = reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !hashes.has(m)) {
+                    if (m && !reader.osu.md5_set.has(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }

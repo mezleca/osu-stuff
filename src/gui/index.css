@@ -860,8 +860,7 @@ a {
 }
 
 .small-image {
-    max-height: 100%;
-    width: auto;
+    width: 25%;
     border-radius: 0 5px 5px 0;
     margin-right: 10px;
     object-fit: cover;

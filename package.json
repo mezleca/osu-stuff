@@ -16,8 +16,7 @@
     "electron": "30.0.7",
     "electron-builder": "^24.13.3",
     "electron-installer-squirrel-windows": "^1.3.0",
-    "electron-packager": "^17.1.2",
-    "electron-reload": "^2.0.0-alpha.1"
+    "electron-packager": "^17.1.2"
   },
   "dependencies": {
     "electron-localshortcut": "^3.2.1",
@@ -45,7 +44,6 @@
       "buildResources": "resources"
     },
     "files": [
-      "!node_modules/**/*",
       "src/**/*",
       "package.json"
     ]

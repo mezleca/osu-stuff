@@ -1,15 +1,10 @@
 const path = require('node:path');
-const electronReload = require('electron-reload');
 const electronShortcut = require('electron-localshortcut');
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 
 if (require('electron-squirrel-startup')) {
     app.quit();
-}
-
-if (process.env.NODE_ENV == "cleide") {
-    electronReload(__dirname);
 }
 
 const w = 968, h = 720;

@@ -83,8 +83,6 @@ export const get_files = async (osu) => {
     reader.set_type("osu")
     reader.set_buffer(osu_file, true);
     await reader.get_osu_data();
-
-    console.log(reader);
 }
 
 export const add_config_shit = async () => {
@@ -141,7 +139,7 @@ export const add_config_shit = async () => {
 
         label_content.push(
             `
-                <div class="input-container">
+                <div class="input-container" id="config_fields">
                     <label for="${label_name}">
                         ${label_name}
                         <div class="tooltip" id="${label_name}">(?)</div>
@@ -173,10 +171,16 @@ export const add_config_shit = async () => {
 
     document.querySelector(".update_config").addEventListener("click", async () => {
 
-        for (let i = 0; i < Dlabels.length; i++) {
+        const config_fields = document.querySelectorAll("#config_fields");
 
-            const input_value = Dlabels[i].input.value;
-            const label_name = Dlabels[i].label.children[0].id; // ...
+        config_fields.forEach((field) => {
+
+            console.log("Field", field);
+            
+            const fields = Array.from(field.children);
+
+            const input_value = fields[1].value;
+            const label_name = fields[1].id;
             
             if (input_value == "") {
                 add_alert("Missing value for " + label_name, { type: "error" });
@@ -185,7 +189,7 @@ export const add_config_shit = async () => {
 
             config.set(label_name, input_value);
             options[label_name] = input_value;
-        }
+        });
 
         const login = await osu_login(options.osu_id, options.osu_secret);
         
