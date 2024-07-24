@@ -56,9 +56,7 @@ const remove_beatmap = (hash) => {
         }
     };
 
-    document.querySelector(".collection-container").remove();
-
-    setup_manager();
+    document.getElementById(hash).remove();
 };
 
 const render_tab = (tab, beatmaps) => {
@@ -327,7 +325,14 @@ export const initialize = async () => {
     for (const current_collection of collections_array.beatmaps) {
 
         let { name, maps } = current_collection;
-        let info = maps.map((map) => osu_beatmaps.get(map) || map);
+        let info = maps.map((map) => {
+
+            if (!map) {
+                return;
+            }
+
+            return osu_beatmaps.get(map) || { md5: map };
+        });
 
         collections.set(name, info);
     }
