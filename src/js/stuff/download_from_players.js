@@ -6,18 +6,18 @@ import { add_alert } from "../popup/alert.js";
 import { add_get_extra_info } from "../popup/alert.js";
 import { files, reader } from "./collector.js";
 
-const url_is_valid = (url) => {
+export const url_is_valid = (url, hostname) => {
 
     try {
         
         const player_url = new URL(url);
 
-        if (player_url.hostname != "osu.ppy.sh") {
+        if (player_url.hostname != hostname) {
             console.log(player_url);
             return false;
         }
 
-        if (!player_url.pathname.match(/\d+/g)) {
+        if (!player_url.pathname.match(/\d+/g) && hostname == "osu.ppy.s") {
             return false;
         }
 
@@ -93,7 +93,7 @@ export const download_from_players = async (id) => {
             return;
         }
 
-        if (!url_is_valid(player)) {
+        if (!url_is_valid(player, "osu.ppy.sh")) {
             reject(`invalid player url: ${player}`);
             return;
         }

@@ -707,6 +707,11 @@ a {
     border: 1px solid var(--collections-border-color);
 }
 
+#collection_text {
+    margin-left: 20px;
+    font-size: 1.5em;
+}
+
 .search-container {
     display: flex;
     position: sticky;

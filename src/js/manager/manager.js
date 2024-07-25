@@ -4,12 +4,12 @@ const shell = require("electron").shell;
 
 import { beatmaps_schema } from "../reader/definitions.js";
 import { config } from "../stuff/utils/config/config.js";
-import { reader } from "../stuff/collector.js";
+import { reader, setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
 
 let current_name = "";
 
-const collections = new Map();
+export const collections = new Map();
 const placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const collection_list = document.querySelector(".collection-list");
@@ -224,10 +224,46 @@ search_box.addEventListener("input", () => {
         e.classList.add("disabled");
     });
 });
-
-// TODO: popup asking the user the osu collector url  
-btn_add.addEventListener("click", () => {
+  
+btn_add.addEventListener("click", async () => {
     
+    // TODO: Option to create a new collection from a set os ids (txt file or something)
+
+    const collection_url = await add_get_extra_info([{ type: "input", text: "Collection url\n(Osu!Collector url)" }]);
+
+    if (!collection_url) {
+        return;
+    }
+
+    const info = await setup_collector(collection_url);
+
+    if (!info) {
+        return;
+    }
+
+    const { c_maps: maps, collection } = info;
+
+    if (collections.has(collection.name)) {
+        add_alert("You already have a collection with this name");
+        return;
+    }
+
+    collections.set(collection.name, maps.map((v) => {
+        return { md5: v };
+    }));
+
+    // update everything
+    await initialize({ name: collection.name, maps: maps });
+    setup_manager();
+
+    // remove the current container and re-render the new tab
+    if (document.querySelector(".collection-container")) {
+        document.querySelector(".collection-container").remove();
+    }
+    
+    render_tab(create_container(collection.name), collections.get(collection.name));
+
+    console.log(collections);
 });
 
 btn_update.addEventListener("click", async () => {
@@ -367,11 +403,24 @@ const setup_manager = () => {
     lazyLoad();
 };
 
-export const initialize = async () => {
+export const initialize = async (extra) => {
 
     // get the current collection list
     const collections_array = await reader.get_collections_data();
     const osu_info = await reader.get_osu_data();
+
+    // append the new extra collection
+    if (extra) {
+
+        collections_array.length++;
+        collections_array.beatmaps.push(extra);
+
+        const collection_text = document.getElementById("collection_text");
+
+        if (collection_text) {
+            collection_text.remove();
+        }
+    }
 
     for (const current_collection of collections_array.beatmaps) {
 

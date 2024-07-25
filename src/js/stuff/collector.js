@@ -5,6 +5,8 @@ import { OsuReader } from "../reader/reader.js";
 import { events } from "../tasks/events.js";
 import { add_alert } from "../popup/alert.js";
 import { login, config } from "./utils/config/config.js";
+import { url_is_valid } from "./download_from_players.js";
+import { collections, initialize } from "../manager/manager.js";
 
 export const reader = new OsuReader();
 export const files  = new Map();
@@ -35,12 +37,17 @@ const get_tournament_maps = async(id) => {
     return collection;
 };
 
-const setup_collector = async (url, id) => {
+export const setup_collector = async (url) => {
 
     if (!login) {
         add_alert("forgot to configurate? :P");
         console.log("[Collector] Login not found\n");
         return null;
+    }
+
+    if (!url_is_valid(url, "osucollector.com")) {
+        add_alert("Invalid url", { type: "error" });
+        return null;   
     }
 
     const url_array = url.split("/");
@@ -135,15 +142,22 @@ export const add_collection = async (url) => {
         const { c_maps, collection } = await setup_collector(url);
     
         await reader.get_collections_data();
+
+        const new_name = "!stuff - " + collection.name;
     
-        const new_collection = reader.collections.beatmaps.push({
-            name: "!stuff - " + collection.name,
+        reader.collections.beatmaps.push({
+            name: new_name,
             maps: c_maps
         });
-
-        console.log(new_collection, reader.collections);
     
         reader.collections.length++;
+
+        // update the manager
+        collections.set(new_name, c_maps.map((v) => {
+            return { md5: v };
+        }));
+
+        await initialize();
     
         if (is_testing) {
             add_alert("Your collection file has been updated!");
