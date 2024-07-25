@@ -41,7 +41,7 @@ export const export_missing = async (id) => {
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !reader.osu.md5_set.has(m)) {
+                    if (m && !reader.osu.beatmaps.get(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }
@@ -158,7 +158,7 @@ export const missing_download = async (id) => {
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !reader.osu.md5_set.has(m)) {
+                    if (m && !reader.osu.beatmaps.get(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }

@@ -78,8 +78,7 @@ export const osu_db = {
     last_unlocked_time: Number,
     player_name: String,
     beatmaps_count: Number,
-    beatmaps: new Set(),
-    md5_set: new Set(),
+    beatmaps: new Map(),
     extra_start: Number,
     permissions_id: Number,
     permission: String

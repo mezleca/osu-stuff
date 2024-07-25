@@ -78,7 +78,8 @@ const setup_collector = async (url, id) => {
         await reader.get_osu_data();
     }
 
-    const maps_hashes = new Set(reader.osu.beatmaps.map((beatmap) => beatmap.md5));
+    const maps_hashes = new Set(reader.osu.beatmaps.keys());
+
     const collection_hashes = is_tournament ? 
     [...new Set(
         collection.beatmapsets.map((b) => b.checksum)
@@ -132,24 +133,20 @@ export const add_collection = async (url) => {
     return new Promise(async (resolve, reject) => {
 
         const { c_maps, collection } = await setup_collector(url);
-
-        const collection_file = files.get("collection");
     
-        reader.set_type("collection");
-        reader.set_buffer(collection_file, true);
+        await reader.get_collections_data();
     
-        if (reader.collections.beatmaps?.length == 0) {
-            await reader.get_collections_data();
-        }
-    
-        reader.collections.beatmaps.push({
+        const new_collection = reader.collections.beatmaps.push({
             name: "!stuff - " + collection.name,
             maps: c_maps
         });
+
+        console.log(new_collection, reader.collections);
     
-        reader.collections.beatmaps.length++;
+        reader.collections.length++;
     
         if (is_testing) {
+            add_alert("Your collection file has been updated!");
             resolve(`Your collection file has been updated!`);
             return;
         }
@@ -161,6 +158,7 @@ export const add_collection = async (url) => {
         // write the new file
         reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
     
+        add_alert("Your collection file has been updated!");
         resolve(`Your collection file has been updated!`);
     });  
 }

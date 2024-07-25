@@ -51,7 +51,6 @@ const remove_beatmap = (hash) => {
         const beatmap = beatmaps[i];
 
         if (beatmap.md5 == hash) {
-            console.log("Removing hash", hash);
             beatmaps.splice(i, 1);
         }
     };
@@ -87,12 +86,13 @@ const render_tab = (tab, beatmaps) => {
         const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
 
         if (has_beatmap) {
-            map_small_bg.dataset.src = small_img_path;
-            // would love to use this but its kinda slow so yeah
-            // const osu_file_path = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, beatmap.file);
-            // osu_parser.parseFile(osu_file_path, (err, b) => {
-            //     map_big_bg.dataset.src = path.resolve(config.get("osu_songs_path"), beatmap.folder_name, b.bgFilename);
-            // });
+
+            if (fs.existsSync(small_img_path)) {
+                map_small_bg.dataset.src = small_img_path;
+            } else {
+                map_small_bg.dataset.src = placeholder_img;
+            }
+
         } else {
             map_small_bg.dataset.src = placeholder_img;
         }
@@ -164,6 +164,11 @@ btn_rename.addEventListener("click", () => {
 
     const input = document.getElementById("collection_input_name");
 
+    // yep
+    if (!collections.has(current_name)) {
+        return;
+    }
+
     // value dit not changed
     if (input.value == current_name) {
         return;
@@ -205,7 +210,31 @@ btn_update.addEventListener("click", async () => {
         return;
     }
 
-    // TODO: the logic to rewrite the file
+    const new_collection = {
+        version: reader.collections.version,
+        length: collections.size,
+        beatmaps: []
+    };
+
+    collections.forEach((v, k) => {
+
+        const obj = { name: k, maps: [] };
+
+        for (let i = 0 ; i < v.length; i++) {
+            const map = v[i];
+            obj.maps.push(map.md5);
+        }
+
+        new_collection.beatmaps.push(obj);
+    });
+    
+    reader.collections = new_collection;
+
+    // backup
+    const backup_name = `collection_backup_${Date.now()}.db`;
+    fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
+
+    reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
 
     add_alert("Done!");
 });
@@ -312,15 +341,9 @@ const setup_manager = () => {
 
 export const initialize = async () => {
 
-    const osu_beatmaps = new Map();
-
     // get the current collection list
     const collections_array = await reader.get_collections_data();
-    const osu_info =  await reader.get_osu_data();
-
-    osu_info.beatmaps.forEach(element => {
-        osu_beatmaps.set(element.md5, element);
-    });
+    const osu_info = await reader.get_osu_data();
 
     for (const current_collection of collections_array.beatmaps) {
 
@@ -331,7 +354,7 @@ export const initialize = async () => {
                 return;
             }
 
-            return osu_beatmaps.get(map) || { md5: map };
+            return osu_info.beatmaps.get(map) || { md5: map };
         });
 
         collections.set(name, info);

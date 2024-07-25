@@ -287,9 +287,7 @@ export class OsuReader {
 
             console.log("[Reader] Reading osu! data...");
 
-            const beatmaps = new Set();
-            const md5_set = new Set();
-
+            const beatmaps = new Map();
             const version = this.#int();
             const folders = this.#int();
             const account_unlocked = this.#bool();
@@ -405,8 +403,7 @@ export class OsuReader {
                 data.last_modified = this.#int();	
                 data.mania_scroll_speed = this.#byte();
 
-                beatmaps.add(data);
-                md5_set.add(data.md5);
+                beatmaps.set(data.md5, data);
 
                 data.beatmap_end = this.offset;                        
             }
@@ -441,7 +438,7 @@ export class OsuReader {
             }
 
             this.offset = 0;
-            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, md5_set, extra_start, permissions_id, permission }; 
+            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permissions_id, permission }; 
 
             resolve(this.osu);     
         });
