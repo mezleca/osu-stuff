@@ -17,7 +17,7 @@ export const url_is_valid = (url, hostname) => {
             return false;
         }
 
-        if (!player_url.pathname.match(/\d+/g) && hostname == "osu.ppy.s") {
+        if (!player_url.pathname.match(/\d+/g) && hostname == "osu.ppy.sh") {
             return false;
         }
 
