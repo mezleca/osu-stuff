@@ -20,6 +20,8 @@ const btn_remove = document.querySelector(".btn-delete");
 const btn_rename = document.getElementById("rename_collection");
 const btn_update = document.getElementById("update_collections");
 
+const search_box = document.getElementById("current_search");
+
 const change_input_value = (name) => {
     const input = document.getElementById("collection_input_name");
     input.value = name;
@@ -82,6 +84,9 @@ const render_tab = (tab, beatmaps) => {
 
         title.innerText = title_text;
         subtitle.innerText = mapper_text;
+
+        map_item.dataset.title = title_text;
+        map_item.dataset.mapper = beatmap.creator_name || "Unknown";
 
         const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
 
@@ -197,6 +202,29 @@ btn_rename.addEventListener("click", () => {
     current_name = input.value;
 });
 
+search_box.addEventListener("input", () => {
+
+    const name = search_box.value;
+    const elements = document.querySelectorAll(".mini-container");
+
+    if (!name) {
+        elements.forEach((e) => e.classList.remove("disabled"));
+    };
+
+    elements.forEach((e) => {
+
+        if (e.dataset.title.includes(name)) {
+            return;
+        }
+
+        if (e.dataset.mapper.includes(name)) {
+            return;
+        }
+
+        e.classList.add("disabled");
+    });
+});
+
 // TODO: popup asking the user the osu collector url  
 btn_add.addEventListener("click", () => {
     
@@ -204,7 +232,7 @@ btn_add.addEventListener("click", () => {
 
 btn_update.addEventListener("click", async () => {
 
-    const confirm = await add_get_extra_info([{ type: "confirmation", text: "Are you sure?\nIf you click yes you current collection file will be rewrited"}]);
+    const confirm = await add_get_extra_info([{ type: "confirmation", text: "Are you sure?\nIf you click yes your current collection file will be rewrited"}]);
 
     if (!confirm) {
         return;

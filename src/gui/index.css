@@ -700,12 +700,29 @@ a {
 .main-content {
     width: 70%;
     height: 95%;
-    padding: 15px;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     box-sizing: border-box;
     border: 1px solid var(--collections-border-color);
+}
+
+.search-container {
+    display: flex;
+    position: sticky;
+    width: 100%;
+    top: 0;
+    align-items: center;
+    padding: 10px;
+    overflow: hidden;
+    min-height: 10vh;
+    max-height: 10vh;
+    z-index: 9998;
+    background-color: var(--bg-color);
+}
+
+.disabled {
+    display: none !important;
 }
 
 .collection-list {
