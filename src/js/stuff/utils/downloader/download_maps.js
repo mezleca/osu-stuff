@@ -251,6 +251,8 @@ class MapDownloader {
 
         await pMap(this.maps, this.download, { concurrency: 5 });
 
+        add_alert("Finished downloading");
+
         events.emit("progress-end", this.id, true);
     } 
 };
