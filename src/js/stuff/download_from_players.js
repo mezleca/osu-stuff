@@ -5,6 +5,7 @@ import { config } from "./utils/config/config.js";
 import { add_alert } from "../popup/alert.js";
 import { add_get_extra_info } from "../popup/alert.js";
 import { files, reader } from "./collector.js";
+import { initialize } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -28,7 +29,7 @@ export const url_is_valid = (url, hostname) => {
     }
 };
 
-const add_to_collection = (maps, id, name, type) => {
+const add_to_collection = async (maps, id, name, type) => {
 
     if (maps.length == 0) {
         console.log("no maps");
@@ -50,7 +51,8 @@ const add_to_collection = (maps, id, name, type) => {
 
     reader.collections.length++;
 
-    console.log(reader.collections);
+    // refresh manager
+    await initialize();
 
     // backup
     const backup_name = `collection_backup_${Date.now()}.db`;
@@ -176,13 +178,13 @@ export const download_from_players = async (id) => {
         }
         
         if (_download == "Add to collections") {
-            add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
+            await add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
             resolve("added to collection");
             return;
         }
 
         if (_download == "Both") {
-            add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
+            await add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
         }
 
         const list = maps.map((s) => { return { id: s.beatmap.beatmapset_id }});
