@@ -45,18 +45,27 @@ const check_difficulty_sr = (map, min, max) => {
     return false;
 };
 
+// Im not sure if this is working 100%
+// for now i will give the user a warning before using this feature
 export const remove_maps = async (id) => {
 
     return new Promise(async (resolve, reject) => {
 
         try {
 
+            const areyousure = await add_get_extra_info([{ type: "confirmation", text: "This feature is still experimental\nDo you really want to continue?"}]);
+
+            if (areyousure != "Yes") {
+                resolve("");
+                return;
+            }
+
             let can_proceed = true;
             let { min_sr, max_sr, status, exclude_collections, sr_enabled } = await createCustomList(Object.keys(stats), id);
     
             status = stats[status];
     
-            const off = new Set(), deleted_folders = [], hashes = [], filtered_maps = new Set();
+            const off = new Set(), deleted_folders = [], hashes = [], filtered_maps = new Map();
     
             const osu_path = config.get("osu_path");
             const osu_file = files.get("osu");
@@ -96,19 +105,19 @@ export const remove_maps = async (id) => {
                 const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name, b.file);
     
                 if (b.status != status && status != -1) {
-                    filtered_maps.add(b);
+                    filtered_maps.set(b.md5, b);
                     return;
                 }
     
                 if (hashes.includes(b.md5) && exclude_collections) {
-                    filtered_maps.add(b);
+                    filtered_maps.set(b.md5, b);
                     return;
                 }
     
                 const diff = check_difficulty_sr(b, min_sr, max_sr);
     
                 if (!diff && sr_enabled) {
-                    filtered_maps.add(b.sr);
+                    filtered_maps.set(b.md5, b.sr);
                     return;
                 }
     
@@ -190,7 +199,7 @@ export const remove_maps = async (id) => {
             });
     
             reader.osu.folders = fs.readdirSync(config.get("osu_songs_path")).length;
-            reader.osu.beatmaps_count = filtered_maps.length;
+            reader.osu.beatmaps_count = filtered_maps.size;
     
             if (reader.osu.beatmaps_count < 0) {
                 reader.osu.beatmaps_count = 0;

@@ -209,6 +209,8 @@ export class OsuReader {
 
             for (let i = 0; i < maps.length; i++) {
 
+                // console.log("Writing map", maps[i]);
+
                 const bf = this.buffer.slice(last_index, maps[i].start);
 
                 last_index = maps[i].end;
