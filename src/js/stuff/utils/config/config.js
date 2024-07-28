@@ -2,12 +2,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const Dlabels = [];
-
 import { add_alert } from "../../../popup/alert.js";
 import { files } from "../../collector.js";
 import { check_login } from "../other/login.js";
 import { reader } from "../../collector.js";
+import { initialize } from "../../../manager/manager.js";
 
 export const config = new Map();
 export const og_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff");
@@ -86,6 +85,9 @@ export const get_files = async (osu) => {
     reader.set_type("osu")
     reader.set_buffer(osu_file, true);
     await reader.get_osu_data();
+
+    // update manager
+    await initialize();
 }
 
 export const add_config_shit = async () => {
@@ -165,8 +167,9 @@ export const add_config_shit = async () => {
 
     document.getElementById("config_tab").insertAdjacentHTML("afterbegin", html);
 
-    if (!options.osu_path || !options.osu_songs_path) {
-        add_alert("Failed to get osu / songs directory\nMake sure the path is correct", { type: "error" });       
+    // make sure both paths exist
+    if (!fs.existsSync(options.osu_path) || !fs.existsSync(options.osu_songs_path)) {
+        add_alert("Failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });       
         return;
     }
 
@@ -201,8 +204,9 @@ export const add_config_shit = async () => {
             return;
         }
 
-        if (!config.get("osu_path") || !config.get("osu_songs_path")) {
-            add_alert("Failed to get osu / songs directory\nMake sure the path is correct", { type: "error" });            
+        // make sure both paths exist
+        if (!fs.existsSync(options.osu_path) || !fs.existsSync(options.osu_songs_path)) {
+            add_alert("Failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });       
             return;
         }
 

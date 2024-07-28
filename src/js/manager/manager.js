@@ -422,6 +422,13 @@ export const initialize = async (extra) => {
         }
     }
 
+    // check if the old container is still appended
+    const container = document.querySelector(".collection-container");
+
+    if (container) {
+        container.remove();
+    }
+
     for (const current_collection of collections_array.beatmaps) {
 
         let { name, maps } = current_collection;
@@ -438,4 +445,6 @@ export const initialize = async (extra) => {
     }
 
     setup_manager();
+
+    console.log("manager has been initialized");
 };
