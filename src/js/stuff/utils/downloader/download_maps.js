@@ -90,9 +90,9 @@ class MapDownloader {
 
         try {
 
-            const response = await fetch(`${url}${id}`, { method: "GET", headers: { responseType: "arraybuffer" } });
+            const response = await fetch(`${url}${id}`, { method: "GET" } );
 
-            if (response.status == 504) {
+            if (response.status >= 500) {
 
                 const old_mirror = new Object(mirrors);
 
