@@ -79,7 +79,7 @@ const render_tab = (tab, beatmaps) => {
 
         const has_beatmap = Boolean(beatmap.artist_name);
 
-        const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (Probaly not downloaded)";
+        const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (not downloaded)";
         const mapper_text = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
         title.innerText = title_text;
