@@ -1,12 +1,11 @@
 const fs = require("fs");
 const path = require("path");
+const pMap = require("p-map");
 
 import { config } from "../config/config.js";
 import { add_alert } from "../../../popup/alert.js";
 import { events } from "../../../tasks/events.js";
 import { login } from "../config/config.js";
-
-import pMap from 'https://cdn.jsdelivr.net/npm/p-map@7.0.2/+esm';
 
 const downloaded_maps = [];
 const is_testing = process.env.NODE_ENV == "cleide";
