@@ -6,6 +6,7 @@ import { beatmaps_schema } from "../reader/definitions.js";
 import { config } from "../stuff/utils/config/config.js";
 import { reader, setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
+import { download_map } from "../stuff/utils/downloader/download_maps.js";
 
 let current_name = "";
 
@@ -74,10 +75,13 @@ const render_tab = (tab, beatmaps) => {
         const text_container = document.createElement("div");
         const title = document.createElement("p");
         const subtitle = document.createElement("p");
+        const download_c_btn = document.createElement("button");
+        const download_c_icon = document.createElement("i");
         const remove_c_btn = document.createElement("button");
         const remove_c_icon = document.createElement("i");
 
         const has_beatmap = Boolean(beatmap.artist_name);
+        const has_bg = Boolean(beatmap.bg);
 
         const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (not downloaded)";
         const mapper_text = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
@@ -89,18 +93,7 @@ const render_tab = (tab, beatmaps) => {
         map_item.dataset.mapper = beatmap.creator_name || "Unknown";
 
         const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
-
-        if (has_beatmap) {
-
-            if (fs.existsSync(small_img_path)) {
-                map_small_bg.dataset.src = small_img_path;
-            } else {
-                map_small_bg.dataset.src = placeholder_img;
-            }
-
-        } else {
-            map_small_bg.dataset.src = placeholder_img;
-        }
+        map_small_bg.dataset.src = has_bg ? beatmap.bg : fs.existsSync(small_img_path) ? small_img_path : placeholder_img; 
         
         map_small_bg.className = "small-image lazy";
         map_big_bg.className = "bg-image";
@@ -109,23 +102,40 @@ const render_tab = (tab, beatmaps) => {
         text_container.className = "text-container";
         title.className = "title";
         subtitle.className = "subtitle";
+        download_c_btn.className = "download-button";
+        download_c_icon.className = "bi bi-download";
         remove_c_btn.className = "remove-btn";
         remove_c_icon.className = "bi bi-trash-fill";
         
         map_item.id = beatmap.md5;
         remove_c_btn.id = `bn_${beatmap.beatmap_id}`;
 
-        map_small_bg.addEventListener("click", () => {
-            shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
-        });
+        if (has_beatmap) {
+
+            map_small_bg.addEventListener("click", () => {
+                     
+                if (beatmap.url) {
+                    shell.openExternal(beatmap.url);
+                    return;
+                }
+
+                shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
+            });
+        }      
 
         text_container.appendChild(title);
         text_container.appendChild(subtitle);
 
+        download_c_btn.appendChild(download_c_icon);
         remove_c_btn.appendChild(remove_c_icon);
 
         map_content.appendChild(map_small_bg);
         map_content.appendChild(text_container);
+
+        if (!has_beatmap) {
+            map_content.appendChild(download_c_btn);
+        }
+        
         map_content.appendChild(remove_c_btn);
 
         map_item.appendChild(map_big_bg);
@@ -136,6 +146,44 @@ const render_tab = (tab, beatmaps) => {
         remove_c_btn.addEventListener("click", () => {   
             console.log("removing beatmap", beatmap.song_title, current_name, beatmap.md5);  
             remove_beatmap(beatmap.md5);
+        });
+
+        download_c_btn.addEventListener("click", async () => {
+
+            add_alert("Searching beatmap...");
+
+            const beatmap_data = await download_map(beatmap.md5);
+
+            if (!beatmap_data) {
+                add_alert("Beatmap has not found :c", { type: "alert" });
+                return;
+            }
+
+            beatmap.artist_name = beatmap_data.beatmapset.artist;
+            beatmap.song_title = beatmap_data.beatmapset.title;
+            beatmap.difficulty = beatmap_data.version;
+            beatmap.md5 = beatmap_data.checksum;
+            beatmap.creator_name = beatmap_data.beatmapset.creator;
+            beatmap.difficulty_id = beatmap_data.beatmapset_id;
+
+            beatmap.url = beatmap_data.url;
+            beatmap.bg = beatmap_data.beatmapset.covers.list;
+  
+            const title_text = `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`
+            const mapper_text = `mapped by ${beatmap.creator_name}`;
+
+            map_small_bg.src = beatmap.bg;
+    
+            title.innerText = title_text;
+            subtitle.innerText = mapper_text;
+
+            download_c_btn.remove();
+
+            map_small_bg.addEventListener("click", () => {
+                shell.openExternal(beatmap_data.url);
+            });
+
+            add_alert("Finished downloading beatmap");
         });
     }
 
@@ -263,6 +311,8 @@ btn_add.addEventListener("click", async () => {
     
     render_tab(create_container(collection.name), collections.get(collection.name));
 
+    lazyLoad();
+
     console.log(collections);
 });
 
@@ -328,7 +378,6 @@ btn_remove.addEventListener("click", async () => {
     }
 });
 
-// yep i stole that code
 function lazyLoad() {
 
     const images = document.querySelectorAll('img.lazy');
@@ -337,22 +386,16 @@ function lazyLoad() {
         rootMargin: '200px',
         threshold: 0.1
     };
-
     const imageObserver = new IntersectionObserver((entries, observer) => {
-
         entries.forEach(entry => {
-
             const img = entry.target;
-
             if (entry.isIntersecting) {
-                
+               
                 if (img.dataset.src) {
                     img.src = img.dataset.src;
                     img.removeAttribute('data-src');
                 }
-
             } else {
-
                 if (img.src && !img.dataset.src) {
                     img.dataset.src = img.src;
                     img.src = placeholder_img;
@@ -360,9 +403,8 @@ function lazyLoad() {
             }
         });
     }, options);
-
     images.forEach(img => imageObserver.observe(img));
-}
+};
 
 const setup_manager = () => {
 

@@ -75,18 +75,33 @@ export const search_map_id = async (hash) => {
 
 export let mirrors = [
     {
-        name: "beatconnect",
-        url: "https://beatconnect.io/b/"
+        name: "nerinyan",
+        url: "https://api.nerinyan.moe/d/"
+    },
+    {
+        name: "catboy",
+        url: "https://catboy.best/d/"
     },
     {
         name: "direct",
         url: "https://api.osu.direct/d/"
     },
     {
-        name: "nerinyan",
-        url: "https://api.nerinyan.moe/d/"
-    },
+        name: "beatconnect",
+        url: "https://beatconnect.io/b/"
+    }
 ];
+
+export const download_map = async (hash) => {
+
+    if (!hash) {
+        console.err("[Downloader] Missing hash parameter");
+        return;
+    }
+
+    const new_download = new MapDownloader({ hash: hash }, "0");
+    return await new_download.init(true);
+};
 
 export const download_maps = async (maps, id) => {
 
@@ -219,28 +234,30 @@ class MapDownloader {
         }
 
         const perc = Math.floor(this.current_index / this.m_length * 100);
+        let data = {};
 
         if (!map.id) {
         
             if (!map.hash) {
                 this.log = "invalid map " + map.id;
-                return;
+                return null;
             }
     
             const beatmap = await search_map_id(map.hash);
+            data = beatmap;
     
             if (beatmap == null) {
                 this.log = "Failed to find beatmap hash: " + (map.hash || "") + " " + map;
-                return;
+                return null;
             }
     
             if (!beatmap.beatmapset_id) {
-                return;
+                return null;
             }
 
             if (downloaded_maps.includes(beatmap.beatmapset_id)) {
                 console.log(`beatmap: ${beatmap.beatmapset_id} is already downloaded`);
-                return;
+                return data;
             }
     
             const c_checksum = map.hash;
@@ -254,14 +271,14 @@ class MapDownloader {
 
             if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`)))) {
                 console.log(`beatmap: ${map.id} already exists in your songs folder`);
-                return;
+                return data;
             }
         
             const osz_buffer = Object.keys(map).length > 1 ? await this.find_map(mirrors, map) : await this.find_map(mirrors, map.id);
         
             if (osz_buffer == null) {
                 console.log("Invalid buffer", map.id);
-                return;
+                return null;
             }
 
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
@@ -269,18 +286,21 @@ class MapDownloader {
             downloaded_maps.push(map.id);
 
             if (is_testing) {
-                return;
+                return data;
             }
             
             fs.writeFileSync(Path, Buffer.from(osz_buffer));
+
+            return data;
         }
         catch(err) {
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
+            return null;
             //console.log(err);
         }
     }
 
-    init = async () => {
+    init = async (single) => {
 
         if (!this.maps || !this.id) {
             cancel_download();
@@ -288,6 +308,11 @@ class MapDownloader {
         }
 
         this.m_length = this.maps.length;
+
+        if (single) {
+            const output = await this.download(this.maps, 0);
+            return output;
+        }
 
         await pmap(this.maps, this.download, 5);
 

@@ -883,6 +883,7 @@ a {
 
 .small-image {
     width: 25%;
+    min-width: 25%;
     background-color: white;
     border-radius: 0 5px 5px 0;
     margin-right: 10px;
@@ -917,7 +918,7 @@ a {
     text-overflow: ellipsis;
 }
 
-.remove-btn {
+.remove-btn, .download-button {
     background: none;
     border: none;
     color: white;

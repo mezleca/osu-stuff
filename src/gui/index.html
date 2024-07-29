@@ -109,7 +109,7 @@
         window.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
 
         const dev_mode = process.env.NODE_ENV == "cleide";
-        const src = dev_mode ? '../js/index.js': '../../dist/bundle.js';
+        const src = dev_mode ? '../js/index.js': '../dist/bundle.js';
 
         if (dev_mode) {
             console.log("[DEV MODE] importing", src);

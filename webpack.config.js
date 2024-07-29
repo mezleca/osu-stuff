@@ -4,7 +4,7 @@ module.exports = {
   entry: './src/js/index.js',
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'src', 'dist'),
   },
   target: 'electron-renderer',
   mode: 'production',
