@@ -105,6 +105,20 @@
         </div>
     </div>
 
-    <script src="../../dist/bundle.js" type="module"></script>
+    <script>
+        window.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
+
+        const dev_mode = process.env.NODE_ENV == "cleide";
+        const src = dev_mode ? '../js/index.js': '../../dist/bundle.js';
+
+        if (dev_mode) {
+            console.log("[DEV MODE] importing", src);
+            import(src).catch(console.error);
+        } else {
+            const script = document.createElement('script');
+            script.src = src;
+            document.body.appendChild(script);
+        }      
+    </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const pMap = require("p-map");
+const axios = require("axios");
 
 import { config } from "../config/config.js";
 import { add_alert } from "../../../popup/alert.js";
@@ -9,6 +9,41 @@ import { login } from "../config/config.js";
 
 const downloaded_maps = [];
 const is_testing = process.env.NODE_ENV == "cleide";
+
+const pmap = async (array, mapper, concurrency) => {
+
+    const results = [];
+    const progress = new Set();
+    let index = 0;
+
+    const run = async () => {
+
+        if (index >= array.length) 
+            return;
+
+        const current_index = index++;
+        progress.add(current_index);
+
+        try {
+            const result = await mapper(array[current_index], current_index, array);
+            results[current_index] = result;
+        } catch (error) {
+            console.error(`Error processing item at index ${current_index}:`, error);
+        } finally {
+            progress.delete(current_index);
+        }
+
+        await run();    
+   }
+
+  const workers = Array(Math.min(concurrency, array.length))
+    .fill()
+    .map(() => run());
+
+  await Promise.all(workers);
+
+  return results;
+};
 
 export const search_map_id = async (hash) => {
 
@@ -83,42 +118,47 @@ class MapDownloader {
         return { index: this.current_index, length: this.m_length, log: this.log };
     }
 
+    update_mirror = (url) => {
+
+        const old_mirror = new Object(mirrors);
+
+        const mirror_index = old_mirror.findIndex(mirror => mirror.url == url); 
+        const current_mirror = old_mirror[mirror_index];
+
+        mirrors = [];
+
+        for (let i = 0; i < old_mirror.length; i++) {
+
+            if (i == mirror_index) {
+                continue;
+            }
+
+            mirrors.push(old_mirror[i]);
+        }
+
+        mirrors.push(current_mirror);
+
+        return null;
+    };
+
     get_buffer = async (url, data) => {
 
         const id = data?.id ? data.id : data;
 
         try {
 
-            const response = await fetch(`${url}${id}`, { method: "GET" } );
+            const response = await axios.get(`${url}${id}`, { responseType: "arraybuffer" } );
 
             if (response.status >= 500) {
-
-                const old_mirror = new Object(mirrors);
-
-                const mirror_index = old_mirror.findIndex(mirror => mirror.url == url); 
-                const current_mirror = old_mirror[mirror_index];
-
-                mirrors = [];
-
-                for (let i = 0; i < old_mirror.length; i++) {
-
-                    if (i == mirror_index) {
-                        continue;
-                    }
-
-                    mirrors.push(old_mirror[i]);
-                }
-
-                mirrors.push(current_mirror);
-
-                return null;
+                this.update_mirror(url);
             }
 
             if (response.status != 200) {
+                console.log("Beatmap not found");
                 return null;
             }
 
-            const bmdata = await response.arrayBuffer();
+            const bmdata = response.data;
             const buffer = Buffer.from(bmdata);
             
             if (!buffer) {
@@ -213,7 +253,7 @@ class MapDownloader {
         try {
 
             if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`)))) {
-                // console.log(`beatmap: ${map.id} already exists in your songs folder`);
+                console.log(`beatmap: ${map.id} already exists in your songs folder`);
                 return;
             }
         
@@ -235,6 +275,7 @@ class MapDownloader {
             fs.writeFileSync(Path, Buffer.from(osz_buffer));
         }
         catch(err) {
+            events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
             //console.log(err);
         }
     }
@@ -248,7 +289,7 @@ class MapDownloader {
 
         this.m_length = this.maps.length;
 
-        await pMap(this.maps, this.download, { concurrency: 5 });
+        await pmap(this.maps, this.download, 5);
 
         add_alert("Finished downloading");
 

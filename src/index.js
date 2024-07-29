@@ -8,6 +8,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 const w = 968, h = 720;
+const dev_mode = Boolean(process.env.NODE_ENV == "cleide");
 
 const createWindow = () => {
 
@@ -23,9 +24,10 @@ const createWindow = () => {
       icon: __dirname + "/images/icon.png",
       webPreferences: {
           devTools: true,
-          preload: path.join(__dirname, 'preload.js'),
           nodeIntegration: true,
           contextIsolation: false,
+          enableRemoteModule: true,
+          webSecurity: dev_mode ? false : true,
       },
       titleBarOverlay: {
         color: '#202020',

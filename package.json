@@ -5,10 +5,10 @@
   "description": "a simple app created to manage collections, download maps, etc... ",
   "main": "src/index.js",
   "scripts": {
-    "start": "electron .",
+    "start": "npm run build && electron .",
     "build": "webpack",
     "dev": "cross-env NODE_ENV=cleide electron .",
-    "make": "electron-builder"
+    "make": "npm run build && electron-builder"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
@@ -22,10 +22,10 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "electron-localshortcut": "^3.2.1",
     "electron-squirrel-startup": "^1.0.1",
-    "osu-parser": "^0.3.3",
-    "p-map": "^7.0.2"
+    "osu-parser": "^0.3.3"
   },
   "build": {
     "appId": "com.osustuff.app",

@@ -17,9 +17,7 @@ const enable_popup_test = () => {
     button.style.display = "block";
 };
 
-document.addEventListener("DOMContentLoaded", async () => {
-
-    console.log("Loaded DOM");
+const main = async () => {
 
     await add_config_shit();
     await initialize();
@@ -34,4 +32,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("Ready");
-});
+};
+
+main();

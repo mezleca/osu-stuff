@@ -197,6 +197,8 @@ export const add_config_shit = async () => {
             options[label_name] = input_value;
         });
 
+        console.log("new config map", config);
+
         const login = await osu_login(options.osu_id, options.osu_secret);
         
         if (!login) {
