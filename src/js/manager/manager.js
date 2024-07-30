@@ -2,9 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("electron").shell;
 
-import { beatmaps_schema } from "../reader/definitions.js";
-import { config } from "../stuff/utils/config/config.js";
-import { reader, setup_collector } from "../stuff/collector.js";
+import { config, reader, files } from "../stuff/utils/config/config.js";
+import { setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
 import { download_map } from "../stuff/utils/downloader/download_maps.js";
 
@@ -60,134 +59,113 @@ const remove_beatmap = (hash) => {
 
     document.getElementById(hash).remove();
 };
-
 const render_tab = (tab, beatmaps) => {
 
-    for (let i = 0; i < beatmaps.length; i++) {
+    const fragment = document.createDocumentFragment();
+
+    const template = document.createElement('template');
+    template.innerHTML = `
+        <div class="mini-container">
+            <img class="bg-image">
+            <div class="content">
+                <img class="small-image lazy">
+                <div class="text-container">
+                    <p class="title"></p>
+                    <p class="subtitle"></p>
+                </div>
+                <button class="download-button"><i class="bi bi-download"></i></button>
+                <button class="remove-btn"><i class="bi bi-trash-fill"></i></button>
+            </div>
+        </div>
+    `;
+
+    beatmaps.forEach((beatmap) => {
         
-        /** @type {beatmaps_schema} */
-        const beatmap = beatmaps[i];
-
-        const map_item = document.createElement("div");
-        const map_content = document.createElement("div");
-        const map_small_bg = document.createElement("img");
-        const map_big_bg = document.createElement("img");
-        const text_container = document.createElement("div");
-        const title = document.createElement("p");
-        const subtitle = document.createElement("p");
-        const download_c_btn = document.createElement("button");
-        const download_c_icon = document.createElement("i");
-        const remove_c_btn = document.createElement("button");
-        const remove_c_icon = document.createElement("i");
-
+        const mapItem = template.content.cloneNode(true).firstElementChild;
         const has_beatmap = Boolean(beatmap.artist_name);
         const has_bg = Boolean(beatmap.bg);
 
-        const title_text = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (not downloaded)";
-        const mapper_text = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
+        mapItem.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]` : "Unknown (not downloaded)";
+        mapItem.dataset.mapper = beatmap.creator_name || "Unknown";
+        mapItem.id = beatmap.md5;
 
-        title.innerText = title_text;
-        subtitle.innerText = mapper_text;
+        const title = mapItem.querySelector('.title');
+        const subtitle = mapItem.querySelector('.subtitle');
+        const small_bg = mapItem.querySelector('.small-image');
+        const download_btn = mapItem.querySelector('.download-button');
+        const remove_btn = mapItem.querySelector('.remove-btn');
 
-        map_item.dataset.title = title_text;
-        map_item.dataset.mapper = beatmap.creator_name || "Unknown";
+        title.textContent = mapItem.dataset.title;
+        subtitle.textContent = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
         const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
-        map_small_bg.dataset.src = has_bg ? beatmap.bg : fs.existsSync(small_img_path) ? small_img_path : placeholder_img; 
-        
-        map_small_bg.className = "small-image lazy";
-        map_big_bg.className = "bg-image";
-        map_item.className = "mini-container";
-        map_content.className = "content";
-        text_container.className = "text-container";
-        title.className = "title";
-        subtitle.className = "subtitle";
-        download_c_btn.className = "download-button";
-        download_c_icon.className = "bi bi-download";
-        remove_c_btn.className = "remove-btn";
-        remove_c_icon.className = "bi bi-trash-fill";
-        
-        map_item.id = beatmap.md5;
-        remove_c_btn.id = `bn_${beatmap.beatmap_id}`;
+        small_bg.dataset.src = has_bg ? beatmap.bg : (fs.existsSync(small_img_path) ? small_img_path : placeholder_img);
+
+        remove_btn.id = `bn_${beatmap.beatmap_id}`;
 
         if (has_beatmap) {
-
-            map_small_bg.addEventListener("click", () => {
-                     
-                if (beatmap.url) {
-                    shell.openExternal(beatmap.url);
-                    return;
-                }
-
-                shell.openExternal(`https://osu.ppy.sh/b/${beatmap.difficulty_id}`);
+            small_bg.addEventListener("click", () => {
+                const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+                shell.openExternal(url);
             });
-        }      
-
-        text_container.appendChild(title);
-        text_container.appendChild(subtitle);
-
-        download_c_btn.appendChild(download_c_icon);
-        remove_c_btn.appendChild(remove_c_icon);
-
-        map_content.appendChild(map_small_bg);
-        map_content.appendChild(text_container);
-
-        if (!has_beatmap) {
-            map_content.appendChild(download_c_btn);
         }
-        
-        map_content.appendChild(remove_c_btn);
 
-        map_item.appendChild(map_big_bg);
-        map_item.appendChild(map_content);
-        
-        tab.appendChild(map_item);
-
-        remove_c_btn.addEventListener("click", () => {   
-            console.log("removing beatmap", beatmap.song_title, current_name, beatmap.md5);  
+        remove_btn.addEventListener("click", () => {
+            console.log("removing beatmap", beatmap.song_title, current_name, beatmap.md5);
             remove_beatmap(beatmap.md5);
         });
 
-        download_c_btn.addEventListener("click", async () => {
+        if (!has_beatmap) {
 
-            add_alert("Searching beatmap...");
+            download_btn.addEventListener("click", async () => {
 
-            const beatmap_data = await download_map(beatmap.md5);
+                add_alert("Searching beatmap...");
 
-            if (!beatmap_data) {
-                add_alert("Beatmap has not found :c", { type: "alert" });
-                return;
-            }
+                const beatmap_data = await download_map(beatmap.md5);
 
-            beatmap.artist_name = beatmap_data.beatmapset.artist;
-            beatmap.song_title = beatmap_data.beatmapset.title;
-            beatmap.difficulty = beatmap_data.version;
-            beatmap.md5 = beatmap_data.checksum;
-            beatmap.creator_name = beatmap_data.beatmapset.creator;
-            beatmap.difficulty_id = beatmap_data.beatmapset_id;
+                if (!beatmap_data) {
+                    add_alert("Beatmap not found :c", { type: "alert" });
+                    return;
+                }
 
-            beatmap.url = beatmap_data.url;
-            beatmap.bg = beatmap_data.beatmapset.covers.list;
-  
-            const title_text = `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`
-            const mapper_text = `mapped by ${beatmap.creator_name}`;
+                beatmap.artist_name = beatmap_data.beatmapset.artist;
+                beatmap.song_title = beatmap_data.beatmapset.title;
+                beatmap.difficulty = beatmap_data.version;
+                beatmap.md5 = beatmap_data.checksum;
+                beatmap.creator_name = beatmap_data.beatmapset.creator;
+                beatmap.difficulty_id = beatmap_data.beatmapset_id;
 
-            map_small_bg.src = beatmap.bg;
+                beatmap.url = beatmap_data.url;
+                beatmap.bg = beatmap_data.beatmapset.covers.list;
     
-            title.innerText = title_text;
-            subtitle.innerText = mapper_text;
+                const title_text = `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`
+                const mapper_text = `mapped by ${beatmap.creator_name}`;
 
-            download_c_btn.remove();
+                small_bg.src = beatmap.bg;
+        
+                title.innerText = title_text;
+                subtitle.innerText = mapper_text;
 
-            map_small_bg.addEventListener("click", () => {
-                shell.openExternal(beatmap_data.url);
+                download_btn.remove();
+
+                small_bg.addEventListener("click", () => {
+                    shell.openExternal(beatmap_data.url);
+                });
+
+                add_alert("Finished downloading beatmap");
             });
+        } else {
+            download_btn.remove();
+        }
 
-            add_alert("Finished downloading beatmap");
-        });
-    }
+        fragment.appendChild(mapItem);
+    });
 
-    lazyLoad();
+    tab.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+        lazyLoad();
+    });
 };
 
 const remove_container = () => {
@@ -383,7 +361,7 @@ function lazyLoad() {
     const images = document.querySelectorAll('img.lazy');
     const options = {
         root: null,
-        rootMargin: '200px',
+        rootMargin: '0px',
         threshold: 0.1
     };
     const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -395,11 +373,6 @@ function lazyLoad() {
                     img.src = img.dataset.src;
                     img.removeAttribute('data-src');
                 }
-            } else {
-                if (img.src && !img.dataset.src) {
-                    img.dataset.src = img.src;
-                    img.src = placeholder_img;
-                }
             }
         });
     }, options);
@@ -410,42 +383,52 @@ const setup_manager = () => {
 
     collection_list.innerHTML = "";
 
+    const fragment = document.createDocumentFragment();
+    const template = document.createElement('template');
+    template.innerHTML = '<div class="collection-item"></div>';
+
     collections.forEach((v, k) => {
 
-        const new_collection = document.createElement("div");
-        new_collection.className = "collection-item";
-        new_collection.innerText = k;
+        const newCollection = template.content.cloneNode(true).firstElementChild;
+        newCollection.textContent = k;
 
-        new_collection.addEventListener("click", () => {
-            
+        newCollection.addEventListener("click", () => {
+
             const collection_text = document.getElementById("collection_text");
 
             if (collection_text) {
                 collection_text.remove();
-            }
-            
+            }      
+
             const all_collections_text = Array.from(collection_list.children);
 
             remove_container();
-            const container = create_container(k);
-
-            render_tab(container, collections.get(k));
-
+            render_tab(create_container(k), v);
             change_input_value(k);
 
-            all_collections_text.map((e) => e.classList.remove("selected"));
-            new_collection.classList.toggle("selected");
+            all_collections_text.forEach(e => e.classList.remove("selected"));
+            newCollection.classList.add("selected");
 
             current_name = k;
         });
-
-        collection_list.appendChild(new_collection);
+        
+        fragment.appendChild(newCollection);
     });
-    
-    lazyLoad();
+
+    collection_list.innerHTML = "";
+    collection_list.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+        lazyLoad();
+    });
 };
 
 export const initialize = async (extra) => {
+
+    // only initialize if the buffer is valid
+    if (!reader.buffer) {
+        return;
+    }
 
     // get the current collection list
     const collections_array = await reader.get_collections_data();

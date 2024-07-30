@@ -1,9 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-import { add_alert, add_get_extra_info } from "../popup/alert.js";
-import { download_maps} from "./utils/downloader/download_maps.js";
-import { events } from "../tasks/events.js";
+import { add_get_extra_info } from "../popup/alert.js";
 
 let in_progress = false;
 

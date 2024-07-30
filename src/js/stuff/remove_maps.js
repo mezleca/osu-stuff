@@ -1,9 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 
-import { reader, files } from "./collector.js";
 import { add_alert, add_get_extra_info, createCustomList } from "../popup/alert.js";
-import { config } from "./utils/config/config.js";
+import { config, reader, files } from "./utils/config/config.js";
 
 const is_testing = process.env.NODE_ENV == "cleide";
 
@@ -45,8 +44,6 @@ const check_difficulty_sr = (map, min, max) => {
     return false;
 };
 
-// Im not sure if this is working 100%
-// for now i will give the user a warning before using this feature
 export const remove_maps = async (id) => {
 
     return new Promise(async (resolve, reject) => {

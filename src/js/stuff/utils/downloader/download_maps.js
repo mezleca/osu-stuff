@@ -304,14 +304,14 @@ class MapDownloader {
 
         if (!this.maps || !this.id) {
             cancel_download();
-            return;
+            return null;
         }
 
         this.m_length = this.maps.length;
 
         if (single) {
-            const output = await this.download(this.maps, 0);
-            return output;
+            const beatmap = await this.download(this.maps, 0);
+            return beatmap;
         }
 
         await pmap(this.maps, this.download, 5);

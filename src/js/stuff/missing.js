@@ -1,11 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 
-import { reader, files } from "./collector.js";
 import { add_alert, add_get_extra_info } from "../popup/alert.js";
 import { search_map_id } from "./utils/downloader/download_maps.js";
 import { events } from "../tasks/events.js";
-import { config, og_path } from "./utils/config/config.js";
+import { config, og_path, reader, files } from "./utils/config/config.js";
 import { open_folder } from "./utils/other/process.js";
 
 export const export_missing = async (id) => {

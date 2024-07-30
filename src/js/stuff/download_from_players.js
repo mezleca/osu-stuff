@@ -1,10 +1,9 @@
 const path = require("path");
 const fs = require("fs");
 
-import { config } from "./utils/config/config.js";
+import { config, reader } from "./utils/config/config.js";
 import { add_alert } from "../popup/alert.js";
 import { add_get_extra_info } from "../popup/alert.js";
-import { files, reader } from "./collector.js";
 import { initialize } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {

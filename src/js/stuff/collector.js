@@ -1,15 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 
-import { OsuReader } from "../reader/reader.js";
 import { events } from "../tasks/events.js";
 import { add_alert } from "../popup/alert.js";
-import { login, config } from "./utils/config/config.js";
+import { login, config, reader } from "./utils/config/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";
 
-export const reader = new OsuReader();
-export const files  = new Map();
+
 
 const is_testing = process.env.NODE_ENV == "cleide";
 
