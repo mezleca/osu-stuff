@@ -67,8 +67,8 @@ export const add_task = (data, type) => {
     }
     
     const tab = document.createElement("div");
-    const h1 = document.createElement("h1");
-    const h2 = document.createElement("h2");
+    const h1  = document.createElement("h1");
+    const h2  = document.createElement("h2");
     const bar = document.createElement("div");
 
     tab.classList.add("tab-shit");

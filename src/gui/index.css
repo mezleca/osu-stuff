@@ -332,12 +332,33 @@ label {
     overflow: hidden;
     pointer-events: auto;
     box-sizing: border-box;
+    transition: opacity 0.5s ease-out;
+    animation: popup-appear 0.5s ease forwards;
 }
 
 .alert-icon {
     margin-right: 5%;
     margin-left: 10px;
     align-self: center;
+}
+
+.alert-error {
+    background-color: rgb(242, 36, 36);
+    border: 2px solid rgb(181, 0, 0);
+}
+
+.alert-success, .alert-default {
+    background-color: rgb(36, 153, 242);
+    border: 2px solid rgb(0, 103, 181);
+}
+
+.alert-warning {
+    background-color: rgb(217, 210, 9);
+    border: 2px solid rgb(255, 255, 31);
+}
+
+.alert-popup.fade-out {
+    opacity: 0;
 }
 
 .alert-close { 
@@ -475,29 +496,6 @@ label {
 .popup-content button:hover, .popup-content-flex button:hover {
     cursor: pointer;
 }
-
-/*
-.popup-content > input, .popup-content-flex > input {
-    margin: 10px 0px;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.popup-content > input[type="file"] {
-    padding: 5px;
-    margin-bottom: 10px;
-}
-
-.popup-content > input[type="text"]:focus,
-.popup-content > input[type="file"]:focus {
-    outline: none;
-    border-color: #007BFF;
-}
-*/
 
 .progress-bar {
     width: 0;
@@ -934,6 +932,11 @@ a {
 }
 
 @keyframes blinker {
-    0% { color: var(--blink-color) }
-    50% { color: var(--text-color) }
+    0% { color: var(--blink-color); }
+    50% { color: var(--text-color); }
+}
+
+@keyframes popup-appear {
+    0% { opacity: 0; }
+    100% { opacity: 1;}
 }

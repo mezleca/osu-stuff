@@ -5,36 +5,32 @@ import { events } from "../tasks/events.js";
 const alerts = new Map();
 const max_popup_size = 6;
 
-const change_alert_opacity = (div, value) => {
-    div.style.opacity = value / 255;
+const alert_types = {
+    error: { icon: "bi-x-circle-fill", cssClass: "alert-error" },
+    success: { icon: "bi-check-circle-fill", cssClass: "alert-success" },
+    warning: { icon: "bi-exclamation-triangle-fill", cssClass: "alert-warning" },
+    default: { icon: "bi-exclamation-circle", cssClass: "alert-default" }
 };
 
+// TODO: fix animation not working on close
 export const add_alert = async (...texts) => {
+
+    let deleted = false;
 
     const options = {
         type: "default",
         append_html: false,
         test: false,
-        color: "rgb(36, 153, 242)",
-        border: "2px solid rgb(0, 103, 181)",
-        text: "",
-        seconds: 3  
+        seconds: 3,
+        text: texts.filter(t => typeof t === "string" || typeof t === "number").join(" ")
     };
 
-    for (let i = 0; i < texts.length; i++) {
+    texts.forEach(t => {
 
-        if (typeof texts[i] == "object") {
-            options.type = texts[i].type || "default";
-            options.append_html = texts[i].append_html || false;
-            options.test = texts[i].test || false;
-            options.seconds = texts[i].seconds || 3;
-            continue;
+        if (typeof t === "object") {
+            Object.assign(options, t);
         }
-
-        if (typeof texts[i] == "string" || typeof texts[i] == "number") {
-            options.text += texts[i] + " "; 
-        }
-    }
+    });
 
     if (alerts.size > max_popup_size) {
         console.log("Too many popups");
@@ -42,123 +38,56 @@ export const add_alert = async (...texts) => {
     }
 
     const id = Date.now();
-
     const div = document.createElement("div");
 
     const alert_icon = document.createElement("i");
     const alert_text = document.createElement("h2");
     const alert_close = document.createElement("i");
+    const alert_type = alert_types[options.type] || alert_types.default;
 
-    div.classList.add("alert-popup");
+    div.classList.add("alert-popup", alert_type.cssClass);
     div.id = id;
 
-    switch (options.type) {
-        case "error":
-
-            alert_icon.classList.add("bi");
-            alert_icon.classList.add("bi-x-circle-fill");
-
-            options.color = "rgb(242, 36, 36)";
-            options.border = "2px solid rgb(181, 0, 0)";
-
-            break;
-        case "success":
-
-            alert_icon.classList.add("bi");
-            alert_icon.classList.add("bi-check-circle-fill");
-
-            options.color = "rgb(36, 153, 242)";
-            options.border = "2px solid rgb(0, 103, 181)";
-
-            break;
-        case "warning":
-            
-            alert_icon.classList.add("bi");
-            alert_icon.classList.add("bi-exclamation-triangle-fill");
-
-            options.color = "rgb(217, 210, 9)";
-            options.border = "2px solid rgb(255, 255, 31)";
-
-            break;
-        case "info":
-
-            break;
-        case "default":
-            alert_icon.classList.add("bi");
-            alert_icon.classList.add("bi-exclamation-circle");
-            break;
-        default:
-            alert_icon.classList.add("bi");
-            alert_icon.classList.add("bi-exclamation-circle");
-            break;
-    }
-
-    div.style.backgroundColor = options.color;
-    div.style.border = options.border;
-
-    alert_icon.classList.add("alert-icon");
-
-    alert_close.classList.add("bi");
-    alert_close.classList.add("bi-x");
-    alert_close.classList.add("alert-close");
+    alert_icon.classList.add("bi", alert_type.icon, "alert-icon");
+    alert_close.classList.add("bi", "bi-x", "alert-close");
 
     if (options.append_html) {
         alert_text.innerHTML = options.text;
     } else {
         alert_text.innerText = options.text;
     }
-        
-    div.appendChild(alert_icon);
-    div.appendChild(alert_text);
-    div.appendChild(alert_close);
 
+    div.append(alert_icon, alert_text, alert_close);
     alerts.set(id, div);
-    
+
     document.querySelector(".alert-container").appendChild(div);
 
-    let deleted = false;
-
-    alert_close.addEventListener("click", () => { 
+    alert_close.addEventListener("click", () => {
         remove_alert(div, id);
         deleted = true;
     });
 
     if (options.append_html) {
-        const all = div.querySelectorAll('a[href^="http"]');
 
-        for (let i = 0; i < all.length; i++) {
-            all[i].addEventListener("click", (e) => {
+        div.querySelectorAll('a[href^="http"]').forEach(a => {
+            
+            a.addEventListener("click", e => {
                 e.preventDefault();
-                shell.openExternal(e.target.href)       
+                shell.openExternal(e.target.href);
             });
-        }
+        });
     }
 
     if (options.test) {
         return;
     }
 
-    // sleep 2 seconds before the fading animation
     await new Promise(resolve => setTimeout(resolve, options.seconds * 1000));
 
-    let opacity = 255;
-
-    const interval = setInterval(() => {
-
-        if (deleted) {
-            clearInterval(interval);
-        }
-        
-        change_alert_opacity(div, opacity);
-
-        opacity -= 2;
-
-        if (opacity <= 0) {
-            clearInterval(interval);
-            remove_alert(div, id);
-        }
-
-    }, 10);
+    if (!deleted) {
+        div.classList.add("fade-out");
+        setTimeout(() => remove_alert(div, id), 500);
+    }
 };
 
 export const remove_alert = (div, id) => {

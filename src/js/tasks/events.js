@@ -63,7 +63,7 @@ const remove_queue_div = (id) => {
     if (div) {
         document.querySelector(".queue-list").removeChild(div);
     }
-}
+};
 
 // queue interval
 setInterval(() => {
