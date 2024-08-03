@@ -514,7 +514,8 @@ label {
     justify-content: space-between;
     align-items: center;
     width: 90%;
-    margin-bottom: 2.5em;
+    margin-bottom: 0.5em;
+    padding: 5px;
     align-self: center;
 }
 
@@ -598,17 +599,17 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 5px;
 }
 
-.slider1 {
-    position: absolute;
-    left: 0;
-    color: rgb(253, 255, 226);
-    z-index: 2000;
-    top: 0.01em;
+.input-range-text {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 100%;
+    height: auto;
 }
 
-.slider2 {
+.slider {
     position: absolute;
-    right: 0;
+    left: 0;
     color: rgb(253, 255, 226);
     z-index: 2000;
     top: 0.01em;

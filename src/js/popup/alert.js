@@ -317,6 +317,195 @@ const createListPopup = (values, resolve, important, column, title) => {
     }
 };
 
+const createcustom_element = (type, defaultProps = {}) => (customProps = {}) => ({
+    type,
+    ...defaultProps,
+    ...customProps,
+});
+
+const custom_elements = {
+    div:        createcustom_element("div", { name: "", id: "", class: "" }),
+    label:      createcustom_element("label", { name: "", id: "", class: "" }),
+    small_text: createcustom_element("p", { name: "", id: "", class: "" }),
+    text:       createcustom_element("h1", { name: "", id: "", class: "" }),
+    input:      createcustom_element("input", { name: "", id: "", class: "" }),
+    range:      createcustom_element("input", { name: "", id: "", class: "input-double-balls", min: 0, max: 1 })
+};
+
+/**
+ * @param {Array<{key: string, element: Object}>} elements 
+ * @param {string} id
+ * @returns {Promise<Object>}
+ */
+// TODO: implement this in the remove_maps function
+export const createcustomlist = (name, elements, id) => {
+
+    return new Promise((resolve, reject) => {
+
+        if (typeof name != "string") {
+            console.log("[CUSTOM LIST] invalid name, must be a string");
+        }
+
+        if (!Array.isArray(elements)) {
+            console.log("[CUSTOM LIST] invalid parameter, must be an array of objects");
+            reject("Invalid parameter");
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        const template = document.createElement('template');
+
+        template.innerHTML = `
+            <div class="popup-container">
+                <div class="popup-content-flex">
+                    <h1>${name}</h1>
+                </div>
+            </div>
+        `;
+
+        const content = template.content.querySelector(".popup-content-flex");
+        const popup   = template.content.querySelector(".popup-container");
+
+        popup.addEventListener("click", (event) => {
+            
+            if (event.target !== popup) {
+                return;
+            }
+
+            document.querySelector(".container").removeChild(popup);
+            events.emit("progress-end", id);
+            reject("Cancelled");
+        });
+
+        const created_elements = {};
+
+        elements.forEach(({ key, element: el }) => {
+
+            const type = Object.keys(el)[0];
+            const props = el[type];
+            const custom_element = custom_elements[type](props);
+
+            if (!custom_element) {
+                console.log("[CUSTOM LIST] invalid type", type);
+                return;
+            }
+
+            const label_element = document.createElement("label");
+
+            label_element.innerHTML = key;
+            label_element.style.alignSelf = type == "range" ? "center" : "start";
+
+            content.appendChild(label_element);
+
+            let created_element;
+
+            if (type === "range") {
+
+                const range_fragment = document.createDocumentFragment();
+                const range_template = document.createElement("template");
+
+                if (typeof custom_element.min !== 'number' || typeof custom_element.max !== 'number') {
+                    console.log("[CUSTOM LIST] missing min/max", custom_element, custom_element?.min, custom_element?.max);
+                    return;
+                }
+                
+                range_template.innerHTML = `
+                    <div class="input-double-balls">
+                        <div class="slider-thing"></div>
+                        <input type="range" name="${key}_min" id="${key}_min" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.min}">
+                        <input type="range" name="${key}_max" id="${key}_max" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.max}">
+                    </div>
+                    <div class="input-range-text">
+                            <p id="${key}_slider_min">min: ${custom_element.min}</p>
+                            <p id="${key}_slider_max">max: ${custom_element.max}</p>
+                    </div>
+                `;
+
+                range_fragment.appendChild(range_template.content);
+                content.appendChild(range_fragment);
+
+                const min = content.querySelector(`#${key}_min`);
+                const max = content.querySelector(`#${key}_max`);
+
+                const slider_min = content.querySelector(`#${key}_slider_min`);
+                const slider_max = content.querySelector(`#${key}_slider_max`);
+                
+                min.addEventListener('input', () => {
+
+                    if (parseInt(min.value) > parseInt(max.value)) {
+                        min.value = max.value;
+                    }
+
+                    slider_min.innerText = `min: ${min.value}`;
+                });
+        
+                max.addEventListener('input', () => {
+
+                    if (parseInt(max.value) < parseInt(min.value)) {
+                        max.value = min.value;
+                    }
+
+                    slider_max.innerText = `max: ${max.value}`;
+                });
+
+                created_element = { min, max };
+            } else {
+
+                created_element = document.createElement(custom_element.type);
+
+                created_element.className = custom_element.class;
+                created_element.id = key;
+                created_element.innerText = custom_element.name;
+
+                content.appendChild(created_element);
+            }
+
+            if (type == "label") {
+                return;
+            }
+
+            created_elements[key] = {
+                type,
+                element: created_element
+            };
+        });
+
+        content.innerHTML += `<button id="custom_list_submit">Submit</button>`;
+
+        fragment.appendChild(template.content);
+        document.querySelector(".container").appendChild(fragment);
+
+        document.getElementById("custom_list_submit").addEventListener("click", () => {
+
+            const result = {};
+            
+            Object.entries(created_elements).forEach(([key, { type, element }]) => {
+
+                if (type === "range") {
+
+                    result[key] = {
+                        min: element.min.value,
+                        max: element.max.value
+                    };
+                } else {
+                    result[key] = element.value || element.innerText;
+                }
+            });
+
+            document.querySelector(".container").removeChild(popup);
+            resolve(result);
+        });
+    });
+};
+
+createcustomlist("list test", [
+    { key: "firstName", element: { input: { name: "First Name" } } },
+    { key: "lastName", element: { input: { name: "Last Name" } } },
+    { key: "age", element: { range: { min: 0, max: 100 } } }
+], "userForm")
+.then(result => console.log(result))
+.catch(error => console.error(error));
+
 export const createCustomList = (status, id) => {
 
     return new Promise((resolve, reject) => {
