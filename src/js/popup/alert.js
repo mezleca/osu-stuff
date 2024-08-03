@@ -498,14 +498,6 @@ export const createcustomlist = (name, elements, id) => {
     });
 };
 
-createcustomlist("list test", [
-    { key: "firstName", element: { input: { name: "First Name" } } },
-    { key: "lastName", element: { input: { name: "Last Name" } } },
-    { key: "age", element: { range: { min: 0, max: 100 } } }
-], "userForm")
-.then(result => console.log(result))
-.catch(error => console.error(error));
-
 export const createCustomList = (status, id) => {
 
     return new Promise((resolve, reject) => {
