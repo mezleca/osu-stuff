@@ -1,7 +1,5 @@
 const shell = require("electron").shell;
 
-import { events } from "../tasks/events.js";
-
 const alerts = new Map();
 const max_popup_size = 6;
 
@@ -102,112 +100,126 @@ export const remove_alert = (div, id) => {
     document.querySelector(".alert-container").removeChild(div);
 };
 
-export const add_get_extra_info = (infoArray) => {
-
-    return new Promise((resolve, reject) => {
-
-        if (!Array.isArray(infoArray)) {
-            reject("Invalid input: infoArray should be an array");
-            return;
-        }
-
-        infoArray.forEach(info => {
-
-            const important  = info?.important ? info.important : false,
-                  column     = info?.column ? info.column : false,
-                  input_type = info?.input_type ? info.input_type : false,
-                  title      = info?.title ? info.title : false;
-
-            if (info.type === 'confirmation' && info.text) {
-                createConfirmationPopup(info.text, resolve, important);
-            } 
-            else if (info.type === 'list' && Array.isArray(info.value)) {
-                createListPopup(info.value, resolve, important, column, title);
-            } 
-            else if (info.type == "input" && info.text) {
-                createInputPopup(info.text, resolve, important, input_type);
-            }
-            else if (info.type == "file" && info.text) {
-                createFilePopup(info.text, resolve, important);
-            }
-            else {
-                console.log(infoArray);
-                reject("Invalid object in array");
-            }
-        });
-    });
-};
-
 const remove_popup = async (popup) => {
     popup.classList.add("removed");
     await new Promise(resolve => setTimeout(resolve, 100));
     document.body.removeChild(popup);
 };
 
-const createConfirmationPopup = (text, resolve, important) => {
+export const add_get_extra_info = (info_array) => {
 
-    const div = document.createElement("div");
-    div.classList.add("popup-container");
+    return new Promise((resolve, reject) => {
 
-    const content = document.createElement("div");
-    content.classList.add("popup-content");
+        if (!Array.isArray(info_array)) {
+            reject("Invalid input: info_array should be an array");
+            return;
+        }
+  
+        info_array.forEach(info => {
 
-    const header = document.createElement("h1");
-    header.innerText = text;
-    content.appendChild(header);
+            const { important = false, column = false, input_type = false, title = false } = info;
+    
+            switch (info.type) {
+                case 'confirmation':
 
-    const yesButton = document.createElement("button");
-    yesButton.innerText = "Yes";
+                    if (info.text) {
+                        create_confirmation_popup(info.text, resolve, important);
+                    }
 
-    yesButton.addEventListener("click", () => {
-        resolve("Yes");
-        remove_popup(div);
-    });
+                    break;
+                case 'list':
 
-    const noButton = document.createElement("button");
-    noButton.innerText = "No";
+                    if (Array.isArray(info.value)) {
+                        create_list_popup(info.value, resolve, important, column, title);
+                    }
 
-    noButton.addEventListener("click", () => {
-        resolve("No");
-        remove_popup(div);
-    });
+                    break;
+                case 'input':
 
-    content.appendChild(yesButton);
-    content.appendChild(noButton);
+                    if (info.text) {
+                        create_input_popup(info.text, resolve, important, input_type);
+                    }
 
-    div.appendChild(content);
+                    break;
+                case 'file':
 
-    document.body.appendChild(div);
+                    if (info.text) {
+                        create_file_popup(info.text, resolve, important);
+                    }
 
-    if (!important) {
-        div.addEventListener("click", (event) => {
-            if (event.target === div) {
-                remove_popup(div);
-                resolve(null);
+                    break;
+                default:
+                    console.log(info_array);
+                    reject("Invalid object in array");
             }
         });
+    });
+};
+  
+const create_popup = (content, important, resolve) => {
+
+    const template = document.createElement('template');
+
+    template.innerHTML = `
+        <div class="popup-container">
+            <div class="popup-content">
+            ${content}
+            </div>
+        </div>
+    `;
+
+    const popup = template.content.firstElementChild;
+    document.body.appendChild(popup);
+
+    if (!important) {
+
+        popup.addEventListener("click", (event) => {
+
+            if (event.target != popup) {
+                return;
+            }
+
+            remove_popup(popup);
+            resolve(null);
+        });
     }
+
+    return popup;
 };
 
-const createInputPopup = (text, resolve, important, type) => {
+const create_confirmation_popup = (text, resolve, important) => {
+    const content = `
+        <h1>${text}</h1>
+        <button id="yes-btn">Yes</button>
+        <button id="no-btn">No</button>
+    `;
 
-    const div = document.createElement("div");
-    div.classList.add("popup-container");
+    const popup = create_popup(content, important, resolve);
 
-    const content = document.createElement("div");
-    content.classList.add("popup-content");
+    popup.querySelector('#yes-btn').addEventListener('click', () => {
+        resolve("Yes");
+        remove_popup(popup);
+    });
 
-    const header = document.createElement("h1");
-    header.innerText = text;
-    content.appendChild(header);
+    popup.querySelector('#no-btn').addEventListener('click', () => {
+        resolve("No");
+        remove_popup(popup);
+    });
+};
 
-    const input = document.createElement("input");
-    input.type = type ? type : "text";
-    content.appendChild(input);
+const create_input_popup = (text, resolve, important, type) => {
 
-    const submitButton = document.createElement("button");
-    submitButton.innerText = "Submit";
-    submitButton.addEventListener("click", () => {
+    const content = `
+        <h1>${text}</h1>
+        <input type="${type || 'text'}" id="input-field">
+        <button id="submit-btn">Submit</button>
+    `;
+
+    const popup = create_popup(content, important, resolve);
+
+    popup.querySelector('#submit-btn').addEventListener('click', () => {
+
+        const input = popup.querySelector('#input-field');
 
         if (!input.value) {
             alert("Please enter a value");
@@ -215,106 +227,51 @@ const createInputPopup = (text, resolve, important, type) => {
         }
 
         resolve(input.value);
-        remove_popup(div); 
-    });
-
-    content.appendChild(submitButton);
-    div.appendChild(content);
-    document.body.appendChild(div);
-
-    if (important) {
-        return;
-    }
-
-    div.addEventListener("click", (event) => {
-        if (event.target === div) {
-            remove_popup(div);
-            resolve(null);
-        }
+        remove_popup(popup);
     });
 };
 
-const createFilePopup = (text, resolve, important) => {
+const create_file_popup = (text, resolve, important) => {
 
-    const div = document.createElement("div");
-    div.classList.add("popup-container");
+    const content = `
+        <h1>${text}</h1>
+        <input type="file" accept=".json" id="file-input">
+        <button id="submit-btn">Submit</button>
+    `;
 
-    const content = document.createElement("div");
-    content.classList.add("popup-content");
+    const popup = create_popup(content, important, resolve);
 
-    const header = document.createElement("h1");
-    header.innerText = text;
-    content.appendChild(header);
+    popup.querySelector('#submit-btn').addEventListener('click', () => {
 
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept =".json";
-    content.appendChild(fileInput);
+        const fileInput = popup.querySelector('#file-input');
 
-    const submitButton = document.createElement("button");
-    submitButton.innerText = "Submit";
-    submitButton.addEventListener("click", () => {
-        if (fileInput.files.length > 0) {
-            resolve(fileInput.files[0]);
-            remove_popup(div);
-        } else {
+        if (fileInput.files.length == 0) {
             alert("Please select a file");
+            return;
         }
-    });
 
-    content.appendChild(submitButton);
-    div.appendChild(content);
-    document.body.appendChild(div);
-
-    if (important) {
-        return;
-    }
-
-    div.addEventListener("click", (event) => {
-        if (event.target === div) {
-            remove_popup(div);
-            resolve(null);
-        }
+        resolve(fileInput.files[0]);
+        remove_popup(popup);
     });
 };
 
-const createListPopup = (values, resolve, important, column, title) => {
+const create_list_popup = (values, resolve, important, column, title) => {
+    
+    const buttons = values.map(value => `<button>${value}</button>`).join('');
+    const content = `
+        <h1>${title || 'Select an option:'}</h1>
+        <div class="${column ? 'popup-content-flex' : ''}">${buttons}</div>
+    `;
 
-    const div = document.createElement("div");
-    div.classList.add("popup-container");
+    const popup = create_popup(content, important, resolve);
 
-    const content = document.createElement("div");
-    content.classList.add("popup-content");
+    popup.querySelectorAll('button').forEach(button => {
 
-    if (column) {
-        content.classList.add("popup-content-flex");
-    }
-
-    const header = document.createElement("h1");
-    header.innerText = title ? title : "Select an option:";
-    content.appendChild(header);
-
-    values.forEach(value => {
-        const button = document.createElement("button");
-        button.innerText = value;
-        button.addEventListener("click", () => {
-            resolve(value);
-            remove_popup(div);
+        button.addEventListener('click', () => {
+            resolve(button.textContent);
+            remove_popup(popup);
         });
-        content.appendChild(button);
     });
-
-    div.appendChild(content);
-    document.body.appendChild(div);
-
-    if (!important) {
-        div.addEventListener("click", (event) => {
-            if (event.target === div) {
-                remove_popup(div);
-                resolve(null);
-            }
-        });
-    }
 };
 
 const createcustom_element = (type, defaultProps = {}) => (customProps = {}) => ({
@@ -329,26 +286,29 @@ const custom_elements = {
     small_text: createcustom_element("p", { name: "", id: "", class: "" }),
     text:       createcustom_element("h1", { name: "", id: "", class: "" }),
     input:      createcustom_element("input", { name: "", id: "", class: "" }),
-    range:      createcustom_element("input", { name: "", id: "", class: "input-double-balls", min: 0, max: 1 })
+    range:      createcustom_element("input", { name: "", id: "", class: "input-double-balls", min: 0, max: 1 }),
+    checkbox:   createcustom_element("checkbox", { name: "", id: "", class: "" }),
+    list:       createcustom_element("select", { name: "", id: "", class: "", options: [] })
 };
 
 /**
  * @param {Array<{key: string, element: Object}>} elements 
  * @param {string} id
+ * @example
+ * createcustomlist("test", [{ key: "age", element: { range: { min: 0, max: 100 } } }], "id_here")
  * @returns {Promise<Object>}
- */
-// TODO: implement this in the remove_maps function
+*/
 export const createcustomlist = (name, elements, id) => {
 
     return new Promise((resolve, reject) => {
 
         if (typeof name != "string") {
             console.log("[CUSTOM LIST] invalid name, must be a string");
+            return;
         }
 
         if (!Array.isArray(elements)) {
             console.log("[CUSTOM LIST] invalid parameter, must be an array of objects");
-            reject("Invalid parameter");
             return;
         }
 
@@ -373,13 +333,27 @@ export const createcustomlist = (name, elements, id) => {
             }
 
             document.querySelector(".container").removeChild(popup);
-            events.emit("progress-end", id);
             reject("Cancelled");
         });
 
         const created_elements = {};
+        const range_callbacks = [];
+        
+        const create_label = (text, type) => {
 
-        elements.forEach(({ key, element: el }) => {
+            const label_element = document.createElement("label");
+
+            label_element.innerHTML = text;
+            label_element.style.alignSelf = type == "range" ? "center" : "start";
+
+            return label_element;
+        };
+
+        elements.forEach(({ key: k, element: el }) => {
+
+            const key = String(k).replace(/\s/g, '_');
+
+            let created_element;
 
             const type = Object.keys(el)[0];
             const props = el[type];
@@ -390,16 +364,32 @@ export const createcustomlist = (name, elements, id) => {
                 return;
             }
 
-            const label_element = document.createElement("label");
+            if (type == "list") {
 
-            label_element.innerHTML = key;
-            label_element.style.alignSelf = type == "range" ? "center" : "start";
+                const options = el.list.options;
 
-            content.appendChild(label_element);
+                if (!Array.isArray(options)) {
+                    console.log("[CUSTOM LIST] invalid list array, must be an arrray of strings")
+                    return;
+                }
 
-            let created_element;
+                const list_fragment = document.createDocumentFragment();
+                const list_template = document.createElement("template");
 
-            if (type === "range") {
+                list_template.innerHTML = `
+                    <select name="status" id="a${key}">
+                        ${options.map(status => `<option value="${status}" class="${status}_list">${status}</option>`).join("")}
+                    </select>
+                `;
+
+                list_fragment.appendChild(list_template.content);
+
+                content.appendChild(create_label(k, type));
+                content.appendChild(list_fragment);
+
+                created_element = content.cloneNode(true).querySelector(`#a${key}`);
+            }
+            else if (type == "range") {
 
                 const range_fragment = document.createDocumentFragment();
                 const range_template = document.createElement("template");
@@ -408,56 +398,85 @@ export const createcustomlist = (name, elements, id) => {
                     console.log("[CUSTOM LIST] missing min/max", custom_element, custom_element?.min, custom_element?.max);
                     return;
                 }
+
+                if (custom_element.min == custom_element.max || custom_element.max < custom_element.min) {
+                    custom_element.max = custom_element.max + 1;
+                }
                 
                 range_template.innerHTML = `
                     <div class="input-double-balls">
                         <div class="slider-thing"></div>
-                        <input type="range" name="${key}_min" id="${key}_min" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.min}">
-                        <input type="range" name="${key}_max" id="${key}_max" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.max}">
+                        <input type="range" name="min_${key}" id="min_${key}" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.min}">
+                        <input type="range" name="max_${key}" id="max_${key}" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.max}">
                     </div>
                     <div class="input-range-text">
-                            <p id="${key}_slider_min">min: ${custom_element.min}</p>
-                            <p id="${key}_slider_max">max: ${custom_element.max}</p>
+                            <p id="slider_min_${key}">min: ${custom_element.min}</p>
+                            <p id="slider_max_${key}">max: ${custom_element.max}</p>
                     </div>
                 `;
 
                 range_fragment.appendChild(range_template.content);
+
+                content.appendChild(create_label(k, type));
                 content.appendChild(range_fragment);
 
-                const min = content.querySelector(`#${key}_min`);
-                const max = content.querySelector(`#${key}_max`);
+                const min = content.querySelector(`#min_${key}`);
+                const max = content.querySelector(`#max_${key}`)
 
-                const slider_min = content.querySelector(`#${key}_slider_min`);
-                const slider_max = content.querySelector(`#${key}_slider_max`);
-                
-                min.addEventListener('input', () => {
+                range_callbacks.push(function() {
 
-                    if (parseInt(min.value) > parseInt(max.value)) {
-                        min.value = max.value;
-                    }
+                    const min = document.querySelector(`#min_${key}`);
+                    const max = document.querySelector(`#max_${key}`)
+    
+                    const slider_min = document.querySelector(`#slider_min_${key}`);
+                    const slider_max = document.querySelector(`#slider_max_${key}`);
 
-                    slider_min.innerText = `min: ${min.value}`;
-                });
-        
-                max.addEventListener('input', () => {
-
-                    if (parseInt(max.value) < parseInt(min.value)) {
-                        max.value = min.value;
-                    }
-
-                    slider_max.innerText = `max: ${max.value}`;
-                });
+                    min.addEventListener('input', () => {
+    
+                        if (parseInt(min.value) > parseInt(max.value)) {
+                            min.value = max.value;
+                        }
+    
+                        slider_min.innerText = `min: ${min.value}`;
+                    });
+            
+                    max.addEventListener('input', () => {
+    
+                        if (parseInt(max.value) < parseInt(min.value)) {
+                            max.value = min.value;
+                        }
+    
+                        slider_max.innerText = `max: ${max.value}`;
+                    });
+                });            
 
                 created_element = { min, max };
             } else {
 
-                created_element = document.createElement(custom_element.type);
+                const type = custom_element.type == "checkbox" ? "input" : custom_element.type;
+
+                created_element = document.createElement(type);
 
                 created_element.className = custom_element.class;
                 created_element.id = key;
-                created_element.innerText = custom_element.name;
+                
+                if (custom_element.type == "checkbox") {
 
-                content.appendChild(created_element);
+                    const boxcontainer = document.createElement("div");
+
+                    boxcontainer.className = "checkbox-container";
+
+                    created_element.type = "checkbox";
+                    created_element.innerText = k;
+
+                    boxcontainer.appendChild(created_element);
+                    boxcontainer.appendChild(create_label(k, type));
+
+                    content.appendChild(boxcontainer);
+                } else {
+                    created_element.innerText = k;
+                    content.appendChild(created_element);
+                }
             }
 
             if (type == "label") {
@@ -467,7 +486,7 @@ export const createcustomlist = (name, elements, id) => {
             created_elements[key] = {
                 type,
                 element: created_element
-            };
+            }
         });
 
         content.innerHTML += `<button id="custom_list_submit">Submit</button>`;
@@ -475,20 +494,29 @@ export const createcustomlist = (name, elements, id) => {
         fragment.appendChild(template.content);
         document.querySelector(".container").appendChild(fragment);
 
+        range_callbacks.forEach((callback) => callback());
+
         document.getElementById("custom_list_submit").addEventListener("click", () => {
 
             const result = {};
             
-            Object.entries(created_elements).forEach(([key, { type, element }]) => {
+            Object.entries(created_elements).forEach(([key, { type, element: el }]) => {
+
+                const element = document.getElementById(el.id);
 
                 if (type === "range") {
 
                     result[key] = {
-                        min: element.min.value,
-                        max: element.max.value
-                    };
-                } else {
-                    result[key] = element.value || element.innerText;
+                        min: el.min.value,
+                        max: el.max.value
+                    }
+
+                } 
+                else if (type === "checkbox") {
+                    result[key] = element.checked ? true : false;
+                }
+                else {                  
+                    result[key] = type == "list" || "input" ? element.value : element.innerText;
                 }
             });
 
@@ -498,110 +526,11 @@ export const createcustomlist = (name, elements, id) => {
     });
 };
 
-export const createCustomList = (status, id) => {
+const custom_list = [
+    { key: "input test", element: { input: { } }},
+    { key: "star rating", element: { range: { min: 0, max: 0 } } },
+    { key: "ignore beatmaps from collections", element: { checkbox: { name: "Ignore beatmaps from collections" } } },
+    { key: "Status test", element: { list: { options: ["test", "123", "525"] } }}
+];
 
-    return new Promise((resolve, reject) => {
-
-        const html = 
-        `
-            <div class="popup-container">
-                <div class="popup-content-flex" style="flex-direction: column;">
-                    <h1>Options</h1>
-                    <div class="input-double-balls" style="display: none;">
-                        <div class="slider-thing"></div>
-                        <input type="range" name="ball0" id="min_sr" min="0" max="30" value="0">
-                        <input type="range" name="ball1" id="max_sr" min="0" max="30" value="10">
-                        <p class="slider1">min: 0</p>
-                        <p class="slider2">max: 10</p>
-                    </div>
-                    <label for="status">Status</label>
-                    <select name="status" id="status">
-                        ${status.map(status => `<option value="${status}">${status}</option>`)}
-                    </select>
-                    <div style="display: flex; width: 100%; align-items: center; flex-direction: column; justify-content: center; margin: 0;">
-                        <div class="checkbox-container">
-                            <input type="checkbox" id="piru" name="piru"></input>
-                            <label for="piru" style="margin: 0; margin-left: 2px;">Enable star rating check</label>
-                        </div>    
-
-                        <div class="checkbox-container">
-                            <input type="checkbox" id="exclude_collections" name="exclude_collections"></input>
-                            <label for="exclude_collections">Ignore Beatmaps from Collections</label>
-                        </div>  
-
-                    </div>
-                    <button id="custom_list_submit">Submit</button>
-                </div>
-            </div>
-        `;
-
-        document.querySelector(".container").insertAdjacentHTML("beforebegin", html);
-
-        const min_sr = document.getElementById('min_sr');
-        const max_sr = document.getElementById('max_sr');
-
-        const slider1 = document.querySelector('.slider1');
-        const slider2 = document.querySelector('.slider2');
-
-        slider1.innerText = `min: ${min_sr.value}`;
-        slider2.innerText = `max: ${max_sr.value}`;
-
-        const enable_sr = document.getElementById('piru');
-        
-        let sr_enabled = false;
-
-        enable_sr.addEventListener('change', () => {
-
-            sr_enabled = enable_sr.checked;
-
-            if (enable_sr.checked) {
-                document.querySelector(".input-double-balls").style.display = "flex";
-            } else {
-                document.querySelector(".input-double-balls").style.display = "none";
-            }
-        });
-
-        min_sr.addEventListener('input', () => {
-
-            if (parseInt(min_sr.value) > parseInt(max_sr.value)) {
-                min_sr.value = max_sr.value;
-            }
-
-            slider1.innerText = `min: ${min_sr.value}`;
-        });
-
-        max_sr.addEventListener('input', () => {
-
-            if (parseInt(max_sr.value) < parseInt(min_sr.value)) {
-                max_sr.value = min_sr.value;
-            }
-
-            slider2.innerText = `max: ${max_sr.value}`;
-        });
-
-        document.getElementById("custom_list_submit").addEventListener("click", () => {
-
-            const div = document.querySelector(".popup-container");
-
-            const status = document.getElementById("status").value;
-            const exclude_collections = document.getElementById("exclude_collections").checked;
-
-            if (min_sr.value == "0" && max_sr.value == "0") {
-                add_alert("min sr and max sr cannot be both 0", { type: "warning" });
-                return;
-            }
-
-            resolve({ min_sr: parseInt(min_sr.value), max_sr: parseInt(max_sr.value), status, exclude_collections, sr_enabled });
-            remove_popup(div);
-        });
-
-        const div = document.querySelector(".popup-container");
-        div.addEventListener("click", (event) => {
-            if (event.target === div) {
-                remove_popup(div);
-                events.emit("progress-end", id);
-                reject("Cancelled");
-            }
-        });
-    });
-};
+createcustomlist("test", custom_list).then((a) => console.log(a));

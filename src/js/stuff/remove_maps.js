@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-import { add_alert, add_get_extra_info, createCustomList } from "../popup/alert.js";
+import { add_alert, add_get_extra_info, createcustomlist } from "../popup/alert.js";
 import { config, reader, files } from "./utils/config/config.js";
 
 const is_testing = process.env.NODE_ENV == "cleide";
@@ -52,15 +52,33 @@ export const remove_maps = async (id) => {
 
             const areyousure = await add_get_extra_info([{ type: "confirmation", text: "This feature is still experimental\nDo you really want to continue?"}]);
 
+            const custom_list = [ 
+                { key: "star rating", element: { range: { min: 0, max: 100 } } },
+                { key: "ignore beatmaps from collections", element: { checkbox: { } } },
+                { key: "status", element: { list: { options: Object.keys(stats) }} }
+            ];
+
             if (areyousure != "Yes") {
                 resolve("");
                 return;
             }
 
             let can_proceed = true;
-            let { min_sr, max_sr, status, exclude_collections, sr_enabled } = await createCustomList(Object.keys(stats), id);
-    
-            status = stats[status];
+
+            const filter_data = await createcustomlist("beatmap filter", custom_list);
+
+            if (!filter_data) {
+                reject("");
+                return;
+            }
+            
+            const min_sr = filter_data.star_rating.min;
+            const max_sr = filter_data.star_rating.max;
+
+            const selected_status = filter_data.status;
+            const ignore_from_collections = filter_data.ignore_beatmaps_from_collections;
+
+            const status = stats[selected_status];
     
             const off = new Set(), deleted_folders = [], hashes = [], filtered_maps = new Map();
     
@@ -106,14 +124,14 @@ export const remove_maps = async (id) => {
                     return;
                 }
     
-                if (hashes.includes(b.md5) && exclude_collections) {
+                if (hashes.includes(b.md5) && ignore_from_collections) {
                     filtered_maps.set(b.md5, b);
                     return;
                 }
     
                 const diff = check_difficulty_sr(b, min_sr, max_sr);
     
-                if (!diff && sr_enabled) {
+                if (!diff) {
                     filtered_maps.set(b.md5, b.sr);
                     return;
                 }
