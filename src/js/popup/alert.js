@@ -525,12 +525,3 @@ export const createcustomlist = (name, elements, id) => {
         });
     });
 };
-
-const custom_list = [
-    { key: "input test", element: { input: { } }},
-    { key: "star rating", element: { range: { min: 0, max: 0 } } },
-    { key: "ignore beatmaps from collections", element: { checkbox: { name: "Ignore beatmaps from collections" } } },
-    { key: "Status test", element: { list: { options: ["test", "123", "525"] } }}
-];
-
-createcustomlist("test", custom_list).then((a) => console.log(a));
