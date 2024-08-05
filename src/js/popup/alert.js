@@ -121,28 +121,24 @@ export const add_get_extra_info = (info_array) => {
     
             switch (info.type) {
                 case 'confirmation':
-
                     if (info.text) {
                         create_confirmation_popup(info.text, resolve, important);
                     }
 
                     break;
                 case 'list':
-
                     if (Array.isArray(info.value)) {
                         create_list_popup(info.value, resolve, important, column, title);
                     }
 
                     break;
                 case 'input':
-
                     if (info.text) {
                         create_input_popup(info.text, resolve, important, input_type);
                     }
 
                     break;
                 case 'file':
-
                     if (info.text) {
                         create_file_popup(info.text, resolve, important);
                     }
@@ -188,6 +184,7 @@ const create_popup = (content, important, resolve) => {
 };
 
 const create_confirmation_popup = (text, resolve, important) => {
+
     const content = `
         <h1>${text}</h1>
         <button id="yes-btn">Yes</button>
@@ -281,8 +278,6 @@ const createcustom_element = (type, defaultProps = {}) => (customProps = {}) => 
 });
 
 const custom_elements = {
-    div:        createcustom_element("div", { name: "", id: "", class: "" }),
-    label:      createcustom_element("label", { name: "", id: "", class: "" }),
     small_text: createcustom_element("p", { name: "", id: "", class: "" }),
     text:       createcustom_element("h1", { name: "", id: "", class: "" }),
     input:      createcustom_element("input", { name: "", id: "", class: "" }),
@@ -295,10 +290,10 @@ const custom_elements = {
  * @param {Array<{key: string, element: Object}>} elements 
  * @param {string} id
  * @example
- * createcustomlist("test", [{ key: "age", element: { range: { min: 0, max: 100 } } }], "id_here")
+ * createcustomlist("test", [{ key: "age", element: { range: { min: 0, max: 100 } } }])
  * @returns {Promise<Object>}
 */
-export const createcustomlist = (name, elements, id) => {
+export const createcustomlist = (name, elements) => {
 
     return new Promise((resolve, reject) => {
 
