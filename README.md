@@ -12,7 +12,7 @@ You can download the stable version for windows using the [releases](https://git
 In case you wanna use the latest version, follow the Build Instructions.
 
 # Build Instructions
-1. Install (nodejs)[https://nodejs.org/en]
+1. Install [nodejs](https://nodejs.org/en)
 
 2. Clone the repository:
     ```
