@@ -4,7 +4,7 @@ const shell = require("electron").shell;
 
 import { config, reader, files } from "../stuff/utils/config/config.js";
 import { setup_collector } from "../stuff/collector.js";
-import { add_alert, add_get_extra_info } from "../popup/alert.js";
+import { add_alert, add_get_extra_info } from "../popup/popup.js";
 import { download_map } from "../stuff/utils/downloader/download_maps.js";
 
 let current_name = "";

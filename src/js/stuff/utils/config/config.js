@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 import { OsuReader } from "../../../reader/reader.js";
-import { add_alert } from "../../../popup/alert.js";
+import { add_alert } from "../../../popup/popup.js";
 import { check_login } from "../other/login.js";
 import { initialize } from "../../../manager/manager.js";
 

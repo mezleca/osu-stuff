@@ -3,7 +3,7 @@ const path = require("path");
 const axios = require("axios");
 
 import { config } from "../config/config.js";
-import { add_alert } from "../../../popup/alert.js";
+import { add_alert } from "../../../popup/popup.js";
 import { events } from "../../../tasks/events.js";
 import { login } from "../config/config.js";
 

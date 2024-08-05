@@ -1,5 +1,5 @@
 import { events } from "./tasks/events.js";
-import { add_alert } from "./popup/alert.js";
+import { add_alert } from "./popup/popup.js";
 import { add_collection } from "./stuff/collector.js";
 import { is_running } from "./stuff/utils/other/process.js";
 import { login } from "./stuff/utils/config/config.js";

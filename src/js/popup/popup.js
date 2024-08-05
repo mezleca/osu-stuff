@@ -124,25 +124,21 @@ export const add_get_extra_info = (info_array) => {
                     if (info.text) {
                         create_confirmation_popup(info.text, resolve, important);
                     }
-
                     break;
                 case 'list':
                     if (Array.isArray(info.value)) {
                         create_list_popup(info.value, resolve, important, column, title);
                     }
-
                     break;
                 case 'input':
                     if (info.text) {
                         create_input_popup(info.text, resolve, important, input_type);
                     }
-
                     break;
                 case 'file':
                     if (info.text) {
                         create_file_popup(info.text, resolve, important);
                     }
-
                     break;
                 default:
                     console.log("[ADD EXTRA INFO] Invalid object in array");
@@ -271,33 +267,34 @@ const create_list_popup = (values, resolve, important, column, title) => {
     });
 };
 
-const createcustom_element = (type, defaultProps = {}) => (customProps = {}) => ({
-    type,
-    ...defaultProps,
-    ...customProps,
-});
-
-const custom_elements = {
-    small_text: createcustom_element("p", { name: "", id: "", class: "" }),
-    text:       createcustom_element("h1", { name: "", id: "", class: "" }),
-    input:      createcustom_element("input", { name: "", id: "", class: "" }),
-    range:      createcustom_element("input", { name: "", id: "", class: "input-double-balls", min: 0, max: 1 }),
-    checkbox:   createcustom_element("checkbox", { name: "", id: "", class: "" }),
-    list:       createcustom_element("select", { name: "", id: "", class: "", options: [] })
+const valid_elements = {
+    small_text: { name: String, id: String, class: String },
+    text:       { name: String, id: String, class: String },
+    input:      { name: String, id: String, class: String },
+    range:      { name: String, id: String, class: String, min: Number, max: Number },
+    checkbox:   { name: String, id: String, class: String },
+    list:       { name: String, id: String, class: String },
 };
 
 /**
- * @param {Array<{key: string, element: Object}>} elements 
  * @param {string} id
+ * @param {Array<{key: string, element: {[K in keyof typeof valid_elements]: typeof valid_elements[K]}}>} elements
  * @example
- * createcustomlist("test", [{ key: "age", element: { range: { min: 0, max: 100 } } }])
+ * createcustomlist("test", [
+ *   { 
+ *     key: "123123", 
+ *     element: { 
+ *       range: { name: "age", id: "age-range", min: 0, max: 20 }
+ *     }
+ *   }
+ * ])
  * @returns {Promise<Object>}
 */
 export const createcustomlist = (name, elements) => {
 
     return new Promise((resolve, reject) => {
 
-        if (typeof name != "string") {
+        if (typeof name !== "string") {
             console.log("[CUSTOM LIST] invalid name, must be a string");
             return;
         }
@@ -307,23 +304,96 @@ export const createcustomlist = (name, elements) => {
             return;
         }
 
-        const fragment = document.createDocumentFragment();
-        const template = document.createElement('template');
+        const post_callbacks = [];
 
-        template.innerHTML = `
-            <div class="popup-container">
-                <div class="popup-content-flex">
-                    <h1>${name}</h1>
+        const create_popup = () => {
+
+            const template = document.createElement('template');
+            template.innerHTML = `
+                <div class="popup-container">
+                    <div class="popup-content-flex">
+                        <h1>${name}</h1>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+            return template.content.firstElementChild;
+        };
 
-        const content = template.content.querySelector(".popup-content-flex");
-        const popup   = template.content.querySelector(".popup-container");
+        const create_label = (text, type) => {
+
+            const label_element = document.createElement("label");
+            label_element.textContent = text;
+            label_element.style.alignSelf = type === "range" ? "center" : "start";
+            return label_element;
+        };
+
+        const create_list_element = (key, options) => {
+
+            const select = document.createElement("select");
+            select.id = `a${key}`;
+            select.name = "status";
+            options.forEach(status => {
+                const option = document.createElement("option");
+                option.value = status;
+                option.textContent = status;
+                option.className = `${status}_list`;
+                select.appendChild(option);
+            });
+            return select;
+        };
+
+        const create_range_element = (key, min, max) => {
+
+            const container = document.createElement("div");
+            container.innerHTML = `
+                <div class="input-double-balls">
+                    <div class="slider-thing"></div>
+                    <input type="range" name="min_${key}" id="min_${key}" min="${min}" max="${max}" value="${min}">
+                    <input type="range" name="max_${key}" id="max_${key}" min="${min}" max="${max}" value="${max}">
+                </div>
+                <div class="input-range-text">
+                    <p id="slider_min_${key}">min: ${min}</p>
+                    <p id="slider_max_${key}">max: ${max}</p>
+                </div>
+            `;
+
+            post_callbacks.push(function() {
+
+                const min = document.querySelector(`#min_${key}`);
+                const max = document.querySelector(`#max_${key}`)
+
+                const slider_min = document.querySelector(`#slider_min_${key}`);
+                const slider_max = document.querySelector(`#slider_max_${key}`);
+
+                min.addEventListener('input', () => {
+
+                    if (parseInt(min.value) > parseInt(max.value)) {
+                        min.value = max.value;
+                    }
+
+                    slider_min.innerText = `min: ${min.value}`;
+                });
+        
+                max.addEventListener('input', () => {
+
+                    if (parseInt(max.value) < parseInt(min.value)) {
+                        max.value = min.value;
+                    }
+
+                    slider_max.innerText = `max: ${max.value}`;
+                });
+            });
+
+            return container;
+        };
+
+        const popup = create_popup();
+        const content = popup.querySelector(".popup-content-flex");
+        const created_elements = {};
 
         popup.addEventListener("click", (event) => {
-            
-            if (event.target !== popup) {
+
+            if (event.target != popup) {
                 return;
             }
 
@@ -331,187 +401,76 @@ export const createcustomlist = (name, elements) => {
             reject("Cancelled");
         });
 
-        const created_elements = {};
-        const range_callbacks = [];
-        
-        const create_label = (text, type) => {
-
-            const label_element = document.createElement("label");
-
-            label_element.innerHTML = text;
-            label_element.style.alignSelf = type == "range" ? "center" : "start";
-
-            return label_element;
-        };
-
         elements.forEach(({ key: k, element: el }) => {
 
             const key = String(k).replace(/\s/g, '_');
+            const type = Object.keys(el)[0];
+            const props = el[type];
 
             let created_element;
 
-            const type = Object.keys(el)[0];
-            const props = el[type];
-            const custom_element = custom_elements[type](props);
-
-            if (!custom_element) {
-                console.log("[CUSTOM LIST] invalid type", type);
-                return;
-            }
-
-            if (type == "list") {
-
-                const options = el.list.options;
-
-                if (!Array.isArray(options)) {
-                    console.log("[CUSTOM LIST] invalid list array, must be an arrray of strings")
-                    return;
-                }
-
-                const list_fragment = document.createDocumentFragment();
-                const list_template = document.createElement("template");
-
-                list_template.innerHTML = `
-                    <select name="status" id="a${key}">
-                        ${options.map(status => `<option value="${status}" class="${status}_list">${status}</option>`).join("")}
-                    </select>
-                `;
-
-                list_fragment.appendChild(list_template.content);
-
-                content.appendChild(create_label(k, type));
-                content.appendChild(list_fragment);
-
-                created_element = content.cloneNode(true).querySelector(`#a${key}`);
-            }
-            else if (type == "range") {
-
-                const range_fragment = document.createDocumentFragment();
-                const range_template = document.createElement("template");
-
-                if (typeof custom_element.min !== 'number' || typeof custom_element.max !== 'number') {
-                    console.log("[CUSTOM LIST] missing min/max", custom_element, custom_element?.min, custom_element?.max);
-                    return;
-                }
-
-                if (custom_element.min == custom_element.max || custom_element.max < custom_element.min) {
-                    custom_element.max = custom_element.max + 1;
-                }
-                
-                range_template.innerHTML = `
-                    <div class="input-double-balls">
-                        <div class="slider-thing"></div>
-                        <input type="range" name="min_${key}" id="min_${key}" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.min}">
-                        <input type="range" name="max_${key}" id="max_${key}" min="${custom_element.min}" max="${custom_element.max}" value="${custom_element.max}">
-                    </div>
-                    <div class="input-range-text">
-                            <p id="slider_min_${key}">min: ${custom_element.min}</p>
-                            <p id="slider_max_${key}">max: ${custom_element.max}</p>
-                    </div>
-                `;
-
-                range_fragment.appendChild(range_template.content);
-
-                content.appendChild(create_label(k, type));
-                content.appendChild(range_fragment);
-
-                const min = content.querySelector(`#min_${key}`);
-                const max = content.querySelector(`#max_${key}`)
-
-                range_callbacks.push(function() {
-
-                    const min = document.querySelector(`#min_${key}`);
-                    const max = document.querySelector(`#max_${key}`)
-    
-                    const slider_min = document.querySelector(`#slider_min_${key}`);
-                    const slider_max = document.querySelector(`#slider_max_${key}`);
-
-                    min.addEventListener('input', () => {
-    
-                        if (parseInt(min.value) > parseInt(max.value)) {
-                            min.value = max.value;
-                        }
-    
-                        slider_min.innerText = `min: ${min.value}`;
-                    });
-            
-                    max.addEventListener('input', () => {
-    
-                        if (parseInt(max.value) < parseInt(min.value)) {
-                            max.value = min.value;
-                        }
-    
-                        slider_max.innerText = `max: ${max.value}`;
-                    });
-                });            
-
-                created_element = { min, max };
-            } else {
-
-                const type = custom_element.type == "checkbox" ? "input" : custom_element.type;
-
-                created_element = document.createElement(type);
-
-                created_element.className = custom_element.class;
-                created_element.id = key;
-                
-                if (custom_element.type == "checkbox") {
-
-                    const boxcontainer = document.createElement("div");
-
-                    boxcontainer.className = "checkbox-container";
-
+            switch (type) {
+                case "list":
+                    created_element = create_list_element(key, props.options);
+                    break;
+                case "range":
+                    created_element = create_range_element(key, props.min, props.max);
+                    break;
+                case "checkbox":
+                    created_element = document.createElement("input");
                     created_element.type = "checkbox";
-                    created_element.innerText = k;
-
+                    created_element.id = key;
+                    const boxcontainer = document.createElement("div");
+                    boxcontainer.className = "checkbox-container";
                     boxcontainer.appendChild(created_element);
                     boxcontainer.appendChild(create_label(k, type));
-
                     content.appendChild(boxcontainer);
-                } else {
-                    created_element.innerText = k;
-                    content.appendChild(created_element);
-                }
+                    break;
+                default:
+                    created_element = document.createElement(type);
+                    created_element.id = key;
+                    created_element.className = props.class;
+                    created_element.textContent = k;
+                    break;
             }
 
-            if (type == "label") {
-                return;
+            if (type !== "checkbox") {
+                content.appendChild(create_label(k, type));
+                content.appendChild(created_element);
             }
 
-            created_elements[key] = {
-                type,
-                element: created_element
+            if (type !== "label") {
+                created_elements[key] = { type, element: created_element };
             }
         });
 
-        content.innerHTML += `<button id="custom_list_submit">Submit</button>`;
+        const submit_button = document.createElement("button");
 
-        fragment.appendChild(template.content);
-        document.querySelector(".container").appendChild(fragment);
+        submit_button.id = "custom_list_submit";
+        submit_button.textContent = "Submit";
 
-        range_callbacks.forEach((callback) => callback());
+        content.appendChild(submit_button);
+        document.querySelector(".container").appendChild(popup);
 
-        document.getElementById("custom_list_submit").addEventListener("click", () => {
+        post_callbacks.forEach((cb) => cb());
+
+        submit_button.addEventListener("click", () => {
 
             const result = {};
             
-            Object.entries(created_elements).forEach(([key, { type, element: el }]) => {
+            Object.entries(created_elements).forEach(([key, { type, element }]) => {
 
-                const element = document.getElementById(el.id);
+                const el = document.getElementById(element.id);
 
                 if (type === "range") {
-
                     result[key] = {
-                        min: el.min.value,
-                        max: el.max.value
-                    }
-
-                } 
-                else if (type === "checkbox") {
-                    result[key] = element.checked ? true : false;
-                }
-                else {                  
-                    result[key] = type == "list" || "input" ? element.value : element.innerText;
+                        min: document.querySelector(`#min_${key}`).value,
+                        max: document.querySelector(`#max_${key}`).value
+                    };
+                } else if (type === "checkbox") {
+                    result[key] = el.checked;
+                } else {
+                    result[key] = el.value || el.textContent;
                 }
             });
 

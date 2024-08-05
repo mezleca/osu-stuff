@@ -1,5 +1,5 @@
 import { add_config_shit } from "./stuff/utils/config/config.js";
-import { add_alert } from "./popup/alert.js";
+import { add_alert } from "./popup/popup.js";
 import { initialize } from "./manager/manager.js";
 
 const in_dev_mode = Boolean(process.env.NODE_ENV);

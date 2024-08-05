@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-import { add_get_extra_info } from "../popup/alert.js";
+import { add_get_extra_info } from "../popup/popup.js";
 
 let in_progress = false;
 

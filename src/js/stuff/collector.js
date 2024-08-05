@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 import { events } from "../tasks/events.js";
-import { add_alert } from "../popup/alert.js";
+import { add_alert } from "../popup/popup.js";
 import { login, config, reader } from "./utils/config/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";

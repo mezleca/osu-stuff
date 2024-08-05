@@ -6,7 +6,7 @@ import { current_tasks, all_tabs, blink, download_types } from "../tabs.js";
 import { download_collector } from "../stuff/collector.js"
 import { missing_download, export_missing } from "../stuff/missing.js";
 import { download_from_json } from "../stuff/download_json.js";
-import { add_alert } from "../popup/alert.js";
+import { add_alert } from "../popup/popup.js";
 import { remove_maps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { download_maps } from "../stuff/utils/downloader/download_maps.js";
