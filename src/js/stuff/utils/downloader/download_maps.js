@@ -9,6 +9,7 @@ import { login } from "../config/config.js";
 
 const downloaded_maps = [];
 const is_testing = process.env.NODE_ENV == "cleide";
+const concurrency = 2; // gonna leave at 2 cuz im getting alot of "too many requests"
 
 const pmap = async (array, mapper, concurrency) => {
 
@@ -314,7 +315,7 @@ class MapDownloader {
             return beatmap;
         }
 
-        await pmap(this.maps, this.download, 5);
+        await pmap(this.maps, this.download, concurrency);
 
         add_alert("Finished downloading");
 
