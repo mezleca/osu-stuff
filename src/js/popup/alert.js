@@ -111,7 +111,7 @@ export const add_get_extra_info = (info_array) => {
     return new Promise((resolve, reject) => {
 
         if (!Array.isArray(info_array)) {
-            reject("Invalid input: info_array should be an array");
+            reject("[ADD EXTRA INFO] info_array should be an array");
             return;
         }
   
@@ -145,7 +145,7 @@ export const add_get_extra_info = (info_array) => {
 
                     break;
                 default:
-                    console.log(info_array);
+                    console.log("[ADD EXTRA INFO] Invalid object in array");
                     reject("Invalid object in array");
             }
         });
