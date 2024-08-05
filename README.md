@@ -6,21 +6,20 @@
 
 > [!NOTE] 
 > In case you find any errors, please open the devtools by pressing "F12" and share the logs on my [osu](https://osu.ppy.sh/users/mzle) dm or in a issue in this repo.
-> Make sure you dont leak any information like osuid / osusecret.
 
 # Setup Instructions
 You can download the stable version for windows using the [releases](https://github.com/mezleca/osu-stuff/releases/) tab on this repository.
 In case you wanna use the latest version, follow the Build Instructions.
 
 # Build Instructions
-1. Install nodejs-lts and npm.
+1. Install (nodejs)[https://nodejs.org/en]
 
 2. Clone the repository:
     ```
     git clone https://github.com/mezleca/osu-stuff.git
     ```
 
-3. Open your terminal on osu-stuff folder and enter the following commands:
+3. Open your terminal in the osu-stuff folder and enter the following commands:
     ```
     npm install
     npm install -g electron-builder
@@ -38,5 +37,6 @@ In case you wanna use the latest version, follow the Build Instructions.
 5. In case you just wanna start without any build process, just run:
     ```
     npm run dev
-    
+    or
+    npm run start
     ```
