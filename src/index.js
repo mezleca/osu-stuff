@@ -8,7 +8,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 const w = 968, h = 720;
-const dev_mode = Boolean(process.env.NODE_ENV == "cleide");
+const dev_mode = process.env.NODE_ENV == "cleide";
 
 const createWindow = () => {
 
