@@ -7,7 +7,7 @@ import { add_alert } from "../../../popup/popup.js";
 import { events } from "../../../tasks/events.js";
 import { login, reader } from "../config/config.js";
 
-const downloaded_maps = [], bad_status = [204, 401, 403, 404, 408, 410, 500, 503, 504, 429];
+const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const is_testing = process.env.NODE_ENV == "cleide";
 const concurrency = 3; 
 
