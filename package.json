@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "v1.1.8",
+  "version": "v1.1.9",
   "description": "a simple app created to manage collections, download maps, etc... ",
   "main": "src/index.js",
   "scripts": {

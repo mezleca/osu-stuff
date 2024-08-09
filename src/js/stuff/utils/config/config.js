@@ -97,8 +97,9 @@ export const add_config_shit = async () => {
     update_status("Checking config...");
 
     const config_path = path.resolve(og_path, "config.json");
+    const file_exist = fs.existsSync(og_path);
 
-    if (!fs.existsSync(og_path)) {
+    if (!file_exist) {
         fs.mkdirSync(og_path);
     }
 
@@ -122,7 +123,7 @@ export const add_config_shit = async () => {
     options.osu_path = osu_exist ? osu : null;
     options.songs_path = songs_exist ? songs : null;
                                                             
-    if (!options.osu_path || !options.songs_path) {
+    if ((!options.osu_path || !options.songs_path) && !file_exist) {
         add_alert("failed to get the osu directory automatically", { type: "error" });
     }
 

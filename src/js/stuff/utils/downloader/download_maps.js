@@ -9,7 +9,7 @@ import { login } from "../config/config.js";
 
 const downloaded_maps = [];
 const is_testing = process.env.NODE_ENV == "cleide";
-const concurrency = 2; // gonna leave at 2 cuz im getting alot of "too many requests"
+const concurrency = 3; 
 
 const pmap = async (array, mapper, concurrency) => {
 
@@ -76,7 +76,7 @@ export const search_map_id = async (hash) => {
 
 export let mirrors = [
     {
-        name: "nerinyan",
+        name: "nerynian",
         url: "https://api.nerinyan.moe/d/"
     },
     {
@@ -84,13 +84,13 @@ export let mirrors = [
         url: "https://catboy.best/d/"
     },
     {
+        name: "beatconnect",
+        url: "https://beatconnect.io/b/"
+    },
+    {
         name: "direct",
         url: "https://api.osu.direct/d/"
     },
-    {
-        name: "beatconnect",
-        url: "https://beatconnect.io/b/"
-    }
 ];
 
 export const download_map = async (hash) => {
@@ -163,9 +163,16 @@ class MapDownloader {
 
         try {
 
-            const response = await axios.get(`${url}${id}`, { responseType: "arraybuffer" } );
+            const response = await axios.get(`${url}${id}`, { 
+                responseType: "arraybuffer", 
+                headers: {
+                    'Accept': 'application/octet-stream'
+                }
+            });
 
-            if (response.status >= 500) {
+            console.log(response.status, response, url + id);
+
+            if (response.status >= 500 || response.status == 429) {
                 this.update_mirror(url);
             }
 
@@ -185,6 +192,7 @@ class MapDownloader {
             return buffer;
 
         } catch(err) {
+            console.log(err);
             return null;
         }
     }
