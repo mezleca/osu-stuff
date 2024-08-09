@@ -5,11 +5,18 @@ const axios = require("axios");
 import { config } from "../config/config.js";
 import { add_alert } from "../../../popup/popup.js";
 import { events } from "../../../tasks/events.js";
-import { login } from "../config/config.js";
+import { login, reader } from "../config/config.js";
 
-const downloaded_maps = [];
+const downloaded_maps = [], bad_status = [204, 401, 403, 404, 408, 410, 500, 503, 504, 429];
 const is_testing = process.env.NODE_ENV == "cleide";
 const concurrency = 3; 
+
+// https://stackoverflow.com/questions/49967779/axios-handling-errors
+axios.interceptors.response.use(function (response) {
+    return response;
+  }, function (error) {
+    return Promise.reject(error);
+});
 
 const pmap = async (array, mapper, concurrency) => {
 
@@ -75,13 +82,10 @@ export const search_map_id = async (hash) => {
 };
 
 export let mirrors = [
+    
     {
         name: "nerynian",
         url: "https://api.nerinyan.moe/d/"
-    },
-    {
-        name: "catboy",
-        url: "https://catboy.best/d/"
     },
     {
         name: "beatconnect",
@@ -91,6 +95,10 @@ export let mirrors = [
         name: "direct",
         url: "https://api.osu.direct/d/"
     },
+    {
+        name: "catboy",
+        url: "https://catboy.best/d/"
+    }
 ];
 
 export const download_map = async (hash) => {
@@ -127,34 +135,16 @@ class MapDownloader {
         this.current_index = 0;
         this.m_length = 0;
         this.id = id;
-        this.log = "";
     };
 
     get_progress = () => {
-        return { index: this.current_index, length: this.m_length, log: this.log };
+        return { index: this.current_index, length: this.m_length };
     }
 
     update_mirror = (url) => {
-
-        const old_mirror = new Object(mirrors);
-
-        const mirror_index = old_mirror.findIndex(mirror => mirror.url == url); 
-        const current_mirror = old_mirror[mirror_index];
-
-        mirrors = [];
-
-        for (let i = 0; i < old_mirror.length; i++) {
-
-            if (i == mirror_index) {
-                continue;
-            }
-
-            mirrors.push(old_mirror[i]);
-        }
-
-        mirrors.push(current_mirror);
-
-        return null;
+        console.log("Updating mirror list");
+        const current_mirror = mirrors.find(mirror => mirror.url == url);
+        mirrors = mirrors.filter(mirror => mirror.url != url).concat(current_mirror);
     };
 
     get_buffer = async (url, data) => {
@@ -165,12 +155,9 @@ class MapDownloader {
 
             const response = await axios.get(`${url}${id}`, { 
                 responseType: "arraybuffer", 
-                headers: {
-                    'Accept': 'application/octet-stream'
-                }
             });
 
-            if (response.status >= 500 || response.status == 429) {
+            if (bad_status.includes(response.status)) {
                 this.update_mirror(url);
             }
 
@@ -190,7 +177,7 @@ class MapDownloader {
             return buffer;
 
         } catch(err) {
-            console.log(err);
+            this.update_mirror(url);
             return null;
         }
     }
@@ -245,31 +232,40 @@ class MapDownloader {
 
         if (!map.id) {
         
+            // check if the hash exist
             if (!map.hash) {
-                this.log = "invalid map " + map.id;
-                return null;
-            }
-    
-            const beatmap = await search_map_id(map.hash);
-            data = beatmap;
-    
-            if (beatmap == null) {
-                this.log = "Failed to find beatmap hash: " + (map.hash || "") + " " + map;
-                return null;
-            }
-    
-            if (!beatmap.beatmapset_id) {
+                console.log("invalid map " + map.id);
                 return null;
             }
 
-            if (downloaded_maps.includes(beatmap.beatmapset_id)) {
-                console.log(`beatmap: ${beatmap.beatmapset_id} is already downloaded`);
+            // check if the beatmap hash is already in your osu_db
+            if (reader.osu.beatmaps.has(map.hash)) {
+                console.log(map.hash, "is already in your osu.db file");
+                return null;
+            }
+    
+            data = await search_map_id(map.hash);
+    
+            // map not found
+            if (data == null) {
+                console.log("Failed to find beatmap hash: " + (map.hash || "") + " " + map);
+                return null;
+            }
+    
+            // idk, but i want to make sure this is in the response
+            if (!data.beatmapset_id) {
+                return null;
+            }
+
+            // already downloaded later :+1:
+            if (downloaded_maps.includes(data.beatmapset_id)) {
+                console.log(`beatmap: ${data.beatmapset_id} is already downloaded`);
                 return data;
             }
     
             const c_checksum = map.hash;
     
-            map = { checksum: c_checksum, id: beatmap.beatmapset_id, ...beatmap };
+            map = { checksum: c_checksum, id: data.beatmapset_id, ...data };
         }
     
         const Path = path.resolve(config.get("osu_songs_path"), `${map.id}.osz`);
@@ -289,7 +285,6 @@ class MapDownloader {
             }
 
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
-
             downloaded_maps.push(map.id);
 
             if (is_testing) {
