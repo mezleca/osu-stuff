@@ -170,8 +170,6 @@ class MapDownloader {
                 }
             });
 
-            console.log(response.status, response, url + id);
-
             if (response.status >= 500 || response.status == 429) {
                 this.update_mirror(url);
             }
