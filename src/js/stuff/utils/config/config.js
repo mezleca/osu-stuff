@@ -70,6 +70,7 @@ export const get_files = async (osu) => {
         return;
     }
     
+    reader.buffer = null;
     reader.osu = {};
     reader.collections = {};
 
@@ -87,9 +88,6 @@ export const get_files = async (osu) => {
     reader.set_type("osu")
     reader.set_buffer(osu_file, true);
     await reader.get_osu_data();
-
-    // update manager
-    await initialize();
 }
 
 export const add_config_shit = async () => {
@@ -168,6 +166,9 @@ export const add_config_shit = async () => {
     }
 
     await get_files(options.osu_path);
+
+    // update manager
+    await initialize();
 
     document.querySelector(".update_config").addEventListener("click", async () => {
 

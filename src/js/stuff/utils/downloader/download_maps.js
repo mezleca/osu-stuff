@@ -6,6 +6,7 @@ import { config } from "../config/config.js";
 import { add_alert } from "../../../popup/popup.js";
 import { events } from "../../../tasks/events.js";
 import { login, reader } from "../config/config.js";
+import { initialize } from "../../../manager/manager.js";
 
 const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const is_testing = process.env.NODE_ENV == "cleide";
@@ -118,13 +119,14 @@ export const download_maps = async (maps, id) => {
         return add_alert("Missing id", { type: "error" });
     }
 
-    if (maps) {
-        add_alert("started download for\n" + id);
-        console.log("started download for " + id, maps);
+    if (!maps) {
+        add_alert("No maps to download");
+        return;
     }
 
-    const new_download = new MapDownloader(maps, id);
+    add_alert("started download for\n" + id);
 
+    const new_download = new MapDownloader(maps, id);
     await new_download.init();
 };
 
@@ -142,7 +144,6 @@ class MapDownloader {
     }
 
     update_mirror = (url) => {
-        console.log("Updating mirror list");
         const current_mirror = mirrors.find(mirror => mirror.url == url);
         mirrors = mirrors.filter(mirror => mirror.url != url).concat(current_mirror);
     };
@@ -177,7 +178,6 @@ class MapDownloader {
             return buffer;
 
         } catch(err) {
-            this.update_mirror(url);
             return null;
         }
     }
@@ -185,7 +185,10 @@ class MapDownloader {
     find_map = async (mirror, id) => {
 
         const is_list = mirror.length ? true : false;
-        const buffer = [];
+
+        if (!id) {
+            return null;
+        }
 
         // search using the mirror url
         if (!is_list) {
@@ -202,23 +205,17 @@ class MapDownloader {
         // look through the beatmaps mirrors
         for (let i = 0; i < mirrors.length; i++) {
 
-            const mirror = mirrors[i];
-
-            if (!mirror.url || !id) {
-                return null;
-            }
-
+            const mirror = mirrors[i];     
             const map_buffer = await this.get_buffer(mirror.url, id);
 
             if (map_buffer == null) {
                 continue;
             }
 
-            buffer.push(map_buffer);
-            break;
+            return map_buffer;
         }
 
-        return buffer.length == 0 ? null : buffer[0];
+        return null;
     }
 
     download = async (map, index) => {
@@ -241,7 +238,7 @@ class MapDownloader {
             // check if the beatmap hash is already in your osu_db
             if (reader.osu.beatmaps.has(map.hash)) {
                 console.log(map.hash, "is already in your osu.db file");
-                return null;
+                return reader.osu.beatmaps.get(map.hash);
             }
     
             data = await search_map_id(map.hash);
@@ -287,6 +284,11 @@ class MapDownloader {
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
             downloaded_maps.push(map.id);
 
+            map.md5 = map.checksum;
+
+            // this might cause some problems to manager but yea
+            reader.osu.beatmaps.set(map.checksum, map);
+
             if (is_testing) {
                 return data;
             }
@@ -312,13 +314,21 @@ class MapDownloader {
         this.m_length = this.maps.length;
 
         if (single) {
+
             const beatmap = await this.download(this.maps, 0);
+
+            // update manager
+            await initialize({ no_update: true });
+
             return beatmap;
         }
 
         await pmap(this.maps, this.download, concurrency);
 
         add_alert("Finished downloading");
+
+        // update manager
+        await initialize();
 
         events.emit("progress-end", this.id, true);
     } 

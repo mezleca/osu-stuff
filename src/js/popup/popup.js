@@ -253,7 +253,7 @@ const create_list_popup = (values, resolve, important, column, title) => {
     const buttons = values.map(value => `<button>${value}</button>`).join('');
     const content = `
         <h1>${title || 'Select an option:'}</h1>
-        <div class="${column ? 'popup-content-flex' : ''}">${buttons}</div>
+        <div class="${column ? 'popup-buttons-column' : 'popup-buttons'}">${buttons}</div>
     `;
 
     const popup = create_popup(content, important, resolve);

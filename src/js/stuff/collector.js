@@ -141,19 +141,22 @@ export const add_collection = async (url) => {
 
         const new_name = "!stuff - " + collection.name;
     
+        // make sure c_maps is valid
+        const maps = c_maps.filter((m) => m !== undefined && typeof m === "string");
+
         reader.collections.beatmaps.push({
             name: new_name,
-            maps: c_maps
+            maps: maps
         });
     
         reader.collections.length++;
 
         // update the manager
-        collections.set(new_name, c_maps.map((v) => {
+        collections.set(new_name, maps.map((v) => {
             return { md5: v };
         }));
 
-        await initialize();
+        await initialize({ force: true });
     
         if (is_testing) {
             add_alert("Your collection file has been updated!");
@@ -164,8 +167,8 @@ export const add_collection = async (url) => {
         // backup 
         const backup_name = `collection_backup_${Date.now()}.db`;
         fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
-    
-        // write the new file
+
+        //write the new file
         reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
     
         add_alert("Your collection file has been updated!");

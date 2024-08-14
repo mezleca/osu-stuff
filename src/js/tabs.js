@@ -1,23 +1,35 @@
-import { events } from "./tasks/events.js";
+import { handle_event } from "./tasks/events.js";
 import { add_alert } from "./popup/popup.js";
-import { add_collection } from "./stuff/collector.js";
+import { add_collection, download_collector } from "./stuff/collector.js";
 import { is_running } from "./stuff/utils/other/process.js";
 import { login } from "./stuff/utils/config/config.js";
+import { download_from_json } from "./stuff/download_json.js";
+import { remove_maps } from "./stuff/remove_maps.js";
+import { export_missing, missing_download } from "./stuff/missing.js";
+import { download_from_players } from "./stuff/download_from_players.js";
 
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
 export const all_content = [...document.querySelectorAll(".tab-pane")];
 
 export const current_tasks = new Map();
-export const download_types = ["collector", "missing", "download_from_players", "json"];
+export const download_types = ["get_beatmaps_collector", "get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
 
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_export_missing_beatmaps = document.getElementById("export_missing_beatmaps");
 const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
 const get_beatmaps_collector = document.getElementById("get_beatmaps_collector");
-const add_betamps_collector = document.getElementById("add_beatmaps_collector");
+const add_beatmaps_collector = document.getElementById("add_beatmaps_collector");
 const btn_download_from_json = document.getElementById("download_from_json");
 const get_player_beatmaps = document.getElementById("get_player_beatmaps");
 const test_popup = document.getElementById("test_popup");
+
+const test_alerts = async () => {
+  
+    for (let i = 0; i < 3; i++) {
+        add_alert("Popup", i, { seconds: 60 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+};
 
 // set the active tab
 all_tabs.map((tab, i) => {
@@ -63,19 +75,18 @@ export const blink = (tab) => {
     });
 };
 
-// add a task (yep)
-export const add_task = (data, type) => {
+export const add_tab = (id) => {
 
-    const id = data.id;
+    const d_tab = document.getElementById("download_tab");
 
     if (!id) {
         add_alert("Missing id", { type: "error" });
-        return;
+        return null;
     }
 
     if (current_tasks.has(id)) {
         add_alert("theres already a download for this task", { type: "warning" });
-        return;
+        return null;
     }
     
     const tab = document.createElement("div");
@@ -96,26 +107,39 @@ export const add_task = (data, type) => {
     tab.appendChild(h2);
     tab.appendChild(bar);
 
-    const dtab = document.getElementById("download_tab");
-
-    current_tasks.set(id, { started: false, tab: dtab, Fdiv: tab, bar: bar, text: h2 });
-    events.emit("task-start", { id: id, type: type, ...data, dtab, tab});
+    return {
+        tab: tab,
+        text: h2,
+        dtab: d_tab,
+        bar,
+        id
+    };
 };
 
-// functions
-
 btn_download_from_json.addEventListener("click", async () => {
+
+    const id = btn_download_from_json.id;
 
     if (login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
 
-    add_task({ id: "download maps from json"}, "json");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+
+    await handle_event(data, download_from_json, id);
 });
 
 btn_remove_invalid_maps.addEventListener("click", async () => {
-
+    
+    const id = btn_remove_invalid_maps.id;
     const running_osu = await is_running("osu!");
 
     if (running_osu) {
@@ -123,30 +147,61 @@ btn_remove_invalid_maps.addEventListener("click", async () => {
         return;
     }
 
-    add_task({ id: "remove_maps"}, "remove_maps");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+    
+    await handle_event(data, remove_maps, id);
 });
 
 btn_export_missing_beatmaps.addEventListener("click", async () => {
 
+    const id = btn_export_missing_beatmaps.id;
+
     if (login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
 
-    add_task({ id: "export missing maps" }, "export_missing");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+    
+    await handle_event(data, export_missing, id);
 });
 
 btn_get_missing_beatmaps.addEventListener("click", async () => {
 
+    const id = btn_get_missing_beatmaps.id;
+
     if (login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
 
-    add_task({ id: "missing maps" }, "missing");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+    
+    await handle_event(data, missing_download, id);
 });
 
-add_betamps_collector.addEventListener("click", async () => {
+add_beatmaps_collector.addEventListener("click", async () => {
 
     const id = document.getElementById("oscurl");
     const running_osu = await is_running("osu!");
@@ -168,7 +223,7 @@ add_betamps_collector.addEventListener("click", async () => {
     await add_collection(id.value);
 });
 
-get_beatmaps_collector.addEventListener("click", () => {
+get_beatmaps_collector.addEventListener("click", async () => {
 
     const id = document.getElementById("oscurl");
 
@@ -181,19 +236,39 @@ get_beatmaps_collector.addEventListener("click", () => {
         return;
     }
 
-    add_task({ id: id.value, url: id.value }, "collector");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+    
+    await handle_event(data, download_collector, id);
 });
 
 get_player_beatmaps.addEventListener("click", async () => {
+
+    const id = get_player_beatmaps.id;
 
     if (login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
 
-    add_task({ id: "download_from_players" }, "download_from_players");
+    const new_task = add_tab(id);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    current_tasks.set(id, data);
+    
+    await handle_event(data, download_from_players, id);
 });
 
-test_popup.addEventListener("click", () => {
-    events.emit("task-start", { type: "test_popup" });
+test_popup.addEventListener("click", async () => {  
+    await test_alerts();
 });

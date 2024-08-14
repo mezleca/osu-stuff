@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("electron").shell;
 
-import { config, reader, files } from "../stuff/utils/config/config.js";
+import { config, reader, files, get_files } from "../stuff/utils/config/config.js";
 import { setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/popup.js";
 import { download_map } from "../stuff/utils/downloader/download_maps.js";
@@ -59,6 +59,7 @@ const remove_beatmap = (hash) => {
 
     document.getElementById(hash).remove();
 };
+
 const render_tab = (tab, beatmaps) => {
 
     const fragment = document.createDocumentFragment();
@@ -423,36 +424,24 @@ const setup_manager = () => {
     });
 };
 
-export const initialize = async (extra) => {
+// TODO: fix beatmaps no being updated after downloading from missing_beatmaps
+export const initialize = async (options) => {
+
+    const no_update = options?.no_update ? options.no_update : false; // no read
+    const force = options?.force ? options.force : false; // read from the original file again
 
     // only initialize if the buffer is valid
     if (!reader.buffer) {
         return;
     }
 
-    // get the current collection list
-    const collections_array = await reader.get_collections_data();
-    const osu_info = await reader.get_osu_data();
-
-    // append the new extra collection
-    if (extra) {
-
-        collections_array.length++;
-        collections_array.beatmaps.push(extra);
-
-        const collection_text = document.getElementById("collection_text");
-
-        if (collection_text) {
-            collection_text.remove();
-        }
+    if (force) {
+        await get_files(config.get("osu_path"));
     }
-
-    // check if the old container is still appended
-    const container = document.querySelector(".collection-container");
-
-    if (container) {
-        container.remove();
-    }
+    
+    // get the current collection list 
+    const collections_array = reader.collections;
+    const osu_info = reader.osu;
 
     for (const current_collection of collections_array.beatmaps) {
 
@@ -467,6 +456,17 @@ export const initialize = async (extra) => {
         });
 
         collections.set(name, info);
+    }
+
+    if (no_update) {
+        return;
+    }
+
+    // check if the old container is still appended
+    const container = document.querySelector(".collection-container");
+
+    if (container) {
+        container.remove();
     }
 
     setup_manager();

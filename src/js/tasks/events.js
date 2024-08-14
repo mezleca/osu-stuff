@@ -3,16 +3,26 @@ const EventEmitter = require("events");
 export const events = new EventEmitter();
 
 import { current_tasks, all_tabs, blink, download_types } from "../tabs.js";
-import { download_collector } from "../stuff/collector.js"
-import { missing_download, export_missing } from "../stuff/missing.js";
-import { download_from_json } from "../stuff/download_json.js";
 import { add_alert } from "../popup/popup.js";
-import { remove_maps } from "../stuff/remove_maps.js";
-import { download_from_players } from "../stuff/download_from_players.js";
 import { download_maps } from "../stuff/utils/downloader/download_maps.js";
 
 const queue = [];
 const all_content = [...document.querySelectorAll(".tab-pane")];
+
+const start_task = (task) => {
+
+    console.log(task);
+
+    if (task?.dtab) {
+        task.dtab.appendChild(task.tab);
+    }
+    
+    download_maps(task.list, task.id);
+
+    events.emit("progress-update", { id: task.id, perc: 0 });
+
+    task.status = "wip";
+};
 
 const create_queue_div = () => {
 
@@ -73,32 +83,27 @@ setInterval(() => {
         return;
     }
 
-    const _queue = queue[0];
+    const task = queue[0];
 
-    if (_queue.status == "wip") {
+    if (task.status == "wip") {
         return;
     }
 
-    if (_queue.status == "finished") {
+    if (task.status == "finished") {
         queue.shift();
-        remove_queue_div(_queue.id);
+        remove_queue_div(task.id);
         return;
     }
 
-    download_maps(_queue.list, _queue.id);
+    console.log("Starting task", task);
 
-    events.emit("progress-update", { id: _queue.id, perc: 0 });
-
-    _queue.dtab.prepend(_queue.tab);
-    _queue.status = "wip";
+    start_task(task);
 
 }, 500);
 
-const handle_event = async (data, callback, ...args) => {
+export const handle_event = async (data, callback, ...args) => {
 
-    const type = data.type;
-
-    console.log(`[HANDLE EVENT] received event: ${type}`, data);
+    console.log(`[HANDLE EVENT] received event: ${data.id}`, data);
 
     try {
 
@@ -108,7 +113,7 @@ const handle_event = async (data, callback, ...args) => {
         console.log("[HANDLE EVENT] callback value", callback_value);
         
         // if theres no value in the callback, it means the function is not part of the: download bullshit
-        if ((!callback_value && download_types.includes(type)) || typeof callback_value != "object") {
+        if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {
             // console.log("[HANDLE EVENT] No maps to download");
             current_tasks.delete(data.id);
             return;
@@ -116,9 +121,7 @@ const handle_event = async (data, callback, ...args) => {
 
         const download_button = all_tabs[3];
 
-        // in case the next task will be a downloadeble one
-        // make it blink so the user knows something is happening
-        if (download_types.includes(type)) {
+        if (download_types.includes(data.id)) {
             blink(download_button);
         }
 
@@ -127,7 +130,7 @@ const handle_event = async (data, callback, ...args) => {
             add_alert(`Added Download to queue`, { type: "success" });
         }
 
-        queue.push({ type: type, id: data.id, list: callback_value, status: "waiting", dtab: data.dtab, tab: data.tab });
+        queue.push({ id: data.id, list: callback_value, status: "waiting", tab: data.tab, dtab: data.dtab });
 
         update_queue_div(data.id);
 
@@ -135,55 +138,15 @@ const handle_event = async (data, callback, ...args) => {
 
         current_tasks.delete(data.id);
 
-        if (err == "cancelled" || err == "Cancelled") {
+        if (String(err).toLowerCase() == "cancelled") {
             return;
         }
 
-        console.log(data.type, err);
+        console.log(data.id, err);
 
         add_alert(err, { type: "error" });
     }
 }
-
-const test_alerts = async () => {
-  
-    for (let i = 0; i < 3; i++) {
-        add_alert("Popup", i, { seconds: 60 });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-};
-
-events.on("task-start", async (data) => {
-
-    const option = data.type;
-    
-    switch (option) {
-        case "collector":
-            await handle_event(data, download_collector, data.id, data.url);
-            break;
-        case "missing":
-            await handle_event(data, missing_download, data.id);
-            break;
-        case "export_missing":
-            await handle_event(data, export_missing, data.id);
-            break;
-        case "json":
-            await handle_event(data, download_from_json, data.id);
-            break;
-        case "remove_maps":
-            await handle_event(data, remove_maps, data.id);
-            break;
-        case "download_from_players":
-            await handle_event(data, download_from_players, data.id);
-            break;
-        case "test_popup":
-            test_alerts();
-            break;
-        default:
-            add_alert("option not found", { type: "error" });
-            break;
-    }
-});
 
 events.on("progress-update", (data) => {
 
@@ -204,9 +167,7 @@ events.on("progress-update", (data) => {
 
 events.on("progress-end", (id, is_download) => {
 
-    console.log("progress-end", id, is_download, current_tasks.get(id));
-
-    const status = current_tasks.get(id).Fdiv;
+    const status = current_tasks.has(id) ? current_tasks.get(id).tab : null;
 
     if (!status) {
         console.log("[PROGRESS-END] status not found", data.id);
