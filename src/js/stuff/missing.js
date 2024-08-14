@@ -55,7 +55,7 @@ export const export_missing = async (id) => {
                 return;
             }
     
-            if (confirm == "Yes") {
+            if (confirm) {
     
                 const collections = [...new Set(missing_maps.map(a => a.collection_name))];
                 const obj = [];
@@ -172,7 +172,7 @@ export const missing_download = async (id) => {
                 return;
             }
     
-            if (confirm == "Yes") {
+            if (confirm) {
     
                 const collections = [...new Set(missing_maps.map(a => a.collection_name))];
                 const obj = [];

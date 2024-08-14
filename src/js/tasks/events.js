@@ -2,19 +2,53 @@ const EventEmitter = require("events");
 
 export const events = new EventEmitter();
 
-import { current_tasks, all_tabs, blink, download_types } from "../tabs.js";
-import { add_alert } from "../popup/popup.js";
-import { download_maps } from "../stuff/utils/downloader/download_maps.js";
+import { tasks, all_tabs, blink, download_types } from "../tabs.js";
+import { add_alert, add_get_extra_info } from "../popup/popup.js";
+import { download_maps, current_download } from "../stuff/utils/downloader/download_maps.js";
 
-const queue = [];
+const queue = new Map();
 const all_content = [...document.querySelectorAll(".tab-pane")];
 
 const start_task = (task) => {
 
-    console.log(task);
-
     if (task?.dtab) {
+
         task.dtab.appendChild(task.tab);
+        task.dtab.addEventListener("click", async (ev) => {
+
+            if (ev.target.id != task.id) {
+                return;
+            }
+            
+            const confirmation = await add_get_extra_info([{ type: "confirmation", text: "Press Yes to cancel the current download"}]);
+
+            if (!confirmation) {
+                return;
+            }
+
+            // if its downloading, stop it
+            if (current_download.id == task.id) {          
+                current_download.stop = true;
+            } else { // or just remove from the queue list
+                console.log(current_download, task.id);      
+                remove_queue_div(task.id);
+            }
+
+            const status = task.tab;
+            const data = queue.get(task.id);
+        
+            data.status = "finished";
+
+            queue.set(task.id, data);
+            tasks.delete(task.id);
+
+            // remove download div
+            if (status && all_content[3].contains(status)) {
+                all_content[3].removeChild(status);
+            }
+
+            add_alert("download cancelled");
+        });
     }
     
     download_maps(task.list, task.id);
@@ -30,7 +64,7 @@ const create_queue_div = () => {
 
     const html = 
     `
-    <div class="tab-shit download-shit" id="queue list">
+    <div class="tab-shit status-shit" id="queue list">
         <h1>queue list</h1>
         <div class="queue-list">
             
@@ -45,16 +79,11 @@ const update_queue_div = (id) => {
 
     const div_exist = document.querySelector(".queue-list");
 
-    if (!div_exist && queue.length != 0) {
+    if (!div_exist && queue.size != 0) {
         create_queue_div();
     }
 
-    if (queue.length == 0 && div_exist) {
-        all_content[3].removeChild(document.getElementById("queue list"));
-        return;
-    }
-
-    if (queue.length <= 1) {
+    if (queue.size <= 1) {
         return;
     }
 
@@ -78,24 +107,28 @@ const remove_queue_div = (id) => {
 // queue interval
 setInterval(() => {
    
-    if (queue.length == 0) {
+    if (queue.size == 0) {
         update_queue_div(0);
         return;
     }
 
-    const task = queue[0];
+    const task = queue.values().next().value;
 
     if (task.status == "wip") {
         return;
     }
 
     if (task.status == "finished") {
-        queue.shift();
+
+        queue.delete(task.id);
         remove_queue_div(task.id);
+
+        if (queue.size == 0) {
+            all_content[3].removeChild(document.querySelector(".status-shit"));
+        }
+        
         return;
     }
-
-    console.log("Starting task", task);
 
     start_task(task);
 
@@ -115,7 +148,7 @@ export const handle_event = async (data, callback, ...args) => {
         // if theres no value in the callback, it means the function is not part of the: download bullshit
         if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {
             // console.log("[HANDLE EVENT] No maps to download");
-            current_tasks.delete(data.id);
+            tasks.delete(data.id);
             return;
         }
 
@@ -126,17 +159,17 @@ export const handle_event = async (data, callback, ...args) => {
         }
 
         // add the download to the queue
-        if (queue.length != 0) {
+        if (queue.size != 0) {
             add_alert(`Added Download to queue`, { type: "success" });
         }
 
-        queue.push({ id: data.id, list: callback_value, status: "waiting", tab: data.tab, dtab: data.dtab });
+        queue.set(data.id, { id: data.id, list: callback_value, status: "waiting", tab: data.tab, dtab: data.dtab });
 
         update_queue_div(data.id);
 
     } catch(err) {
 
-        current_tasks.delete(data.id);
+        tasks.delete(data.id);
 
         if (String(err).toLowerCase() == "cancelled") {
             return;
@@ -150,7 +183,7 @@ export const handle_event = async (data, callback, ...args) => {
 
 events.on("progress-update", (data) => {
 
-    const status = current_tasks.get(data.id);
+    const status = tasks.get(data.id);
 
     if (!status) {
         console.log("[PROGRESS-UPDATE] status not found", data.id);
@@ -167,20 +200,28 @@ events.on("progress-update", (data) => {
 
 events.on("progress-end", (id, is_download) => {
 
-    const status = current_tasks.has(id) ? current_tasks.get(id).tab : null;
+    const data = tasks.get(id);
+
+    if (!data) {
+        console.log("Id not found", data, id);
+        return;
+    }
+
+    const status = data.tab;
 
     if (!status) {
         console.log("[PROGRESS-END] status not found", data.id);
         return;
     }
 
-    if (is_download && queue.length != 0) {
-        queue[0].status = "finished";
+    if (is_download) {
+        data.status = "finished";
+        queue.set(id, data);
     }
 
     if (all_content[3].contains(status)) {
         all_content[3].removeChild(status);
     }
 
-    current_tasks.delete(id);
+    tasks.delete(id);
 });

@@ -190,12 +190,12 @@ const create_confirmation_popup = (text, resolve, important) => {
     const popup = create_popup(content, important, resolve);
 
     popup.querySelector('#yes-btn').addEventListener('click', () => {
-        resolve("Yes");
+        resolve(true);
         remove_popup(popup);
     });
 
     popup.querySelector('#no-btn').addEventListener('click', () => {
-        resolve("No");
+        resolve(false);
         remove_popup(popup);
     });
 };

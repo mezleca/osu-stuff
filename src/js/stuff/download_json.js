@@ -49,6 +49,6 @@ export const download_from_json = (id) => {
             return;
         }
 
-        resolve("finished download maps form json");
+        resolve(ids);
     });
 };

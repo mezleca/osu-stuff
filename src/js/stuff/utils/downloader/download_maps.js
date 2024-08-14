@@ -8,6 +8,8 @@ import { events } from "../../../tasks/events.js";
 import { login, reader } from "../config/config.js";
 import { initialize } from "../../../manager/manager.js";
 
+export let current_download = null;
+
 const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const is_testing = process.env.NODE_ENV == "cleide";
 const concurrency = 3; 
@@ -23,18 +25,28 @@ const pmap = async (array, mapper, concurrency) => {
 
     const results = [];
     const progress = new Set();
+
     let index = 0;
+    let should_stop = false;
 
     const run = async () => {
 
-        if (index >= array.length) 
+        if (index >= array.length || should_stop) {
             return;
+        }       
 
         const current_index = index++;
         progress.add(current_index);
 
         try {
+            
             const result = await mapper(array[current_index], current_index, array);
+
+            if (result?.stop) {
+                should_stop = true;
+                return;
+            }
+
             results[current_index] = result;
         } catch (error) {
             console.error(`Error processing item at index ${current_index}:`, error);
@@ -45,13 +57,13 @@ const pmap = async (array, mapper, concurrency) => {
         await run();    
    }
 
-  const workers = Array(Math.min(concurrency, array.length))
-    .fill()
-    .map(() => run());
+    const workers = Array(Math.min(concurrency, array.length))
+        .fill()
+        .map(() => run());
 
-  await Promise.all(workers);
+    await Promise.all(workers);
 
-  return results;
+    return results;
 };
 
 export const search_map_id = async (hash) => {
@@ -124,9 +136,9 @@ export const download_maps = async (maps, id) => {
         return;
     }
 
-    add_alert("started download for\n" + id);
-
     const new_download = new MapDownloader(maps, id);
+    current_download = new_download;
+
     await new_download.init();
 };
 
@@ -136,6 +148,7 @@ class MapDownloader {
         this.maps = maps;
         this.current_index = 0;
         this.m_length = 0;
+        this.stop = false;
         this.id = id;
     };
 
@@ -220,6 +233,10 @@ class MapDownloader {
 
     download = async (map, index) => {
 
+        if (this.stop) {
+            return { stop: true };
+        }
+
         if (index > this.current_index || this.current_index == 0) {
             this.current_index = index;
         }
@@ -300,7 +317,6 @@ class MapDownloader {
         catch(err) {
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
             return null;
-            //console.log(err);
         }
     }
 
@@ -325,11 +341,12 @@ class MapDownloader {
 
         await pmap(this.maps, this.download, concurrency);
 
-        add_alert("Finished downloading");
-
         // update manager
         await initialize();
 
-        events.emit("progress-end", this.id, true);
+        if (!this.stop) {
+            add_alert("Finished downloading");
+            events.emit("progress-end", this.id, true);
+        }
     } 
 };

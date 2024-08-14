@@ -58,7 +58,7 @@ export const remove_maps = async (id) => {
                 { key: "status", element: { list: { options: Object.keys(stats) }} }
             ];
 
-            if (areyousure != "Yes") {
+            if (!areyousure) {
                 resolve("");
                 return;
             }
@@ -149,7 +149,7 @@ export const remove_maps = async (id) => {
     
             const confirmation = await add_get_extra_info([{ important: true, type: "confirmation" , text: ` Are you sure? `}]);
     
-            if (confirmation != "Yes") {
+            if (!confirmation) {
                 reject("cancelled");
                 return;
             }

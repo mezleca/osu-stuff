@@ -11,7 +11,7 @@ import { download_from_players } from "./stuff/download_from_players.js";
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
 export const all_content = [...document.querySelectorAll(".tab-pane")];
 
-export const current_tasks = new Map();
+export const tasks = new Map();
 export const download_types = ["get_beatmaps_collector", "get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
 
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
@@ -84,7 +84,7 @@ export const add_tab = (id) => {
         return null;
     }
 
-    if (current_tasks.has(id)) {
+    if (tasks.has(id)) {
         add_alert("theres already a download for this task", { type: "warning" });
         return null;
     }
@@ -101,6 +101,7 @@ export const add_tab = (id) => {
     bar.style = "height: 1.5em; background-color: rgb(50, 120, 200); width: 0%; max-width: 100%;";
 
     h1.innerText = id;
+    h1.id = id;
     h2.innerText = "waiting to start";
 
     tab.appendChild(h1);
@@ -132,7 +133,7 @@ btn_download_from_json.addEventListener("click", async () => {
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id, data);
 
     await handle_event(data, download_from_json, id);
 });
@@ -154,7 +155,7 @@ btn_remove_invalid_maps.addEventListener("click", async () => {
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id, data);
     
     await handle_event(data, remove_maps, id);
 });
@@ -175,7 +176,7 @@ btn_export_missing_beatmaps.addEventListener("click", async () => {
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id, data);
     
     await handle_event(data, export_missing, id);
 });
@@ -196,7 +197,7 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id, data);
     
     await handle_event(data, missing_download, id);
 });
@@ -236,16 +237,16 @@ get_beatmaps_collector.addEventListener("click", async () => {
         return;
     }
 
-    const new_task = add_tab(id);
+    const new_task = add_tab(id.value);
 
     if (!new_task) {
         return;
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id.value, data);
     
-    await handle_event(data, download_collector, id);
+    await handle_event(data, download_collector, id.value, id.value);
 });
 
 get_player_beatmaps.addEventListener("click", async () => {
@@ -264,7 +265,7 @@ get_player_beatmaps.addEventListener("click", async () => {
     }
 
     const data = { started: false, ...new_task };
-    current_tasks.set(id, data);
+    tasks.set(id, data);
     
     await handle_event(data, download_from_players, id);
 });
