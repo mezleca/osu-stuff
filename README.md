@@ -4,7 +4,7 @@
     <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/src/images/menu.png"></img>
 </p>
 
-> [!ALERT]
+> [!WARNING]
 > I don't plan to update this software anymore.
 > If you find a bug or something that could improve the performance, feel free to report or make a pull request.
 
