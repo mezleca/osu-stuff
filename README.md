@@ -1,12 +1,12 @@
+> [!WARNING]
+> I don't plan to update this software anymore.
+> If you find a bug or something that could improve the performance, feel free to report or make a pull request.
+
 <h1 align="center">osu-stuff</h1>
 
 <p align="center">
     <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/src/images/menu.png"></img>
 </p>
-
-> [!WARNING]
-> I don't plan to update this software anymore.
-> If you find a bug or something that could improve the performance, feel free to report or make a pull request.
 
 > [!NOTE] 
 > In case you find any errors, please open the devtools by pressing "F12" and share the logs on my [osu](https://osu.ppy.sh/users/mzle) dm or in a issue in this repo.
