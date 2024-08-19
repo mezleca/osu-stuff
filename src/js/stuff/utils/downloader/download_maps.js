@@ -10,9 +10,9 @@ import { initialize } from "../../../manager/manager.js";
 
 export let current_download = null;
 
-const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
+const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429], shit_interval_mirror_lest = [];
 const is_testing = process.env.NODE_ENV == "cleide";
-const concurrency = 3; 
+const concurrency = 3;
 
 // https://stackoverflow.com/questions/49967779/axios-handling-errors
 axios.interceptors.response.use(function (response) {
@@ -170,6 +170,20 @@ class MapDownloader {
             const response = await axios.get(`${url}${id}`, { 
                 responseType: "arraybuffer", 
             });
+
+            // shit its downloading too fast so lets remove it for a minute
+            if (response.status == 504) {
+                
+                // save the old mirror for later
+                const current_mirror = mirrors.find(mirror => mirror.url == url);
+                mirrors = mirrors.filter(mirror => mirror.url != url);
+                
+                const timeout = setTimeout(() => {
+                    console.log(`[DOWNLOAD SHIT] ${current_mirror.name} is so ufcking back`);
+                    mirrors.concat(current_mirror);
+                    clearTimeout(timeout);           
+                }, 1000 * 60); // 1min
+            }
 
             if (bad_status.includes(response.status)) {
                 this.update_mirror(url);
