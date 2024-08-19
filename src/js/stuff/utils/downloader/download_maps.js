@@ -154,11 +154,33 @@ class MapDownloader {
 
     get_progress = () => {
         return { index: this.current_index, length: this.m_length };
-    }
+    };
 
     update_mirror = (url) => {
         const current_mirror = mirrors.find(mirror => mirror.url == url);
         mirrors = mirrors.filter(mirror => mirror.url != url).concat(current_mirror);
+    };
+
+    // axios keep going to catch when the beatmap is not found so yeah
+    search_beatmap = async (url, id) => {
+
+        return new Promise((resolve) => {
+
+            axios.get(`${url}${id}`, { 
+                responseType: "arraybuffer", 
+            })
+            .then((r) => {
+                resolve(r);
+            })
+            .catch((e) => {
+    
+                if (e?.response) {
+                    return resolve(e.response);
+                }
+    
+                resolve(null);
+            });
+        })     
     };
 
     get_buffer = async (url, data) => {
@@ -167,23 +189,29 @@ class MapDownloader {
 
         try {
 
-            const response = await axios.get(`${url}${id}`, { 
-                responseType: "arraybuffer", 
-            });
+            const response = await this.search_beatmap(url, id);
 
-            // shit its downloading too fast so lets remove it for a minute
-            if (response.status == 504) {
-                
-                // save the old mirror for later
-                const current_mirror = mirrors.find(mirror => mirror.url == url);
-                mirrors = mirrors.filter(mirror => mirror.url != url);
-                
-                const timeout = setTimeout(() => {
-                    console.log(`[DOWNLOAD SHIT] ${current_mirror.name} is so ufcking back`);
-                    mirrors.concat(current_mirror);
-                    clearTimeout(timeout);           
-                }, 1000 * 60); // 1min
+            if (!response) {
+                return;
             }
+
+            // not sure if i will need this anymore but yeah
+            // if (response.status == 504 || response.status == 409) {
+
+            //     console.log("FUcking");
+                
+            //     // save the old mirror for later
+            //     const current_mirror = mirrors.find(mirror => mirror.url == url);
+            //     mirrors = mirrors.filter(mirror => mirror.url != url);
+                
+            //     const timeout = setTimeout(() => {
+            //         console.log(`[DOWNLOAD SHIT] ${current_mirror.name} is so ufcking back`);
+            //         mirrors.concat(current_mirror);
+            //         clearTimeout(timeout);           
+            //     }, 1000 * 60); // 1min
+
+            //     console.log(mirrors);
+            // }
 
             if (bad_status.includes(response.status)) {
                 this.update_mirror(url);

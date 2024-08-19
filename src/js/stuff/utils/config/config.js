@@ -60,8 +60,6 @@ export const update_status = (status) => {
 
 export const get_files = async (osu) => {
 
-    console.log("Getting files");
-
     const osu_file = fs.readFileSync(path.resolve(osu, "osu!.db"));
     const collection_file = fs.readFileSync(path.resolve(osu, "collection.db"));
 
