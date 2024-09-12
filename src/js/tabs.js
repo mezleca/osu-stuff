@@ -1,8 +1,8 @@
-import { handle_event } from "./tasks/events.js";
+import { handle_event } from "./events.js";
 import { add_alert } from "./popup/popup.js";
 import { add_collection, download_collector } from "./stuff/collector.js";
-import { is_running } from "./stuff/utils/other/process.js";
-import { login } from "./stuff/utils/config/config.js";
+import { is_running } from "./utils/other/process.js";
+import { core } from "./utils/config.js";
 import { download_from_json } from "./stuff/download_json.js";
 import { remove_maps } from "./stuff/remove_maps.js";
 import { export_missing, missing_download } from "./stuff/missing.js";
@@ -22,14 +22,6 @@ const add_beatmaps_collector = document.getElementById("add_beatmaps_collector")
 const btn_download_from_json = document.getElementById("download_from_json");
 const get_player_beatmaps = document.getElementById("get_player_beatmaps");
 const test_popup = document.getElementById("test_popup");
-
-const test_alerts = async () => {
-  
-    for (let i = 0; i < 3; i++) {
-        add_alert("Popup", i, { seconds: 60 });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-};
 
 // set the active tab
 all_tabs.map((tab, i) => {
@@ -121,7 +113,7 @@ btn_download_from_json.addEventListener("click", async () => {
 
     const id = btn_download_from_json.id;
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -164,7 +156,7 @@ btn_export_missing_beatmaps.addEventListener("click", async () => {
 
     const id = btn_export_missing_beatmaps.id;
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -185,7 +177,7 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
 
     const id = btn_get_missing_beatmaps.id;
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -212,7 +204,7 @@ add_beatmaps_collector.addEventListener("click", async () => {
         return;
     }
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -228,7 +220,7 @@ get_beatmaps_collector.addEventListener("click", async () => {
 
     const id = document.getElementById("oscurl");
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -245,8 +237,6 @@ get_beatmaps_collector.addEventListener("click", async () => {
 
     const data = { started: false, ...new_task };
     tasks.set(id.value, data);
-
-    // manual blink ;-;
     blink(all_tabs[3]);
     
     await handle_event(data, download_collector, id.value, id.value);
@@ -256,7 +246,7 @@ get_player_beatmaps.addEventListener("click", async () => {
 
     const id = get_player_beatmaps.id;
 
-    if (login == null) {
+    if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
     }
@@ -274,5 +264,8 @@ get_player_beatmaps.addEventListener("click", async () => {
 });
 
 test_popup.addEventListener("click", async () => {  
-    await test_alerts();
+    for (let i = 0; i < 3; i++) {
+        add_alert("Popup", i, { seconds: 60 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 });

@@ -1,4 +1,3 @@
-// token will be used in the osu! api
 export const check_login = async (id, secret) => {
 
     const data = new URLSearchParams({
@@ -20,7 +19,6 @@ export const check_login = async (id, secret) => {
     const response = await fetch(`https://osu.ppy.sh/oauth/token`, options);
     const r_data = await response.json();
 
-    // id/secret might be wrong
     if (!r_data) {
         return null;
     }

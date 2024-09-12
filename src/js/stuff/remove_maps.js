@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 import { add_alert, add_get_extra_info, createcustomlist } from "../popup/popup.js";
-import { config, reader, files } from "./utils/config/config.js";
+import { core } from "../utils/config.js";
 
 const is_testing = process.env.NODE_ENV == "cleide";
 
@@ -74,34 +74,14 @@ export const remove_maps = async (id) => {
             
             const min_sr = filter_data.star_rating.min;
             const max_sr = filter_data.star_rating.max;
-
             const selected_status = filter_data.status;
             const ignore_from_collections = filter_data.ignore_beatmaps_from_collections;
-
             const status = stats[selected_status];
+            const off = new Set(), deleted_folders = [], hashes = [], filtered_maps = new Map();  
     
-            const off = new Set(), deleted_folders = [], hashes = [], filtered_maps = new Map();
+            for (let i = 0; i < core.reader.collections.beatmaps.length; i++) {
     
-            const osu_path = config.get("osu_path");
-            const osu_file = files.get("osu");
-            const collection_file = files.get("collection");
-    
-            // read collection
-            reader.set_type("collection");
-            reader.set_buffer(collection_file, true);
-    
-            await reader.get_collections_data();
-    
-            // initialize for reading osu!.db
-            reader.set_type("osu");
-            reader.set_directory(osu_path);
-            reader.set_buffer(osu_file, true);
-
-            await reader.get_osu_data();       
-    
-            for (let i = 0; i < reader.collections.beatmaps.length; i++) {
-    
-                const beatmap = reader.collections.beatmaps[i];
+                const beatmap = core.reader.collections.beatmaps[i];
     
                 for (let j = 0; j < beatmap.maps.length; j++) {
     
@@ -114,10 +94,10 @@ export const remove_maps = async (id) => {
             }
 
             // only remove the beatmap if it pass the filter options
-            reader.osu.beatmaps.forEach((b) => {
+            core.reader.osu.beatmaps.forEach((b) => {
     
-                const sp = path.resolve(config.get("osu_songs_path"), b.folder_name);    
-                const song_path = path.resolve(config.get("osu_songs_path"), b.folder_name, b.file);
+                const sp = path.resolve(core.config.get("osu_songs_path"), b.folder_name);    
+                const song_path = path.resolve(core.config.get("osu_songs_path"), b.folder_name, b.file);
     
                 if (b.status != status && status != -1) {
                     filtered_maps.set(b.md5, b);
@@ -156,7 +136,7 @@ export const remove_maps = async (id) => {
     
             add_alert("removing beatmaps...");
     
-            reader.osu.beatmaps = filtered_maps;
+            core.reader.osu.beatmaps = filtered_maps;
 
             off.forEach((item) => {
 
@@ -213,11 +193,11 @@ export const remove_maps = async (id) => {
                 }     
             });
     
-            reader.osu.folders = fs.readdirSync(config.get("osu_songs_path")).length;
-            reader.osu.beatmaps_count = filtered_maps.size;
+            core.reader.osu.folders = fs.readdirSync(core.config.get("osu_songs_path")).length;
+            core.reader.osu.beatmaps_count = filtered_maps.size;
     
-            if (reader.osu.beatmaps_count < 0) {
-                reader.osu.beatmaps_count = 0;
+            if (core.reader.osu.beatmaps_count < 0) {
+                core.reader.osu.beatmaps_count = 0;
             }
 
             if (!can_proceed) {
@@ -225,8 +205,8 @@ export const remove_maps = async (id) => {
                 return;
             }
     
-            fs.renameSync(path.resolve(config.get("osu_path"), "osu!.db"), path.resolve(config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
-            await reader.write_osu_data(Array.from(off), path.resolve(config.get("osu_path"), "osu!.db"));
+            fs.renameSync(path.resolve(core.config.get("osu_path"), "osu!.db"), path.resolve(core.config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
+            await core.reader.write_osu_data(Array.from(off), path.resolve(core.config.get("osu_path"), "osu!.db"));
 
             add_alert("Done!\nRemoved " + off.size + " beatmaps");
             resolve("Done!\nRemoved " + off.size + " beatmaps");

@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-import { events } from "../tasks/events.js";
+import { events } from "../events.js";
 import { add_alert } from "../popup/popup.js";
-import { login, config, reader, files } from "./utils/config/config.js";
+import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";
 
@@ -35,7 +35,7 @@ const get_tournament_maps = async(id) => {
 
 export const setup_collector = async (url) => {
 
-    if (!login) {
+    if (!core.login) {
         add_alert("forgot to configurate? :P");
         console.log("[Collector] Login not found\n");
         return null;
@@ -54,7 +54,6 @@ export const setup_collector = async (url) => {
         return null;
     }
 
-    const osu_file = files.get("osu");
     const is_tournament = url_array.includes("tournaments");
     const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
 
@@ -69,19 +68,11 @@ export const setup_collector = async (url) => {
     }
 
     if (!collection.beatmapsets) {
-        add_alert("Failed to get collection from osuo cllector", { type: "error" });
+        add_alert("Failed to get collection from osu collector", { type: "error" });
         return null;
     }
-
-    reader.set_type("osu");
-    reader.set_buffer(osu_file, true);
-
-    if (!reader.osu.beatmaps?.length) {
-        console.log("[Collector] reading osu.db file...\n");
-        await reader.get_osu_data();
-    }
-
-    const maps_hashes = new Set(reader.osu.beatmaps.keys());
+    
+    const maps_hashes = new Set(core.reader.osu.beatmaps.keys());
 
     const collection_hashes = is_tournament ? 
     [...new Set(
@@ -136,20 +127,18 @@ export const add_collection = async (url) => {
     return new Promise(async (resolve, reject) => {
 
         const { c_maps, collection } = await setup_collector(url);
-    
-        await reader.get_collections_data();
 
         const new_name = "!stuff - " + collection.name;
     
         // make sure c_maps is valid
         const maps = c_maps.filter((m) => m !== undefined && typeof m === "string");
 
-        reader.collections.beatmaps.push({
+        core.reader.collections.beatmaps.push({
             name: new_name,
             maps: maps
         });
     
-        reader.collections.length++;
+        core.reader.collections.length++;
 
         // update the manager
         collections.set(new_name, maps.map((v) => {
@@ -166,10 +155,10 @@ export const add_collection = async (url) => {
     
         // backup 
         const backup_name = `collection_backup_${Date.now()}.db`;
-        fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
+        fs.renameSync(path.resolve(core.config.get("osu_path"), "collection.db"), path.resolve(core.config.get("osu_path"), backup_name));
 
-        //write the new file
-        reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
+        // write the new file
+        core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
     
         add_alert("Your collection file has been updated!");
         resolve(`Your collection file has been updated!`);

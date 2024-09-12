@@ -2,16 +2,18 @@
 const fs = require("fs");
 const path = require("path");
 
-import { OsuReader } from "../../../reader/reader.js";
-import { add_alert } from "../../../popup/popup.js";
-import { check_login } from "../other/login.js";
-import { initialize } from "../../../manager/manager.js";
+import { OsuReader } from "../reader/reader.js";
+import { add_alert } from "../popup/popup.js";
+import { check_login } from "./other/login.js";
+import { initialize } from "../manager/manager.js";
 
-export const config  = new Map();
-export const reader  = new OsuReader();
-export const files   = new Map();
-export const og_path = path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff");
-export let login     = null;
+export const core = {
+    config: new Map(),
+    reader: new OsuReader(),
+    files: new Map(),
+    og_path: path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff"),
+    login: null
+};
 
 const tooltips = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
@@ -42,7 +44,7 @@ export const osu_login = async (id, secret) => {
         return null;
     }
 
-    login = auth_login;
+    core.login = auth_login;
 
     return auth_login;
 }
@@ -68,32 +70,32 @@ export const get_files = async (osu) => {
         return;
     }
     
-    reader.buffer = null;
-    reader.osu = {};
-    reader.collections = {};
+    core.reader.buffer = null;
+    core.reader.osu = {};
+    core.reader.collections = {};
 
     update_status("Reading collection file...");
 
-    files.set("osu", osu_file);
-    files.set("collection", collection_file);
+    core.files.set("osu", osu_file);
+    core.files.set("collection", collection_file);
     
-    reader.set_type("collection");
-    reader.set_buffer(collection_file, true);
-    await reader.get_collections_data();
+    core.reader.set_type("collection");
+    core.reader.set_buffer(collection_file, true);
+    await core.reader.get_collections_data();
 
     update_status("Reading osu.db file...");
 
-    reader.set_type("osu")
-    reader.set_buffer(osu_file, true);
-    await reader.get_osu_data();
+    core.reader.set_type("osu")
+    core.reader.set_buffer(osu_file, true);
+    await core.reader.get_osu_data();
 }
 
 export const add_config_shit = async () => {
 
     update_status("Checking config...");
 
-    const config_path = path.resolve(og_path, "config.json");
-    const file_exist = fs.existsSync(og_path);
+    const config_path = path.resolve(core.og_path, "config.json");
+    const file_exist = fs.existsSync(core.og_path);
 
     if (!file_exist) {
         fs.mkdirSync(og_path);
@@ -130,7 +132,7 @@ export const add_config_shit = async () => {
         
         const label_name = labels[i];
 
-        config.set(label_name, options[label_name]);
+        core.config.set(label_name, options[label_name]);
 
         label_content.push(
             `
@@ -201,7 +203,7 @@ export const add_config_shit = async () => {
             return;
         }
 
-        await get_files(config.get("osu_path"));
+        await get_files(core.config.get("osu_path"));
 
         fs.writeFileSync(config_path, JSON.stringify(options, null, 4));
 

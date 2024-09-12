@@ -2,15 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 
-import { config } from "../config/config.js";
-import { add_alert } from "../../../popup/popup.js";
-import { events } from "../../../tasks/events.js";
-import { login, reader } from "../config/config.js";
-import { initialize } from "../../../manager/manager.js";
+import { core } from "./config.js";
+import { add_alert } from "../popup/popup.js";
+import { events } from "../events.js";
+import { initialize } from "../manager/manager.js";
 
 export let current_download = null;
 
-const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429], shit_interval_mirror_lest = [];
+const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const is_testing = process.env.NODE_ENV == "cleide";
 const concurrency = 3;
 
@@ -74,7 +73,7 @@ export const search_map_id = async (hash) => {
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
-                Authorization: `Bearer ${login.access_token}`
+                Authorization: `Bearer ${core.login.access_token}`
             }
         });
 
@@ -295,9 +294,9 @@ class MapDownloader {
             }
 
             // check if the beatmap hash is already in your osu_db
-            if (reader.osu.beatmaps.has(map.hash)) {
+            if (core.reader.osu.beatmaps.has(map.hash)) {
                 console.log(map.hash, "is already in your osu.db file");
-                return reader.osu.beatmaps.get(map.hash);
+                return core.reader.osu.beatmaps.get(map.hash);
             }
     
             data = await search_map_id(map.hash);
@@ -324,11 +323,11 @@ class MapDownloader {
             map = { checksum: c_checksum, id: data.beatmapset_id, ...data };
         }
     
-        const Path = path.resolve(config.get("osu_songs_path"), `${map.id}.osz`);
+        const Path = path.resolve(core.config.get("osu_songs_path"), `${map.id}.osz`);
     
         try {
 
-            if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(config.get("osu_songs_path"), `${map.id}`)))) {
+            if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(core.config.get("osu_songs_path"), `${map.id}`)))) {
                 console.log(`beatmap: ${map.id} already exists in your songs folder`);
                 return data;
             }
@@ -346,7 +345,7 @@ class MapDownloader {
             map.md5 = map.checksum;
 
             // this might cause some problems to manager but yea
-            reader.osu.beatmaps.set(map.checksum, map);
+            core.reader.osu.beatmaps.set(map.checksum, map);
 
             if (is_testing) {
                 return data;

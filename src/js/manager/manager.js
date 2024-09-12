@@ -2,10 +2,10 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("electron").shell;
 
-import { config, reader, files, get_files } from "../stuff/utils/config/config.js";
+import { core } from "../utils/config.js";
 import { setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/popup.js";
-import { download_map } from "../stuff/utils/downloader/download_maps.js";
+import { download_map } from "../utils/download_maps.js";
 
 let current_name = "";
 
@@ -99,7 +99,7 @@ const render_tab = (tab, beatmaps) => {
         title.textContent = mapItem.dataset.title;
         subtitle.textContent = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
-        const small_img_path = path.resolve(config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
+        const small_img_path = path.resolve(core.config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
         small_bg.dataset.src = has_bg ? beatmap.bg : (fs.existsSync(small_img_path) ? small_img_path : placeholder_img);
 
         remove_btn.id = `bn_${beatmap.beatmap_id}`;
@@ -304,7 +304,7 @@ btn_update.addEventListener("click", async () => {
     }
 
     const new_collection = {
-        version: reader.collections.version,
+        version: core.reader.collections.version,
         length: collections.size,
         beatmaps: []
     };
@@ -321,13 +321,13 @@ btn_update.addEventListener("click", async () => {
         new_collection.beatmaps.push(obj);
     });
     
-    reader.collections = new_collection;
+    core.reader.collections = new_collection;
 
     // backup
     const backup_name = `collection_backup_${Date.now()}.db`;
-    fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
+    fs.renameSync(path.resolve(core.config.get("osu_path"), "collection.db"), path.resolve(core.config.get("osu_path"), backup_name));
 
-    reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
+    core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
 
     add_alert("Done!");
 });
@@ -431,17 +431,17 @@ export const initialize = async (options) => {
     const force = options?.force ? options.force : false; // read from the original file again
 
     // only initialize if the buffer is valid
-    if (!reader.buffer) {
+    if (!core.reader.buffer) {
         return;
     }
 
     if (force) {
-        await get_files(config.get("osu_path"));
+        await get_files(core.config.get("osu_path"));
     }
     
     // get the current collection list 
-    const collections_array = reader.collections;
-    const osu_info = reader.osu;
+    const collections_array = core.reader.collections;
+    const osu_info = core.reader.osu;
 
     for (const current_collection of collections_array.beatmaps) {
 

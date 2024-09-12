@@ -2,10 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 import { add_alert, add_get_extra_info } from "../popup/popup.js";
-import { search_map_id } from "./utils/downloader/download_maps.js";
-import { events } from "../tasks/events.js";
-import { config, og_path, reader, files } from "./utils/config/config.js";
-import { open_folder } from "./utils/other/process.js";
+import { search_map_id } from "../utils/download_maps.js";
+import { events } from "../events.js";
+import { core } from "../utils/config.js";
+import { open_folder } from "../utils/other/process.js";
 
 export const export_missing = async (id) => {
 
@@ -13,34 +13,14 @@ export const export_missing = async (id) => {
     
         try {
     
-            const ids = [];
-    
-            const osu_path = config.get("osu_path");
-            const osu_file = files.get("osu");
-            const collection_file = files.get("collection");
-    
+            const ids = []; 
             let missing_maps = [];
-     
-            // initialize for reading osu!.db
-            reader.set_type("osu");
-            reader.set_directory(osu_path);
-            reader.set_buffer(osu_file, true);
-    
-            await reader.get_osu_data();
-    
-            // initialize for reading collection.db
-            reader.set_type("collection");
-            reader.set_buffer(collection_file, true);
-    
-            if (reader.collections.beatmaps?.length == 0) {
-                await reader.get_collections_data();
-            }
             
-            const Maps = reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
+            const Maps = core.reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !reader.osu.beatmaps.get(m)) {
+                    if (m && !core.reader.osu.beatmaps.get(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }
@@ -109,13 +89,13 @@ export const export_missing = async (id) => {
                 re();
             });
 
-            const json_path = path.resolve(og_path, "exported_beatmaps.json");
+            const json_path = path.resolve(core.og_path, "exported_beatmaps.json");
         
             fs.writeFileSync(json_path, JSON.stringify([...new Set(ids)], null , 4));
 
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            open_folder(og_path);
+            open_folder(core.og_path);
 
             resolve("Finished exporting");
         } 
@@ -132,32 +112,13 @@ export const missing_download = async (id) => {
     
         try {
     
-            const osu_path = config.get("osu_path");
-            const osu_file = files.get("osu");
-            const collection_file = files.get("collection");
-    
             let missing_maps = [];
-            
-            // initialize for reading osu!.db
-            reader.set_type("osu");
-            reader.set_directory(osu_path);
-            reader.set_buffer(osu_file, true);
-    
-            await reader.get_osu_data();
 
-            // initialize for reading collection.db
-            reader.set_type("collection");
-            reader.set_buffer(collection_file, true);
-    
-            if (reader.collections.beatmaps?.length == 0) {
-                await reader.get_collections_data();
-            }
-
-            const Maps = reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
+            const Maps = core.reader.collections.beatmaps.map(b => ({ name: b.name, maps: b.maps }));
             
             for (const map of Maps) { // current collection
                 for (const m of map.maps) { // each map of the collection
-                    if (m && !reader.osu.beatmaps.get(m)) {
+                    if (m && !core.reader.osu.beatmaps.get(m)) {
                         missing_maps.push({ collection_name: map.name, hash: m });
                     }
                 }

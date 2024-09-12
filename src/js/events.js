@@ -2,9 +2,9 @@ const EventEmitter = require("events");
 
 export const events = new EventEmitter();
 
-import { tasks, all_tabs, blink, download_types } from "../tabs.js";
-import { add_alert, add_get_extra_info } from "../popup/popup.js";
-import { download_maps, current_download } from "../stuff/utils/downloader/download_maps.js";
+import { tasks, all_tabs, blink, download_types } from "./tabs.js";
+import { add_alert, add_get_extra_info } from "./popup/popup.js";
+import { download_maps, current_download } from "./utils/download_maps.js"
 
 const queue = new Map();
 const all_content = [...document.querySelectorAll(".tab-pane")];

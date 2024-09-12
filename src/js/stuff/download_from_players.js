@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 
-import { config, reader } from "./utils/config/config.js";
+import { core } from "../utils/config.js";
 import { add_alert } from "../popup/popup.js";
 import { add_get_extra_info } from "../popup/popup.js";
 import { initialize } from "../manager/manager.js";
@@ -35,29 +35,21 @@ const add_to_collection = async (maps, id, name, type) => {
         return;
     }
 
-    const collection = files.get("collection");
-    reader.set_type("collection");
-    reader.set_buffer(collection, true);
-
-    if (reader.collections.beatmaps?.length) {
-        reader.get_collections_data();
-    }
-
-    reader.collections.beatmaps.push({
+    core.reader.collections.beatmaps.push({
         name: `!stuff - ${name} ${type}`,
         maps: [...maps]
     });
 
-    reader.collections.length++;
+    core.reader.collections.length = reader.collections.beatmaps.length;
 
     // refresh manager
     await initialize();
 
     // backup
     const backup_name = `collection_backup_${Date.now()}.db`;
-    fs.renameSync(path.resolve(config.get("osu_path"), "collection.db"), path.resolve(config.get("osu_path"), backup_name));
+    fs.renameSync(path.resolve(core.config.get("osu_path"), "collection.db"), path.resolve(core.config.get("osu_path"), backup_name));
 
-    reader.write_collections_data(path.resolve(config.get("osu_path"), "collection.db"));
+    core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
 
     add_alert(`Added ${name} ${type} to your collection!`, { type: "success" });
 }
