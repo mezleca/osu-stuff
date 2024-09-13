@@ -1,3 +1,5 @@
+import { blink } from "../tabs.js";
+
 const shell = require("electron").shell;
 
 const alerts = new Map();
@@ -6,6 +8,7 @@ const max_popup_size = 6;
 const alert_types = {
     error: { icon: "bi-x-circle-fill", cssClass: "alert-error" },
     success: { icon: "bi-check-circle-fill", cssClass: "alert-success" },
+    alert: { icon: "bi-exclamation-triangle-fill", cssClass: "alert-warning" },
     warning: { icon: "bi-exclamation-triangle-fill", cssClass: "alert-warning" },
     default: { icon: "bi-exclamation-circle", cssClass: "alert-default" }
 };
@@ -24,7 +27,6 @@ export const add_alert = async (...texts) => {
     };
 
     texts.forEach(t => {
-
         if (typeof t === "object") {
             Object.assign(options, t);
         }
@@ -33,6 +35,10 @@ export const add_alert = async (...texts) => {
     if (alerts.size > max_popup_size) {
         console.log("Too many popups");
         return;
+    }
+
+    if (options?.blink) {
+        blink(options.blink);
     }
 
     const id = Date.now();

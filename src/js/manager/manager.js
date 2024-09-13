@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("electron").shell;
 
-import { core } from "../utils/config.js";
+import { core, get_files } from "../utils/config.js";
 import { setup_collector } from "../stuff/collector.js";
 import { add_alert, add_get_extra_info } from "../popup/popup.js";
 import { download_map } from "../utils/download_maps.js";

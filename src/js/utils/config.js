@@ -6,6 +6,7 @@ import { OsuReader } from "../reader/reader.js";
 import { add_alert } from "../popup/popup.js";
 import { check_login } from "./other/login.js";
 import { initialize } from "../manager/manager.js";
+import { all_tabs } from "../tabs.js";
 
 export const core = {
     config: new Map(),
@@ -62,11 +63,36 @@ export const update_status = (status) => {
 
 export const get_files = async (osu) => {
 
+    const db_file = path.resolve(osu, "osu!.db");
+    const cl_file = path.resolve(osu, "collection.db");
+
+    // check if osu.db is missing
+    if (!fs.existsSync(db_file)) {
+        console.log("osu.db file not found");
+        return;
+    }
+
+    // if collections.db is missing just create a new file
+    // yeah im gonna create write then clean the collections obj and read again cuz why not
+    if (!fs.existsSync(cl_file)) {
+
+        core.reader.collections  = {
+            version: 20240820, 
+            length: 0, 
+            beatmaps: []
+        };
+        
+        const file_path = path.resolve(osu, "collection.db");
+        await core.reader.write_collections_data(file_path);
+
+        console.log("created a new collections.db file in", file_path);
+    }
+
     const osu_file = fs.readFileSync(path.resolve(osu, "osu!.db"));
     const collection_file = fs.readFileSync(path.resolve(osu, "collection.db"));
 
     if (!osu_file || !collection_file) {
-        add_alert("Failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
+        add_alert("failed to get osu.db/collections.db file\nMake sure the osu path is correct", { type: "error" });
         return;
     }
     
@@ -74,7 +100,7 @@ export const get_files = async (osu) => {
     core.reader.osu = {};
     core.reader.collections = {};
 
-    update_status("Reading collection file...");
+    update_status("reading collection file...");
 
     core.files.set("osu", osu_file);
     core.files.set("collection", collection_file);
@@ -83,7 +109,7 @@ export const get_files = async (osu) => {
     core.reader.set_buffer(collection_file, true);
     await core.reader.get_collections_data();
 
-    update_status("Reading osu.db file...");
+    update_status("reading osu.db file...");
 
     core.reader.set_type("osu")
     core.reader.set_buffer(osu_file, true);
@@ -92,23 +118,27 @@ export const get_files = async (osu) => {
 
 export const add_config_shit = async () => {
 
-    update_status("Checking config...");
+    update_status("checking config...");
 
+    const config_tab = document.getElementById("config_tab");
+    const config_menu = all_tabs[2];
     const config_path = path.resolve(core.og_path, "config.json");
-    const file_exist = fs.existsSync(core.og_path);
+    const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
+    const label_content = [];
 
-    if (!file_exist) {
-        fs.mkdirSync(og_path);
+    if (!fs.existsSync(core.og_path)) {
+        fs.mkdirSync(core.og_path);
     }
 
     const options = fs.existsSync(config_path) ? JSON.parse(fs.readFileSync(config_path, "utf-8")) : { osu_id: "", osu_secret: "", osu_path: "", osu_songs_path: "" };
-    const can_login = Boolean(options.osu_id && options.osu_secret);
 
+    // create a new config if theres no config file
     if (!fs.existsSync(config_path)) {
         fs.writeFileSync(config_path, JSON.stringify(options));
     }
 
-    if (can_login) {
+    // if the config file has the id and secret parameter, try to login
+    if (Boolean(options.osu_id && options.osu_secret)) {
         await osu_login(options.osu_id, options.osu_secret);   
     }
 
@@ -119,15 +149,12 @@ export const add_config_shit = async () => {
     const songs_exist = fs.existsSync(songs);
 
     options.osu_path = osu_exist ? osu : null;
-    options.songs_path = songs_exist ? songs : null;
-                                                            
-    if ((!options.osu_path || !options.songs_path) && !file_exist) {
-        add_alert("failed to get the osu directory automatically", { type: "error" });
+    options.osu_songs_path = songs_exist ? songs : null;
+
+    if (!options.osu_path || !options.osu_songs_path) {
+        add_alert("failed to get the osu directory automatically", { type: "error", blink: config_menu });
     }
-
-    const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
-    const label_content = [];
-
+                                                
     for (let i = 0; i < labels.length; i++) {
         
         const label_name = labels[i];
@@ -148,26 +175,30 @@ export const add_config_shit = async () => {
     }
 
     const html = 
-    `
-    <div class="tab-shit">
-        <h1>Config</h1>
-        ${label_content.join("")}
-        <button class="update_config">update</button>
-    </div>
-    `
+        `
+        <div class="tab-shit">
+            <h1>Config</h1>
+            ${label_content.join("")}
+            <button class="update_config">update</button>
+        </div>
+        `
 
-    document.getElementById("config_tab").insertAdjacentHTML("afterbegin", html);
+    config_tab.insertAdjacentHTML("afterbegin", html);
 
-    // make sure both paths exist
-    if (!fs.existsSync(options.osu_path) || !fs.existsSync(options.songs_path)) {
-        console.log("Failed to get osu/songs directory\nPlease make sure the directory is correct");
-        add_alert("Failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });       
+    // check if osu path is invalid
+    if (!fs.existsSync(options.osu_path)) {
+        add_alert("osu path is invalid!", { type: "alert" , blink: config_menu });
         return;
     }
 
-    await get_files(options.osu_path);
+    // another check
+    if (!fs.existsSync(options.osu_songs_path)) {
+        add_alert("osu songs path is invalid!", { type: "alert" , blink: config_menu });
+        return;
+    }
 
-    // update manager
+    // get osu.db / collections.db file and initialize manager
+    await get_files(options.osu_path);
     await initialize();
 
     document.querySelector(".update_config").addEventListener("click", async () => {
@@ -211,6 +242,5 @@ export const add_config_shit = async () => {
     });
 
     setup_tooltip();
-
     console.log("config loaded");
 };

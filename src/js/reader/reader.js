@@ -241,6 +241,8 @@ export class OsuReader {
                 return;
             }
 
+            console.log("writing collection", this.collections);
+
             const data = this.collections;
             const file = fs.createWriteStream(p);
 
