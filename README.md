@@ -1,7 +1,3 @@
-> [!WARNING]
-> I don't plan to update this app anymore.
-> If you find a bug or you know something that could improve the performance, feel free to report or make a pull request.
-
 <h1 align="center">osu-stuff</h1>
 
 <p align="center">
