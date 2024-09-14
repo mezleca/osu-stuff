@@ -197,7 +197,7 @@ const add_load_more_button = (tab, beatmaps, start, filter, total_matching) => {
     const load_more = document.createElement('button');
     load_more.textContent = `load more (${start}/${total_matching})`;
 
-    load_more.style.width = "85%";
+    load_more.style.width = "95%";
     load_more.style.alignSelf = "center";
 
     load_more.addEventListener('click', () => {
