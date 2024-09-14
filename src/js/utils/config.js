@@ -18,9 +18,7 @@ export const core = {
 
 const tooltips = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
-    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>",
-    "osu_path": "Your osu! folder.<br>For example: C:\\osu!",
-    "osu_songs_path": "Your osu! songs folder.<br>For example: C:\\osu!\\Songs\\",
+    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
 }
 
 export const setup_tooltip = () => {
@@ -166,7 +164,7 @@ export const add_config_shit = async () => {
             <div class="input-container" id="config_fields">
                 <label for="${label_name}">
                     ${label_name}
-                    <div class="tooltip" id="${label_name}">(?)</div>
+                    ${tooltips[label_name] ? `<div class="tooltip" id="${label_name}">(?)</div>` : '' }
                 </label>
                 <input type="${label_name == "osu_id" || label_name == "osu_secret" ? "password" : "text"}" name="${label_name}" id="${label_name}" value="${options[label_name]}">        
             </div>
@@ -177,7 +175,7 @@ export const add_config_shit = async () => {
     const html = 
         `
         <div class="tab-shit">
-            <h1>Config</h1>
+            <h1>config</h1>
             ${label_content.join("")}
             <button class="update_config">update</button>
         </div>
