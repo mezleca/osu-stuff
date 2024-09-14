@@ -18,8 +18,9 @@ const btn_add = document.querySelector(".btn-add");
 const btn_remove = document.querySelector(".btn-delete");
 const btn_rename = document.getElementById("rename_collection");
 const btn_update = document.getElementById("update_collections");
-
 const search_box = document.getElementById("current_search");
+
+const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 const change_input_value = (name) => {
     const input = document.getElementById("collection_input_name");
@@ -50,7 +51,7 @@ const remove_beatmap = (hash) => {
         const beatmap = beatmaps[i];
 
         if (beatmap.md5 == hash) {
-            beatmaps.splice(i, 1)
+            beatmaps.splice(i, 1);
         }
     }
 
@@ -98,12 +99,18 @@ const render_beatmap = (beatmap) => {
     subtitle.textContent = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
     const small_img_path = path.resolve(core.config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
-    const beatmap_image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/list@2x.jpg`;
+    let beatmap_image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/list@2x.jpg`;
+
+    // if you dont have the beatmap just use the placeholder
+    if (!has_bg && !has_beatmap) {
+        beatmap_image_url = placeholder_image;
+    }
 
     small_bg.dataset.src = has_bg ? beatmap.bg : (fs.existsSync(small_img_path) ? small_img_path : beatmap_image_url);
     remove_btn.id = `bn_${beatmap.beatmap_id}`;
     
     if (has_beatmap) {
+
         small_bg.addEventListener("click", () => {
             const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
             shell.openExternal(url);

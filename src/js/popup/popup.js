@@ -351,6 +351,9 @@ export const createcustomlist = (name, elements) => {
         const create_range_element = (key, min, max) => {
 
             const container = document.createElement("div");
+
+            container.style = "display: flex; flex-direction: column;";
+
             container.innerHTML = `
                 <div class="input-double-balls">
                     <div class="slider-thing"></div>
