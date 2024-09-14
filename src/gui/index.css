@@ -1,4 +1,4 @@
-@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css");
+@import url("./deps/bootstrap-icons.css");
 
 :root {
     --bg-color: #202020;
@@ -187,6 +187,19 @@ body {
     justify-content: center;
 }
 
+.buttons-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.buttons-grid > button {
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+}
+
 button {
     font-family: Arial;
     font-size: 0.95em;
@@ -224,6 +237,14 @@ input, select {
     border-radius: 4px;
     font-size: 0.95em;
     transition: border-color 0.3s;
+}
+
+input[type="text"] {
+    padding: 10px;
+    background-color: #333;
+    border: 1px solid #444;
+    color: white;
+    border-radius: 5px;
 }
 
 input:focus, select:focus {
@@ -641,7 +662,6 @@ input[type="range"]::-moz-range-thumb {
     position: relative;
     display: inline-block;
     cursor: pointer;
-    min-width: 50%;
     font-weight: 500;
 }
 
