@@ -184,6 +184,22 @@ get_player_beatmaps.addEventListener("click", async () => {
     await handle_event(data, download_from_players, id);
 });
 
+export const create_download_task = async (name, maps) => {
+
+    const new_task = add_tab(name);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    tasks.set(name, data);
+    blink(all_tabs[2]);
+    
+    // ...
+    await handle_event(data, () => { return maps });
+};
+
 test_popup.addEventListener("click", async () => {  
     for (let i = 0; i < 3; i++) {
         add_alert("Popup", i, { seconds: 60 });

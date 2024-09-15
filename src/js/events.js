@@ -43,8 +43,8 @@ const start_task = (task) => {
             tasks.delete(task.id);
 
             // remove download div
-            if (status && all_content[3].contains(status)) {
-                all_content[3].removeChild(status);
+            if (status && all_content[2].contains(status)) {
+                all_content[2].removeChild(status);
             }
 
             add_alert("download cancelled");
@@ -60,8 +60,6 @@ const start_task = (task) => {
 
 const create_queue_div = () => {
 
-    console.log("[Create Queue] Creating Queue Div");
-
     const html = 
     `
     <div class="tab-shit status-shit" id="queue list">
@@ -72,7 +70,7 @@ const create_queue_div = () => {
     </div>
     `;
 
-    all_content[3].insertAdjacentHTML("afterbegin", html);
+    all_content[2].insertAdjacentHTML("afterbegin", html);
 };
 
 const update_queue_div = (id) => {
@@ -94,8 +92,6 @@ const update_queue_div = (id) => {
 };
 
 const remove_queue_div = (id) => {
-
-    console.log("[Remove Queue] Removing Queue Div", id);
 
     const div = document.querySelector(`.queue-item[id="${id}"]`);
 
@@ -124,7 +120,7 @@ setInterval(() => {
         remove_queue_div(task.id);
 
         if (queue.size == 0) {
-            all_content[3].removeChild(document.querySelector(".status-shit"));
+            all_content[2].removeChild(document.querySelector(".status-shit"));
         }
         
         return;
@@ -152,7 +148,7 @@ export const handle_event = async (data, callback, ...args) => {
             return;
         }
 
-        const download_button = all_tabs[3];
+        const download_button = all_tabs[2];
 
         if (download_types.includes(data.id)) {
             blink(download_button);
@@ -219,8 +215,8 @@ events.on("progress-end", (id, is_download) => {
         queue.set(id, data);
     }
 
-    if (all_content[3].contains(status)) {
-        all_content[3].removeChild(status);
+    if (all_content[2].contains(status)) {
+        all_content[2].removeChild(status);
     }
 
     tasks.delete(id);

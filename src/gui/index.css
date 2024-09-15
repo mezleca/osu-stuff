@@ -139,11 +139,13 @@ body {
 }
 
 .tab-content {
+    position: relative;
     display: block;
     padding: 20px;
     padding-top: 15px;
     min-height: 100%;
     max-height: 100%;
+    max-width: 96%;
 }
 
 .title_text {
@@ -151,7 +153,10 @@ body {
 }
 
 .tab-pane {
-    display: none;
+    position: absolute;
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
     flex-direction: column;
     flex-wrap: wrap;
     align-items: center;
@@ -159,6 +164,7 @@ body {
     max-width: 100%;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    transition: visibility 0s, opacity 0.1s linear;
 }
 
 .tab-shit {
@@ -257,7 +263,8 @@ hr {
 }
 
 .tab-pane.active {
-    display: flex;
+    visibility: visible;
+    opacity: 1;
 }
 
 .tab-shit > h1, .tab-pane > h1 {
@@ -815,7 +822,28 @@ a {
     max-height: 60%;
 }
 
-.collection-item, .sidebar-btn {
+.collection-item {
+    display: flex;
+    cursor: pointer;
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+    transition: 0.3s border;
+    justify-content: space-between;
+    align-items: center;
+    max-height: 15%;
+}
+
+.collection-name {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 20ch;
+    white-space: nowrap;
+}
+
+.sidebar-btn {
     cursor: pointer;
     padding: 10px;
     margin-bottom: 5px;

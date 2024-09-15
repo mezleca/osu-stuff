@@ -40,7 +40,7 @@ const add_to_collection = async (maps, id, name, type) => {
         maps: [...maps]
     });
 
-    core.reader.collections.length = reader.collections.beatmaps.length;
+    core.reader.collections.length = core.reader.collections.beatmaps.length;
 
     // refresh manager
     await initialize();
@@ -65,8 +65,7 @@ export const download_from_players = async (id) => {
             type: "list",
             value: Object.keys(methods),
             important: false,
-            column: true,
-            title: "Select a method"
+            title: "method"
         }]);
 
         if (!_method) {
