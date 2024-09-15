@@ -23,65 +23,42 @@
     </div>
     </div>
     <div class="container">
-        
         <div class="alert-container"></div>
-
         <div class="tabs">
-            <div class="tab-button active" data-tab="tools">tools</div>
             <div class="tab-button" data-tab="collections">manager</div>
             <div class="tab-button" data-tab="config">config</div>
             <div class="tab-button" data-tab="status">status</div>
         </div>
-
         <div class="tab-content">
-
-            <div class="tab-pane active" id="maps_tab">
-
-                <div class="tab-shit">
-                    <h1 style="margin-bottom: 10px;">beatmaps stuff</h1>
-                    <div class="buttons-row">
-                        <button id="get_missing_beatmaps" style="max-width: 45%;">get missing beatmaps</button>
-                        <button id="export_missing_beatmaps" style="max-width: 45%;">export missing beatmaps</button>
-                        <button id="remove_invalid_maps" style="max-width: 45%;">remove maps</button>
-                        <button id="download_from_json" style="max-width: 45%;">download from json</button>
-                        <button id="get_player_beatmaps" style="max-width: 45%;">get player beatmaps</button>
-                        <button id="test_popup" style="max-width: 45%; display: none;">test alerts</button>
-                    </div>
-                </div>
-
-                <div class="tab-shit">
-                    <h1>osu!Collector stuff</h1>
-                    <label for="oscurl">url</label>
-                    <input type="url" name="oscurl" id="oscurl">
-                    <div class="buttons-row">
-                        <button id="get_beatmaps_collector">download</button>
-                        <button id="add_beatmaps_collector">add to osu</button>
-                    </div>
-                </div>
-            </div>
-
             <div class="tab-pane" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
-
                 <div class="collections_container">
-                     <!-- collection manager -->
                      <div class="sidebar">
-                        <h2>collections</h2>
-                        <div class="collection-list">
-
-                        </div>
-                        <div class="collection-actions">
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control" id="collection_input_name" placeholder="New collection name" aria-label="new collection name">
-                                <div class="btn-group">
-                                    <button class="btn btn-custom btn-rename" id="rename_collection" type="button">rename</button>
-                                    <button class="btn btn-custom btn-delete" id="delete_collection" type="button">remove</button>
+                        <div class="sidebar-item collections-sidebar active">
+                            <h2>collections</h2>
+                            <div class="collection-list"></div>
+                            <div class="collection-actions">                            
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="collection_input_name" placeholder="collection name" aria-label="collection name">
+                                    <div class="btn-group btn-group-border-bottom">
+                                        <button style="width: 45%;" class="btn btn-custom btn-rename" id="rename_collection" type="button">rename</button>
+                                        <button style="width: 45%;" class="btn btn-custom btn-delete" id="delete_collection" type="button">remove</button> 
+                                        <button style="width: 45%;" class="btn btn-custom btn-add" id="add_new_collection" type="button">new</button>
+                                        <button style="width: 45%;" class="btn btn-custom btn-rename" id="update_collections" type="button">update</button>
+                                    </div>
+                                    <button class="btn btn-custom btn-extra"  id="extra-options" type="button">other options</button>
                                 </div>
                             </div>
-                            <div class="btn-group">
-                                <button class="btn btn-custom btn-add" id="add_new_collection" type="button">add collection</button>
-                                <button class="btn btn-custom btn-rename" id="update_collections" type="button">update collection</button>
-                            </div>
                         </div>
+                        <div class="sidebar-item extra-sidebar">
+                            <div class="sidebar-header">
+                                <h1 class="back-btn">&#8592;</h1>
+                                <h2 class="sidebar-header-text">options</h2>
+                            </div>
+                            <div class="sidebar-btn" id="get_missing_beatmaps">download missing</div>
+                            <div class="sidebar-btn" id="remove_invalid_maps">remove maps</div>
+                            <div class="sidebar-btn" id="get_player_beatmaps">get from player</div>
+                            <div class="sidebar-btn" id="test_popup">test alerts</div>
+                        </div>           
                     </div>
                     <div class="main-content">
                         <div class="search-container">
@@ -89,18 +66,10 @@
                         </div>
                         <h2 id="collection_text">please select a collection to view the beatmaps</h2>
                     </div>
-
                 </div>     
-
             </div>
-
-            <div class="tab-pane" id="config_tab">
-
-            </div>
-
-            <div class="tab-pane" id="download_tab">
-                
-            </div>
+            <div class="tab-pane" id="config_tab"></div>
+            <div class="tab-pane" id="download_tab"></div>
         </div>
     </div>
 
