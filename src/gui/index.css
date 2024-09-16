@@ -991,6 +991,12 @@ a {
     border-radius: 6px;
     background: linear-gradient(343deg, rgb(12 12 12) 0%, rgb(20 20 20) 32%, rgb(28 28 28) 100%);
     border: 2px solid #ffffffad;
+    transition: 0.3s border-color;
+}
+
+.mini-container:hover {
+    transition: 0.3s border-color;
+    border-color: #1976D2;
 }
 
 .bg-image {
