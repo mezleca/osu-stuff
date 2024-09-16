@@ -87,7 +87,6 @@ const render_beatmap = (beatmap) => {
 
     const map_item = template.content.cloneNode(true).firstElementChild;
     const has_beatmap = Boolean(beatmap.artist_name);
-    const has_bg = Boolean(beatmap.bg);
 
     map_item.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
     map_item.dataset.mapper = beatmap.creator_name ? beatmap.creator_name.toLowerCase() : "Unknown";
@@ -105,15 +104,9 @@ const render_beatmap = (beatmap) => {
     title.textContent = map_item.dataset.title;
     subtitle.textContent = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
 
-    const small_img_path = path.resolve(core.config.get("osu_path"), `Data`, `bt`, `${beatmap.beatmap_id}l.jpg`);
-    let beatmap_image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/list@2x.jpg`;
+    const beatmap_image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/list@2x.jpg`
 
-    // if you dont have the beatmap just use the placeholder
-    if (!has_bg && !has_beatmap) {
-        beatmap_image_url = placeholder_image;
-    }
-
-    small_bg.dataset.src = has_bg ? beatmap.bg : (fs.existsSync(small_img_path) ? small_img_path : beatmap_image_url);
+    small_bg.dataset.src = has_beatmap ? beatmap_image_url : placeholder_image;
     remove_btn.id = `bn_${beatmap.beatmap_id}`;
     
     if (has_beatmap) {
@@ -132,7 +125,7 @@ const render_beatmap = (beatmap) => {
 
         download_btn.addEventListener("click", async () => {
 
-            add_alert("Searching beatmap...");
+            add_alert("searching beatmap...");
 
             const beatmap_data = await download_map(beatmap.md5);
 
@@ -493,7 +486,7 @@ const setup_manager = () => {
     template.innerHTML = `
     <div class="collection-item">
         <p class="collection-name"></p>
-        <i class="bi bi-trash" id="remove_collection"></i>
+        <i class="bi bi-trash-fill" id="remove_collection"></i>
     </div>
     `;
 
