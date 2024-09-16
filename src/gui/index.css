@@ -836,6 +836,11 @@ a {
     border: 1px solid rgb(255 255 255 / 38%);
 }
 
+.collection-item.selected {
+    transition: 0.3s border;
+    border: 1px solid var(--button-hover-color);
+}
+
 .collection-name {
     font-size: 15px;
     overflow: hidden;
