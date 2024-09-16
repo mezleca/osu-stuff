@@ -339,6 +339,18 @@ search_box.addEventListener("input", debounce(() => {
     }
 }, 300));
 
+const update_map_info = (map) => {
+
+    if (typeof map === 'string') {
+        return core.reader.osu.beatmaps.get(map) || { md5: map };
+    } else if (typeof map === 'object' && map.md5) {
+        const info = core.reader.osu.beatmaps.get(map.md5);
+        return info ? { ...map, ...info } : map;
+    }
+
+    return map;
+};
+
 btn_add.addEventListener("click", async () => {
 
     if (need_to_save) {
@@ -365,11 +377,10 @@ btn_add.addEventListener("click", async () => {
         return;
     }
 
-    collections.set(collection.name, maps.map((v) => {
-        return { md5: v }
-    }));
+    const updated_map = maps.map(md5 => update_map_info({ md5 }));
+    collections.set(collection.name, updated_map);
     
-    await initialize({ name: collection.name, maps: maps });
+    await initialize();
     setup_manager();
 
     if (document.querySelector(".collection-container")) {
@@ -570,34 +581,29 @@ export const initialize = async (options) => {
         await get_files(core.config.get("osu_path"));
     }
 
-    const collections_array = core.reader.collections;
-    const osu_info = core.reader.osu;
+    if (collections.size === 0) {
 
-    for (const current_collection of collections_array.beatmaps) {
+        for (const collection of core.reader.collections.beatmaps) {
+            const updated_map = collection.maps.map(update_map_info);
+            collections.set(collection.name, updated_map);
+        }
 
-        let { name, maps } = current_collection;
-
-        let info = maps.map((map) => {
-
-            if (!map) {
-                return;
-            }
-
-            return osu_info.beatmaps.get(map) || { md5: map };
-        });
-
-        collections.set(name, info);
+    } else {
+        
+        for (const [name, maps] of collections) {
+            const updated_map = maps.map(update_map_info);
+            collections.set(name, updated_map);
+        }
     }
 
-    if (no_update) {
-        return;
+    if (!no_update) {
+
+        const container = document.querySelector(".collection-container");
+
+        if (container) {
+            container.remove();
+        }
+
+        setup_manager();
     }
-
-    const container = document.querySelector(".collection-container");
-
-    if (container) {
-        container.remove();
-    }
-
-    setup_manager();
-}
+};

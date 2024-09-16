@@ -1,6 +1,5 @@
 import { add_config_shit } from "./utils/config.js";
 import { add_alert } from "./popup/popup.js";
-import { initialize } from "./manager/manager.js";
 
 const in_dev_mode = process.env.NODE_ENV == "cleide";
 const gui_title = document.querySelector(".title_text");
@@ -9,7 +8,6 @@ const gui_title = document.querySelector(".title_text");
 
     // initialize config/manager
     await add_config_shit();
-    await initialize();
     
     // remove loading screen
     await new Promise(resolve => setTimeout(resolve, 200));
