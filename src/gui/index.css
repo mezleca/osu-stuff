@@ -235,7 +235,7 @@ button:hover {
 input, select {
     background-color: var(--input-bg);
     color: var(--text-color);
-    border: 1px solid #4d4d4d;
+    border: 1px solid #8a8a8a;
     padding: 10px;
     margin: 5px 0 15px;
     width: 100%;
@@ -245,7 +245,7 @@ input, select {
     transition: border-color 0.3s;
 }
 
-input[type="text"] {
+input[type="text"], input[type="password"] {
     padding: 10px;
     background-color: #333;
     border: 1px solid #444;
@@ -826,13 +826,14 @@ a {
     display: flex;
     cursor: pointer;
     padding: 10px;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     background-color: #2a2a2a;
     border-radius: 5px;
     transition: 0.3s border;
     justify-content: space-between;
     align-items: center;
     max-height: 15%;
+    border: 1px solid rgb(255 255 255 / 38%);
 }
 
 .collection-name {
@@ -858,7 +859,7 @@ a {
 
 .collection-item:hover, .sidebar-btn:hover {
     transition: 0.3s border;
-    border: 1px solid var(--button-hover-color);;
+    border: 1px solid var(--button-hover-color);
 }
 
 .collection-container {
@@ -882,7 +883,6 @@ a {
 *::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
     background: #888;
-    border-radius: 5px;
 }
 
 *::-webkit-scrollbar-thumb:hover,
@@ -909,14 +909,12 @@ a {
 
 .form-control {
     background-color: #2a2a2a;
-    border: 1px solid #3a3a3a;
-    color: #e0e0e0;
+    color: #9e9e9e;
     max-width: 90%;
 }
 
 .form-control:focus {
     background-color: #2a2a2a;
-    border-color: #4a5eff;
     box-shadow: 0 0 0 0.2rem rgba(74, 94, 255, 0.25);
     color: #e0e0e0;
 }
@@ -987,7 +985,7 @@ a {
     padding-left: 0;
     border-radius: 6px;
     background: linear-gradient(343deg, rgb(12 12 12) 0%, rgb(20 20 20) 32%, rgb(28 28 28) 100%);
-    border: 1px solid grey;
+    border: 2px solid #ffffffad;
 }
 
 .bg-image {
