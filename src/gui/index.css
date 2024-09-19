@@ -707,6 +707,10 @@ a {
     animation: spin 1s linear infinite;
 }
 
+.queue-list {
+    padding: 10px;
+}
+
 .queue-list > h1 {
     font-size: 0.80em;
     color: rgb(253, 255, 226);
