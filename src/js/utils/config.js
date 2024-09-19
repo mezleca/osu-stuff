@@ -176,11 +176,7 @@ export const add_config_shit = async () => {
             const file = fs.readFileSync(config_path, "utf-8");
             const config_obj = JSON.parse(file);
 
-            options.osu_id = config_obj.osu_id;
-            options.osu_secret = config_obj.osu_secret;
-            options.osu_path = config_obj.osu_path;
-            options.osu_songs_path = config_obj.osu_songs_path;
-
+            Object.assign(options, config_obj);
         } catch(err) {
             add_alert("failed to parse config");
         }   
