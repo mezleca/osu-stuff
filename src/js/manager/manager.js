@@ -351,6 +351,13 @@ const update_map_info = (map) => {
     return map;
 };
 
+export const add_collection_manager = async (maps, collection) => {
+    const updated_map = maps.map(md5 => update_map_info({ md5 }));
+    collections.set(collection.name, updated_map);
+    await initialize();
+    setup_manager();
+};
+
 btn_add.addEventListener("click", async () => {
 
     if (need_to_save) {
@@ -377,11 +384,7 @@ btn_add.addEventListener("click", async () => {
         return;
     }
 
-    const updated_map = maps.map(md5 => update_map_info({ md5 }));
-    collections.set(collection.name, updated_map);
-    
-    await initialize();
-    setup_manager();
+    await add_collection_manager(maps, collection);
 
     if (document.querySelector(".collection-container")) {
         document.querySelector(".collection-container").remove();
@@ -487,7 +490,7 @@ const update_current_item = () => {
     });
 };
 
-const setup_manager = () => {
+export const setup_manager = () => {
 
     collection_list.innerHTML = "";
 
@@ -517,7 +520,7 @@ const setup_manager = () => {
                 return;
             }
 
-            const collection_name = collection.innerHTML;
+            const collection_name = collection.textContent;
 
             if (!collection_name) {
                 add_alert("Please select a collection", { type: "warning" })
@@ -534,7 +537,7 @@ const setup_manager = () => {
             }
         });
 
-        collection_name.innerHTML = k;
+        collection_name.innerText = k;
 
         new_collection.addEventListener("click", () => {
 

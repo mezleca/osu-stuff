@@ -1,6 +1,5 @@
 import { handle_event } from "./events.js";
 import { add_alert } from "./popup/popup.js";
-import { download_collector } from "./stuff/collector.js";
 import { is_running } from "./utils/other/process.js";
 import { core } from "./utils/config.js";
 import { remove_maps } from "./stuff/remove_maps.js";
@@ -18,7 +17,6 @@ export const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "d
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
 const get_player_beatmaps = document.getElementById("get_player_beatmaps");
-const test_popup = document.getElementById("test_popup");
 const back_btn = document.querySelector(".back-btn");
 
 const options_tab = sidebar_item[0];
@@ -196,13 +194,5 @@ export const create_download_task = async (name, maps) => {
     tasks.set(name, data);
     blink(all_tabs[2]);
     
-    // ...
     await handle_event(data, () => { return maps });
 };
-
-test_popup.addEventListener("click", async () => {  
-    for (let i = 0; i < 3; i++) {
-        add_alert("Popup", i, { seconds: 60 });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-});

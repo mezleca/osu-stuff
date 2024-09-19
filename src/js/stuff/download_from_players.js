@@ -4,7 +4,7 @@ const fs = require("fs");
 import { core } from "../utils/config.js";
 import { add_alert } from "../popup/popup.js";
 import { add_get_extra_info } from "../popup/popup.js";
-import { initialize } from "../manager/manager.js";
+import { initialize, add_collection_manager } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -28,31 +28,52 @@ export const url_is_valid = (url, hostname) => {
     }
 };
 
-const add_to_collection = async (maps, id, name, type) => {
+const add_to_collection = async (maps, name, type) => {
 
     if (maps.length == 0) {
         console.log("no maps");
         return;
     }
 
+    const collection_name = `!stuff - ${name} ${type}`;
+
     core.reader.collections.beatmaps.push({
-        name: `!stuff - ${name} ${type}`,
+        name: collection_name,
         maps: [...maps]
     });
 
     core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-    // refresh manager
-    await initialize();
+    await add_collection_manager(maps, { name: collection_name });
 
-    // backup
-    const backup_name = `collection_backup_${Date.now()}.db`;
-    fs.renameSync(path.resolve(core.config.get("osu_path"), "collection.db"), path.resolve(core.config.get("osu_path"), backup_name));
+    add_alert(`added ${name} ${type} to your collection!`, { type: "success" });
+};
 
-    core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
+const get_player_id = async (name) => {
 
-    add_alert(`Added ${name} ${type} to your collection!`, { type: "success" });
-}
+    if (!name) {
+        return;
+    }
+
+    const api_url = "https://osu.ppy.sh/api/v2";
+    const req_url = `${api_url}/users/${name}`;
+
+    const response = await fetch(req_url, {
+        method: "GET",
+        headers: {
+            'Authorization': `Bearer ${core.login.access_token}`
+        }
+    });
+
+    const data = await response.json();
+
+    if (!data?.id) {
+        console.log("player", name, "not found");
+        return;
+    }
+
+    return data.id;
+};
 
 export const download_from_players = async (id) => {
 
@@ -77,7 +98,7 @@ export const download_from_players = async (id) => {
 
         const player = await add_get_extra_info([{
             type: "input",
-            text: "player url",
+            text: "player name",
             important: false
         }]);
 
@@ -85,17 +106,26 @@ export const download_from_players = async (id) => {
             return;
         }
 
-        if (!url_is_valid(player, "osu.ppy.sh")) {
+        const player_id = await get_player_id(player);
+
+        if (!player_id) {
+            add_alert("player", player, "not found");
+            return;
+        }
+
+        const player_url = `https://osu.ppy.sh/users/${player_id}`;
+
+        if (!url_is_valid(player_url, "osu.ppy.sh")) {
             reject(`invalid player url: ${player}`);
             return;
         }
         
-        const url = `${player}/scores/${method}?mode=osu`;
-        const player_req = await fetch(`${player}/extra-pages/top_ranks?mode=osu`);
+        const url = `${player_url}/scores/${method}?mode=osu`;
+        const player_req = await fetch(`${player_url}/extra-pages/top_ranks?mode=osu`);
         const player_data = await player_req.json();
 
         if (player_req.status != 200) {
-            reject(`invalid player url: ${player}`);
+            reject(`invalid player url: ${player_url}`);
             return;
         }
 
@@ -168,13 +198,13 @@ export const download_from_players = async (id) => {
         }
         
         if (_download == "Add to collections") {
-            await add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
+            await add_to_collection(maps.map((b) => b.beatmap.checksum), maps[0].user.username, method == "firsts" ? "first place" : "best performance");
             resolve("added to collection");
             return;
         }
 
         if (_download == "Both") {
-            await add_to_collection(maps.map((b) => b.beatmap.checksum), id, maps[0].user.username, method == "firsts" ? "first place" : "best performance");
+            await add_to_collection(maps.map((b) => b.beatmap.checksum), maps[0].user.username, method == "firsts" ? "first place" : "best performance");
         }
 
         const list = maps.map((s) => { return { id: s.beatmap.beatmapset_id }});

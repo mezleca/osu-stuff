@@ -10,7 +10,7 @@
     --input-bg: #3d3d3d;
     --button-color: #3177e8;
     --button-hover-color: #2865c7;
-    --popup-bg: #2d2d2d;
+    --popup-bg: #2a2a2a;
     --collections-border-color: rgb(56,56,56);
 }
 
@@ -454,16 +454,14 @@ label {
     display: flex;
     flex-direction: column;
     background-color: var(--popup-bg);
-    padding: 10px;
-    padding-left: 15px;
-    padding-right: 15px;
+    padding: 15px;
     border-radius: 8px;
     text-align: center;
-    border: none;
     border-radius: 4px;
     min-width: 60%;
     max-width: 85%;
     align-self: center;
+    border: 1px solid rgb(255 255 255 / 25%);
 }
 
 .popup-content, .popup-content-flex {
@@ -474,8 +472,9 @@ label {
 }
 
 .popup-content {
-    padding: 10px;
+    padding: 15px;
     max-width: 85%;
+    border: 1px solid rgb(255 255 255 / 25%);
 }
 
 .popup-content-flex > label {
@@ -559,26 +558,38 @@ label {
 }
 
 .input-double-balls {
-    display: flex;
     position: relative;
-    justify-content: space-between;
-    align-items: center;
     width: 90%;
-    margin-bottom: 0.5em;
-    padding: 5px;
-    align-self: center;
+    height: 25px;
+    margin: 0 auto 20px;
+    display: flex;
+    border: none;
+    align-items: center;
+}
+
+.slider-thing {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 6px;
+    background: linear-gradient(to right, #ddd 0%, #3498db 50%, #ddd 100%);
+    border: none;
+    border-radius: 3px;
+    transform: translateY(1.4em);
+}
+
+input[type="range"] {
+    border: none;
 }
 
 .input-double-balls input[type="range"] {
     position: absolute;
-    left: 0;
     top: 50%;
-    transform: translateY(-50%);
-    -webkit-appearance: none;
     width: 100%;
+    -webkit-appearance: none;
     background: transparent;
     pointer-events: none;
-    border: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -586,19 +597,44 @@ input[type="range"]::-webkit-slider-thumb {
     height: 20px;
     width: 20px;
     border-radius: 50%;
-    background: var(--button-color);
+    background: #3498db;
     cursor: pointer;
     pointer-events: auto;
-    margin-top: -8px;
+    border: 4px solid #fff;
+    transition: all 0.2s ease;
 }
 
 input[type="range"]::-moz-range-thumb {
     height: 20px;
     width: 20px;
     border-radius: 50%;
-    background: var(--button-color);
+    background: #3498db;
     cursor: pointer;
     pointer-events: auto;
+    border: 4px solid #fff;
+    transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover,
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.1);
+}
+
+.input-range-text {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+}
+
+.input-range-text p {
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .checkbox-container {
@@ -636,33 +672,6 @@ input[type="range"]::-moz-range-thumb {
 .checkbox-container label {
     color: rgb(253, 255, 226);
     font-size: 14px;
-}
-
-.slider-thing {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 5px;
-    background-color: #ddd;
-    border-radius: 5px;
-}
-
-.input-range-text {
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
-    width: 100%;
-    height: auto;
-}
-
-.slider {
-    position: absolute;
-    left: 0;
-    color: rgb(253, 255, 226);
-    z-index: 2000;
-    top: 0.01em;
 }
 
 .tooltip {
@@ -811,7 +820,7 @@ a {
     overflow: hidden;
     min-height: 10vh;
     max-height: 10vh;
-    z-index: 9998;
+    z-index: 999;
     background-color: var(--bg-color);
 }
 

@@ -105,7 +105,7 @@ export let mirrors = [
     },
     {
         name: "direct",
-        url: "https://api.osu.direct/d/"
+        url: "https://osu.direct/api/d/"
     },
     {
         name: "catboy",
