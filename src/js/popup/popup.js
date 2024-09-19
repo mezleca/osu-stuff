@@ -61,6 +61,8 @@ export const add_alert = async (...texts) => {
         alert_text.innerText = options.text;
     }
 
+    console.log("[ALERT]:", options.text);
+
     div.append(alert_icon, alert_text, alert_close);
     alerts.set(id, div);
 
