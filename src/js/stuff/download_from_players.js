@@ -165,11 +165,9 @@ export const download_from_players = async (player, method) => {
                     maps = [...player_info.first_place];
                     break;
                 case "best performance":
-                    console.log("appending best performance");
                     maps = [...player_info.best_performance];
                     break;
                 case "favourites":
-                    console.log("appending fav");
                     maps = [...player_info.favourites];
                     break;
                 default:
