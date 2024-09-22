@@ -132,8 +132,6 @@ setInterval(() => {
 
 export const handle_event = async (data, callback, ...args) => {
 
-    console.log(`[HANDLE EVENT] received event: ${data.id}`, data);
-
     try {
 
         // run the callback and get the value
@@ -143,7 +141,6 @@ export const handle_event = async (data, callback, ...args) => {
         
         // if theres no value in the callback, it means the function is not part of the: download bullshit
         if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {
-            // console.log("[HANDLE EVENT] No maps to download");
             tasks.delete(data.id);
             return;
         }
@@ -156,6 +153,7 @@ export const handle_event = async (data, callback, ...args) => {
 
         // add the download to the queue
         if (queue.size != 0) {
+            console.log("adding to the queue");
             add_alert(`Added Download to queue`, { type: "success" });
         }
 
@@ -167,11 +165,9 @@ export const handle_event = async (data, callback, ...args) => {
 
         tasks.delete(data.id);
 
-        if (String(err).toLowerCase() == "cancelled") {
+        if (String(err).toLowerCase() == "cancelled" || !err) {
             return;
         }
-
-        console.log(data.id, err);
 
         add_alert(err, { type: "error" });
     }

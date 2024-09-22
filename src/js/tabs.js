@@ -1,5 +1,5 @@
 import { handle_event } from "./events.js";
-import { add_alert } from "./popup/popup.js";
+import { add_alert, add_get_extra_info } from "./popup/popup.js";
 import { is_running } from "./utils/other/process.js";
 import { core } from "./utils/config.js";
 import { remove_maps } from "./stuff/remove_maps.js";
@@ -170,16 +170,26 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    const new_task = add_tab(id);
+    const player = await add_get_extra_info([{
+        type: "input",
+        text: "player name",
+        important: false
+    }]);
+
+    if (!player) {
+        return;
+    }
+
+    const new_task = add_tab(`${player} stuff`);
 
     if (!new_task) {
         return;
     }
 
     const data = { started: false, ...new_task };
-    tasks.set(id, data);
+    tasks.set(`${player} stuff`, data);
     
-    await handle_event(data, download_from_players, id);
+    await handle_event(data, download_from_players, player);
 });
 
 export const create_download_task = async (name, maps) => {

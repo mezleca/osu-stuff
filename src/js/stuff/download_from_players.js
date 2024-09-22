@@ -1,10 +1,7 @@
-const path = require("path");
-const fs = require("fs");
-
 import { core } from "../utils/config.js";
 import { add_alert } from "../popup/popup.js";
 import { add_get_extra_info } from "../popup/popup.js";
-import { initialize, add_collection_manager } from "../manager/manager.js";
+import { add_collection_manager } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -49,168 +46,171 @@ const add_to_collection = async (maps, name, type) => {
     add_alert(`added ${name} ${type} to your collection!`, { type: "success" });
 };
 
-const get_player_id = async (name) => {
+const fetch_maps = async (base_url, limit) => {
+
+    const maps = [];  
+    let offset = 0;
+
+    if (!limit) {
+        console.log("[ERROR] no maps to fetch");
+        return;
+    }
+
+    for (let i = 0; i < limit; i++) {
+
+        if (offset >= limit) {
+            break;
+        }
+
+        const url = new URL(base_url);
+
+        url.searchParams.append("limit", "50");
+        url.searchParams.append("offset", offset.toString());
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        for (let k = 0; k < data.length; k++) {
+
+            const beatmap = data[k];
+
+            if (!beatmap) {
+                continue;
+            }
+
+            maps.push(beatmap);
+        }
+        
+        offset += data.length;
+    }
+
+    return maps;
+};
+
+const get_player_info = async (name) => {
 
     if (!name) {
         return;
     }
 
-    const api_url = "https://osu.ppy.sh/api/v2";
-    const req_url = `${api_url}/users/${name}`;
+    add_alert("searching player...");
 
-    const response = await fetch(req_url, {
+    const data = {   
         method: "GET",
         headers: {
             'Authorization': `Bearer ${core.login.access_token}`
         }
-    });
+    }
 
-    const data = await response.json();
+    const api_url = "https://osu.ppy.sh/api/v2";
 
-    if (!data?.id) {
+    const default_response = await fetch(`${api_url}/users/${name}`, data);
+    const default_data = await default_response.json();
+
+    if (!default_data?.id) {
         console.log("player", name, "not found");
         return;
     }
 
-    return data.id;
+    const extra_response = await fetch(`https://osu.ppy.sh/users/${default_data.id}/extra-pages/top_ranks?mode=osu`, data);
+    const extra_data = await extra_response.json();
+    
+    if (!extra_data) {
+        console.log("extra");
+        return;
+    }
+
+    const first_place_maps = extra_data.firsts.count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count) : [];
+    const best_performance_maps = extra_data.best.count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count) : [];
+    const favourite_maps = default_data.favourite_beatmapset_count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count) : [];
+
+    return {
+        ...default_data,
+        favourites: favourite_maps,
+        first_place: first_place_maps,
+        best_performance: best_performance_maps
+    };
 };
 
-export const download_from_players = async (id) => {
+export const download_from_players = async (player) => {
 
     return new Promise(async (resolve, reject) => {
 
-        const maps = [];
-        const methods = { "best performance": "best", "first place": "firsts" };
+        const player_info = await get_player_info(player);
 
-        const _method =  await add_get_extra_info([{
-            type: "list",
-            value: Object.keys(methods),
-            important: false,
-            title: "method"
-        }]);
-
-        if (!_method) {
-            reject("cancelled");
-            return;
-        }
-
-        const method = methods[_method];
-
-        const player = await add_get_extra_info([{
-            type: "input",
-            text: "player name",
-            important: false
-        }]);
-
-        if (!player) {
-            return;
-        }
-
-        const player_id = await get_player_id(player);
-
-        if (!player_id) {
+        if (!player_info) {
             add_alert("player", player, "not found");
             return;
         }
 
-        const player_url = `https://osu.ppy.sh/users/${player_id}`;
-
-        if (!url_is_valid(player_url, "osu.ppy.sh")) {
-            reject(`invalid player url: ${player}`);
-            return;
-        }
-        
-        const url = `${player_url}/scores/${method}?mode=osu`;
-        const player_req = await fetch(`${player_url}/extra-pages/top_ranks?mode=osu`);
-        const player_data = await player_req.json();
-
-        if (player_req.status != 200) {
-            reject(`invalid player url: ${player_url}`);
-            return;
-        }
-
-        const count = player_data[method].count;
-
-        if (count == 0) {
-            reject("no beatmaps found");
-            return;
-        }
-
-        add_alert(`Searching ${count} beatmaps...`);
-        
-        let offset = player_data[method].items.length;
-
-        maps.push(...player_data[method].items);
-
-        for (let i = 0; i < count; i++) {
-
-            if (count <= 5) {
-                break; 
-            }
-
-            if (offset >= count) {
-                break;
-            }
-
-            const max_limit = count - offset < 100 ? count - offset : 100;
-
-            const response = await fetch(`${url}&limit=${max_limit}&offset=${offset}`);
-            const data = await response.json();
-            
-            if (response.status != 200) {
-                offset += max_limit;
-                console.log("Error", response.status, response);
-                continue;
-            }
-
-            for (let i = 0; i < data.length; i++) {
-
-                const beatmap = data[i];
-                
-                if (!beatmap) {
-                    continue;
-                }
-
-                maps.push(beatmap);
-            }
-
-            offset += max_limit;
-        }
-
-        if (maps.length == 0) {
-            reject("no beatmaps found");
-            return;
-        }
-
-        add_alert(`Found ${maps.length} valid beatmaps`);
-
-        const _download = await add_get_extra_info([{
+        // TODO: use select tag instead of buttons so the user can select more than 1 option
+        const method =  await add_get_extra_info([{
             type: "list",
-            value: ["Download", "Add to collections", "Both"],
+            value: ["best performance", "first place", "favourites", "all"],
             important: false,
-            column: true,
+            title: "method"
+        }]);
+
+        if (!method) {
+            return reject();
+        }
+
+        const download_method = await add_get_extra_info([{
+            type: "list",
+            value: ["download", "add to collections", "both"],
+            important: false,
             input_type: "url"
         }]);
 
-        if (!_download) {
-            reject("cancelled");
-            return;
-        }
-        
-        if (_download == "Add to collections") {
-            await add_to_collection(maps.map((b) => b.beatmap.checksum), maps[0].user.username, method == "firsts" ? "first place" : "best performance");
-            resolve("added to collection");
-            return;
+        if (!download_method) {
+            return reject();
         }
 
-        if (_download == "Both") {
-            await add_to_collection(maps.map((b) => b.beatmap.checksum), maps[0].user.username, method == "firsts" ? "first place" : "best performance");
+        const get_maps = () => {
+
+            let maps = [];
+
+            switch (method) {
+                case "first place":
+                    maps = [...player_info.first_place];
+                    break;
+                case "best performance":
+                    maps = [...player_info.best_performance];
+                    break;
+                case "favourites":
+                    maps = [...player_info.favourites];
+                    break;
+                default:
+                    maps = [...player_info.favourites, ...player_info.first_place, ...player_info.best_performance];
+                    break;
+            }
+
+            if (!maps) {
+                return;
+            }
+            
+            return {
+                md5: maps.flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
+                id: maps.flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
+            }
+        };
+
+        const maps = get_maps();
+
+        if (!maps) {
+            add_alert("found 0 beatmaps from", player);
+            return reject();
         }
 
-        const list = maps.map((s) => { return { id: s.beatmap.beatmapset_id }});
-        
-        console.log("[Download from players] player beatmap list", list);
+        if (download_method == "add to collections") {
+            await add_to_collection(maps.md5, player, method == "all" ? "" : method);
+            return resolve();
+        }
 
-        resolve(list);
+        if (download_method == "both") {
+            await add_to_collection(maps.md5, player, method == "all" ? "" : method);
+        }
+
+        resolve(maps.id.map((id) => { return { id: id } }));
     });
 };

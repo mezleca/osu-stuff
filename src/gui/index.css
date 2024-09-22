@@ -532,6 +532,10 @@ label {
 
 .popup-buttons > button {
     height: 100%;
+    min-width: 45%;
+    max-width: 45%;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
 }
 
 .popup-buttons-column {

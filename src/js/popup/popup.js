@@ -223,7 +223,7 @@ const create_input_popup = (text, resolve, important, type) => {
         const input = popup.querySelector('#input-field');
 
         if (!input.value) {
-            alert("Please enter a value");
+            add_alert("please enter a value");
             return;
         }
 
@@ -247,7 +247,7 @@ const create_file_popup = (text, resolve, important) => {
         const fileInput = popup.querySelector('#file-input');
 
         if (fileInput.files.length == 0) {
-            alert("Please select a file");
+            add_alert("Please select a file");
             return;
         }
 
