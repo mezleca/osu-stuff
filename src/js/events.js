@@ -137,7 +137,9 @@ export const handle_event = async (data, callback, ...args) => {
         // run the callback and get the value
         const callback_value = await callback(...args);
 
-        console.log("[HANDLE EVENT] callback value", callback_value);
+        if (callback_value) {        
+            console.log("[HANDLE EVENT] callback value", callback_value);
+        }
         
         // if theres no value in the callback, it means the function is not part of the: download bullshit
         if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {

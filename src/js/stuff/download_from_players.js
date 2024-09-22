@@ -87,7 +87,7 @@ const fetch_maps = async (base_url, limit) => {
     return maps;
 };
 
-const get_player_info = async (name) => {
+const get_player_info = async (name, method) => {
 
     if (!name) {
         return;
@@ -120,9 +120,11 @@ const get_player_info = async (name) => {
         return;
     }
 
-    const first_place_maps = extra_data.firsts.count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count) : [];
-    const best_performance_maps = extra_data.best.count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count) : [];
-    const favourite_maps = default_data.favourite_beatmapset_count ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count) : [];
+    const method_is_valid = (name) => method == name || method == "all";
+
+    const first_place_maps = extra_data.firsts.count && method_is_valid("first place") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count) : [];
+    const best_performance_maps = extra_data.best.count && method_is_valid("best performance") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count) : [];
+    const favourite_maps = default_data.favourite_beatmapset_count && method_is_valid("favourites") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count) : [];
 
     return {
         ...default_data,
@@ -132,27 +134,15 @@ const get_player_info = async (name) => {
     };
 };
 
-export const download_from_players = async (player) => {
+export const download_from_players = async (player, method) => {
 
     return new Promise(async (resolve, reject) => {
 
-        const player_info = await get_player_info(player);
+        const player_info = await get_player_info(player, method);
 
         if (!player_info) {
             add_alert("player", player, "not found");
             return;
-        }
-
-        // TODO: use select tag instead of buttons so the user can select more than 1 option
-        const method =  await add_get_extra_info([{
-            type: "list",
-            value: ["best performance", "first place", "favourites", "all"],
-            important: false,
-            title: "method"
-        }]);
-
-        if (!method) {
-            return reject();
         }
 
         const download_method = await add_get_extra_info([{
@@ -175,9 +165,11 @@ export const download_from_players = async (player) => {
                     maps = [...player_info.first_place];
                     break;
                 case "best performance":
+                    console.log("appending best performance");
                     maps = [...player_info.best_performance];
                     break;
                 case "favourites":
+                    console.log("appending fav");
                     maps = [...player_info.favourites];
                     break;
                 default:

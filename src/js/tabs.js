@@ -163,8 +163,6 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
 
 get_player_beatmaps.addEventListener("click", async () => {
 
-    const id = get_player_beatmaps.id;
-
     if (core.login == null) {
         add_alert("Did you forgor to setup your config?");
         return;
@@ -180,16 +178,29 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    const new_task = add_tab(`${player} stuff`);
+    // TODO: use select tag instead of buttons so the user can select more than 1 option
+    const method =  await add_get_extra_info([{
+        type: "list",
+        value: ["best performance", "first place", "favourites", "all"],
+        important: false,
+        title: "method"
+    }]);
+
+    if (!method) {
+        return;
+    }
+
+    const task_name = `${player} - ${method}`;
+    const new_task = add_tab(task_name);
 
     if (!new_task) {
         return;
     }
 
     const data = { started: false, ...new_task };
-    tasks.set(`${player} stuff`, data);
+    tasks.set(task_name, data);
     
-    await handle_event(data, download_from_players, player);
+    await handle_event(data, download_from_players, player, method);
 });
 
 export const create_download_task = async (name, maps) => {
