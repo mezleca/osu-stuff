@@ -10,7 +10,6 @@ export const url_is_valid = (url, hostname) => {
         const player_url = new URL(url);
 
         if (player_url.hostname != hostname) {
-            console.log(player_url);
             return false;
         }
 

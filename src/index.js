@@ -7,7 +7,11 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
+// xd
 const w = 968, h = 720;
+const min_w = 820, min_h = 580;
+const max_w = 1080, max_h = 820;
+
 const dev_mode = process.env.NODE_ENV == "cleide";
 
 const createWindow = () => {
@@ -15,12 +19,13 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
       width: w,
       height: h,
-      minWidth: w,
-      minHeight: h,
+      minWidth: min_w,
+      minHeight: min_h,
+      maxWidth: max_w,
+      maxHeight: max_h,
       titleBarStyle: 'hidden',
       frame: true,
       fullscreenable: false,
-      resizable: false,
       icon: __dirname + "/images/icon.png",
       webPreferences: {
           devTools: true,
