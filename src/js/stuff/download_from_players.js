@@ -120,22 +120,48 @@ const get_player_info = async (name, method) => {
     }
 
     const method_is_valid = (name) => method == name || method == "all";
+    const maps_method_is_valid = (name) => method == name || method == "all maps" || method == "all";
 
     const first_place_maps = extra_data.firsts.count && method_is_valid("first place") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count) : [];
     const best_performance_maps = extra_data.best.count && method_is_valid("best performance") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count) : [];
     const favourite_maps = default_data.favourite_beatmapset_count && method_is_valid("favourites") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count) : [];
 
+    const ranked = default_data.ranked_beatmapset_count && maps_method_is_valid("ranked") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/ranked`, default_data.ranked_beatmapset_count) : [];
+    const loved = default_data.loved_beatmapset_count && maps_method_is_valid("loved") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/loved`, default_data.loved_beatmapset_count) : [];
+    const pending = default_data.pending_beatmapset_count && maps_method_is_valid("pending") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/pending`, default_data.pending_beatmapset_count) : [];
+    const graveyard = default_data.graveyard_beatmapset_count && maps_method_is_valid("graveyard") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/graveyard`, default_data.graveyard_beatmapset_count) : [];
+
     return {
         ...default_data,
         favourites: favourite_maps,
         first_place: first_place_maps,
-        best_performance: best_performance_maps
+        best_performance: best_performance_maps,
+        ranked: ranked,
+        loved: loved,
+        pending: pending,
+        graveyard: graveyard
     };
 };
 
 export const download_from_players = async (player, method) => {
 
     return new Promise(async (resolve, reject) => {
+
+        if (method == "created maps") {
+
+            const ranked_method = await add_get_extra_info([{
+                type: "list",
+                value: ["ranked", "loved", "pending", "graveyard", "all maps"],
+                important: false,
+                title: "method"
+            }]);
+
+            if (!ranked_method) {
+                return reject();
+            }
+
+            method = ranked_method;
+        }
 
         const player_info = await get_player_info(player, method);
 
@@ -169,13 +195,32 @@ export const download_from_players = async (player, method) => {
                 case "favourites":
                     maps = [...player_info.favourites];
                     break;
+                case "ranked":
+                    maps = [...player_info.ranked];
+                    break;
+                case "loved":
+                    maps = [...player_info.loved];
+                    break;
+                case "pending":
+                    maps = [...player_info.pending];
+                    break;
+                case "graveyard":
+                    maps = [...player_info.graveyard];
+                    break;
+                case "all maps":
+                    maps = [...player_info.ranked, ...player_info.loved, 
+                            ...player_info.pending, ...player_info.graveyard];
+                    break;
                 default:
-                    maps = [...player_info.favourites, ...player_info.first_place, ...player_info.best_performance];
+                    maps = [...player_info.favourites, ...player_info.first_place, 
+                            ...player_info.best_performance, ...player_info.ranked, 
+                            ...player_info.loved, ...player_info.pending, ...player_info.graveyard];
                     break;
             }
 
             if (!maps) {
-                return;
+                add_alert("found 0 maps ;-;");
+                return reject();
             }
             
             return {
@@ -185,11 +230,6 @@ export const download_from_players = async (player, method) => {
         };
 
         const maps = get_maps();
-
-        if (!maps) {
-            add_alert("found 0 beatmaps from", player);
-            return reject();
-        }
 
         if (download_method == "add to collections") {
             await add_to_collection(maps.md5, player, method == "all" ? "" : method);

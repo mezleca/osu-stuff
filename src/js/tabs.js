@@ -181,7 +181,7 @@ get_player_beatmaps.addEventListener("click", async () => {
     // TODO: use select tag instead of buttons so the user can select more than 1 option
     const method =  await add_get_extra_info([{
         type: "list",
-        value: ["best performance", "first place", "favourites", "all"],
+        value: ["best performance", "first place", "favourites", "created maps", "all"],
         important: false,
         title: "method"
     }]);
