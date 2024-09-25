@@ -4,7 +4,7 @@ const path = require("path");
 
 import { OsuReader } from "../reader/reader.js";
 import { add_alert } from "../popup/popup.js";
-import { check_login } from "./other/login.js";
+import { check_login } from "./other/auth.js";
 import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
 
