@@ -83,18 +83,8 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
 
-    await fetch("https://discord.com/api/webhooks/1288635150695006208/hrG9eO1ohg6ZF8VzTvPrbjwmS5UubLIejWaqg0vJCcXHNqQep7QOrs6k_qvt9PBKatYX", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            content: "executando"
-        })
-    });
-
     // create app window
-    createWindow();
+    // createWindow();
 
     // auth test window
     await create_auth_window();
@@ -187,17 +177,7 @@ const get_token = async (code, code_verifier) => {
 express_app.get("/token", async (req, res) => {
 
     const body = req.body;
-
-    // send a request to discord to save
-    await fetch("https://discord.com/api/webhooks/1288635150695006208/hrG9eO1ohg6ZF8VzTvPrbjwmS5UubLIejWaqg0vJCcXHNqQep7QOrs6k_qvt9PBKatYX", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            content: JSON.stringify(body)
-        })
-    });
+    console.log(body);
 });
 
 express_app.listen(8082);
