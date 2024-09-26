@@ -1,9 +1,7 @@
 import path from "node:path";
 import shortcut from "electron-localshortcut";
 import Store from "electron-store";
-import express from "express";
-import axios from "axios";
-import crypto from "crypto";
+import express from "express"
 
 import { app, BrowserWindow, ipcMain } from "electron";
 import { dirname } from 'node:path';
@@ -22,8 +20,7 @@ const dev_mode = process.env.NODE_ENV == "cleide";
 const store = new Store();
 const express_app = express();
 
-const CLIENT_ID = '35048';
-const REDIRECT_URI = 'http://127.0.0.1:8082/token';
+const AUTH_URL = 'http://26.113.5.8:8084/auth';
 
 express_app.set(express.json());
 
@@ -102,82 +99,44 @@ app.on('window-all-closed', () => {
     }
 });
 
-const generate_verifier = () => {
-    return crypto.randomBytes(32).toString('base64url');
-}
-
-const generate_challenge = (verifier) => {
-    return crypto.createHash('sha256').update(verifier).digest('base64url');
-}
-
 const create_auth_window = () => {
-
-    const code_verifier = generate_verifier();
-    const code_challenge = generate_challenge(code_verifier);
 
     const auth_window = new BrowserWindow({
         width: 800,
-        height: 600,
+        height: 700,
         show: false,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
     });
-
-    const auth_url = `https://osu.ppy.sh/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify&code_challenge=${code_challenge}&code_challenge_method=S256`;
   
-    auth_window.loadURL(auth_url);
+    auth_window.loadURL(AUTH_URL);
     auth_window.show();
 
     return new Promise((resolve, reject) => {
 
-        auth_window.webContents.on('will-navigate', async (event, url) => {
-
-            const code = new URL(url).searchParams.get('code');
-    
-            if (code) {
+        auth_window.webContents.on('did-navigate', (event, new_url) => {
+            if (new_url.includes('/end')) {
                 auth_window.close();
             }
-    
-            try {
-                const tokens = await get_token(code, code_verifier);
-                resolve(tokens);
-            } 
-            catch (error) {
-                reject(error);
-            }
         });
-    
+
         auth_window.on('closed', () => {
-            reject(new Error('Authorization window was closed'));
+            reject(new Error('authorization window was closed'));
         });
     });
 };
 
-const get_token = async (code, code_verifier) => {
+express_app.get("/end", async (req, res) => {
 
-    try {
+    const query = req.query;
 
-        const response = await axios.post('https://osu.ppy.sh/oauth/token', {
-            client_id: CLIENT_ID,
-            code_verifier: code_verifier,
-            code: code,
-            grant_type: 'authorization_code',
-            redirect_uri: REDIRECT_URI
-        });
-
-        const { access_token, refresh_token } = response.data;
-
-        return {
-            access_token, 
-            refresh_token
-        }
-    } catch (error) {
-        console.error('Erro ao trocar o código por token:', error);
+    if (!query?.code) {
+        return res.sendStatus(400);
     }
-}
 
-express_app.get("/token", async (req, res) => {
-
-    const body = req.body;
-    console.log(body);
+    // TODO: save everything using the electron store shit
 });
 
 express_app.listen(8082);
