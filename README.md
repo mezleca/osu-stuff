@@ -5,4 +5,4 @@
 </p>
 
 > [!Warning] 
-> This is a experimental brach, so theres a chance that most of the features dont work yet.
+> This is a experimental branch, so theres a chance that most of the features dont work yet.
