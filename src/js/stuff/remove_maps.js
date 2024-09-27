@@ -1,10 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-
 import { add_alert, add_get_extra_info, createcustomlist } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 
-const is_testing = process.env.NODE_ENV == "cleide";
+const is_testing = window.electron.dev_mode;;
 
 const stats = {
     "all": -1,

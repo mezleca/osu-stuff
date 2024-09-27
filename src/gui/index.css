@@ -227,9 +227,8 @@ button:hover {
     background-color: var(--button-hover-color);
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.config_input, .file_input {
+    cursor: pointer;
 }
 
 input, select {
@@ -1101,8 +1100,14 @@ a {
 .hide-all .mini-container {
     display: none;
 }
+
 .hide-all .mini-container:not(.disabled) {
     display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @keyframes spin {

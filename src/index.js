@@ -5,7 +5,7 @@ import squirrel_startup from 'electron-squirrel-startup';
 
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { dirname } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 /** @type {BrowserWindow} */
 let main_window = null;
@@ -49,10 +49,10 @@ const createWindow = () => {
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
             enableRemoteModule: true,
             webSecurity: dev_mode ? false : true,
-            preload: pathToFileURL(path.join(__dirname, 'preload.js')).href
+            preload: path.join(__dirname, 'preload.cjs')
         },
         titleBarOverlay: {
             color: '#202020',

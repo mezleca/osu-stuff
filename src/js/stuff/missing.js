@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
 import { add_alert, add_get_extra_info } from "../popup/popup.js";
 import { search_map_id } from "../utils/download_maps.js";
 import { events } from "../events.js";

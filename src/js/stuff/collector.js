@@ -1,13 +1,10 @@
-const fs = require("fs");
-const path = require("path");
-
 import { events } from "../events.js";
 import { add_alert } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";
 
-const is_testing = process.env.NODE_ENV == "cleide";
+const is_testing = window.electron.dev_mode;;
 
 const get_tournament_maps = async(id) => {
 

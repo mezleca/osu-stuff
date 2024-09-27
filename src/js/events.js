@@ -1,10 +1,46 @@
-const EventEmitter = require("events");
-
-export const events = new EventEmitter();
-
 import { tasks, all_tabs, blink, download_types } from "./tabs.js";
 import { add_alert, add_get_extra_info } from "./popup/popup.js";
-import { download_maps, current_download } from "./utils/download_maps.js"
+import { download_maps, current_download } from "./utils/download_maps.js";
+
+class EventEmitter {
+
+    constructor() {
+        this.listeners = {};
+    }
+
+    on(event, callback) {
+
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+
+        this.listeners[event].push(callback);
+    }
+
+    emit(event, ...args) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(callback => callback(...args));
+        }
+    }
+
+    remove_listener(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+        }
+    }
+
+    remove_all_listeners(event) {
+
+        if (event) {
+            delete this.listeners[event];
+            return;
+        } 
+
+        this.listeners = {};
+    }
+}
+
+export const events = new EventEmitter();
 
 const queue = new Map();
 const all_content = [...document.querySelectorAll(".tab-pane")];

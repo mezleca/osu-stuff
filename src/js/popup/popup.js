@@ -1,7 +1,5 @@
 import { blink } from "../tabs.js";
 
-const shell = require("electron").shell;
-
 const alerts = new Map();
 const max_popup_size = 6;
 

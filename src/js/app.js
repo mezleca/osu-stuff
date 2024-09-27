@@ -1,7 +1,7 @@
 import { add_config_shit } from "./utils/config.js";
 import { add_alert } from "./popup/popup.js";
 
-const in_dev_mode = process.env.NODE_ENV == "cleide";
+const in_dev_mode = window.electron.dev_mode;;
 const gui_title = document.querySelector(".title_text");
 
 (async () => {

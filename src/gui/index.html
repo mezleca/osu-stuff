@@ -69,8 +69,8 @@
 
     <script>
         window.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
-
-        const dev_mode = process.env.NODE_ENV == "cleide";
+        
+        const dev_mode = window.electron.dev_mode;
         const src = dev_mode ? '../js/app.js': '../dist/bundle.js';
 
         if (dev_mode) {

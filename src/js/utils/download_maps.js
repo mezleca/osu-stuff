@@ -1,7 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-const axios = require("axios");
-
 import { core } from "./config.js";
 import { add_alert } from "../popup/popup.js";
 import { events } from "../events.js";
@@ -10,7 +6,7 @@ import { initialize } from "../manager/manager.js";
 export let current_download = null;
 
 const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
-const is_testing = process.env.NODE_ENV == "cleide";
+const is_testing = window.electron.dev_mode;
 const concurrency = 3;
 
 // https://stackoverflow.com/questions/49967779/axios-handling-errors

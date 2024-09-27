@@ -1,7 +1,5 @@
 import { osu_db, collections_db } from "./definitions.js";
 
-const fs = require("fs");
-
 export class OsuReader {
 
     /** @type {collections_db} */

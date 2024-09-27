@@ -1,7 +1,4 @@
 
-const fs = require("fs");
-const path = require("path");
-
 import { OsuReader } from "../reader/reader.js";
 import { add_alert } from "../popup/popup.js";
 import { check_login } from "./other/login.js";
@@ -172,10 +169,8 @@ export const add_config_shit = async () => {
     // if the config exist, assign it
     if (fs.existsSync(config_path)) {
         try {
-
             const file = fs.readFileSync(config_path, "utf-8");
             const config_obj = JSON.parse(file);
-
             Object.assign(options, config_obj);
         } catch(err) {
             add_alert("failed to parse config");
@@ -209,10 +204,14 @@ export const add_config_shit = async () => {
     if (!options.osu_path || !options.osu_songs_path) {
         blink(config_menu);
     }
+
+    console.log(window.electron);
                                                 
     for (let i = 0; i < labels.length; i++) {
         
         const label_name = labels[i];
+        const is_readonly = label_name == "osu_id" || label_name == "osu_secret";
+
         core.config.set(label_name, options[label_name]);
 
         label_content.push(
@@ -222,7 +221,7 @@ export const add_config_shit = async () => {
                     ${label_name}
                     ${tooltips[label_name] ? `<div class="tooltip" id="${label_name}">(?)</div>` : '' }
                 </label>
-                <input type="${label_name == "osu_id" || label_name == "osu_secret" ? "password" : "text"}" name="${label_name}" id="${label_name}" value="${options[label_name] || ""}">        
+                <input ${!is_readonly ? 'class="file_input"' : 'class="config_input"'} type="${is_readonly ? "password" : "text"}" name="${label_name}" id="${label_name}" value="${options[label_name] || ""}" ${!is_readonly ? "readonly" : ""}>        
             </div>
             `
         );
@@ -238,10 +237,29 @@ export const add_config_shit = async () => {
         `
 
     config_tab.insertAdjacentHTML("afterbegin", html);
+
     const config_btn = document.querySelector(".update_config");
+    const file_input = document.querySelectorAll(".file_input");
 
     config_btn.addEventListener("click", () => {
         handle_config_update(options);
+    });
+
+    file_input.forEach((input) => {
+
+        input.addEventListener("click", async () => {
+            
+            const dialog = await ipcRenderer.invoke("create-dialog");
+
+            if (dialog.canceled) {
+                return;
+            }
+
+            const folder_path = dialog.filePaths[0];
+            input.value = folder_path;
+
+            console.log(window);
+        });
     });
 
     // check if osu path is invalid
