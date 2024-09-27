@@ -77,7 +77,7 @@ export const add_alert = async (...texts) => {
             
             a.addEventListener("click", e => {
                 e.preventDefault();
-                shell.openExternal(e.target.href);
+                window.electron.shell.openExternal(e.target.href);
             });
         });
     }

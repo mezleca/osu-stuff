@@ -1,7 +1,10 @@
 import { add_alert, add_get_extra_info, createcustomlist } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 
-const is_testing = window.electron.dev_mode;;
+const is_testing = window.electron.dev_mode;
+
+const fs = window.nodeAPI.fs;
+const path = window.nodeAPI.path;
 
 const stats = {
     "all": -1,

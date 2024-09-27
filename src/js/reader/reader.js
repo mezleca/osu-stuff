@@ -1,12 +1,14 @@
 import { osu_db, collections_db } from "./definitions.js";
 
+const fs = window.nodeAPI.fs;
+
 export class OsuReader {
 
     /** @type {collections_db} */
     collections; 
     /** @type {osu_db} */
     osu;
-    /** @type {Buffer} */
+    /** @type {DataView} */
     buffer;
 
     constructor() {
@@ -22,13 +24,14 @@ export class OsuReader {
         const arrayBuffer = new ArrayBuffer(buffer.length);
         const view = new Uint8Array(arrayBuffer);
         for (let i = 0; i < buffer.length; ++i) {
-          view[i] = buffer[i];
+            view[i] = buffer[i];
         }
         return arrayBuffer;
     }
 
-    set_buffer = (buffer, convert) => {
-        this.buffer = Buffer.from(buffer);
+    set_buffer = (buffer) => {
+        this.buffer = this.to_array_buffer(buffer);
+        this.dataView = new DataView(this.buffer);
     }
 
     set_type = (type) => {
@@ -39,60 +42,58 @@ export class OsuReader {
         this.directory = directory;
     }
 
-    #byte(){
-        const value = this.buffer.readUint8(this.offset);
+    #byte() {
+        const value = this.dataView.getUint8(this.offset);
         this.offset += 1;
         return value;
     }
 
-    #short(){
-        const value = this.buffer.readUint16LE(this.offset);
+    #short() {
+        const value = this.dataView.getUint16(this.offset, true);
         this.offset += 2; 
         return value;
     }
 
-    #int(){
-        const value = this.buffer.readUint32LE(this.offset);
+    #int() {
+        const value = this.dataView.getUint32(this.offset, true);
         this.offset += 4;     
         return value;
     }
 
-    #long(){
-        const value = this.buffer.readBigUInt64LE(this.offset);
+    #long() {
+        const value = this.dataView.getBigUint64(this.offset, true);
         this.offset += 8;       
         return value;
     }
 
     #uleb() {
-
         let result = 0;
         let shift = 0;
-    
+
         do {
-            const byte = this.buffer.readUInt8(this.offset);
+            const byte = this.dataView.getUint8(this.offset);
             result |= (byte & 0x7F) << shift;
             shift += 7;
             this.offset += 1;
-        } while (this.buffer.readUInt8(this.offset - 1) & 0x80);
+        } while (this.dataView.getUint8(this.offset - 1) & 0x80);
           
         return { value: result, bytesRead: this.offset };
     }
 
-    #single(){
-        const value = this.buffer.readFloatLE(this.offset);
+    #single() {
+        const value = this.dataView.getFloat32(this.offset, true);
         this.offset += 4;
         return value;
     }
 
-    #double(){
-        const value = this.buffer.readDoubleLE(this.offset);
+    #double() {
+        const value = this.dataView.getFloat64(this.offset, true);
         this.offset += 8; 
         return value;
     }
 
-    #bool(){
-        const value = this.#byte() == 0x00 ? false : true;
-        return value;
+    #bool() {
+        return this.#byte() !== 0x00;
     }
 
     #string() {
@@ -104,9 +105,11 @@ export class OsuReader {
         }
 
         const length = this.#uleb();
-        const buffer = new Uint8Array(this.buffer.buffer, this.offset, length.value);
+
+        const buffer = new Uint8Array(this.buffer, this.offset, length.value);
         const decoder = new TextDecoder('utf-8');
         const value = decoder.decode(buffer);
+
         this.offset += length.value;
 
         return value;
@@ -117,39 +120,44 @@ export class OsuReader {
     }
 
     #writeByte(value) {
-        const buffer = Buffer.alloc(1);
-        buffer.writeUInt8(value, 0);
+        const buffer = new Uint8Array(1);
+        buffer[0] = value;
         return buffer;
     }
     
     #writeShort(value) {
-        const buffer = Buffer.alloc(2);
-        buffer.writeUInt16LE(value, 0);
-        return buffer;
+        const buffer = new ArrayBuffer(2);
+        const view = new DataView(buffer);
+        view.setUint16(0, value, true);
+        return new Uint8Array(buffer);
     }
     
     #writeInt(value) {
-        const buffer = Buffer.alloc(4);
-        buffer.writeUInt32LE(value, 0);
-        return buffer;
+        const buffer = new ArrayBuffer(4);
+        const view = new DataView(buffer);
+        view.setUint32(0, value, true);
+        return new Uint8Array(buffer);
     }
     
     #writeLong(value) {
-        const buffer = Buffer.alloc(8);
-        buffer.writeBigInt64LE(BigInt(value), 0);
-        return buffer;
+        const buffer = new ArrayBuffer(8);
+        const view = new DataView(buffer);
+        view.setBigUint64(0, BigInt(value), true);
+        return new Uint8Array(buffer);
     }
     
     #writeSingle(value) {
-        const buffer = Buffer.alloc(4);
-        buffer.writeFloatLE(value, 0);
-        return buffer;
+        const buffer = new ArrayBuffer(4);
+        const view = new DataView(buffer);
+        view.setFloat32(0, value, true);
+        return new Uint8Array(buffer);
     }
     
     #writeDouble(value) {
-        const buffer = Buffer.alloc(8);
-        buffer.writeDoubleLE(value, 0);
-        return buffer;
+        const buffer = new ArrayBuffer(8);
+        const view = new DataView(buffer);
+        view.setFloat64(0, value, true);
+        return new Uint8Array(buffer);
     }
     
     #writeBool(value) {
@@ -157,18 +165,25 @@ export class OsuReader {
     }
     
     #writeString(value) {
+
         if (value === null) {
             return this.#writeByte(0x00);
         }
-        const stringBuffer = Buffer.from(value);
+
+        const stringBuffer = new TextEncoder().encode(value);
         const lengthBuffer = this.#writeULEB128(stringBuffer.byteLength);
-        const resultBuffer = Buffer.concat([Buffer.from([0x0B]), lengthBuffer, stringBuffer]);
-        return resultBuffer;
+        const resultBuffer = new Uint8Array(lengthBuffer.byteLength + stringBuffer.byteLength + 1);
+
+        resultBuffer.set(new Uint8Array([0x0B]), 0);
+        resultBuffer.set(new Uint8Array(lengthBuffer), 1);
+        resultBuffer.set(new Uint8Array(stringBuffer), 1 + lengthBuffer.byteLength);
+
+        return resultBuffer.buffer;
     }
     
     #writeULEB128(value) {
-
-        const buffer = Buffer.alloc(5); // max 5 bytes for 32-bit number
+        const buffer = new ArrayBuffer(5);
+        const dataView = new DataView(buffer);
         let offset = 0;
 
         do {
@@ -177,28 +192,39 @@ export class OsuReader {
             if (value !== 0) { /* more bytes to come */
                 byte |= 0x80;
             }
-            buffer.writeUInt8(byte, offset++);
+            dataView.setUint8(offset++, byte);
         } while (value !== 0);
 
         return buffer.slice(0, offset); // remove unused bytes
     }
 
     join_buffer(buffers) {
-        return buffers.reduce((prev, b) => Buffer.concat([prev, b]));
+        let total_length = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+        let result = new Uint8Array(total_length);
+        let offset = 0;
+        for (let buffer of buffers) {
+            result.set(new Uint8Array(buffer), offset);
+            offset += buffer.byteLength;
+        }
+        return result;
     }
 
     write_osu_data = (maps, p) => {
 
         return new Promise((res, rej) => {
 
-            const file = fs.createWriteStream(p);
+            if (!this.buffer) {
+                return rej(new Error("buffer not set. call set_buffer before write_osu_data."));
+            }
 
-            file.write(this.#writeInt(this.osu.version));
-            file.write(this.#writeInt(this.osu.folders));
-            file.write(this.#writeBool(this.osu.account_unlocked));
-            file.write(this.#writeLong(this.osu.last_unlocked_time));
-            file.write(this.#writeString(this.osu.player_name));
-            file.write(this.#writeInt(this.osu.beatmaps_count));
+            const buffer = [];
+
+            buffer.push(this.#writeInt(this.osu.version));
+            buffer.push(this.#writeInt(this.osu.folders));
+            buffer.push(this.#writeBool(this.osu.account_unlocked));
+            buffer.push(this.#writeLong(this.osu.last_unlocked_time));
+            buffer.push(this.#writeString(this.osu.player_name));
+            buffer.push(this.#writeInt(this.osu.beatmaps_count));
             
             let last_index = this.beatmap_offset_start;
 
@@ -207,26 +233,20 @@ export class OsuReader {
 
             for (let i = 0; i < maps.length; i++) {
 
-                // console.log("Writing map", maps[i]);
-
-                const bf = this.buffer.slice(last_index, maps[i].start);
+                if (last_index < maps[i].start) {
+                    const bf = new Uint8Array(this.buffer.slice(last_index, maps[i].start));
+                    buffer.push(bf);
+                }
 
                 last_index = maps[i].end;
-                file.write(Buffer.from(bf));
-            };
+            }
 
-            file.write(this.buffer.slice(last_index, this.buffer.byteLength));
-            file.end();
-
-            file.on("finish", () => {
-                console.log("[Reader] finished writing osu.db");
-                res();
-            });
-
-            file.on("error", (err) => {
-                console.log(err);
-                rej(err);
-            });
+            if (last_index < this.buffer.byteLength) {
+                buffer.push(new Uint8Array(this.buffer.slice(last_index)));
+            }
+            
+            fs.writeFileSyncView(p, this.join_buffer(buffer));
+            res();
         });
     };
 
@@ -234,42 +254,33 @@ export class OsuReader {
         
         return new Promise(async (resolve, reject) => {
 
+            const buffer = [];
+
             if (!this.collections) {
                 console.log("[Reader] No collections found");
                 return;
             }
 
-            console.log("writing collection", this.collections);
-
             const data = this.collections;
-            const file = fs.createWriteStream(p);
 
-            file.write(this.#writeInt(data.version));
-            file.write(this.#writeInt(data.beatmaps.length)); 
+            buffer.push(this.#writeInt(data.version));
+            buffer.push(this.#writeInt(data.beatmaps.length)); 
 
             for (let i = 0; i < data.length; i++) {
                     
                 const collection = data.beatmaps[i];
 
-                file.write(this.#writeString(collection.name));
-                file.write(this.#writeInt(collection.maps.length));
+                buffer.push(this.#writeString(collection.name));
+                buffer.push(this.#writeInt(collection.maps.length));
 
                 for (let i = 0; i < collection.maps.length; i++) {
-                    file.write(this.#writeString(collection.maps[i]));
+                    buffer.push(this.#writeString(collection.maps[i]));
                 }
             };
 
-            file.end();
+            fs.writeFileSyncView(p, this.join_buffer(buffer));
 
-            file.on("finish", () => {
-                console.log("[Reader] finished writing collections.db");
-                resolve();
-            });
-
-            file.on("error", (err) => {
-                console.log(err);
-                reject();
-            });
+            resolve();
         });
     };
 

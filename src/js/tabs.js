@@ -1,6 +1,5 @@
 import { handle_event } from "./events.js";
 import { add_alert, add_get_extra_info } from "./popup/popup.js";
-import { is_running } from "./utils/other/process.js";
 import { core } from "./utils/config.js";
 import { remove_maps } from "./stuff/remove_maps.js";
 import { missing_download } from "./stuff/missing.js";
@@ -121,7 +120,7 @@ export const add_tab = (id) => {
 btn_remove_invalid_maps.addEventListener("click", async () => {
     
     const id = btn_remove_invalid_maps.id;
-    const running_osu = await is_running("osu!");
+    const running_osu = await window.electron.is_running("osu!");
 
     if (running_osu) {
         add_alert("Please close osu to use this function");

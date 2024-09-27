@@ -9,12 +9,8 @@ const downloaded_maps = [], bad_status = [204, 401, 403, 408, 410, 500, 503, 504
 const is_testing = window.electron.dev_mode;
 const concurrency = 3;
 
-// https://stackoverflow.com/questions/49967779/axios-handling-errors
-axios.interceptors.response.use(function (response) {
-    return response;
-  }, function (error) {
-    return Promise.reject(error);
-});
+const path = window.nodeAPI.path;
+const fs = window.nodeAPI.fs;
 
 const pmap = async (array, mapper, concurrency) => {
 
@@ -156,25 +152,17 @@ class MapDownloader {
         mirrors = mirrors.filter(mirror => mirror.url != url).concat(current_mirror);
     };
 
-    // axios keep going to catch when the beatmap is not found so yeah
     search_beatmap = async (url, id) => {
-
-        return new Promise((resolve) => {
-
-            axios.get(`${url}${id}`, { 
-                responseType: "arraybuffer", 
-            })
-            .then((r) => {
-                resolve(r);
-            })
-            .catch((e) => {
-    
-                if (e?.response) {
-                    return resolve(e.response);
-                }
-    
+        return new Promise(async (resolve) => {
+            try {
+                const response = await fetch(`${url}${id}`, {
+                    method: "GET"
+                });
+                resolve(response);
+            }
+            catch (err) {
                 resolve(null);
-            });
+            }
         })     
     };
 
@@ -190,24 +178,6 @@ class MapDownloader {
                 return;
             }
 
-            // not sure if i will need this anymore but yeah
-            // if (response.status == 504 || response.status == 409) {
-
-            //     console.log("FUcking");
-                
-            //     // save the old mirror for later
-            //     const current_mirror = mirrors.find(mirror => mirror.url == url);
-            //     mirrors = mirrors.filter(mirror => mirror.url != url);
-                
-            //     const timeout = setTimeout(() => {
-            //         console.log(`[DOWNLOAD SHIT] ${current_mirror.name} is so ufcking back`);
-            //         mirrors.concat(current_mirror);
-            //         clearTimeout(timeout);           
-            //     }, 1000 * 60); // 1min
-
-            //     console.log(mirrors);
-            // }
-
             if (bad_status.includes(response.status)) {
                 this.update_mirror(url);
             }
@@ -217,11 +187,13 @@ class MapDownloader {
                 return null;
             }
 
-            const bmdata = response.data;
-            const buffer = Buffer.from(bmdata);
+            /** @type {DataView} */
+            const buffer = await response.arrayBuffer();
+
+            console.log("beatmap buffer", buffer);
             
-            if (!buffer) {
-                console.log("Invalid buffer", id);
+            if (buffer.byteLength == 0) {
+                console.log("[GET Buffer] invalid buffer", id);
                 return null;
             }
 
@@ -322,6 +294,8 @@ class MapDownloader {
         const Path = path.resolve(core.config.get("osu_songs_path"), `${map.id}.osz`);
     
         try {
+            
+            events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
 
             if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(core.config.get("osu_songs_path"), `${map.id}`)))) {
                 console.log(`beatmap: ${map.id} already exists in your songs folder`);
@@ -335,23 +309,21 @@ class MapDownloader {
                 return null;
             }
 
-            events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
-            downloaded_maps.push(map.id);
-
             map.md5 = map.checksum;
 
-            // this might cause some problems to manager but yea
             core.reader.osu.beatmaps.set(map.checksum, map);
+            downloaded_maps.push(map.id);
 
             if (is_testing) {
                 return data;
             }
-            
-            fs.writeFileSync(Path, Buffer.from(osz_buffer));
+
+            fs.writeFileSyncView(Path, osz_buffer);
 
             return data;
         }
         catch(err) {
+            console.log(err);
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
             return null;
         }

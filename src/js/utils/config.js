@@ -1,15 +1,17 @@
-
-import { OsuReader } from "../reader/reader.js";
 import { add_alert } from "../popup/popup.js";
 import { check_login } from "./other/login.js";
 import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
+import { OsuReader } from "../reader/reader.js";
+
+const fs = window.nodeAPI.fs;
+const path = window.nodeAPI.path;
 
 export const core = {
-    config: new Map(),
     reader: new OsuReader(),
+    config: new Map(),
     files: new Map(),
-    og_path: path.resolve(process.env.APPDATA, "..", "Local", "osu_stuff"),
+    og_path: path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu_stuff"),
     login: null
 };
 
@@ -187,8 +189,8 @@ export const add_config_shit = async () => {
         await osu_login(options.osu_id, options.osu_secret);   
     }
 
-    const osu = path.resolve(process.env.APPDATA, "..", "Local", "osu!");
-    const songs = path.resolve(process.env.APPDATA, "..", "Local", "osu!", "Songs");
+    const osu = path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!");
+    const songs = path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!", "Songs");
 
     const osu_exist = fs.existsSync(osu)
     const songs_exist = fs.existsSync(songs);
@@ -249,7 +251,7 @@ export const add_config_shit = async () => {
 
         input.addEventListener("click", async () => {
             
-            const dialog = await ipcRenderer.invoke("create-dialog");
+            const dialog = await window.electron.create_dialog();
 
             if (dialog.canceled) {
                 return;

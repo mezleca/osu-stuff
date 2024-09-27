@@ -4,7 +4,10 @@ import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";
 
-const is_testing = window.electron.dev_mode;;
+const is_testing = window.electron.dev_mode;
+
+const fs = window.nodeAPI.fs;
+const path = window.nodeAPI.path;
 
 const get_tournament_maps = async(id) => {
 

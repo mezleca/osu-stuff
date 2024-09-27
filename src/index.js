@@ -3,7 +3,7 @@ import shortcut from "electron-localshortcut";
 import Store from "electron-store";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, protocol } from "electron";
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -86,6 +86,20 @@ const createWindow = () => {
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
 
+    const scriptPath = dev_mode ? '../js/app.js' : '../dist/bundle.js';
+
+    console.log("script path", scriptPath);
+
+    // Inject the script after the window has loaded
+    main_window.webContents.on('did-finish-load', () => {
+        main_window.webContents.executeJavaScript(`
+            const script = document.createElement('script');
+            script.src = "${scriptPath}";
+            script.type = "module";
+            document.body.appendChild(script);
+        `);
+    });
+
     global.store = store;
 };
 
@@ -98,6 +112,11 @@ app.whenReady().then(async () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
+    });
+
+    protocol.registerFileProtocol('file', (request, callback) => {
+        const pathname = decodeURI(request.url.replace('file:///', ''));
+        callback(pathname);
     });
 });
 

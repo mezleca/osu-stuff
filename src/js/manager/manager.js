@@ -9,6 +9,9 @@ let need_to_save = false;
 
 export const collections = new Map();
 
+const fs = window.nodeAPI.fs;
+const path = window.nodeAPI.path;
+
 const collection_list = document.querySelector(".collection-list");
 const main_content = document.querySelector(".main-content");
 const input_collection_name = document.getElementById("collection_input_name");
@@ -109,7 +112,7 @@ const render_beatmap = (beatmap) => {
 
         small_bg.addEventListener("click", () => {
             const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-            shell.openExternal(url);
+            window.electron.shell.openExternal(url);
         });
     }
 
@@ -148,7 +151,7 @@ const render_beatmap = (beatmap) => {
             download_btn.remove();
 
             small_bg.addEventListener("click", () => {
-                shell.openExternal(beatmap_data.url);
+                window.electron.shell.openExternal(beatmap_data.url);
             });
         });
     } else {

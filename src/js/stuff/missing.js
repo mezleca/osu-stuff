@@ -2,7 +2,9 @@ import { add_alert, add_get_extra_info } from "../popup/popup.js";
 import { search_map_id } from "../utils/download_maps.js";
 import { events } from "../events.js";
 import { core } from "../utils/config.js";
-import { open_folder } from "../utils/other/process.js";
+
+const fs = window.nodeAPI.fs;
+const path = window.nodeAPI.path;
 
 export const export_missing = async (id) => {
 
@@ -92,7 +94,7 @@ export const export_missing = async (id) => {
 
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            open_folder(core.og_path);
+            window.electron.open_folder(core.og_path);
 
             resolve("Finished exporting");
         } 
