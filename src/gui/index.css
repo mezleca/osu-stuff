@@ -534,6 +534,7 @@ label {
     height: 100%;
     min-width: 45%;
     max-width: 45%;
+    overflow: hidden;
     text-wrap: nowrap;
     text-overflow: ellipsis;
 }
