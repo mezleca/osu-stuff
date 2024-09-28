@@ -211,7 +211,7 @@ export class OsuReader {
 
     write_osu_data = (maps, p) => {
 
-        return new Promise((res, rej) => {
+        return new Promise(async (res, rej) => {
 
             if (!this.buffer) {
                 return rej(new Error("buffer not set. call set_buffer before write_osu_data."));
@@ -245,7 +245,7 @@ export class OsuReader {
                 buffer.push(new Uint8Array(this.buffer.slice(last_index)));
             }
             
-            fs.writeFileSyncView(p, this.join_buffer(buffer));
+            await fs.writeFileSyncView(p, this.join_buffer(buffer));
             res();
         });
     };
@@ -278,7 +278,7 @@ export class OsuReader {
                 }
             };
 
-            fs.writeFileSyncView(p, this.join_buffer(buffer));
+            await fs.writeFileSyncView(p, this.join_buffer(buffer));
 
             resolve();
         });

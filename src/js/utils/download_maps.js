@@ -291,13 +291,13 @@ class MapDownloader {
             map = { checksum: c_checksum, id: data.beatmapset_id, ...data };
         }
     
-        const Path = path.resolve(core.config.get("osu_songs_path"), `${map.id}.osz`);
+        const Path = path.resolve(await core.config.get("osu_songs_path"), `${map.id}.osz`);
     
         try {
             
             events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
 
-            if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(core.config.get("osu_songs_path"), `${map.id}`)))) {
+            if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(await core.config.get("osu_songs_path"), `${map.id}`)))) {
                 console.log(`beatmap: ${map.id} already exists in your songs folder`);
                 return data;
             }
@@ -318,7 +318,7 @@ class MapDownloader {
                 return data;
             }
 
-            fs.writeFileSyncView(Path, osz_buffer);
+            await fs.writeFileSyncView(Path, osz_buffer);
 
             return data;
         }

@@ -431,8 +431,12 @@ btn_update.addEventListener("click", async () => {
     core.reader.collections = new_collection;
     const backup_name = `collection_backup_${Date.now()}.db`;
 
-    fs.renameSync(path.resolve(core.config.get("osu_path"), "collection.db"), path.resolve(core.config.get("osu_path"), backup_name));
-    core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
+    const old_name = path.resolve(await core.config.get("osu_path"), "collection.db"), 
+          new_name = path.resolve(await core.config.get("osu_path"), backup_name);
+
+    await fs.renameSync(old_name, new_name);
+
+    core.reader.write_collections_data(old_name);
     add_alert("Done!");
 
     need_to_save = false;
@@ -580,7 +584,7 @@ export const initialize = async (options) => {
     }
 
     if (force) {
-        await get_files(core.config.get("osu_path"));
+        await get_files(await core.config.get("osu_path"));
     }
 
     if (collections.size === 0) {

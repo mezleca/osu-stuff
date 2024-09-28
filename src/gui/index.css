@@ -472,6 +472,7 @@ label {
 
 .popup-content {
     padding: 15px;
+    min-width: 40%;
     max-width: 85%;
     border: 1px solid rgb(255 255 255 / 25%);
 }

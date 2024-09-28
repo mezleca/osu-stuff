@@ -90,8 +90,7 @@ export const export_missing = async (id) => {
 
             const json_path = path.resolve(core.og_path, "exported_beatmaps.json");
         
-            fs.writeFileSync(json_path, JSON.stringify([...new Set(ids)], null , 4));
-
+            await fs.writeFileSync(json_path, JSON.stringify([...new Set(ids)], null , 4));
             await new Promise(resolve => setTimeout(resolve, 500));
 
             window.electron.open_folder(core.og_path);

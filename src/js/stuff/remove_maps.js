@@ -94,10 +94,10 @@ export const remove_maps = async (id) => {
             }
 
             // only remove the beatmap if it pass the filter options
-            core.reader.osu.beatmaps.forEach((b) => {
+            core.reader.osu.beatmaps.forEach(async (b) => {
     
-                const sp = path.resolve(core.config.get("osu_songs_path"), b.folder_name);    
-                const song_path = path.resolve(core.config.get("osu_songs_path"), b.folder_name, b.file);
+                const sp = path.resolve(await core.config.get("osu_songs_path"), b.folder_name);    
+                const song_path = path.resolve(await core.config.get("osu_songs_path"), b.folder_name, b.file);
     
                 if (b.status != status && status != -1) {
                     filtered_maps.set(b.md5, b);
@@ -193,7 +193,7 @@ export const remove_maps = async (id) => {
                 }     
             });
     
-            core.reader.osu.folders = fs.readdirSync(core.config.get("osu_songs_path")).length;
+            core.reader.osu.folders = fs.readdirSync(await core.config.get("osu_songs_path")).length;
             core.reader.osu.beatmaps_count = filtered_maps.size;
     
             if (core.reader.osu.beatmaps_count < 0) {
@@ -205,8 +205,11 @@ export const remove_maps = async (id) => {
                 return;
             }
     
-            fs.renameSync(path.resolve(core.config.get("osu_path"), "osu!.db"), path.resolve(core.config.get("osu_path"), "osu!.db.backup_" + String(Date.now())));
-            await core.reader.write_osu_data(Array.from(off), path.resolve(core.config.get("osu_path"), "osu!.db"));
+            const old_name = await path.resolve(await core.config.get("osu_path"), "collection.db"), 
+                  new_backup_name = await path.resolve(await core.config.get("osu_path"), backup_name);
+
+            await fs.renameSync(old_name, new_backup_name);
+            await core.reader.write_osu_data(Array.from(off), path.resolve(await core.config.get("osu_path"), "osu!.db"));
 
             add_alert("Done!\nRemoved " + off.size + " beatmaps");
             resolve("Done!\nRemoved " + off.size + " beatmaps");
