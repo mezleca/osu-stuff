@@ -60,10 +60,6 @@ const createWindow = () => {
         }
     });
 
-    if (process.env.NODE_ENV == "cleide") {
-        main_window.webContents.openDevTools();
-    }
-
     shortcut.register(main_window, 'F12', () => {
         main_window.webContents.openDevTools();
     });
@@ -90,14 +86,18 @@ const createWindow = () => {
 
     console.log("script path", scriptPath);
 
-    // Inject the script after the window has loaded
     main_window.webContents.on('did-finish-load', () => {
+
         main_window.webContents.executeJavaScript(`
             const script = document.createElement('script');
             script.src = "${scriptPath}";
             script.type = "module";
             document.body.appendChild(script);
         `);
+
+        if (process.env.NODE_ENV == "cleide") {
+            main_window.webContents.openDevTools({ mode: "detach", activate: true, });
+        }
     });
 
     global.store = store;
@@ -109,6 +109,7 @@ app.whenReady().then(async () => {
     createWindow();
 
     app.on('activate', () => {
+
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }

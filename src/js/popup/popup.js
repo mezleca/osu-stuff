@@ -101,9 +101,13 @@ export const remove_alert = (div, id) => {
         return;
     }
 
-    alerts.delete(id);
+    const alert_container = document.querySelector(".alert-container");
 
-    document.querySelector(".alert-container").removeChild(div);
+    if (alert_container.hasChildNodes(div)) {
+        alert_container.removeChild(div);
+    }
+
+    alerts.delete(id);
 };
 
 const remove_popup = async (popup) => {
