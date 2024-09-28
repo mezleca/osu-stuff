@@ -63,6 +63,7 @@ contextBridge.exposeInMainWorld("nodeAPI", {
             fs.writeFileSync(filePath, converted_buffer, options);
         },
         unlinkSync: (filePath) => fs.unlinkSync(filePath),
+        rmdirSync: (path, options) => fs.rmdirSync(path, options),
         existsSync: (filePath) => fs.existsSync(filePath),
         mkdirSync: (dirPath, options) => fs.mkdirSync(dirPath, options)
     },

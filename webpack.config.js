@@ -1,6 +1,11 @@
-const path = require('path');
+import path from "path";
 
-module.exports = {
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default {
   entry: './src/js/app.js',
   output: {
     filename: 'bundle.js',
