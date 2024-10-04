@@ -3,7 +3,7 @@ import shortcut from "electron-localshortcut";
 import Store from "electron-store";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog, protocol } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, protocol, net } from "electron";
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,10 +13,6 @@ let main_window = null;
 if (squirrel_startup) {
     app.quit();
 }
-// xd
-const w = 968, h = 720;
-const min_w = 820, min_h = 580;
-const max_w = 1080, max_h = 820;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +28,27 @@ export const create_dialog = async () => {
     return created_dialog;
 };
 
+export const get_icon_path = () => {
+
+    const base_path = path.resolve("../build/icons");
+
+    switch (process.platform) {
+        case "win32":
+            return path.join(base_path, "win/icon.ico");
+        case "linux": 
+            return path.join(base_path, "png/256x256");
+        default: 
+            return path.join(base_path, "png/256x256");
+    }
+};
+
+// xd
+const w = 968, h = 720;
+const min_w = 820, min_h = 580;
+const max_w = 1080, max_h = 820;
+
+const icon_path = get_icon_path();
+
 const createWindow = () => {
 
     main_window = new BrowserWindow(
@@ -45,7 +62,7 @@ const createWindow = () => {
         titleBarStyle: 'hidden',
         frame: true,
         fullscreenable: false,
-        icon: __dirname + "/images/icon.png",
+        icon: icon_path,
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
@@ -82,15 +99,11 @@ const createWindow = () => {
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
 
-    const scriptPath = dev_mode ? '../js/app.js' : '../dist/bundle.js';
-
-    console.log("script path", scriptPath);
-
     main_window.webContents.on('did-finish-load', () => {
 
         main_window.webContents.executeJavaScript(`
             const script = document.createElement('script');
-            script.src = "${scriptPath}";
+            script.src = "${dev_mode ? '../js/app.js' : '../dist/bundle.js'}";
             script.type = "module";
             document.body.appendChild(script);
         `);
@@ -105,7 +118,6 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
 
-    // create app window
     createWindow();
 
     app.on('activate', () => {
@@ -115,9 +127,9 @@ app.whenReady().then(async () => {
         }
     });
 
-    protocol.registerFileProtocol('file', (request, callback) => {
+    protocol.handle('file', (request) => {
         const pathname = decodeURI(request.url.replace('file:///', ''));
-        callback(pathname);
+        net.fetch(pathname);
     });
 });
 

@@ -2,22 +2,25 @@
   "name": "osu-stuff",
   "productName": "osu-stuff",
   "version": "v1.2.5",
-  "description": "a simple app created to manage collections, download maps, etc... ",
+  "description": "A simple app created to manage collections, download maps, etc.",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "start": "npm run build && electron .",
     "build": "webpack",
-    "dev": "cross-env NODE_ENV=cleide electron .",
-    "make": "npm run build && electron-builder"
+    "dev": "cross-env NODE_ENV=development electron .",
+    "make": "npm run build && electron-builder",
+    "make:win": "npm run build && electron-builder --win",
+    "make:linux": "npm run build && electron-builder --linux"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
-    "autoprefixer": "^10.4.19",
+    "@electron/packager": "^18.3.5",
+    "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
     "electron": "32.1.2",
-    "electron-builder": "^25.1.6",
+    "electron-builder": "^25.1.7",
     "electron-installer-squirrel-windows": "^1.3.0",
-    "@electron/packager": "^18.3.5",
     "webpack": "^5.95.0",
     "webpack-cli": "^5.1.4"
   },
@@ -32,30 +35,34 @@
     "productName": "osu-stuff",
     "asar": true,
     "compression": "maximum",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
     "win": {
-      "requestedExecutionLevel": "requireAdministrator",
       "target": "nsis",
-      "icon": "src/images/icon.png"
+      "icon": "build/icons/win/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icons/png",
+      "category": "Utility"
     },
     "nsis": {
       "artifactName": "osu-stuff-${version}.${ext}",
       "guid": "c20afe8f-91d5-4b12-aed6-88684e4c7ed3",
       "oneClick": true,
       "perMachine": true
-    },
-    "directories": {
-      "buildResources": "resources"
-    },
-    "files": [
-      "src/**/*",
-      "package.json"
-    ]
+    }
   },
-  "keywords": [],
   "author": {
     "name": "rel",
     "email": "92015390+mezleca@users.noreply.github.com"
   },
-  "license": "MIT",
-  "type": "module"
+  "license": "MIT"
 }

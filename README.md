@@ -1,42 +1,42 @@
 <h1 align="center">osu-stuff</h1>
-
 <p align="center">
-    <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/src/images/menu.png"></img>
+  <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
 </p>
 
-> [!NOTE] 
-> In case you find any errors, please open the devtools by pressing "F12" and share the logs on my [osu](https://osu.ppy.sh/users/mzle) dm or in a issue in this repo.
+a simple tool for managing osu! collections and downloading maps
 
-# Setup Instructions
-You can download the stable version for windows using the [releases](https://github.com/mezleca/osu-stuff/releases/) tab on this repository.
-In case you wanna use the latest version, follow the Build Instructions.
+> [!NOTE]
+> Even though theres a version for linux, the app is not guaranted to work cuz im dont use linux at all. 
 
-# Build Instructions
-1. Install [nodejs](https://nodejs.org/en)
+## Quick start
+1. grab the latest release for windows [here](https://github.com/mezleca/osu-stuff/releases/)
+2. run it (needs admin rights)
 
-2. Clone the repository:
-    ```
-    git clone https://github.com/mezleca/osu-stuff.git
-    ```
+if you find any bugs, hit F12 for devtools and send the logs to my [osu profile](https://osu.ppy.sh/users/mzle) or open an issue
 
-3. Open your terminal in the osu-stuff folder and enter the following commands:
-    ```
-    npm install
-    npm install -g electron-builder
-    ```
+## Build it yourself
 
-4. Build the project for the current platform:
-   ```
-   npm run make
-   or
-   electron-builder build --platform=<platform>
-   ```
+prerequisites:
+- [nodejs](https://nodejs.org/)
+- git
 
-    Replace `<platform>` with the desired platform (e.g., `win`, `mac`, `linux`).
+```bash
+# clone repo
+git clone https://github.com/mezleca/osu-stuff.git
 
-5. In case you just wanna start without any build process, just run:
-    ```
-    npm run dev
-    or
-    npm run start
-    ```
+# install deps
+cd osu-stuff
+npm install
+npm install -g electron-builder
+
+# run dev mode
+npm run dev
+
+# or build for your platform
+npm run make
+
+# build for specific platform
+npm run make:win    # windows
+npm run make:linux  # linux
+npm run make:mac    # mac
+```
