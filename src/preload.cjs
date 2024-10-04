@@ -77,7 +77,7 @@ contextBridge.exposeInMainWorld("nodeAPI", {
 });
 
 contextBridge.exposeInMainWorld('electron', {
-    dev_mode: process.env.NODE_ENV === "cleide",
+    dev_mode: process.env.NODE_ENV === "development",
     shell: {
         openExternal: (url) => shell.openExternal(url),
     },

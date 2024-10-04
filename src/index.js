@@ -16,7 +16,7 @@ if (squirrel_startup) {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const dev_mode = process.env.NODE_ENV == "cleide";
+const dev_mode = process.env.NODE_ENV == "development";
 const store = new Store();
 
 export const create_dialog = async () => {
@@ -85,7 +85,9 @@ const createWindow = () => {
         main_window.reload();
     });
 
-    main_window.loadFile(path.join(__dirname, './gui/index.html'));
+    console.log(__dirname);
+
+    main_window.loadFile(path.join(__dirname, "./gui/index.html"));
     main_window.setMenuBarVisibility(false);
 
     // nah
@@ -108,7 +110,7 @@ const createWindow = () => {
             document.body.appendChild(script);
         `);
 
-        if (process.env.NODE_ENV == "cleide") {
+        if (process.env.NODE_ENV == "development") {
             main_window.webContents.openDevTools({ mode: "detach", activate: true, });
         }
     });
@@ -125,11 +127,6 @@ app.whenReady().then(async () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
-    });
-
-    protocol.handle('file', (request) => {
-        const pathname = decodeURI(request.url.replace('file:///', ''));
-        net.fetch(pathname);
     });
 });
 
