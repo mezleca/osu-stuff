@@ -1,17 +1,14 @@
-
-> [!NOTE]
-> Even though theres a version for linux, the app is not guaranted to work cuz im dont use linux at all. 
-
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <h2 align="center">a simple tool for managing osu! collections and downloading maps</h2>
+    <p align="center">a simple tool for managing osu! collections and downloading maps</p>
 </div>
 
 <p align="center">
   <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
 </p>
 
-
+> [!NOTE]
+> Even though theres a version for linux, the app is not guaranted to work cuz im dont use linux at all. 
 
 ## Quick start
 1. grab the latest release for windows [here](https://github.com/mezleca/osu-stuff/releases/)
