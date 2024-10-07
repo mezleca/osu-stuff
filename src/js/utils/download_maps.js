@@ -2,10 +2,11 @@ import { core } from "./config.js";
 import { add_alert } from "../popup/popup.js";
 import { events } from "../events.js";
 import { initialize } from "../manager/manager.js";
+import { osu_fetch } from "./other/fetch.js";
 
 export let current_download = null;
 
-const downloaded_maps = [];
+const downloaded_maps = new Set();
 const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const is_testing = window.electron.dev_mode;
 const concurrency = 3;
@@ -48,31 +49,14 @@ const pmap = async (array, mapper, concurrency) => {
     return results;
 };
 
-export const search_map_id = async (hash) => {
+export async function search_map_id(hash) {
 
-    try {
-
-        const response = await fetch(`https://osu.ppy.sh/api/v2/beatmaps/lookup?checksum=${hash}`, {
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                Authorization: `Bearer ${core.login.access_token}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (!data) {
-            return null;
-        }
-
-        data.id = data.beatmapset_id;
-        return data;
-    } catch(err) {
-        console.log("failed to search map id", hash);
+    const data = await osu_fetch(`https://osu.ppy.sh/api/v2/beatmaps/lookup?checksum=${hash}`);
+    if (!data) {
         return null;
     }
-};
+    return { ...data, id: data.beatmapset_id };
+}
 
 export let mirrors = [
     { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
@@ -113,23 +97,23 @@ class map_downloader {
     constructor(maps, id) {
         this.maps = maps;
         this.current_index = 0;
-        this.m_length = maps.length;
-        this.stop = false;
+        this.total_maps = maps.length;
+        this.should_stop = false;
         this.id = id;
-    }
-
-    get_progress() {
-        return { index: this.current_index, length: this.m_length };
     }
 
     update_progress(index) {
 
-        if (index > this.current_index || this.current_index == 0) {
+        if (index > this.current_index || this.current_index === 0) {
             this.current_index = index;
         }
 
-        const perc = Math.floor(this.current_index / this.m_length * 100);
-        events.emit("progress-update", { id: this.id, perc: perc, i: this.current_index, l: this.m_length });
+        events.emit("progress-update", {
+            id: this.id,
+            perc: Math.floor((this.current_index / this.total_maps) * 100),
+            i: this.current_index,
+            l: this.total_maps
+        });
     }
 
     async get_map_data(map) {
@@ -148,12 +132,8 @@ class map_downloader {
 
         const data = await search_map_id(map.hash);
 
-        if (!data || !data.beatmapset_id) {
+        if (!data?.beatmapset_id || downloaded_maps.has(data.beatmapset_id)) {
             return { map: null, data: null };
-        }
-
-        if (downloaded_maps.includes(data.beatmapset_id)) {
-            return { map, data };
         }
 
         return {
@@ -162,148 +142,111 @@ class map_downloader {
         };
     }
 
-    async search_beatmap(url, id) {
+    async try_mirror(mirror_url, map_id) {
         try {
-            return await fetch(`${url}${id}`, { method: "GET" });
-        } catch (err) {
-            return null;
-        }
-    }
-
-    async get_buffer(url, data) {
-
-        const id = data?.id ? data.id : data;
-
-        try {
-
-            const response = await this.search_beatmap(url, id);
-
-            if (!response) {
-                return null;
+            const response = await fetch(`${mirror_url}${map_id}`, { method: "GET" });
+            
+            if (response.status === 200) {
+                const buffer = await response.arrayBuffer();
+                return buffer.byteLength > 0 ? buffer : null;
             }
 
             if (bad_status.includes(response.status)) {
-                this.update_mirror(url);
+                this.update_mirror(mirror_url);
             }
 
-            if (response.status != 200) {
-                return null;
-            }
-
-            const buffer = await response.arrayBuffer();
-
-            if (buffer.byteLength == 0) {
-                return null;
-            }
-
-            return buffer;
-        } catch(err) {
+            return null;
+        } catch (error) {
             return null;
         }
     }
 
-    update_mirror(url) {
-        const current_mirror = mirrors.find(mirror => mirror.url == url);
-        mirrors = mirrors.filter(mirror => mirror.url != url).concat(current_mirror);
+    update_mirror(used_url) {
+        const mirror_index = mirrors.findIndex(m => m.url === used_url);
+        if (mirror_index !== -1) {
+            const [mirror] = mirrors.splice(mirror_index, 1);
+            mirrors.push(mirror);
+        }
     }
 
-    async find_map(mirror, id) {
-
-        if (!id) {
-            return null;
-        }
-
-        if (!mirror.length) {
-            return await this.get_buffer(mirror, id);
-        }
-
-        for (let mirror of mirrors) {
-
-            const map_buffer = await this.get_buffer(mirror.url, id);
-
-            if (map_buffer != null) {
-                return map_buffer;
+    async find_map_buffer(map_id) {
+        for (const mirror of mirrors) {
+            const buffer = await this.try_mirror(mirror.url, map_id);
+            if (buffer) {
+                return buffer;
             }
         }
-
         return null;
     }
 
     async download_map(map, data) {
 
-        const Path = path.resolve(await core.config.get("osu_songs_path"), `${map.id}.osz`);
+        const map_path = path.resolve(await core.config.get("osu_songs_path"),`${map.id}.osz`);
+        const extracted_path = path.resolve(await core.config.get("osu_songs_path"),`${map.id}`);
 
-        if (!is_testing && (fs.existsSync(Path) || fs.existsSync(path.resolve(await core.config.get("osu_songs_path"), `${map.id}`)))) {
-            console.log("??");
+        if (!is_testing && (fs.existsSync(map_path) || fs.existsSync(extracted_path))) {
             return data;
         }
 
-        const osz_buffer = Object.keys(map).length > 1 
-            ? await this.find_map(mirrors, map) 
-            : await this.find_map(mirrors, map.id);
+        const map_buffer = await this.find_map_buffer(map.id);
 
-        if (!osz_buffer) {
-            console.log("buffer is not valid");
+        if (!map_buffer) {
             return null;
+        }
+
+        if (!is_testing) {
+            await fs.writeFileSyncView(map_path, map_buffer);
         }
 
         map.md5 = map.checksum;
         core.reader.osu.beatmaps.set(map.checksum, map);
-        downloaded_maps.push(map.id);
-
-        if (!is_testing) {
-            await fs.writeFileSyncView(Path, osz_buffer);
-        }
+        downloaded_maps.add(map.id);
 
         return data;
     }
 
-    async download(map, index) {
-        
-        if (this.stop) {
+    async process(map, index) {
+
+        if (this.should_stop) {
             return { stop: true };
         }
 
         this.update_progress(index);
 
-        const { map: update_map, data } = await this.get_map_data(map);
+        const { map: updated_map, data } = await this.get_map_data(map);
 
-        if (!update_map) {
-            console.log(data, update_map);
+        if (!updated_map) {
             return null;
         }
 
         try {
-            console.log()
-            const map = await this.download_map(update_map, data);
-            return map;
-        } catch(err) {
-            console.log("err", err);
+            return await this.download_map(updated_map, data);
+        } catch (error) {
+            console.error("download failed:", error);
             this.update_progress(index);
             return null;
         }
     }
 
-    async init(single) {
+    async init(single_map = false) {
 
         if (!this.maps || !this.id) {
-            console.log("found 0 beatmaps");
-            cancel_download();
+            console.log("no beatmaps to download");
+            current_download = null;
             return null;
         }
 
-        if (single) {
-            const beatmap = await this.download(this.maps, 0);
+        if (single_map) {
+            const result = await this.process(this.maps, 0);
             await initialize({ no_update: true });
-            console.log(beatmap);
-            return beatmap;
+            return result;
         }
 
-        await pmap(this.maps, this.download.bind(this), concurrency);
+        await pmap(this.maps, this.process.bind(this), concurrency);
         await initialize();
 
-        if (!this.stop) {
-            add_alert("Finished downloading");
+        if (!this.should_stop) {
+            add_alert("download completed");
             events.emit("progress-end", this.id, true);
         }
     }

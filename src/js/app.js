@@ -1,5 +1,4 @@
 import { add_config_shit } from "./utils/config.js";
-import { add_alert } from "./popup/popup.js";
 
 const in_dev_mode = window.electron.dev_mode;
 const gui_title = document.querySelector(".title_text");
@@ -15,6 +14,5 @@ const gui_title = document.querySelector(".title_text");
 
     if (in_dev_mode) {
         gui_title.innerText = "osu-stuff - (dev mode)";
-        add_alert("You're running in dev mode", { type: "warning" });
     }
 })();

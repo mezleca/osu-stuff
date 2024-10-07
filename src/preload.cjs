@@ -14,7 +14,6 @@ axios.interceptors.response.use(function (response) {
 
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
-
     exec(cmd, (err, stdout, stderr) => {
         if (err) {
             console.log(err);
@@ -23,7 +22,7 @@ const open_folder = (folder_path) => {
 };
 
 const is_running = (name) => {
-
+    
     let platform = process.platform;
     let cmd = '';
 

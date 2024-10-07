@@ -318,7 +318,7 @@ input_collection_name.addEventListener("input", () => {
     update_current_item();
 });
 
-const debounce = (func, delay) => {
+export const debounce = (func, delay) => {
 
     let timeout;
 

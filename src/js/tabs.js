@@ -23,7 +23,7 @@ const main_tab = sidebar_item[1];
 
 // set the active tab
 all_tabs.map((tab, i) => {
-    
+
     tab.addEventListener("click", (e) => {
         
         const already_active = tab.className == "active";
@@ -33,10 +33,11 @@ all_tabs.map((tab, i) => {
         }
 
         all_tabs.forEach((t) => { t.classList.remove("active") });
+
         all_content.forEach((t) => { t.classList.remove("active") });
+        all_content[i].classList.add("active");
 
         tab.classList.add("active");
-        all_content[i].classList.add("active");
     });
 });
 
@@ -50,26 +51,18 @@ back_btn.addEventListener("click", () => {
     main_tab.classList.remove("active");
 });
 
-// get the current active tab
 export const get_current_tab = () => {
-    
     for (let i = 0; i < all_tabs.length; i++) {
-
         if (all_tabs[i].classList.contains("active")) {
             return all_content[i].id;
         }
     }
-
     return null;
 };
 
-// make a tab blink until the user clicks on it
 export const blink = (tab) => {
-
     tab.style = "animation: blinker 1s linear infinite;";
-
     tab.addEventListener("click", () => {
-
         tab.style = "";
         tab.removeEventListener("click", () => {});
     });
@@ -78,7 +71,7 @@ export const blink = (tab) => {
 export const add_tab = (id) => {
 
     const d_tab = document.getElementById("download_tab");
-
+    
     if (!id) {
         add_alert("Missing id", { type: "error" });
         return null;

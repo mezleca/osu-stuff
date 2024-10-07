@@ -9,11 +9,9 @@ class EventEmitter {
     }
 
     on(event, callback) {
-
         if (!this.listeners[event]) {
             this.listeners[event] = [];
         }
-
         this.listeners[event].push(callback);
     }
 
@@ -30,12 +28,10 @@ class EventEmitter {
     }
 
     remove_all_listeners(event) {
-
         if (event) {
             delete this.listeners[event];
             return;
-        } 
-
+        }
         this.listeners = {};
     }
 }
@@ -128,9 +124,7 @@ const update_queue_div = (id) => {
 };
 
 const remove_queue_div = (id) => {
-
     const div = document.querySelector(`.queue-item[id="${id}"]`);
-
     if (div) {
         document.querySelector(".queue-list").removeChild(div);
     }
@@ -151,14 +145,11 @@ setInterval(() => {
     }
 
     if (task.status == "finished") {
-
         queue.delete(task.id);
         remove_queue_div(task.id);
-
         if (queue.size == 0) {
             all_content[2].removeChild(document.querySelector(".status-shit"));
-        }
-        
+        }      
         return;
     }
 
