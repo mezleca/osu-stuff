@@ -12,7 +12,7 @@ export const core = {
     reader: new OsuReader(),
     config: new Map(),
     files: new Map(),
-    og_path: path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu_stuff"),
+    og_path: window.nodeAPI.env.og_path,
     login: null
 };
 

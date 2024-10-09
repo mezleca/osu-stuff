@@ -1,9 +1,21 @@
 const path = require("path");
 const fs = require("fs");
 const zlib = require("zlib");
+const os = require("os");
 
 const { contextBridge, ipcRenderer, shell } = require("electron");
 const { exec } = require("child_process");
+
+const get_og_path = () => {
+    switch (process.platform) {
+        case 'win32':
+            return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), "osu-stuff");
+        case 'linux':
+            return path.join(os.homedir(), '.local', 'share', "osu-stuff");
+        default:
+            return "";
+    }
+}
 
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
@@ -43,7 +55,8 @@ contextBridge.exposeInMainWorld("nodeAPI", {
         gunzip: (buf, options) => zlib.gunzipSync(Buffer.from(buf), options)
     },
     env: {
-        APPDATA: process.env.APPDATA
+        APPDATA: process.env.APPDATA,
+        og_path: get_og_path()
     },
     fs: {
         renameSync: (oldPath, newPath) => fs.renameSync(oldPath, newPath),
