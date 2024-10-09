@@ -172,7 +172,7 @@ export const add_config_shit = async () => {
         core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
     }
 
-    const osu_base_path = path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!");
+    const osu_base_path = window.nodeAPI.env.osu_default_path;
     const songs_base_path = path.resolve(osu_base_path, "Songs");
 
     const osu_exist = fs.existsSync(osu_base_path);

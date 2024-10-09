@@ -17,6 +17,17 @@ const get_og_path = () => {
     }
 }
 
+const get_osu_base_path = () => {
+    switch (process.platform) {
+        case 'win32':
+            return path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!");
+        case 'linux': // pretty sure everyone uses osu-wine to play stable
+            return path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu');
+        default:
+            return "";
+    }
+};
+
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
     exec(cmd, (err, stdout, stderr) => {
@@ -56,7 +67,8 @@ contextBridge.exposeInMainWorld("nodeAPI", {
     },
     env: {
         APPDATA: process.env.APPDATA,
-        og_path: get_og_path()
+        og_path: get_og_path(),
+        osu_default_path: get_osu_base_path()
     },
     fs: {
         renameSync: (oldPath, newPath) => fs.renameSync(oldPath, newPath),

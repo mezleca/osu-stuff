@@ -1,6 +1,6 @@
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">a simple tool for managing osu! collections and downloading maps</p>
+    <p align="center">a simple tool to manage osu! stable collections and download beatmaps</p>
 </div>
 
 <p align="center">
