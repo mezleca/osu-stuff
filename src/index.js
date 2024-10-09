@@ -49,8 +49,6 @@ const create_auth_window = (url, end) => {
         return;
     }
 
-    console.log("initialinzgu autj winwos", url, end);
-
     const auth_window = new BrowserWindow({
         width: 800,
         height: 700,
@@ -87,8 +85,6 @@ const create_auth_window = (url, end) => {
         });
     });
 };
-
-console.log("icon path", icon_path);
 
 const createWindow = () => {
 

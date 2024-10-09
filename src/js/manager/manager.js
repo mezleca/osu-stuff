@@ -392,7 +392,10 @@ const fetch_osustats = async (collection_url) => {
     core.reader.set_buffer(buffer);
 
     const osdb_data = await core.reader.get_osdb_data();
-    const all_hashes = osdb_data.collections.map((c) => c.beatmaps.flatMap((b) => b.md5)).flatMap((b) => b);
+    const all_hashes = osdb_data.collections.reduce((acc, c) => {
+        c.beatmaps.forEach((b) => acc.push(b.md5));
+        return acc;
+    }, []);
     const missing_beatmaps = all_hashes.filter((hash) => !core.reader.osu.beatmaps.has(hash));
 
     collection_data.name = collection_data.title;
@@ -411,7 +414,7 @@ btn_add.addEventListener("click", async () => {
         return;
     }
 
-    const prompt = await add_get_extra_info([{ type: "input", text: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh)" }]);
+    const prompt = await add_get_extra_info([{ type: "input", text: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" }]);
     const url = new URL(prompt);
     const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
 

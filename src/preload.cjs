@@ -1,17 +1,9 @@
 const path = require("path");
 const fs = require("fs");
-const axios = require("axios");
 const zlib = require("zlib");
 
 const { contextBridge, ipcRenderer, shell } = require("electron");
 const { exec } = require("child_process");
-
-// https://stackoverflow.com/questions/49967779/axios-handling-errors
-axios.interceptors.response.use(function (response) {
-    return response;
-  }, function (error) {
-    return Promise.reject(error);
-});
 
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
