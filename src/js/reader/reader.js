@@ -334,8 +334,10 @@ export class OsuReader {
                     "o!dm7min": 1007,
                     "o!dm8min": 1008,
                 };
+
+                const version = versions[version_string];
                 
-                if (!versions[version_string]) {
+                if (!version) {
                     throw new Error(`invalid osdb version (got: ${version_string})`);
                 }
                 
@@ -360,6 +362,7 @@ export class OsuReader {
                 data.collections = [];
                 
                 for (let i = 0; i < data.collections_count; i++) {
+
                     const collection = {
                         name: this.#string2(),
                         beatmaps: [],
@@ -373,6 +376,7 @@ export class OsuReader {
                     const beatmaps_count = this.#int();
                     
                     for (let j = 0; j < beatmaps_count; j++) {
+
                         const beatmap = {
                             map_id: this.#int(),
                             map_set_id: file_version >= 2 ? this.#int() : -1

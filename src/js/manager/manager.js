@@ -374,7 +374,6 @@ const fetch_osustats = async (collection_url) => {
     if (!stats_data) {
         add_alert("please login on osustats before using that feature", { type: "warning" });
         const data = await window.electron.create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
-        console.log(data);
         await save_to_db("stats", "data", data);
     }
 
@@ -388,12 +387,21 @@ const fetch_osustats = async (collection_url) => {
     }
 
     const collection_data = await collection_info.json();
-    const collection_name = collection_data.title;
     const buffer = file_data.data;
 
     core.reader.set_buffer(buffer);
-    const data = await core.reader.get_osdb_data();
 
+    const osdb_data = await core.reader.get_osdb_data();
+    const all_hashes = osdb_data.collections.map((c) => c.beatmaps.flatMap((b) => b.md5)).flatMap((b) => b);
+    const missing_beatmaps = all_hashes.filter((hash) => !core.reader.osu.beatmaps.has(hash));
+
+    collection_data.name = collection_data.title;
+
+    return { 
+        maps: missing_beatmaps,
+        c_maps: all_hashes,
+        collection: collection_data
+    }
 };
 
 btn_add.addEventListener("click", async () => {
