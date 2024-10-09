@@ -20,7 +20,7 @@ const get_og_path = () => {
 const get_osu_base_path = () => {
     switch (process.platform) {
         case 'win32':
-            return path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!");
+            return path.resolve(process.env.APPDATA, "..", "Local", "osu!");
         case 'linux': // pretty sure everyone uses osu-wine to play stable
             return path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu');
         default:
