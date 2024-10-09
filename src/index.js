@@ -3,7 +3,7 @@ import shortcut from "electron-localshortcut";
 import Store from "electron-store";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog, protocol, net } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, session, net } from "electron";
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,9 +15,12 @@ if (squirrel_startup) {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
 const dev_mode = process.env.NODE_ENV == "development";
 const store = new Store();
+
+const w = 968, h = 720;
+const min_w = 820, min_h = 580;
+const max_w = 1080, max_h = 820;
 
 export const create_dialog = async () => {
     return dialog.showOpenDialog(main_window, {
@@ -39,11 +42,53 @@ export const get_icon_path = () => {
     }
 };
 
-// xd
-const w = 968, h = 720;
-const min_w = 820, min_h = 580;
-const max_w = 1080, max_h = 820;
 const icon_path = get_icon_path();
+
+const create_auth_window = (url, end) => {
+
+    if (!url || !end) {
+        console.log("missing url or end_url");
+        return;
+    }
+
+    console.log("initialinzgu autj winwos", url, end);
+
+    const auth_window = new BrowserWindow({
+        width: 800,
+        height: 700,
+        fullscreenable: false,
+        icon: icon_path,
+        webPreferences: {
+            devTools: true,
+            nodeIntegration: true,
+            contextIsolation: true,
+            enableRemoteModule: true,
+            webSecurity: false
+        }
+    });
+  
+    auth_window.loadURL(url);
+    auth_window.show();
+
+    return new Promise((resolve, reject) => {
+
+        auth_window.webContents.on('did-navigate', async (event, new_url) => {
+
+            const url = new URL(new_url);
+            const cookies = await session.defaultSession.cookies.get({ url: url });
+            const cookies_string = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ');
+
+            if (url.toString() == end) {
+                auth_window.close();
+                return resolve(cookies_string);
+            }
+        });
+
+        auth_window.on('closed', () => {
+            reject(false);
+        });
+    });
+};
 
 const createWindow = () => {
 
@@ -81,11 +126,48 @@ const createWindow = () => {
     main_window.on('maximize', () => main_window.unmaximize());
 
     ipcMain.on('close-window', () => app.quit());
+
     ipcMain.handle('is-window-full', () => main_window.isMaximized());
     ipcMain.handle('electron-store-get', (event, key) => store.get(key));
     ipcMain.handle('electron-store-set', (event, key, value) => store.set(key, value));
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
+    ipcMain.handle('fetch-stats', async (event, url, cookies) => {
+
+        return new Promise((resolve, reject) => {
+
+            const data = [];
+            const request = net.request({
+                method: 'GET',
+                url: url,
+                session: session.defaultSession,
+            });
+
+            request.setHeader('Cookie', cookies);
+
+            request.on('response', (response) => {
+                
+                response.on('data', (chunk) => {
+                    data.push(chunk);
+                });
+
+                response.on('end', () => {
+                    resolve({
+                        ok: response.statusCode == 200,
+                        status: response.statusCode,
+                        data: Buffer.concat(data)
+                    });
+                });
+            });
+
+            request.on('error', reject);
+            request.end();
+        });
+    });
+
+    ipcMain.handle("create-auth", async (event, url, end) => {
+        return create_auth_window(url, end);
+    });
 
     main_window.webContents.on('did-finish-load', () => {
         main_window.webContents.executeJavaScript(`
@@ -103,7 +185,13 @@ const createWindow = () => {
 };
 
 app.whenReady().then(async () => {
+ 
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+        callback({ requestHeaders: { ...details.requestHeaders } });
+    });
+
     createWindow();
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();

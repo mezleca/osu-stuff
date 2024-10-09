@@ -1,3 +1,7 @@
+export const osdb_schema = {
+    // TODO
+};
+
 export const beatmaps_schema = {
     beatmap_start: Number,
     entry: Number,

@@ -37,64 +37,52 @@ export const setup_collector = async (url) => {
 
     if (!core.login) {
         add_alert("forgot to configurate? :P");
-        console.log("[Collector] Login not found\n");
         return null;
     }
 
     if (!url_is_valid(url, "osucollector.com")) {
-        add_alert("Invalid url", { type: "error" });
-        return null;   
+        add_alert("invalid url", { type: "error" });
+        return null;
     }
 
     const url_array = url.split("/");
-    const collection_id = url_array.find((a) => Number(a));
-
+    const collection_id = url_array.find(part => Number(part));
+    
     if (!collection_id) {
         add_alert("invalid url", { type: "error" });
         return null;
     }
 
     const is_tournament = url_array.includes("tournaments");
-    const collection_url = `https://osucollector.com/api/collections/${collection_id}`;
+    const api_url = `https://osucollector.com/api/collections/${collection_id}`;
+    
+    console.log(`[Collector] fetching collection ${collection_id}...`);
+    
+    const response = is_tournament ? await get_tournament_maps(collection_id) : await fetch(api_url);
+    const collection_data = is_tournament ? response : await response.json();
 
-    console.log(`[Collector] Fetching collection ${collection_id}...`);
-
-    const Rcollection = is_tournament ? await get_tournament_maps(collection_id) : await fetch(collection_url);
-    const collection = is_tournament ? Rcollection : (await Rcollection.json());
-
-    if (Rcollection.status != 200) {
-        add_alert("invalid collection", { type: "error" });
+    if (response.status !== 200 || !collection_data.beatmapsets) {
+        add_alert("failed to get collection", { type: "error" });
         return null;
     }
 
-    if (!collection.beatmapsets) {
-        add_alert("Failed to get collection from osu collector", { type: "error" });
-        return null;
-    }
-    
-    const maps_hashes = new Set(core.reader.osu.beatmaps.keys());
+    const get_hashes = is_tournament ? beatmapsets => beatmapsets.map(b => b.checksum) : beatmapsets => beatmapsets.flatMap(b => b.beatmaps.map(map => map.checksum));
 
-    const collection_hashes = is_tournament ? 
-    [...new Set(
-        collection.beatmapsets.map((b) => b.checksum)
-    )]
-    : // else
-    [...new Set(
-        collection.beatmapsets.flatMap(
-          (b) => b.beatmaps.map((b) => b.checksum)
-        )
-    )];
-    
-    const maps = is_tournament ?
-    collection.beatmapsets.filter((beatmap) => {
-        return !maps_hashes.has(beatmap.checksum) && beatmap.checksum && beatmap.beatmapset;
-    }).map((b) => b.beatmapset )
-    : // else
-    collection.beatmapsets.filter((beatmapset) => {
-        return !beatmapset.beatmaps.some((beatmap) => maps_hashes.has(beatmap.checksum));
-    });
+    const existing_map_hashes = new Set(core.reader.osu.beatmaps.keys());
+    const collection_hashes = [...new Set(get_hashes(collection_data.beatmapsets))];
 
-    return { maps: maps, c_maps: collection_hashes, collection: collection };
+    const new_maps = is_tournament
+        ? collection_data.beatmapsets
+            .filter(beatmap => !existing_map_hashes.has(beatmap.checksum) && beatmap.checksum && beatmap.beatmapset)
+            .map(b => b.beatmapset)
+        : collection_data.beatmapsets
+            .filter(beatmapset => !beatmapset.beatmaps.some(beatmap => existing_map_hashes.has(beatmap.checksum)));
+
+    return {
+        maps: new_maps,
+        c_maps: collection_hashes,
+        collection: collection_data
+    };
 };
 
 export const download_collector = async (url, id) => {

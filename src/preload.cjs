@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+const zlib = require("zlib");
 
 const { contextBridge, ipcRenderer, shell } = require("electron");
 const { exec } = require("child_process");
@@ -22,10 +23,8 @@ const open_folder = (folder_path) => {
 };
 
 const is_running = (name) => {
-    
     let platform = process.platform;
     let cmd = '';
-
     switch (platform) {
         case 'win32':
             cmd = `tasklist`;
@@ -39,7 +38,6 @@ const is_running = (name) => {
         default:
             break;
     }
-
     return new Promise(resolve => {
         exec(cmd, (err, stdout, stderr) => {
             const is_running = stdout.toLowerCase().indexOf(name.toLowerCase()) > -1;
@@ -49,6 +47,9 @@ const is_running = (name) => {
 };
 
 contextBridge.exposeInMainWorld("nodeAPI", {
+    zlib: {
+        gunzip: (buf, options) => zlib.gunzipSync(Buffer.from(buf), options)
+    },
     env: {
         APPDATA: process.env.APPDATA
     },
@@ -57,10 +58,7 @@ contextBridge.exposeInMainWorld("nodeAPI", {
         readdirSync: (directoryPath) => fs.readdirSync(directoryPath),
         readFileSync: (filePath, encoding) => fs.readFileSync(filePath, encoding),
         writeFileSync: (filePath, data, options) => fs.writeFileSync(filePath, data, options),
-        writeFileSyncView: (filePath, data, options) => {
-            const converted_buffer = Buffer.from(data);
-            fs.writeFileSync(filePath, converted_buffer, options);
-        },
+        writeFileSyncView: (filePath, data, options) => fs.writeFileSync(filePath, Buffer.from(data), options),
         unlinkSync: (filePath) => fs.unlinkSync(filePath),
         rmdirSync: (path, options) => fs.rmdirSync(path, options),
         existsSync: (filePath) => fs.existsSync(filePath),
@@ -84,7 +82,9 @@ contextBridge.exposeInMainWorld('electron', {
         get: (key) => ipcRenderer.invoke('electron-store-get', key),
         set: (key, value) => ipcRenderer.invoke('electron-store-set', key, value)
     },
-    create_dialog: async () => await ipcRenderer.invoke("create-dialog"), 
+    fetchstats: async (url, cookies) => await ipcRenderer.invoke('fetch-stats', url, cookies),
+    create_dialog: async () => await ipcRenderer.invoke("create-dialog"),
+    create_auth: async (url, end) => await ipcRenderer.invoke("create-auth", url, end),
     is_running: async (name) => await is_running(name),
     open_folder: (folder_path) => open_folder(folder_path)
 });

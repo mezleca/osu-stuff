@@ -3,6 +3,7 @@ import { setup_collector } from "../stuff/collector.js"
 import { add_alert, add_get_extra_info } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
+import { save_to_db, load_from_database } from "../utils/other/indexed_db.js";
 
 let current_name = "";
 let need_to_save = false;
@@ -21,6 +22,8 @@ const btn_update = document.getElementById("update_collections");
 const search_box = document.getElementById("current_search");
 
 const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
 
 const change_input_value = (name) => {
     input_collection_name.value = name;
@@ -357,6 +360,42 @@ export const add_collection_manager = async (maps, collection) => {
     setup_manager();
 };
 
+const fetch_osustats = async (collection_url) => {
+
+    const id = collection_url.split("/").find((v) => Number(v));
+
+    if (!id) {
+        add_alert("failed to get collection id", { type: "error" });
+        return;
+    }
+
+    const stats_data = await load_from_database("stats", "data");
+
+    if (!stats_data) {
+        add_alert("please login on osustats before using that feature", { type: "warning" });
+        const data = await window.electron.create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
+        console.log(data);
+        await save_to_db("stats", "data", data);
+    }
+
+    const url = `https://osustats.ppy.sh/apiv2/collection/${id}/download`;
+    const collection_info = await fetch(`https://osustats.ppy.sh/apiv2/collection/${id}`);
+    const file_data = await window.electron.fetchstats(url, stats_data);
+
+    if (!file_data || !file_data.ok) {
+        add_alert("failed to get collection", { type: "error" });
+        return;
+    }
+
+    const collection_data = await collection_info.json();
+    const collection_name = collection_data.title;
+    const buffer = file_data.data;
+
+    core.reader.set_buffer(buffer);
+    const data = await core.reader.get_osdb_data();
+
+};
+
 btn_add.addEventListener("click", async () => {
 
     if (need_to_save) {
@@ -364,13 +403,14 @@ btn_add.addEventListener("click", async () => {
         return;
     }
 
-    const collection_url = await add_get_extra_info([{ type: "input", text: "Collection url\n(Osu!Collector url)" }]);
+    const url = new URL(await add_get_extra_info([{ type: "input", text: "url\n(osu!collector/osustats.ppy.sh)" }]));
+    const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
 
-    if (!collection_url) {
+    if (!url || !url_is_valid) {
         return;
     }
 
-    const info = await setup_collector(collection_url);
+    const info = url.hostname == "osustats.ppy.sh" ? await fetch_osustats(url.toString()) : await setup_collector(url.toString());
 
     if (!info) {
         return;
@@ -379,7 +419,7 @@ btn_add.addEventListener("click", async () => {
     const { c_maps: maps, maps: yep_maps, collection } = info;
 
     if (collections.has(collection.name)) {
-        add_alert("You already have a collection with this name");
+        add_alert("you already have a collection with this name");
         return;
     }
 
@@ -588,14 +628,11 @@ export const initialize = async (options) => {
     }
 
     if (collections.size === 0) {
-
         for (const collection of core.reader.collections.beatmaps) {
             const updated_map = collection.maps.map(update_map_info);
             collections.set(collection.name, updated_map);
         }
-
-    } else {
-        
+    } else { 
         for (const [name, maps] of collections) {
             const updated_map = maps.map(update_map_info);
             collections.set(name, updated_map);

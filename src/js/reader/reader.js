@@ -1,6 +1,17 @@
-import { osu_db, collections_db } from "./definitions.js";
+import { osu_db, collections_db, osdb_schema } from "./definitions.js";
 
 const fs = window.nodeAPI.fs;
+const zlib = window.nodeAPI.zlib;
+
+const decompress_gzip = (data) => {
+    return new Promise((resolve, reject) => {
+        const result = zlib.gunzip(data);
+        if (!result) {
+            return reject(null);
+        }
+        return resolve(result);
+    });
+}
 
 export class OsuReader {
 
@@ -71,10 +82,9 @@ export class OsuReader {
         let shift = 0;
 
         do {
-            const byte = this.dataView.getUint8(this.offset);
+            const byte = this.#byte();
             result |= (byte & 0x7F) << shift;
             shift += 7;
-            this.offset += 1;
         } while (this.dataView.getUint8(this.offset - 1) & 0x80);
           
         return { value: result, bytesRead: this.offset };
@@ -114,9 +124,18 @@ export class OsuReader {
 
         return value;
     }
-    
-    #skip(b) {
-        this.offset += b;     
+
+    #string2() {
+
+        const length = this.#uleb();
+
+        const buffer = new Uint8Array(this.buffer, this.offset, length.value);
+        const decoder = new TextDecoder('utf-8');
+        const value = decoder.decode(buffer);
+
+        this.offset += length.value;
+
+        return value;
     }
 
     #writeByte(value) {
@@ -283,6 +302,127 @@ export class OsuReader {
             resolve();
         });
     };
+
+    /**
+     * 
+     * @returns { Promise<osdb_schema> } 
+     * @link https://github.com/Piotrekol/CollectionManager/blob/master/CollectionManagerDll/Modules/FileIO/FileCollections/OsdbCollectionHandler.cs
+     * 
+    */
+    async get_osdb_data() {
+
+        return new Promise(async (resolve, reject) => {
+
+            if (!this.buffer) {
+                return reject(new Error("buffer not set!!"));
+            }
+    
+            try {
+
+                const data = {};
+                const version_string = this.#string2();
+                
+                const versions = {
+                    "o!dm": 1,
+                    "o!dm2": 2,
+                    "o!dm3": 3,
+                    "o!dm4": 4,
+                    "o!dm5": 5,
+                    "o!dm6": 6,
+                    "o!dm7": 7,
+                    "o!dm8": 8,
+                    "o!dm7min": 1007,
+                    "o!dm8min": 1008,
+                };
+                
+                if (!versions[version_string]) {
+                    throw new Error(`invalid osdb version (got: ${version_string})`);
+                }
+                
+                const file_version = versions[version_string];
+                const is_minimal = version_string.endsWith("min");
+                
+                if (file_version >= 7) {
+
+                    const compressed_data = this.buffer.slice(this.offset);
+                    const decompressed_data = await decompress_gzip(compressed_data);
+                    
+                    this.set_buffer(decompressed_data);
+                    this.offset = 0;
+                    
+                    this.#string2();
+                }
+                
+                data.save_date = this.#double();
+                data.last_editor = this.#string2();
+                data.collections_count = this.#int();
+                
+                data.collections = [];
+                
+                for (let i = 0; i < data.collections_count; i++) {
+                    const collection = {
+                        name: this.#string2(),
+                        beatmaps: [],
+                        hash_only_beatmaps: []
+                    };
+                    
+                    if (file_version >= 7) {
+                        collection.online_id = this.#int();
+                    }
+                    
+                    const beatmaps_count = this.#int();
+                    
+                    for (let j = 0; j < beatmaps_count; j++) {
+                        const beatmap = {
+                            map_id: this.#int(),
+                            map_set_id: file_version >= 2 ? this.#int() : -1
+                        };
+                        
+                        if (!is_minimal) {
+                            beatmap.artist = this.#string2();
+                            beatmap.title = this.#string2();
+                            beatmap.diff_name = this.#string2();
+                        }
+                        
+                        beatmap.md5 = this.#string2();
+                        
+                        if (file_version >= 4) {
+                            beatmap.user_comment = this.#string2();
+                        }
+                        
+                        if (file_version >= 8 || (file_version >= 5 && !is_minimal)) {
+                            beatmap.play_mode = this.#byte();
+                        }
+                        
+                        if (file_version >= 8 || (file_version >= 6 && !is_minimal)) {
+                            beatmap.stars_nomod = this.#double();
+                        }
+                        
+                        collection.beatmaps.push(beatmap);
+                    }
+                    
+                    if (file_version >= 3) {
+                        const hash_count = this.#int();
+                        for (let j = 0; j < hash_count; j++) {
+                            collection.hash_only_beatmaps.push(this.#string2());
+                        }
+                    }
+                    
+                    data.collections.push(collection);
+                }
+                
+                const footer = this.#string2();
+
+                if (footer != "By Piotrekol") {
+                    throw new Error("invalid file footer, this collection might be corrupted.");
+                }
+                
+                resolve(data);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
 
     /**
      * 
