@@ -18,7 +18,7 @@ export const add_alert = async (...texts) => {
 
     const options = {
         type: "default",
-        append_html: false,
+        html: false,
         test: false,
         seconds: 3,
         text: texts.filter(t => typeof t === "string" || typeof t === "number").join(" ")
@@ -53,7 +53,7 @@ export const add_alert = async (...texts) => {
     alert_icon.classList.add("bi", alert_type.icon, "alert-icon");
     alert_close.classList.add("bi", "bi-x", "alert-close");
 
-    if (options.append_html) {
+    if (options.html) {
         alert_text.innerHTML = options.text;
     } else {
         alert_text.innerText = options.text;
@@ -71,7 +71,7 @@ export const add_alert = async (...texts) => {
         deleted = true;
     });
 
-    if (options.append_html) {
+    if (options.html) {
 
         div.querySelectorAll('a[href^="http"]').forEach(a => {
             

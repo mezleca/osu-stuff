@@ -3,7 +3,7 @@ import { setup_collector } from "../stuff/collector.js"
 import { add_alert, add_get_extra_info } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
-import { save_to_db, load_from_database } from "../utils/other/indexed_db.js";
+import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 
 let current_name = "";
 let need_to_save = false;
@@ -369,7 +369,7 @@ const fetch_osustats = async (collection_url) => {
         return;
     }
 
-    const stats_data = await load_from_database("stats", "data");
+    const stats_data = await get_from_database("stats", "data");
 
     if (!stats_data) {
         add_alert("please login on osustats before using that feature", { type: "warning" });
@@ -411,7 +411,8 @@ btn_add.addEventListener("click", async () => {
         return;
     }
 
-    const url = new URL(await add_get_extra_info([{ type: "input", text: "url\n(osu!collector/osustats.ppy.sh)" }]));
+    const prompt = await add_get_extra_info([{ type: "input", text: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh)" }]);
+    const url = new URL(prompt);
     const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
 
     if (!url || !url_is_valid) {
@@ -479,8 +480,8 @@ btn_update.addEventListener("click", async () => {
     core.reader.collections = new_collection;
     const backup_name = `collection_backup_${Date.now()}.db`;
 
-    const old_name = path.resolve(await core.config.get("osu_path"), "collection.db"), 
-          new_name = path.resolve(await core.config.get("osu_path"), backup_name);
+    const old_name = path.resolve(core.config.get("osu_path"), "collection.db"), 
+          new_name = path.resolve(core.config.get("osu_path"), backup_name);
 
     await fs.renameSync(old_name, new_name);
 
@@ -632,7 +633,7 @@ export const initialize = async (options) => {
     }
 
     if (force) {
-        await get_files(await core.config.get("osu_path"));
+        await get_files(core.config.get("osu_path"));
     }
 
     if (collections.size === 0) {

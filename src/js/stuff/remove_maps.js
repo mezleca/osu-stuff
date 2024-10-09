@@ -75,7 +75,7 @@ export const remove_maps = async (id) => {
         const deleted_folders = new Set();
         const filtered_maps = new Map();
 
-        const osu_songs_path = await core.config.get("osu_songs_path");
+        const osu_songs_path = core.config.get("osu_songs_path");
 
         core.reader.osu.beatmaps.forEach(async (b) => {
 
@@ -140,11 +140,11 @@ export const remove_maps = async (id) => {
 
         const backup_name = `osu!.db.backup_${Date.now()}`;
 
-        const old_name = path.resolve(await core.config.get("osu_path"), "osu!.db");
-        const new_backup_name = path.resolve(await core.config.get("osu_path"), backup_name);
+        const old_name = path.resolve(core.config.get("osu_path"), "osu!.db");
+        const new_backup_name = path.resolve(core.config.get("osu_path"), backup_name);
 
         await fs.renameSync(old_name, new_backup_name);
-        await core.reader.write_osu_data(Array.from(off), path.resolve(await core.config.get("osu_path"), "osu!.db"));
+        await core.reader.write_osu_data(Array.from(off), path.resolve(core.config.get("osu_path"), "osu!.db"));
 
         add_alert(`Done!\nRemoved ${off.size} beatmaps`);
         return `Done!\nRemoved ${off.size} beatmaps`;

@@ -1,6 +1,5 @@
 import path from "node:path";
 import shortcut from "electron-localshortcut";
-import Store from "electron-store";
 import squirrel_startup from 'electron-squirrel-startup';
 
 import { app, BrowserWindow, ipcMain, dialog, session, net } from "electron";
@@ -16,7 +15,6 @@ if (squirrel_startup) {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev_mode = process.env.NODE_ENV == "development";
-const store = new Store();
 
 const w = 968, h = 720;
 const min_w = 820, min_h = 580;
@@ -30,7 +28,7 @@ export const create_dialog = async () => {
 
 export const get_icon_path = () => {
 
-    const base_path = path.resolve("../build/icons");
+    const base_path = path.resolve("./build/icons");
     
     switch (process.platform) {
         case "win32":
@@ -90,6 +88,8 @@ const create_auth_window = (url, end) => {
     });
 };
 
+console.log("icon path", icon_path);
+
 const createWindow = () => {
 
     main_window = new BrowserWindow(
@@ -128,8 +128,6 @@ const createWindow = () => {
     ipcMain.on('close-window', () => app.quit());
 
     ipcMain.handle('is-window-full', () => main_window.isMaximized());
-    ipcMain.handle('electron-store-get', (event, key) => store.get(key));
-    ipcMain.handle('electron-store-set', (event, key, value) => store.set(key, value));
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
     ipcMain.handle('fetch-stats', async (event, url, cookies) => {
@@ -180,8 +178,6 @@ const createWindow = () => {
             main_window.webContents.openDevTools({ mode: "detach", activate: true, });
         }
     });
-
-    global.store = store;
 };
 
 app.whenReady().then(async () => {

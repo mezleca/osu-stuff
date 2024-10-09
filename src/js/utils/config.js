@@ -1,49 +1,48 @@
 import { add_alert } from "../popup/popup.js";
-import { check_login } from "./other/login.js";
+import { osu_login } from "./other/login.js";
 import { debounce, initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
 import { OsuReader } from "../reader/reader.js";
+import { get_all_from_database, save_to_db } from "./other/indexed_db.js";
 
 const fs = window.nodeAPI.fs;
 const path = window.nodeAPI.path;
 
 export const core = {
     reader: new OsuReader(),
-    config: window.electron.store,
+    config: new Map(),
     files: new Map(),
     og_path: path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu_stuff"),
     login: null
 };
 
-const tooltips = {
+const tooltips_text = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
     "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
 }
 
 const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
 
+const update_config = async (key, value) => {
+    console.log("saving", key);
+    const success = await save_to_db("config", key, value);
+    if (!success) {
+        console.error("failed to save config");
+    }
+    core.config.set(key, value);
+};
+
 export const setup_tooltip = () => {
 
     const tooltips = document.querySelectorAll(".tooltip");
 
     for (const tooltip of tooltips) {
-        tooltip.addEventListener("click", (e) => {
-            const text = tooltips[e.target.id];
-            add_alert(text, true, { append_html: true, seconds: 5 });
+        tooltip.addEventListener("click", () => {
+            const text = tooltips_text[tooltip.id];
+            add_alert(text, true, { html: true, seconds: 5 });
         });
     }
 }
-
-export const osu_login = async (id, secret) => {
-
-    const auth = await check_login(id, secret);
-
-    if (auth?.access_token) {
-        return auth;
-    }
-
-    return null;
-};
 
 export const update_status = (status) => {
 
@@ -102,10 +101,10 @@ export const get_files = async (osu) => {
 
 const setup_config = async () => {
 
-    const osu_id = await core.config.get("osu_id");
-    const osu_secret = await core.config.get("osu_secret");  
-    const osu_path = await core.config.get("osu_path");
-    const osu_songs = await core.config.get("osu_songs_path");
+    const osu_id = core.config.get("osu_id");
+    const osu_secret = core.config.get("osu_secret");  
+    const osu_path = core.config.get("osu_path");
+    const osu_songs = core.config.get("osu_songs_path");
 
     if (osu_id, osu_secret) {
         core.login = await osu_login(osu_id, osu_secret);
@@ -116,7 +115,7 @@ const setup_config = async () => {
     }
 
     if (!fs.existsSync(osu_path) || !fs.existsSync(osu_songs)) {
-        add_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });       
+        add_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
         return;
     }
 
@@ -154,23 +153,23 @@ export const add_config_shit = async () => {
 
     update_status("checking config...");
 
+    const config_data = await get_all_from_database("config");
+    
+    if (config_data) {
+        core.config = config_data;
+    }
+
+    const empty_config = core.config.size;
     const config_tab = document.getElementById("config_tab");
     const config_menu = all_tabs[1];
     const label_content = [];
-
-    const config = {
-        osu_id: await core.config.get("osu_id"),
-        osu_secret: await core.config.get("osu_secret"),
-        osu_path: await core.config.get("osu_path"),
-        osu_songs: await core.config.get("osu_songs_path")
-    };
 
     if (!fs.existsSync(core.og_path)) {
         fs.mkdirSync(core.og_path);
     }
 
-    if (config.osu_id && config.osu_secret) {
-        core.login = await osu_login(config.osu_id, config.osu_secret);
+    if (core.config.get("osu_id") && core.config.get("osu_secret")) {
+        core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
     }
 
     const osu_base_path = path.resolve(window.nodeAPI.env.APPDATA, "..", "Local", "osu!");
@@ -179,15 +178,15 @@ export const add_config_shit = async () => {
     const osu_exist = fs.existsSync(osu_base_path);
     const songs_exist = fs.existsSync(songs_base_path);
 
-    if (!config.osu_path && osu_exist) {
-        await core.config.set("osu_path", osu_base_path);
+    if (!core.config.get("osu_path") && osu_exist) {
+        await update_config("osu_path", osu_base_path);
     }
 
-    if (!config.osu_songs && songs_exist) {
-        await core.config.set("osu_songs_path", songs_base_path);
+    if (!core.config.get("osu_songs_path") && songs_exist) {
+        await update_config("osu_songs_path", songs_base_path);
     }
 
-    if (!config.osu_path || !config.osu_songs) {
+    if (!core.config.get("osu_path") || !core.config.get("osu_songs_path")) {
         blink(config_menu);
     }
 
@@ -196,13 +195,13 @@ export const add_config_shit = async () => {
         const should_hide = label == "osu_id" || label == "osu_secret";
         const is_readonly = !should_hide;
         const is_dialog = !should_hide;
-        const config_value = await core.config.get(label);
+        const config_value = core.config.get(label);
 
         const container_element = create_element_from_string(`
             <div class="input-container" id="config_fields">
                 <label for="${label}">
                     ${label}
-                    ${tooltips[label] ? `<div class="tooltip" id="${label}">(?)</div>` : ''}
+                    ${tooltips_text[label] ? `<div class="tooltip" id="${label}">(?)</div>` : ''}
                 </label>
                 <input 
                     class="${is_dialog ? 'config_input' : 'file_input'}" 
@@ -218,9 +217,9 @@ export const add_config_shit = async () => {
 
         // update config
         if (should_hide) {
-            option.addEventListener("input", debounce(() => { 
+            option.addEventListener("input", debounce(async () => { 
                 if (option.value) {
-                    core.config.set(label, option.value); 
+                    await update_config(label, option.value); 
                 }        
             } , 300));
         }
@@ -231,7 +230,7 @@ export const add_config_shit = async () => {
                 const dialog = await window.electron.create_dialog();
                 if (!dialog.canceled) {
                     const folder_path = dialog.filePaths[0];
-                    await core.config.set(option.name, folder_path);
+                    await update_config(option.name, folder_path);
                     option.value = folder_path;
                 }
             });
@@ -255,18 +254,24 @@ export const add_config_shit = async () => {
 
     check_button.addEventListener("click", handle_config_check);
 
-    if (!fs.existsSync(config.osu_path)) {
-        add_alert("osu path is invalid!", { type: "alert", blink: config_menu });
-        return;
-    }
-
-    if (!fs.existsSync(config.osu_songs)) {
-        add_alert("osu songs path is invalid!", { type: "alert", blink: config_menu });
-        return;
-    }
-
-    await get_files(config.osu_path);
-    await initialize();
-
+    // event listner to all tooltips
     setup_tooltip();
+
+    if (!empty_config) {
+        add_alert("config not found<br>can you take a look at config tab pleease :)", { html: true });
+        return;
+    }
+
+    if (!fs.existsSync(core.config.get("osu_path"))) {
+        add_alert("osu path is invalid!", { type: "alert" });
+        return;
+    }
+
+    if (!fs.existsSync(core.config.get("osu_songs_path"))) {
+        add_alert("osu songs path is invalid!", { type: "alert" });
+        return;
+    }
+
+    await get_files(core.config.get("osu_path"));
+    await initialize();
 };

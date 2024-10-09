@@ -181,8 +181,8 @@ class map_downloader {
 
     async download_map(map, data) {
 
-        const map_path = path.resolve(await core.config.get("osu_songs_path"),`${map.id}.osz`);
-        const extracted_path = path.resolve(await core.config.get("osu_songs_path"),`${map.id}`);
+        const map_path = path.resolve(core.config.get("osu_songs_path"),`${map.id}.osz`);
+        const extracted_path = path.resolve(core.config.get("osu_songs_path"),`${map.id}`);
 
         if (!is_testing && (fs.existsSync(map_path) || fs.existsSync(extracted_path))) {
             return data;

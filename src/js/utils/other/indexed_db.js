@@ -1,4 +1,5 @@
 const connect_to_db = (name) => {
+
     return new Promise((resolve, reject) => {
         const request = window.indexedDB.open(name, 3);
         
@@ -21,7 +22,9 @@ const connect_to_db = (name) => {
 };
 
 export const save_to_db = async (name, key, value) => {
+
     const database = await connect_to_db(name);
+
     return new Promise((resolve, reject) => {
         const transaction = database.transaction([name], 'readwrite');
         const object_store = transaction.objectStore(name);
@@ -38,8 +41,10 @@ export const save_to_db = async (name, key, value) => {
     });
 };
 
-export const load_from_database = async (name, key) => {
+export const get_from_database = async (name, key) => {
+
     const database = await connect_to_db(name);
+
     return new Promise((resolve, reject) => {
         const transaction = database.transaction([name], 'readonly');
         const object_store = transaction.objectStore(name);
@@ -52,6 +57,35 @@ export const load_from_database = async (name, key) => {
         request.onerror = (err) => {
             console.error("error loading from database:", err);
             reject(null);
+        };
+    });
+};
+
+export const get_all_from_database = async (name) => {
+
+    const database = await connect_to_db(name);
+
+    return new Promise((resolve, reject) => {
+        
+        const transaction = database.transaction([name], 'readonly');
+        const object_store = transaction.objectStore(name);
+        const result = new Map();
+
+        const cursor_request = object_store.openCursor();
+        
+        cursor_request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                result.set(cursor.key, cursor.value);
+                cursor.continue();
+            } else {
+                resolve(result);
+            }
+        };
+        
+        cursor_request.onerror = (err) => {
+            console.error("error info from database:", err);
+            reject(result);
         };
     });
 };

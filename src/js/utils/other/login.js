@@ -1,30 +1,18 @@
-export const check_login = async (id, secret) => {
+export const osu_login = async (id, secret) => {
 
-    const data = new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: id,
-        client_secret: secret,
-        scope: 'public'
-    });
-    
-    const options = {
-        method: 'POST',
-        headers: {
-            "Accept": "application/json",
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: data
-    };
+    const form_data = new FormData();
+
+    form_data.append("grant_type", 'client_credentials');
+    form_data.append("client_id", id);
+    form_data.append("client_secret", secret);
+    form_data.append("scope", "public");
         
-    const response = await fetch(`https://osu.ppy.sh/oauth/token`, options);
-    const r_data = await response.json();
+    const response = await fetch(`https://osu.ppy.sh/oauth/token`, { method: 'POST', body: form_data });
+    const data = await response.json();
 
-    if (!r_data) {
+    if (!data) {
         return null;
     }
     
-    return { 
-        access_token: r_data.access_token,
-        expires_in: r_data.expires_in
-    }
+    return data;
 };

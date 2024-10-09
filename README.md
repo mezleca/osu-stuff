@@ -8,7 +8,7 @@
 </p>
 
 > [!NOTE]
-> Even though theres a version for linux, the app is not guaranted to work cuz im dont use linux at all. 
+> even though theres a build for linux, im not 100% sure that everything works as expected (i dont use linux).
 
 ## Quick start
 1. grab the latest release for windows [here](https://github.com/mezleca/osu-stuff/releases/)

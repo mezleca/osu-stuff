@@ -78,10 +78,6 @@ contextBridge.exposeInMainWorld('electron', {
     shell: {
         openExternal: (url) => shell.openExternal(url),
     },
-    store: {
-        get: (key) => ipcRenderer.invoke('electron-store-get', key),
-        set: (key, value) => ipcRenderer.invoke('electron-store-set', key, value)
-    },
     fetchstats: async (url, cookies) => await ipcRenderer.invoke('fetch-stats', url, cookies),
     create_dialog: async () => await ipcRenderer.invoke("create-dialog"),
     create_auth: async (url, end) => await ipcRenderer.invoke("create-auth", url, end),
