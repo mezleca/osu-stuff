@@ -165,7 +165,7 @@ export const add_config_shit = async () => {
     const label_content = [];
 
     if (!fs.existsSync(core.og_path)) {
-        fs.mkdirSync(core.og_path);
+        fs.mkdirSync(core.og_path, { recursive: true });
     }
 
     if (core.config.get("osu_id") && core.config.get("osu_secret")) {
