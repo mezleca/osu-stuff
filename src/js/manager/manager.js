@@ -426,6 +426,11 @@ btn_add.addEventListener("click", async () => {
     }
 
     const prompt = await add_get_extra_info([{ type: "input", text: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" }]);
+
+    if (!prompt) {
+        return;
+    }
+
     const url = new URL(prompt);
     const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
 

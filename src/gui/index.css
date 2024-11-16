@@ -173,7 +173,7 @@ body {
     flex-direction: column;
     min-width: 100%;
     max-width: 100%;
-    animation: fadeIn 0.5s;
+    animation: smooth-appear 0.5s;
     background-color: var(--content-bg);
     padding: 15px;
     padding-top: 0px;
@@ -184,26 +184,6 @@ body {
 
 .tab-shit.row {
     flex-direction: row;
-}
-
-.buttons-row {
-    display: flex; 
-    width: 100%; 
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.buttons-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.buttons-grid > button {
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
 }
 
 button {
@@ -298,16 +278,6 @@ hr {
     font-size: 0.90em;
 }
 
-.progress-container {
-    background-color: #2C3E50;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid #34495E;
-    padding: 0 10px;
-}
-
 label {
     display: block;
     margin-top: 10px;
@@ -360,7 +330,7 @@ label {
     pointer-events: auto;
     box-sizing: border-box;
     transition: opacity 0.5s ease-out;
-    animation: popup-appear 0.5s ease forwards;
+    animation: smooth-appear 0.5s ease forwards;
 }
 
 .alert-icon {
@@ -412,21 +382,6 @@ label {
 
 .alert-alert::-webkit-scrollbar {
     display: none;
-}
-
-@keyframes smooth-appear {
-    to{
-      opacity: 1;
-    }
-}
-
-@keyframes smooth-disappear {
-    from{
-      opacity: 1;
-    }
-    to{
-      opacity: 0;
-    }
 }
 
 .popup-container {
@@ -555,11 +510,6 @@ label {
     width: 0;
     height: 5px;
     background-color: rgb(22, 33, 62);
-}
-
-.task-name {
-    color: rgb(253, 255, 226);
-    font-size: 14px;
 }
 
 .input-double-balls {
@@ -992,17 +942,6 @@ a {
     margin-bottom: 10px;
 }
 
-.btn-extra-group {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 8px;
-    overflow-y: auto;
-    border: 1px solid var(--hover-color);
-    background-color: var(--bg-color);
-    border-radius: 5px;
-}
-
 .mini-container {
     position: relative;
     display: flex;
@@ -1099,19 +1038,6 @@ a {
     padding: 10px 5px;
 }
 
-.hide-all .mini-container {
-    display: none;
-}
-
-.hide-all .mini-container:not(.disabled) {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -1122,7 +1048,12 @@ a {
     50% { color: var(--text-color); }
 }
 
-@keyframes popup-appear {
-    0% { opacity: 0; }
-    100% { opacity: 1;}
+@keyframes smooth-appear {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes smooth-disappear {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
