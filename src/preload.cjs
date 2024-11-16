@@ -22,11 +22,13 @@ const get_osu_base_path = () => {
         case 'win32':
             return path.resolve(process.env.APPDATA, "..", "Local", "osu!");
         case 'linux': // pretty sure everyone uses osu-wine to play stable
-            return path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu');
+            return path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu!');
         default:
             return "";
     }
 };
+
+console.log(get_osu_base_path());
 
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
