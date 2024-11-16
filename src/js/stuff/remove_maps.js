@@ -70,25 +70,23 @@ export const remove_maps = async (id) => {
         const status = stats[selected_status];
 
         const hashes = new Set(core.reader.collections.beatmaps.flatMap(beatmap => beatmap.maps));
-
         const off = new Set();
         const deleted_folders = new Set();
         const filtered_maps = new Map();
-
         const osu_songs_path = core.config.get("osu_songs_path");
 
-        core.reader.osu.beatmaps.forEach(async (b) => {
-
+        for (let [k, v] of core.reader.osu.beatmaps) { // map
+            const b = v;
             const sp = path.resolve(osu_songs_path, b.folder_name);    
             const song_path = path.resolve(sp, b.file);
 
             if ((b.status !== status && status !== -1) || (hashes.has(b.md5) && ignore_beatmaps_from_collections) || !check_difficulty_sr(b, min_sr, max_sr)) {
                 filtered_maps.set(b.md5, b);
-                return;
+                continue;
             }
 
             off.add({ sr: b.sr, path: song_path, folder_path: sp, start: b.beatmap_start, end: b.beatmap_end });
-        });
+        }
 
         if (off.size == 0) {
             throw new Error("found 0 beatmaps ;-;");
@@ -107,21 +105,12 @@ export const remove_maps = async (id) => {
         core.reader.osu.beatmaps = filtered_maps;
 
         if (!is_testing) {
-
             for (const item of off) {
-
-                try {
-
-                    const exist = fs.existsSync(item.path);
-                    
-                    if (exist) {
-
-                        fs.unlinkSync(item.path);
-                        
+                try {  
+                    if (fs.existsSync(item.path)) {
+                        fs.unlinkSync(item.path); 
                         if (!deleted_folders.has(item.folder_path)) {
-
                             const folder = fs.readdirSync(item.folder_path);
-
                             if (!folder.some(file => file.endsWith('.osu'))) {
                                 fs.rmdirSync(item.folder_path, { recursive: true });
                                 deleted_folders.add(item.folder_path);
@@ -139,7 +128,6 @@ export const remove_maps = async (id) => {
         core.reader.osu.beatmaps_count = Math.max(filtered_maps.size, 0);
 
         const backup_name = `osu!.db.backup_${Date.now()}`;
-
         const old_name = path.resolve(core.config.get("osu_path"), "osu!.db");
         const new_backup_name = path.resolve(core.config.get("osu_path"), backup_name);
 

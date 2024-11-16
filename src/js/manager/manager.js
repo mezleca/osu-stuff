@@ -477,17 +477,14 @@ btn_update.addEventListener("click", async () => {
         beatmaps: []
     };
 
-    collections.forEach((v, k) => {
-
+    for (let [k, v] of collections) {
         const obj = { name: k, maps: [] };
-
         for (let i = 0 ; i < v.length; i++) {
             const map = v[i];
             obj.maps.push(map.md5);
         }
-
         new_collection.beatmaps.push(obj);
-    });
+    }
 
     console.log("updated collection:", new_collection);
 
@@ -516,16 +513,19 @@ function lazy_load() {
     }
 
     const image_observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
             const img = entry.target
             if (entry.isIntersecting && img.dataset.src) {
                 img.src = img.dataset.src
                 img.removeAttribute('data-src')
             }
-        })
+        }
     }, options);
 
-    images.forEach(img => image_observer.observe(img));
+    for (let i = 0; i < images.length; i++) {
+        image_observer.observe(images[i]);
+    }
 }
 
 const update_current_item = () => {
@@ -570,10 +570,9 @@ export const setup_manager = () => {
     </div>
     `;
 
-    collections.forEach((v, k) => {
+    for (let [k, v] of collections) {
 
         const new_collection = template.content.cloneNode(true).firstElementChild;
-
         const collection_name = new_collection.querySelector(".collection-name");
         const remove_collection = new_collection.querySelector("#remove_collection");
 
@@ -604,7 +603,6 @@ export const setup_manager = () => {
         });
 
         collection_name.innerText = k;
-
         new_collection.addEventListener("click", () => {
 
             const collection_text = document.getElementById("collection_text");
@@ -625,7 +623,7 @@ export const setup_manager = () => {
         });
 
         fragment.appendChild(new_collection)
-    });
+    }
 
     collection_list.innerHTML = "";
     collection_list.appendChild(fragment);
