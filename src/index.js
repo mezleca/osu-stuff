@@ -130,6 +130,10 @@ const createWindow = () => {
 
         return new Promise((resolve, reject) => {
 
+            if (!cookies) {
+                return resolve({ ok: false, cookie: true });
+            }
+
             const data = [];
             const request = net.request({
                 method: 'GET',
@@ -138,7 +142,6 @@ const createWindow = () => {
             });
 
             request.setHeader('Cookie', cookies);
-
             request.on('response', (response) => {
                 
                 response.on('data', (chunk) => {

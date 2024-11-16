@@ -50,7 +50,6 @@ const pmap = async (array, mapper, concurrency) => {
 };
 
 export async function search_map_id(hash) {
-
     const data = await osu_fetch(`https://osu.ppy.sh/api/v2/beatmaps/lookup?checksum=${hash}`);
     if (!data) {
         return null;

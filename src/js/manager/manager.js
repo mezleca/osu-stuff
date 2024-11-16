@@ -381,8 +381,13 @@ const fetch_osustats = async (collection_url) => {
     const collection_info = await fetch(`https://osustats.ppy.sh/apiv2/collection/${id}`);
     const file_data = await window.electron.fetchstats(url, stats_data);
 
+    if (file_data?.cookie) {
+        add_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });
+        return;
+    }
+
     if (!file_data || !file_data.ok) {
-        add_alert("failed to get collection", { type: "error" });
+        add_alert("failed to get collection", { type: "error" });   
         return;
     }
 
@@ -392,11 +397,17 @@ const fetch_osustats = async (collection_url) => {
     core.reader.set_buffer(buffer);
 
     const osdb_data = await core.reader.get_osdb_data();
-    const all_hashes = osdb_data.collections.reduce((acc, c) => {
-        c.beatmaps.forEach((b) => acc.push(b.md5));
+    const all_hashes = [];
+    const missing_beatmaps = osdb_data.collections.reduce((acc, c) => {
+        for (let i = 0; i < c.beatmaps.length; i++) {
+            const b = c.beatmaps[i];
+            if (!core.reader.osu.beatmaps.has(b.md5)) {
+                acc.push({ id: b.map_set_id, md5: b.md5 });
+            }
+            all_hashes.push(b.md5);
+        }
         return acc;
     }, []);
-    const missing_beatmaps = all_hashes.filter((hash) => !core.reader.osu.beatmaps.has(hash));
 
     collection_data.name = collection_data.title;
 
