@@ -60,7 +60,7 @@ export const remove_maps = async (id) => {
 
         const custom_list = [ 
             { key: "star_rating", element: { range: { min: 0, max: 30 } } },
-            { key: "ignore from collections", element: { checkbox: {  } } },
+            { key: "ignore_from_collections", element: { checkbox: {  } } },
             { key: "status", element: { list: { options: Object.keys(stats) }} }
         ];
 
@@ -149,6 +149,8 @@ export const remove_maps = async (id) => {
         create_alert(`Done!\nRemoved ${off.size} beatmaps`);
         return `Done!\nRemoved ${off.size} beatmaps`;
     } catch(err) {
-        console.log(err);
+        if (err != "Cancelled") {
+            console.log(err);
+        }     
     }
 };
