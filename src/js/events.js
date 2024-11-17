@@ -1,5 +1,5 @@
 import { tasks, all_tabs, blink, download_types } from "./tabs.js";
-import { add_alert, add_get_extra_info } from "./popup/popup.js";
+import { create_alert, message_types, create_custom_message } from "./popup/popup.js";
 import { download_maps, current_download } from "./utils/download_maps.js";
 
 class EventEmitter {
@@ -52,15 +52,20 @@ const start_task = (task) => {
                 return;
             }
             
-            const confirmation = await add_get_extra_info([{ type: "confirmation", text: "Press Yes to cancel the current download"}]);
+            const confirmation = await create_custom_message({
+                type: message_types.MENU,
+                title: "press yes to cancel the current download",
+                items: ["yes", "no"]
+            });
 
-            if (!confirmation) {
+            if (confirmation != "yes") {
                 return;
             }
 
             // if its downloading, stop it
             if (current_download.id == task.id) {          
-                current_download.stop = true;
+                current_download.should_stop = true;
+                console.log(current_download);
             } else { // or just remove from the queue list
                 console.log(current_download, task.id);      
                 remove_queue_div(task.id);
@@ -79,7 +84,7 @@ const start_task = (task) => {
                 all_content[2].removeChild(status);
             }
 
-            add_alert("download cancelled");
+            create_alert("download cancelled");
         });
     }
     
@@ -183,7 +188,7 @@ export const handle_event = async (data, callback, ...args) => {
         // add the download to the queue
         if (queue.size != 0) {
             console.log("adding to the queue");
-            add_alert(`Added Download to queue`, { type: "success" });
+            create_alert(`Added Download to queue`, { type: "success" });
         }
 
         queue.set(data.id, { id: data.id, list: callback_value, status: "waiting", tab: data.tab, dtab: data.dtab });
@@ -198,7 +203,7 @@ export const handle_event = async (data, callback, ...args) => {
             return;
         }
 
-        add_alert(err, { type: "error" });
+        create_alert(err, { type: "error" });
     }
 }
 

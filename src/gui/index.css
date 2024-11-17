@@ -282,7 +282,6 @@ label {
     display: block;
     margin-top: 10px;
     font-size: 1em;
-    height: 1.35em;
 }
 
 .blur {
@@ -329,8 +328,14 @@ label {
     overflow: hidden;
     pointer-events: auto;
     box-sizing: border-box;
-    transition: opacity 0.5s ease-out;
-    animation: smooth-appear 0.5s ease forwards;
+}
+
+.alert-popup.start {
+    animation: smooth-appear 0.50s ease forwards;
+}
+
+.alert-popup.end {
+    animation: smooth-disappear 0.50s ease forwards;
 }
 
 .alert-icon {

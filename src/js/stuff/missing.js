@@ -1,4 +1,4 @@
-import { add_alert, add_get_extra_info } from "../popup/popup.js";
+import { message_types, create_alert, create_custom_message } from "../popup/popup.js";
 import { search_map_id } from "../utils/download_maps.js";
 import { events } from "../events.js";
 import { core } from "../utils/config.js";
@@ -25,11 +25,13 @@ export const export_missing = async (id) => {
                 }
             }
 
-            console.log("missing maps", missing_maps);
+            const confirm = await create_custom_message({
+                type: message_types.MENU,
+                title: "Export from a specific collection?",
+                items: ["yes", "no"]
+            });
     
-            const confirm = await add_get_extra_info([{ type: "confirmation", text: "Export from a specific collection?" }]);
-    
-            if (confirm == null) {
+            if (confirm != "yes") {
                 reject("cancelled");
                 return;
             }
@@ -44,10 +46,20 @@ export const export_missing = async (id) => {
                         obj.push(collections[i]);
                     }
                 }
-        
-                const name = await add_get_extra_info([{ type: "list", value: [...obj], title: "Select a collection" }]);
+
+                // TODO: this is not ideal lmao, too much code for a simple task.
+                // also theres no reason to return the key object since theres only a list
+                const confirm = await create_custom_message({
+                    type: message_types.CUSTOM_MENU,
+                    title: "select one",
+                    elements: [{
+                        key: "collection",
+                        element: { list: [...obj] }
+                    }]
+                });
+                const name = confirm.collection;
     
-                if (name == null) {
+                if (!name) {
                     reject("cancelled");
                     return;
                 }
@@ -59,10 +71,10 @@ export const export_missing = async (id) => {
                     return;
                 }
     
-                console.log("Done finding missing maps");
+                console.log("finished checking missing maps");
             }
         
-            add_alert("searching beatmap ids\nthis might take a while...");
+            create_alert("searching beatmap ids\nthis might take a while...");
         
             await new Promise(async (re) => {
         
@@ -83,7 +95,7 @@ export const export_missing = async (id) => {
                     events.emit("progress-update", { id: id, perc: (i / missing_maps.length * 100), i: i, l: missing_maps.length });
                 }
         
-                console.log("Done searching beatmap ids");
+                console.log("finished beatmap search");
 
                 re();
             });
@@ -122,59 +134,67 @@ export const missing_download = async (id) => {
                 }
             }
             
-            add_alert(`found ${missing_maps.length} missing maps`);
+            create_alert(`found ${missing_maps.length} missing maps`);
+
+            const confirm = await create_custom_message({
+                type: message_types.MENU,
+                title: "Download from a specific collection?",
+                items: ["yes", "no"]
+            });
     
-            const confirm = await add_get_extra_info([{ type: "confirmation", text: "Download from a specific collection?" }]);
-    
-            if (confirm == null) {
+            if (confirm != "yes") {
                 reject("Cancelled");
                 return;
             }
     
-            if (confirm) {
-    
-                const collections = [...new Set(missing_maps.map(a => a.collection_name))];
-                const obj = [];
-    
-                for (let i = 0; i < collections.length; i++) {
-                    if (collections[i]) {
-                        obj.push(collections[i]);
-                    }
+            const collections = [...new Set(missing_maps.map(a => a.collection_name))];
+            const obj = [];
+
+            for (let i = 0; i < collections.length; i++) {
+                if (collections[i]) {
+                    obj.push(collections[i]);
                 }
-    
-                const name = await add_get_extra_info([{ type: "list", value: [...obj] }]);
-    
-                if (!name) {
-                    reject("Cancelled");
-                    return;
-                }
-    
-                const abc = missing_maps;
-    
-                missing_maps = [];
-    
-                for (let i = 0; i < abc.length; i++) {
-                    
-                    if (abc[i].collection_name != name || !abc[i].hash) {
-                        continue;
-                    }
-    
-                    missing_maps.push(abc[i]);
-                }
-    
-                if (!missing_maps) {
-                    reject("collection not found");
-                    return;
-                }
-                
-                add_alert("Found:", missing_maps.length, "maps");
             }
-    
+
+            const collection = await create_custom_message({
+                type: message_types.CUSTOM_MENU,
+                title: "select one",
+                elements: [{
+                    key: "name",
+                    element: { list: [...obj] }
+                }]
+            });
+            const name = collection.name;
+
+            if (!name) {
+                reject("Cancelled");
+                return;
+            }
+
+            const abc = missing_maps;
+
+            missing_maps = [];
+
+            for (let i = 0; i < abc.length; i++) {
+                
+                if (abc[i].collection_name != name || !abc[i].hash) {
+                    continue;
+                }
+
+                missing_maps.push(abc[i]);
+            }
+
+            if (!missing_maps) {
+                reject("collection not found");
+                return;
+            }
+            
+            create_alert(`found: ${missing_maps.length} maps`);
             resolve(missing_maps);
         }
         catch(err) {
             console.log(`[MISSING DOWNLOAD] Error: ${err}`);
-            reject("Something went wrong");
+            reject(err == "Cancelled" ? "Cancelled" : "something went wrong");
         }
     });
 };

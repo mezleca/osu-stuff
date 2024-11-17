@@ -1,4 +1,4 @@
-import { add_alert } from "../popup/popup.js";
+import { create_alert } from "../popup/popup.js";
 import { osu_login } from "./other/login.js";
 import { debounce, initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
@@ -39,7 +39,7 @@ export const setup_tooltip = () => {
     for (const tooltip of tooltips) {
         tooltip.addEventListener("click", () => {
             const text = tooltips_text[tooltip.id];
-            add_alert(text, true, { html: true, seconds: 5 });
+            create_alert(text, { html: true, seconds: 5 });
         });
     }
 }
@@ -61,7 +61,7 @@ export const get_files = async (osu) => {
     const cl_file = path.resolve(osu, "collection.db");
 
     if (!fs.existsSync(db_file)) {
-        add_alert("failed to find osu.db file\nmake sure the osu path is valid", { type: "error" });
+        create_alert("failed to find osu.db file\nmake sure the osu path is valid", { type: "error" });
         return;
     }
 
@@ -109,18 +109,18 @@ const setup_config = async () => {
     if (osu_id, osu_secret) {
         core.login = await osu_login(osu_id, osu_secret);
         if (!core.login) {
-            add_alert("Failed to login", { type: "error" });
+            create_alert("Failed to login", { type: "error" });
             return;
         }
     }
 
     if (!fs.existsSync(osu_path) || !fs.existsSync(osu_songs)) {
-        add_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
+        create_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
         return;
     }
 
     await get_files(osu_path);
-    add_alert("config is working!", { type: "success" });
+    create_alert("config is working!", { type: "success" });
 };
 
 const handle_config_check = async () => {
@@ -130,7 +130,7 @@ const handle_config_check = async () => {
     document.querySelectorAll("#config_fields").forEach((field) => {
         const input = field.querySelector("input");
         if (!input.value) {
-            add_alert(`missing value for ${input.id}`, { type: "error" });
+            create_alert(`missing value for ${input.id}`, { type: "error" });
             is_valid = false;
         }
     });
@@ -258,17 +258,17 @@ export const add_config_shit = async () => {
     setup_tooltip();
 
     if (!empty_config) {
-        add_alert("config not found<br>can you take a look at config tab pleease :)", { html: true });
+        create_alert("config not found<br>can you take a look at config tab pleease :)", { html: true });
         return;
     }
 
     if (!fs.existsSync(core.config.get("osu_path"))) {
-        add_alert("osu path is invalid!", { type: "alert" });
+        create_alert("osu path is invalid!", { type: "alert" });
         return;
     }
 
     if (!fs.existsSync(core.config.get("osu_songs_path"))) {
-        add_alert("osu songs path is invalid!", { type: "alert" });
+        create_alert("osu songs path is invalid!", { type: "alert" });
         return;
     }
 

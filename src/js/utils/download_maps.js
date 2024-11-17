@@ -1,5 +1,5 @@
 import { core } from "./config.js";
-import { add_alert } from "../popup/popup.js";
+import { create_alert } from "../popup/popup.js";
 import { events } from "../events.js";
 import { initialize } from "../manager/manager.js";
 import { osu_fetch } from "./other/fetch.js";
@@ -78,11 +78,11 @@ export const download_map = async (hash) => {
 export const download_maps = async (maps, id) => {
 
     if (!id) {
-        return add_alert("Missing id", { type: "error" });
+        return create_alert("Missing id", { type: "error" });
     }
 
     if (!maps) {
-        add_alert("No maps to download");
+        create_alert("0 maps to download");
         return;
     }
 
@@ -245,7 +245,7 @@ class map_downloader {
         await initialize();
 
         if (!this.should_stop) {
-            add_alert("download completed");
+            create_alert("download completed");
             events.emit("progress-end", this.id, true);
         }
     }

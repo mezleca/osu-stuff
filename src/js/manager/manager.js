@@ -1,6 +1,6 @@
 import { core, get_files } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
-import { add_alert, add_get_extra_info } from "../popup/popup.js"
+import { create_alert, create_custom_message, message_types } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
@@ -127,12 +127,12 @@ const render_beatmap = (beatmap) => {
 
         download_btn.addEventListener("click", async () => {
 
-            add_alert("searching beatmap...");
+            create_alert("searching beatmap...");
 
             const beatmap_data = await download_map(beatmap.md5);
 
             if (!beatmap_data) {
-                add_alert("Beatmap not found :c", { type: "alert" });
+                create_alert("Beatmap not found :c", { type: "alert" });
                 return;
             }
 
@@ -365,14 +365,14 @@ const fetch_osustats = async (collection_url) => {
     const id = collection_url.split("/").find((v) => Number(v));
 
     if (!id) {
-        add_alert("failed to get collection id", { type: "error" });
+        create_alert("failed to get collection id", { type: "error" });
         return;
     }
 
     const stats_data = await get_from_database("stats", "data");
 
     if (!stats_data) {
-        add_alert("please login on osustats before using that feature", { type: "warning" });
+        create_alert("please login on osustats before using that feature", { type: "warning" });
         const data = await window.electron.create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
         await save_to_db("stats", "data", data);
     }
@@ -382,12 +382,12 @@ const fetch_osustats = async (collection_url) => {
     const file_data = await window.electron.fetchstats(url, stats_data);
 
     if (file_data?.cookie) {
-        add_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });
+        create_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });
         return;
     }
 
     if (!file_data || !file_data.ok) {
-        add_alert("failed to get collection", { type: "error" });   
+        create_alert("failed to get collection", { type: "error" });   
         return;
     }
 
@@ -421,11 +421,11 @@ const fetch_osustats = async (collection_url) => {
 btn_add.addEventListener("click", async () => {
 
     if (need_to_save) {
-        add_alert("please update before using this feature");
+        create_alert("please update before using this feature");
         return;
     }
 
-    const prompt = await add_get_extra_info([{ type: "input", text: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" }]);
+    const prompt = await create_custom_message({ type: "input", label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" });
 
     if (!prompt) {
         return;
@@ -447,7 +447,7 @@ btn_add.addEventListener("click", async () => {
     const { c_maps: maps, maps: yep_maps, collection } = info;
 
     if (collections.has(collection.name)) {
-        add_alert("you already have a collection with this name");
+        create_alert("you already have a collection with this name");
         return;
     }
 
@@ -457,23 +457,29 @@ btn_add.addEventListener("click", async () => {
         document.querySelector(".collection-container").remove();
     }
 
-    const download = await add_get_extra_info([{
-        type: "confirmation",
-        important: true,
-        text: `download maps from ${collection.name}?`
-    }]);
+    const download = await create_custom_message({
+        type: message_types.MENU,
+        title: `download maps from ${collection.name}?`,
+        items: ["yes", "no"]
+    });
 
-    if (download) {
-        await create_download_task(collection.name, yep_maps);
+    if (download != "yes") {
+        return;
     }
+
+    await create_download_task(collection.name, yep_maps);
 });
 
 btn_update.addEventListener("click", async () => {
 
-    const confirm = await add_get_extra_info([{ type: "confirmation", text: "are you sure?<br>if you click yes your collection file will be modified"}]);
+    const confirm = await create_custom_message({
+        type: message_types.MENU,
+        title: "are you sure?<br>if you click yes your collection file will be modified",
+        items: ["yes", "no"]
+    });
 
-    if (!confirm) {
-        return
+    if (confirm != "yes") {
+        return;
     }
 
     const new_collection = {
@@ -502,7 +508,7 @@ btn_update.addEventListener("click", async () => {
     await fs.renameSync(old_name, new_name);
 
     core.reader.write_collections_data(old_name);
-    add_alert("Done!");
+    create_alert("Done!");
 
     need_to_save = false;
 })
@@ -593,7 +599,7 @@ export const setup_manager = () => {
             const collection_name = collection.textContent;
 
             if (!collection_name) {
-                add_alert("Please select a collection", { type: "warning" })
+                create_alert("Please select a collection", { type: "warning" })
                 return
             }
 
@@ -603,7 +609,7 @@ export const setup_manager = () => {
                 collections.delete(collection_name);   
                 document.querySelector(".collection-container").remove(); 
                 setup_manager(); 
-                add_alert(collection_name, "has been deleted"); 
+                create_alert(`${collection_name} has been deleted`); 
             }
         });
 

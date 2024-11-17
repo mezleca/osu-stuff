@@ -1,4 +1,4 @@
-import { add_alert, add_get_extra_info, createcustomlist } from "../popup/popup.js";
+import { create_custom_message, create_alert, message_types } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 
 const is_testing = window.electron.dev_mode;
@@ -48,25 +48,33 @@ export const remove_maps = async (id) => {
 
     try {
 
-        const areyousure = await add_get_extra_info([{ type: "confirmation", text: "This feature is still experimental\nDo you really want to continue?"}]);
+        const proc = await create_custom_message({
+            type: message_types.MENU,
+            title: "This feature is still experimental\nSo... are you sure?",
+            items: ["yes", "no"]
+        });
         
-        if (!areyousure) {
+        if (proc != "yes") {
             return "";
         }
 
         const custom_list = [ 
-            { key: "star rating", element: { range: { min: 0, max: 30 } } },
-            { key: "ignore beatmaps from collections", element: { checkbox: { } } },
+            { key: "star_rating", element: { range: { min: 0, max: 30 } } },
+            { key: "ignore from collections", element: { checkbox: {  } } },
             { key: "status", element: { list: { options: Object.keys(stats) }} }
         ];
 
-        const filter_data = await createcustomlist("beatmap filter", custom_list);
+        const filter_data = await create_custom_message({
+            type: message_types.CUSTOM_MENU,
+            title: "menu",
+            elements: custom_list
+        });
 
         if (!filter_data) {
-            throw new Error("Filter data not provided");
+            throw new Error("filter_data not provided");
         }
 
-        const { star_rating: { min: min_sr, max: max_sr }, status: selected_status, ignore_beatmaps_from_collections } = filter_data;
+        const { star_rating: { min: min_sr, max: max_sr }, status: selected_status, ignore_from_collections } = filter_data;
         const status = stats[selected_status];
 
         const hashes = new Set(core.reader.collections.beatmaps.flatMap(beatmap => beatmap.maps));
@@ -75,12 +83,12 @@ export const remove_maps = async (id) => {
         const filtered_maps = new Map();
         const osu_songs_path = core.config.get("osu_songs_path");
 
-        for (let [k, v] of core.reader.osu.beatmaps) { // map
+        for (let [k, v] of core.reader.osu.beatmaps) {
             const b = v;
             const sp = path.resolve(osu_songs_path, b.folder_name);    
             const song_path = path.resolve(sp, b.file);
 
-            if ((b.status !== status && status !== -1) || (hashes.has(b.md5) && ignore_beatmaps_from_collections) || !check_difficulty_sr(b, min_sr, max_sr)) {
+            if ((b.status !== status && status !== -1) || (hashes.has(b.md5) && ignore_from_collections) || !check_difficulty_sr(b, min_sr, max_sr)) {
                 filtered_maps.set(b.md5, b);
                 continue;
             }
@@ -92,15 +100,19 @@ export const remove_maps = async (id) => {
             throw new Error("found 0 beatmaps ;-;");
         }
 
-        add_alert(`found ${off.size} beatmaps`);
+        create_alert(`found ${off.size} beatmaps`);
 
-        const confirmation = await add_get_extra_info([{ important: true, type: "confirmation" , text: ` are you sure? `}]);
+        const delete_conf = await create_custom_message({
+            type: message_types.MENU,
+            title: "are you really sure?",
+            items: ["yes", "no"]
+        });
         
-        if (!confirmation) {
+        if (delete_conf != "yes") {
             throw new Error("cancelled");
         }
 
-        add_alert("removing beatmaps...");
+        create_alert("removing beatmaps...");
 
         core.reader.osu.beatmaps = filtered_maps;
 
@@ -134,7 +146,7 @@ export const remove_maps = async (id) => {
         await fs.renameSync(old_name, new_backup_name);
         await core.reader.write_osu_data(Array.from(off), path.resolve(core.config.get("osu_path"), "osu!.db"));
 
-        add_alert(`Done!\nRemoved ${off.size} beatmaps`);
+        create_alert(`Done!\nRemoved ${off.size} beatmaps`);
         return `Done!\nRemoved ${off.size} beatmaps`;
     } catch(err) {
         console.log(err);

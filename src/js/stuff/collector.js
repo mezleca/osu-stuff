@@ -1,5 +1,5 @@
 import { events } from "../events.js";
-import { add_alert } from "../popup/popup.js";
+import { create_alert } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { collections, initialize } from "../manager/manager.js";
@@ -36,12 +36,12 @@ const get_tournament_maps = async(id) => {
 export const setup_collector = async (url) => {
 
     if (!core.login) {
-        add_alert("forgot to configurate? :P");
+        create_alert("forgot to configurate? :P");
         return null;
     }
 
     if (!url_is_valid(url, "osucollector.com")) {
-        add_alert("invalid url", { type: "error" });
+        create_alert("invalid url", { type: "error" });
         return null;
     }
 
@@ -49,7 +49,7 @@ export const setup_collector = async (url) => {
     const collection_id = url_array.find(part => Number(part));
     
     if (!collection_id) {
-        add_alert("invalid url", { type: "error" });
+        create_alert("invalid url", { type: "error" });
         return null;
     }
 
@@ -62,7 +62,7 @@ export const setup_collector = async (url) => {
     const collection_data = is_tournament ? response : await response.json();
 
     if (response.status !== 200 || !collection_data.beatmapsets) {
-        add_alert("failed to get collection", { type: "error" });
+        create_alert("failed to get collection", { type: "error" });
         return null;
     }
 
@@ -137,7 +137,7 @@ export const add_collection = async (url) => {
         }));
     
         if (is_testing) {
-            add_alert("Your collection file has been updated!");
+            create_alert("Your collection file has been updated!");
             resolve(`Your collection file has been updated!`);
             return;
         }
@@ -155,7 +155,7 @@ export const add_collection = async (url) => {
         // update manager
         await initialize({ force: true });
 
-        add_alert("Your collection file has been updated!");
+        create_alert("Your collection file has been updated!");
         resolve(`Your collection file has been updated!`);
     });  
 }

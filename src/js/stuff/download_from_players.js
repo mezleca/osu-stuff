@@ -1,6 +1,5 @@
 import { core } from "../utils/config.js";
-import { add_alert } from "../popup/popup.js";
-import { add_get_extra_info } from "../popup/popup.js";
+import { create_alert, create_custom_message, message_types } from "../popup/popup.js";
 import { add_collection_manager } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
@@ -42,7 +41,7 @@ const add_to_collection = async (maps, name, type) => {
 
     await add_collection_manager(maps, { name: collection_name });
 
-    add_alert(`added ${name} ${type} to your collection!`, { type: "success" });
+    create_alert(`added ${name} ${type} to your collection!`, { type: "success" });
 };
 
 const fetch_maps = async (base_url, limit) => {
@@ -92,7 +91,7 @@ const get_player_info = async (name, method) => {
         return;
     }
 
-    add_alert("searching player...");
+    create_alert("searching player...");
 
     const data = {   
         method: "GET",
@@ -113,9 +112,8 @@ const get_player_info = async (name, method) => {
 
     const extra_response = await fetch(`https://osu.ppy.sh/users/${default_data.id}/extra-pages/top_ranks?mode=osu`, data);
     const extra_data = await extra_response.json();
-    
+
     if (!extra_data) {
-        console.log("extra");
         return;
     }
 
@@ -149,12 +147,16 @@ export const download_from_players = async (player, method) => {
 
         if (method == "created maps") {
 
-            const ranked_method = await add_get_extra_info([{
-                type: "list",
-                value: ["ranked", "loved", "pending", "graveyard", "all maps"],
-                important: false,
-                title: "method"
-            }]);
+            const ranked = await create_custom_message({
+                type: message_types.CUSTOM_MENU,
+                title: "method",
+                elements: [{
+                    key: "name",
+                    element: { list: ["ranked", "loved", "pending", "graveyard", "all maps"] }
+                }]
+            });
+
+            const ranked_method = ranked.name;
 
             if (!ranked_method) {
                 return reject();
@@ -166,16 +168,20 @@ export const download_from_players = async (player, method) => {
         const player_info = await get_player_info(player, method);
 
         if (!player_info) {
-            add_alert("player", player, "not found");
+            create_alert(`player ${player} not found`);
             return;
         }
 
-        const download_method = await add_get_extra_info([{
-            type: "list",
-            value: ["download", "add to collections", "both"],
-            important: false,
-            input_type: "url"
-        }]);
+        const download = await create_custom_message({
+            type: message_types.CUSTOM_MENU,
+            title: "method",
+            elements: [{
+                key: "name",
+                element: { list: ["download", "add to collections", "both"] }
+            }]
+        });
+
+        const download_method = download.name;
 
         if (!download_method) {
             return reject();
@@ -219,7 +225,7 @@ export const download_from_players = async (player, method) => {
             }
 
             if (!maps) {
-                add_alert("found 0 maps ;-;");
+                create_alert("found 0 maps ;-;");
                 return reject();
             }
             

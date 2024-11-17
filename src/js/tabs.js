@@ -1,5 +1,5 @@
 import { handle_event } from "./events.js";
-import { add_alert, add_get_extra_info } from "./popup/popup.js";
+import { create_alert, create_custom_message, message_types } from "./popup/popup.js";
 import { core } from "./utils/config.js";
 import { remove_maps } from "./stuff/remove_maps.js";
 import { missing_download } from "./stuff/missing.js";
@@ -73,12 +73,12 @@ export const add_tab = (id) => {
     const d_tab = document.getElementById("download_tab");
     
     if (!id) {
-        add_alert("Missing id", { type: "error" });
+        create_alert("Missing id", { type: "error" });
         return null;
     }
 
     if (tasks.has(id)) {
-        add_alert("theres already a download for this task", { type: "warning" });
+        create_alert("theres already a download for this task", { type: "warning" });
         return null;
     }
     
@@ -116,7 +116,7 @@ btn_remove_invalid_maps.addEventListener("click", async () => {
     const running_osu = await window.electron.is_running("osu!");
 
     if (running_osu) {
-        add_alert("Please close osu to use this function");
+        create_alert("Please close osu to use this function");
         return;
     }
 
@@ -137,7 +137,7 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
     const id = btn_get_missing_beatmaps.id;
 
     if (core.login == null) {
-        add_alert("Did you forgor to setup your config?");
+        create_alert("Did you forgor to setup your config?");
         return;
     }
 
@@ -156,29 +156,31 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
 get_player_beatmaps.addEventListener("click", async () => {
 
     if (core.login == null) {
-        add_alert("Did you forgor to setup your config?");
+        create_alert("Did you forgor to setup your config?");
         return;
     }
 
-    const player = await add_get_extra_info([{
-        type: "input",
-        text: "player name",
-        important: false
-    }]);
+    const player = await create_custom_message({
+        type: message_types.INPUT,
+        title: "This feature is still experimental\nSo... are you sure?",
+        label: "player name",
+        input_type: "text",
+    });
 
     if (!player) {
         return;
     }
 
-    // TODO: use select tag instead of buttons so the user can select more than 1 option
-    const method =  await add_get_extra_info([{
-        type: "list",
-        value: ["best performance", "first place", "favourites", "created maps", "all"],
-        important: false,
-        title: "method"
-    }]);
+    const method = await create_custom_message({
+        type: message_types.CUSTOM_MENU,
+        title: "method",
+        elements: [{
+            key: "name",
+            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
+        }]
+    });
 
-    if (!method) {
+    if (!method.name) {
         return;
     }
 
@@ -192,7 +194,7 @@ get_player_beatmaps.addEventListener("click", async () => {
     const data = { started: false, ...new_task };
     tasks.set(task_name, data);
     
-    await handle_event(data, download_from_players, player, method);
+    await handle_event(data, download_from_players, player, method.name);
 });
 
 export const create_download_task = async (name, maps) => {
