@@ -22,7 +22,6 @@ const btn_update = document.getElementById("update_collections");
 const search_box = document.getElementById("current_search");
 
 const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-
 const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
 
 const change_input_value = (name) => {
@@ -34,7 +33,6 @@ const get_current_item = () => {
     const items = Array.from(document.querySelectorAll(".collection-item"));
 
     if (!items) {
-        console.log("no items");
         return null;
     }
 
@@ -43,7 +41,7 @@ const get_current_item = () => {
         const element = items[i];
 
         if (element.classList.contains("selected")) {
-            return element;
+            return { element: element, name: element.children[0].innerHTML};
         }
     }
 
@@ -60,6 +58,7 @@ const remove_beatmap = (hash) => {
 
         if (beatmap.md5 == hash) {
             beatmaps.splice(i, 1);
+            break;
         }
     }
 
@@ -198,13 +197,15 @@ const render_tab = (tab, beatmaps, filter = "") => {
 
     requestAnimationFrame(() => {
         lazy_load();
-    })
+    }) 
 }
 
 const add_load_more_button = (tab, beatmaps, start, filter, total_matching) => {
 
+    const collection_name = get_current_item()?.name;
+
     const load_more = document.createElement('button');
-    load_more.textContent = `load more (${start}/${total_matching})`;
+    load_more.textContent = `load more (${start}/${collections.get(collection_name)?.length || total_matching})`;
 
     load_more.style.width = "95%";
     load_more.style.alignSelf = "center";
@@ -244,14 +245,12 @@ const render_more_beatmaps = (tab, beatmaps, start, filter, total_matching, coun
 
     tab.appendChild(fragment);
 
-    const new_start = start + rendered_count
+    const new_start = start + rendered_count;
     if (new_start < total_matching) {
-        add_load_more_button(tab, beatmaps, new_start, filter, total_matching)
+        add_load_more_button(tab, beatmaps, new_start, filter, total_matching);
     }
 
-    requestAnimationFrame(() => {
-        lazy_load()
-    });
+    requestAnimationFrame(lazy_load);
 }
 
 const filter_beatmap = (beatmap, filter) => {
@@ -302,23 +301,14 @@ input_collection_name.addEventListener("input", () => {
     }
 
     const old_value = collections.get(current_name);
-    const collection_item = get_current_item();
+    const { element: collection_item, name: collection_name } = get_current_item();
 
-    if (!collection_item) {
+    if (!collection_item || !collection_name) {
         console.log("item not found");
         return;
     }
 
-    const collection_name = collection_item.children[0];
-    collection_name.innerHTML = input.value;
-
-    collections.delete(current_name);
-    collections.set(input.value, old_value);
-
-    current_name = input.value;
-    need_to_save = true;
-
-    update_current_item();
+    update_current_item(input.value, old_value);
 });
 
 export const debounce = (func, delay) => {
@@ -539,31 +529,40 @@ function lazy_load() {
     }
 }
 
-const update_current_item = () => {
+const update_current_item = (new_name, old_value) => {
 
-    const current_item = get_current_item();
-    const name = current_item.children[0].innerHTML;
+    const { element: current_item, name: name } = get_current_item();
 
     // clone the old element
-    const old_element = current_item
+    const old_element = current_item;
     const new_element = old_element.cloneNode(true);
 
     // replace it to remove all listeners
     old_element.parentNode.replaceChild(new_element, old_element);
 
-    if (!name) {
-        console.log("invalid name", name);
+    // update the collections map
+    collections.delete(name);
+    collections.set(new_name, old_value);
+
+    current_name = new_name;
+    need_to_save = true;
+
+    if (!new_name) {
+        console.log("invalid name", new_name);
         return;
     }
 
+    // update the div name
+    new_element.firstElementChild.innerText = new_name;
+    
     new_element.addEventListener("click", () => {
         const all_collections_text = Array.from(collection_list.children);
         all_collections_text.forEach(e => e.classList.remove("selected"));
         new_element.classList.add("selected");
         remove_container();
-        render_tab(create_container(name), collections.get(name));
-        change_input_value(name);
-        current_name = name;
+        render_tab(create_container(new_name), collections.get(new_name));
+        change_input_value(new_name);
+        current_name = new_name;
     });
 };
 
@@ -572,22 +571,23 @@ export const setup_manager = () => {
     collection_list.innerHTML = "";
 
     const fragment = document.createDocumentFragment();
-    const template = document.createElement('template');
-
-    template.innerHTML = `
-    <div class="collection-item">
-        <p class="collection-name"></p>
-        <i class="bi bi-trash-fill" id="remove_collection"></i>
-    </div>
+    const collection_html = `
+        <div class="collection-item">
+            <p class="collection-name"></p>
+            <i class="bi bi-trash-fill" id="remove_collection"></i>
+        </div>
     `;
 
     for (let [k, v] of collections) {
 
-        const new_collection = template.content.cloneNode(true).firstElementChild;
+        //const new_collection = template.content.cloneNode(true).firstElementChild;
+        const new_collection = new DOMParser().parseFromString(collection_html, "text/html").body.firstElementChild;
         const collection_name = new_collection.querySelector(".collection-name");
         const remove_collection = new_collection.querySelector("#remove_collection");
 
-        remove_collection.addEventListener("click", async () => {
+        remove_collection.addEventListener("click", async (e) => {
+
+            e.stopPropagation();
 
             const collection = remove_collection.previousElementSibling;
 
@@ -624,17 +624,17 @@ export const setup_manager = () => {
 
             if (collection_text) {
                 collection_text.remove();
-            }      
+            }
 
             const all_collections_text = Array.from(collection_list.children);
+            all_collections_text.forEach(e => e.classList.remove("selected"));
+
+            new_collection.classList.add("selected");
+            current_name = k;
 
             remove_container();
             render_tab(create_container(k), v);
             change_input_value(k);
-
-            all_collections_text.forEach(e => e.classList.remove("selected"));
-            new_collection.classList.add("selected");
-            current_name = k;
         });
 
         fragment.appendChild(new_collection)
