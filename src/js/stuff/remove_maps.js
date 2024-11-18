@@ -59,8 +59,8 @@ export const remove_maps = async (id) => {
         }
 
         const custom_list = [ 
-            { key: "star_rating", element: { range: { min: 0, max: 30 } } },
-            { key: "ignore_from_collections", element: { checkbox: {  } } },
+            { key: "star_rating", element: { range: { label: "star rating", min: 0, max: 30 } } },
+            { key: "ignore_from_collections", element: { checkbox: { label: "ignore from collections"} } },
             { key: "status", element: { list: { options: Object.keys(stats) }} }
         ];
 
@@ -104,7 +104,7 @@ export const remove_maps = async (id) => {
 
         const delete_conf = await create_custom_message({
             type: message_types.MENU,
-            title: "are you really sure?",
+            title: "are you sure?",
             items: ["yes", "no"]
         });
         
@@ -149,7 +149,7 @@ export const remove_maps = async (id) => {
         create_alert(`Done!\nRemoved ${off.size} beatmaps`);
         return `Done!\nRemoved ${off.size} beatmaps`;
     } catch(err) {
-        if (err != "Cancelled") {
+        if (typeof err == "string") { // TODO: this sucks, need a better way to catch "cancelled" errors
             console.log(err);
         }     
     }

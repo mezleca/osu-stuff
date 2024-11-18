@@ -143,7 +143,7 @@ export const missing_download = async (id) => {
             });
     
             if (confirm != "yes") {
-                reject("Cancelled");
+                reject("cancelled");
                 return;
             }
     
@@ -167,7 +167,7 @@ export const missing_download = async (id) => {
             const name = collection.name;
 
             if (!name) {
-                reject("Cancelled");
+                reject("cancelled");
                 return;
             }
 
@@ -193,8 +193,10 @@ export const missing_download = async (id) => {
             resolve(missing_maps);
         }
         catch(err) {
-            console.log(`[MISSING DOWNLOAD] Error: ${err}`);
-            reject(err == "Cancelled" ? "Cancelled" : "something went wrong");
+            if (err != "cancelled") {
+                console.log(`[MISSING DOWNLOAD] Error: ${err}`);
+            }
+            reject(err == "cancelled" ? "cancelled" : "something went wrong");
         }
     });
 };

@@ -203,7 +203,7 @@ export const handle_event = async (data, callback, ...args) => {
             return;
         }
 
-        create_alert(err, { type: "error" });
+        create_alert(String(err), { type: "error" });
     }
 }
 

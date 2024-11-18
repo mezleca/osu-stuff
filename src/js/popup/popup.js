@@ -54,10 +54,10 @@ export const create_alert = async (text, data) => {
     }
 
     const html = `
-        <div class="alert-popup ${alert_style.class}" id="${alert_id}">
+        <div class="alert-popup ${alert_style.class}">
             <i class="alert-icon ${alert_style.icon}"></i>
             <h2>${alert_text}</h2>
-            <i class="bi bi-x alert-close"></i>
+            <i class="bi bi-x alert-close" id="${alert_id}"></i>
         </div>
     `;
 
@@ -76,15 +76,19 @@ export const create_alert = async (text, data) => {
         });
     }
 
-    alerts.set(alert_id, content);
-
-    setTimeout(() => {
+    const remove_alert = () => {
+        if (!alerts.get(alert_id)) {
+            return;
+        }
+        alerts.delete(alert_id);
         content.classList.toggle("end");
-        setTimeout(() => {
-            alerts.delete(alert_id);
-            container.removeChild(content);
-        }, 500);
-    }, seconds * 1000);
+        setTimeout(() => container.removeChild(content), 500);
+    }
+
+    alerts.set(alert_id, content);
+    document.getElementById(alert_id).addEventListener("click", remove_alert);
+
+    setTimeout(remove_alert, seconds * 1000);
 };
 
 const create_input = async (options) => {
@@ -166,25 +170,23 @@ const create_custom_menu = async (options) => {
     const { title, elements = [] } = options;
     const menu_id = crypto.randomUUID();
 
-    const create_element = (key, config) => {
+    const create_element = (key, config, label) => {
 
         const type = Object.keys(config)[0];
         const props = config[type]?.options ? config[type].options : config[type];
         const safe_key = key.replace(/\s+/g, '_');
 
-        // console.log(props);
-
         switch (type) {
             case 'list':
                 return `
-                    <label>${key}</label>
+                    <label>${label ? label : key}</label>
                     <select id="${safe_key}">
                         ${props.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                     </select>
                 `;
             case 'range':
                 return `
-                    <label>${key}</label>
+                    <label>${label ? label : key}</label>
                     <div class="input-double-balls">
                         <div class="slider-thing"></div>
                         <input type="range" id="min_${safe_key}" min="${props.min}" max="${props.max}" value="${props.min}">
@@ -199,22 +201,27 @@ const create_custom_menu = async (options) => {
                 return `
                     <div class="checkbox-container">
                         <input type="checkbox" id="${safe_key}">
-                        <label for="${safe_key}">${key}</label>
+                        <label for="${safe_key}">${label ? label : key}</label>
                     </div>
                 `;
             default:
                 return `
-                    <label>${key}</label>
+                    <label>${label ? label : key}</label>
                     <${type} id="${safe_key}">${props.text || ''}</${type}>
                 `;
         }
     };
 
+    const html_elements = elements.map(({ key, element }) => {
+        const label = Object.values(element).find(value => value?.label)?.label; // ...
+        return create_element(key, element, label);
+    }).join("");
+
     const html = `
         <div class="popup-container" id="${menu_id}">
             <div class="popup-content-flex">
                 <h1>${title}</h1>
-                ${elements.map(({ key, element }) => create_element(key, element)).join('')}
+                ${html_elements}
                 <button id="custom_menu_submit">Submit</button>
             </div>
         </div>
@@ -222,13 +229,7 @@ const create_custom_menu = async (options) => {
 
     const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
 
-    let container = document.querySelector(".container");
-    if (!container) {
-        container = document.createElement("div");
-        container.className = "container";
-        document.body.appendChild(container);
-    }
-
+    const container = document.querySelector(".container");
     container.appendChild(content);
 
     const setup_range_listeners = () => {
@@ -301,7 +302,7 @@ const create_custom_menu = async (options) => {
         content.addEventListener("click", (e) => {
             if (e.target === content) {
                 container.removeChild(content);
-                reject("Cancelled");
+                reject("cancelled");
             }
         });
     });

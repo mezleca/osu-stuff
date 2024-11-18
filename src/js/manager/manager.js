@@ -603,9 +603,13 @@ export const setup_manager = () => {
                 return
             }
 
-            const confirm = await add_get_extra_info([{ type: "confirmation", text: `delete ${collection_name}?` }]);
+            const confirm = await create_custom_message({
+                type: message_types.MENU,
+                title: `delete ${collection_name}?`,
+                items: ["yes", "no"]
+            });
 
-            if (confirm) {
+            if (confirm == "yes") {
                 collections.delete(collection_name);   
                 document.querySelector(".collection-container").remove(); 
                 setup_manager(); 
