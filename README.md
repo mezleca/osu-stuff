@@ -37,5 +37,4 @@ npm run make
 # build for specific platform
 npm run make:win    # windows
 npm run make:linux  # linux
-npm run make:mac    # mac
 ```
