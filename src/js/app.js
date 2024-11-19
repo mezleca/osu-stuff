@@ -16,18 +16,3 @@ const gui_title = document.querySelector(".title_text");
         gui_title.innerText = "osu-stuff - (dev mode)";
     }
 })();
-
-import { message_types, create_custom_message } from "./popup/popup.js";
-
-// (async () => {
-//     document.body.removeChild(document.getElementById('loading-screen'));
-//     const confirm = await create_custom_message({
-//         type: message_types.CUSTOM_MENU,
-//         title: "Export from a specific collection?",
-//         elements: [{
-//             key: "player",
-//             element: { list: ["abc", "123", "cdawe"] }
-//         }]
-//     });
-//     console.log(confirm.player);
-// })();

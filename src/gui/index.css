@@ -1,10 +1,17 @@
 @import url("./deps/bootstrap-icons.css");
 
 @font-face {
+    font-family: 'Helvetica Bold';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Helvetica'), url('./deps/Helvetica-Bold.woff') format('woff');
+}
+
+@font-face {
     font-family: 'Helvetica';
     font-style: normal;
     font-weight: normal;
-    src: local('Helvetica'), url('Helvetica-Bold.woff') format('woff');
+    src: local('Helvetica'), url('./deps/Helvetica.woff') format('woff');
 }
 
 :root {
@@ -29,7 +36,7 @@
     box-sizing: border-box;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    font-family: 'Helvetica';
+    font-family: 'Helvetica Bold';
 }
 
 html {
@@ -85,7 +92,7 @@ body {
 }
 
 .title_text {
-    font-family: 'Helvetica' !important;
+    font-family: 'Helvetica Bold' !important;
     font-size: 1 !important;
 }
 
@@ -387,9 +394,10 @@ label {
 }
 
 .alert-popup > h2 {
-    font-weight: 500;
+    font-family: "Helvetica";
+    font-weight: 400;
     color: rgb(255, 255, 255);
-    font-size: 0.97em;
+    font-size: 0.85em;
     max-width: 70%;
 }
 
