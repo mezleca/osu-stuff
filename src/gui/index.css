@@ -1,5 +1,12 @@
 @import url("./deps/bootstrap-icons.css");
 
+@font-face {
+    font-family: 'Helvetica';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Helvetica'), url('Helvetica-Bold.woff') format('woff');
+}
+
 :root {
     --bg-color: #202020;
     --content-bg: #222222;
@@ -21,10 +28,11 @@
     user-select: none;
     box-sizing: border-box;
     -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    font-family: 'Helvetica';
 }
 
 html {
-    font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
     height: 100vh;
     padding: 0;
     margin: 0;
@@ -638,7 +646,7 @@ input[type="range"]::-moz-range-thumb:hover {
     position: relative;
     display: inline-block;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 a {
