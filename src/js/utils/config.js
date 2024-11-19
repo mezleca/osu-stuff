@@ -21,7 +21,12 @@ const tooltips_text = {
     "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
 }
 
-const labels = ["osu_id", "osu_secret", "osu_path", "osu_songs_path"];
+const config_options = {
+    osu_id: "osu id",
+    osu_secret: "osu secret",
+    osu_path: "osu path",
+    osu_songs_path: "songs path"
+};
 
 const update_config = async (key, value) => {
     console.log("saving", key);
@@ -190,24 +195,22 @@ export const add_config_shit = async () => {
         blink(config_menu);
     }
 
-    for (const label of labels) {
+    for (const [k, v] of Object.entries(config_options)) {
 
-        const should_hide = label == "osu_id" || label == "osu_secret";
-        const is_readonly = !should_hide;
-        const is_dialog = !should_hide;
-        const config_value = core.config.get(label);
+        const should_hide = k == "osu_id" || k == "osu_secret";
+        const is_readonly = !should_hide, is_dialog = !should_hide;
+        const config_value = core.config.get(k);
 
         const container_element = create_element_from_string(`
             <div class="input-container" id="config_fields">
-                <label for="${label}">
-                    ${label}
-                    ${tooltips_text[label] ? `<div class="tooltip" id="${label}">(?)</div>` : ''}
+                <label for="${k}">
+                    ${v}
+                    ${tooltips_text[k] ? `<div class="tooltip" id="${k}">(?)</div>` : ''}
                 </label>
                 <input 
                     class="${is_dialog ? 'config_input' : 'file_input'}" 
                     type="${should_hide ? 'password' : 'text'}" 
-                    name="${label}" 
-                    id="${label}" 
+                    name="${k}" id="${k}" 
                     value="${config_value || ''}" 
                     ${is_readonly ? 'readonly' : ''}>
             </div>
@@ -254,7 +257,6 @@ export const add_config_shit = async () => {
 
     check_button.addEventListener("click", handle_config_check);
 
-    // event listner to all tooltips
     setup_tooltip();
 
     if (!empty_config) {
