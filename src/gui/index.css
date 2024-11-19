@@ -445,6 +445,10 @@ label {
     border: 1px solid rgb(255 255 255 / 25%);
 }
 
+.popup-content > label {
+    margin-bottom: 0.2em;
+}
+
 .popup-content-flex > label {
     font-size: 0.95em;
     font-weight: bold;
