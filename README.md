@@ -9,6 +9,7 @@
 
 ## Quick start
 1. grab the latest stable release (v1.2.5) [here](https://github.com/mezleca/osu-stuff/releases/)
+   or get the last electron release (v1.2.7) [here](https://github.com/mezleca/osu-stuff/releases/)
 2. run it (needs admin rights)
 
 if you find any bugs, crashes, etc... hit F12 for devtools and send the logs to my [osu profile](https://osu.ppy.sh/users/mzle) or open an issue on this repo

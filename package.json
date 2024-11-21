@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "v2.0.0",
+  "version": "v1.2.7",
   "description": "just another app to manage osu! stable collections and download beatmaps ",
   "main": "src/index.js",
   "type": "module",
