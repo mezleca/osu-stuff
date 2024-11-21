@@ -1,28 +1,33 @@
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">just another app to manage osu! stable collections and download beatmaps </p>
+    <p align="center">just another app to manage osu! stable collections and download beatmaps</p>
 </div>
 
 <p align="center">
   <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
 </p>
 
-## Quick start
-1. grab the latest stable release (v1.2.5) [here](https://github.com/mezleca/osu-stuff/releases/)
-   or get the last electron release (v1.2.7) [here](https://github.com/mezleca/osu-stuff/releases/)
-2. run it (needs admin rights)
+## how to download
+- **v2.0.0**: (wip)  
+- **older version (v1.2.7)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.2.7)
 
-if you find any bugs, crashes, etc... hit F12 for devtools and send the logs to my [osu profile](https://osu.ppy.sh/users/mzle) or open an issue on this repo
+> [!NOTE]  
+> v2.0.0 is a simple portable app (download and open), while v1.2.7 (electron-based) uses an installer. 
 
-## Build the 2.0 version 
+if you find bugs, crashes, or anything weird:  
+- hit `F12` to open devtools and grab the logs  
+- send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
+
+## build the 2.0 version  
 
 > [!WARNING]  
-> This version is still in wip, so there's a high chance that nothing is gonna work.
+> this version is still in wip, so there's a high chance that nothing will work.
 
-prerequisites:
-- [nodejs](https://nodejs.org/)
-- git
+### prerequisites
+- [node.js](https://nodejs.org/)  
+- git  
 
+### steps
 ```bash
 # clone repo
 git clone https://github.com/mezleca/osu-stuff.git
@@ -32,20 +37,20 @@ cd osu-stuff
 npm install
 npm install -g electron-builder
 
-# run dev mode
-npm run dev
+# run the app
+npm start
 
-# or build for your platform
+# build it for your platform
 npm run make
 
-# build for specific platform
+# or build for a specific platform
 npm run make:win    # windows
 npm run make:linux  # linux
 ```
-
-# 2.0
-the first version of osu-stuff was a simple cli app with basic functionality like (download missing maps from collections, etc).
-but then the app started getting buggy cuz the cli method sucks ass, then i decided to make the first rewrite of this project (version 1.0) using electron...
-and in the end, it worked!
-but the problem is... electron is bloated as hell since its literaly a separate brower that render the html. so right now im feeling stupid because i could literaly make a websocket to comunicate with the backend so i could use whathever language i liked or maybe use bunjs? yeah thats is.
-the next version is not gonna be a huge update in terms of looking, features, etc. but im gonna completely remove electron and switch to a simple backend (i would use c# but since the bakckend is gonna be only like file reading, osu reader, and shit like that i will use bunjs) and the frontend part will be rendered using your browser so the user will not need to download another browser just to open a simple app.
+## about 2.0
+the first version of osu-stuff was a simple cli app with basic functionality like downloading missing maps from collections. <br>
+but then it started getting buggy because the cli method sucks ass, so i rewrote it using electron (version 1.0)... and it worked! <br>
+the problem? electron is bloated as hell. it's literally a whole browser just to render an app. <br>
+so now, im gonna rewrite this again, but this time, using a simple approach: <br>
+frontend opens in your browser and comunicates with the backend using websocket. <br>
+backend will be made using bunjs for simplicity and thats it. <br>
