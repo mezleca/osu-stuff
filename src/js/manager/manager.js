@@ -443,9 +443,7 @@ btn_add.addEventListener("click", async () => {
 
     await add_collection_manager(maps, collection);
 
-    if (document.querySelector(".collection-container")) {
-        document.querySelector(".collection-container").remove();
-    }
+    remove_container();
 
     const download = await create_custom_message({
         type: message_types.MENU,
@@ -611,7 +609,7 @@ export const setup_manager = () => {
 
             if (confirm == "yes") {
                 collections.delete(collection_name);   
-                document.querySelector(".collection-container").remove(); 
+                remove_container();
                 setup_manager(); 
                 create_alert(`${collection_name} has been deleted`); 
             }
@@ -676,13 +674,7 @@ export const initialize = async (options) => {
     }
 
     if (!no_update) {
-
-        const container = document.querySelector(".collection-container");
-
-        if (container) {
-            container.remove();
-        }
-
+        remove_container();
         setup_manager();
     }
 };
