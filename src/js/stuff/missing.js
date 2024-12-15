@@ -31,7 +31,8 @@ export const export_missing = async (id) => {
                 items: ["yes", "no"]
             });
     
-            if (confirm != "yes") {
+            // erm
+            if (confirm != "yes" && confirm != "no") {
                 reject("cancelled");
                 return;
             }
@@ -47,8 +48,6 @@ export const export_missing = async (id) => {
                     }
                 }
 
-                // TODO: this is not ideal lmao, too much code for a simple task.
-                // also theres no reason to return the key object since theres only a list
                 const confirm = await create_custom_message({
                     type: message_types.CUSTOM_MENU,
                     title: "select one",
@@ -142,53 +141,55 @@ export const missing_download = async (id) => {
                 items: ["yes", "no"]
             });
     
-            if (confirm != "yes") {
+            if (confirm != "yes" && confirm != "no") {
                 reject("cancelled");
                 return;
+            }
+
+            if (confirm == "yes") {
+                const collections = [...new Set(missing_maps.map(a => a.collection_name))];
+                const obj = [];
+
+                for (let i = 0; i < collections.length; i++) {
+                    if (collections[i]) {
+                        obj.push(collections[i]);
+                    }
+                }
+
+                const collection = await create_custom_message({
+                    type: message_types.CUSTOM_MENU,
+                    title: "select one",
+                    elements: [{
+                        key: "name",
+                        element: { list: [...obj] }
+                    }]
+                });
+
+                const name = collection.name;
+
+                if (!name) {
+                    reject("cancelled");
+                    return;
+                }
+
+                const abc = missing_maps;
+                missing_maps = [];
+
+                for (let i = 0; i < abc.length; i++) {
+                    
+                    if (abc[i].collection_name != name || !abc[i].hash) {
+                        continue;
+                    }
+
+                    missing_maps.push(abc[i]);
+                }
+
+                if (!missing_maps) {
+                    reject("collection not found");
+                    return;
+                }
             }
     
-            const collections = [...new Set(missing_maps.map(a => a.collection_name))];
-            const obj = [];
-
-            for (let i = 0; i < collections.length; i++) {
-                if (collections[i]) {
-                    obj.push(collections[i]);
-                }
-            }
-
-            const collection = await create_custom_message({
-                type: message_types.CUSTOM_MENU,
-                title: "select one",
-                elements: [{
-                    key: "name",
-                    element: { list: [...obj] }
-                }]
-            });
-            const name = collection.name;
-
-            if (!name) {
-                reject("cancelled");
-                return;
-            }
-
-            const abc = missing_maps;
-
-            missing_maps = [];
-
-            for (let i = 0; i < abc.length; i++) {
-                
-                if (abc[i].collection_name != name || !abc[i].hash) {
-                    continue;
-                }
-
-                missing_maps.push(abc[i]);
-            }
-
-            if (!missing_maps) {
-                reject("collection not found");
-                return;
-            }
-            
             create_alert(`found: ${missing_maps.length} maps`);
             resolve(missing_maps);
         }
