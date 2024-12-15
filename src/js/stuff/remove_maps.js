@@ -55,7 +55,7 @@ export const remove_maps = async (id) => {
         });
         
         if (proc != "yes") {
-            return "";
+            throw new Error("cancelled");
         }
 
         const custom_list = [ 

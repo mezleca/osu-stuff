@@ -31,8 +31,7 @@ export const export_missing = async (id) => {
                 items: ["yes", "no"]
             });
     
-            // erm
-            if (confirm != "yes" && confirm != "no") {
+            if (confirm == null) {
                 reject("cancelled");
                 return;
             }
@@ -141,7 +140,7 @@ export const missing_download = async (id) => {
                 items: ["yes", "no"]
             });
     
-            if (confirm != "yes" && confirm != "no") {
+            if (confirm == null) {
                 reject("cancelled");
                 return;
             }

@@ -302,7 +302,7 @@ const create_custom_menu = async (options) => {
         content.addEventListener("click", (e) => {
             if (e.target === content) {
                 container.removeChild(content);
-                reject("cancelled");
+                reject(null);
             }
         });
     });
