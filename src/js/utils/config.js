@@ -222,7 +222,7 @@ export const add_config_shit = async () => {
         if (should_hide) {
             option.addEventListener("input", debounce(async () => { 
                 if (option.value) {
-                    await update_config(label, option.value); 
+                    await update_config(k, option.value); 
                 }        
             } , 300));
         }
