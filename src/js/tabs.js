@@ -155,6 +155,8 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
 
 get_player_beatmaps.addEventListener("click", async () => {
 
+    // TOFIX: fix retarded [Object object] text on download thing after selecting "all" method
+
     if (core.login == null) {
         create_alert("Did you forgor to setup your config?");
         return;
