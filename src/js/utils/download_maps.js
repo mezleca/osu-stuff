@@ -59,9 +59,9 @@ export async function search_map_id(hash) {
 
 export let mirrors = [
     { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
-    { name: "beatconnect", url: "https://beatconnect.io/b/" },
     { name: "direct", url: "https://osu.direct/api/d/" },
-    { name: "catboy", url: "https://catboy.best/d/" }
+    { name: "catboy", url: "https://catboy.best/d/" },
+    //{ name: "beatconnect", url: "https://beatconnect.io/b/" },
 ];
 
 export const download_map = async (hash) => {
