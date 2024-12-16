@@ -30,8 +30,11 @@
             <div class="tab-pane active" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
                 <div class="collections_container">
                      <div class="sidebar">
+                        <div class="manager-panel">
+                            <div class="manager-general active">general</div>
+                            <div class="manager-other">other</div>
+                        </div>
                         <div class="sidebar-item collections-sidebar active">
-                            <h2>collections</h2>
                             <div class="collection-list"></div>
                             <div class="collection-actions">                            
                                 <div class="input-group mb-2">
@@ -40,15 +43,10 @@
                                         <button class="btn btn-custom btn-add" id="add_new_collection" type="button">new</button>
                                         <button class="btn btn-custom btn-rename" id="update_collections" type="button">update</button>
                                     </div>
-                                    <button class="btn btn-custom btn-extra"  id="extra-options" type="button">other options</button>
                                 </div>
                             </div>
                         </div>
                         <div class="sidebar-item extra-sidebar">
-                            <div class="sidebar-header">
-                                <h1 class="back-btn">&#8592;</h1>
-                                <h2 class="sidebar-header-text">options</h2>
-                            </div>
                             <div class="sidebar-btn" id="get_missing_beatmaps">download missing</div>
                             <div class="sidebar-btn" id="remove_invalid_maps">remove maps</div>
                             <div class="sidebar-btn" id="get_player_beatmaps">get from player</div>

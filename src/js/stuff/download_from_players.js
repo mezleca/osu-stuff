@@ -246,6 +246,13 @@ export const download_from_players = async (player, method) => {
             await add_to_collection(maps.md5, player, method == "all" ? "" : method);
         }
 
-        resolve(maps.id.map((id) => { return { id: id } }));
+        const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());
+        const missing_maps = maps.id.filter(id => !osu_beatmaps.find(b => b.beatmap_id == id));
+
+        if (missing_maps.length == 0) {
+            return reject("No beatmaps to download!");
+        }
+
+        resolve(missing_maps.map((id) => { return { id: id } }));
     });
 };

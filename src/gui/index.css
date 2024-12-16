@@ -716,6 +716,7 @@ a {
     height: 95%;
     background-color: #1e1e1e;
     padding: 20px;
+    padding-top: 0px;
     box-sizing: border-box;
     overflow-y: auto;
     border: 1px solid var(--collections-border-color);
@@ -1061,6 +1062,30 @@ a {
     max-width: 15%;
     min-width: 40px;
     padding: 10px 5px;
+}
+
+.manager-panel {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    align-items: center;
+    margin-top: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.manager-panel > div {
+    width: 50%;
+    height: auto;
+    text-align: center;
+    transition: 0.3s color;
+    color: white;
+    font-size: 1.25em;
+}
+
+.manager-panel > div:hover, .manager-panel > div.active {
+    color: var(--accent-color);
+    border: none;
 }
 
 @keyframes spin {

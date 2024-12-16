@@ -6,9 +6,18 @@ import { missing_download } from "./stuff/missing.js";
 import { download_from_players } from "./stuff/download_from_players.js";
 
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
-export const all_content = [...document.querySelectorAll(".tab-pane")];
+export const all_panels = [...document.querySelectorAll(".tab-pane")];
 export const sidebar_item = [...document.querySelectorAll(".sidebar-item")];
-export const extra_tab = document.querySelector(".btn-extra");
+export const general_btn = document.querySelector(".manager-general");
+export const other_btn = document.querySelector(".manager-other");
+
+export const tabs = {
+    manager: all_tabs[0], config: all_tabs[1], status: all_tabs[2]
+}
+
+export const panels = {
+    manager: all_panels[0], config: all_panels[1], status: all_panels[2]
+};
 
 export const tasks = new Map();
 export const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
@@ -16,12 +25,10 @@ export const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "d
 const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
 const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
 const get_player_beatmaps = document.getElementById("get_player_beatmaps");
-const back_btn = document.querySelector(".back-btn");
 
 const options_tab = sidebar_item[0];
 const main_tab = sidebar_item[1];
 
-// set the active tab
 all_tabs.map((tab, i) => {
 
     tab.addEventListener("click", (e) => {
@@ -33,28 +40,33 @@ all_tabs.map((tab, i) => {
         }
 
         all_tabs.forEach((t) => { t.classList.remove("active") });
-
-        all_content.forEach((t) => { t.classList.remove("active") });
-        all_content[i].classList.add("active");
+        all_panels.forEach((t) => { t.classList.remove("active") });
+        all_panels[i].classList.add("active");
 
         tab.classList.add("active");
     });
 });
 
-extra_tab.addEventListener("click", () => {
-    options_tab.classList.remove("active");
+other_btn.addEventListener("click", () => {
     main_tab.classList.add("active");
+    options_tab.classList.remove("active");
+
+    general_btn.classList.remove("active");
+    other_btn.classList.add("active");
 });
 
-back_btn.addEventListener("click", () => {
-    options_tab.classList.add("active");
+general_btn.addEventListener("click", () => {
     main_tab.classList.remove("active");
+    options_tab.classList.add("active");
+    
+    general_btn.classList.add("active");
+    other_btn.classList.remove("active");
 });
 
 export const get_current_tab = () => {
     for (let i = 0; i < all_tabs.length; i++) {
         if (all_tabs[i].classList.contains("active")) {
-            return all_content[i].id;
+            return all_panels[i].id;
         }
     }
     return null;
@@ -102,11 +114,7 @@ export const add_tab = (id) => {
     tab.appendChild(bar);
 
     return {
-        tab: tab,
-        text: h2,
-        dtab: d_tab,
-        bar,
-        id
+        tab: tab, text: h2, dtab: d_tab, bar, id
     };
 };
 
@@ -209,7 +217,7 @@ export const create_download_task = async (name, maps) => {
 
     const data = { started: false, ...new_task };
     tasks.set(name, data);
-    blink(all_tabs[2]);
+    blink(tabs.config);
     
     await handle_event(data, () => { return maps });
 };

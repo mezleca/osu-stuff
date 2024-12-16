@@ -1,9 +1,10 @@
-import { tasks, all_tabs, blink, download_types } from "./tabs.js";
+import { tasks, blink, download_types, panels, tabs } from "./tabs.js";
 import { create_alert, message_types, create_custom_message } from "./popup/popup.js";
 import { download_maps, current_download } from "./utils/download_maps.js";
 
-class EventEmitter {
+export let queue_interval = null;
 
+class event_emitter {
     constructor() {
         this.listeners = {};
     }
@@ -36,10 +37,8 @@ class EventEmitter {
     }
 }
 
-export const events = new EventEmitter();
-
+export const events = new event_emitter();
 const queue = new Map();
-const all_content = [...document.querySelectorAll(".tab-pane")];
 
 const start_task = (task) => {
 
@@ -62,84 +61,80 @@ const start_task = (task) => {
                 return;
             }
 
-            // if its downloading, stop it
             if (current_download.id == task.id) {          
                 current_download.should_stop = true;
-                console.log(current_download);
-            } else { // or just remove from the queue list
-                console.log(current_download, task.id);      
+            } else {
                 remove_queue_div(task.id);
             }
 
-            const status = task.tab;
             const data = queue.get(task.id);
-        
             data.status = "finished";
-
             queue.set(task.id, data);
             tasks.delete(task.id);
 
-            // remove download div
-            if (status && all_content[2].contains(status)) {
-                all_content[2].removeChild(status);
+            if (task.tab && panels.status.contains(task.tab)) {
+                panels.status.removeChild(task.tab);
             }
 
             create_alert("download cancelled");
         });
     }
-    
-    download_maps(task.list, task.id);
 
     events.emit("progress-update", { id: task.id, perc: 0 });
-
     task.status = "wip";
+    download_maps(task.list, task.id);
 };
 
-const create_queue_div = () => {
+const manage_queue_ui = {
 
-    const html = 
-    `
-    <div class="tab-shit status-shit" id="queue list">
-        <h1>queue list</h1>
-        <div class="queue-list">
-            
-        </div>
-    </div>
-    `;
+    create_div() {
+        console.log("creating queue div");
+        const html = `
+            <div class="tab-shit status-shit" id="queue_list">
+                <h1>queue list</h1>
+                <div class="queue-list"></div>
+            </div>
+        `;
+        panels.status.insertAdjacentHTML("afterbegin", html);
+    },
 
-    all_content[2].insertAdjacentHTML("afterbegin", html);
-};
+    update(id) {
 
-const update_queue_div = (id) => {
+        const div_exist = document.querySelector(".queue-list");
 
-    const div_exist = document.querySelector(".queue-list");
+        if (!div_exist && queue.size != 0) {
+            this.create_div();
+        }
 
-    if (!div_exist && queue.size != 0) {
-        create_queue_div();
+        if (queue.size < 1) {
+            return;
+        }
+
+        const div = document.querySelector(".queue-list");
+        const html = `<h1 class="queue-item" id="${id}">${id}</h1>`;
+
+        div.insertAdjacentHTML("afterbegin", html);
+    },
+
+    remove(id) {
+        const div = document.querySelector(`.queue-item[id="${id}"]`);
+        if (div) {
+            document.querySelector(".queue-list").removeChild(div);
+        }
     }
-
-    if (queue.size <= 1) {
-        return;
-    }
-
-    const div = document.querySelector(".queue-list");
-    const html = `<h1 class="queue-item" id="${id}">${id}</h1>`;
-
-    div.insertAdjacentHTML("afterbegin", html);
 };
 
-const remove_queue_div = (id) => {
-    const div = document.querySelector(`.queue-item[id="${id}"]`);
-    if (div) {
-        document.querySelector(".queue-list").removeChild(div);
-    }
-};
+const disable_queue_interval = () => {
+    manage_queue_ui.update(0);
+    clearInterval(queue_interval);
+    queue_interval = null;
+    console.log("disabling queue interval");
+}
 
-// queue interval
-setInterval(() => {
-   
+const queue_handler = () => {
+
     if (queue.size == 0) {
-        update_queue_div(0);
+        disable_queue_interval();
         return;
     }
 
@@ -150,53 +145,60 @@ setInterval(() => {
     }
 
     if (task.status == "finished") {
+
         queue.delete(task.id);
-        remove_queue_div(task.id);
+        manage_queue_ui.remove(task.id);
+        
         if (queue.size == 0) {
-            all_content[2].removeChild(document.querySelector(".status-shit"));
+            const status_shit = Array.from(panels.status.childNodes)
+                .find(node => node.classList && node.classList.contains("status-shit"));
+            
+            if (status_shit) {
+                panels.status.removeChild(status_shit);
+            }
         }      
         return;
     }
 
     start_task(task);
-
-}, 500);
+};
 
 export const handle_event = async (data, callback, ...args) => {
-
     try {
-
-        // run the callback and get the value
         const callback_value = await callback(...args);
 
         if (callback_value) {        
             console.log("[HANDLE EVENT] callback value", callback_value);
         }
         
-        // if theres no value in the callback, it means the function is not part of the: download bullshit
         if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {
             tasks.delete(data.id);
             return;
         }
 
-        const download_button = all_tabs[2];
-
         if (download_types.includes(data.id)) {
-            blink(download_button);
+            blink(tabs.status);
         }
 
-        // add the download to the queue
         if (queue.size != 0) {
-            console.log("adding to the queue");
-            create_alert(`Added Download to queue`, { type: "success" });
+            create_alert("Added Download to queue", { type: "success" });
         }
 
-        queue.set(data.id, { id: data.id, list: callback_value, status: "waiting", tab: data.tab, dtab: data.dtab });
+        queue.set(data.id, { 
+            id: data.id, 
+            list: callback_value, 
+            status: "waiting", 
+            tab: data.tab, 
+            dtab: data.dtab 
+        });
 
-        update_queue_div(data.id);
+        if (queue_interval == null) {
+            console.log("initializing queue interval");
+            queue_interval = setInterval(queue_handler, 500);
+        }
 
+        manage_queue_ui.update(data.id);
     } catch(err) {
-
         tasks.delete(data.id);
 
         if (String(err).toLowerCase() == "cancelled" || !err) {
@@ -224,7 +226,7 @@ events.on("progress-update", (data) => {
     status.bar.style.width = `${perc}%`;
 });
 
-events.on("progress-end", (id, is_download) => {
+events.on("progress-end", (id, downloaded) => {
 
     const data = tasks.get(id);
 
@@ -240,13 +242,15 @@ events.on("progress-end", (id, is_download) => {
         return;
     }
 
-    if (is_download) {
+    if (downloaded) {
         data.status = "finished";
         queue.set(id, data);
     }
 
-    if (all_content[2].contains(status)) {
-        all_content[2].removeChild(status);
+    if (panels.status.contains(status)) {
+        panels.status.removeChild(status);
+    } else {
+        console.log("panel dont contain status", status, );
     }
 
     tasks.delete(id);
