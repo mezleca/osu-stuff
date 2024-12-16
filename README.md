@@ -8,7 +8,6 @@
 </p>
 
 ## how to download
-- **v2.0.0**: (wip)  
 - **current app version (v1.2.7)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.2.7)
 
 if you find bugs, crashes, or anything weird:  
