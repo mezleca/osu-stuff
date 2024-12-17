@@ -18,7 +18,7 @@ if you find bugs, crashes, or anything weird:
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
-- git  
+- [git](https://git-scm.com/downloads)  
 
 ### steps
 ```bash
@@ -27,8 +27,11 @@ git clone https://github.com/mezleca/osu-stuff.git
 
 # install dependencies
 cd osu-stuff
-npm install
-npm install -g electron-builder
+npm install && npm install -g electron-builder
+
+# if you're on linux, you will need to install those dependencies
+base-devel clang libdbus gtk2 libnotifylibgnome-keyring alsa-lib libcap libcups libxtst 
+libxss nss gcc-multilib curl gperf bison python2 python-dbusmock jdk8-openjdk
 
 # run the app
 npm start
