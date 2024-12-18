@@ -1,4 +1,4 @@
-import { create_alert } from "../popup/popup.js";
+import { create_alert, create_custom_message } from "../popup/popup.js";
 import { osu_login } from "./other/login.js";
 import { debounce, initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
@@ -148,6 +148,17 @@ const handle_config_check = async () => {
     await initialize();
 }
 
+const handle_mirrors = async (event) => {
+    const method = await create_custom_message({
+        type: message_types.CUSTOM_MENU,
+        title: "method",
+        elements: [{
+            key: "name",
+            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
+        }]
+    });
+};
+
 const create_element_from_string = (html) => {
     const template = document.createElement("template");
     template.innerHTML = html;
@@ -243,19 +254,27 @@ export const add_config_shit = async () => {
     }
 
     config_tab.innerHTML = `
-        <div class="tab-shit">
+        <div class="tab-shit" style="width: 45%; height: 100%;">
             <h1>config</h1>
-            <button class="check_config">check config</button>
+            <div class="button-container">
+                <button class="check_config">check config</button>
+                <button class="mirrors">manage mirrors</button>
+            </div>
+        </div>
+        <div class="tab-shit" style="width: 45%; height: 100%;">
+            <h1>mirrors list</h1>
         </div>
     `;
 
     // append config fields before the check button
-    const check_button = config_tab.querySelector(".tab-shit > .check_config");
+    const check_button = config_tab.querySelector(".tab-shit > .button-container");
+    const mirrors_button = config_tab.querySelector(".mirrors");
     label_content.forEach(e => {
         check_button.insertAdjacentElement("beforebegin", e);
     });
 
     check_button.addEventListener("click", handle_config_check);
+    mirrors_button.addEventListener("click", handle_mirrors);
 
     setup_tooltip();
 
