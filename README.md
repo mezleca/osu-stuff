@@ -8,7 +8,7 @@
 </p>
 
 ## how to download
-- **current app version (v1.2.7)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.2.7)
+- **current app version (v1.2.8)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.2.7)
 
 if you find bugs, crashes, or anything weird:  
 - hit `F12` to open devtools and grab the logs  
