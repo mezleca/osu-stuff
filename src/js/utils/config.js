@@ -1,4 +1,4 @@
-import { create_alert, create_custom_message } from "../popup/popup.js";
+import { create_alert } from "../popup/popup.js";
 import { osu_login } from "./other/login.js";
 import { debounce, initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
@@ -12,6 +12,7 @@ export const core = {
     reader: new OsuReader(),
     config: new Map(),
     files: new Map(),
+    mirrors: new Map(),
     og_path: window.nodeAPI.env.og_path,
     login: null
 };
@@ -148,15 +149,40 @@ const handle_config_check = async () => {
     await initialize();
 }
 
-const handle_mirrors = async (event) => {
-    const method = await create_custom_message({
-        type: message_types.CUSTOM_MENU,
-        title: "method",
-        elements: [{
-            key: "name",
-            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
-        }]
+const default_mirrors = [
+    { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
+    { name: "direct", url: "https://osu.direct/api/d/" },
+    // { name: "catboy", url: "https://catboy.best/d/" },
+];
+
+const handle_mirrors = async (tab) => {
+
+    const mirror_data = await get_all_from_database("mirrors");
+
+    if (mirror_data.size == 0) {
+        for (let i = 0; i < default_mirrors.length; i++) {
+            await save_to_db("mirrors", default_mirrors[i].name, default_mirrors[i].url);
+            mirror_data.set(default_mirrors[i].name, default_mirrors[i].url);
+        }
+    }
+
+    mirror_data.forEach((v, k) => {
+        const element = create_element_from_string(`
+            <div class="mirror-box">
+                <div class="mirror-info">
+                    <h1>${k}</h1>
+                    <p>${v}</p>
+                </div>
+                <i class="bi bi-trash-fill" id="remove_mirror"></i>
+            </div>`
+        );
+        element.addEventListener("click", () => {
+            console.log("user clicked on mirror " + k)
+        });
+        tab.appendChild(element);
     });
+
+    core.mirrors = mirror_data;
 };
 
 const create_element_from_string = (html) => {
@@ -243,9 +269,8 @@ export const add_config_shit = async () => {
             option.addEventListener("click", async () => {
                 const dialog = await window.electron.create_dialog();
                 if (!dialog.canceled) {
-                    const folder_path = dialog.filePaths[0];
-                    await update_config(option.name, folder_path);
-                    option.value = folder_path;
+                    await update_config(option.name, dialog.filePaths[0]);
+                    option.value = dialog.filePaths[0];
                 }
             });
         }
@@ -257,25 +282,43 @@ export const add_config_shit = async () => {
         <div class="tab-shit" style="width: 45%; height: 100%;">
             <h1>config</h1>
             <div class="button-container">
-                <button class="check_config">check config</button>
-                <button class="mirrors">manage mirrors</button>
+                <button class="check_config" style="width: 90%">check config</button>
             </div>
         </div>
-        <div class="tab-shit" style="width: 45%; height: 100%;">
+        <div class="tab-shit mirror-list" style="width: 45%; height: 100%;">
             <h1>mirrors list</h1>
         </div>
     `;
 
     // append config fields before the check button
     const check_button = config_tab.querySelector(".tab-shit > .button-container");
-    const mirrors_button = config_tab.querySelector(".mirrors");
+    const mirror_tab = config_tab.querySelector(".mirror-list");
+
+    // create mirrors list
+    await handle_mirrors(mirror_tab);
+
+    const mirror_add_btn = create_element_from_string(`
+        <div class="mirror-remove-container">
+            <i class="bi bi-plus-square" id="add_mirror"></i>
+        </div>
+    `);
+
+    const mirror_btn = mirror_add_btn.querySelector("#add_mirror");
+    mirror_btn.addEventListener("click", () => {
+        if (!core.mirrors.size >= 4) {
+            create_alert("no more than 4 mirrors my guy", { type: "alert" });
+            return;
+        }
+        // @TODO: add logic
+        console.log("user is adding a mirror");
+    });
+
+    mirror_tab.appendChild(mirror_add_btn);
     label_content.forEach(e => {
         check_button.insertAdjacentElement("beforebegin", e);
     });
 
     check_button.addEventListener("click", handle_config_check);
-    mirrors_button.addEventListener("click", handle_mirrors);
-
     setup_tooltip();
 
     if (!empty_config) {

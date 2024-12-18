@@ -1102,6 +1102,40 @@ a {
     justify-content: space-evenly;
 }
 
+.mirror-box {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    background-color: rgb(33,33,33);
+    padding: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    justify-content: space-between;
+    align-self: center;
+    margin-bottom: 12px;
+}
+
+.mirror-info > h1 {
+    font-size: 1.1em;
+    color: white;
+    transition: 0.3s color;
+}
+
+.mirror-info > h1:hover {
+    color: var(--accent-color);
+}
+
+.mirror-info > p {
+    font-size: 0.8em;
+    color: white;
+}
+
+#remove_mirror {
+    align-self: center;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
