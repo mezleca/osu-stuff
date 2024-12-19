@@ -275,10 +275,12 @@ hr {
 .download-shit {
     cursor: pointer;
     padding: 15px;
+    width: 100%;
 }
 
 .status-shit {
     padding: 5px;
+    width: 100%;
 }
 
 .download-shit > h1 {

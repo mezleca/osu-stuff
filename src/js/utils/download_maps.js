@@ -223,7 +223,7 @@ class map_downloader {
             return null;
         }
 
-        this.temp_mirrors = Array.from(core.mirrors, (k, v) => {
+        this.temp_mirrors = Array.from(core.mirrors, ([k, v]) => {
             return { name: k, url: v };
         });
 
