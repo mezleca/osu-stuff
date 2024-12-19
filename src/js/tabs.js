@@ -217,7 +217,7 @@ export const create_download_task = async (name, maps) => {
 
     const data = { started: false, ...new_task };
     tasks.set(name, data);
-    blink(tabs.config);
+    blink(tabs.status);
     
     await handle_event(data, () => { return maps });
 };
