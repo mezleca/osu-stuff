@@ -57,13 +57,6 @@ export async function search_map_id(hash) {
     return { ...data, id: data.beatmapset_id };
 }
 
-export let mirrors = [
-    { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
-    { name: "direct", url: "https://osu.direct/api/d/" },
-    { name: "catboy", url: "https://catboy.best/d/" },
-    //{ name: "beatconnect", url: "https://beatconnect.io/b/" },
-];
-
 export const download_map = async (hash) => {
 
     if (!hash) {
@@ -99,6 +92,7 @@ class map_downloader {
         this.total_maps = maps.length;
         this.should_stop = false;
         this.id = id;
+        this.temp_mirrors = [];
     }
 
     update_progress(index) {
@@ -161,15 +155,15 @@ class map_downloader {
     }
 
     update_mirror(used_url) {
-        const mirror_index = mirrors.findIndex(m => m.url === used_url);
+        const mirror_index = this.temp_mirrors.findIndex(m => m.url === used_url);
         if (mirror_index !== -1) {
-            const [mirror] = mirrors.splice(mirror_index, 1);
-            mirrors.push(mirror);
+            const [mirror] = this.temp_mirrors.splice(mirror_index, 1);
+            this.temp_mirrors.push(mirror);
         }
     }
 
     async find_map_buffer(map_id) {
-        for (const mirror of mirrors) {
+        for (const mirror of this.temp_mirrors) {
             const buffer = await this.try_mirror(mirror.url, map_id);
             if (buffer) {
                 return buffer;
@@ -228,6 +222,12 @@ class map_downloader {
             current_download = null;
             return null;
         }
+
+        this.temp_mirrors = Array.from(core.mirrors, ([k, v]) => {
+            return { name: k, url: v };
+        });
+
+        console.log(this.temp_mirrors);
 
         if (single_map) {
             const result = await this.process(this.maps, 0);

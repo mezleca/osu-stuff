@@ -41,6 +41,26 @@ export const save_to_db = async (name, key, value) => {
     });
 };
 
+export const delete_from_db = async (name, key) => {
+
+    const database = await connect_to_db(name);
+
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction([name], 'readwrite');
+        const object_store = transaction.objectStore(name);
+        const request = object_store.delete(key);
+        
+        request.onsuccess = () => {
+            resolve(true);
+        };
+        
+        request.onerror = (err) => {
+            console.error("error deleting from database:", err);
+            reject(false);
+        };
+    });
+};
+
 export const get_from_database = async (name, key) => {
 
     const database = await connect_to_db(name);
