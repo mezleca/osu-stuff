@@ -227,8 +227,6 @@ class map_downloader {
             return { name: k, url: v };
         });
 
-        console.log(this.temp_mirrors);
-
         if (single_map) {
             const result = await this.process(this.maps, 0);
             await initialize({ no_update: true });

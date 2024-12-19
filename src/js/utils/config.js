@@ -30,7 +30,6 @@ const config_options = {
 };
 
 const update_config = async (key, value) => {
-    console.log("saving", key);
     const success = await save_to_db("config", key, value);
     if (!success) {
         console.error("failed to save config");
