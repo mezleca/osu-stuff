@@ -1130,10 +1130,26 @@ a {
     color: white;
 }
 
+#add_mirror {
+    cursor: pointer;
+    transition: 0.3s background-color;
+}
+
+#add_mirror:hover {
+    background-color: var(--accent-color);
+}
+
 #remove_mirror {
     align-self: center;
     cursor: pointer;
-    margin-right: 8px;
+    margin-right: 5px;
+    padding: 10px 10px;
+    border-radius: 3px;
+    transition: 0.3s background-color;
+}
+
+#remove_mirror:hover {
+    background-color: var(--accent-color);
 }
 
 @keyframes spin {
