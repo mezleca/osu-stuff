@@ -14,7 +14,7 @@ if you find bugs, crashes, or anything weird:
 - hit `F12` to open devtools and grab the logs  
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
 
-## build the old version
+## build it yourself
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
