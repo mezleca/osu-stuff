@@ -283,7 +283,7 @@ export const add_config_shit = async () => {
     }
 
     config_tab.innerHTML = `
-        <div class="tab-shit" style="width: 45%; height: 100%;">
+        <div class="tab-shit" style="width: 50%; height: 100%;">
             <h1>config</h1>
             <div class="button-container">
                 <button class="check_config" style="width: 90%">check config</button>
