@@ -120,11 +120,12 @@ class map_downloader {
         }
 
         if (core.reader.osu.beatmaps.has(map.hash)) {
+            console.log("map is already downloaded");
             return { map, data: core.reader.osu.beatmaps.get(map.hash) };
         }
 
         const data = await search_map_id(map.hash);
-        const map_path = path.resolve(core.config.get("osu_songs_path"),`${data.id}.osz`);
+        const map_path = path.resolve(core.config.get("osu_songs_path"),`${data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
             console.log(`skipping ${data?.beatmapset_id} (already downloaded)`);
@@ -168,7 +169,7 @@ class map_downloader {
         }
     }
 
-    async find_map_buffer(map_id) {
+    async get_buffer(map_id) {
         for (const mirror of this.temp_mirrors) {
             const buffer = await this.try_mirror(mirror.url, map_id);
             if (buffer) {
@@ -181,7 +182,13 @@ class map_downloader {
     async download_map(map, data) {
 
         const map_path = path.resolve(core.config.get("osu_songs_path"),`${map.id}.osz`);
-        const map_buffer = await this.find_map_buffer(map.id);
+
+        if (fs.existsSync(map_path)) {
+            console.log(`skipping ${map?.id} (already downloaded)`);
+            return { map: null, data: null };
+        }
+
+        const map_buffer = await this.get_buffer(map.id);
 
         if (!map_buffer) {
             return null;
