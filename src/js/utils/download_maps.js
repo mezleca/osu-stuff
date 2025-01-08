@@ -125,6 +125,11 @@ class map_downloader {
 
         const data = await search_map_id(map.hash);
 
+        if (fs.existsSync(path.resolve(core.config.get("osu_songs_path"), `${data?.beatmapset_id}.osz`))) {
+            console.log(`skipping ${data?.beatmapset_id} (already downloaded)`);
+            return { map: null, data: null };
+        }
+
         if (!data?.beatmapset_id || downloaded_maps.has(data.beatmapset_id)) {
             return { map: null, data: null };
         }
