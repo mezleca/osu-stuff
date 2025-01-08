@@ -194,7 +194,7 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    const task_name = `${player} - ${method}`;
+    const task_name = `${player} - ${method.name}`;
     const new_task = add_tab(task_name);
 
     if (!new_task) {
