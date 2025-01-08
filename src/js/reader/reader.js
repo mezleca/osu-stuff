@@ -428,6 +428,50 @@ export class OsuReader {
         });
     }
 
+    // @Todo: yeah, gonna rewrite this after the docs for legacy database is updated
+    lol = () => {   
+        switch (this.#byte()) {
+            case 1:
+                return this.#bool();
+            case 2:
+                return this.#byte();
+            case 3:
+                return this.#short();
+            case 4:
+                return this.#int();
+            case 5:
+                return this.#long();
+            case 6:
+                return this.#byte() - 256;
+            case 7:
+                return this.#short() - 65536;
+            case 8:
+                return this.#int() - 4294967296;
+            case 9:
+                return this.#long() - BigInt("18446744073709551616");
+            case 10:
+                return String.fromCharCode(this.#short());
+            case 11:
+                return this.#string();
+            case 12:
+                return this.#single();
+            case 13:
+                return this.#double();
+            case 14:
+                return parseFloat(this.#string());
+            case 15:
+                return this.#long() - BigInt("18446744073709551616")
+            case 16: 
+                const num = this.#int() - 4294967296;
+                if (num > 0) {
+                    return this.#byte();
+                }
+                return 0;
+            default:
+                throw new Error("Unknown type");
+        };
+    }
+
     /**
      * 
      * @returns { Promise<osu_db> } 
@@ -483,12 +527,13 @@ export class OsuReader {
                 data.hitcircle = this.#short();
                 data.sliders = this.#short();
                 data.spinners = this.#short();
-                data.last_modification = this.#long(true);
+                data.last_modification = this.#long();
                 data.approach_rate = version < 20140609 ? this.#byte() : this.#single();
                 data.circle_size = version < 20140609 ? this.#byte() : this.#single();
                 data.hp = version < 20140609 ? this.#byte() : this.#single();
                 data.od = version < 20140609 ? this.#byte() : this.#single();
                 data.slider_velocity = this.#double();
+
                 data.sr = [];
                 data.timing_points = [];
 
@@ -497,14 +542,21 @@ export class OsuReader {
                     const length = this.#int();
                     const diffs = [];
 
-                    for (let i = 0; i < length; i++) {
+                    if (version < 20250107) {
 
-                        this.#byte();
-                        const mod = this.#int();
-                        this.#byte();
-                        const diff = this.#double();
-                        
-                        diffs.push([ mod, diff ]);
+                        for (let i = 0; i < length; i++) {
+
+                            this.#byte();
+                            const mod = this.#int();
+                            this.#byte();
+                            const diff = this.#double();
+                            
+                            diffs.push([ mod, diff ]);
+                        }
+                    } else {
+                        for (let i = 0; i < length; i++) {
+                            diffs.push(this.lol(), this.lol());
+                        }
                     }
 
                     data.sr.push({
