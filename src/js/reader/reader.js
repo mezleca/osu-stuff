@@ -53,26 +53,26 @@ export class OsuReader {
         this.directory = directory;
     }
 
-    #byte() {
-        const value = this.dataView.getUint8(this.offset);
+    #byte(s) {
+        const value = !s ? this.dataView.getUint8(this.offset) : this.dataView.getInt8(this.offset);
         this.offset += 1;
         return value;
     }
 
-    #short() {
-        const value = this.dataView.getUint16(this.offset, true);
+    #short(s) {
+        const value = !s ? this.dataView.getUint16(this.offset, true) : this.dataView.getInt16(this.offset, true);
         this.offset += 2; 
         return value;
     }
 
-    #int() {
-        const value = this.dataView.getUint32(this.offset, true);
+    #int(s) {
+        const value = !s ? this.dataView.getUint32(this.offset, true) : this.dataView.getInt32(this.offset, true);
         this.offset += 4;     
         return value;
     }
 
-    #long() {
-        const value = this.dataView.getBigUint64(this.offset, true);
+    #long(s) {
+        const value = !s ? this.dataView.getBigUint64(this.offset, true) : this.dataView.getBigInt64(this.offset, true);
         this.offset += 8;       
         return value;
     }
@@ -428,9 +428,11 @@ export class OsuReader {
         });
     }
 
-    // @Todo: yeah, gonna rewrite this after the docs for legacy database is updated
-    lol = () => {   
-        switch (this.#byte()) {
+    #read_typed_value() {
+
+        const type = this.#byte();
+        
+        switch (type) {
             case 1:
                 return this.#bool();
             case 2:
@@ -442,13 +444,13 @@ export class OsuReader {
             case 5:
                 return this.#long();
             case 6:
-                return this.#byte() - 256;
+                return this.#byte(true);
             case 7:
-                return this.#short() - 65536;
+                return this.#short(true);
             case 8:
-                return this.#int() - 4294967296;
+                return this.#int(true);
             case 9:
-                return this.#long() - BigInt("18446744073709551616");
+                return this.#long(true);
             case 10:
                 return String.fromCharCode(this.#short());
             case 11:
@@ -458,18 +460,27 @@ export class OsuReader {
             case 13:
                 return this.#double();
             case 14:
-                return parseFloat(this.#string());
+                return this.#double();
             case 15:
-                return this.#long() - BigInt("18446744073709551616")
-            case 16: 
+                return this.#long(true);
+            case 16: {
                 const num = this.#int() - 4294967296;
-                if (num > 0) {
-                    return this.#byte();
+                return num > 0 ? this.#byte() : 0;
+            }
+            case 17: {
+                const length = this.#int(true);
+                if (length > 0) {
+                    const chars = new Array(length);
+                    for (let i = 0; i < length; i++) {
+                        chars[i] = this.#byte();
+                    }
+                    return String.fromCharCode(...chars);
                 }
-                return 0;
+                return "";
+            }
             default:
-                throw new Error("Unknown type");
-        };
+                throw new Error(`unknown type: ${type}`);
+        }
     }
 
     /**
@@ -555,7 +566,7 @@ export class OsuReader {
                         }
                     } else {
                         for (let i = 0; i < length; i++) {
-                            diffs.push(this.lol(), this.lol());
+                            diffs.push([this.#read_typed_value(), this.#read_typed_value()]);
                         }
                     }
 
