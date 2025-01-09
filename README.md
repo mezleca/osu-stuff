@@ -10,6 +10,10 @@
 ## how to download
 - **current app version (v1.3.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.3.0)
 
+## optional mirrors
+- [catboy...](https://catboy.best)
+- [beatconnect](https://beatconnect.io)
+
 if you find bugs, crashes, or anything weird:  
 - hit `F12` to open devtools and grab the logs  
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
