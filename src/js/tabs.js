@@ -8,8 +8,6 @@ import { download_from_players } from "./stuff/download_from_players.js";
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
 export const all_panels = [...document.querySelectorAll(".tab-pane")];
 export const sidebar_item = [...document.querySelectorAll(".sidebar-item")];
-export const general_btn = document.querySelector(".manager-general");
-export const other_btn = document.querySelector(".manager-other");
 
 export const tabs = {
     manager: all_tabs[0], config: all_tabs[1], status: all_tabs[2]
@@ -45,22 +43,6 @@ all_tabs.map((tab, i) => {
 
         tab.classList.add("active");
     });
-});
-
-other_btn.addEventListener("click", () => {
-    main_tab.classList.add("active");
-    options_tab.classList.remove("active");
-
-    general_btn.classList.remove("active");
-    other_btn.classList.add("active");
-});
-
-general_btn.addEventListener("click", () => {
-    main_tab.classList.remove("active");
-    options_tab.classList.add("active");
-    
-    general_btn.classList.add("active");
-    other_btn.classList.remove("active");
 });
 
 export const get_current_tab = () => {
@@ -118,6 +100,7 @@ export const add_tab = (id) => {
     };
 };
 
+/*
 btn_remove_invalid_maps.addEventListener("click", async () => {
     
     const id = btn_remove_invalid_maps.id;
@@ -139,7 +122,9 @@ btn_remove_invalid_maps.addEventListener("click", async () => {
     
     await handle_event(data, remove_maps, id);
 });
+*/
 
+/*
 btn_get_missing_beatmaps.addEventListener("click", async () => {
 
     const id = btn_get_missing_beatmaps.id;
@@ -160,7 +145,9 @@ btn_get_missing_beatmaps.addEventListener("click", async () => {
     
     await handle_event(data, missing_download, id);
 });
+*/
 
+/*
 get_player_beatmaps.addEventListener("click", async () => {
 
     // TOFIX: fix retarded [Object object] text on download thing after selecting "all" method
@@ -206,6 +193,7 @@ get_player_beatmaps.addEventListener("click", async () => {
     
     await handle_event(data, download_from_players, player, method.name);
 });
+*/
 
 export const create_download_task = async (name, maps) => {
 

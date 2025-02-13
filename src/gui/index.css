@@ -14,18 +14,28 @@
     src: local('Helvetica'), url('./deps/Helvetica.woff') format('woff');
 }
 
+@font-face {
+    font-family: 'Torus Bold';
+    font-style: normal;
+    font-weight: bold;
+    src: local('Torus Bold'), url('./deps/Torus Bold.otf') format('otf');
+}
+
 :root {
     --bg-color: #202020;
+    --manager-bg-color: #242424;
+    --manager-sel-color: #1f1f1f;
     --content-bg: #222222;
     --text-color: #ecebd2;
     --blink-color: #db2a0a;
-    --accent-color: #3177e8;
+    --accent-color: #f06595;
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
-    --button-color: #3177e8;
-    --button-hover-color: #2865c7;
+    --button-color: #f2407e;
+    --button-hover-color: #f2407e;
     --popup-bg: #2a2a2a;
     --collections-border-color: rgb(56,56,56);
+    ----title-bar-height: 32px;
 }
 
 * {
@@ -40,10 +50,12 @@
 }
 
 html {
+    margin: none;
+    padding: none;
+    width: 100vw;
     height: 100vh;
-    padding: 0;
-    margin: 0;
-    background-color: var(--bg-color);
+    overflow: hidden;
+    background-color: black;
 }
 
 body::-webkit-scrollbar {
@@ -75,16 +87,16 @@ body {
     background-color: var(--bg-color);
 }
 
-.taskbar {
+.titlebar {
     -webkit-app-region: drag;
     background-color: var(--bg-color);
-    height: 2em;
+    height: var(--title-bar-height);
     display: flex;
     align-items: center;
     justify-content: flex-end;
 }
 
-.taskbar-buttons {
+.titlebar-buttons {
     display: flex;
     width: 100%;
     align-items: center;
@@ -104,7 +116,7 @@ body {
     align-items: center;
 }
 
-.taskbar-button {
+.titlebar-button {
     background: none;
     border: none;
     color: rgb(253, 255, 226);
@@ -116,8 +128,8 @@ body {
 .container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    max-height: 100vh;
+    height: 100%;
+    max-height: 100%;
 }
 
 .collections_container {
@@ -202,7 +214,7 @@ body {
 }
 
 button {
-    font-family: Arial;
+    font-family: "Torus Bold";
     font-size: 0.95em;
     font-weight: bold;
     min-width: 35%;
@@ -226,8 +238,8 @@ button:hover {
     cursor: pointer;
 }
 
-input, select {
-    background-color: var(--input-bg);
+select {
+    background-color: var(--manager-sel-color);
     color: var(--text-color);
     border: 1px solid #8a8a8a;
     padding: 10px;
@@ -237,6 +249,7 @@ input, select {
     border-radius: 4px;
     font-size: 0.95em;
     transition: border-color 0.3s;
+    font-family: "Torus Bold";
 }
 
 input[type="text"], input[type="password"] {
@@ -607,7 +620,7 @@ input[type="range"]::-moz-range-thumb:hover {
     justify-content: space-between;
     width: 90%;
     margin: 0 auto;
-    font-family: Arial, sans-serif;
+    font-family: "Torus Bold";
     font-size: 14px;
     color: #333;
 }
@@ -773,8 +786,8 @@ a {
 }
 
 .main-content {
-    width: 70%;
-    height: 95%;
+    grid-column: 2;
+    grid-row: 1/3;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -783,7 +796,7 @@ a {
 }
 
 #collection_text {
-    align-self: center;
+    text-align: center;
     font-size: 1.5em;
 }
 
@@ -798,17 +811,16 @@ a {
     position: sticky;
     width: 100%;
     top: 0;
+    gap: 8px;
     align-items: center;
+    justify-content: center;
     padding: 10px;
+    padding-bottom: 0px;
     overflow: hidden;
     min-height: 10vh;
     max-height: 10vh;
     z-index: 999;
     background-color: var(--bg-color);
-}
-
-.search-container > input {
-    height: 3em;
 }
 
 .disabled {
@@ -871,8 +883,9 @@ a {
     display: flex;
     flex-direction: column;
     width: 100%;
-    flex-grow: 1;
     height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 *::-webkit-scrollbar,
@@ -972,19 +985,24 @@ a {
 
 .mini-container {
     position: relative;
-    display: flex;
-    overflow: hidden;
-    align-items: center;
     width: 95%;
-    height: 75px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    align-self: center;
-    padding-left: 0;
-    border-radius: 6px;
-    background: linear-gradient(343deg, rgb(12 12 12) 0%, rgb(20 20 20) 32%, rgb(28 28 28) 100%);
-    border: 2px solid #ffffffad;
+    height: 85px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    justify-content: center;
+    padding: 8px;
+    color: white;
+    font-family: "Torus Bold";
+    box-shadow: 0 0 3px rgb(12, 12, 12);
     transition: 0.3s border-color;
+    align-self: center;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.mini-container > * {
+    font-family: "Torus Bold";
 }
 
 .mini-container:hover {
@@ -998,27 +1016,25 @@ a {
     left: 0;
     width: 100%;
     height: auto;
-    object-fit: cover;
     filter: brightness(50%);
 }
 
-.content {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
+.small-image {
     width: 100%;
-    overflow: hidden;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
 }
 
-.small-image-container {
-    min-width: 25%;
-    max-width: 25%;
-    height: 100%;
-    min-height: 100%;
-    border-radius: 0 5px 5px 0;
-    margin-right: 10px;
+.text-container {
+    min-width: 45%;
+    max-width: calc(75% - 40px);
+    flex-grow: 1;
+    color: white;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 10px;
 }
 
 .small-image {
@@ -1040,15 +1056,17 @@ a {
 }
 
 .title {
-    font-weight: bold;
+    font-family: "Torus Bold";
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
 }
 
 .subtitle {
-    font-size: 0.8em;
+    font-family: "Torus Bold";
+    font-size: 0.85em;
     color: #ddd;
     margin: 0;
     white-space: nowrap;
@@ -1159,6 +1177,241 @@ a {
 
 #remove_mirror:hover {
     background-color: var(--accent-color);
+}
+
+.list_container {
+    display: grid;
+    background-color: var(--manager-bg-color);
+    border-radius: 6px;
+    border: 2px solid rgb(200, 200, 200, 0.2);
+    width: 100%;
+    height: 100%;
+    grid-template-columns: minmax(25%, 40%) 60%;
+    grid-template-rows: 10% 90%;
+}
+
+.list {
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    grid-template-rows: 85% 15%;
+    padding: 20px;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.list_selectors {
+    display: grid;
+    position: relative;
+    grid-template-rows: repeat(auto-fit, 3.5em);
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.selector {
+    display: grid;
+    grid-template-columns: 85% 15%;
+    align-items: center;
+    border-radius: 6px;
+    padding-left: 15px;
+    transition: 0.3s border;
+    position: relative;
+    height: auto;
+    background-color: var(--manager-bg-color);
+}
+
+.selector > h1 {
+    font-family: "Torus Bold";
+    font-size: 1.2em;
+    user-select: none;
+    cursor: pointer;
+    transition: 0.3s color;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.selector > h1:hover {
+    color: rgba(195, 57, 115, 0.941);
+}
+
+.selector > i {
+    padding: 10px;
+    border-radius: 6px;
+    transition: 0.3s background-color;
+    text-align: center;
+    width: fit-content;
+}
+
+.selector > i:hover {
+    background-color: rgba(195, 57, 77, 0.542);
+}
+
+.selector > i.hidden {
+    display: none;
+}
+
+.selector.selected {
+
+    h1 {
+        color: rgb(255, 0, 170);
+    }
+
+    transition: 0.3s border;
+    border: 1px solid var(--accent-color);
+}
+
+.selector.hidden {
+    opacity: 0;
+}
+
+.selector_bin {
+    opacity: 0;
+    width: 100%;
+    padding: 15px;
+    background-color: rgb(246, 61, 61, 0.5);
+    border: 1px solid rgb(34, 34, 34);
+    text-align: center;
+    margin: auto auto 0;
+    transition: 0.3s all;
+}
+
+.selector_bin.enabled {
+    opacity: 1;
+    transition: 0.3s opacity;
+}
+
+.selector_bin.hover {
+    transition: 0.3s all;
+    background-color: rgb(246, 61, 61);
+}
+
+.load_more_button {
+    width: 95%;
+    align-self: center;
+    padding: 15px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--accent-color);
+    font-size: 0.9em;
+    font-weight: bold;
+    font-family: "Torus Bold";
+    transition: 0.3s background-color;
+}
+
+.load_more_button:hover {
+    background-color: var(--button-color);
+}
+
+.merge {
+    border: 1px solid var(--accent-color);
+}
+
+.more_options {
+    background-color: #f44336;
+    border: none;
+    color: #fff;
+    font-size: 26px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.more_options:hover {
+    background-color: #f44336c6;
+}
+
+.collections_header {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    position: sticky;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+    height: 3.5em;
+    z-index: 999;
+    margin-top: 15px;
+}
+
+.collection_header_text {
+    font-size: 2em;
+    font-family: "Torus Bold";
+    user-select: none;
+}
+
+.beatmap_status {
+    font-family: "Torus Bold";
+    background-color: #545454;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 10px;
+    display: inline-block;
+    margin-top: 5px;
+    width: fit-content;
+    height: fit-content;
+    font-weight: bolder;
+    color: rgb(44, 43, 43);
+    margin-right: 5px;
+}
+
+.beatmap_status.ranked {
+    background-color: #6bfb70;
+}
+
+.beatmap_status.sr1 {
+    background-color: #3eb5e1;
+}
+
+.beatmap_status.sr2 {
+    background-color: #c0e13e;
+}
+
+.beatmap_status.sr3 {
+    background-color: #d03163;
+}
+
+.beatmap_status.sr4 {
+    background-color: #5c18b0;
+}
+
+.beatmap_status.sr5 {
+    background-color: #011275;
+}
+
+.beatmap_status.sr6 {
+    background-color: #222222;
+}
+
+.beatmap_metadata, .beatmap_controls {
+    display: flex;
+    z-index: 99;
+    justify-content: center;
+}
+
+.beatmap_metadata {
+    flex-direction: column;
+}
+
+.beatmap_thing_status {
+    display: flex;
+}
+
+.search-container > input {
+    background-color: #1e1e1e;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 5px;
+    outline: none;
+    width: 100%;
+    height: 3em;
+    font-family: "Torus Bold";
 }
 
 @keyframes spin {

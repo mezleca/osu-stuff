@@ -5,52 +5,233 @@ import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 
-let current_name = "";
-let need_to_save = false;
+const style = window.getComputedStyle(document.body);
+const title_bar_height = style.getPropertyValue("--title-bar-height");
 
+console.log("title bar height", title_bar_height, style);
+
+const more_options = document.querySelector(".more_options");
+const list = document.querySelector(".list_selectors");
+const list_container = document.querySelector(".list_container");
+const selector_bin = document.querySelector(".selector_bin");
+const collection_container = document.querySelector(".collection-container");
+const search_input = document.getElementById("current_search");
+
+const selectors_map = new Map();
 export const collections = new Map();
+const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+const MAX_RENDER_AMMOUNT = 16;
+// @TODO: idk why but on electron the y is wrong by like 80+ pixels.
+const ELECTRON_BULLSHIT = 80;
+
+let mouse_y, mouse_x, need_to_save = false;
 
 const fs = window.nodeAPI.fs;
 const path = window.nodeAPI.path;
+const balls = await window.electron.titlebar_height();
 
-const collection_list = document.querySelector(".collection-list");
-const main_content = document.querySelector(".main-content");
-const input_collection_name = document.getElementById("collection_input_name");
+console.log(balls);
 
-const btn_add = document.querySelector(".btn-add");
-const btn_update = document.getElementById("update_collections");
-const search_box = document.getElementById("current_search");
+export const debounce = (func, delay) => {
 
-const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
+    let timeout;
 
-const change_input_value = (name) => {
-    input_collection_name.value = name;
+    return (...args) => {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => func(...args), delay)
+    };
 }
 
-const get_current_item = () => {
+const create_element = (data) => {
+    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
+};
 
-    const items = Array.from(document.querySelectorAll(".collection-item"));
+const get_selected_collection = (id) => {
 
-    if (!items) {
-        return null;
-    }
+    const selectors = [...document.querySelectorAll(".selector")];
 
-    for (let i = 0; i < items.length; i++) {
-        
-        const element = items[i];
-
-        if (element.classList.contains("selected")) {
-            return { element: element, name: element.children[0].innerHTML};
+    for (let i = 0; i < selectors.length; i++) {
+        if (selectors[i].classList.contains("selected")) {
+            return id ? selectors[i].id : selectors[i].innerText;
         }
     }
 
     return null;
 };
+    
+const handle_move = (event) => {
+    mouse_x = event.clientX;
+    mouse_y = event.clientY;
+};
+
+// yeah i could do this with css but i dont give a shit
+const update_selector_pos = (selector) => {
+ 
+    if (selector.y == null) {
+        selector.y = mouse_y;
+    }
+
+    if (selector.x == null) {
+        selector.x = mouse_x;
+    }
+
+    const new_x = mouse_x - selector.x;
+    const new_y = mouse_y - selector.y - ELECTRON_BULLSHIT;
+
+    // set pos preview
+    selector.style.transform = `translate(${new_x}px, ${new_y}px)`;
+};
+
+const reset_preview_pos = (id) => {
+
+    const selector = selectors_map.get(id);
+
+    if (!selector) {
+        return;
+    }
+
+    // remove merge style from all elements
+    for (let [k, v] of selectors_map) {    
+        if (v.target.classList.contains("merge")) {
+            v.target.classList.remove("merge");
+        }
+    }
+
+    // reset style thingy
+    selector.target.style = "";
+
+    // remove hidden shit
+    selector.target.classList.remove("hidden");
+
+    // reset current state
+    selector.dragging = false;
+    selector.x = null;
+    selector.y = null;
+    selector.hold_time = 0;
+
+    // reset mouse state
+    mouse_x = 0;
+    mouse_y = 0;
+};
+
+const detect_collision = (el1, el2, center) => {
+
+    const rect1 = el1.getBoundingClientRect();
+    const rect2 = el2.getBoundingClientRect();
+
+    const centerX = rect1.left + rect1.width / 2;
+    const centerY = rect1.top + rect1.height / 2;
+
+    if (!center) {
+        return !(
+            rect1.bottom < rect2.top ||
+            rect1.top > rect2.bottom ||
+            rect1.right < rect2.left ||
+            rect1.left > rect2.right
+          );
+    }
+  
+    return (
+        centerX >= rect2.left &&
+        centerX <= rect2.right &&
+        centerY >= rect2.top &&
+        centerY <= rect2.bottom
+    );
+};
+
+const drag_callback = (id, placeholder_selector) => {
+    
+    const selector = selectors_map.get(id);
+
+    if (!selector) {
+        return;
+    }
+
+    // make sure the selector state is still valid.
+    if (!selector.dragging || !document.hasFocus()) {
+        reset_preview_pos(id);
+        return;
+    }
+
+    if (!selector.hold_time) {
+        selector.hold_time = 0;
+    }
+
+    selector.hold_time += 1;
+
+    // give 500ms to enable drag mode
+    if (selector.hold_time * 60 < 500) {
+        return requestAnimationFrame(() => drag_callback(id, placeholder_selector));
+    }
+
+    selector_bin.classList.add("enabled");
+
+    // append the placeholder element
+    if (!list_container.contains(placeholder_selector)) {
+        placeholder_selector.classList.add("selected");
+        selector.target.classList.add("hidden");
+        list_container.appendChild(placeholder_selector);
+    }
+
+    // enable color transition
+    if (detect_collision(placeholder_selector, selector_bin)) {
+        selector_bin.classList.add("hover");
+    } else {
+        selector_bin.classList.remove("hover");
+    }
+
+    for (let [k, v] of selectors_map) {    
+
+        const other_selector = v.target;
+
+        // ignore hidden selectors
+        if (other_selector.classList.contains("hidden")) {
+            continue;
+        }
+
+        if (!detect_collision(placeholder_selector, other_selector, true)) {
+            other_selector.classList.remove("merge");      
+            continue;
+        }
+
+        other_selector.classList.add("merge");
+    }
+
+    update_selector_pos(placeholder_selector);
+    requestAnimationFrame(() => drag_callback(id, placeholder_selector));
+};
+
+const filter_beatmap = (beatmap, filter) => {
+
+    if (!filter) {
+        return true;
+    }
+
+    const searchable_text = `${beatmap.artist_name} ${beatmap.song_title} ${beatmap.difficulty} ${beatmap.creator_name} ${beatmap.tags}`.toLowerCase();
+    return searchable_text.includes(filter.toLowerCase());
+};
+
+search_input.addEventListener("input", debounce(() => {
+
+    const selected_id = get_selected_collection(true);
+
+    if (!selected_id) {
+        return;
+    }
+
+    render_page(selected_id, search_input.value.toLowerCase(), 0);
+}, 300));
 
 const remove_beatmap = (hash) => {
 
-    const beatmaps = collections.get(current_name);
+    const name = get_selected_collection();
+    const beatmaps = collections.get(name);
+
+    if (!beatmaps) {
+        console.log("failed to get collection", name);
+        return;
+    }
 
     for (let i = 0; i < beatmaps.length; i++) {
 
@@ -64,67 +245,142 @@ const remove_beatmap = (hash) => {
 
     need_to_save = true;
     document.getElementById(hash).remove();
-}
+};
+
+const create_more_button = (id, filter, offset) => {
+
+    const current_selector = selectors_map.get(id);
+    const button_html = `
+        <button class="load_more_button">
+            load more (${offset}/${current_selector.collection.length})
+        </button>
+    `;
+
+    const button_element = create_element(button_html);
+    button_element.addEventListener("click", () => {
+        button_element.remove();
+        render_page(id, filter, offset);
+    });
+
+    return button_element;
+};
+
+more_options.addEventListener("click", () => {
+});
+
+// @TODO: this only works for "standard" mode
+const get_beatmap_sr = (beatmap) => {
+    try {
+        const beatmap_sr = beatmap?.sr[0] || 0; // lmao
+        if (beatmap_sr) {
+            if (!beatmap_sr.sr.length) {
+                return 0;
+            } else {
+                return Number(beatmap_sr.sr[0][1]).toFixed(2);
+            }   
+        }
+    } catch(err) {
+        return 0;
+    }  
+};
 
 const render_beatmap = (beatmap) => {
 
-    const template = document.createElement('template');
-    template.innerHTML = `
+    const has_beatmap = Boolean(beatmap.artist_name);
+
+    // @TODO: implement sr thing, status
+
+    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
+    const beatmap_html = `
         <div class="mini-container">
             <img class="bg-image">
-            <div class="content">
-                <div class="small-image-container">
-                    <img class="small-image lazy" loading="lazy">
+            <div class="beatmap_metadata">
+                <div class="title">Renatus</div>
+                <div class="subtitle">Soleily</div>
+                <div class="beatmap_thing_status">
+                    <div class="beatmap_status ranked">RANKED</div>
+                    <div class="beatmap_status star_fucking_rate">★ 0.00</div>
                 </div>
-                <div class="text-container">
-                    <p class="title"></p>
-                    <p class="subtitle"></p>
-                </div>
+            </div>
+            <div class="beatmap_controls">      
                 <button class="download-button"><i class="bi bi-download"></i></button>
                 <button class="remove-btn"><i class="bi bi-trash-fill"></i></button>
             </div>
         </div>
-    `
+    `;
 
-    const map_item = template.content.cloneNode(true).firstElementChild;
-    const has_beatmap = Boolean(beatmap.artist_name);
+    // get individual elmeents from beatmap card
+    const beatmap_element = create_element(beatmap_html);
+    const title = beatmap_element.querySelector('.title');
+    const subtitle = beatmap_element.querySelector('.subtitle')
+    const download_button = beatmap_element.querySelector(".download-button");
+    const beatmap_bg = beatmap_element.querySelector(".bg-image");
+    const remove_button = beatmap_element.querySelector(".remove-btn");
+    const star_rating = beatmap_element.querySelector(".star_fucking_rate");
+    //const mapper = beatmap_element.querySelector(".beatmap_mapper");
 
-    map_item.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
-    map_item.dataset.mapper = beatmap.creator_name ? beatmap.creator_name.toLowerCase() : "Unknown";
-    map_item.dataset.tags = beatmap.tags ? beatmap.tags.toLowerCase() : "";
-    map_item.dataset.artist = beatmap.artist_name ? beatmap.artist_name.toLowerCase() : "";
+    const beatmap_sr = get_beatmap_sr(beatmap);
 
-    map_item.id = beatmap.md5;
+    if (beatmap_sr) {
 
-    const title = map_item.querySelector('.title');
-    const subtitle = map_item.querySelector('.subtitle');
-    const small_bg = map_item.querySelector('.small-image');
-    const download_btn = map_item.querySelector('.download-button');
-    const remove_btn = map_item.querySelector('.remove-btn');
+        star_rating.innerText = `★ ${beatmap_sr}`;
 
-    title.textContent = map_item.dataset.title;
-    subtitle.textContent = has_beatmap ? `mapped by ${beatmap.creator_name}` : "mapped by Unknown";
+        // @TODO: ...
+        if (beatmap_sr >= 1 && beatmap_sr <= 2.99) {
+            star_rating.classList.add("sr1");
+        }
 
-    const beatmap_image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/list@2x.jpg`
+        if (beatmap_sr >= 3 && beatmap_sr <= 4.99) {
+            star_rating.classList.add("sr2");
+        }
 
-    small_bg.dataset.src = has_beatmap ? beatmap_image_url : placeholder_image;
-    remove_btn.id = `bn_${beatmap.beatmap_id}`;
-    
-    if (has_beatmap) {
+        if (beatmap_sr >= 5 && beatmap_sr <= 6.99) {
+            star_rating.classList.add("sr3");
+        }
 
-        small_bg.addEventListener("click", () => {
-            const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-            window.electron.shell.openExternal(url);
-        });
+        if (beatmap_sr >= 7 && beatmap_sr <= 7.99) {
+            star_rating.classList.add("sr4");
+        }
+
+        if (beatmap_sr >= 8 && beatmap_sr <= 8.99) {
+            star_rating.classList.add("sr5");
+        }
+
+        if (beatmap_sr >= 9) {
+            star_rating.classList.add("sr6");
+        }
+
+        // if its more than 7 stars turn that shit yellow
+        if (beatmap_sr >= 7) {
+            star_rating.style.color = "#ebcf34";
+        }
     }
 
-    remove_btn.addEventListener("click", () => {
-        remove_beatmap(beatmap.md5);
-    });
+    // set shit for lazy loading
+    beatmap_element.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
+    beatmap_element.dataset.mapper = beatmap.creator_name ? beatmap.creator_name.toLowerCase() : "Unknown";
+    beatmap_element.dataset.tags = beatmap.tags ? beatmap.tags.toLowerCase() : "";
+    beatmap_element.dataset.artist = beatmap.artist_name ? beatmap.artist_name.toLowerCase() : "";
+    beatmap_element.id = beatmap.md5;
 
-    if (!has_beatmap) {
+    title.textContent = beatmap?.song_title || "Unknown";
+    subtitle.textContent = beatmap?.difficulty || "Unknown";
+    // mapper.innerText = `mapped by ${beatmap.creator_name}`;
 
-        download_btn.addEventListener("click", async () => {
+    beatmap_bg.src = has_beatmap ? image_url : placeholder_image;
+    remove_button.id = `bn_${beatmap.beatmap_id}`;
+
+    if (has_beatmap) {
+
+        title.addEventListener("click", () => {
+            const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+            // window.electron.shell.openExternal(url);
+        });
+
+        download_button.remove();
+    } else {
+
+        download_button.addEventListener("click", async () => {
 
             create_alert("searching beatmap...");
 
@@ -148,188 +404,324 @@ const render_beatmap = (beatmap) => {
 
             title.innerText = `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`;
             subtitle.innerText = `mapped by ${beatmap.creator_name}`;
-            small_bg.src = beatmap.bg;
-
-            download_btn.remove();
-
-            small_bg.addEventListener("click", () => {
-                window.electron.shell.openExternal(beatmap_data.url);
-            });
+            beatmap_bg.src = beatmap.bg;
         });
-    } else {
-        download_btn.remove();
     }
 
-    return map_item;
-}
-
-const render_tab = (tab, beatmaps, filter = "") => {
-
-    tab.innerHTML = "";
-
-    const fragment = document.createDocumentFragment();
-    const max_initial_render = 20;
-    
-    let total_matching = 0;
-    let rendered_count = 0;
-
-    for (let i = 0; i < beatmaps.length; i++) {
-
-        const beatmap = beatmaps[i];
-
-        if (filter_beatmap(beatmap, filter)) {
-
-            total_matching++;
-
-            if (rendered_count < max_initial_render) {
-                const map_item = render_beatmap(beatmap);
-                fragment.appendChild(map_item);
-                rendered_count++;
-            }
-        }
-    }
-
-    tab.appendChild(fragment);
-
-    if (total_matching > rendered_count) {
-        add_load_more_button(tab, beatmaps, rendered_count, filter, total_matching);
-    }
-
-    requestAnimationFrame(() => {
-        lazy_load();
-    }) 
-}
-
-const add_load_more_button = (tab, beatmaps, start, filter, total_matching) => {
-
-    const collection_name = get_current_item()?.name;
-
-    const load_more = document.createElement('button');
-    load_more.textContent = `load more (${start}/${collections.get(collection_name)?.length || total_matching})`;
-
-    load_more.style.width = "95%";
-    load_more.style.alignSelf = "center";
-
-    load_more.addEventListener('click', () => {
-        load_more.remove();
-        render_more_beatmaps(tab, beatmaps, start, filter, total_matching);
+    remove_button.addEventListener("click", () => {
+        remove_beatmap(beatmap.md5);
     });
 
-    tab.appendChild(load_more);
-}
+    return beatmap_element;
+};
 
-const render_more_beatmaps = (tab, beatmaps, start, filter, total_matching, count = 20) => {
+const render_page = (id, filter, _offset) => {
 
-    const fragment = document.createDocumentFragment();
+    let offset = _offset || 0, add_more = true;
 
-    let rendered_count = 0;
-    let current_index = 0;
+    if (offset == 0) {
+        collection_container.innerHTML = "";
+    }
 
-    for (let i = 0; i < beatmaps.length && rendered_count < count; i++) {
+    const collection = selectors_map.get(id)?.collection;
+    const text_collection = document.getElementById("collection_text");
 
-        const beatmap = beatmaps[i];
+    if (!collection) {
+        console.log("failed to get collection", id);
+        return;
+    }
 
-        if (filter_beatmap(beatmap, filter)) {
+    if (text_collection) {
+        text_collection.remove();
+    }
 
-            if (current_index <= start) {
-                current_index++;
-                continue;
+    // only render 16 at time
+    for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
+
+        // check if i reached the collection limit
+        if (offset >= collection.length) {
+            add_more = false;
+            break;
+        }
+
+        // filter shit
+        if (filter && !filter_beatmap(collection[offset], filter)) {
+            offset++;
+            i--;
+            continue;
+        }
+
+        // check if the beatmap is valid (should be)
+        if (!collection[offset]) {
+            offset++;
+            continue;
+        }
+
+        const beatmap_item = render_beatmap(collection[offset]);
+        collection_container.appendChild(beatmap_item);
+
+        offset++;
+    }
+
+    if (add_more) {
+        const load_more_button = create_more_button(id, filter, offset);
+        collection_container.appendChild(load_more_button);
+    }
+};
+
+const check_delete_thing = (id, placeholder_selector) => {
+
+    const selector = selectors_map.get(id);
+
+    if (!selector) {
+        console.log("???");
+        return false;
+    }
+
+    // check if is colliding with the bin
+    if (detect_collision(placeholder_selector, selector_bin)) {
+    
+        const will_delete = confirm("Are you sure?");
+
+        if (will_delete) {
+
+            const collection_id = selectors_map.get(id)?.collection_id;
+
+            if (!collection_id) {
+                console.log("failed to get collection id", id);
+                return false;
             }
 
-            const map_item = render_beatmap(beatmap);
-            fragment.appendChild(map_item);
+            collections.delete(collection_id);
 
-            rendered_count++;
+            reset_preview_pos(id);
+            selectors_map.delete(id);
+            
+            list.removeChild(selector.target);
+            return true;
         }
     }
 
-    tab.appendChild(fragment);
+    return false;
+};
 
-    const new_start = start + rendered_count;
-    if (new_start < total_matching) {
-        add_load_more_button(tab, beatmaps, new_start, filter, total_matching);
-    }
+const merge_collections = (cl1, cl2) => {
 
-    requestAnimationFrame(lazy_load);
-}
+    const merged_map = new Map();
+  
+    [...cl1, ...cl2].forEach(item => {
+        merged_map.set(item.md5, item);
+    });
+  
+    return Array.from(merged_map.values());
+  };
 
-const filter_beatmap = (beatmap, filter) => {
-
-    if (!filter) {
-        return true;
-    }
-
-    const searchable_text = `${beatmap.artist_name} ${beatmap.song_title} ${beatmap.difficulty} ${beatmap.creator_name} ${beatmap.tags}`.toLowerCase()
-    return searchable_text.includes(filter.toLowerCase())
-}
-
-const remove_container = () => {
-
-    const container = document.querySelector(".collection-container");
-
-    if (main_content.hasChildNodes() && container) {
-        main_content.removeChild(container)
-    }
-}
-
-const create_container = (name) => {
-
-    const container = document.createElement("div");
-
-    container.classList.add("collection-container");
-    container.id = `cl-${name}`;
-
-    main_content.appendChild(container);
-    return container;
-}
-
-input_collection_name.addEventListener("input", () => {
-
-    const input = input_collection_name;
-
-    if (!input.value) {
-        return;
-    }
+const check_merge = async (id) => {
     
-    if (!collections.has(current_name)) {
-        return;
+    const selector = selectors_map.get(id);
+
+    if (!selector) {
+        console.log("???");
+        return false;
     }
 
-    if (collections.get(input.value)) {
-        console.log("this collection already exist");
-        return;
+    // get the merge selector
+    const merge_selector = document.querySelector(".merge");
+
+    if (!merge_selector) {
+        return false;
     }
 
-    const old_value = collections.get(current_name);
-    const { element: collection_item, name: collection_name } = get_current_item();
+    // create a unique array with content from current_selector and merge
+    const cl1_id = selectors_map.get(merge_selector.id)?.collection_id;
+    const cl2_id = selectors_map.get(id)?.collection_id;
 
-    if (!collection_item || !collection_name) {
-        console.log("item not found");
-        return;
+    if (!cl1_id || !cl2_id) {
+        console.log("failed to get collection id", id, merge_selector.id);
+        return false;
     }
 
-    update_current_item(input.value, old_value);
-});
+    const cl1 = collections.get(cl1_id);
+    const cl2 = collections.get(cl2_id);
 
-export const debounce = (func, delay) => {
+    if (!cl1 || !cl2) {
+        console.log("failed to get collection", id, merge_selector.id);
+        return false;
+    }
 
-    let timeout;
+    const content = merge_collections(cl1, cl2);
+    const new_name = await create_custom_message({
+        type: message_types.INPUT,
+        title: "collection name",
+        label: "new collection name",
+        input_type: "text",
+    });
 
-    return (...args) => {
-        clearTimeout(timeout)
-        timeout = setTimeout(() => func(...args), delay)
-    };
-}
+    if (!new_name) {
+        return false;
+    }
 
-search_box.addEventListener("input", debounce(() => {
+    collections.set(new_name, content);
 
-    const filter = search_box.value.toLowerCase();
-    const container = document.querySelector(".collection-container");
+    // setup manager again
+    setup_manager();
+};
+
+const setup_manager = () => {
+
+    // clean list and container
+    list.innerHTML = "";
+    collection_container.innerHTML = "";
+
+    // clean selectors list
+    for (let [k] of selectors_map) {
+        selectors_map.delete(k);
+    }
+
+    for (let [k, v] of collections) {
+
+        // create the new elements and append to selectors map
+        const id = crypto.randomUUID();
+        const selector_html = `
+            <div class="selector" id=${id}>
+                <h1>${k}</h1>
+                <i class="bi bi-pencil-square hidden"></i>
+            </div>
+        `;
+
+        const selector = create_element(selector_html);
+
+        const selector_name = selector.children[0];
+        const modify_name = selector.children[1];
+
+        list.appendChild(selector);
+
+        selector_name.addEventListener("mousedown", (event) => {
+
+            const selector = selectors_map.get(id);
+
+            // save mouse position
+            mouse_x = event.clientX;
+            mouse_y = event.clientY;
+
+            console.log("y position:", mouse_y);
     
-    if (container && current_name) {
-        render_tab(container, collections.get(current_name), filter);
+            // @TODO: better way to move element thorugh divs
+            const placeholder_html = `
+                <div class="selector">
+                    <h1>${selector_name.innerText}</h1>
+                    <i class="bi bi-pencil-square"></i>
+                </div>
+            `
+            const placeholder_selector = create_element(placeholder_html);
+    
+            const handle_up = async () => {
+
+                // if the holdtime is less than 500, then render the beatmaps page
+                if (selector.hold_time * 60 < 500) {
+
+                    const selectors = [...document.querySelectorAll(".selector")];
+
+                    // @TODO: nah
+                    // remove selected from all divs
+                    for (let i = 0; i < selectors.length; i++) {
+
+                        // only show "modify button" if the selector is selected
+                        const modify_button = selectors[i].children[1];
+                        modify_button.classList.add("hidden");
+
+                        if (selectors[i].classList.contains("selected")) {
+                            selectors[i].classList.remove("selected");
+                        }
+                    }
+
+                    selector.target.classList.add("selected");
+                    selector.target.children[1].classList.remove("hidden");
+                    selector.selected = true;
+
+                    render_page(id);
+                }
+                
+                // check merge
+                if (!await check_merge(id)) {
+                    reset_preview_pos(id);
+                }
+
+                // chck delete
+                if (!check_delete_thing(id, placeholder_selector)) {
+                    reset_preview_pos(id);
+                }
+
+                if (list_container.contains(placeholder_selector)) {
+                    list_container.removeChild(placeholder_selector);
+                }
+
+                selector_bin.classList.remove("enabled");
+                selector_bin.classList.remove("hover");
+
+                document.removeEventListener("mousemove", handle_move);
+                document.removeEventListener("mouseup", handle_up);
+            };
+    
+            // create listeners to get mouse_pos and mouse up
+            document.addEventListener("mousemove", handle_move);
+            document.addEventListener("mouseup", handle_up);
+
+            selector.dragging = true;
+            selector.selected = true;
+
+            // get the position from the original selector and pass it to the placeholder.
+            const rect = selector.target.getBoundingClientRect();
+
+            // change the placeholder position to the og one.
+            placeholder_selector.style.position = "absolute";
+            placeholder_selector.style.top = rect.top + "px";
+            placeholder_selector.style.left = rect.left + "px";
+            placeholder_selector.style.width = rect.width + "px";
+            placeholder_selector.style.height = rect.height + "px";
+            placeholder_selector.style.zIndex = "999";
+
+            // run the drag_callback
+            requestAnimationFrame(() => drag_callback(id, placeholder_selector));
+        });
+
+        modify_name.addEventListener("click", async (event) => {
+
+            event.stopPropagation();
+
+            const new_name = await create_custom_message({
+                type: message_types.INPUT,
+                title: "new collection name",
+                label: "new collection name",
+                input_type: "text",
+            });
+
+            if (!new_name) {
+                return;
+            }
+
+            // modify both element and map thing
+            selector_name.innerText = new_name;
+            const old_thing = selectors_map.get(id);
+
+            selectors_map.delete(id);
+            selectors_map.set(id, old_thing);
+        });
+
+        const new_selector = { 
+            id: id,
+            y: null,
+            x: null,
+            target: selector,
+            collection: v,
+            collection_id: k,
+            dragging: false, 
+            selected: false 
+        };
+
+        selectors_map.set(id, new_selector); 
     }
-}, 300));
+};
 
 const update_map_info = (map) => {
 
@@ -349,304 +741,6 @@ export const add_collection_manager = async (maps, collection) => {
     await initialize();
     setup_manager();
 };
-
-const fetch_osustats = async (collection_url) => {
-
-    const id = collection_url.split("/").find((v) => Number(v));
-
-    if (!id) {
-        create_alert("failed to get collection id", { type: "error" });
-        return;
-    }
-
-    const stats_data = await get_from_database("stats", "data");
-
-    if (!stats_data) {
-        create_alert("please login on osustats before using that feature", { type: "warning" });
-        const data = await window.electron.create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
-        await save_to_db("stats", "data", data);
-    }
-
-    const url = `https://osustats.ppy.sh/apiv2/collection/${id}/download`;
-    const collection_info = await fetch(`https://osustats.ppy.sh/apiv2/collection/${id}`);
-    const file_data = await window.electron.fetchstats(url, stats_data);
-
-    if (file_data?.cookie) {
-        create_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });
-        return;
-    }
-
-    if (!file_data || !file_data.ok) {
-        create_alert("failed to get collection", { type: "error" });   
-        return;
-    }
-
-    const collection_data = await collection_info.json();
-    const buffer = file_data.data;
-
-    core.reader.set_buffer(buffer);
-
-    const osdb_data = await core.reader.get_osdb_data();
-    const all_hashes = [];
-    const missing_beatmaps = osdb_data.collections.reduce((acc, c) => {
-        for (let i = 0; i < c.beatmaps.length; i++) {
-            const b = c.beatmaps[i];
-            if (!core.reader.osu.beatmaps.has(b.md5)) {
-                acc.push({ id: b.map_set_id, md5: b.md5 });
-            }
-            all_hashes.push(b.md5);
-        }
-        return acc;
-    }, []);
-
-    collection_data.name = collection_data.title;
-
-    return { 
-        maps: missing_beatmaps,
-        c_maps: all_hashes,
-        collection: collection_data
-    }
-};
-
-btn_add.addEventListener("click", async () => {
-
-    if (need_to_save) {
-        create_alert("please update before using this feature");
-        return;
-    }
-
-    const prompt = await create_custom_message({ type: "input", label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" });
-
-    if (!prompt) {
-        return;
-    }
-
-    const url = new URL(prompt);
-    const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
-
-    if (!url || !url_is_valid) {
-        return;
-    }
-
-    const info = url.hostname == "osustats.ppy.sh" ? await fetch_osustats(url.toString()) : await setup_collector(url.toString());
-
-    if (!info) {
-        return;
-    }
-
-    const { c_maps: maps, maps: yep_maps, collection } = info;
-
-    if (collections.has(collection.name)) {
-        create_alert("you already have a collection with this name");
-        return;
-    }
-
-    await add_collection_manager(maps, collection);
-
-    remove_container();
-
-    const download = await create_custom_message({
-        type: message_types.MENU,
-        title: `download maps from ${collection.name}?`,
-        items: ["yes", "no"]
-    });
-
-    if (download != "yes") {
-        return;
-    }
-
-    await create_download_task(collection.name, yep_maps);
-});
-
-btn_update.addEventListener("click", async () => {
-
-    const confirm = await create_custom_message({
-        type: message_types.MENU,
-        title: "are you sure?<br>if you click yes your collection file will be modified",
-        items: ["yes", "no"]
-    });
-
-    if (confirm != "yes") {
-        return;
-    }
-
-    const new_collection = {
-        version: core.reader.collections.version,
-        length: collections.size,
-        beatmaps: []
-    };
-
-    for (let [k, v] of collections) {
-        const obj = { name: k, maps: [] };
-        for (let i = 0 ; i < v.length; i++) {
-            const map = v[i];
-            obj.maps.push(map.md5);
-        }
-        new_collection.beatmaps.push(obj);
-    }
-
-    console.log("updated collection:", new_collection);
-
-    core.reader.collections = new_collection;
-    const backup_name = `collection_backup_${Date.now()}.db`;
-
-    const old_name = path.resolve(core.config.get("osu_path"), "collection.db"), 
-          new_name = path.resolve(core.config.get("osu_path"), backup_name);
-
-    await fs.renameSync(old_name, new_name);
-
-    core.reader.write_collections_data(old_name);
-    create_alert("Done!");
-
-    need_to_save = false;
-})
-
-function lazy_load() {
-
-    const images = document.querySelectorAll('img.lazy'); 
-
-    const options = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-    }
-
-    const image_observer = new IntersectionObserver((entries, observer) => {
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-            const img = entry.target
-            if (entry.isIntersecting && img.dataset.src) {
-                img.src = img.dataset.src
-                img.removeAttribute('data-src')
-            }
-        }
-    }, options);
-
-    for (let i = 0; i < images.length; i++) {
-        image_observer.observe(images[i]);
-    }
-}
-
-const update_current_item = (new_name, old_value) => {
-
-    const { element: current_item, name: name } = get_current_item();
-
-    // clone the old element
-    const old_element = current_item;
-    const new_element = old_element.cloneNode(true);
-
-    // replace it to remove all listeners
-    old_element.parentNode.replaceChild(new_element, old_element);
-
-    // update the collections map
-    collections.delete(name);
-    collections.set(new_name, old_value);
-
-    current_name = new_name;
-    need_to_save = true;
-
-    if (!new_name) {
-        console.log("invalid name", new_name);
-        return;
-    }
-
-    // update the div name
-    new_element.firstElementChild.innerText = new_name;
-    
-    new_element.addEventListener("click", () => {
-        const all_collections_text = Array.from(collection_list.children);
-        all_collections_text.forEach(e => e.classList.remove("selected"));
-        new_element.classList.add("selected");
-        remove_container();
-        render_tab(create_container(new_name), collections.get(new_name));
-        change_input_value(new_name);
-        current_name = new_name;
-    });
-};
-
-export const setup_manager = () => {
-
-    collection_list.innerHTML = "";
-
-    const fragment = document.createDocumentFragment();
-    const collection_html = `
-        <div class="collection-item">
-            <p class="collection-name"></p>
-            <i class="bi bi-trash-fill" id="remove_collection"></i>
-        </div>
-    `;
-
-    for (let [k, v] of collections) {
-
-        //const new_collection = template.content.cloneNode(true).firstElementChild;
-        const new_collection = new DOMParser().parseFromString(collection_html, "text/html").body.firstElementChild;
-        const collection_name = new_collection.querySelector(".collection-name");
-        const remove_collection = new_collection.querySelector("#remove_collection");
-
-        remove_collection.addEventListener("click", async (e) => {
-
-            e.stopPropagation();
-
-            const collection = remove_collection.previousElementSibling;
-
-            if (!collection) {
-                console.log("collection not found", collection);
-                return;
-            }
-
-            const collection_name = collection.textContent;
-
-            if (!collection_name) {
-                create_alert("Please select a collection", { type: "warning" })
-                return
-            }
-
-            const confirm = await create_custom_message({
-                type: message_types.MENU,
-                title: `delete ${collection_name}?`,
-                items: ["yes", "no"]
-            });
-
-            if (confirm == "yes") {
-                collections.delete(collection_name);   
-                remove_container();
-                setup_manager(); 
-                create_alert(`${collection_name} has been deleted`); 
-            }
-        });
-
-        collection_name.innerText = k;
-        new_collection.addEventListener("click", () => {
-
-            const collection_text = document.getElementById("collection_text");
-
-            if (collection_text) {
-                collection_text.remove();
-            }
-
-            const all_collections_text = Array.from(collection_list.children);
-            all_collections_text.forEach(e => e.classList.remove("selected"));
-
-            new_collection.classList.add("selected");
-            current_name = k;
-
-            remove_container();
-            render_tab(create_container(k), v);
-            change_input_value(k);
-        });
-
-        fragment.appendChild(new_collection)
-    }
-
-    collection_list.innerHTML = "";
-    collection_list.appendChild(fragment);
-
-    requestAnimationFrame(() => {
-        lazy_load();
-    });
-}
-
-window.addEventListener("scroll", e => lazy_load());
 
 export const initialize = async (options) => {
 
@@ -674,7 +768,6 @@ export const initialize = async (options) => {
     }
 
     if (!no_update) {
-        remove_container();
         setup_manager();
     }
 };
