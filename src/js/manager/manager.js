@@ -250,6 +250,7 @@ const remove_beatmap = (hash) => {
         }
     }
 
+    // need to save
     update_collection_button.style.display = "block";
     document.getElementById(hash).remove();
 };
@@ -389,7 +390,7 @@ const render_beatmap = (beatmap) => {
 
         title.addEventListener("click", () => {
             const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-            // window.electron.shell.openExternal(url);
+            window.electron.shell.openExternal(url);
         });
 
         // @TODO: get mp3 from osu folder for downloaded beatmaps
@@ -566,9 +567,11 @@ const check_delete_thing = (id, placeholder_selector) => {
             selectors_map.delete(id);
 
             reset_preview_pos();
-            
             list.removeChild(selector.target);
+            
+            // need to save
             update_collection_button.style.display = "block";
+
             return true;
         }
     }
@@ -636,6 +639,9 @@ const check_merge = async (id) => {
 
     collections.set(new_name, merge_collections(cl1, cl2));
 
+    // need to save
+    update_collection_button.style.display = "block";
+
     // setup manager again
     setup_manager();
 };
@@ -685,6 +691,7 @@ const change_collection_name = async (event, id, name_element) => {
     selectors_map.delete(id);
     selectors_map.set(id, old_selector);
 
+    // need to save
     update_collection_button.style.display = "block";
 };
 
