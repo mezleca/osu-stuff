@@ -65,7 +65,14 @@ const handle_move = (event) => {
 };
 
 // yeah i could do this with css but i dont give a shit
-const update_selector_pos = (selector) => {
+const update_selector_pos = (selector, id) => {
+
+    const selector_obj = selectors_map.get(id);
+
+    if (selector_obj.stop) {
+        selector.style.transform = "";
+        return;
+    }
  
     if (selector.y == null) {
         selector.y = mouse_y;
@@ -107,6 +114,7 @@ const reset_preview_pos = (id) => {
     selector.dragging = false;
     selector.x = null;
     selector.y = null;
+    selector.stop = false;
     selector.hold_time = 0;
 
     // reset mouse state
@@ -197,7 +205,7 @@ const drag_callback = (id, placeholder_selector) => {
         other_selector.classList.add("merge");
     }
 
-    update_selector_pos(placeholder_selector);
+    update_selector_pos(placeholder_selector, id);
     requestAnimationFrame(() => drag_callback(id, placeholder_selector));
 };
 
@@ -555,9 +563,9 @@ const check_delete_thing = (id, placeholder_selector) => {
             }
 
             collections.delete(collection_id);
-
-            reset_preview_pos(id);
             selectors_map.delete(id);
+
+            reset_preview_pos();
             
             list.removeChild(selector.target);
             update_collection_button.style.display = "block";
@@ -580,7 +588,7 @@ const merge_collections = (cl1, cl2) => {
   };
 
 const check_merge = async (id) => {
-    
+
     const selector = selectors_map.get(id);
 
     if (!selector) {
@@ -592,6 +600,20 @@ const check_merge = async (id) => {
     const merge_selector = document.querySelector(".merge");
 
     if (!merge_selector) {
+        return false;
+    }
+
+    // force selector cursor to stop
+    selector.stop = true;
+
+    const new_name = await create_custom_message({
+        type: message_types.INPUT,
+        title: "collection name",
+        label: "new collection name",
+        input_type: "text",
+    });
+
+    if (!new_name) {
         return false;
     }
 
@@ -612,19 +634,7 @@ const check_merge = async (id) => {
         return false;
     }
 
-    const content = merge_collections(cl1, cl2);
-    const new_name = await create_custom_message({
-        type: message_types.INPUT,
-        title: "collection name",
-        label: "new collection name",
-        input_type: "text",
-    });
-
-    if (!new_name) {
-        return false;
-    }
-
-    collections.set(new_name, content);
+    collections.set(new_name, merge_collections(cl1, cl2));
 
     // setup manager again
     setup_manager();
@@ -792,13 +802,9 @@ const setup_manager = () => {
 
                     render_page(id);
                 }
-                
-                // check merge
-                if (!await check_merge(id)) {
-                    reset_preview_pos(id);
-                }
 
-                // chck delete
+                check_merge(id);
+
                 if (!check_delete_thing(id, placeholder_selector)) {
                     reset_preview_pos(id);
                 }
