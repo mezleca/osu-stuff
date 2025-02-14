@@ -1067,7 +1067,7 @@ a {
     width: fit-content;
 }
 
-.remove-btn, .download-button {
+.remove-btn, .download-button, .preview-button {
     background: none;
     border: none;
     color: white;

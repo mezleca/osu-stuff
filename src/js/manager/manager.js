@@ -5,8 +5,6 @@ import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 
-const style = window.getComputedStyle(document.body);
-
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_selectors");
 const list_container = document.querySelector(".list_container");
@@ -14,6 +12,12 @@ const selector_bin = document.querySelector(".selector_bin");
 const collection_container = document.querySelector(".collection-container");
 const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
+
+const audio_core = {
+    audio: null,
+    id: 0,
+    target: null
+}
 
 const selectors_map = new Map();
 export const collections = new Map();
@@ -297,9 +301,16 @@ const render_beatmap = (beatmap) => {
                     <div class="beatmap_status star_fucking_rate">★ 0.00</div>
                 </div>
             </div>
-            <div class="beatmap_controls">      
-                <button class="download-button"><i class="bi bi-download"></i></button>
-                <button class="remove-btn"><i class="bi bi-trash-fill"></i></button>
+            <div class="beatmap_controls">
+                <button class="preview-button">
+                    <i class="bi bi-play-fill"></i>
+                </button>      
+                <button class="download-button">
+                    <i class="bi bi-download"></i>
+                </button>
+                <button class="remove-btn">
+                    <i class="bi bi-trash-fill"></i>
+                </button>
             </div>
         </div>
     `;
@@ -311,6 +322,7 @@ const render_beatmap = (beatmap) => {
     const download_button = beatmap_element.querySelector(".download-button");
     const beatmap_bg = beatmap_element.querySelector(".bg-image");
     const remove_button = beatmap_element.querySelector(".remove-btn");
+    const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
     //const mapper = beatmap_element.querySelector(".beatmap_mapper");
 
@@ -372,9 +384,59 @@ const render_beatmap = (beatmap) => {
             // window.electron.shell.openExternal(url);
         });
 
+        // @TODO: get mp3 from osu folder for downloaded beatmaps
+        preview_button.addEventListener("click", async () => {
+
+            const play = () => {
+                audio_core.audio.play();
+                audio_core.target.classList.add("bi-pause-fill");
+                audio_core.target.classList.remove("bi-play-fill"); 
+            };
+
+            const stop = () => {
+                audio_core.audio.pause();
+                audio_core.audio.currentTime = 0;
+                audio_core.target.classList.remove("bi-pause-fill");
+                audio_core.target.classList.add("bi-play-fill"); 
+            };
+
+            // if is the same id, pause
+            if (audio_core.id == beatmap.beatmap_id) {
+
+                // if its pause, then just play again
+                if (audio_core.audio.paused) {
+
+                    // update target in case its another diff from the same map
+                    audio_core.target = preview_button.children[0];
+                    
+                    play(); 
+                    return;
+                }
+
+                stop();
+                return;
+            }
+
+            const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmap_id}.mp3`);
+            const buffer = await preview_data.arrayBuffer();
+
+            // create a new audio source using the preview buffer
+            const audio_source = new Blob([buffer], { type: "audio/wav" }); 
+
+            // initialize new audio object
+            audio_core.audio = new Audio(window.URL.createObjectURL(audio_source));
+            audio_core.audio.volume = 0.5;
+            audio_core.id = beatmap.beatmap_id;
+            audio_core.target = preview_button.children[0];
+
+            audio_core.audio.addEventListener("ended", stop);
+
+            play();
+        });
+
         download_button.remove();
     } else {
-
+        preview_button.remove();
         download_button.addEventListener("click", async () => {
 
             create_alert("searching beatmap...");
