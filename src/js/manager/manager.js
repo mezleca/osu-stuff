@@ -6,9 +6,6 @@ import { create_download_task } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 
 const style = window.getComputedStyle(document.body);
-const title_bar_height = style.getPropertyValue("--title-bar-height");
-
-console.log("title bar height", title_bar_height, style);
 
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_selectors");
@@ -16,6 +13,7 @@ const list_container = document.querySelector(".list_container");
 const selector_bin = document.querySelector(".selector_bin");
 const collection_container = document.querySelector(".collection-container");
 const search_input = document.getElementById("current_search");
+const update_collection_button = document.querySelector(".update_collection");
 
 const selectors_map = new Map();
 export const collections = new Map();
@@ -25,13 +23,10 @@ const MAX_RENDER_AMMOUNT = 16;
 // @TODO: idk why but on electron the y is wrong by like 80+ pixels.
 const ELECTRON_BULLSHIT = 80;
 
-let mouse_y, mouse_x, need_to_save = false;
+let mouse_y, mouse_x;
 
 const fs = window.nodeAPI.fs;
 const path = window.nodeAPI.path;
-const balls = await window.electron.titlebar_height();
-
-console.log(balls);
 
 export const debounce = (func, delay) => {
 
@@ -243,7 +238,7 @@ const remove_beatmap = (hash) => {
         }
     }
 
-    need_to_save = true;
+    update_collection_button.style.display = "block";
     document.getElementById(hash).remove();
 };
 
@@ -295,8 +290,8 @@ const render_beatmap = (beatmap) => {
         <div class="mini-container">
             <img class="bg-image">
             <div class="beatmap_metadata">
-                <div class="title">Renatus</div>
-                <div class="subtitle">Soleily</div>
+                <div class="title">placeholder</div>
+                <div class="subtitle">placeholder</div>
                 <div class="beatmap_thing_status">
                     <div class="beatmap_status ranked">RANKED</div>
                     <div class="beatmap_status star_fucking_rate">★ 0.00</div>
@@ -498,6 +493,7 @@ const check_delete_thing = (id, placeholder_selector) => {
             selectors_map.delete(id);
             
             list.removeChild(selector.target);
+            update_collection_button.style.display = "block";
             return true;
         }
     }
@@ -567,6 +563,97 @@ const check_merge = async (id) => {
     setup_manager();
 };
 
+const change_collection_name = async (event, id, name_element) => {
+
+    event.stopPropagation();
+
+    const new_name = await create_custom_message({
+        type: message_types.INPUT,
+        title: "new collection name",
+        label: "new collection name",
+        input_type: "text",
+    });
+
+    if (!new_name) {
+        return;
+    }
+
+    // check if this collection already exists
+    if (collections.has(new_name)) {
+        create_alert("this collection already exists");
+        return;
+    }
+
+    name_element.innerText = new_name;
+
+    const old_selector = selectors_map.get(id);
+    const old_collection = collections.get(old_selector.collection_id);
+
+    if (!old_collection) {
+        console.log("failed to get old collection", old_selector);
+        return;
+    }
+
+    console.log(old_selector.collection_id, old_selector);
+
+    // remove old collection and create a new one with all beatmaps
+    collections.delete(old_selector.collection_id);
+    collections.set(new_name, old_collection);
+
+    // update selector object to contain new name
+    old_selector.collection = old_collection;
+    old_selector.collection_id = new_name;
+
+    // update current selector
+    selectors_map.delete(id);
+    selectors_map.set(id, old_selector);
+
+    update_collection_button.style.display = "block";
+};
+
+update_collection_button.addEventListener("click", async () => {
+
+    const confirm = await create_custom_message({
+        type: message_types.MENU,
+        title: "are you sure?<br>if you click yes your collection file will be modified",
+        items: ["yes", "no"]
+    });
+
+    if (confirm != "yes") {
+        return;
+    }
+
+    const new_collection = {
+        version: core.reader.collections.version,
+        length: collections.size,
+        beatmaps: []
+    };
+
+    for (let [k, v] of collections) {
+        const obj = { name: k, maps: [] };
+        for (let i = 0 ; i < v.length; i++) {
+            const map = v[i];
+            obj.maps.push(map.md5);
+        }
+        new_collection.beatmaps.push(obj);
+    }
+
+    console.log("updated collection:", new_collection);
+
+    core.reader.collections = new_collection;
+    const backup_name = `collection_backup_${Date.now()}.db`;
+
+    const old_name = path.resolve(core.config.get("osu_path"), "collection.db"), 
+          new_name = path.resolve(core.config.get("osu_path"), backup_name);
+
+    await fs.renameSync(old_name, new_name);
+
+    core.reader.write_collections_data(old_name);
+    create_alert("Done!");
+
+    update_collection_button.style.display = "none";
+});
+
 const setup_manager = () => {
 
     // clean list and container
@@ -603,8 +690,6 @@ const setup_manager = () => {
             // save mouse position
             mouse_x = event.clientX;
             mouse_y = event.clientY;
-
-            console.log("y position:", mouse_y);
     
             // @TODO: better way to move element thorugh divs
             const placeholder_html = `
@@ -620,9 +705,8 @@ const setup_manager = () => {
                 // if the holdtime is less than 500, then render the beatmaps page
                 if (selector.hold_time * 60 < 500) {
 
-                    const selectors = [...document.querySelectorAll(".selector")];
+                    const selectors = [...document.querySelectorAll(".selector")]
 
-                    // @TODO: nah
                     // remove selected from all divs
                     for (let i = 0; i < selectors.length; i++) {
 
@@ -686,26 +770,7 @@ const setup_manager = () => {
         });
 
         modify_name.addEventListener("click", async (event) => {
-
-            event.stopPropagation();
-
-            const new_name = await create_custom_message({
-                type: message_types.INPUT,
-                title: "new collection name",
-                label: "new collection name",
-                input_type: "text",
-            });
-
-            if (!new_name) {
-                return;
-            }
-
-            // modify both element and map thing
-            selector_name.innerText = new_name;
-            const old_thing = selectors_map.get(id);
-
-            selectors_map.delete(id);
-            selectors_map.set(id, old_thing);
+            await change_collection_name(event, id, selector_name);
         });
 
         const new_selector = { 
