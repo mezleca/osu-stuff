@@ -123,7 +123,6 @@ const createWindow = () => {
 
     ipcMain.on('close-window', () => app.quit());
 
-    ipcMain.handle('titlebar_height', () => main_window.getContentSize()[1]);
     ipcMain.handle('is-window-full', () => main_window.isMaximized());
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
