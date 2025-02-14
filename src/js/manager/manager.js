@@ -408,13 +408,18 @@ const render_beatmap = (beatmap) => {
 
                     // update target in case its another diff from the same map
                     audio_core.target = preview_button.children[0];
-                    
+
                     play(); 
                     return;
                 }
 
                 stop();
                 return;
+            }
+
+            // prevent double audio
+            if (audio_core.audio) {
+                stop();
             }
 
             const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmap_id}.mp3`);
