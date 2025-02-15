@@ -100,6 +100,20 @@ export const add_tab = (id) => {
     };
 };
 
+export const create_task = async (task_name, ...extra_args) => {
+
+    const new_task = add_tab(task_name);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    tasks.set(task_name, data);
+    
+    await handle_event(data, ...extra_args);
+};
+
 /*
 btn_remove_invalid_maps.addEventListener("click", async () => {
     

@@ -794,7 +794,7 @@ a {
 
 #collection_text {
     text-align: center;
-    font-size: 1.5em;
+    font-size: 1.3em;
 }
 
 .collections-sidebar {
@@ -812,6 +812,7 @@ a {
     align-items: center;
     justify-content: center;
     padding: 10px;
+    padding-top: 0px;
     padding-bottom: 0px;
     overflow: hidden;
     min-height: 10vh;

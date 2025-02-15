@@ -2,8 +2,7 @@ import { core, get_files } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
-import { add_tab, create_download_task, tasks } from "../tabs.js";
-import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
+import { create_download_task, create_task } from "../tabs.js";
 import { beatmap_status as _status } from "../stuff/remove_maps.js";
 import { handle_event } from "../events.js";
 import { download_from_players } from "../stuff/download_from_players.js";
@@ -30,6 +29,7 @@ const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAA
 const MAX_RENDER_AMMOUNT = 16;
 // @TODO: idk why but on electron the y is wrong by like 80+ pixels.
 const ELECTRON_BULLSHIT = 80;
+const DRAG_ACTIVATION_THRESHOLD_MS = 500;
 
 let mouse_y, mouse_x;
 
@@ -172,7 +172,7 @@ const drag_callback = (id, placeholder_selector) => {
     selector.hold_time += 1;
 
     // give 500ms to enable drag mode
-    if (selector.hold_time * 60 < 500) {
+    if (selector.hold_time * 60 < DRAG_ACTIVATION_THRESHOLD_MS) {
         return requestAnimationFrame(() => drag_callback(id, placeholder_selector));
     }
 
@@ -284,20 +284,6 @@ const create_more_button = (id, filter, offset) => {
     return button_element;
 };
 
-const create_task = async (task_name, ...extra_args) => {
-
-    const new_task = add_tab(task_name);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(task_name, data);
-    
-    await handle_event(data, download_from_players, ...extra_args);
-};
-
 const get_from_player = async () => {
 
     if (core.login == null) {
@@ -329,7 +315,7 @@ const get_from_player = async () => {
     }
 
     const task_name = `${player} - ${method.name}`;
-    await create_task(task_name, player, method.name);
+    await create_task(task_name, download_from_players, player, method.name);
 };
 
 const add_new_collection = async () => {
@@ -1091,8 +1077,6 @@ const setup_manager = () => {
 };
 
 const update_map_info = (map) => {
-
-    console.log(map);
 
     if (typeof map === 'string') {
         return core.reader.osu.beatmaps.get(map) || { md5: map };
