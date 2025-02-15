@@ -7,6 +7,7 @@ import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 import { beatmap_status as _status } from "../stuff/remove_maps.js";
 import { handle_event } from "../events.js";
 import { download_from_players } from "../stuff/download_from_players.js";
+import { fetch_osustats } from "../utils/other/fetch.js";
 
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_selectors");
@@ -331,10 +332,80 @@ const get_from_player = async () => {
     await create_task(task_name, player, method.name);
 };
 
+const add_new_collection = async () => {
+
+    const prompt = await create_custom_popup({     
+        type: "input", 
+        label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" 
+    });
+
+    if (!prompt) {
+        return;
+    }
+
+    const url = new URL(prompt);
+    const url_is_valid = url.hostname == "osustats.ppy.sh" || url.hostname == "osucollector.com";
+
+    if (!url || !url_is_valid) {
+        return;
+    }
+
+    const info = url.hostname == "osustats.ppy.sh" ? await fetch_osustats(url.toString()) : await setup_collector(url.toString());
+
+    if (!info) {
+        return;
+    }
+
+    const { c_maps: maps, maps: yep_maps, collection } = info;
+    const current_collection = get_selected_collection(false);
+
+    if (current_collection) {
+
+        const confirmation = await create_custom_popup({
+            type: message_types.CONFIRMATION,
+            title: `merge with ${current_collection}?`
+        });
+
+        if (confirmation == "Yes") {
+
+            const collection = collections.get(current_collection);
+
+            if (!collection) {
+                create_alert("failed to get current collection", { type: "error"} );
+                return;
+            }
+
+            console.log("collection content", collection);
+
+            const new_maps = [...collection, ...maps];
+            await add_collection_manager(new_maps, current_collection);
+        }
+    } else {
+        
+        if (collections.has(collection.name)) {
+            create_alert("you already have a collection with this name");
+            return;
+        }
+
+        await add_collection_manager(maps, collection);
+    }
+
+    const download = await create_custom_popup({
+        type: message_types.CONFIRMATION,
+        title: `download maps from ${collection.name}?`,
+    });
+
+    if (download != "Yes") {
+        return;
+    }
+
+    await create_download_task(collection.name, yep_maps);
+};
+
 more_options.addEventListener("click", async () => {
 
     // if theres a collection selected, add extra option
-    const default_options = ["get from player", "get missing beatmaps", "add new collection"];
+    const default_options = ["add new collection", "get from player", "get missing beatmaps",];
     const current_collection = get_selected_collection(false);
 
     if (current_collection) {
@@ -358,6 +429,7 @@ more_options.addEventListener("click", async () => {
         case "get missing beatmaps": 
             break;
         case "add new collection":
+            await add_new_collection();
             break;
         case "delete beatmaps":
             break;
@@ -1020,6 +1092,8 @@ const setup_manager = () => {
 
 const update_map_info = (map) => {
 
+    console.log(map);
+
     if (typeof map === 'string') {
         return core.reader.osu.beatmaps.get(map) || { md5: map };
     } else if (typeof map === 'object' && map.md5) {
@@ -1032,7 +1106,7 @@ const update_map_info = (map) => {
 
 export const add_collection_manager = async (maps, collection) => {
 
-    const updated_map = maps.map(md5 => update_map_info({ md5 }));
+    const updated_map = maps.map(map => update_map_info(map));
     collections.set(collection, updated_map);
 
     await initialize();
