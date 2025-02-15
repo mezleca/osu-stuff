@@ -1,7 +1,5 @@
 import { osu_db, collections_db, osdb_schema } from "./definitions.js";
-
-const fs = window.nodeAPI.fs;
-const zlib = window.nodeAPI.zlib;
+import { fs, zlib } from "../utils/global.js";
 
 const decompress_gzip = (data) => {
     return new Promise((resolve, reject) => {

@@ -1,5 +1,5 @@
 import { tasks, blink, download_types, panels, tabs } from "./tabs.js";
-import { create_alert, message_types, create_custom_message } from "./popup/popup.js";
+import { create_alert, message_types, create_custom_popup } from "./popup/popup.js";
 import { download_maps, current_download } from "./utils/download_maps.js";
 
 export let queue_interval = null;
@@ -51,7 +51,7 @@ const start_task = (task) => {
                 return;
             }
             
-            const confirmation = await create_custom_message({
+            const confirmation = await create_custom_popup({
                 type: message_types.MENU,
                 title: "press yes to cancel the current download",
                 items: ["yes", "no"]
@@ -90,7 +90,7 @@ const manage_queue_ui = {
     create_div() {
         console.log("creating queue div");
         const html = `
-            <div class="tab-shit status-shit" id="queue_list">
+            <div class="cool-container status-container" id="queue_list">
                 <h1>queue list</h1>
                 <div class="queue-list"></div>
             </div>
@@ -151,7 +151,7 @@ const queue_handler = () => {
         
         if (queue.size == 0) {
             const status_shit = Array.from(panels.status.childNodes)
-                .find(node => node.classList && node.classList.contains("status-shit"));
+                .find(node => node.classList && node.classList.contains("status-container"));
             
             if (status_shit) {
                 panels.status.removeChild(status_shit);

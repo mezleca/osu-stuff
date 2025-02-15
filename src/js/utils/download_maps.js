@@ -3,16 +3,13 @@ import { create_alert } from "../popup/popup.js";
 import { events } from "../events.js";
 import { initialize } from "../manager/manager.js";
 import { osu_fetch } from "./other/fetch.js";
+import { fs, path, is_testing } from "./global.js";
 
 export let current_download = null;
 
-const downloaded_maps = new Set();
+const downloaded_maps = new Map();
 const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
-const is_testing = window.electron.dev_mode;
 const concurrency = 3;
-
-const path = window.nodeAPI.path;
-const fs = window.nodeAPI.fs;
 
 const pmap = async (array, mapper, concurrency) => {
 
@@ -64,6 +61,8 @@ export const download_map = async (hash) => {
         return;
     }
 
+    console.log("download single map:", hash);
+
     const new_download = new map_downloader({ hash: hash }, "0");
     return await new_download.init(true);
 };
@@ -112,10 +111,12 @@ class map_downloader {
     async get_map_data(map) {
 
         if (map.id) {
+            console.log("no id");
             return { map, data: {} };
         }
 
         if (!map.hash) {
+            console.log("no hash");
             return { map: null, data: null };
         }
 
@@ -128,12 +129,15 @@ class map_downloader {
         const map_path = path.resolve(core.config.get("osu_songs_path"),`${data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
-            console.log(`skipping ${data?.beatmapset_id} (already downloaded)`);
             return { map: null, data: null };
         }
 
-        if (!data?.beatmapset_id || downloaded_maps.has(data.beatmapset_id)) {
+        if (!data?.beatmapset_id) {
             return { map: null, data: null };
+        }
+
+        if (downloaded_maps.has(data.beatmapset_id)) {
+            return { map: downloaded_maps.get(data.beatmapset_id), data: data };
         }
 
         return {
@@ -200,12 +204,14 @@ class map_downloader {
 
         map.md5 = map.checksum;
         core.reader.osu.beatmaps.set(map.checksum, map);
-        downloaded_maps.add(map.id);
+        downloaded_maps.set(map.id, map);
 
         return data;
     }
 
     async process(map, index) {
+
+        console.log("searching map", map);
 
         if (this.should_stop) {
             return { stop: true };
@@ -243,6 +249,7 @@ class map_downloader {
         if (single_map) {
             const result = await this.process(this.maps, 0);
             await initialize({ no_update: true });
+            console.log(result);
             return result;
         }
 

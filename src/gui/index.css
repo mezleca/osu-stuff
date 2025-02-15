@@ -14,18 +14,29 @@
     src: local('Helvetica'), url('./deps/Helvetica.woff') format('woff');
 }
 
+@font-face {
+    font-family: 'Torus Bold';
+    font-style: normal;
+    font-weight: bold;
+    src: local('Torus Bold'), url('./deps/Torus Bold.otf') format('otf');
+}
+
 :root {
     --bg-color: #202020;
+    --manager-bg-color: #242424;
+    --manager-sel-color: #1f1f1f;
     --content-bg: #222222;
     --text-color: #ecebd2;
     --blink-color: #db2a0a;
-    --accent-color: #3177e8;
+    --accent-color: #f06595;
+    --accent-color2:rgb(240, 77, 134);
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
-    --button-color: #3177e8;
-    --button-hover-color: #2865c7;
+    --button-color: #f2407e;
+    --button-hover-color: #f2407e;
     --popup-bg: #2a2a2a;
     --collections-border-color: rgb(56,56,56);
+    ----title-bar-height: 32px;
 }
 
 * {
@@ -36,14 +47,15 @@
     box-sizing: border-box;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    font-family: 'Helvetica Bold';
+    font-family: "Torus Bold";
 }
 
-html {
-    height: 100vh;
-    padding: 0;
+html, body {
     margin: 0;
-    background-color: var(--bg-color);
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
 body::-webkit-scrollbar {
@@ -62,10 +74,6 @@ body::-webkit-scrollbar {
 }
 
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
     border: 1px solid grey;
     border-width: thin;
     overflow:hidden;
@@ -75,20 +83,29 @@ body {
     background-color: var(--bg-color);
 }
 
-.taskbar {
+.titlebar {
     -webkit-app-region: drag;
     background-color: var(--bg-color);
-    height: 2em;
+    height: var(--title-bar-height);
     display: flex;
     align-items: center;
     justify-content: flex-end;
 }
 
-.taskbar-buttons {
+.titlebar-buttons, .title_buttons {
     display: flex;
-    width: 100%;
     align-items: center;
+}
+
+.titlebar-buttons {
+    width: 100%;
     justify-content: center;
+}
+
+.title_buttons {
+    position: absolute;
+    right: 0;
+    justify-content: flex-end;
 }
 
 .title_text {
@@ -96,15 +113,7 @@ body {
     font-size: 1 !important;
 }
 
-.title_buttons {
-    position: absolute;
-    right: 0;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-.taskbar-button {
+.titlebar-button {
     background: none;
     border: none;
     color: rgb(253, 255, 226);
@@ -116,8 +125,14 @@ body {
 .container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    max-height: 100vh;
+    height: 95%;
+    overflow: hidden;
+}
+
+.tabs-nav {
+    display: flex;
+    justify-content: space-between;
+    background-color: transparent;
 }
 
 .collections_container {
@@ -127,24 +142,19 @@ body {
     overflow: hidden;
 }
 
-.tabs {
-    display: flex;
-    justify-content: space-between;
-    background-color: transparent;
-}
-
 .tab-button {
-    flex: 1 1 0px;
-    padding: 10px 25px;
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-color, #fff);
     cursor: pointer;
     transition: all 0.3s ease;
-    border-bottom: 2px solid transparent;
-    font-weight: 600;
-    align-self: center;
+    width: 100%;
     text-align: center;
 }
 
-.tab-button:hover {
+.tab-button:hover, .collection_header_text:hover {
     color: var(--accent-color);
 }
 
@@ -154,68 +164,52 @@ body {
 }
 
 .tab-content {
-    position: relative;
-    display: block;
-    padding: 20px;
-    padding-top: 15px;
-    min-height: 100%;
-    max-height: 100%;
-    max-width: 96%;
+    display: flex;
+    height: 100%;
+    flex: 1;
+    overflow: hidden;
+}
+
+.tab-panel {
+    display: none;
+    height: 100%;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.tab-panel.active {
+    display: flex;
 }
 
 .title_text {
     font-size: 0.9em;
 }
 
-.tab-pane {
-    position: absolute;
-    display: flex;
-    visibility: hidden;
-    opacity: 0;
+.config_container {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 1rem;
     flex-direction: column;
-    flex-wrap: wrap;
-    align-items: center;
-    min-width: 100%;
-    max-width: 100%;
-    height: 85%;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    transition: visibility 0s, opacity 0.1s linear;
-}
-
-.tab-shit {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    max-width: 100%;
-    animation: smooth-appear 0.5s;
-    background-color: var(--content-bg);
-    padding: 15px;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
     padding-top: 0px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    margin-bottom: 15px;
+    overflow: hidden;
+    overflow-y: auto;
 }
 
-.tab-shit.row {
+.input-container {
+    padding-top: 10px;
+}
+
+.input-container > input {
+    width: 100%;
+}
+
+.config_container.row {
     flex-direction: row;
-}
-
-button {
-    font-family: Arial;
-    font-size: 0.95em;
-    font-weight: bold;
-    min-width: 35%;
-    background-color: var(--button-color);
-    color: var(--text-color);
-    border: none;
-    padding: 15px 25px;
-    margin: 10px 0;
-    margin-right: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    border-radius: 3px;
-    font-weight: 600;
 }
 
 button:hover {
@@ -226,25 +220,31 @@ button:hover {
     cursor: pointer;
 }
 
-input, select {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    border: 1px solid #8a8a8a;
+input[type="text"], input[type="password"], select {
     padding: 10px;
-    margin: 5px 0 15px;
-    width: 100%;
-    box-sizing: border-box;
     border-radius: 4px;
     font-size: 0.95em;
     transition: border-color 0.3s;
+    font-family: "Torus Bold";
 }
 
 input[type="text"], input[type="password"] {
-    padding: 10px;
     background-color: #333;
     border: 1px solid #444;
     color: white;
-    border-radius: 5px;
+}
+
+select {
+    background-color: var(--manager-sel-color);
+    color: var(--text-color);
+    border: 1px solid #8a8a8a;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent-color);
 }
 
 input:focus, select:focus {
@@ -256,12 +256,7 @@ hr {
     color: rgba(255, 255, 255, 0.164);
 }
 
-.tab-pane.active {
-    visibility: visible;
-    opacity: 1;
-}
-
-.tab-shit > h1, .tab-pane > h1 {
+.config_container > h1, .tab-pane > h1 {
     color: rgb(253, 255, 226);
     font-size: 1.5em;
     margin-left: 5px;
@@ -278,19 +273,27 @@ hr {
     width: 100%;
 }
 
-.status-shit {
-    padding: 5px;
+.status-container {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
     width: 100%;
+    height: 100%;
+}
+
+.status-container > h1 {
+    margin: 0;
+    padding: 15px;
 }
 
 .download-shit > h1 {
-    transform: none;
+    padding: 10px;
     margin: 0;
-    margin-left: 5px;
+    transform: none;
     align-self: center;
 }
 
-.tab-shit > h2 {
+.config_container > h2 {
     color: rgb(253, 255, 226);
     font-size: 0.90em;
 }
@@ -298,6 +301,7 @@ hr {
 label {
     display: block;
     margin-top: 10px;
+    margin-bottom: 5px;
     font-size: 1em;
 }
 
@@ -420,32 +424,18 @@ label {
     z-index: 1000;
     background-color: #20202067;
     animation: smooth-appear 0.15s ease forwards;
-    transition: visibility 0s, opacity 0.1s linear;
-}
-
-.popup-container.removed {
-    animation: smooth-disappear 0.15s ease forwards;
-}
-
-.popup-content-flex {
-    display: flex;
-    flex-direction: column;
-    background-color: var(--popup-bg);
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    border-radius: 4px;
-    min-width: 60%;
-    max-width: 85%;
-    align-self: center;
-    border: 1px solid rgb(255 255 255 / 25%);
 }
 
 .popup-content, .popup-content-flex {
     background-color: var(--popup-bg);
+    padding: 15px;
     border-radius: 4px;
     text-align: center;
-    border-radius: 4px;
+    border: 1px solid rgb(255 255 255 / 25%);
+}
+
+.popup-container.removed {
+    animation: smooth-disappear 0.15s ease forwards;
 }
 
 .popup-content {
@@ -505,7 +495,7 @@ label {
 .popup-buttons {
     display: flex;
     flex-wrap: wrap;
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     align-items: center;
@@ -514,11 +504,17 @@ label {
 
 .popup-buttons > button {
     height: 100%;
-    min-width: 45%;
-    max-width: 45%;
+    width: 100%;
     overflow: hidden;
     text-wrap: nowrap;
     text-overflow: ellipsis;
+    color: rgb(0, 0, 0);
+    background-color: rgb(220, 220, 220);
+    transition: 0.3s background-color;
+}
+
+.popup-buttons > button:hover {
+    background-color: var(--accent-color);
 }
 
 .popup-buttons-column {
@@ -607,7 +603,7 @@ input[type="range"]::-moz-range-thumb:hover {
     justify-content: space-between;
     width: 90%;
     margin: 0 auto;
-    font-family: Arial, sans-serif;
+    font-family: "Torus Bold";
     font-size: 14px;
     color: #333;
 }
@@ -717,8 +713,7 @@ a {
     width: 30%;
     height: 95%;
     background-color: #1e1e1e;
-    padding: 20px;
-    padding-top: 0px;
+    padding: 20px 20px 0;
     box-sizing: border-box;
     overflow-y: auto;
     border: 1px solid var(--collections-border-color);
@@ -772,19 +767,9 @@ a {
     background: #555;
 }
 
-.main-content {
-    width: 70%;
-    height: 95%;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    box-sizing: border-box;
-    border: 1px solid var(--collections-border-color);
-}
-
 #collection_text {
-    align-self: center;
-    font-size: 1.5em;
+    text-align: center;
+    font-size: 1.3em;
 }
 
 .collections-sidebar {
@@ -798,17 +783,17 @@ a {
     position: sticky;
     width: 100%;
     top: 0;
+    gap: 8px;
     align-items: center;
+    justify-content: center;
     padding: 10px;
+    padding-top: 0px;
+    padding-bottom: 0px;
     overflow: hidden;
     min-height: 10vh;
     max-height: 10vh;
     z-index: 999;
     background-color: var(--bg-color);
-}
-
-.search-container > input {
-    height: 3em;
 }
 
 .disabled {
@@ -871,8 +856,9 @@ a {
     display: flex;
     flex-direction: column;
     width: 100%;
-    flex-grow: 1;
     height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 *::-webkit-scrollbar,
@@ -929,17 +915,18 @@ a {
     margin: 0;
 }
 
-.btn-custom {
-    padding: 8px 20px;
-    font-size: 15px;
-    border-radius: 5px;
-    transition: all 0.4s ease;
+button {
+    font-family: "Torus Bold";
+    font-size: 0.95em;
+    font-weight: bold;
+    background-color: var(--button-color);
+    color: var(--text-color);
     border: none;
-    color: #fff;
-    min-width: 45%;
-    height: 2.5em;
-    text-wrap: nowrap;
-    text-overflow: ellipsis;
+    padding: 15px 25px;
+    margin: 10px 0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 3px;
 }
 
 .btn-rename, .btn-add {
@@ -972,19 +959,24 @@ a {
 
 .mini-container {
     position: relative;
-    display: flex;
-    overflow: hidden;
-    align-items: center;
     width: 95%;
-    height: 75px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    align-self: center;
-    padding-left: 0;
-    border-radius: 6px;
-    background: linear-gradient(343deg, rgb(12 12 12) 0%, rgb(20 20 20) 32%, rgb(28 28 28) 100%);
-    border: 2px solid #ffffffad;
+    height: 85px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    justify-content: center;
+    padding: 8px;
+    color: white;
+    font-family: "Torus Bold";
+    box-shadow: 0 0 3px rgb(12, 12, 12);
     transition: 0.3s border-color;
+    align-self: center;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.mini-container > * {
+    font-family: "Torus Bold";
 }
 
 .mini-container:hover {
@@ -998,27 +990,25 @@ a {
     left: 0;
     width: 100%;
     height: auto;
-    object-fit: cover;
     filter: brightness(50%);
 }
 
-.content {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
+.small-image {
     width: 100%;
-    overflow: hidden;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
 }
 
-.small-image-container {
-    min-width: 25%;
-    max-width: 25%;
-    height: 100%;
-    min-height: 100%;
-    border-radius: 0 5px 5px 0;
-    margin-right: 10px;
+.text-container {
+    min-width: 45%;
+    max-width: calc(75% - 40px);
+    flex-grow: 1;
+    color: white;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 10px;
 }
 
 .small-image {
@@ -1040,23 +1030,30 @@ a {
 }
 
 .title {
-    font-weight: bold;
+    font-family: "Torus Bold";
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
+    max-width: 100%;
     text-overflow: ellipsis;
+    width: fit-content;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .subtitle {
-    font-size: 0.8em;
+    font-family: "Torus Bold";
+    font-size: 0.85em;
     color: #ddd;
     margin: 0;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: fit-content;
 }
 
-.remove-btn, .download-button {
+.remove-btn, .download-button, .preview-button {
     background: none;
     border: none;
     color: white;
@@ -1095,6 +1092,7 @@ a {
     width: 100%;
     align-items: center;
     justify-content: center;
+    padding-top: 10px;
 }
 
 .config-flex {
@@ -1159,6 +1157,284 @@ a {
 
 #remove_mirror:hover {
     background-color: var(--accent-color);
+}
+
+.cool-container {
+    width: 100%;
+    height: 100%;
+    background-color: var(--manager-bg-color);
+    border: 2px solid rgb(200, 200, 200, 0.2);
+    animation: smooth-appear 0.5s;
+}
+
+.list_container {
+    display: grid !important;
+    border-radius: 6px;
+    grid-template-columns: minmax(25%, 40%) 60%;
+    grid-template-rows: auto 1fr;
+}
+
+.list {
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 20px;
+    padding-top: 10px;
+    overflow: hidden;
+}
+
+.main-content {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-sizing: border-box;
+    border-left: 1px solid var(--collections-border-color);
+}
+
+.list_draggable_items {
+    display: grid;
+    grid-template-rows: repeat(auto-fill, 3.5em); 
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.draggable_item {
+    display: grid;
+    grid-template-columns: 90% 10%;
+    align-items: center;
+    border-radius: 6px;
+    padding-left: 15px;
+    transition: 0.3s border;
+    position: relative;
+    height: auto;
+    background-color: var(--manager-bg-color);
+}
+
+.draggable_item > h1 {
+    font-family: "Torus Bold";
+    font-size: 1.2em;
+    user-select: none;
+    cursor: pointer;
+    transition: 0.3s color;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.draggable_item > h1:hover {
+    color: rgba(195, 57, 115, 0.941);
+}
+
+.draggable_item > i {
+    cursor: pointer;
+    transition: 0.3s color;
+    text-align: center;
+    width: fit-content;
+}
+
+.draggable_item > i:hover {
+    color: var(--accent-color);
+}
+
+.draggable_item > i.hidden {
+    display: none;
+}
+
+.draggable_item.selected {
+
+    h1 {
+        color: rgb(255, 0, 170);
+    }
+
+    transition: 0.3s border;
+    border: 1px solid var(--accent-color);
+}
+
+.draggable_item.hidden {
+    opacity: 0;
+}
+
+.draggable_item_bin {
+    opacity: 0;
+    width: 100%;
+    padding: 15px;
+    background-color: rgb(246, 61, 61, 0.5);
+    border: 1px solid rgb(34, 34, 34);
+    text-align: center;
+    margin: auto auto 0;
+    transition: 0.3s all;
+}
+
+.list-actions {
+    display: flex;
+    width: 100%;
+}
+
+.update_collection {
+    display: none;
+    width: fit-content;
+    align-self: center;
+    padding: 5px;
+    border-radius: 6px;
+    background-color: var(--accent-color);
+    transition: 0.3s background-color;
+}
+
+.update_collection:hover {
+    background-color: var(--accent-color2);
+}
+
+.draggable_item_bin.enabled {
+    opacity: 1;
+    transition: 0.3s opacity;
+}
+
+.draggable_item_bin.hover {
+    transition: 0.3s all;
+    background-color: rgb(246, 61, 61);
+}
+
+.load_more_button {
+    width: 95%;
+    align-self: center;
+    padding: 15px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--accent-color);
+    font-size: 0.9em;
+    font-weight: bold;
+    font-family: "Torus Bold";
+    transition: 0.3s background-color;
+}
+
+.load_more_button:hover {
+    background-color: var(--button-color);
+}
+
+.merge {
+    border: 1px solid var(--accent-color);
+}
+
+.more_options {
+    background-color: #f44336;
+    border: none;
+    color: #fff;
+    font-size: 26px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.more_options:hover {
+    background-color: #f44336c6;
+}
+
+.collections_header {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 20px;
+    padding-bottom: 10px;
+    display: flex;
+    gap: 0px;
+}
+
+.collection_header_text {
+    font-size: 2em;
+    font-family: "Torus Bold";
+    user-select: none;
+    margin: 0.5em;
+    cursor: pointer;
+    transition: 0.3s color;
+}
+
+.beatmap_status {
+    font-family: "Torus Bold";
+    background-color: #545454;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 10px;
+    display: inline-block;
+    margin-top: 5px;
+    width: fit-content;
+    height: fit-content;
+    font-weight: bolder;
+    color: rgb(44, 43, 43);
+    margin-right: 5px;
+}
+
+.beatmap_status.ranked {
+    background-color: #6bfb70;
+}
+
+.beatmap_status.pending {
+    background-color: rgb(233, 227, 67);
+}
+
+.beatmap_status.qualified {
+    background-color: rgb(67, 181, 233);
+}
+
+.beatmap_status.loved {
+    background-color: rgb(228, 67, 233);
+}
+
+.beatmap_status.sr1 {
+    background-color: #3eb5e1;
+}
+
+.beatmap_status.sr2 {
+    background-color: #c0e13e;
+}
+
+.beatmap_status.sr3 {
+    background-color: #d03163;
+}
+
+.beatmap_status.sr4 {
+    background-color: #5c18b0;
+}
+
+.beatmap_status.sr5 {
+    background-color: #011275;
+}
+
+.beatmap_status.sr6 {
+    background-color: #222222;
+}
+
+.beatmap_metadata, .beatmap_controls {
+    display: flex;
+    z-index: 99;
+    justify-content: center;
+}
+
+.beatmap_metadata {
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.beatmap_thing_status {
+    display: flex;
+}
+
+.search-container > input {
+    background-color: #1e1e1e;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 5px;
+    outline: none;
+    width: 100%;
+    height: 3em;
+    font-family: "Torus Bold";
 }
 
 @keyframes spin {

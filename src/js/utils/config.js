@@ -1,12 +1,10 @@
-import { create_custom_message, create_alert, message_types } from "../popup/popup.js";
+import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { osu_login } from "./other/login.js";
-import { debounce, initialize } from "../manager/manager.js";
+import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
 import { OsuReader } from "../reader/reader.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
-
-const fs = window.nodeAPI.fs;
-const path = window.nodeAPI.path;
+import { debounce, fs, path } from "./global.js";
 
 export const core = {
     reader: new OsuReader(),
@@ -125,7 +123,7 @@ const setup_config = async () => {
     }
 
     await get_files(osu_path);
-    create_alert("config is working!", { type: "success" });
+    create_alert("config updated!", { type: "success" });
 };
 
 const handle_config_check = async () => {
@@ -283,17 +281,21 @@ export const add_config_shit = async () => {
     }
 
     config_tab.innerHTML = `
-        <div class="tab-shit" style="width: 50%; height: 100%;">
-            <h1>config</h1>
-            <div class="button-container">
-                <button class="check_config" style="width: 90%">check config</button>
+        <div class="cool-container config_container">
+            <div class="config-fields">
+                <h1>config</h1>
+                <div class="button-container">
+                    <button class="check_config" style="width: 100%">check config</button>
+                </div>
+            </div>
+            <div class="mirror-list">
+                <h1>mirrors</h1>
             </div>
         </div>
-        <div class="tab-shit mirror-list" style="width: 45%; height: 100%;"></div>
     `;
 
     // append config fields before the check button
-    const check_button = config_tab.querySelector(".tab-shit > .button-container");
+    const check_button = config_tab.querySelector(".config-fields > .button-container");
     const mirror_tab = config_tab.querySelector(".mirror-list");
 
     const mirror_add_btn = create_element_from_string(`
@@ -313,7 +315,7 @@ export const add_config_shit = async () => {
             return;
         }
 
-        const prompt = await create_custom_message({
+        const prompt = await create_custom_popup({
             type: message_types.CUSTOM_MENU,
             title: "mirror info",
             elements: [
