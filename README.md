@@ -1,14 +1,21 @@
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">just another app to manage osu! stable collections and download beatmaps</p>
+    <p align="center">your least favorite collection manager</p>
 </div>
 
 <p align="center">
-  <img width="70%" height="70%" src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
+  <img width="90%" height="90%" src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
 </p>
 
+## wtf is osu-stuff
+app to manage/download collections with features like:
+- download collections from osu!collector / osustats.
+- create collections from player's top play, first place and shit like that.
+- merge collections.
+- etc...
+
 ## how to download
-- **current app version (v1.3.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/tag/v1.3.0)
+- **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/lastest)
 
 ## optional mirrors
 - [catboy...](https://catboy.best)
