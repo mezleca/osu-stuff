@@ -1,6 +1,6 @@
 import { core } from "../utils/config.js";
-import { create_alert, create_custom_message, message_types } from "../popup/popup.js";
-import { add_collection_manager } from "../manager/manager.js";
+import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
+import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -23,7 +23,7 @@ export const url_is_valid = (url, hostname) => {
     }
 };
 
-const add_to_collection = async (maps, name, type) => {
+const add_to_collection = async (maps, name, type, append) => {
 
     if (maps.length == 0) {
         console.log("no maps");
@@ -32,6 +32,20 @@ const add_to_collection = async (maps, name, type) => {
 
     const collection_name = `!stuff - ${name} ${type}`;
 
+    if (append) {
+
+        const collection = core.reader.collections.beatmaps.find((e) => e.name == name);
+
+        if (!collection) {
+            create_alert("failed to get collection", { type: "error" });
+            return;
+        }
+
+        collection.maps = [...collection.maps, ...maps];
+        await add_collection_manager(collection.maps, name);
+        return;
+    }
+
     core.reader.collections.beatmaps.push({
         name: collection_name,
         maps: [...maps]
@@ -39,9 +53,8 @@ const add_to_collection = async (maps, name, type) => {
 
     core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-    await add_collection_manager(maps, { name: collection_name });
-
-    create_alert(`added ${name} ${type} to your collection!`, { type: "success" });
+    await add_collection_manager(maps, collection_name);
+    create_alert(`added ${name} ${type} to your collections!`, { type: "success" });
 };
 
 const fetch_maps = async (base_url, limit) => {
@@ -145,9 +158,11 @@ export const download_from_players = async (player, method) => {
 
     return new Promise(async (resolve, reject) => {
 
+        let append = false;
+
         if (method == "created maps") {
 
-            const ranked = await create_custom_message({
+            const ranked = await create_custom_popup({
                 type: message_types.CUSTOM_MENU,
                 title: "method",
                 elements: [{
@@ -172,7 +187,7 @@ export const download_from_players = async (player, method) => {
             return;
         }
 
-        const download = await create_custom_message({
+        const download = await create_custom_popup({
             type: message_types.CUSTOM_MENU,
             title: "method",
             elements: [{
@@ -236,14 +251,25 @@ export const download_from_players = async (player, method) => {
         };
 
         const maps = get_maps();
+        const current_collection = get_selected_collection(false);
 
+        if (download_method == "add to collections" || download_method == "both") {
+            
+            if (current_collection) {
+                const confirmation = await quick_confirm(`merge with ${current_collection}?`);
+                if (confirmation) {
+                    append = true;
+                }
+            }
+        }
+        
         if (download_method == "add to collections") {
-            await add_to_collection(maps.md5, player, method == "all" ? "" : method);
+            await add_to_collection(maps.md5, append ? current_collection : player, method == "all" ? "" : method, append);
             return resolve();
         }
 
         if (download_method == "both") {
-            await add_to_collection(maps.md5, player, method == "all" ? "" : method);
+            await add_to_collection(maps.md5, append ? current_collection : player, method == "all" ? "" : method, append);
         }
 
         const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());

@@ -12,8 +12,8 @@
         <h1 class="loading-status">loading...</h1>
     </div>
     <div class="blur"></div>
-    <div class="taskbar">
-      <div class="taskbar-buttons">
+    <div class="titlebar">
+      <div class="titlebar-buttons">
         <div class="title">
             <h1 class="title_text">osu-stuff</h1>
         </div>
@@ -21,47 +21,39 @@
     </div>
     <div class="container">
         <div class="alert-container"></div>
-        <div class="tabs">
+        <div class="tabs-nav">
             <div class="tab-button active" data-tab="collections">manager</div>
             <div class="tab-button" data-tab="config">config</div>
             <div class="tab-button" data-tab="status">status</div>
         </div>
         <div class="tab-content">
-            <div class="tab-pane active" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
-                <div class="collections_container">
-                     <div class="sidebar">
-                        <div class="manager-panel">
-                            <div class="manager-general active">general</div>
-                            <div class="manager-other">other</div>
+            <div class="tab-panel active" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
+                <div class="cool-container list_container">
+                    <div class="collections_header">
+                        <h2 class="collection_header_text">collections</h2>
+                        <div class="update_collection">update</div>         
+                    </div>   
+                    <div class="list">
+                        <div class="list_draggable_items">
                         </div>
-                        <div class="sidebar-item collections-sidebar active">
-                            <div class="collection-list"></div>
-                            <div class="collection-actions">                            
-                                <div class="input-group mb-2">
-                                    <input type="text" class="form-control" id="collection_input_name" placeholder="collection name" aria-label="collection name">
-                                    <div class="btn-group btn-group-border-bottom">
-                                        <button class="btn btn-custom btn-add" id="add_new_collection" type="button">new</button>
-                                        <button class="btn btn-custom btn-rename" id="update_collections" type="button">update</button>
-                                    </div>
-                                </div>
+                        <div class="list-actions">
+                            <div class="draggable_item_bin"> 
+                                <i class="bi bi-trash-fill"></i>
                             </div>
                         </div>
-                        <div class="sidebar-item extra-sidebar">
-                            <div class="sidebar-btn" id="get_missing_beatmaps">download missing</div>
-                            <div class="sidebar-btn" id="remove_invalid_maps">remove maps</div>
-                            <div class="sidebar-btn" id="get_player_beatmaps">get from player</div>
-                        </div>           
                     </div>
                     <div class="main-content">
                         <div class="search-container">
-                            <input type="search" name="" id="current_search" placeholder="search">
+                            <input type="search" name="" id="current_search" placeholder="search beatmaps">
+                            <i class="more_options bi bi-plus"></i>
                         </div>
+                        <div class="collection-container"></div>
                         <h2 id="collection_text">please select a collection to view the beatmaps</h2>
                     </div>
-                </div>     
+                </div> 
             </div>
-            <div class="tab-pane config-flex" id="config_tab"></div>
-            <div class="tab-pane" id="download_tab"></div>
+            <div class="tab-panel" id="config_tab"></div>
+            <div class="tab-panel" id="download_tab"></div>
         </div>
     </div>
 </body>
