@@ -10,7 +10,7 @@
 ## wtf is osu-stuff
 app to manage/download collections with features like:
 - download collections from osu!collector / osustats.
-- create collections from player's top play, first place and shit like that.
+- create collections from player's top 100, first place and shit like that.
 - merge collections.
 - etc...
 
