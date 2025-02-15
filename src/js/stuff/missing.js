@@ -2,9 +2,7 @@ import { message_types, create_alert, create_custom_popup } from "../popup/popup
 import { search_map_id } from "../utils/download_maps.js";
 import { events } from "../events.js";
 import { core } from "../utils/config.js";
-
-const fs = window.nodeAPI.fs;
-const path = window.nodeAPI.path;
+import { fs, path } from "../utils/global.js";
 
 export const export_missing = async (id) => {
 
@@ -114,7 +112,7 @@ export const export_missing = async (id) => {
     });
 };
 
-export const missing_download = async (id) => {
+export const missing_download = async () => {
 
     return new Promise(async (resolve, reject) => {
     

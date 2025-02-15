@@ -3,16 +3,13 @@ import { create_alert } from "../popup/popup.js";
 import { events } from "../events.js";
 import { initialize } from "../manager/manager.js";
 import { osu_fetch } from "./other/fetch.js";
+import { fs, path, is_testing } from "./global.js";
 
 export let current_download = null;
 
 const downloaded_maps = new Map();
 const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
-const is_testing = window.electron.dev_mode;
 const concurrency = 3;
-
-const path = window.nodeAPI.path;
-const fs = window.nodeAPI.fs;
 
 const pmap = async (array, mapper, concurrency) => {
 

@@ -208,6 +208,11 @@ const create_confirmation = async (options) => {
     });
 };
 
+export const quick_confirm = async (title) => {
+    const confirm = await create_custom_popup({ type: message_types.CONFIRMATION, title: title });
+    return confirm == "Yes";
+};
+
 const create_custom_menu = async (options) => {
 
     const { title, elements = [] } = options;

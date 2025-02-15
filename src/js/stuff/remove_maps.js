@@ -1,10 +1,6 @@
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { core } from "../utils/config.js";
-
-const is_testing = window.electron.dev_mode;
-
-const fs = window.nodeAPI.fs;
-const path = window.nodeAPI.path;
+import { fs, path, is_testing } from "../utils/global.js";
 
 export const beatmap_status = {
     "all": -1,

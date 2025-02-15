@@ -1,12 +1,8 @@
 import { handle_event } from "./events.js";
-import { create_alert, create_custom_popup, message_types } from "./popup/popup.js";
-import { core } from "./utils/config.js";
-import { remove_maps } from "./stuff/remove_maps.js";
-import { missing_download } from "./stuff/missing.js";
-import { download_from_players } from "./stuff/download_from_players.js";
+import { create_alert } from "./popup/popup.js";
 
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
-export const all_panels = [...document.querySelectorAll(".tab-pane")];
+export const all_panels = [...document.querySelectorAll(".tab-panel")];
 export const sidebar_item = [...document.querySelectorAll(".sidebar-item")];
 
 export const tabs = {
@@ -19,13 +15,6 @@ export const panels = {
 
 export const tasks = new Map();
 export const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
-
-const btn_get_missing_beatmaps = document.getElementById("get_missing_beatmaps");
-const btn_remove_invalid_maps = document.getElementById("remove_invalid_maps");
-const get_player_beatmaps = document.getElementById("get_player_beatmaps");
-
-const options_tab = sidebar_item[0];
-const main_tab = sidebar_item[1];
 
 all_tabs.map((tab, i) => {
 
@@ -65,7 +54,7 @@ export const blink = (tab) => {
 export const add_tab = (id) => {
 
     const d_tab = document.getElementById("download_tab");
-    
+
     if (!id) {
         create_alert("Missing id", { type: "error" });
         return null;
@@ -75,29 +64,23 @@ export const add_tab = (id) => {
         create_alert("theres already a download for this task", { type: "warning" });
         return null;
     }
-    
-    const tab = document.createElement("div");
-    const h1  = document.createElement("h1");
-    const h2  = document.createElement("h2");
-    const bar = document.createElement("div");
 
-    tab.classList.add("tab-shit");
-    tab.classList.add("download-shit");
+    const template_str = `
+        <div class="cool-container download-shit" id="${id}">
+            <h1 id="${id}">${id}</h1>
+            <h2>waiting to start</h2>
+            <div style="height: 1.5em; background-color: rgb(50, 120, 200); width: 0%; max-width: 100%;"></div>
+        </div>
+    `;
 
-    tab.id = id;
-    bar.style = "height: 1.5em; background-color: rgb(50, 120, 200); width: 0%; max-width: 100%;";
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = template_str.trim();
 
-    h1.innerText = id;
-    h1.id = id;
-    h2.innerText = "waiting to start";
+    const tab = wrapper.firstElementChild;
+    const text = tab.querySelector("h2");
+    const bar = tab.querySelector("div");
 
-    tab.appendChild(h1);
-    tab.appendChild(h2);
-    tab.appendChild(bar);
-
-    return {
-        tab: tab, text: h2, dtab: d_tab, bar, id
-    };
+    return { tab, text, dtab: d_tab, bar, id };
 };
 
 export const create_task = async (task_name, ...extra_args) => {
@@ -113,101 +96,6 @@ export const create_task = async (task_name, ...extra_args) => {
     
     await handle_event(data, ...extra_args);
 };
-
-/*
-btn_remove_invalid_maps.addEventListener("click", async () => {
-    
-    const id = btn_remove_invalid_maps.id;
-    const running_osu = await window.electron.is_running("osu!");
-
-    if (running_osu) {
-        create_alert("Please close osu to use this function");
-        return;
-    }
-
-    const new_task = add_tab(id);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(id, data);
-    
-    await handle_event(data, remove_maps, id);
-});
-*/
-
-/*
-btn_get_missing_beatmaps.addEventListener("click", async () => {
-
-    const id = btn_get_missing_beatmaps.id;
-
-    if (core.login == null) {
-        create_alert("Did you forgor to setup your config?");
-        return;
-    }
-
-    const new_task = add_tab(id);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(id, data);
-    
-    await handle_event(data, missing_download, id);
-});
-*/
-
-/*
-get_player_beatmaps.addEventListener("click", async () => {
-
-    // TOFIX: fix retarded [Object object] text on download thing after selecting "all" method
-
-    if (core.login == null) {
-        create_alert("Did you forgor to setup your config?");
-        return;
-    }
-
-    const player = await create_custom_popup({
-        type: message_types.INPUT,
-        title: "This feature is still experimental\nSo... are you sure?",
-        label: "player name",
-        input_type: "text",
-    });
-
-    if (!player) {
-        return;
-    }
-
-    const method = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
-        title: "method",
-        elements: [{
-            key: "name",
-            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
-        }]
-    });
-
-    if (!method.name) {
-        return;
-    }
-
-    const task_name = `${player} - ${method.name}`;
-    const new_task = add_tab(task_name);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(task_name, data);
-    
-    await handle_event(data, download_from_players, player, method.name);
-});
-*/
 
 export const create_download_task = async (name, maps) => {
 

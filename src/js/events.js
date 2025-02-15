@@ -90,7 +90,7 @@ const manage_queue_ui = {
     create_div() {
         console.log("creating queue div");
         const html = `
-            <div class="tab-shit status-shit" id="queue_list">
+            <div class="cool-container status-container" id="queue_list">
                 <h1>queue list</h1>
                 <div class="queue-list"></div>
             </div>
@@ -151,7 +151,7 @@ const queue_handler = () => {
         
         if (queue.size == 0) {
             const status_shit = Array.from(panels.status.childNodes)
-                .find(node => node.classList && node.classList.contains("status-shit"));
+                .find(node => node.classList && node.classList.contains("status-container"));
             
             if (status_shit) {
                 panels.status.removeChild(status_shit);

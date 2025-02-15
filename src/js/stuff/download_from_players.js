@@ -1,5 +1,5 @@
 import { core } from "../utils/config.js";
-import { create_alert, create_custom_popup, message_types } from "../popup/popup.js";
+import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
@@ -254,15 +254,10 @@ export const download_from_players = async (player, method) => {
         const current_collection = get_selected_collection(false);
 
         if (download_method == "add to collections" || download_method == "both") {
-
+            
             if (current_collection) {
-
-                const confirmation = await create_custom_popup({
-                    type: message_types.CONFIRMATION,
-                    title: `merge with ${current_collection}?`
-                });
-
-                if (confirmation == "Yes") {
+                const confirmation = await quick_confirm(`merge with ${current_collection}?`);
+                if (confirmation) {
                     append = true;
                 }
             }
