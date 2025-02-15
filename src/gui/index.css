@@ -1051,9 +1051,11 @@ a {
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
+    max-width: 100%;
     text-overflow: ellipsis;
-    cursor: pointer;
     width: fit-content;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .subtitle {
@@ -1061,6 +1063,7 @@ a {
     font-size: 0.85em;
     color: #ddd;
     margin: 0;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1212,7 +1215,7 @@ a {
 
 .selector {
     display: grid;
-    grid-template-columns: 85% 15%;
+    grid-template-columns: 90% 10%;
     align-items: center;
     border-radius: 6px;
     padding-left: 15px;
@@ -1240,15 +1243,14 @@ a {
 }
 
 .selector > i {
-    padding: 10px;
-    border-radius: 6px;
-    transition: 0.3s background-color;
+    cursor: pointer;
+    transition: 0.3s color;
     text-align: center;
     width: fit-content;
 }
 
 .selector > i:hover {
-    background-color: rgba(195, 57, 77, 0.542);
+    color: var(--accent-color);
 }
 
 .selector > i.hidden {
@@ -1380,6 +1382,18 @@ a {
 
 .beatmap_status.ranked {
     background-color: #6bfb70;
+}
+
+.beatmap_status.pending {
+    background-color: rgb(233, 227, 67);
+}
+
+.beatmap_status.qualified {
+    background-color: rgb(67, 181, 233);
+}
+
+.beatmap_status.loved {
+    background-color: rgb(228, 67, 233);
 }
 
 .beatmap_status.sr1 {

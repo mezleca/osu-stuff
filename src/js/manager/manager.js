@@ -4,6 +4,7 @@ import { create_alert, create_custom_message, message_types } from "../popup/pop
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
+import { beatmap_status as _status } from "../stuff/remove_maps.js";
 
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_selectors");
@@ -277,6 +278,7 @@ more_options.addEventListener("click", () => {
 });
 
 // @TODO: this only works for "standard" mode
+// @TOFIX: sometimes this does not work.
 const get_beatmap_sr = (beatmap) => {
     try {
         const beatmap_sr = beatmap?.sr[0] || 0; // lmao
@@ -306,7 +308,7 @@ const render_beatmap = (beatmap) => {
                 <div class="title">placeholder</div>
                 <div class="subtitle">placeholder</div>
                 <div class="beatmap_thing_status">
-                    <div class="beatmap_status ranked">RANKED</div>
+                    <div class="beatmap_status">UNKNOWN</div>
                     <div class="beatmap_status star_fucking_rate">★ 0.00</div>
                 </div>
             </div>
@@ -330,14 +332,42 @@ const render_beatmap = (beatmap) => {
     const subtitle = beatmap_element.querySelector('.subtitle')
     const download_button = beatmap_element.querySelector(".download-button");
     const beatmap_bg = beatmap_element.querySelector(".bg-image");
+    const beatmap_status = beatmap_element.querySelector(".beatmap_thing_status").children[0];
     const remove_button = beatmap_element.querySelector(".remove-btn");
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
-    //const mapper = beatmap_element.querySelector(".beatmap_mapper");
 
+    const status = Object.entries(_status).find(([k, v]) => v === beatmap.status)?.[0];
     const beatmap_sr = get_beatmap_sr(beatmap);
 
-    if (beatmap_sr) {
+    const update_status = (status) => {
+        switch (status) {
+            case "pending":
+                beatmap_status.classList.add("pending");
+                beatmap_status.innerText = "PENDING";
+                break;
+            case "ranked":
+                beatmap_status.classList.add("ranked");
+                beatmap_status.innerText = "RANKED";
+                break;
+            case "approved":
+                beatmap_status.classList.add("ranked");
+                beatmap_status.innerText = "APPROVED";
+                break;
+            case "qualified":
+                beatmap_status.classList.add("qualified");
+                beatmap_status.innerText = "QUALIFIED";
+                break;
+            case "loved":
+                beatmap_status.classList.add("loved");
+                beatmap_status.innerText = "LOVED";
+                break;
+            default:
+                break;
+        }
+    };
+
+    const update_sr = (beatmap_sr) => {
 
         star_rating.innerText = `★ ${beatmap_sr}`;
 
@@ -370,6 +400,12 @@ const render_beatmap = (beatmap) => {
         if (beatmap_sr >= 7) {
             star_rating.style.color = "#ebcf34";
         }
+    };
+
+    update_status(status);
+
+    if (beatmap_sr) {
+        update_sr(beatmap_sr);
     }
 
     // set shit for lazy loading
@@ -381,7 +417,6 @@ const render_beatmap = (beatmap) => {
 
     title.textContent = beatmap?.song_title || "Unknown";
     subtitle.textContent = beatmap?.difficulty || "Unknown";
-    // mapper.innerText = `mapped by ${beatmap.creator_name}`;
 
     beatmap_bg.src = has_beatmap ? image_url : placeholder_image;
     remove_button.id = `bn_${beatmap.beatmap_id}`;
@@ -469,13 +504,24 @@ const render_beatmap = (beatmap) => {
                 md5: beatmap_data.checksum,
                 creator_name: beatmap_data.beatmapset.creator,
                 difficulty_id: beatmap_data.beatmapset_id,
+                beatmap_id: beatmap_data.beatmapset.id,
                 url: beatmap_data.url,
-                bg: beatmap_data.beatmapset.covers.list
+                status: _status[beatmap_data.status] || 0
             });
 
-            title.innerText = `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`;
-            subtitle.innerText = `mapped by ${beatmap.creator_name}`;
-            beatmap_bg.src = beatmap.bg;
+            const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
+
+            update_status(beatmap_data.status);
+            update_sr(beatmap_data.difficulty_rating);
+
+            title.addEventListener("click", () => {
+                const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+                window.electron.shell.openExternal(url);
+            });
+         
+            title.textContent = beatmap?.song_title || "Unknown";
+            subtitle.textContent = beatmap?.difficulty || "Unknown";
+            beatmap_bg.src = image_url;
         });
     }
 

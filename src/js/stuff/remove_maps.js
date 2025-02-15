@@ -6,11 +6,11 @@ const is_testing = window.electron.dev_mode;
 const fs = window.nodeAPI.fs;
 const path = window.nodeAPI.path;
 
-const stats = {
+export const beatmap_status = {
     "all": -1,
     "unknown": 0,
     "unsubmitted": 1,
-    "pending/wip/graveyard": 2,
+    "pending": 2,
     "unused": 3,
     "ranked": 4,
     "approved": 5,
@@ -61,7 +61,7 @@ export const remove_maps = async (id) => {
         const custom_list = [ 
             { key: "star_rating", element: { range: { label: "star rating", min: 0, max: 30 } } },
             { key: "ignore_from_collections", element: { checkbox: { label: "ignore from collections"} } },
-            { key: "status", element: { list: { options: Object.keys(stats) }} }
+            { key: "status", element: { list: { options: Object.keys(beatmap_status) }} }
         ];
 
         const filter_data = await create_custom_message({
@@ -75,7 +75,7 @@ export const remove_maps = async (id) => {
         }
 
         const { star_rating: { min: min_sr, max: max_sr }, status: selected_status, ignore_from_collections } = filter_data;
-        const status = stats[selected_status];
+        const status = beatmap_status[selected_status];
 
         const hashes = new Set(core.reader.collections.beatmaps.flatMap(beatmap => beatmap.maps));
         const off = new Set();
