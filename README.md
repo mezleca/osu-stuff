@@ -17,6 +17,18 @@ app to manage/download collections with features like:
 ## how to download
 - **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/lastest)
 
+## dependencies
+- linux users will probably need to download those dependencies:
+
+### ubuntu
+```bash
+sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1
+```
+### arch
+```bash
+sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus
+```
+
 ## optional mirrors
 - [catboy...](https://catboy.best)
 - [beatconnect](https://beatconnect.io)
@@ -39,10 +51,6 @@ git clone https://github.com/mezleca/osu-stuff.git
 # install dependencies
 cd osu-stuff
 npm install && npm install -g electron-builder
-
-# if you're on linux, you will need to install those dependencies
-base-devel clang libdbus gtk2 libnotifylibgnome-keyring alsa-lib libcap libcups libxtst 
-libxss nss gcc-multilib curl gperf bison python2 python-dbusmock jdk8-openjdk
 
 # run the app
 npm start
