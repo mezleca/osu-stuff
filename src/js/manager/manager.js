@@ -584,6 +584,8 @@ const render_page = (id, filter, _offset) => {
         const load_more_button = create_more_button(id, filter, offset);
         collection_container.appendChild(load_more_button);
     }
+
+    collection_container.dataset.id = selectors_map.get(id)?.collection_id;
 };
 
 const check_delete_thing = (id, placeholder_selector) => {
@@ -663,6 +665,12 @@ const check_merge = async (id) => {
     });
 
     if (!new_name) {
+        return false;
+    }
+
+    // check if this collection already exists
+    if (collections.has(new_name)) {
+        create_alert("this collection already exists");
         return false;
     }
 
@@ -835,25 +843,29 @@ const setup_manager = () => {
                 // if the holdtime is less than 500, then render the beatmaps page
                 if (selector.hold_time * 60 < 500) {
 
-                    const selectors = [...document.querySelectorAll(".selector")]
+                    // check if this page is already rendered
+                    if (collection_container.dataset.id != k) {
+  
+                        const selectors = [...document.querySelectorAll(".selector")];
 
-                    // remove selected from all divs
-                    for (let i = 0; i < selectors.length; i++) {
+                        // remove selected from all divs
+                        for (let i = 0; i < selectors.length; i++) {
 
-                        // only show "modify button" if the selector is selected
-                        const modify_button = selectors[i].children[1];
-                        modify_button.classList.add("hidden");
+                            // only show "modify button" if the selector is selected
+                            const modify_button = selectors[i].children[1];
+                            modify_button.classList.add("hidden");
 
-                        if (selectors[i].classList.contains("selected")) {
-                            selectors[i].classList.remove("selected");
+                            if (selectors[i].classList.contains("selected")) {
+                                selectors[i].classList.remove("selected");
+                            }
                         }
+
+                        selector.target.classList.add("selected");
+                        selector.target.children[1].classList.remove("hidden");
+                        selector.selected = true;
+
+                        render_page(id);
                     }
-
-                    selector.target.classList.add("selected");
-                    selector.target.children[1].classList.remove("hidden");
-                    selector.selected = true;
-
-                    render_page(id);
                 }
 
                 check_merge(id);
