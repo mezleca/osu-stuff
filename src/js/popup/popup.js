@@ -10,7 +10,8 @@ const DEFAULT_ALERT_OBJECT = {
 const MESSAGE_TYPES = {
     MENU: 'menu',
     CUSTOM_MENU: 'custom_menu',
-    INPUT: "input"
+    INPUT: "input",
+    CONFIRMATION: "confirmation"
 };
 
 const ALERT_STYLES = {
@@ -22,12 +23,12 @@ const ALERT_STYLES = {
 
 const alerts = new Map();
 
-export const create_custom_message = async (config) => {
+export const create_custom_popup = async (config) => {
     
     const { type, ...options } = config;
     
     if (!type) {
-        throw new Error("[create_custom_message] missing type");
+        throw new Error("[create_custom_popup] missing type");
     }
 
     switch (type) {
@@ -37,6 +38,10 @@ export const create_custom_message = async (config) => {
             return create_custom_menu(options);
         case MESSAGE_TYPES.INPUT:
             return create_input(options);
+        case MESSAGE_TYPES.CONFIRMATION:
+            return create_confirmation(options);
+        default:
+            return null;
     }
 };
 
@@ -161,6 +166,44 @@ const create_menu = async (options) => {
                 document.body.removeChild(content);
                 resolve(button.textContent);
             });
+        });
+    });
+};
+
+const create_confirmation = async (options) => {
+
+    const { title = 'Are you sure?', values } = options;
+
+    const confirmation_id = crypto.randomUUID();
+    const confirm_values = Array.isArray(values) && values.length ? values : ['Yes', 'No'];
+
+    const html = `
+        <div class="popup-container" id="${confirmation_id}">
+            <div class="popup-content">
+                <h1>${title}</h1>
+                <div class="popup-buttons">
+                    ${confirm_values.map(value => `<button>${value}</button>`).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+    document.body.appendChild(content);
+
+    return new Promise((resolve) => {
+        content.querySelectorAll('button').forEach(button => {
+            button.addEventListener("click", () => {
+                document.body.removeChild(content);
+                resolve(button.textContent);
+            });
+        });
+
+        content.addEventListener("click", (e) => {
+            if (e.target === content) {
+                document.body.removeChild(content);
+                resolve(null);
+            }
         });
     });
 };

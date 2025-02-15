@@ -1,10 +1,12 @@
 import { core, get_files } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
-import { create_alert, create_custom_message, message_types } from "../popup/popup.js"
+import { create_alert, create_custom_popup, message_types } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
-import { create_download_task } from "../tabs.js";
+import { add_tab, create_download_task, tasks } from "../tabs.js";
 import { save_to_db, get_from_database } from "../utils/other/indexed_db.js";
 import { beatmap_status as _status } from "../stuff/remove_maps.js";
+import { handle_event } from "../events.js";
+import { download_from_players } from "../stuff/download_from_players.js";
 
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_selectors");
@@ -47,7 +49,7 @@ const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
 };
 
-const get_selected_collection = (id) => {
+export const get_selected_collection = (id) => {
 
     const selectors = [...document.querySelectorAll(".selector")];
 
@@ -274,7 +276,89 @@ const create_more_button = (id, filter, offset) => {
     return button_element;
 };
 
-more_options.addEventListener("click", () => {
+const create_task = async (task_name, ...extra_args) => {
+
+    const new_task = add_tab(task_name);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    tasks.set(task_name, data);
+    
+    await handle_event(data, download_from_players, ...extra_args);
+};
+
+const get_from_player = async () => {
+
+    if (core.login == null) {
+        create_alert("Did you forgor to setup your config?");
+        return;
+    }
+
+    const player = await create_custom_popup({
+        type: message_types.INPUT,
+        label: "player name",
+        input_type: "text",
+    });
+
+    if (!player) {
+        return;
+    }
+
+    const method = await create_custom_popup({
+        type: message_types.CUSTOM_MENU,
+        title: "method",
+        elements: [{
+            key: "name",
+            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
+        }]
+    });
+
+    if (!method.name) {
+        return;
+    }
+
+    const task_name = `${player} - ${method.name}`;
+    await create_task(task_name, player, method.name);
+};
+
+more_options.addEventListener("click", async () => {
+
+    // if theres a collection selected, add extra option
+    const default_options = ["get from player", "get missing beatmaps", "add new collection"];
+    const current_collection = get_selected_collection(false);
+
+    if (current_collection) {
+        default_options.push("delete beatmaps");
+    }
+
+    const option = await create_custom_popup({
+        type: message_types.MENU,
+        title: "extra options",
+        items: default_options
+    });
+
+    if (!option) {
+        return;
+    }
+
+    switch (option) {
+        case "get from player":
+            await get_from_player();
+            break;
+        case "get missing beatmaps": 
+            break;
+        case "add new collection":
+            break;
+        case "delete beatmaps":
+            break;
+        default:
+            break;
+    }
+
+    console.log(option);
 });
 
 // @TODO: this only works for "standard" mode
@@ -657,7 +741,7 @@ const check_merge = async (id) => {
     // force selector cursor to stop
     selector.stop = true;
 
-    const new_name = await create_custom_message({
+    const new_name = await create_custom_popup({
         type: message_types.INPUT,
         title: "collection name",
         label: "new collection name",
@@ -704,7 +788,7 @@ const change_collection_name = async (event, id, name_element) => {
 
     event.stopPropagation();
 
-    const new_name = await create_custom_message({
+    const new_name = await create_custom_popup({
         type: message_types.INPUT,
         title: "new collection name",
         label: "new collection name",
@@ -751,7 +835,7 @@ const change_collection_name = async (event, id, name_element) => {
 
 update_collection_button.addEventListener("click", async () => {
 
-    const confirm = await create_custom_message({
+    const confirm = await create_custom_popup({
         type: message_types.MENU,
         title: "are you sure?<br>if you click yes your collection file will be modified",
         items: ["yes", "no"]
@@ -797,6 +881,7 @@ const setup_manager = () => {
     // clean list and container
     list.innerHTML = "";
     collection_container.innerHTML = "";
+    collection_container.removeAttribute("data-id");
 
     // clean selectors list
     for (let [k] of selectors_map) {
@@ -939,10 +1024,15 @@ const update_map_info = (map) => {
 };
 
 export const add_collection_manager = async (maps, collection) => {
+
     const updated_map = maps.map(md5 => update_map_info({ md5 }));
-    collections.set(collection.name, updated_map);
+    collections.set(collection, updated_map);
+
     await initialize();
     setup_manager();
+
+    // need to save
+    update_collection_button.style.display = "block";
 };
 
 export const initialize = async (options) => {

@@ -1,4 +1,4 @@
-import { message_types, create_alert, create_custom_message } from "../popup/popup.js";
+import { message_types, create_alert, create_custom_popup } from "../popup/popup.js";
 import { search_map_id } from "../utils/download_maps.js";
 import { events } from "../events.js";
 import { core } from "../utils/config.js";
@@ -25,7 +25,7 @@ export const export_missing = async (id) => {
                 }
             }
 
-            const confirm = await create_custom_message({
+            const confirm = await create_custom_popup({
                 type: message_types.MENU,
                 title: "Export from a specific collection?",
                 items: ["yes", "no"]
@@ -47,7 +47,7 @@ export const export_missing = async (id) => {
                     }
                 }
 
-                const confirm = await create_custom_message({
+                const confirm = await create_custom_popup({
                     type: message_types.CUSTOM_MENU,
                     title: "select one",
                     elements: [{
@@ -134,7 +134,7 @@ export const missing_download = async (id) => {
             
             create_alert(`found ${missing_maps.length} missing maps`);
 
-            const confirm = await create_custom_message({
+            const confirm = await create_custom_popup({
                 type: message_types.MENU,
                 title: "Download from a specific collection?",
                 items: ["yes", "no"]
@@ -155,7 +155,7 @@ export const missing_download = async (id) => {
                     }
                 }
 
-                const collection = await create_custom_message({
+                const collection = await create_custom_popup({
                     type: message_types.CUSTOM_MENU,
                     title: "select one",
                     elements: [{

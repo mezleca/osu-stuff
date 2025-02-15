@@ -1,4 +1,4 @@
-import { create_custom_message, create_alert, message_types } from "../popup/popup.js";
+import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { osu_login } from "./other/login.js";
 import { debounce, initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
@@ -313,7 +313,7 @@ export const add_config_shit = async () => {
             return;
         }
 
-        const prompt = await create_custom_message({
+        const prompt = await create_custom_popup({
             type: message_types.CUSTOM_MENU,
             title: "mirror info",
             elements: [

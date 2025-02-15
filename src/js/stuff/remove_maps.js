@@ -1,4 +1,4 @@
-import { create_custom_message, create_alert, message_types } from "../popup/popup.js";
+import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 
 const is_testing = window.electron.dev_mode;
@@ -48,7 +48,7 @@ export const remove_maps = async (id) => {
 
     try {
 
-        const proc = await create_custom_message({
+        const proc = await create_custom_popup({
             type: message_types.MENU,
             title: "This feature is still experimental\nSo... are you sure?",
             items: ["yes", "no"]
@@ -64,7 +64,7 @@ export const remove_maps = async (id) => {
             { key: "status", element: { list: { options: Object.keys(beatmap_status) }} }
         ];
 
-        const filter_data = await create_custom_message({
+        const filter_data = await create_custom_popup({
             type: message_types.CUSTOM_MENU,
             title: "menu",
             elements: custom_list
@@ -102,7 +102,7 @@ export const remove_maps = async (id) => {
 
         create_alert(`found ${off.size} beatmaps`);
 
-        const delete_conf = await create_custom_message({
+        const delete_conf = await create_custom_popup({
             type: message_types.MENU,
             title: "are you sure?",
             items: ["yes", "no"]

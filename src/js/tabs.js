@@ -1,5 +1,5 @@
 import { handle_event } from "./events.js";
-import { create_alert, create_custom_message, message_types } from "./popup/popup.js";
+import { create_alert, create_custom_popup, message_types } from "./popup/popup.js";
 import { core } from "./utils/config.js";
 import { remove_maps } from "./stuff/remove_maps.js";
 import { missing_download } from "./stuff/missing.js";
@@ -157,7 +157,7 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    const player = await create_custom_message({
+    const player = await create_custom_popup({
         type: message_types.INPUT,
         title: "This feature is still experimental\nSo... are you sure?",
         label: "player name",
@@ -168,7 +168,7 @@ get_player_beatmaps.addEventListener("click", async () => {
         return;
     }
 
-    const method = await create_custom_message({
+    const method = await create_custom_popup({
         type: message_types.CUSTOM_MENU,
         title: "method",
         elements: [{
