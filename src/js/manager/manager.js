@@ -218,7 +218,14 @@ const filter_beatmap = (beatmap, filter) => {
         return true;
     }
 
-    const searchable_text = `${beatmap.artist_name} ${beatmap.song_title} ${beatmap.difficulty} ${beatmap.creator_name} ${beatmap.tags}`.toLowerCase();
+    // do this so the user can search for not downloaded beatmaps
+    const artist = beatmap?.artist_name || "Unknown";
+    const title = beatmap?.song_title || "Unknown";
+    const difficulty = beatmap?.difficulty || "Unknown";
+    const creator = beatmap.creator_name || "Unknown";
+    const tags = beatmap?.tags || "";
+
+    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
     return searchable_text.includes(filter.toLowerCase());
 };
 
