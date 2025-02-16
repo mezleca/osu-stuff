@@ -18,7 +18,7 @@
     font-family: 'Torus Bold';
     font-style: normal;
     font-weight: bold;
-    src: local('Torus Bold'), url('./deps/Torus Bold.otf') format('otf');
+    src: local('Torus Bold'), url('./deps/Torus.otf') format('opentype');
 }
 
 :root {
