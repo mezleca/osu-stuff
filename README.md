@@ -9,13 +9,15 @@
 
 ## wtf is osu-stuff
 app to manage/download collections with features like:
-- download collections from osu!collector / osustats.
-- create collections from player's top 100, first place and shit like that.
-- merge collections.
+- download collections from osu!collector / osustats
+- create collections from player's top 100, first place and shit like that
+- merge collections
+- get missing beatmaps from collections
+- delete beatmaps from collections
 - etc...
 
 ## how to download
-- **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/lastest)
+- **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## dependencies
 - linux users will probably need to download those dependencies:
