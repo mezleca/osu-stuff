@@ -26,7 +26,7 @@
     --manager-bg-color: #242424;
     --manager-sel-color: #1f1f1f;
     --content-bg: #222222;
-    --text-color: #ecebd2;
+    --text-color: #ffffff;
     --blink-color: #db2a0a;
     --accent-color: #f06595;
     --accent-color2:rgb(240, 77, 134);
@@ -116,7 +116,6 @@ body {
 .titlebar-button {
     background: none;
     border: none;
-    color: rgb(253, 255, 226);
     cursor: pointer;
     padding: 15px;
     font-size: 18px;
@@ -257,7 +256,6 @@ hr {
 }
 
 .config_container > h1, .tab-pane > h1 {
-    color: rgb(253, 255, 226);
     font-size: 1.5em;
     margin-left: 5px;
     margin-bottom: 10px;
@@ -294,7 +292,6 @@ hr {
 }
 
 .config_container > h2 {
-    color: rgb(253, 255, 226);
     font-size: 0.90em;
 }
 
@@ -450,13 +447,13 @@ label {
 }
 
 .popup-content-flex > label {
-    font-size: 0.95em;
+    font-size: 1em;
     font-weight: bold;
-    margin-left: -3px;
-    color: rgb(253, 255, 226);
+    margin-left: 5px;
+    margin: 0;
     margin-bottom: 5px;
     margin-top: 5px;
-    align-self: flex-start;
+    justify-self: start;
 }
 
 .popup-content-flex input[type="range"] {
@@ -465,7 +462,6 @@ label {
 }
 
 .popup-content-flex h2 {
-    color: rgb(253, 255, 226);
     font-size: 0.90em;
     align-self: flex-start;
     margin-left: 15px;
@@ -474,7 +470,6 @@ label {
 .popup-content h1, .popup-content-flex h1 {
     margin-bottom: 20px;
     font-size: 1.2em;
-    color: rgb(253, 255, 226);
 }
 
 .popup-content-flex > button {
@@ -648,7 +643,6 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .checkbox-container label {
-    color: rgb(253, 255, 226);
     font-size: 14px;
 }
 
@@ -700,7 +694,6 @@ a {
 
 .queue-list > h1 {
     font-size: 0.85em;
-    color: rgb(253, 255, 226);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -1424,7 +1417,7 @@ button {
     display: flex;
 }
 
-.search-container > input {
+.search-container > input, .popup-content-flex > input {
     background-color: #1e1e1e;
     color: #fff;
     border: 1px solid #555;
