@@ -199,10 +199,6 @@ body {
     overflow-y: auto;
 }
 
-.input-container {
-    padding-top: 10px;
-}
-
 .input-container > input {
     width: 100%;
 }
