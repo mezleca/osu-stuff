@@ -17,8 +17,8 @@ app to manage/download collections with features like:
 - etc...
 
 > [!WARNING]  
-> this is standard only for now<br>
-> you can still create and download collections but some features like "filter and remove beatmaps" might not work
+> this app might not work with other gamemodes like taiko, mania, catch<br>
+> you can still create and download collections but some features like "filter and remove beatmaps" will not work as expected
 
 ## how to download
 - **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
