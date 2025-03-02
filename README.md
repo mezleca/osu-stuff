@@ -16,6 +16,10 @@ app to manage/download collections with features like:
 - delete beatmaps from collections
 - etc...
 
+> [!WARNING]  
+> this is standard only for now
+> you can still create and download collections but some features like "filter and remove beatmaps" might not work
+
 ## how to download
 - **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
