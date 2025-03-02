@@ -3,7 +3,6 @@ import { create_alert } from "./popup/popup.js";
 
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
 export const all_panels = [...document.querySelectorAll(".tab-panel")];
-export const sidebar_item = [...document.querySelectorAll(".sidebar-item")];
 
 export const tabs = {
     manager: all_tabs[0], config: all_tabs[1], status: all_tabs[2]

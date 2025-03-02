@@ -107,65 +107,6 @@
   .bi-backspace-reverse-fill::before { content: "\f157"; }
   .bi-backspace-reverse::before { content: "\f158"; }
   .bi-backspace::before { content: "\f159"; }
-  .bi-badge-3d-fill::before { content: "\f15a"; }
-  .bi-badge-3d::before { content: "\f15b"; }
-  .bi-badge-4k-fill::before { content: "\f15c"; }
-  .bi-badge-4k::before { content: "\f15d"; }
-  .bi-badge-8k-fill::before { content: "\f15e"; }
-  .bi-badge-8k::before { content: "\f15f"; }
-  .bi-badge-ad-fill::before { content: "\f160"; }
-  .bi-badge-ad::before { content: "\f161"; }
-  .bi-badge-ar-fill::before { content: "\f162"; }
-  .bi-badge-ar::before { content: "\f163"; }
-  .bi-badge-cc-fill::before { content: "\f164"; }
-  .bi-badge-cc::before { content: "\f165"; }
-  .bi-badge-hd-fill::before { content: "\f166"; }
-  .bi-badge-hd::before { content: "\f167"; }
-  .bi-badge-tm-fill::before { content: "\f168"; }
-  .bi-badge-tm::before { content: "\f169"; }
-  .bi-badge-vo-fill::before { content: "\f16a"; }
-  .bi-badge-vo::before { content: "\f16b"; }
-  .bi-badge-vr-fill::before { content: "\f16c"; }
-  .bi-badge-vr::before { content: "\f16d"; }
-  .bi-badge-wc-fill::before { content: "\f16e"; }
-  .bi-badge-wc::before { content: "\f16f"; }
-  .bi-bag-check-fill::before { content: "\f170"; }
-  .bi-bag-check::before { content: "\f171"; }
-  .bi-bag-dash-fill::before { content: "\f172"; }
-  .bi-bag-dash::before { content: "\f173"; }
-  .bi-bag-fill::before { content: "\f174"; }
-  .bi-bag-plus-fill::before { content: "\f175"; }
-  .bi-bag-plus::before { content: "\f176"; }
-  .bi-bag-x-fill::before { content: "\f177"; }
-  .bi-bag-x::before { content: "\f178"; }
-  .bi-bag::before { content: "\f179"; }
-  .bi-bar-chart-fill::before { content: "\f17a"; }
-  .bi-bar-chart-line-fill::before { content: "\f17b"; }
-  .bi-bar-chart-line::before { content: "\f17c"; }
-  .bi-bar-chart-steps::before { content: "\f17d"; }
-  .bi-bar-chart::before { content: "\f17e"; }
-  .bi-basket-fill::before { content: "\f17f"; }
-  .bi-basket::before { content: "\f180"; }
-  .bi-basket2-fill::before { content: "\f181"; }
-  .bi-basket2::before { content: "\f182"; }
-  .bi-basket3-fill::before { content: "\f183"; }
-  .bi-basket3::before { content: "\f184"; }
-  .bi-battery-charging::before { content: "\f185"; }
-  .bi-battery-full::before { content: "\f186"; }
-  .bi-battery-half::before { content: "\f187"; }
-  .bi-battery::before { content: "\f188"; }
-  .bi-bell-fill::before { content: "\f189"; }
-  .bi-bell::before { content: "\f18a"; }
-  .bi-bezier::before { content: "\f18b"; }
-  .bi-bezier2::before { content: "\f18c"; }
-  .bi-bicycle::before { content: "\f18d"; }
-  .bi-binoculars-fill::before { content: "\f18e"; }
-  .bi-binoculars::before { content: "\f18f"; }
-  .bi-blockquote-left::before { content: "\f190"; }
-  .bi-blockquote-right::before { content: "\f191"; }
-  .bi-book-fill::before { content: "\f192"; }
-  .bi-book-half::before { content: "\f193"; }
-  .bi-book::before { content: "\f194"; }
   .bi-bookmark-check-fill::before { content: "\f195"; }
   .bi-bookmark-check::before { content: "\f196"; }
   .bi-bookmark-dash-fill::before { content: "\f197"; }
@@ -183,21 +124,6 @@
   .bi-bookmarks-fill::before { content: "\f1a3"; }
   .bi-bookmarks::before { content: "\f1a4"; }
   .bi-bookshelf::before { content: "\f1a5"; }
-  .bi-bootstrap-fill::before { content: "\f1a6"; }
-  .bi-bootstrap-reboot::before { content: "\f1a7"; }
-  .bi-bootstrap::before { content: "\f1a8"; }
-  .bi-border-all::before { content: "\f1a9"; }
-  .bi-border-bottom::before { content: "\f1aa"; }
-  .bi-border-center::before { content: "\f1ab"; }
-  .bi-border-inner::before { content: "\f1ac"; }
-  .bi-border-left::before { content: "\f1ad"; }
-  .bi-border-middle::before { content: "\f1ae"; }
-  .bi-border-outer::before { content: "\f1af"; }
-  .bi-border-right::before { content: "\f1b0"; }
-  .bi-border-style::before { content: "\f1b1"; }
-  .bi-border-top::before { content: "\f1b2"; }
-  .bi-border-width::before { content: "\f1b3"; }
-  .bi-border::before { content: "\f1b4"; }
   .bi-bounding-box-circles::before { content: "\f1b5"; }
   .bi-bounding-box::before { content: "\f1b6"; }
   .bi-box-arrow-down-left::before { content: "\f1b7"; }
@@ -242,61 +168,6 @@
   .bi-bullseye::before { content: "\f1de"; }
   .bi-calculator-fill::before { content: "\f1df"; }
   .bi-calculator::before { content: "\f1e0"; }
-  .bi-calendar-check-fill::before { content: "\f1e1"; }
-  .bi-calendar-check::before { content: "\f1e2"; }
-  .bi-calendar-date-fill::before { content: "\f1e3"; }
-  .bi-calendar-date::before { content: "\f1e4"; }
-  .bi-calendar-day-fill::before { content: "\f1e5"; }
-  .bi-calendar-day::before { content: "\f1e6"; }
-  .bi-calendar-event-fill::before { content: "\f1e7"; }
-  .bi-calendar-event::before { content: "\f1e8"; }
-  .bi-calendar-fill::before { content: "\f1e9"; }
-  .bi-calendar-minus-fill::before { content: "\f1ea"; }
-  .bi-calendar-minus::before { content: "\f1eb"; }
-  .bi-calendar-month-fill::before { content: "\f1ec"; }
-  .bi-calendar-month::before { content: "\f1ed"; }
-  .bi-calendar-plus-fill::before { content: "\f1ee"; }
-  .bi-calendar-plus::before { content: "\f1ef"; }
-  .bi-calendar-range-fill::before { content: "\f1f0"; }
-  .bi-calendar-range::before { content: "\f1f1"; }
-  .bi-calendar-week-fill::before { content: "\f1f2"; }
-  .bi-calendar-week::before { content: "\f1f3"; }
-  .bi-calendar-x-fill::before { content: "\f1f4"; }
-  .bi-calendar-x::before { content: "\f1f5"; }
-  .bi-calendar::before { content: "\f1f6"; }
-  .bi-calendar2-check-fill::before { content: "\f1f7"; }
-  .bi-calendar2-check::before { content: "\f1f8"; }
-  .bi-calendar2-date-fill::before { content: "\f1f9"; }
-  .bi-calendar2-date::before { content: "\f1fa"; }
-  .bi-calendar2-day-fill::before { content: "\f1fb"; }
-  .bi-calendar2-day::before { content: "\f1fc"; }
-  .bi-calendar2-event-fill::before { content: "\f1fd"; }
-  .bi-calendar2-event::before { content: "\f1fe"; }
-  .bi-calendar2-fill::before { content: "\f1ff"; }
-  .bi-calendar2-minus-fill::before { content: "\f200"; }
-  .bi-calendar2-minus::before { content: "\f201"; }
-  .bi-calendar2-month-fill::before { content: "\f202"; }
-  .bi-calendar2-month::before { content: "\f203"; }
-  .bi-calendar2-plus-fill::before { content: "\f204"; }
-  .bi-calendar2-plus::before { content: "\f205"; }
-  .bi-calendar2-range-fill::before { content: "\f206"; }
-  .bi-calendar2-range::before { content: "\f207"; }
-  .bi-calendar2-week-fill::before { content: "\f208"; }
-  .bi-calendar2-week::before { content: "\f209"; }
-  .bi-calendar2-x-fill::before { content: "\f20a"; }
-  .bi-calendar2-x::before { content: "\f20b"; }
-  .bi-calendar2::before { content: "\f20c"; }
-  .bi-calendar3-event-fill::before { content: "\f20d"; }
-  .bi-calendar3-event::before { content: "\f20e"; }
-  .bi-calendar3-fill::before { content: "\f20f"; }
-  .bi-calendar3-range-fill::before { content: "\f210"; }
-  .bi-calendar3-range::before { content: "\f211"; }
-  .bi-calendar3-week-fill::before { content: "\f212"; }
-  .bi-calendar3-week::before { content: "\f213"; }
-  .bi-calendar3::before { content: "\f214"; }
-  .bi-calendar4-event::before { content: "\f215"; }
-  .bi-calendar4-range::before { content: "\f216"; }
-  .bi-calendar4-week::before { content: "\f217"; }
   .bi-calendar4::before { content: "\f218"; }
   .bi-camera-fill::before { content: "\f219"; }
   .bi-camera-reels-fill::before { content: "\f21a"; }
@@ -314,70 +185,6 @@
   .bi-card-image::before { content: "\f226"; }
   .bi-card-list::before { content: "\f227"; }
   .bi-card-text::before { content: "\f228"; }
-  .bi-caret-down-fill::before { content: "\f229"; }
-  .bi-caret-down-square-fill::before { content: "\f22a"; }
-  .bi-caret-down-square::before { content: "\f22b"; }
-  .bi-caret-down::before { content: "\f22c"; }
-  .bi-caret-left-fill::before { content: "\f22d"; }
-  .bi-caret-left-square-fill::before { content: "\f22e"; }
-  .bi-caret-left-square::before { content: "\f22f"; }
-  .bi-caret-left::before { content: "\f230"; }
-  .bi-caret-right-fill::before { content: "\f231"; }
-  .bi-caret-right-square-fill::before { content: "\f232"; }
-  .bi-caret-right-square::before { content: "\f233"; }
-  .bi-caret-right::before { content: "\f234"; }
-  .bi-caret-up-fill::before { content: "\f235"; }
-  .bi-caret-up-square-fill::before { content: "\f236"; }
-  .bi-caret-up-square::before { content: "\f237"; }
-  .bi-caret-up::before { content: "\f238"; }
-  .bi-cart-check-fill::before { content: "\f239"; }
-  .bi-cart-check::before { content: "\f23a"; }
-  .bi-cart-dash-fill::before { content: "\f23b"; }
-  .bi-cart-dash::before { content: "\f23c"; }
-  .bi-cart-fill::before { content: "\f23d"; }
-  .bi-cart-plus-fill::before { content: "\f23e"; }
-  .bi-cart-plus::before { content: "\f23f"; }
-  .bi-cart-x-fill::before { content: "\f240"; }
-  .bi-cart-x::before { content: "\f241"; }
-  .bi-cart::before { content: "\f242"; }
-  .bi-cart2::before { content: "\f243"; }
-  .bi-cart3::before { content: "\f244"; }
-  .bi-cart4::before { content: "\f245"; }
-  .bi-cash-stack::before { content: "\f246"; }
-  .bi-cash::before { content: "\f247"; }
-  .bi-cast::before { content: "\f248"; }
-  .bi-chat-dots-fill::before { content: "\f249"; }
-  .bi-chat-dots::before { content: "\f24a"; }
-  .bi-chat-fill::before { content: "\f24b"; }
-  .bi-chat-left-dots-fill::before { content: "\f24c"; }
-  .bi-chat-left-dots::before { content: "\f24d"; }
-  .bi-chat-left-fill::before { content: "\f24e"; }
-  .bi-chat-left-quote-fill::before { content: "\f24f"; }
-  .bi-chat-left-quote::before { content: "\f250"; }
-  .bi-chat-left-text-fill::before { content: "\f251"; }
-  .bi-chat-left-text::before { content: "\f252"; }
-  .bi-chat-left::before { content: "\f253"; }
-  .bi-chat-quote-fill::before { content: "\f254"; }
-  .bi-chat-quote::before { content: "\f255"; }
-  .bi-chat-right-dots-fill::before { content: "\f256"; }
-  .bi-chat-right-dots::before { content: "\f257"; }
-  .bi-chat-right-fill::before { content: "\f258"; }
-  .bi-chat-right-quote-fill::before { content: "\f259"; }
-  .bi-chat-right-quote::before { content: "\f25a"; }
-  .bi-chat-right-text-fill::before { content: "\f25b"; }
-  .bi-chat-right-text::before { content: "\f25c"; }
-  .bi-chat-right::before { content: "\f25d"; }
-  .bi-chat-square-dots-fill::before { content: "\f25e"; }
-  .bi-chat-square-dots::before { content: "\f25f"; }
-  .bi-chat-square-fill::before { content: "\f260"; }
-  .bi-chat-square-quote-fill::before { content: "\f261"; }
-  .bi-chat-square-quote::before { content: "\f262"; }
-  .bi-chat-square-text-fill::before { content: "\f263"; }
-  .bi-chat-square-text::before { content: "\f264"; }
-  .bi-chat-square::before { content: "\f265"; }
-  .bi-chat-text-fill::before { content: "\f266"; }
-  .bi-chat-text::before { content: "\f267"; }
-  .bi-chat::before { content: "\f268"; }
   .bi-check-all::before { content: "\f269"; }
   .bi-check-circle-fill::before { content: "\f26a"; }
   .bi-check-circle::before { content: "\f26b"; }
@@ -519,34 +326,6 @@
   .bi-egg::before { content: "\f2f3"; }
   .bi-eject-fill::before { content: "\f2f4"; }
   .bi-eject::before { content: "\f2f5"; }
-  .bi-emoji-angry-fill::before { content: "\f2f6"; }
-  .bi-emoji-angry::before { content: "\f2f7"; }
-  .bi-emoji-dizzy-fill::before { content: "\f2f8"; }
-  .bi-emoji-dizzy::before { content: "\f2f9"; }
-  .bi-emoji-expressionless-fill::before { content: "\f2fa"; }
-  .bi-emoji-expressionless::before { content: "\f2fb"; }
-  .bi-emoji-frown-fill::before { content: "\f2fc"; }
-  .bi-emoji-frown::before { content: "\f2fd"; }
-  .bi-emoji-heart-eyes-fill::before { content: "\f2fe"; }
-  .bi-emoji-heart-eyes::before { content: "\f2ff"; }
-  .bi-emoji-laughing-fill::before { content: "\f300"; }
-  .bi-emoji-laughing::before { content: "\f301"; }
-  .bi-emoji-neutral-fill::before { content: "\f302"; }
-  .bi-emoji-neutral::before { content: "\f303"; }
-  .bi-emoji-smile-fill::before { content: "\f304"; }
-  .bi-emoji-smile-upside-down-fill::before { content: "\f305"; }
-  .bi-emoji-smile-upside-down::before { content: "\f306"; }
-  .bi-emoji-smile::before { content: "\f307"; }
-  .bi-emoji-sunglasses-fill::before { content: "\f308"; }
-  .bi-emoji-sunglasses::before { content: "\f309"; }
-  .bi-emoji-wink-fill::before { content: "\f30a"; }
-  .bi-emoji-wink::before { content: "\f30b"; }
-  .bi-envelope-fill::before { content: "\f30c"; }
-  .bi-envelope-open-fill::before { content: "\f30d"; }
-  .bi-envelope-open::before { content: "\f30e"; }
-  .bi-envelope::before { content: "\f30f"; }
-  .bi-eraser-fill::before { content: "\f310"; }
-  .bi-eraser::before { content: "\f311"; }
   .bi-exclamation-circle-fill::before { content: "\f312"; }
   .bi-exclamation-circle::before { content: "\f313"; }
   .bi-exclamation-diamond-fill::before { content: "\f314"; }
@@ -582,68 +361,6 @@
   .bi-file-code::before { content: "\f332"; }
   .bi-file-diff-fill::before { content: "\f333"; }
   .bi-file-diff::before { content: "\f334"; }
-  .bi-file-earmark-arrow-down-fill::before { content: "\f335"; }
-  .bi-file-earmark-arrow-down::before { content: "\f336"; }
-  .bi-file-earmark-arrow-up-fill::before { content: "\f337"; }
-  .bi-file-earmark-arrow-up::before { content: "\f338"; }
-  .bi-file-earmark-bar-graph-fill::before { content: "\f339"; }
-  .bi-file-earmark-bar-graph::before { content: "\f33a"; }
-  .bi-file-earmark-binary-fill::before { content: "\f33b"; }
-  .bi-file-earmark-binary::before { content: "\f33c"; }
-  .bi-file-earmark-break-fill::before { content: "\f33d"; }
-  .bi-file-earmark-break::before { content: "\f33e"; }
-  .bi-file-earmark-check-fill::before { content: "\f33f"; }
-  .bi-file-earmark-check::before { content: "\f340"; }
-  .bi-file-earmark-code-fill::before { content: "\f341"; }
-  .bi-file-earmark-code::before { content: "\f342"; }
-  .bi-file-earmark-diff-fill::before { content: "\f343"; }
-  .bi-file-earmark-diff::before { content: "\f344"; }
-  .bi-file-earmark-easel-fill::before { content: "\f345"; }
-  .bi-file-earmark-easel::before { content: "\f346"; }
-  .bi-file-earmark-excel-fill::before { content: "\f347"; }
-  .bi-file-earmark-excel::before { content: "\f348"; }
-  .bi-file-earmark-fill::before { content: "\f349"; }
-  .bi-file-earmark-font-fill::before { content: "\f34a"; }
-  .bi-file-earmark-font::before { content: "\f34b"; }
-  .bi-file-earmark-image-fill::before { content: "\f34c"; }
-  .bi-file-earmark-image::before { content: "\f34d"; }
-  .bi-file-earmark-lock-fill::before { content: "\f34e"; }
-  .bi-file-earmark-lock::before { content: "\f34f"; }
-  .bi-file-earmark-lock2-fill::before { content: "\f350"; }
-  .bi-file-earmark-lock2::before { content: "\f351"; }
-  .bi-file-earmark-medical-fill::before { content: "\f352"; }
-  .bi-file-earmark-medical::before { content: "\f353"; }
-  .bi-file-earmark-minus-fill::before { content: "\f354"; }
-  .bi-file-earmark-minus::before { content: "\f355"; }
-  .bi-file-earmark-music-fill::before { content: "\f356"; }
-  .bi-file-earmark-music::before { content: "\f357"; }
-  .bi-file-earmark-person-fill::before { content: "\f358"; }
-  .bi-file-earmark-person::before { content: "\f359"; }
-  .bi-file-earmark-play-fill::before { content: "\f35a"; }
-  .bi-file-earmark-play::before { content: "\f35b"; }
-  .bi-file-earmark-plus-fill::before { content: "\f35c"; }
-  .bi-file-earmark-plus::before { content: "\f35d"; }
-  .bi-file-earmark-post-fill::before { content: "\f35e"; }
-  .bi-file-earmark-post::before { content: "\f35f"; }
-  .bi-file-earmark-ppt-fill::before { content: "\f360"; }
-  .bi-file-earmark-ppt::before { content: "\f361"; }
-  .bi-file-earmark-richtext-fill::before { content: "\f362"; }
-  .bi-file-earmark-richtext::before { content: "\f363"; }
-  .bi-file-earmark-ruled-fill::before { content: "\f364"; }
-  .bi-file-earmark-ruled::before { content: "\f365"; }
-  .bi-file-earmark-slides-fill::before { content: "\f366"; }
-  .bi-file-earmark-slides::before { content: "\f367"; }
-  .bi-file-earmark-spreadsheet-fill::before { content: "\f368"; }
-  .bi-file-earmark-spreadsheet::before { content: "\f369"; }
-  .bi-file-earmark-text-fill::before { content: "\f36a"; }
-  .bi-file-earmark-text::before { content: "\f36b"; }
-  .bi-file-earmark-word-fill::before { content: "\f36c"; }
-  .bi-file-earmark-word::before { content: "\f36d"; }
-  .bi-file-earmark-x-fill::before { content: "\f36e"; }
-  .bi-file-earmark-x::before { content: "\f36f"; }
-  .bi-file-earmark-zip-fill::before { content: "\f370"; }
-  .bi-file-earmark-zip::before { content: "\f371"; }
-  .bi-file-earmark::before { content: "\f372"; }
   .bi-file-easel-fill::before { content: "\f373"; }
   .bi-file-easel::before { content: "\f374"; }
   .bi-file-excel-fill::before { content: "\f375"; }
@@ -740,27 +457,6 @@
   .bi-google::before { content: "\f3d0"; }
   .bi-graph-down::before { content: "\f3d1"; }
   .bi-graph-up::before { content: "\f3d2"; }
-  .bi-grid-1x2-fill::before { content: "\f3d3"; }
-  .bi-grid-1x2::before { content: "\f3d4"; }
-  .bi-grid-3x2-gap-fill::before { content: "\f3d5"; }
-  .bi-grid-3x2-gap::before { content: "\f3d6"; }
-  .bi-grid-3x2::before { content: "\f3d7"; }
-  .bi-grid-3x3-gap-fill::before { content: "\f3d8"; }
-  .bi-grid-3x3-gap::before { content: "\f3d9"; }
-  .bi-grid-3x3::before { content: "\f3da"; }
-  .bi-grid-fill::before { content: "\f3db"; }
-  .bi-grid::before { content: "\f3dc"; }
-  .bi-grip-horizontal::before { content: "\f3dd"; }
-  .bi-grip-vertical::before { content: "\f3de"; }
-  .bi-hammer::before { content: "\f3df"; }
-  .bi-hand-index-fill::before { content: "\f3e0"; }
-  .bi-hand-index-thumb-fill::before { content: "\f3e1"; }
-  .bi-hand-index-thumb::before { content: "\f3e2"; }
-  .bi-hand-index::before { content: "\f3e3"; }
-  .bi-hand-thumbs-down-fill::before { content: "\f3e4"; }
-  .bi-hand-thumbs-down::before { content: "\f3e5"; }
-  .bi-hand-thumbs-up-fill::before { content: "\f3e6"; }
-  .bi-hand-thumbs-up::before { content: "\f3e7"; }
   .bi-handbag-fill::before { content: "\f3e8"; }
   .bi-handbag::before { content: "\f3e9"; }
   .bi-hash::before { content: "\f3ea"; }
@@ -809,27 +505,6 @@
   .bi-input-cursor::before { content: "\f415"; }
   .bi-instagram::before { content: "\f416"; }
   .bi-intersect::before { content: "\f417"; }
-  .bi-journal-album::before { content: "\f418"; }
-  .bi-journal-arrow-down::before { content: "\f419"; }
-  .bi-journal-arrow-up::before { content: "\f41a"; }
-  .bi-journal-bookmark-fill::before { content: "\f41b"; }
-  .bi-journal-bookmark::before { content: "\f41c"; }
-  .bi-journal-check::before { content: "\f41d"; }
-  .bi-journal-code::before { content: "\f41e"; }
-  .bi-journal-medical::before { content: "\f41f"; }
-  .bi-journal-minus::before { content: "\f420"; }
-  .bi-journal-plus::before { content: "\f421"; }
-  .bi-journal-richtext::before { content: "\f422"; }
-  .bi-journal-text::before { content: "\f423"; }
-  .bi-journal-x::before { content: "\f424"; }
-  .bi-journal::before { content: "\f425"; }
-  .bi-journals::before { content: "\f426"; }
-  .bi-joystick::before { content: "\f427"; }
-  .bi-justify-left::before { content: "\f428"; }
-  .bi-justify-right::before { content: "\f429"; }
-  .bi-justify::before { content: "\f42a"; }
-  .bi-kanban-fill::before { content: "\f42b"; }
-  .bi-kanban::before { content: "\f42c"; }
   .bi-key-fill::before { content: "\f42d"; }
   .bi-key::before { content: "\f42e"; }
   .bi-keyboard-fill::before { content: "\f42f"; }
@@ -1171,21 +846,6 @@
   .bi-tag::before { content: "\f57f"; }
   .bi-tags-fill::before { content: "\f580"; }
   .bi-tags::before { content: "\f581"; }
-  .bi-telegram::before { content: "\f582"; }
-  .bi-telephone-fill::before { content: "\f583"; }
-  .bi-telephone-forward-fill::before { content: "\f584"; }
-  .bi-telephone-forward::before { content: "\f585"; }
-  .bi-telephone-inbound-fill::before { content: "\f586"; }
-  .bi-telephone-inbound::before { content: "\f587"; }
-  .bi-telephone-minus-fill::before { content: "\f588"; }
-  .bi-telephone-minus::before { content: "\f589"; }
-  .bi-telephone-outbound-fill::before { content: "\f58a"; }
-  .bi-telephone-outbound::before { content: "\f58b"; }
-  .bi-telephone-plus-fill::before { content: "\f58c"; }
-  .bi-telephone-plus::before { content: "\f58d"; }
-  .bi-telephone-x-fill::before { content: "\f58e"; }
-  .bi-telephone-x::before { content: "\f58f"; }
-  .bi-telephone::before { content: "\f590"; }
   .bi-terminal-fill::before { content: "\f591"; }
   .bi-terminal::before { content: "\f592"; }
   .bi-text-center::before { content: "\f593"; }
