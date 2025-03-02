@@ -192,7 +192,7 @@ app.whenReady().then(async () => {
 
     createWindow();
 
-    // hardware accelearion on linux causes some freezing issues (at least for me) 
+    // hardware accelearion on linux causes window freezing after a while (at least for me) 
     app.on('activate', () => {
         app.disableHardwareAcceleration();
     });

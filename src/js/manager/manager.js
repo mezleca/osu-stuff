@@ -345,14 +345,24 @@ const add_new_collection = async () => {
             const collection = collections.get(current_collection);
 
             if (!collection) {
-                create_alert("failed to get current collection", { type: "error"} );
+                create_alert("failed to get current collection", { type: "error" } );
                 return;
             }
 
             const new_maps = [...collection, ...maps];
             await add_collection_manager(new_maps, current_collection);
+        } 
+        else {
+                    
+            if (collections.has(collection.name)) {
+                create_alert("you already have a collection with this name");
+                return;
+            }
+
+            await add_collection_manager(maps, collection.name);
         }
-    } else {
+    } 
+    else {
         
         if (collections.has(collection.name)) {
             create_alert("you already have a collection with this name");
