@@ -97,6 +97,9 @@ contextBridge.exposeInMainWorld('electron', {
     shell: {
         openExternal: (url) => shell.openExternal(url),
     },
+    maximize: async () => await ipcRenderer.invoke('maximize'),
+    minimize: async () => await ipcRenderer.invoke('minimize'),
+    close: async () => await ipcRenderer.invoke('close'),
     fetchstats: async (url, cookies) => await ipcRenderer.invoke('fetch-stats', url, cookies),
     create_dialog: async () => await ipcRenderer.invoke("create-dialog"),
     create_auth: async (url, end) => await ipcRenderer.invoke("create-auth", url, end),

@@ -1,19 +1,21 @@
 import { handle_event } from "./events.js";
 import { create_alert } from "./popup/popup.js";
 
+export const tasks = new Map();
+
 export const all_tabs = [...document.querySelectorAll(".tab-button")];
 export const all_panels = [...document.querySelectorAll(".tab-panel")];
+export const tabs = { manager: all_tabs[0], config: all_tabs[1], status: all_tabs[2] };
+export const panels = { manager: all_panels[0], config: all_panels[1], status: all_panels[2] };
 
-export const tabs = {
-    manager: all_tabs[0], config: all_tabs[1], status: all_tabs[2]
-}
+// custom titlebar buttons
+const maximize_btn = document.querySelector(".maximize");
+const minimize_btn = document.querySelector(".minimize");
+const close_btn = document.querySelector(".close");
 
-export const panels = {
-    manager: all_panels[0], config: all_panels[1], status: all_panels[2]
-};
-
-export const tasks = new Map();
-export const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
+maximize_btn.addEventListener("click", () => window.electron.maximize());
+minimize_btn.addEventListener("click", () => window.electron.minimize());
+close_btn.addEventListener("click", () => window.electron.close());
 
 all_tabs.map((tab, i) => {
 

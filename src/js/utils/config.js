@@ -299,16 +299,13 @@ export const add_config_shit = async () => {
     const mirror_tab = config_tab.querySelector(".mirror-list");
 
     const mirror_add_btn = create_element_from_string(`
-        <div class="mirror-remove-container">
-            <i class="bi bi-plus-square" id="add_mirror"></i>
-        </div>
+        <button class="mirror-remove-container">add</button>
     `);
 
     // create mirrors list
     await handle_mirrors(mirror_tab, mirror_add_btn);
 
-    const mirror_btn = mirror_add_btn.querySelector("#add_mirror");
-    mirror_btn.addEventListener("click", async () => {
+    mirror_add_btn.addEventListener("click", async () => {
 
         if (!core.mirrors.size >= 4) {
             create_alert("no more than 4 mirrors my guy", { type: "alert" });

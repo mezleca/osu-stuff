@@ -17,8 +17,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev_mode = process.env.NODE_ENV == "development";
 
 const w = 968, h = 720;
-const min_w = 820, min_h = 580;
-const max_w = 1080, max_h = 820;
+const min_w = 800, min_h = 600;
+const max_w = 1366, max_h = 900;
 
 export const create_dialog = async () => {
     return dialog.showOpenDialog(main_window, {
@@ -42,6 +42,7 @@ export const get_icon_path = () => {
 
 const icon_path = get_icon_path();
 
+// still need to find a better way to do this
 const create_auth_window = (url, end) => {
 
     if (!url || !end) {
@@ -50,8 +51,8 @@ const create_auth_window = (url, end) => {
     }
 
     const auth_window = new BrowserWindow({
-        width: 800,
-        height: 700,
+        width: w,
+        height: h,
         fullscreenable: false,
         icon: icon_path,
         webPreferences: {
@@ -108,24 +109,27 @@ const createWindow = () => {
             webSecurity: dev_mode ? false : true,
             preload: path.join(__dirname, 'preload.cjs')
         },
-        titleBarOverlay: {
-            color: '#202020',
-            symbolColor: '#ffffff'
-        }
+        titleBarOverlay: false,
     });
 
+    // not sure if i need this
     shortcut.register(main_window, 'F12', () => main_window.webContents.openDevTools());
     shortcut.register(main_window, 'Ctrl+R', () => main_window.reload());
 
+    // load html yep
     main_window.loadFile(path.join(__dirname, "./gui/index.html"));
     main_window.setMenuBarVisibility(false);
-    main_window.on('maximize', () => main_window.unmaximize());
 
-    ipcMain.on('close-window', () => app.quit());
+    // window controls
+    ipcMain.handle('maximize', () => { }); // maximized version looks ungly as hell, need to finish css for that
+    ipcMain.handle('minimize', () => main_window.minimize());
+    ipcMain.handle('close'   , () => app.quit());
 
-    ipcMain.handle('is-window-full', () => main_window.isMaximized());
+    // other gargabe
     ipcMain.handle('create-dialog', async () => await create_dialog());
     ipcMain.handle('dev_mode', () => dev_mode);
+
+    // function to get cookies from stats
     ipcMain.handle('fetch-stats', async (event, url, cookies) => {
 
         return new Promise((resolve, reject) => {
@@ -181,12 +185,14 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
  
+    // uuuh, fix html not loading? idk lol
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
         callback({ requestHeaders: { ...details.requestHeaders } });
     });
 
     createWindow();
 
+    // hardware accelearion on linux causes some freezing issues (at least for me) 
     app.on('activate', () => {
         app.disableHardwareAcceleration();
     });

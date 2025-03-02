@@ -1,8 +1,10 @@
-import { tasks, blink, download_types, panels, tabs } from "./tabs.js";
+import { tasks, blink, panels, tabs } from "./tabs.js";
 import { create_alert, message_types, create_custom_popup } from "./popup/popup.js";
 import { download_maps, current_download } from "./utils/download_maps.js";
 
 export let queue_interval = null;
+
+const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
 
 class event_emitter {
     constructor() {
