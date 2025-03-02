@@ -17,7 +17,7 @@ app to manage/download collections with features like:
 - etc...
 
 > [!WARNING]  
-> this is standard only for now
+> this is standard only for now<br>
 > you can still create and download collections but some features like "filter and remove beatmaps" might not work
 
 ## how to download
