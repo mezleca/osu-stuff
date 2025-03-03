@@ -28,11 +28,11 @@ app to manage/download collections with features like:
 
 ### ubuntu
 ```bash
-sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1
+sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
 ```
 ### arch
 ```bash
-sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus
+sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
 ```
 
 ## optional mirrors
