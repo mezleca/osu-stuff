@@ -21,7 +21,7 @@ app to manage/download collections with features like:
 > you can still create and download collections for other gamemodes but some features like "filter, remove beatmaps" might not work
 
 ## how to download
-- **current app version (v1.4.0)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **current app version (v1.4)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## dependencies
 - linux users will probably need to download those dependencies:
