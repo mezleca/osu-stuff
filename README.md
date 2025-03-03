@@ -17,7 +17,7 @@ app to manage/download collections with features like:
 - etc...
 
 > [!WARNING]  
-> this app is specific made for osu! standard<br>
+> osu-stuff was made exclusively for standard mode<br>
 > you can still create and download collections for other gamemodes but some features like "filter, remove beatmaps" might not work
 
 ## how to download
