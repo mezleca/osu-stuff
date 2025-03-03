@@ -11,8 +11,9 @@ export const core = {
     config: new Map(),
     files: new Map(),
     mirrors: new Map(),
-    og_path: window.nodeAPI.env.og_path,
-    login: null
+    og_path: window.nodeAPI.env.og_path, // app folder
+    login: null, // login object that contains the access_token
+    perm: true, // boolean to check on other parts if we have perm to write on osu folder 
 };
 
 const tooltips_text = {
@@ -102,6 +103,48 @@ export const get_files = async (osu) => {
     await core.reader.get_osu_data();
 }
 
+const test_folder_permissions = async (folder) => {
+
+    console.log("verifying folder access", folder);
+
+    try {
+        
+        const test_file = path.join(folder, `test-${Date.now()}.tmp`);
+        const test_file2 = path.join(folder, "renamed-test.tmp");
+
+        // make sure everything works
+        fs.writeFileSync(test_file, 'test');
+        fs.readFileSync(test_file);
+        fs.renameSync(test_file, test_file2);
+        fs.unlinkSync(test_file2);
+
+        // also try to modify a already existing file
+        const file_test = fs.readdirSync(folder)[0];
+
+        if (!file_test) {
+            return true;
+        }
+
+        // check if it's a directory or a file
+        const file_path = path.join(folder, file_test);
+        const stats = fs.statSync(file_path);
+
+        if ((stats.mode & 0o170000) === 0o040000) {
+            const temp_dir_name = path.join(folder, "stufttest0101");
+            fs.renameSync(file_path, temp_dir_name);
+            fs.renameSync(temp_dir_name, file_path);
+        } else {
+            const temp_file_name = path.join(folder, test_file2);
+            fs.renameSync(file_path, temp_file_name);
+            fs.renameSync(temp_file_name, file_path);
+        }
+        return true;
+    } catch (err) {
+        console.log("folder perm error:", err);
+        return false;
+    }
+}
+
 const setup_config = async () => {
 
     const osu_id = core.config.get("osu_id");
@@ -117,9 +160,19 @@ const setup_config = async () => {
         }
     }
 
+    // check if both paths exists
     if (!fs.existsSync(osu_path) || !fs.existsSync(osu_songs)) {
         create_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
         return;
+    }
+
+    // check if the app has permission to read and write files
+    const osu_perms = test_folder_permissions(osu_path);
+    const songs_perms = test_folder_permissions(osu_songs);
+
+    if (!osu_perms || !songs_perms) {
+        create_alert("failed to read osufolder\nmake sure you have permission on the drive before using osu-stuff", { type: "error" })
+        core.perm = false;
     }
 
     await get_files(osu_path);
@@ -342,11 +395,10 @@ export const add_config_shit = async () => {
     });
 
     mirror_tab.appendChild(mirror_add_btn);
-    label_content.forEach(e => {
-        check_button.insertAdjacentElement("beforebegin", e);
-    });
-
+    
+    label_content.forEach(e => { check_button.insertAdjacentElement("beforebegin", e) });
     check_button.addEventListener("click", handle_config_check);
+
     setup_tooltip();
 
     if (!empty_config) {
@@ -362,6 +414,15 @@ export const add_config_shit = async () => {
     if (!fs.existsSync(core.config.get("osu_songs_path"))) {
         create_alert("osu songs path is invalid!", { type: "alert" });
         return;
+    }
+
+    // check if the app has permission to read and write files
+    const osu_perms = test_folder_permissions(core.config.get("osu_path"));
+    const songs_perms = test_folder_permissions(core.config.get("osu_songs_path"));
+
+    if (!osu_perms || !songs_perms) {
+        create_alert("failed to read osufolder\nmake sure you have permission on the drive before using osu-stuff", { type: "error" })
+        core.perm = false;
     }
 
     await get_files(core.config.get("osu_path"));
