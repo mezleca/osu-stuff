@@ -81,7 +81,8 @@ contextBridge.exposeInMainWorld("nodeAPI", {
         unlinkSync: (filePath) => fs.unlinkSync(filePath),
         rmdirSync: (path, options) => fs.rmdirSync(path, options),
         existsSync: (filePath) => fs.existsSync(filePath),
-        mkdirSync: (dirPath, options) => fs.mkdirSync(dirPath, options)
+        mkdirSync: (dirPath, options) => fs.mkdirSync(dirPath, options),
+        statSync: (filePath) => fs.statSync(filePath)
     },
     path: {
         join: (...paths) => path.join(...paths),
