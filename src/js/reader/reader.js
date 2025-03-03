@@ -230,8 +230,8 @@ export class OsuReader {
 
         return new Promise(async (res, rej) => {
 
-            if (!this.buffer) {
-                return rej(new Error("buffer not set. call set_buffer before write_osu_data."));
+            if (this.buffer?.byteLength == 0) {
+                return rej(new Error("invalid buffer. call set_buffer before write_osu_data."));
             }
 
             const buffer = [];

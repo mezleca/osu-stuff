@@ -3,7 +3,7 @@ import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task, create_task } from "../tabs.js";
-import { beatmap_status as _status } from "../stuff/remove_maps.js";
+import { beatmap_status as _status, delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
@@ -19,6 +19,7 @@ const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
 const audio_core = { audio: null, id: 0, target: null };
+const default_options = ["add new collection", "get from player", "get missing beatmaps"];
 const draggable_items_map = new Map();
 const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 const MAX_RENDER_AMMOUNT = 16;
@@ -391,6 +392,44 @@ const get_missing_beatmaps = async () => {
     create_task("missing beatmaps", missing_download);
 };
 
+// @TODO: filter
+const delete_beatmaps_manager = async () => {
+    
+    const name = get_selected_collection();
+
+    // make sure the collectio is valid
+    if (!name) {
+        create_alert("failed to get current collection", { type: "error" });
+        return;
+    }
+
+    const beatmaps = collections.get(name);
+
+    if (!beatmaps) {
+        create_alert("failed to get collection beatmaps", { type: "error" });
+        return;
+    }
+
+    const conf = await quick_confirm(`delete all beatmaps from ${name}?`);
+
+    if (!conf) {
+        return;
+    }
+
+    // delete beatmaps in the osu folder
+    await delete_beatmaps(beatmaps);
+
+    // also delete in collection obj
+    collections.set(name, []);
+
+    // render manager once again
+    await initialize();
+    setup_manager();
+
+    // need to save
+    update_collection_button.style.display = "block";
+};
+
 header_text.addEventListener("click", async () => {
     remove_all_selected();
     setup_manager();
@@ -399,7 +438,6 @@ header_text.addEventListener("click", async () => {
 more_options.addEventListener("click", async () => {
 
     // if theres a collection selected, add extra option
-    const default_options = ["add new collection", "get from player", "get missing beatmaps"];
     const current_collection = get_selected_collection(false);
 
     if (current_collection) {
@@ -427,7 +465,7 @@ more_options.addEventListener("click", async () => {
             add_new_collection();
             break;
         case "delete beatmaps":
-            create_alert("not implemented yet");
+            delete_beatmaps_manager();
             break;
         default:
             create_alert("invalid option");
@@ -436,7 +474,7 @@ more_options.addEventListener("click", async () => {
 });
 
 // @TODO: this only works for "standard" mode
-// @TOFIX: sometimes this does not work.
+// @TOFIX: sometimes this dont work.
 const get_beatmap_sr = (beatmap) => {
     try {
         const beatmap_sr = beatmap?.sr[0] || 0; // lmao
