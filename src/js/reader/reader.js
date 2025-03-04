@@ -1,5 +1,6 @@
 import { osu_db, collections_db, osdb_schema } from "./definitions.js";
 import { fs, zlib } from "../utils/global.js";
+import { create_alert } from "../popup/popup.js";
 
 const decompress_gzip = (data) => {
     return new Promise((resolve, reject) => {
@@ -246,23 +247,29 @@ export class OsuReader {
             let last_index = this.beatmap_offset_start;
 
             // sort to make end as last_index
-            maps = maps.sort((a, b) => a.start - b.start);
+            maps = maps.sort((a, b) => a.beatmap_start - b.beatmap_start);
 
             for (let i = 0; i < maps.length; i++) {
 
-                if (last_index < maps[i].start) {
-                    const bf = new Uint8Array(this.buffer.slice(last_index, maps[i].start));
+                // if the map object is invalid ignore it
+                if (!maps[i].beatmap_start || !maps[i].beatmap_end) {
+                    create_alert("failed to recreate osu!.db", { type: "error" });
+                    return;
+                }
+
+                if (last_index < maps[i].beatmap_start) {
+                    const bf = new Uint8Array(this.buffer.slice(last_index, maps[i].beatmap_start));
                     buffer.push(bf);
                 }
 
-                last_index = maps[i].end;
+                last_index = maps[i].beatmap_end;
             }
 
             if (last_index < this.buffer.byteLength) {
                 buffer.push(new Uint8Array(this.buffer.slice(last_index)));
             }
             
-            await fs.writeFileSyncView(p, this.join_buffer(buffer));
+            await fs.writeFileSync(p, this.join_buffer(buffer));
             res();
         });
     };

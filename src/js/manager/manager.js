@@ -9,6 +9,9 @@ import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, collections, fs, path } from "../utils/global.js";
 
+// @TODO: strip manager logic in files. 
+//        1000 lines of different shit in a single file is annoying
+
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_draggable_items");
@@ -417,10 +420,14 @@ const delete_beatmaps_manager = async () => {
     }
 
     // delete beatmaps in the osu folder
-    await delete_beatmaps(beatmaps);
+    const success = await delete_beatmaps(beatmaps);
 
-    // also delete in collection obj
-    collections.set(name, []);
+    if (!success) {
+        return;
+    }
+
+    // update the current collection with "unknown beatmaps"
+    collections.set(name, Array(beatmaps.length).fill({}));
 
     // render manager once again
     await initialize();

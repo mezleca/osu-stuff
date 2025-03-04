@@ -1,8 +1,10 @@
 import { create_custom_popup, create_alert, message_types, quick_confirm } from "../popup/popup.js";
 import { core } from "../utils/config.js";
-import { fs, path, is_testing } from "../utils/global.js";
+import { fs, path } from "../utils/global.js";
 
 // @TODO: rework the filter system
+
+const deleted_folders = new Set();
 
 export const beatmap_status = {
     "all": -1,
@@ -75,65 +77,77 @@ const find_matching_beatmaps = (min_sr, max_sr, status, ignore_from_collections)
     return { matching_maps, filtered_maps };
 };
 
-// experimental, still not 100% safe
 export const delete_beatmaps = async (beatmaps) => {
 
-    const deleted_folders = new Set();
+    let failed = false;
+
+    console.log(beatmaps);
     
-    for (const item of beatmaps) {
+    for (let i = 0; i < beatmaps.length; i++) {
 
         try {  
 
-            if (fs.existsSync(item.path)) {
+            const item = beatmaps[i];
 
+            const folder_path = path.resolve(core.config.get("osu_songs_path"), item.folder_name);
+            const item_path = path.resolve(folder_path, item.file);
+
+            // check if the file exists
+            if (fs.existsSync(folder_path)) {
+
+                // remove from the reader so manager wont show the map
                 if (core.reader.osu.beatmaps.has(item.md5)) {
+                    console.log("removing", item.md5, "from map");
                     core.reader.osu.beatmaps.delete(item.md5);
                 } else {
                     console.log("failed to find:", item);
                 }
 
-                if (window.electron.dev_mode) {
-                    console.log("[dev] skipping delete:", item.folder_path, item.md5);
-                    continue;
-                }
+                // dont remove anything in dev mode
+                // if (window.electron.dev_mode) {
+                //     console.log("[dev] skipping delete:", folder_path, item.md5);
+                //     continue;
+                // }
 
-                fs.unlinkSync(item.path); 
+                fs.unlinkSync(item_path); 
                 
-                // if the folder has no .osu left, delete everything
-                if (!deleted_folders.has(item.folder_path)) {
+                // check if we already deleted this folder
+                if (!deleted_folders.has(folder_path)) {
 
-                    const folder = fs.readdirSync(item.folder_path);
-                    
-                    console.log("deleting item", item.path);
+                    // read folder content and if no .osu exists in that folder, remove everything
+                    const folder = fs.readdirSync(folder_path);
 
                     if (!folder.some(file => file.endsWith('.osu'))) {
-                        fs.rmdirSync(item.folder_path, { recursive: true });
-                        deleted_folders.add(item.folder_path);
-                        console.log("deleting folder", item.folder_path);
+                        fs.rmdirSync(folder_path, { recursive: true });
+                        deleted_folders.add(folder_path);
+                        console.log("deleting folder", folder_path);
                     }
                 }
             }
         } 
         catch(err) {
-            console.error("removing beatmap error", err, item.path);
+            failed = true;
+            console.error("removing beatmap error", err);
         }    
+    }
+
+    // if something went wrong, dont do anything
+    if (failed) {
+        create_alert("failed to remove beatmaps\ncheck logs for more info");
+        return null;
     }
 
     // make sure we update this otherwise osu.db will act funny
     update_beatmap_counts(core.reader.osu.beatmaps.size);
 
     const old_name = path.resolve(core.config.get("osu_path"), "osu!.db");
-    const new_backup_name = path.resolve(core.config.get("osu_path"), `osu!.db.backup_${Date.now()}`);
+    const backup_name = path.resolve(core.config.get("osu_path"), `osu!.db.backup_${Date.now()}`);
 
-    if (!window.electron.dev_mode) {
-        // backup
-        fs.renameSync(old_name, new_backup_name);
-        core.reader.write_osu_data(beatmaps, path.resolve(core.config.get("osu_path"), "osu!.db"));
-    } else {
-        console.log("[dev] skipping save", core.reader.osu.beatmaps);
-    }
+    // create a backup incase the new one is corrupted
+    fs.renameSync(old_name, backup_name);
+    await core.reader.write_osu_data(beatmaps, path.resolve(core.config.get("osu_path"), "osu!.db"));
 
-    return beatmaps.size;
+    return beatmaps.length;
 };
 
 const update_beatmap_counts = (size) => {
@@ -185,23 +199,22 @@ export const remove_maps = async (id) => {
             create_alert(`found ${matching_maps.size} beatmaps`);
     
             // confirm deletion
-            const delete_conf = await create_custom_popup({
-                type: message_types.MENU,
-                title: "are you sure?",
-                items: ["yes", "no"]
-            });
+            const delete_conf = await quick_confirm("are you sure?");
             
-            if (delete_conf != "yes") {
+            if (!delete_conf) {
                 return reject("cancelled");
             }
     
             create_alert("removing beatmaps...");
     
-            // delete beatmaps and update counts
-            await delete_beatmaps(filtered_maps);
+            // delete beatmaps
+            const count = await delete_beatmaps(filtered_maps);
+
+            // make sure we update this otherwise osu.db will act funny
+            update_beatmap_counts(core.reader.osu.beatmaps.size);
     
-            create_alert(`removed ${deleted_count} beatmaps`);
-            return `removed ${deleted_count} beatmaps`;
+            create_alert(`removed ${count} beatmaps`);
+            return `removed ${count} beatmaps`;
         } catch(err) {
             if (typeof err == "string") {
                 console.log(err);

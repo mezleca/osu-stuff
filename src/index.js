@@ -121,7 +121,7 @@ const createWindow = () => {
     main_window.setMenuBarVisibility(false);
 
     // window controls
-    ipcMain.handle('maximize', () => { }); // maximized version looks ungly as hell, need to finish css for that
+    ipcMain.handle('maximize', () => { }); // maximized version looks ugly as hell, need to finish css for that
     ipcMain.handle('minimize', () => main_window.minimize());
     ipcMain.handle('close'   , () => app.quit());
 
