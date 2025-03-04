@@ -208,7 +208,9 @@ const drag_callback = (id, placeholder_draggable_item) => {
     requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
 };
 
-const filter_beatmap = (beatmap, filter) => {
+const filter_beatmap = (beatmap) => {
+
+    const filter = search_input.value;
 
     if (!filter) {
         return true;
@@ -218,7 +220,7 @@ const filter_beatmap = (beatmap, filter) => {
     const artist = beatmap?.artist_name || "Unknown";
     const title = beatmap?.song_title || "Unknown";
     const difficulty = beatmap?.difficulty || "Unknown";
-    const creator = beatmap.creator_name || "Unknown";
+    const creator = beatmap?.creator_name || "Unknown";
     const tags = beatmap?.tags || "";
 
     const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
@@ -233,7 +235,7 @@ search_input.addEventListener("input", debounce(() => {
         return;
     }
 
-    render_page(selected_id, search_input.value.toLowerCase(), 0);
+    render_page(selected_id, 0);
 }, 300));
 
 const remove_beatmap = (hash) => {
@@ -261,7 +263,7 @@ const remove_beatmap = (hash) => {
     document.getElementById(hash).remove();
 };
 
-const create_more_button = (id, filter, offset) => {
+const create_more_button = (id, offset) => {
 
     const current_draggable_item = draggable_items_map.get(id);
     const button_html = `
@@ -273,7 +275,7 @@ const create_more_button = (id, filter, offset) => {
     const button_element = create_element(button_html);
     button_element.addEventListener("click", () => {
         button_element.remove();
-        render_page(id, filter, offset);
+        render_page(id, offset);
     });
 
     return button_element;
@@ -399,6 +401,7 @@ const get_missing_beatmaps = async () => {
 const delete_beatmaps_manager = async () => {
     
     const name = get_selected_collection();
+    const filter = search_input.value;
 
     // make sure the collectio is valid
     if (!name) {
@@ -406,14 +409,27 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const beatmaps = collections.get(name);
+    const beatmaps = Array.from(collections.get(name));
 
     if (!beatmaps) {
         create_alert("failed to get collection beatmaps", { type: "error" });
         return;
     }
 
-    const conf = await quick_confirm(`delete all beatmaps from ${name}?`);
+    if (filter) {
+        for (let i = 0; i < beatmaps.length; i++) {
+            if (!filter_beatmap(beatmaps[i])) {
+                beatmaps.splice(beatmaps.indexOf(beatmaps[i]), 1);
+            }
+        }
+    }
+
+    if (beatmaps.length == 0) {
+        create_alert("no beatmaps to delete");
+        return;
+    }
+
+    const conf = await quick_confirm(`delete ${ filter ? beatmaps.length : "all" } beatmap${beatmaps.length > 1 ? "s" : ""} from ${name}?`);
 
     if (!conf) {
         return;
@@ -432,9 +448,6 @@ const delete_beatmaps_manager = async () => {
     // render manager once again
     await initialize();
     setup_manager();
-
-    // need to save
-    update_collection_button.style.display = "block";
 };
 
 header_text.addEventListener("click", async () => {
@@ -447,7 +460,7 @@ more_options.addEventListener("click", async () => {
     // if theres a collection selected, add extra option
     const current_collection = get_selected_collection(false);
 
-    if (current_collection) {
+    if (current_collection && !default_options.includes("delete beatmaps")) {
         default_options.push("delete beatmaps");
     }
 
@@ -726,7 +739,7 @@ const render_beatmap = (beatmap) => {
     return beatmap_element;
 };
 
-const render_page = (id, filter, _offset) => {
+const render_page = (id, _offset) => {
 
     let offset = _offset || 0, add_more = true;
 
@@ -734,6 +747,7 @@ const render_page = (id, filter, _offset) => {
         collection_container.innerHTML = "";
     }
 
+    const filter = search_input.value;
     const collection = draggable_items_map.get(id)?.collection;
     const text_collection = document.getElementById("collection_text");
 
@@ -756,7 +770,7 @@ const render_page = (id, filter, _offset) => {
         }
 
         // filter shit
-        if (filter && !filter_beatmap(collection[offset], filter)) {
+        if (filter && !filter_beatmap(collection[offset])) {
             offset++;
             i--;
             continue;
@@ -775,7 +789,7 @@ const render_page = (id, filter, _offset) => {
     }
 
     if (add_more) {
-        const load_more_button = create_more_button(id, filter, offset);
+        const load_more_button = create_more_button(id, offset);
         collection_container.appendChild(load_more_button);
     }
 
