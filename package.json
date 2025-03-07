@@ -16,13 +16,13 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.7.0",
     "@electron-forge/maker-deb": "^7.7.0",
-    "@electron-forge/maker-rpm": "^7.7.0",
     "@electron-forge/maker-squirrel": "^7.7.0",
     "@electron-forge/maker-zip": "^7.7.0",
+    "@reforged/maker-appimage": "^5.0.0",
     "@electron/fuses": "^1.8.0",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
-    "electron": "34.3.0",
+    "electron": "34.3.1",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1"
   },

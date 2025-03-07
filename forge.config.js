@@ -31,8 +31,13 @@ export default {
       },
     },
     {
-      name: '@electron-forge/maker-rpm',
-      config: {},
-    },
+      name: "@reforged/maker-appimage",
+      config: {
+        options: {
+          categories: ["Network"],
+          icon: './build/icons/png/256x256.png',
+        }
+      }
+    }
   ],
 };
