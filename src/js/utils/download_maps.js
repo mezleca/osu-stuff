@@ -199,7 +199,7 @@ class map_downloader {
         }
 
         if (!is_testing) {
-            await fs.writeFileSyncView(map_path, map_buffer);
+            await fs.writeFileSync(map_path, map_buffer);
         }
 
         map.md5 = map.checksum;

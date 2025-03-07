@@ -302,7 +302,7 @@ export class OsuReader {
                 }
             };
 
-            await fs.writeFileSyncView(p, this.join_buffer(buffer));
+            await fs.writeFileSync(p, this.join_buffer(buffer));
 
             resolve();
         });
