@@ -1,0 +1,75 @@
+name: build osu-stuff
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: Configurar Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    - name: install deps
+      run: npm ci
+    - name: electron forge build
+      run: npm run make:win
+    - name: upload win installer
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-installer
+        path: |
+          out/make/squirrel.windows/**/*.exe
+          out/make/zip/win32/**/*.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: setup nodejs
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    - name: install dependencies
+      run: npm ci
+    - name: build electron forge
+      run: npm run make:linux
+    - name: upload linux shit
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-packages
+        path: |
+          out/make/deb/x64/*.deb
+          out/make/rpm/x64/*.rpm
+          out/make/zip/linux/**/*.zip
+
+  create-release:
+    needs: [build-windows, build-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+    - name: download everything
+      uses: actions/download-artifact@v3
+    - name: create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          windows-installer/**/*.exe
+          windows-installer/**/*.zip
+          linux-packages/**/*.deb
+          linux-packages/**/*.rpm
+          linux-packages/**/*.zip
+        draft: false
+        prerelease: false
