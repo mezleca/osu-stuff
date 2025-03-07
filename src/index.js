@@ -1,8 +1,7 @@
 import path from "node:path";
-import shortcut from "electron-localshortcut";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog, session, net } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut } from "electron";
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,24 +20,29 @@ const min_w = 800, min_h = 600;
 const max_w = 1366, max_h = 900;
 
 export const create_dialog = async () => {
-    return dialog.showOpenDialog(main_window, {
-        properties: ['openDirectory']
-    });
+    try {
+        return await dialog.showOpenDialog(main_window, {
+            properties: ['openDirectory']
+        });
+    } catch (error) {
+        console.error('failed to create dialog:', error);
+        return { canceled: true };
+    }
 };
 
 export const get_icon_path = () => {
-
+    
     const base_path = path.resolve("./build/icons");
     
     switch (process.platform) {
-        case "win32":
-            return path.join(base_path, "win/icon.ico");
-        case "linux": 
-            return path.join(base_path, "png/256x256");
-        default: 
-            return path.join(base_path, "png/256x256");
+      case "win32":
+        return path.join(base_path, "win/icon.ico");
+      case "linux": 
+      case "darwin":
+      default: 
+        return path.join(base_path, "png/256x256.png");
     }
-};
+  };
 
 const icon_path = get_icon_path();
 
@@ -106,15 +110,18 @@ const createWindow = () => {
             nodeIntegration: true,
             contextIsolation: true,
             enableRemoteModule: true,
-            webSecurity: dev_mode ? false : true,
+            webSecurity: !dev_mode,
             preload: path.join(__dirname, 'preload.cjs')
         },
         titleBarOverlay: false,
     });
 
     // not sure if i need this
-    shortcut.register(main_window, 'F12', () => main_window.webContents.openDevTools());
-    shortcut.register(main_window, 'Ctrl+R', () => main_window.reload());
+    globalShortcut.register('F12', () => {
+        console.log("opening devtools");
+        main_window.webContents.openDevTools()
+    });
+    globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
 
     // load html yep
     main_window.loadFile(path.join(__dirname, "./gui/index.html"));
@@ -185,21 +192,28 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
  
-    // uuuh, fix html not loading? idk lol
+    // fetch headers thing
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
         callback({ requestHeaders: { ...details.requestHeaders } });
     });
 
     createWindow();
+});
 
-    // hardware accelearion on linux causes window freezing after a while (at least for me) 
-    app.on('activate', () => {
+
+// hardware accelearion on linux causes window freezing after a while (at least for me) 
+app.on('activate', () => {
+    if (process.platform == "linux") {
         app.disableHardwareAcceleration();
-    });
+    }
 });
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
 });
