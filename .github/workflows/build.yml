@@ -1,75 +1,110 @@
-name: build osu-stuff
+name: Build and Release
 
 on:
   push:
-    branches: [ main ]
     tags:
-      - 'v*'
-  pull_request:
-    branches: [ main ]
+      - 'v*.*.*'
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    steps:
-    - name: checkout
-      uses: actions/checkout@v3
-    - name: Configurar Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-    - name: install deps
-      run: npm ci
-    - name: electron forge build
-      run: npm run make:win
-    - name: upload win installer
-      uses: actions/upload-artifact@v3
-      with:
-        name: windows-installer
-        path: |
-          out/make/squirrel.windows/**/*.exe
-          out/make/zip/win32/**/*.zip
-
   build-linux:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@v3
+      # repo checkout
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: setup nodejs
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-    - name: install dependencies
-      run: npm ci
-    - name: build electron forge
-      run: npm run make:linux
-    - name: upload linux shit
-      uses: actions/upload-artifact@v3
-      with:
-        name: linux-packages
-        path: |
-          out/make/deb/x64/*.deb
-          out/make/rpm/x64/*.rpm
-          out/make/zip/linux/**/*.zip
+      # use node-lts
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.14.0'
 
-  create-release:
-    needs: [build-windows, build-linux]
-    if: startsWith(github.ref, 'refs/tags/v')
+      # install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # build linux version
+      - name: Build linux version
+        run: npm run make:linux
+
+      # upload linux artifact
+      - name: Upload linux artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-artifact
+          path: out/make
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      # repo checkout
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # use node-lts
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.14.0'
+
+      # install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # build windows version
+      - name: Build windows version
+        run: npm run make:win
+
+      # upload windows artifact
+      - name: Upload windows artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-artifact
+          path: out/make
+
+  release:
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
-    - name: download everything
-      uses: actions/download-artifact@v3
-    - name: create release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          windows-installer/**/*.exe
-          windows-installer/**/*.zip
-          linux-packages/**/*.deb
-          linux-packages/**/*.rpm
-          linux-packages/**/*.zip
-        draft: false
-        prerelease: false
+      # download linux artifact
+      - name: Download linux artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-artifact
+          path: linux_artifacts
+
+      # download windows artifact
+      - name: Download windows artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-artifact
+          path: windows_artifacts
+
+      # create release with new tag
+      - id: create_release
+        name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: "Automated release from GitHub Actions."
+          draft: false
+          prerelease: false
+
+      # upload linux release asset
+      - name: Upload Linux Release Asset
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: linux_artifacts/*.zip
+
+      # upload windows release asset
+      - name: Upload Windows Release Asset
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: windows_artifacts/*.zip
