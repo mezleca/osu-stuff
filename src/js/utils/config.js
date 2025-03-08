@@ -36,6 +36,10 @@ const update_config = async (key, value) => {
     core.config.set(key, value);
 };
 
+export const create_element = (data) => {
+    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
+};
+
 export const setup_tooltip = () => {
 
     const tooltips = document.querySelectorAll(".tooltip");
@@ -219,7 +223,7 @@ const handle_mirrors = async (tab, mirror_add_btn) => {
     }
 
     mirror_data.forEach((v, k) => {
-        const element = create_element_from_string(`
+        const element = create_element(`
             <div class="mirror-box">
                 <div class="mirror-info">
                     <h1>${k}</h1>
@@ -238,12 +242,6 @@ const handle_mirrors = async (tab, mirror_add_btn) => {
 
     tab.appendChild(mirror_add_btn);
     core.mirrors = mirror_data;
-};
-
-const create_element_from_string = (html) => {
-    const template = document.createElement("template");
-    template.innerHTML = html;
-    return template.content.cloneNode(true).firstElementChild;
 };
 
 export const add_config_shit = async () => {
@@ -293,7 +291,7 @@ export const add_config_shit = async () => {
         const is_readonly = !should_hide, is_dialog = !should_hide;
         const config_value = core.config.get(k);
 
-        const container_element = create_element_from_string(`
+        const container_element = create_element(`
             <div class="input-container" id="config_fields">
                 <label for="${k}">
                     ${v}
@@ -351,7 +349,7 @@ export const add_config_shit = async () => {
     const check_button = config_tab.querySelector(".config-fields > .button-container");
     const mirror_tab = config_tab.querySelector(".mirror-list");
 
-    const mirror_add_btn = create_element_from_string(`
+    const mirror_add_btn = create_element(`
         <button class="mirror-remove-container">add</button>
     `);
 

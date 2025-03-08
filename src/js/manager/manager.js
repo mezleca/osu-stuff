@@ -1,4 +1,4 @@
-import { core, get_files } from "../utils/config.js"
+import { core, get_files, create_element } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
@@ -8,6 +8,7 @@ import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, collections, fs, path } from "../utils/global.js";
+import { create_sr_filter } from "./filter.js";
 
 // @TODO: strip manager logic in files. 
 //        1000 lines of different shit in a single file is annoying
@@ -20,6 +21,8 @@ const star_ranges = [
     [8, 8.99, "sr5"],
     [9, Infinity, "sr6"]
 ];
+
+const sr_filter = create_sr_filter("manager-sr-filter");
 
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
@@ -38,10 +41,6 @@ const MAX_RENDER_AMMOUNT = 16;
 const DRAG_ACTIVATION_THRESHOLD_MS = 500;
 
 let mouse_y, mouse_x;
-
-const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
-};
 
 export const get_selected_collection = (id) => {
 
@@ -250,7 +249,7 @@ search_input.addEventListener("input", debounce(() => {
 const remove_beatmap = (hash) => {
 
     const name = get_selected_collection();
-    const beatmaps = collections.get(name);
+    const beatmaps = collections.get(name).maps;
 
     if (!beatmaps) {
         console.log("failed to get collection", name);
@@ -277,7 +276,7 @@ const create_more_button = (id, offset) => {
     const current_draggable_item = draggable_items_map.get(id);
     const button_html = `
         <button class="load_more_button">
-            load more (${offset}/${current_draggable_item.collection.length})
+            load more (${offset}/${current_draggable_item.collection.maps.length})
         </button>
     `;
 
@@ -357,7 +356,7 @@ const add_new_collection = async () => {
 
         if (confirmation) {
 
-            const collection = collections.get(current_collection);
+            const collection = collections.get(current_collection).maps;
 
             if (!collection) {
                 create_alert("failed to get current collection", { type: "error" } );
@@ -418,7 +417,7 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const beatmaps = Array.from(collections.get(name));
+    const beatmaps = Array.from(collections.get(name).maps);
 
     if (!beatmaps) {
         create_alert("failed to get collection beatmaps", { type: "error" });
@@ -724,7 +723,8 @@ const render_page = (id, _offset) => {
     }
 
     const filter = search_input.value;
-    const collection = draggable_items_map.get(id)?.collection;
+    const collection = draggable_items_map.get(id)?.collection.maps;
+    const sr_max = draggable_items_map.get(id)?.collection.sr_max;
     const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
@@ -736,6 +736,11 @@ const render_page = (id, _offset) => {
         text_collection.remove();
     }
 
+    // update sr filter slider min/max
+    if (sr_filter.limit != sr_max) {
+        sr_filter.set_limit(sr_max);
+    }
+
     // only render 16 at time
     for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
 
@@ -745,8 +750,17 @@ const render_page = (id, _offset) => {
             break;
         }
 
-        // filter shit
+        // filter by name
         if (filter && !filter_beatmap(collection[offset])) {
+            offset++;
+            i--;
+            continue;
+        }
+
+        const beatmap_sr = get_beatmap_sr(collection[offset]);
+
+        // filter by sr
+        if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
             offset++;
             i--;
             continue;
@@ -865,8 +879,8 @@ const check_merge = async (id) => {
         return false;
     }
 
-    const cl1 = collections.get(cl1_id);
-    const cl2 = collections.get(cl2_id);
+    const cl1 = collections.get(cl1_id).maps;
+    const cl2 = collections.get(cl2_id).maps;
 
     if (!cl1 || !cl2) {
         console.log("failed to get collection", id, merge_draggable_item.id);
@@ -904,7 +918,7 @@ const change_collection_name = async (event, id, name_element) => {
     name_element.innerText = new_name;
 
     const old_draggable_item = draggable_items_map.get(id);
-    const old_collection = collections.get(old_draggable_item.collection_id);
+    const old_collection = collections.get(old_draggable_item.collection_id).maps;
 
     if (!old_collection) {
         console.log("failed to get old collection", old_draggable_item);
@@ -916,7 +930,7 @@ const change_collection_name = async (event, id, name_element) => {
     collections.set(new_name, old_collection);
 
     // update draggable_item object to contain new name
-    old_draggable_item.collection = old_collection;
+    old_draggable_item.collection.maps = old_collection;
     old_draggable_item.collection_id = new_name;
 
     // update current draggable_item
@@ -976,6 +990,31 @@ const setup_manager = () => {
     // clean draggable_items list
     for (let [k] of draggable_items_map) {
         draggable_items_map.delete(k);
+    }
+
+    // if filters is not intialized, create and append it to filter box
+    if (!document.querySelector(".sr-filter-container")) {
+        
+        const filter_container = document.querySelector(".filter-box");
+        const sr_filter_container = create_element(`<div class="sr-filter-container"></div>`);
+
+        // update maps on sr_change
+        // @TODO: debounce on that thang
+        sr_filter.callback = () => {
+
+            const current_id = get_selected_collection(true);
+
+            if (!current_id) {
+                sr_filter.callback = null;
+                return;
+            }
+
+            // render page again
+            render_page(current_id, 0);
+        };
+
+        sr_filter_container.appendChild(sr_filter.element);
+        filter_container.appendChild(sr_filter_container);
     }
 
     for (let [k, v] of collections) {
@@ -1117,27 +1156,55 @@ export const initialize = async (options) => {
 
     const no_update = options?.no_update || false;
     const force = options?.force || false;
-
+    
     if (!core.reader.buffer) {
         return;
     }
-
+    
     if (force) {
         await get_files(core.config.get("osu_path"));
     }
 
     if (collections.size === 0) {
-        for (const collection of core.reader.collections.beatmaps) {
-            const updated_map = collection.maps.map(update_map_info);
-            collections.set(collection.name, updated_map);
-        }
-    } else { 
+
+      for (const collection of core.reader.collections.beatmaps) {
+
+            const updated_maps = collection.maps.map(update_map_info);
+            let sr_min = 0, sr_max = 1;
+
+            for (const map of updated_maps) {
+                const sr = Number(get_beatmap_sr(map));
+                if (sr < sr_min) sr_min = sr;
+                if (sr > sr_max) sr_max = sr;
+            }
+            
+            collections.set(collection.name, {
+                maps: updated_maps,
+                sr_min,
+                sr_max
+            });
+      }
+    } else {
+
         for (const [name, maps] of collections) {
-            const updated_map = maps.map(update_map_info);
-            collections.set(name, updated_map);
+
+            const updated_maps = maps.map(update_map_info) 
+            let sr_min = 0, sr_max = 1;
+            
+            for (const map of updated_maps) {
+                const sr = Number(get_beatmap_sr(map));
+                if (sr < sr_min) sr_min = sr;
+                if (sr > sr_max) sr_max = sr;
+            }
+                
+            collections.set(name, {
+                maps: updated_maps,
+                sr_min,
+                sr_max
+            });
         }
     }
-
+    
     if (!no_update) {
         setup_manager();
     }
