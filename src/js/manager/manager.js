@@ -1000,7 +1000,7 @@ const setup_manager = () => {
 
         // update maps on sr_change
         // @TODO: debounce on that thang
-        sr_filter.callback = () => {
+        sr_filter.callback = debounce(() => {
 
             const current_id = get_selected_collection(true);
 
@@ -1011,7 +1011,7 @@ const setup_manager = () => {
 
             // render page again
             render_page(current_id, 0);
-        };
+        }, 100);
 
         sr_filter_container.appendChild(sr_filter.element);
         filter_container.appendChild(sr_filter_container);
