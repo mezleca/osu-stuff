@@ -12,6 +12,15 @@ import { debounce, collections, fs, path } from "../utils/global.js";
 // @TODO: strip manager logic in files. 
 //        1000 lines of different shit in a single file is annoying
 
+const star_ranges = [
+    [0, 2.99, "sr1"],
+    [3, 4.99, "sr2"],
+    [5, 6.99, "sr3"],
+    [7, 7.99, "sr4"],
+    [8, 8.99, "sr5"],
+    [9, Infinity, "sr6"]
+];
+
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
 const list = document.querySelector(".list_draggable_items");
@@ -496,14 +505,25 @@ more_options.addEventListener("click", async () => {
 // @TODO: this only works for "standard" mode
 // @TOFIX: sometimes this dont work.
 const get_beatmap_sr = (beatmap) => {
+
     try {
+
         const beatmap_sr = beatmap?.sr[0] || 0; // lmao
+        
         if (beatmap_sr) {
+
             if (!beatmap_sr.sr.length) {
                 return 0;
-            } else {
-                return Number(beatmap_sr.sr[0][1]).toFixed(2);
-            }   
+            }
+
+            const star_rating = Number(beatmap_sr.sr[0][1]);
+
+            // negative sr = old calculation thing
+            if (Math.sign(star_rating) == -1) { 
+                return (star_rating * -1).toFixed(2);
+            }
+                    
+            return star_rating.toFixed(2);      
         }
     } catch(err) {
         return 0;
@@ -557,60 +577,16 @@ const render_beatmap = (beatmap) => {
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const update_status = (status) => {
-        switch (status) {
-            case "pending":
-                beatmap_status.classList.add("pending");
-                beatmap_status.innerText = "PENDING";
-                break;
-            case "ranked":
-                beatmap_status.classList.add("ranked");
-                beatmap_status.innerText = "RANKED";
-                break;
-            case "approved":
-                beatmap_status.classList.add("ranked");
-                beatmap_status.innerText = "APPROVED";
-                break;
-            case "qualified":
-                beatmap_status.classList.add("qualified");
-                beatmap_status.innerText = "QUALIFIED";
-                break;
-            case "loved":
-                beatmap_status.classList.add("loved");
-                beatmap_status.innerText = "LOVED";
-                break;
-            default:
-                break;
-        }
+        beatmap_status.innerText = String(status).toUpperCase();
+        beatmap_status.classList.add(String(status).toLowerCase());
     };
 
     const update_sr = (beatmap_sr) => {
 
+        const class_name = star_ranges.find(([min, max]) => beatmap_sr >= min && beatmap_sr <= max)[2];
+
         star_rating.innerText = `★ ${beatmap_sr}`;
-
-        // @TODO: ...
-        if (beatmap_sr >= 1 && beatmap_sr <= 2.99) {
-            star_rating.classList.add("sr1");
-        }
-
-        if (beatmap_sr >= 3 && beatmap_sr <= 4.99) {
-            star_rating.classList.add("sr2");
-        }
-
-        if (beatmap_sr >= 5 && beatmap_sr <= 6.99) {
-            star_rating.classList.add("sr3");
-        }
-
-        if (beatmap_sr >= 7 && beatmap_sr <= 7.99) {
-            star_rating.classList.add("sr4");
-        }
-
-        if (beatmap_sr >= 8 && beatmap_sr <= 8.99) {
-            star_rating.classList.add("sr5");
-        }
-
-        if (beatmap_sr >= 9) {
-            star_rating.classList.add("sr6");
-        }
+        star_rating.classList.add(class_name);
 
         // if its more than 7 stars turn that shit yellow
         if (beatmap_sr >= 7) {
@@ -620,7 +596,7 @@ const render_beatmap = (beatmap) => {
 
     update_status(status);
 
-    if (beatmap_sr) {
+    if (!isNaN(beatmap_sr)) {
         update_sr(beatmap_sr);
     }
 
