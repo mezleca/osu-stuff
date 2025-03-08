@@ -18,6 +18,19 @@ export const beatmap_status = {
     "loved": 7
 }
 
+// @TODO: surely theres a better way to do this
+export const beatmap_status_reversed = {
+    "-1": "all",
+    "0": "unknown",
+    "1": "unsubmitted",
+    "2": "pending", 
+    "3": "unused",
+    "4": "ranked",
+    "5": "approved",
+    "6": "qualified",
+    "7": "loved"
+}
+
 // @TODO: other gamemodes support
 const check_difficulty_sr = (map, min, max) => {
 

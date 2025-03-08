@@ -3,12 +3,12 @@ import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task, create_task } from "../tabs.js";
-import { beatmap_status as _status, delete_beatmaps } from "../stuff/remove_maps.js";
+import { beatmap_status as _status, beatmap_status, beatmap_status_reversed, delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, collections, fs, path } from "../utils/global.js";
-import { create_sr_filter } from "./filter.js";
+import { create_dropdown_filter, create_sr_filter } from "./filter.js";
 
 // @TODO: strip manager logic in files. 
 //        1000 lines of different shit in a single file is annoying
@@ -23,6 +23,7 @@ const star_ranges = [
 ];
 
 const sr_filter = create_sr_filter("manager-sr-filter");
+const status_filter = create_dropdown_filter("dropdown-status-filter", "status", Object.keys(beatmap_status));
 
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
@@ -766,6 +767,13 @@ const render_page = (id, _offset) => {
             continue;
         }
 
+        // filter by status
+        if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[collection[offset]?.status])) {
+            offset++;
+            i--;
+            continue;
+        }
+
         // check if the beatmap is valid (should be)
         if (!collection[offset]) {
             offset++;
@@ -997,10 +1005,9 @@ const setup_manager = () => {
         
         const filter_container = document.querySelector(".filter-box");
         const sr_filter_container = create_element(`<div class="sr-filter-container"></div>`);
+        const status_filter_container = create_element(`<div class="status-filter-container"></div>`);
 
-        // update maps on sr_change
-        // @TODO: debounce on that thang
-        sr_filter.callback = debounce(() => {
+        const update = () => {
 
             const current_id = get_selected_collection(true);
 
@@ -1011,10 +1018,17 @@ const setup_manager = () => {
 
             // render page again
             render_page(current_id, 0);
-        }, 100);
+        }
 
+        // update on sr_change / update on status change
+        sr_filter.callback = debounce(update, 100);
+        status_filter.callback = debounce(update, 100);
+
+        status_filter_container.appendChild(status_filter.element);
         sr_filter_container.appendChild(sr_filter.element);
+
         filter_container.appendChild(sr_filter_container);
+        filter_container.appendChild(status_filter_container);
     }
 
     for (let [k, v] of collections) {

@@ -646,11 +646,9 @@ a {
     align-items: center;
     justify-content: center;
     padding: 10px;
-    padding-top: 0px;
-    padding-bottom: 0px;
-    overflow: hidden;
-    min-height: 8em;
-    max-height: 8em;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    height: auto;
     z-index: 999;
     background: linear-gradient(180deg, var(--bg-color), #202020b7);
 }
@@ -668,7 +666,8 @@ a {
 }
 
 .sr-filter-container {
-    width: 50%;
+    width: 60%;
+    margin-right: 10px;
 }
 
 .disabled {
@@ -1404,10 +1403,83 @@ input[type="range"]::-moz-range-thumb:hover {
     box-shadow: 0 0 10px rgba(255, 102, 170, 0.5);
 }
 
-/* Firefox specific adjustments */
 input[type="range"]::-moz-range-track {
     background: transparent;
     height: 6px;
+}
+
+.dropdown-container {
+    position: relative;
+    width: 200px;
+}
+
+.dropdown-header {
+    background-color: #1e1e1e;
+    border: 1px solid grey;
+    color: #fff;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-label {
+    font-size: 14px;
+}
+
+.dropdown-content {
+    position: absolute;
+    display: none;
+    background-color: #222;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    z-index: 10;
+    margin-top: 2px;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background-color: #333;
+}
+
+.dropdown-item input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+.selected-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.option-tag {
+    background-color: #333;
+    color: #fff;
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.remove-option {
+    margin-left: 5px;
+    cursor: pointer;
 }
 
 @keyframes spin {

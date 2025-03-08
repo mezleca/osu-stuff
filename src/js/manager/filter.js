@@ -47,7 +47,7 @@ export const create_sr_filter = (id) => {
     const set_limit = (new_limit) => {
 
         new_limit = parseFloat(new_limit);
-        
+
         range_slider.limit = new_limit;
         range_slider.min.setAttribute("max", new_limit);
         range_slider.max.setAttribute("max", new_limit);
@@ -116,4 +116,96 @@ export const create_sr_filter = (id) => {
     range_slider.max.addEventListener("input", update);
 
     return range_slider;
+};
+
+export const create_dropdown_filter = (id, name, options) => {
+    
+    const html = `
+    <div class="dropdown-container" id="${id}">
+        <div class="dropdown-header">
+            <span class="dropdown-label">${name}</span>
+        </div>
+            <div class="dropdown-content">
+            ${options.map((v, i) => {
+                if (v != "all") {
+                    return `<div class="dropdown-item">
+                        <input type="checkbox" id="option${i}" value="${v}">
+                        <label for="option${i}">${v}</label>
+                    </div>
+                    `     
+                }
+            }).join("\n")}
+        </div>
+        <div class="selected-options" id="selected-options"></div>
+    </div>
+    `;
+
+    const dropdown_filter = {
+        selected: [],
+        element: create_element(html),
+        callback: null
+    }
+
+    const dropdown_header = dropdown_filter.element.querySelector(".dropdown-header");
+    const dropdown_content = dropdown_filter.element.querySelector(".dropdown-content");
+    const selected_options = dropdown_filter.element.querySelector(".selected-options");
+    const checkboxes = dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']");
+
+    dropdown_header.addEventListener("click", () => { dropdown_content.classList.toggle("show") });
+    dropdown_content.addEventListener("click", (e) => { e.stopPropagation() });
+
+    const update = () => {
+
+        selected_options.innerHTML = "";
+
+        checkboxes.forEach(checkbox => {
+
+            // @TODO: rework
+            if (!checkbox.checked) {
+
+                const new_selected = [];
+                for (let i = 0; i < dropdown_filter.selected.length; i++) {
+                    if (dropdown_filter.selected[i] != checkbox.value) {
+                        new_selected.push(dropdown_filter.selected[i]);
+                    }
+                }
+
+                dropdown_filter.selected = new_selected;
+                return;
+            }
+
+            if (!dropdown_filter.selected.includes(checkbox.value)) {
+                dropdown_filter.selected.push(checkbox.value);
+            }
+
+            const option_tag = document.createElement("div");
+            const option_text = document.createElement("span");
+            const remove_btn = document.createElement("span");
+
+            option_tag.className = "option-tag";
+            remove_btn.className = "remove-option";
+
+            option_text.textContent = checkbox.value;
+            remove_btn.innerHTML = "×";
+
+            remove_btn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                checkbox.checked = false;
+                if (dropdown_filter.callback) dropdown_filter.callback();
+                update();
+            });
+            
+            option_tag.appendChild(option_text);
+            option_tag.appendChild(remove_btn);
+            selected_options.appendChild(option_tag);
+
+            if (dropdown_filter.callback) dropdown_filter.callback();
+        });
+    };
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener("change", update);
+    });
+
+    return dropdown_filter
 };
