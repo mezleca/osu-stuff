@@ -1,3 +1,21 @@
+const show_filter = document.querySelector(".show-filter");
+const filter_box = document.querySelector(".filter-box");
+
+show_filter.addEventListener("click", () => {
+
+    if (show_filter.classList.contains("enabled")) {
+        filter_box.classList.remove("enabled");
+        show_filter.classList.remove("enabled");
+        show_filter.children[0].classList.remove("bi-arrow-up");
+        show_filter.children[0].classList.add("bi-arrow-down");
+    } else {
+        filter_box.classList.add("enabled");
+        show_filter.classList.add("enabled");
+        show_filter.children[0].classList.add("bi-arrow-up");
+        show_filter.children[0].classList.remove("bi-arrow-down");
+    }
+});
+
 const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
 };

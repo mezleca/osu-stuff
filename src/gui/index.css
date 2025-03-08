@@ -647,7 +647,7 @@ a {
     justify-content: center;
     padding: 10px;
     padding-top: 10px;
-    padding-bottom: 10px;
+    padding-bottom: 30px;
     height: auto;
     z-index: 999;
     background: linear-gradient(180deg, var(--bg-color), #202020b7);
@@ -660,9 +660,15 @@ a {
 }
 
 .filter-box {
-    display: flex;
+    display: none;
     height: fit-content;
     width: 100%;
+    transition: all 0.3s;
+}
+
+.filter-box.enabled {
+    display: flex;
+    height: fit-content;
 }
 
 .sr-filter-container {
@@ -1480,6 +1486,17 @@ input[type="range"]::-moz-range-track {
 .remove-option {
     margin-left: 5px;
     cursor: pointer;
+}
+
+.show-filter {
+    position: absolute;
+    bottom: 0px;
+    padding: 5px;
+    background-color: var(--content-bg);
+    /* padding-left: 15px; */
+    /* padding-right: 15px; */
+    background: none;
+    margin: 0;
 }
 
 @keyframes spin {
