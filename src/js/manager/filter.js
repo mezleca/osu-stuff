@@ -66,11 +66,9 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
         range_slider.max.setAttribute("max", new_limit);
         
         const min_value = parseFloat(range_slider.min.value);
-        const max_value = parseFloat(range_slider.max.value);
         
-        if (max_value > new_limit) {
-            range_slider.max.value = new_limit;
-        }
+        // :3
+        range_slider.max.value = new_limit;
         
         if (min_value > new_limit) {
             range_slider.min.value = Math.max(0, new_limit - 0.1);
