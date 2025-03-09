@@ -8,7 +8,7 @@ import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, collections, fs, path } from "../utils/global.js";
-import { create_dropdown_filter, create_sr_filter } from "./filter.js";
+import { create_dropdown_filter, create_range_filter } from "./filter.js";
 
 // @TODO: strip manager logic in files. 
 //        1000 lines of different shit in a single file is annoying
@@ -22,7 +22,8 @@ const star_ranges = [
     [9, Infinity, "sr6"]
 ];
 
-const sr_filter = create_sr_filter("manager-sr-filter");
+const sr_filter = create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10);
+const bpm_filter = create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500);
 const status_filter = create_dropdown_filter("dropdown-status-filter", "status", Object.keys(beatmap_status));
 
 const header_text = document.querySelector(".collection_header_text");
@@ -219,9 +220,27 @@ const drag_callback = (id, placeholder_draggable_item) => {
 
 const filter_beatmap = (beatmap) => {
 
-    const filter = search_input.value;
+    const beatmap_sr = get_beatmap_sr(beatmap);
+    const beatmap_bpm = get_beatmap_bpm(beatmap);
 
-    if (!filter) {
+    // filter by sr
+    if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
+        return false;
+    }
+
+    // filter by status
+    if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
+        return false;
+    }
+
+    // filter by bpm
+    if (beatmap_bpm < bpm_filter.min.value || beatmap_bpm > bpm_filter.max.value) {
+        return false;
+    }
+
+    const search_filter = search_input.value;
+
+    if (!search_filter) {
         return true;
     }
 
@@ -232,8 +251,9 @@ const filter_beatmap = (beatmap) => {
     const creator = beatmap?.creator_name || "Unknown";
     const tags = beatmap?.tags || "";
 
+    // filter by search
     const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
-    return searchable_text.includes(filter.toLowerCase());
+    return searchable_text.includes(search_filter.toLowerCase());
 };
 
 search_input.addEventListener("input", debounce(() => {
@@ -503,7 +523,6 @@ more_options.addEventListener("click", async () => {
 });
 
 // @TODO: this only works for "standard" mode
-// @TOFIX: sometimes this dont work.
 const get_beatmap_sr = (beatmap) => {
 
     try {
@@ -528,6 +547,16 @@ const get_beatmap_sr = (beatmap) => {
     } catch(err) {
         return 0;
     }  
+};
+
+// @TODO: i dont think thats how it works
+const get_beatmap_bpm = (map) => {
+
+    if (!map?.timing_points) {
+        return 0;
+    }
+
+    return map.timing_points[0]?.bpm || 0;
 };
 
 const render_beatmap = (beatmap) => {
@@ -723,15 +752,15 @@ const render_page = (id, _offset) => {
         collection_container.innerHTML = "";
     }
 
-    const filter = search_input.value;
     const collection = draggable_items_map.get(id)?.collection.maps;
-    const sr_max = draggable_items_map.get(id)?.collection.sr_max;
     const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
         console.log("failed to get collection", id);
         return;
     }
+
+    const { sr_max, bpm_max } = draggable_items_map.get(id)?.collection;
 
     if (text_collection) {
         text_collection.remove();
@@ -740,6 +769,11 @@ const render_page = (id, _offset) => {
     // update sr filter slider min/max
     if (sr_filter.limit != sr_max) {
         sr_filter.set_limit(sr_max);
+    }
+
+    // update bpm filter slider min/max
+    if (bpm_filter.limit != bpm_max) {
+        bpm_filter.set_limit(bpm_max);
     }
 
     // only render 16 at time
@@ -751,32 +785,16 @@ const render_page = (id, _offset) => {
             break;
         }
 
-        // filter by name
-        if (filter && !filter_beatmap(collection[offset])) {
-            offset++;
-            i--;
-            continue;
-        }
-
-        const beatmap_sr = get_beatmap_sr(collection[offset]);
-
-        // filter by sr
-        if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
-            offset++;
-            i--;
-            continue;
-        }
-
-        // filter by status
-        if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[collection[offset]?.status])) {
-            offset++;
-            i--;
-            continue;
-        }
-
         // check if the beatmap is valid (should be)
         if (!collection[offset]) {
             offset++;
+            continue;
+        }
+
+        // filter by name
+        if (!filter_beatmap(collection[offset])) {
+            offset++;   
+            i--;
             continue;
         }
 
@@ -1006,6 +1024,7 @@ const setup_manager = () => {
         const filter_container = document.querySelector(".filter-box");
         const sr_filter_container = create_element(`<div class="sr-filter-container"></div>`);
         const status_filter_container = create_element(`<div class="status-filter-container"></div>`);
+        const bpm_filter_container = create_element(`<div class="bpm-filter-container"></div>`);
 
         const update = () => {
 
@@ -1020,15 +1039,18 @@ const setup_manager = () => {
             render_page(current_id, 0);
         }
 
-        // update on sr_change / update on status change
+        // update maps on filter update
         sr_filter.callback = debounce(update, 100);
         status_filter.callback = debounce(update, 100);
+        bpm_filter.callback = debounce(update, 100);
 
         status_filter_container.appendChild(status_filter.element);
         sr_filter_container.appendChild(sr_filter.element);
+        bpm_filter_container.appendChild(bpm_filter.element);
 
         filter_container.appendChild(sr_filter_container);
         filter_container.appendChild(status_filter_container);
+        filter_container.appendChild(bpm_filter_container);
     }
 
     for (let [k, v] of collections) {
@@ -1184,17 +1206,18 @@ export const initialize = async (options) => {
       for (const collection of core.reader.collections.beatmaps) {
 
             const updated_maps = collection.maps.map(update_map_info);
-            let sr_min = 0, sr_max = 1;
+            let sr_max = 1, bpm_max = 0;
 
             for (const map of updated_maps) {
                 const sr = Number(get_beatmap_sr(map));
-                if (sr < sr_min) sr_min = sr;
+                const bpm = Number(get_beatmap_bpm(map));
                 if (sr > sr_max) sr_max = sr;
+                if (bpm > bpm_max) bpm_max = bpm;
             }
             
             collections.set(collection.name, {
                 maps: updated_maps,
-                sr_min,
+                bpm_max,
                 sr_max
             });
       }
@@ -1202,18 +1225,19 @@ export const initialize = async (options) => {
 
         for (const [name, maps] of collections) {
 
-            const updated_maps = maps.map(update_map_info) 
-            let sr_min = 0, sr_max = 1;
+            const updated_maps = maps.map(update_map_info);
+            let sr_max = 1, bpm_max = 0;
             
             for (const map of updated_maps) {
                 const sr = Number(get_beatmap_sr(map));
-                if (sr < sr_min) sr_min = sr;
+                const bpm = Number(get_beatmap_bpm(map));
                 if (sr > sr_max) sr_max = sr;
+                if (bpm > bpm_max) bpm_max = bpm;
             }
                 
             collections.set(name, {
                 maps: updated_maps,
-                sr_min,
+                bpm_max,
                 sr_max
             });
         }

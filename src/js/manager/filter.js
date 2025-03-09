@@ -15,19 +15,19 @@ const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
 };
 
-export const create_sr_filter = (id) => {
+export const create_range_filter = (id, text, iden, fix, initial) => {
 
     const html = `
     <div class="slider-container" id="${id}">
         <div class="slider-header">
-            <span class="slider-label">star rating</span>
-            <span class="slider-values" id="slider-values">(0.0★ - 100.0★)</span>
+            <span class="slider-label">${text}</span>
+            <span class="slider-values" id="slider-values">(0.0${iden} - ${initial}.0${iden})</span>
         </div>
         <div class="range-container">
             <div class="track"></div>
             <div class="track-highlight" id="track-highlight"></div>
-            <input type="range" min="0" max="100" value="0" step="0.1" class="min-slider" id="min-sr">
-            <input type="range" min="0" max="100" value="10" step="0.1" class="max-slider" id="max-sr">
+            <input type="range" min="0" max="${initial}" value="0" step="0.01" class="min-slider" id="min-sr">
+            <input type="range" min="0" max="${initial}" value="${initial}" step="0.01" class="max-slider" id="max-sr">
         </div>
     </div>
     `;
@@ -91,7 +91,7 @@ export const create_sr_filter = (id) => {
                 return;
             }
 
-            range_slider.min.value = (max_value - 0.1).toFixed(1);
+            range_slider.min.value = (max_value - 0.1).toFixed(fix);
             min_value = parseFloat(range_slider.min.value);
         }
 
@@ -106,7 +106,7 @@ export const create_sr_filter = (id) => {
         }
         
         // update display
-        slider_values.innerHTML = `(${min_value.toFixed(1)}★ - ${max_value.toFixed(1)}★)`;
+        slider_values.innerHTML = `(${min_value.toFixed(fix)}${iden} - ${max_value.toFixed(fix)}${iden})`;
         
         // update tracker
         const min_percent = (min_value / range_slider.limit) * 100;
