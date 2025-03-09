@@ -591,9 +591,9 @@ export class OsuReader {
 
                     const bpm = this.#double();
                     const offset = this.#double();
-                    const idk_bool = this.#bool();  
+                    const inherited = this.#bool();  
 
-                    data.timing_points.push({ bpm, offset, idk_bool });
+                    data.timing_points.push({ bpm: Math.round(60000 / bpm), offset, inherited });
                 }
 
                 data.difficulty_id = this.#int();
