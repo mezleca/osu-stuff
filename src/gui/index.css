@@ -670,10 +670,11 @@ a {
 
 .filter-box.enabled {
     display: flex;
+    flex-wrap: wrap;
     height: fit-content;
 }
 
-.sr-filter-container {
+.sr-filter-container, .bpm-filter-container {
     width: 60%;
     margin-right: 10px;
 }
@@ -1315,15 +1316,11 @@ button {
 
 .slider-container {
     width: 100%;
-/*
-    background: linear-gradient(145deg, #1a1a1a, #222222);
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-*/
 }
 
 .slider-header {
     display: flex;
+    justify-content: space-between;
 }
 
 .slider-label {
@@ -1349,14 +1346,14 @@ button {
 .track {
     position: absolute;
     width: 100%;
-    height: 6px;
+    height: 14px;
     background: #2a2a2a;
     border-radius: 3px;
 }
 
 .track-highlight {
     position: absolute;
-    height: 6px;
+    height: 14px;
     background: #ff66aa;
     border-radius: 3px;
 }
@@ -1364,6 +1361,7 @@ button {
 input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
+    opacity: 0;
     position: absolute;
     width: 100%;
     height: 6px;
