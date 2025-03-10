@@ -213,6 +213,10 @@ button:hover {
     cursor: pointer;
 }
 
+#elements_container > * {
+    margin-bottom: 15px;
+}
+
 input[type="text"], input[type="password"], select {
     padding: 10px;
     border-radius: 4px;
@@ -420,6 +424,7 @@ label {
 .popup-content, .popup-content-flex {
     background-color: var(--popup-bg);
     padding: 15px;
+    min-width: 35%;
     border-radius: 4px;
     text-align: center;
     border: 1px solid rgb(255 255 255 / 25%);

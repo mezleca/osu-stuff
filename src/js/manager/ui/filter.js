@@ -166,7 +166,10 @@ export const create_dropdown_filter = (id, name, options) => {
     const selected_options = dropdown_filter.element.querySelector(".selected-options");
     const checkboxes = dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']");
 
-    dropdown_header.addEventListener("click", () => { dropdown_content.classList.toggle("show") });
+    dropdown_header.addEventListener("click", () => {
+        console.log("clickec"); 
+        dropdown_content.classList.toggle("show");
+    });
     dropdown_content.addEventListener("click", (e) => { e.stopPropagation() });
 
     const update = () => {
@@ -175,7 +178,6 @@ export const create_dropdown_filter = (id, name, options) => {
 
         checkboxes.forEach(checkbox => {
 
-            // @TODO: rework
             if (!checkbox.checked) {
 
                 const new_selected = [];
@@ -231,7 +233,6 @@ export const filter_beatmap = (beatmap) => {
     const beatmap_bpm = get_beatmap_bpm(beatmap);
 
     // filter by sr
-    console.log(beatmap_sr, sr_filter.min.value, sr_filter.max.value);
     if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
         return false;
     }

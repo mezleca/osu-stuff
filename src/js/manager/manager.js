@@ -264,31 +264,37 @@ const get_from_player = async () => {
         return;
     }
 
-    const player = await create_custom_popup({
-        type: message_types.INPUT,
-        label: "player name",
-        input_type: "text",
-    });
-
-    if (!player) {
-        return;
-    }
-
     const method = await create_custom_popup({
         type: message_types.CUSTOM_MENU,
-        title: "method",
-        elements: [{
-            key: "name",
-            element: { list: ["best performance", "first place", "favourites", "created maps", "all"] }
-        }]
+        title: "custom options",
+        elements: [
+            {
+                key: "player name",
+                element: { input: { } }
+            },
+            {
+                key: "beatmap options",
+                element: { list: { multiple: true, options: ["best performance", "first place", "favourites", "created maps"] }}
+            },
+            {
+                key: "beatmap status",
+                element: { list: { multiple: true, options: ["ranked", "loved", "graveyard"] }}
+            },
+            {
+                key: "difficulty range",
+                element: { range: { min: 0, max: 100, identifier: "★", decimal_places: "2" }}
+            }
+        ]
     });
 
-    if (!method.name) {
-        return;
-    }
+    console.log(method);
 
-    const task_name = `${player} - ${method.name}`;
-    await create_task(task_name, download_from_players, player, method.name);
+    // if (!method.name) {
+    //     return;
+    // }
+
+    // const task_name = `${player} - ${method.name}`;
+    // await create_task(task_name, download_from_players, player, method.name);
 };
 
 const add_new_collection = async () => {
@@ -373,7 +379,6 @@ const get_missing_beatmaps = async () => {
     create_task("missing beatmaps", missing_download);
 };
 
-// @TODO: filter
 const delete_beatmaps_manager = async () => {
     
     const name = get_selected_collection();
@@ -385,6 +390,7 @@ const delete_beatmaps_manager = async () => {
     }
 
     const beatmaps = Array.from(collections.get(name).maps);
+    const filtered_maps = [];
 
     if (!beatmaps) {
         create_alert("failed to get collection beatmaps", { type: "error" });
@@ -392,8 +398,10 @@ const delete_beatmaps_manager = async () => {
     }
 
     for (let i = 0; i < beatmaps.length; i++) {
-        if (!filter_beatmap(beatmaps[i])) {
-            beatmaps.splice(beatmaps.indexOf(beatmaps[i]), 1);
+        if (filter_beatmap(beatmaps[i])) {
+            filtered_maps.push(beatmaps[i]);
+        } else {
+            filtered_maps.push({}); // unknown
         }
     }
 
@@ -402,7 +410,7 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const conf = await quick_confirm(`delete ${ filter ? beatmaps.length : "all" } beatmap${beatmaps.length > 1 ? "s" : ""} from ${name}?`);
+    const conf = await quick_confirm(`delete ${ filter ? filtered_maps.length : "all" } beatmap${filtered_maps.length > 1 ? "s" : ""} from ${name}?`);
 
     if (!conf) {
         return;
@@ -415,12 +423,54 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    // update the current collection with "unknown beatmaps"
-    collections.set(name, Array(beatmaps.length).fill({}));
-
     // render manager once again
     await initialize();
     setup_manager();
+};
+
+const create_empty_collection = async (name) => {
+    collections.set(name, []);
+    setup_manager();
+};
+
+const create_new_collection = async () => {
+
+    const method = await create_custom_popup({
+        type: message_types.CUSTOM_MENU,
+        title: "method",
+        elements: [{
+            key: "name",
+            element: { list: ["empty", "from url", "from player"] }
+        }]
+    });
+
+    if (!method?.name) {
+        return;
+    }
+
+    if (method.name == "empty") {
+
+        const collection_name = await create_custom_popup({     
+            type: message_types.INPUT, 
+            label: "collection name" 
+        });
+        
+        if (!collection_name) {
+            return;
+        }
+
+        if (collections.has(collection_name)) {
+            return create_alert("this collection already exists");
+        }
+
+        create_empty_collection(collection_name);
+    }
+    else if (method.name == "from url") {
+        add_new_collection();
+    }
+    else {
+        get_from_player();
+    }
 };
 
 header_text.addEventListener("click", async () => {
@@ -450,13 +500,9 @@ more_options.addEventListener("click", async () => {
     switch (option) {
         case "create new collection":
             create_new_collection();
-            get_from_player();
             break;
         case "get missing beatmaps":
             get_missing_beatmaps();
-            break;
-        case "add new collection":
-            add_new_collection();
             break;
         case "delete beatmaps":
             delete_beatmaps_manager();
@@ -660,7 +706,7 @@ const render_page = (id, _offset) => {
         collection_container.innerHTML = "";
     }
 
-    const collection = draggable_items_map.get(id)?.collection.maps;
+    const collection = draggable_items_map.get(id)?.collection;
     const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
@@ -675,38 +721,46 @@ const render_page = (id, _offset) => {
     }
 
     // update sr filter slider min/max
-    if (sr_filter.limit != sr_max) {
+    if (sr_filter.limit > 0 && sr_filter.limit != sr_max) {
         sr_filter.set_limit(sr_max);
     }
 
     // update bpm filter slider min/max
-    if (bpm_filter.limit != bpm_max) {
+    if (sr_filter.limit > 0 && bpm_filter.limit != bpm_max) {
         bpm_filter.set_limit(bpm_max);
     }
 
     // only render 16 at time
     for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
 
+        const beatmaps = collection?.maps;
+
+        // no beatmaps? maybe a empty collection
+        if (!beatmaps) {
+            add_more = false;
+            break;
+        }
+
         // check if i reached the collection limit
-        if (offset >= collection.length) {
+        if (offset >= beatmaps.length) {
             add_more = false;
             break;
         }
 
         // check if the beatmap is valid (should be)
-        if (!collection[offset]) {
+        if (!beatmaps[offset]) {
             offset++;
             continue;
         }
 
         // filter by name
-        if (!filter_beatmap(collection[offset])) {
+        if (!filter_beatmap(beatmaps[offset])) {
             offset++;   
             i--;
             continue;
         }
 
-        const beatmap_item = render_beatmap(collection[offset]);
+        const beatmap_item = render_beatmap(beatmaps[offset]);
         collection_container.appendChild(beatmap_item);
 
         offset++;

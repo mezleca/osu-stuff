@@ -1,4 +1,5 @@
-// TODO: the code is kinda "better" but its not readable at all in some cases like (simple list, etc...).
+import { create_dropdown_filter, create_range_filter } from "../manager/ui/filter.js";
+import { create_element } from "../utils/config.js";
 
 const DEFAULT_ALERT_OBJECT = {
     type: "default",
@@ -217,139 +218,133 @@ const create_custom_menu = async (options) => {
 
     const { title, elements = [] } = options;
     const menu_id = crypto.randomUUID();
-
-    const create_element = (key, config, label) => {
-
-        const type = Object.keys(config)[0];
-        const props = config[type]?.options ? config[type].options : config[type];
-        const safe_key = key.replace(/\s+/g, '_');
-
-        switch (type) {
-            case 'list':
-                return `
-                    <label>${label ? label : key}</label>
-                    <select id="${safe_key}">
-                        ${props.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                    </select>
-                `;
-            case 'range':
-                return `
-                    <label>${label ? label : key}</label>
-                    <div class="input-double-balls">
-                        <div class="slider-thing"></div>
-                        <input type="range" id="min_${safe_key}" min="${props.min}" max="${props.max}" value="${props.min}">
-                        <input type="range" id="max_${safe_key}" min="${props.min}" max="${props.max}" value="${props.max}">
-                    </div>
-                    <div class="input-range-text">
-                        <p id="slider_min_${safe_key}">min: ${props.min}</p>
-                        <p id="slider_max_${safe_key}">max: ${props.max}</p>
-                    </div>
-                `;
-            case 'checkbox':
-                return `
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="${safe_key}">
-                        <label for="${safe_key}">${label ? label : key}</label>
-                    </div>
-                `;
-            default:
-                return `
-                    <label>${label ? label : key}</label>
-                    <${type} id="${safe_key}">${props.text || ''}</${type}>
-                `;
-        }
-    };
-
-    const html_elements = elements.map(({ key, element }) => {
-        const label = Object.values(element).find(value => value?.label)?.label; // ...
-        return create_element(key, element, label);
-    }).join("");
-
-    const html = `
+    const filters = {};
+    
+    const container = document.querySelector(".container");
+    const content_wrapper = create_element(`
         <div class="popup-container" id="${menu_id}">
             <div class="popup-content-flex">
                 <h1>${title}</h1>
-                ${html_elements}
+                <div id="elements_container"></div>
                 <button id="custom_menu_submit">Submit</button>
             </div>
         </div>
-    `;
-
-    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
-
-    const container = document.querySelector(".container");
-    container.appendChild(content);
-
-    const setup_range_listeners = () => {
-        elements.forEach(({ key, element }) => {
-            const safe_key = key.replace(/\s+/g, '_');
-            if (Object.keys(element)[0] === 'range') {
-
-                const min = document.querySelector(`#min_${safe_key}`);
-                const max = document.querySelector(`#max_${safe_key}`);
-                const min_text = document.querySelector(`#slider_min_${safe_key}`);
-                const max_text = document.querySelector(`#slider_max_${safe_key}`);
-
-                if (min && max && min_text && max_text) {
-                    [min, max].forEach(input => {
-                        input.addEventListener('input', () => {
-                            if (parseInt(min.value) > parseInt(max.value)) {
-                                min.value = max.value;
-                            }
-                            if (parseInt(max.value) < parseInt(min.value)) {
-                                max.value = min.value;
-                            }
-                            min_text.innerText = `min: ${min.value}`;
-                            max_text.innerText = `max: ${max.value}`;
-                        });
-                    });
-                }
-            }
-        });
-    };
-
-    setup_range_listeners();
-
-    return new Promise((resolve, reject) => {
-
-        const submit_btn = content.querySelector("#custom_menu_submit");
+    `);
+    
+    const elements_container = content_wrapper.querySelector("#elements_container");
+    
+    elements.forEach(({ key, element }) => {
+        const type = Object.keys(element)[0];
+        const props = element[type]?.options ? element[type].options : element[type];
+        const label = element[type]?.label || key;
+        const safe_key = key.replace(/\s+/g, '_');
         
-        if (submit_btn) {
-            submit_btn.addEventListener("click", () => {
-                const result = {};
-                elements.forEach(({ key, element }) => {
-                    const safe_key = key.replace(/\s+/g, '_');
-                    const type = Object.keys(element)[0];
-                    
-                    if (type === 'range') {
-                        const min = document.querySelector(`#min_${safe_key}`);
-                        const max = document.querySelector(`#max_${safe_key}`);
-                        if (min && max) {
-                            result[key] = {
-                                min: min.value,
-                                max: max.value
-                            };
-                        }
-                    } else if (type === 'checkbox') {
-                        const checkbox = document.querySelector(`#${safe_key}`);
-                        if (checkbox) {
-                            result[key] = checkbox.checked;
+        switch (type) {
+            case 'list':
+
+                const is_multiple = element[type]?.multiple === true;
+                
+                if (is_multiple) {
+                    const dropdown = create_dropdown_filter(`${safe_key}_dropdown`, label, props);
+                    filters[safe_key] = dropdown;
+                    elements_container.appendChild(dropdown.element);
+                } else {
+                    const select_el = create_element(`
+                        <div class="select-container">
+                            <label>${label}</label>
+                            <select id="${safe_key}">
+                                ${props.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                            </select>
+                        </div>
+                    `);
+                    elements_container.appendChild(select_el);
+                }
+                break;
+                
+            case 'range':
+                const iden = props.identifier || '';
+                const fix = props.decimal_places || 2;
+                const initial = props.max || 100;
+                const range = create_range_filter(`${safe_key}_range`, label, iden, fix, initial);
+                filters[safe_key] = range;
+                elements_container.appendChild(range.element);
+                break;
+                
+            case 'checkbox':
+                const checkbox_el = create_element(`
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="${safe_key}">
+                        <label for="${safe_key}">${label}</label>
+                    </div>
+                `);
+                elements_container.appendChild(checkbox_el);
+                break;
+                
+            default:
+                const default_el = create_element(`
+                    <div class="input-container">
+                        <label>${label}</label>
+                        <${type} type="text" id="${safe_key}">${props.text || ''}</${type}>
+                    </div>
+                `);
+                elements_container.appendChild(default_el);
+                break;
+        }
+    });
+    
+    container.appendChild(content_wrapper);
+    
+    return new Promise((resolve, reject) => {
+        const submit_btn = content_wrapper.querySelector("#custom_menu_submit");
+        
+        submit_btn.addEventListener("click", () => {
+            const result = {};
+            
+            elements.forEach(({ key, element }) => {
+                const type = Object.keys(element)[0];
+                const safe_key = key.replace(/\s+/g, '_');
+                const is_multiple = type === 'list' && element[type]?.multiple === true;
+                
+                if (type === 'range') {
+                    const range_filter = filters[safe_key];
+                    if (range_filter) {
+                        result[key] = {
+                            min: parseFloat(range_filter.min.value),
+                            max: parseFloat(range_filter.max.value)
+                        };
+                    }
+                } else if (type === 'list') {
+                    if (is_multiple) {
+                        const dropdown_filter = filters[safe_key];
+                        if (dropdown_filter) {
+                            result[key] = dropdown_filter.selected;
                         }
                     } else {
-                        const el = document.querySelector(`#${safe_key}`);
-                        if (el) {
-                            result[key] = el.value || el.textContent;
+                        const select_el = content_wrapper.querySelector(`#${safe_key}`);
+                        if (select_el) {
+                            result[key] = select_el.value;
                         }
                     }
-                });
-                container.removeChild(content);
-                resolve(result);
+                } else if (type === 'checkbox') {
+                    const checkbox = content_wrapper.querySelector(`#${safe_key}`);
+                    if (checkbox) {
+                        result[key] = checkbox.checked;
+                    }
+                } else {
+                    const el = content_wrapper.querySelector(`#${safe_key}`);
+                    if (el) {
+                        result[key] = el.value || el.textContent;
+                    }
+                }
             });
-        }
-
-        content.addEventListener("click", (e) => {
-            if (e.target === content) {
-                container.removeChild(content);
+            
+            container.removeChild(content_wrapper);
+            resolve(result);
+        });
+        
+        content_wrapper.addEventListener("click", (e) => {
+            if (e.target === content_wrapper) {
+                container.removeChild(content_wrapper);
                 reject(null);
             }
         });
