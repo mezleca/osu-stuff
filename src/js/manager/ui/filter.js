@@ -65,6 +65,12 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
 
         new_limit = parseFloat(new_limit);
 
+        // @TODO: the only reason why i need this is because when i create a empty collection the "sr_max" is invalid
+        // i need to make sure this thing is valid and update when a new map is added
+        if (isNaN(new_limit)) {
+            return;
+        }
+
         range_slider.limit = new_limit;
         range_slider.min.setAttribute("max", new_limit);
         range_slider.max.setAttribute("max", new_limit);
@@ -82,6 +88,8 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
     };
 
     const update = () => {
+
+        console.log(range_slider.min, range_slider.max);
 
         let min_value = parseFloat(range_slider.min.value);
         let max_value = parseFloat(range_slider.max.value);
@@ -258,6 +266,7 @@ export const filter_beatmap = (beatmap) => {
 
     // filter by sr
     if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
+        console.log(beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value, beatmap_sr, sr_filter.min.value, sr_filter.max.value);
         return false;
     }
 
