@@ -89,8 +89,6 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
 
     const update = () => {
 
-        console.log(range_slider.min, range_slider.max);
-
         let min_value = parseFloat(range_slider.min.value);
         let max_value = parseFloat(range_slider.max.value);
         
@@ -219,7 +217,6 @@ export const create_dropdown_filter = (id, name, options) => {
                 remove_btn.innerHTML = "×";
                 
                 remove_btn.addEventListener("click", (e) => {
-                    console.log("removing", checkbox);
                     e.stopPropagation();
                     checkbox.checked = false;
                     update();
@@ -266,7 +263,6 @@ export const filter_beatmap = (beatmap) => {
 
     // filter by sr
     if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
-        console.log(beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value, beatmap_sr, sr_filter.min.value, sr_filter.max.value);
         return false;
     }
 

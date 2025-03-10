@@ -722,13 +722,11 @@ const render_page = (id, _offset) => {
 
     // update sr filter slider min/max
     if (sr_filter.limit > 0 && sr_filter.limit != sr_max) {
-        console.log("upadting max sr");
         sr_filter.set_limit(sr_max);
     }
 
     // update bpm filter slider min/max
     if (sr_filter.limit > 0 && bpm_filter.limit != bpm_max) {
-        console.log("upadingn bpm max");
         bpm_filter.set_limit(bpm_max);
     }
 
