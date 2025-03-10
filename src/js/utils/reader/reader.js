@@ -1,6 +1,6 @@
 import { osu_db, collections_db, osdb_schema } from "./definitions.js";
-import { fs, zlib } from "../utils/global.js";
-import { create_alert } from "../popup/popup.js";
+import { fs, zlib } from "../global.js";
+import { create_alert } from "../../popup/popup.js";
 
 const decompress_gzip = (data) => {
     return new Promise((resolve, reject) => {

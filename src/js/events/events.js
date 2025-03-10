@@ -1,45 +1,11 @@
-import { tasks, blink, panels, tabs } from "./tabs.js";
-import { create_alert, message_types, create_custom_popup } from "./popup/popup.js";
-import { download_maps, current_download } from "./utils/download_maps.js";
+import { tasks, blink, panels, tabs } from "../tabs.js";
+import { create_alert, message_types, create_custom_popup } from "../popup/popup.js";
+import { download_maps, current_download } from "../utils/download_maps.js";
+import { events } from "./emitter.js";
 
 export let queue_interval = null;
 
 const download_types = ["get_missing_beatmaps", "get_player_beatmaps", "download_from_json"];
-
-class event_emitter {
-    constructor() {
-        this.listeners = {};
-    }
-
-    on(event, callback) {
-        if (!this.listeners[event]) {
-            this.listeners[event] = [];
-        }
-        this.listeners[event].push(callback);
-    }
-
-    emit(event, ...args) {
-        if (this.listeners[event]) {
-            this.listeners[event].forEach(callback => callback(...args));
-        }
-    }
-
-    remove_listener(event, callback) {
-        if (this.listeners[event]) {
-            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
-        }
-    }
-
-    remove_all_listeners(event) {
-        if (event) {
-            delete this.listeners[event];
-            return;
-        }
-        this.listeners = {};
-    }
-}
-
-export const events = new event_emitter();
 const queue = new Map();
 
 const start_task = (task) => {
@@ -209,7 +175,36 @@ export const handle_event = async (data, callback, ...args) => {
 
         create_alert(String(err), { type: "error" });
     }
-}
+};
+
+export const create_task = async (task_name, ...extra_args) => {
+
+    const new_task = add_tab(task_name);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    tasks.set(task_name, data);
+    
+    await handle_event(data, ...extra_args);
+};
+
+export const create_download_task = async (name, maps) => {
+
+    const new_task = add_tab(name);
+
+    if (!new_task) {
+        return;
+    }
+
+    const data = { started: false, ...new_task };
+    tasks.set(name, data);
+    blink(tabs.status);
+    
+    await handle_event(data, () => { return maps });
+};
 
 events.on("progress-update", (data) => {
 

@@ -1,4 +1,4 @@
-import { events } from "../events.js";
+import { events } from "../events/emitter.js";
 import { create_alert } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";

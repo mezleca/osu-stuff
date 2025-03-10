@@ -1,6 +1,6 @@
 import { message_types, create_alert, create_custom_popup } from "../popup/popup.js";
 import { search_map_id } from "../utils/download_maps.js";
-import { events } from "../events.js";
+import { events } from "../events/emitter.js";
 import { core } from "../utils/config.js";
 import { fs, path } from "../utils/global.js";
 

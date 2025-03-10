@@ -1,4 +1,3 @@
-import { handle_event } from "./events.js";
 import { create_alert } from "./popup/popup.js";
 
 export const tasks = new Map();
@@ -34,15 +33,6 @@ all_tabs.map((tab, i) => {
         tab.classList.add("active");
     });
 });
-
-export const get_current_tab = () => {
-    for (let i = 0; i < all_tabs.length; i++) {
-        if (all_tabs[i].classList.contains("active")) {
-            return all_panels[i].id;
-        }
-    }
-    return null;
-};
 
 export const blink = (tab) => {
     tab.style = "animation: blinker 1s linear infinite;";
@@ -82,33 +72,4 @@ export const add_tab = (id) => {
     const bar = tab.querySelector("div");
 
     return { tab, text, dtab: d_tab, bar, id };
-};
-
-export const create_task = async (task_name, ...extra_args) => {
-
-    const new_task = add_tab(task_name);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(task_name, data);
-    
-    await handle_event(data, ...extra_args);
-};
-
-export const create_download_task = async (name, maps) => {
-
-    const new_task = add_tab(name);
-
-    if (!new_task) {
-        return;
-    }
-
-    const data = { started: false, ...new_task };
-    tasks.set(name, data);
-    blink(tabs.status);
-    
-    await handle_event(data, () => { return maps });
 };

@@ -2,7 +2,7 @@ import { create_custom_popup, create_alert, message_types } from "../popup/popup
 import { osu_login } from "./other/login.js";
 import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
-import { OsuReader } from "../reader/reader.js";
+import { OsuReader } from "./reader/reader.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
 import { debounce, fs, path } from "./global.js";
 
