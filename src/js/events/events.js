@@ -1,4 +1,4 @@
-import { tasks, blink, panels, tabs } from "../tabs.js";
+import { tasks, blink, panels, tabs, add_tab } from "../tabs.js";
 import { create_alert, message_types, create_custom_popup } from "../popup/popup.js";
 import { download_maps, current_download } from "../utils/download_maps.js";
 import { events } from "./emitter.js";

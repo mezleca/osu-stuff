@@ -1185,7 +1185,13 @@ export const initialize = async (options) => {
       }
     } else {
 
-        for (const [name, maps] of collections) {
+        for (const [name, data] of collections) {
+
+            const maps = data?.maps;
+
+            if (!maps) {
+                continue;
+            }
 
             const updated_maps = maps.map(update_map_info);
             let sr_max = 1, bpm_max = 0;
