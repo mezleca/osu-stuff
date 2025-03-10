@@ -133,98 +133,122 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
     return range_slider;
 };
 
+// @TODO: simplify
 export const create_dropdown_filter = (id, name, options) => {
-    
+
     const html = `
-    <div class="dropdown-container" id="${id}">
-        <div class="dropdown-header">
+        <div class="dropdown-container" id="${id}">
+            <div class="dropdown-header">
             <span class="dropdown-label">${name}</span>
-        </div>
+            </div>
             <div class="dropdown-content">
+            <div class="dropdown-item">
+                <input type="checkbox" id="option-all" value="all">
+                <label for="option-all">all</label>
+            </div>
             ${options.map((v, i) => {
                 if (v != "all") {
                     return `<div class="dropdown-item">
                         <input type="checkbox" id="option${i}" value="${v}">
                         <label for="option${i}">${v}</label>
                     </div>
-                    `     
+                `
                 }
             }).join("\n")}
+            </div>
+            <div class="selected-options" id="selected-options"></div>
         </div>
-        <div class="selected-options" id="selected-options"></div>
-    </div>
     `;
-
+    
     const dropdown_filter = {
         selected: [],
         element: create_element(html),
         callback: null
     }
-
+    
     const dropdown_header = dropdown_filter.element.querySelector(".dropdown-header");
     const dropdown_content = dropdown_filter.element.querySelector(".dropdown-content");
     const selected_options = dropdown_filter.element.querySelector(".selected-options");
-    const checkboxes = dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']");
-
-    dropdown_header.addEventListener("click", () => {
-        console.log("clickec"); 
-        dropdown_content.classList.toggle("show");
-    });
+    const all_checkbox = dropdown_filter.element.querySelector("input[value='all']");
+    const item_checkboxes = [...dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']")].filter(cb => cb.value !== "all");
+    
+    dropdown_header.addEventListener("click", () => { dropdown_content.classList.toggle("show") });
     dropdown_content.addEventListener("click", (e) => { e.stopPropagation() });
-
+    
+    const check_selected = () => {
+        const allItemsSelected = item_checkboxes.every(cb => cb.checked);
+        all_checkbox.checked = allItemsSelected;
+    };
+    
     const update = () => {
 
         selected_options.innerHTML = "";
-
-        checkboxes.forEach(checkbox => {
-
-            if (!checkbox.checked) {
-
-                const new_selected = [];
-                for (let i = 0; i < dropdown_filter.selected.length; i++) {
-                    if (dropdown_filter.selected[i] != checkbox.value) {
-                        new_selected.push(dropdown_filter.selected[i]);
-                    }
-                }
-
-                dropdown_filter.selected = new_selected;
-                return;
-            }
-
-            if (!dropdown_filter.selected.includes(checkbox.value)) {
+        dropdown_filter.selected = [];
+        
+        item_checkboxes.forEach((checkbox) => {
+            if (checkbox.checked) {
                 dropdown_filter.selected.push(checkbox.value);
             }
-
-            const option_tag = document.createElement("div");
-            const option_text = document.createElement("span");
-            const remove_btn = document.createElement("span");
-
-            option_tag.className = "option-tag";
-            remove_btn.className = "remove-option";
-
-            option_text.textContent = checkbox.value;
-            remove_btn.innerHTML = "×";
-
-            remove_btn.addEventListener("click", function(e) {
-                e.stopPropagation();
-                checkbox.checked = false;
-                if (dropdown_filter.callback) dropdown_filter.callback();
-                update();
-            });
-            
-            option_tag.appendChild(option_text);
-            option_tag.appendChild(remove_btn);
-            selected_options.appendChild(option_tag);
-
-            if (dropdown_filter.callback) dropdown_filter.callback();
         });
+        
+        check_selected();
+        
+        const checkboxes = [all_checkbox, ...item_checkboxes];
+
+        checkboxes.forEach((checkbox) => {      
+
+            if (checkbox.checked && checkbox.value != "all") {
+                
+                dropdown_filter.selected.push(checkbox.value);
+                
+                const option_tag = document.createElement("div");
+                const option_text = document.createElement("span");
+                const remove_btn = document.createElement("span");
+                
+                option_tag.className = "option-tag";
+                remove_btn.className = "remove-option";
+                option_text.textContent = checkbox.value;
+                remove_btn.innerHTML = "×";
+                
+                remove_btn.addEventListener("click", (e) => {
+                    console.log("removing", checkbox);
+                    e.stopPropagation();
+                    checkbox.checked = false;
+                    update();
+                });
+                
+                option_tag.appendChild(option_text);
+                option_tag.appendChild(remove_btn);
+                selected_options.appendChild(option_tag);
+            }
+        });
+        
+        if (dropdown_filter.callback) dropdown_filter.callback();
     };
-
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener("change", update);
+        
+    all_checkbox.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            item_checkboxes.forEach(cb => cb.checked = true);
+        } else {
+            item_checkboxes.forEach(cb => cb.checked = false);
+        }
+        update();
     });
-
-    return dropdown_filter
+    
+    item_checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", (e) => {
+            if (!e.target.checked) {
+                all_checkbox.checked = false;
+            } else {
+                check_selected();
+            }
+            update();
+        });
+    });
+    
+    update();
+    
+    return dropdown_filter;
 };
 
 export const filter_beatmap = (beatmap) => {

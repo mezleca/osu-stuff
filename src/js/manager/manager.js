@@ -3,7 +3,7 @@ import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task, create_task } from "../events/events.js";
-import { beatmap_status as _status, delete_beatmaps } from "../stuff/remove_maps.js";
+import { beatmap_status as _status, beatmap_status, delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
@@ -278,7 +278,7 @@ const get_from_player = async () => {
             },
             {
                 key: "beatmap status",
-                element: { list: { multiple: true, options: ["ranked", "loved", "graveyard"] }}
+                element: { list: { multiple: true, options: Object.keys(beatmap_status) }}
             },
             {
                 key: "difficulty range",
@@ -1011,8 +1011,8 @@ const setup_manager = () => {
         bpm_filter_container.appendChild(bpm_filter.element);
 
         filter_container.appendChild(sr_filter_container);
-        filter_container.appendChild(status_filter_container);
         filter_container.appendChild(bpm_filter_container);
+        filter_container.appendChild(status_filter_container);
     }
 
     for (let [k, v] of collections) {
