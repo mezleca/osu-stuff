@@ -584,16 +584,15 @@ export class OsuReader {
                 data.drain_time = this.#int();
                 data.total_time = this.#int();
                 data.audio_preview = this.#int();
-                
                 data.timing_points_length = this.#int();
                 
                 for (let i = 0; i < data.timing_points_length; i++) {
 
-                    const bpm = this.#double();
+                    const length = this.#double();
                     const offset = this.#double();
                     const inherited = this.#bool();  
 
-                    data.timing_points.push({ bpm: Math.round(60000 / bpm), offset, inherited });
+                    data.timing_points.push({ beat_length: length, offset, inherited });
                 }
 
                 data.difficulty_id = this.#int();

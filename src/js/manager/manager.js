@@ -3,28 +3,16 @@ import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task, create_task } from "../tabs.js";
-import { beatmap_status as _status, beatmap_status, beatmap_status_reversed, delete_beatmaps } from "../stuff/remove_maps.js";
+import { beatmap_status as _status, delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
-import { debounce, collections, fs, path } from "../utils/global.js";
-import { create_dropdown_filter, create_range_filter } from "./filter.js";
+import { debounce, collections, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, DRAG_ACTIVATION_THRESHOLD_MS, star_ranges } from "../utils/global.js";
+import { filter_beatmap, sr_filter, status_filter, bpm_filter } from "./ui/filter.js";
+import { get_beatmap_sr, get_beatmap_bpm } from "./tools/beatmaps.js";
 
 // @TODO: strip manager logic in files. 
 //        1000 lines of different shit in a single file is annoying
-
-const star_ranges = [
-    [0, 2.99, "sr1"],
-    [3, 4.99, "sr2"],
-    [5, 6.99, "sr3"],
-    [7, 7.99, "sr4"],
-    [8, 8.99, "sr5"],
-    [9, Infinity, "sr6"]
-];
-
-const sr_filter = create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10);
-const bpm_filter = create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500);
-const status_filter = create_dropdown_filter("dropdown-status-filter", "status", Object.keys(beatmap_status));
 
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
@@ -38,9 +26,6 @@ const update_collection_button = document.querySelector(".update_collection");
 const audio_core = { audio: null, id: 0, target: null };
 const default_options = ["add new collection", "get from player", "get missing beatmaps"];
 const draggable_items_map = new Map();
-const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-const MAX_RENDER_AMMOUNT = 16;
-const DRAG_ACTIVATION_THRESHOLD_MS = 500;
 
 let mouse_y, mouse_x;
 
@@ -218,44 +203,6 @@ const drag_callback = (id, placeholder_draggable_item) => {
     requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
 };
 
-const filter_beatmap = (beatmap) => {
-
-    const beatmap_sr = get_beatmap_sr(beatmap);
-    const beatmap_bpm = get_beatmap_bpm(beatmap);
-
-    // filter by sr
-    if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
-        return false;
-    }
-
-    // filter by status
-    if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
-        return false;
-    }
-
-    // filter by bpm
-    if (beatmap_bpm < bpm_filter.min.value || beatmap_bpm > bpm_filter.max.value) {
-        return false;
-    }
-
-    const search_filter = search_input.value;
-
-    if (!search_filter) {
-        return true;
-    }
-
-    // do this so the user can search for not downloaded beatmaps
-    const artist = beatmap?.artist_name || "Unknown";
-    const title = beatmap?.song_title || "Unknown";
-    const difficulty = beatmap?.difficulty || "Unknown";
-    const creator = beatmap?.creator_name || "Unknown";
-    const tags = beatmap?.tags || "";
-
-    // filter by search
-    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
-    return searchable_text.includes(search_filter.toLowerCase());
-};
-
 search_input.addEventListener("input", debounce(() => {
 
     const selected_id = get_selected_collection(true);
@@ -430,7 +377,6 @@ const get_missing_beatmaps = async () => {
 const delete_beatmaps_manager = async () => {
     
     const name = get_selected_collection();
-    const filter = search_input.value;
 
     // make sure the collectio is valid
     if (!name) {
@@ -445,11 +391,9 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    if (filter) {
-        for (let i = 0; i < beatmaps.length; i++) {
-            if (!filter_beatmap(beatmaps[i])) {
-                beatmaps.splice(beatmaps.indexOf(beatmaps[i]), 1);
-            }
+    for (let i = 0; i < beatmaps.length; i++) {
+        if (!filter_beatmap(beatmaps[i])) {
+            beatmaps.splice(beatmaps.indexOf(beatmaps[i]), 1);
         }
     }
 
@@ -521,43 +465,6 @@ more_options.addEventListener("click", async () => {
             break;
     }
 });
-
-// @TODO: this only works for "standard" mode
-const get_beatmap_sr = (beatmap) => {
-
-    try {
-
-        const beatmap_sr = beatmap?.sr[0] || 0; // lmao
-        
-        if (beatmap_sr) {
-
-            if (!beatmap_sr.sr.length) {
-                return 0;
-            }
-
-            const star_rating = Number(beatmap_sr.sr[0][1]);
-
-            // negative sr = old calculation thing
-            if (Math.sign(star_rating) == -1) { 
-                return (star_rating * -1).toFixed(2);
-            }
-                    
-            return star_rating.toFixed(2);      
-        }
-    } catch(err) {
-        return 0;
-    }  
-};
-
-// @TODO: i dont think thats how it works
-const get_beatmap_bpm = (map) => {
-
-    if (!map?.timing_points) {
-        return 0;
-    }
-
-    return map.timing_points[0]?.bpm || 0;
-};
 
 const render_beatmap = (beatmap) => {
 

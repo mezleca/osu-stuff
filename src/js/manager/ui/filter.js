@@ -1,5 +1,9 @@
+import { beatmap_status, beatmap_status_reversed } from "../../stuff/remove_maps.js";
+import { get_beatmap_sr, get_beatmap_bpm } from "../tools/beatmaps.js";
+
 const show_filter = document.querySelector(".show-filter");
 const filter_box = document.querySelector(".filter-box");
+const search_input = document.getElementById("current_search");
 
 show_filter.addEventListener("click", () => {
     if (show_filter.classList.contains("enabled")) {
@@ -220,3 +224,46 @@ export const create_dropdown_filter = (id, name, options) => {
 
     return dropdown_filter
 };
+
+export const filter_beatmap = (beatmap) => {
+
+    const beatmap_sr = get_beatmap_sr(beatmap);
+    const beatmap_bpm = get_beatmap_bpm(beatmap);
+
+    // filter by sr
+    console.log(beatmap_sr, sr_filter.min.value, sr_filter.max.value);
+    if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
+        return false;
+    }
+
+    // filter by status
+    if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
+        return false;
+    }
+
+    // filter by bpm
+    if (beatmap_bpm < bpm_filter.min.value || beatmap_bpm > bpm_filter.max.value) {
+        return false;
+    }
+
+    const search_filter = search_input.value;
+
+    if (!search_filter) {
+        return true;
+    }
+
+    // do this so the user can search for not downloaded beatmaps
+    const artist = beatmap?.artist_name || "Unknown";
+    const title = beatmap?.song_title || "Unknown";
+    const difficulty = beatmap?.difficulty || "Unknown";
+    const creator = beatmap?.creator_name || "Unknown";
+    const tags = beatmap?.tags || "";
+
+    // filter by search
+    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
+    return searchable_text.includes(search_filter.toLowerCase());
+};
+
+export const sr_filter = create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10);
+export const bpm_filter = create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500);
+export const status_filter = create_dropdown_filter("dropdown-status-filter", "status", Object.keys(beatmap_status));
