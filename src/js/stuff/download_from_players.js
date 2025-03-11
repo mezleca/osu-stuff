@@ -23,14 +23,12 @@ export const url_is_valid = (url, hostname) => {
     }
 };
 
-const add_to_collection = async (maps, name, type, append) => {
+const add_to_collection = async (maps, name, append) => {
 
     if (maps.length == 0) {
         console.log("no maps");
         return;
     }
-
-    const collection_name = `!stuff - ${name} ${type}`;
 
     if (append) {
 
@@ -47,14 +45,14 @@ const add_to_collection = async (maps, name, type, append) => {
     }
 
     core.reader.collections.beatmaps.push({
-        name: collection_name,
+        name: name,
         maps: [...maps]
     });
 
     core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-    await add_collection_manager(maps, collection_name);
-    create_alert(`added ${name} ${type} to your collections!`, { type: "success" });
+    await add_collection_manager(maps, name);
+    create_alert(`added ${name} to your collections!`, { type: "success" });
 };
 
 const fetch_maps = async (base_url, limit) => {
@@ -98,15 +96,15 @@ const fetch_maps = async (base_url, limit) => {
     return maps;
 };
 
-const get_player_info = async (name, method) => {
+const get_player_info = async (options) => {
 
-    if (!name) {
+    const { player_name, beatmap_options, beatmap_status, difficulty_range } = options;
+
+    if (!player_name) {
         return;
     }
 
-    create_alert("searching player...");
-
-    const data = {   
+    const fetch_data = {   
         method: "GET",
         headers: {
             'Authorization': `Bearer ${core.login.access_token}`
@@ -115,75 +113,123 @@ const get_player_info = async (name, method) => {
 
     const api_url = "https://osu.ppy.sh/api/v2";
 
-    const default_response = await fetch(`${api_url}/users/${name}`, data);
+    const default_response = await fetch(`${api_url}/users/${player_name}`, fetch_data);
     const default_data = await default_response.json();
 
     if (!default_data?.id) {
-        console.log("player", name, "not found");
+        console.log("player", player_name, "not found");
         return;
     }
 
-    const extra_response = await fetch(`https://osu.ppy.sh/users/${default_data.id}/extra-pages/top_ranks?mode=osu`, data);
+    const extra_response = await fetch(`https://osu.ppy.sh/users/${default_data.id}/extra-pages/top_ranks?mode=osu`, fetch_data);
     const extra_data = await extra_response.json();
 
     if (!extra_data) {
         return;
     }
 
-    const method_is_valid = (name) => method == name || method == "all";
-    const maps_method_is_valid = (name) => method == name || method == "all maps" || method == "all";
+    const option_is_valid = (name) => beatmap_options.includes(name) || beatmap_options.includes("all");
+    const status_is_valid = (name) => beatmap_status.includes(name) || beatmap_status.includes("all");
 
-    const first_place_maps = extra_data.firsts.count && method_is_valid("first place") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count) : [];
-    const best_performance_maps = extra_data.best.count && method_is_valid("best performance") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count) : [];
-    const favourite_maps = default_data.favourite_beatmapset_count && method_is_valid("favourites") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count) : [];
+    const first_place_maps = extra_data.firsts.count && option_is_valid("first place") ? 
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count, difficulty_range) : [];   
+    const best_performance_maps = extra_data.best.count && option_is_valid("best performance") ? 
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/best?mode=osu`, extra_data.best.count, difficulty_range) : [];
+    const favourite_maps = default_data.favourite_beatmapset_count && option_is_valid("favourites") ? 
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/favourite`, default_data.favourite_beatmapset_count, difficulty_range) : [];
+    const ranked = default_data.ranked_beatmapset_count && status_is_valid("ranked") && option_is_valid("created maps") ? 
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/ranked`, default_data.ranked_beatmapset_count, difficulty_range) : [];
+    const loved = default_data.loved_beatmapset_count && status_is_valid("loved") && option_is_valid("created maps") ? 
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/loved`, default_data.loved_beatmapset_count, difficulty_range) : [];
+    const pending = default_data.pending_beatmapset_count && status_is_valid("pending") && option_is_valid("created maps") ?  
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/pending`, default_data.pending_beatmapset_count, difficulty_range) : [];
+    const graveyard = default_data.graveyard_beatmapset_count && status_is_valid("graveyard") && option_is_valid("created maps") ?  
+        await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/graveyard`, default_data.graveyard_beatmapset_count, difficulty_range) : [];
 
-    const ranked = default_data.ranked_beatmapset_count && maps_method_is_valid("ranked") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/ranked`, default_data.ranked_beatmapset_count) : [];
-    const loved = default_data.loved_beatmapset_count && maps_method_is_valid("loved") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/loved`, default_data.loved_beatmapset_count) : [];
-    const pending = default_data.pending_beatmapset_count && maps_method_is_valid("pending") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/pending`, default_data.pending_beatmapset_count) : [];
-    const graveyard = default_data.graveyard_beatmapset_count && maps_method_is_valid("graveyard") ? await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/beatmapsets/graveyard`, default_data.graveyard_beatmapset_count) : [];
+    const filter_beatmaps = (beatmaps) => {
+
+        return beatmaps.filter((v) => {
+
+            if (v?.beatmap?.difficulty_rating !== undefined) {
+
+                const b = v.beatmap;
+                const status = b.status;
+                
+                if (!status_is_valid(status)) {
+                    return false;
+                }
+                
+                const sr = b.difficulty_rating;
+
+                if (sr < difficulty_range.min || sr > difficulty_range.max) {
+                    return false;
+                }
+                
+                return true;
+            }
+
+            else if (v?.beatmaps !== undefined) {
+
+                const status = v.status;
+                
+                if (!status_is_valid(status)) {
+                    return false;
+                }
+                
+                const valid_sr = v.beatmaps.some(beatmap => {
+                    const sr = beatmap.difficulty_rating;
+                    return sr >= difficulty_range.min && sr <= difficulty_range.max;
+                });
+                
+                return valid_sr;
+            }
+
+            else {
+
+                const status = v?.status;
+                
+                if (!status_is_valid(status)) {
+                    return false;
+                }
+                
+                const sr = v?.difficulty_rating;
+                
+                if (sr === undefined || sr < difficulty_range.min || sr > difficulty_range.max) {
+                    return false;
+                }
+                
+                return true;
+            }
+        });
+    };
+
+    const all_beatmaps = new Set([
+        ...first_place_maps,
+        ...best_performance_maps,
+        ...favourite_maps,
+        ...ranked,
+        ...loved,
+        ...pending,
+        ...graveyard
+    ]);
 
     return {
         ...default_data,
-        favourites: favourite_maps,
-        first_place: first_place_maps,
-        best_performance: best_performance_maps,
-        ranked: ranked,
-        loved: loved,
-        pending: pending,
-        graveyard: graveyard
+        all_beatmaps: filter_beatmaps(Array.from(all_beatmaps.values())) // to make sure
     };
 };
 
-export const download_from_players = async (player, method) => {
+export const download_from_players = async (options) => {
 
     return new Promise(async (resolve, reject) => {
 
         let append = false;
 
-        if (method == "created maps") {
-
-            const ranked = await create_custom_popup({
-                type: message_types.CUSTOM_MENU,
-                title: "method",
-                elements: [{
-                    key: "name",
-                    element: { list: ["ranked", "loved", "pending", "graveyard", "all maps"] }
-                }]
-            });
-
-            const ranked_method = ranked.name;
-
-            if (!ranked_method) {
-                return reject();
-            }
-
-            method = ranked_method;
-        }
-
-        const player_info = await get_player_info(player, method);
+        const { player_name, beatmap_options, beatmap_status } = options;
+        const player_info = await get_player_info(options);
 
         if (!player_info) {
-            create_alert(`player ${player} not found`);
+            create_alert(`player ${player_name} not found`);
             return;
         }
 
@@ -204,49 +250,16 @@ export const download_from_players = async (player, method) => {
 
         const get_maps = () => {
 
-            let maps = [];
+            const beatmaps = player_info.all_beatmaps;
 
-            switch (method) {
-                case "first place":
-                    maps = [...player_info.first_place];
-                    break;
-                case "best performance":
-                    maps = [...player_info.best_performance];
-                    break;
-                case "favourites":
-                    maps = [...player_info.favourites];
-                    break;
-                case "ranked":
-                    maps = [...player_info.ranked];
-                    break;
-                case "loved":
-                    maps = [...player_info.loved];
-                    break;
-                case "pending":
-                    maps = [...player_info.pending];
-                    break;
-                case "graveyard":
-                    maps = [...player_info.graveyard];
-                    break;
-                case "all maps":
-                    maps = [...player_info.ranked, ...player_info.loved, 
-                            ...player_info.pending, ...player_info.graveyard];
-                    break;
-                default:
-                    maps = [...player_info.favourites, ...player_info.first_place, 
-                            ...player_info.best_performance, ...player_info.ranked, 
-                            ...player_info.loved, ...player_info.pending, ...player_info.graveyard];
-                    break;
-            }
-
-            if (!maps) {
-                create_alert("found 0 maps ;-;");
+            if (beatmaps.length == 0) {
+                create_alert("found 0 beatmaps");
                 return reject();
             }
             
             return {
-                md5: maps.flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
-                id: maps.flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
+                md5: beatmaps.flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
+                id: beatmaps.flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
             }
         };
 
@@ -264,12 +277,12 @@ export const download_from_players = async (player, method) => {
         }
         
         if (download_method == "add to collections") {
-            await add_to_collection(maps.md5, append ? current_collection : player, method == "all" ? "" : method, append);
+            await add_to_collection(maps.md5, options.name, append);
             return resolve();
         }
 
         if (download_method == "both") {
-            await add_to_collection(maps.md5, append ? current_collection : player, method == "all" ? "" : method, append);
+            await add_to_collection(maps.md5, options.name, append);
         }
 
         const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());

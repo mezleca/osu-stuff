@@ -308,7 +308,7 @@ const create_custom_menu = async (options) => {
                 if (type === 'range') {
                     const range_filter = filters[safe_key];
                     if (range_filter) {
-                        result[key] = {
+                        result[safe_key] = {
                             min: parseFloat(range_filter.min.value),
                             max: parseFloat(range_filter.max.value)
                         };
@@ -317,23 +317,23 @@ const create_custom_menu = async (options) => {
                     if (is_multiple) {
                         const dropdown_filter = filters[safe_key];
                         if (dropdown_filter) {
-                            result[key] = dropdown_filter.selected;
+                            result[safe_key] = dropdown_filter.selected;
                         }
                     } else {
                         const select_el = content_wrapper.querySelector(`#${safe_key}`);
                         if (select_el) {
-                            result[key] = select_el.value;
+                            result[safe_key] = select_el.value;
                         }
                     }
                 } else if (type === 'checkbox') {
                     const checkbox = content_wrapper.querySelector(`#${safe_key}`);
                     if (checkbox) {
-                        result[key] = checkbox.checked;
+                        result[safe_key] = checkbox.checked;
                     }
                 } else {
                     const el = content_wrapper.querySelector(`#${safe_key}`);
                     if (el) {
-                        result[key] = el.value || el.textContent;
+                        result[safe_key] = el.value || el.textContent;
                     }
                 }
             });

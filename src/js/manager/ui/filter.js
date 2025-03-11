@@ -262,7 +262,7 @@ export const filter_beatmap = (beatmap) => {
     const beatmap_bpm = Number(get_beatmap_bpm(beatmap));
 
     // filter by sr
-    if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
+    if (beatmap_sr < Number(sr_filter.min.value) || beatmap_sr > Number(sr_filter.max.value)) {
         //console.log("filterd", beatmap, "by sr", beatmap_sr, sr_filter.max.value, sr_filter.min.value);
         return false;
     }
@@ -274,7 +274,7 @@ export const filter_beatmap = (beatmap) => {
     }
 
     // filter by bpm
-    if (beatmap_bpm < bpm_filter.min.value || beatmap_bpm > bpm_filter.max.value) {
+    if (beatmap_bpm < Number(bpm_filter.min.value) || beatmap_bpm > Number(bpm_filter.max.value)) {
         //console.log("filterd", beatmap, "by bpm", beatmap_bpm, bpm_filter.max.value);
         return false;
     }

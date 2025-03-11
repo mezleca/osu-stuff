@@ -300,9 +300,9 @@ const get_from_player = async () => {
         method.beatmap_status.push("all");        
     }
 
-    console.log(method);
+    method.name = method.beatmap_options.join(", ");
 
-    const task_name = `${method.player_name} - (${method.beatmap_options.join(", ")}`;
+    const task_name = `${method.player_name} - (${method.name}`;
     await create_task(task_name, download_from_players, method);
 };
 
@@ -342,7 +342,7 @@ const add_new_collection = async () => {
             const collection = collections.get(current_collection).maps;
 
             if (!collection) {
-                create_alert("failed to get current collection", { type: "error" } );
+                create_alert(`failed to get current collection ${collection} ${current_collection}`, { type: "error" } );
                 return;
             }
 
@@ -392,25 +392,26 @@ const delete_beatmaps_manager = async () => {
     
     const name = get_selected_collection();
 
-    // make sure the collectio is valid
+    // make sure the collection is valid
     if (!name) {
         create_alert("failed to get current collection", { type: "error" });
         return;
     }
 
-    const beatmaps = Array.from(collections.get(name).maps);
-    const filtered_maps = [];
+    const old_collection = collections.get(name);
+    const all_beatmaps = Array.from(old_collection.maps);
+    const beatmaps = new Map();
 
-    if (!beatmaps) {
+    console.log(old_collection, all_beatmaps, old_collection, old_collection.maps);
+
+    if (!all_beatmaps) {
         create_alert("failed to get collection beatmaps", { type: "error" });
         return;
     }
 
-    for (let i = 0; i < beatmaps.length; i++) {
-        if (filter_beatmap(beatmaps[i])) {
-            filtered_maps.push(beatmaps[i]);
-        } else {
-            filtered_maps.push({}); // unknown
+    for (let i = 0; i < all_beatmaps.length; i++) {
+        if (filter_beatmap(all_beatmaps[i])) {
+            beatmaps.set(all_beatmaps[i].md5, all_beatmaps[i]);
         }
     }
 
@@ -419,18 +420,23 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const conf = await quick_confirm(`delete ${ filter ? filtered_maps.length : "all" } beatmap${filtered_maps.length > 1 ? "s" : ""} from ${name}?`);
+
+    console.log(all_beatmaps, beatmaps.values());
+    const conf = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.length > 1 ? "s" : ""} from ${name}?`);
 
     if (!conf) {
         return;
     }
 
     // delete beatmaps in the osu folder
-    const success = await delete_beatmaps(beatmaps);
+    const success = await delete_beatmaps(Array.from(beatmaps.values()));
 
     if (!success) {
         return;
     }
+
+    // update the current collection with "unknown beatmaps"
+    // collections.set(name, { maps: old_collection.maps.filter((b) => !beatmaps.has(b.md5)) });
 
     // render manager once again
     await initialize();
@@ -438,7 +444,7 @@ const delete_beatmaps_manager = async () => {
 };
 
 const create_empty_collection = async (name) => {
-    collections.set(name, []);
+    collections.set(name, { maps: [] });
     setup_manager();
 };
 
@@ -746,6 +752,7 @@ const render_page = (id, _offset) => {
 
         // no beatmaps? maybe a empty collection
         if (!beatmaps) {
+            console.log("no beatmaps", collection);
             add_more = false;
             break;
         }
@@ -837,7 +844,7 @@ const check_merge = async (id) => {
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
-        console.log("???");
+        console.log("failed to get draggable item");
         return false;
     }
 
@@ -884,7 +891,7 @@ const check_merge = async (id) => {
         return false;
     }
 
-    collections.set(new_name, merge_collections(cl1, cl2));
+    collections.set(new_name, { maps: merge_collections(cl1, cl2) });
 
     // need to save
     update_collection_button.style.display = "block";
@@ -915,7 +922,7 @@ const change_collection_name = async (event, id, name_element) => {
     name_element.innerText = new_name;
 
     const old_draggable_item = draggable_items_map.get(id);
-    const old_collection = collections.get(old_draggable_item.collection_id).maps;
+    const old_collection = collections.get(old_draggable_item.collection_id);
 
     if (!old_collection) {
         console.log("failed to get old collection", old_draggable_item);
@@ -927,7 +934,7 @@ const change_collection_name = async (event, id, name_element) => {
     collections.set(new_name, old_collection);
 
     // update draggable_item object to contain new name
-    old_draggable_item.collection.maps = old_collection;
+    old_draggable_item.collection.maps = old_collection.maps;
     old_draggable_item.collection_id = new_name;
 
     // update current draggable_item
@@ -1159,7 +1166,7 @@ const update_map_info = (map) => {
 export const add_collection_manager = async (maps, collection) => {
 
     const updated_map = maps.map(map => update_map_info(map));
-    collections.set(collection, updated_map);
+    collections.set(collection, { maps: updated_map });
 
     await initialize();
     setup_manager();
@@ -1181,7 +1188,7 @@ export const initialize = async (options) => {
         await get_files(core.config.get("osu_path"));
     }
 
-    if (collections.size === 0) {
+    if (collections.size == 0) {
 
       for (const collection of core.reader.collections.beatmaps) {
 

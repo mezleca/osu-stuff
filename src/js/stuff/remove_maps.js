@@ -116,11 +116,11 @@ export const delete_beatmaps = async (beatmaps) => {
                     console.log("failed to find:", item);
                 }
 
-                // dont remove anything in dev mode
-                // if (window.electron.dev_mode) {
-                //     console.log("[dev] skipping delete:", folder_path, item.md5);
-                //     continue;
-                // }
+                /// dont remove anything in dev mode
+                if (window.electron.dev_mode) {
+                    console.log("[dev] skipping delete:", folder_path, item.md5);
+                    continue;
+                }
 
                 fs.unlinkSync(item_path); 
                 
