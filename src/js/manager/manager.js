@@ -134,8 +134,12 @@ const get_from_player = async () => {
     if (method.beatmap_status.length == 0) {
         method.beatmap_status.push("all");        
     }
+    
 
-    method.name = `${method.player_name} - (${method.beatmap_options.join(", ")}`;
+    // @TODO: this is a hack, i have no ideia but im getting duplicated options
+    const options = new Set(method.beatmap_options);
+
+    method.name = `${method.player_name} - (${Array.from(options.values()).join(", ")})`;
     await create_task(method.name, download_from_players, method);
 };
 

@@ -190,18 +190,29 @@ export const check_merge = async (id) => {
 
     // get the merge draggable_item
     const merge_draggable_item = document.querySelector(".merge");
+
     if (!merge_draggable_item) {
         return false;
     }
 
-    // force draggable_item cursor to stop
+    // force draggable cursor to stop
     draggable_item.stop = true;
+
+    // create a unique array with content from current_draggable_item and merge
+    const cl1_id = draggable_items_map.get(merge_draggable_item.id)?.collection_id;
+    const cl2_id = draggable_items_map.get(id)?.collection_id;
+
+    if (!cl1_id || !cl2_id) {
+        console.log("failed to get collection id", id, merge_draggable_item.id);
+        return false;
+    }
 
     const new_name = await create_custom_popup({
         type: message_types.INPUT,
         title: "collection name",
         label: "new collection name",
         input_type: "text",
+        value: `${cl2_id} + ${cl1_id}`
     });
 
     if (!new_name) {
@@ -211,15 +222,6 @@ export const check_merge = async (id) => {
     // check if this collection already exists
     if (collections.has(new_name)) {
         create_alert("this collection already exists");
-        return false;
-    }
-
-    // create a unique array with content from current_draggable_item and merge
-    const cl1_id = draggable_items_map.get(merge_draggable_item.id)?.collection_id;
-    const cl2_id = draggable_items_map.get(id)?.collection_id;
-
-    if (!cl1_id || !cl2_id) {
-        console.log("failed to get collection id", id, merge_draggable_item.id);
         return false;
     }
 

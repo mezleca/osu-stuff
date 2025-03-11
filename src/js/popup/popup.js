@@ -106,7 +106,7 @@ const create_input = async (options) => {
         <div class="popup-container" id="${input_id}">
             <div class="popup-content">
                 <label>${label}</label>
-                <input type="${input_type}" id="input_field">
+                <input type="${input_type}" id="input_field" value="${options?.value || ""}">
                 <button id="input_submit">Submit</button>
             </div>
         </div>
