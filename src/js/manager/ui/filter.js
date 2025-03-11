@@ -258,21 +258,24 @@ export const create_dropdown_filter = (id, name, options) => {
 
 export const filter_beatmap = (beatmap) => {
 
-    const beatmap_sr = get_beatmap_sr(beatmap);
-    const beatmap_bpm = get_beatmap_bpm(beatmap);
+    const beatmap_sr = Number(get_beatmap_sr(beatmap));
+    const beatmap_bpm = Number(get_beatmap_bpm(beatmap));
 
     // filter by sr
     if (beatmap_sr < sr_filter.min.value || beatmap_sr > sr_filter.max.value) {
+        //console.log("filterd", beatmap, "by sr", beatmap_sr, sr_filter.max.value, sr_filter.min.value);
         return false;
     }
 
     // filter by status
     if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
+        //console.log("filterd", beatmap, "by status");
         return false;
     }
 
     // filter by bpm
     if (beatmap_bpm < bpm_filter.min.value || beatmap_bpm > bpm_filter.max.value) {
+        //console.log("filterd", beatmap, "by bpm", beatmap_bpm, bpm_filter.max.value);
         return false;
     }
 

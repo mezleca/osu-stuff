@@ -19,6 +19,10 @@ export const get_beatmap_sr = (beatmap) => {
                 continue;
             }
 
+            if (sr?.sr?.length == 0) {
+                continue;
+            }
+
             const star_rating = Number(sr.sr[nomod][1]);
 
             if (Math.sign(star_rating) == -1) { 
@@ -28,10 +32,10 @@ export const get_beatmap_sr = (beatmap) => {
             return star_rating.toFixed(2);
         }
     
-        return 0;
+        return Number(0).toFixed(2);
     } catch(err) {
         console.log(err);
-        return 0;
+        return Number(0).toFixed(2);
     }  
 };
 
