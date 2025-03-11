@@ -282,19 +282,28 @@ const get_from_player = async () => {
             },
             {
                 key: "difficulty range",
-                element: { range: { min: 0, max: 100, identifier: "★", decimal_places: "2" }}
+                element: { range: { min: 0.00, max: 100.00, identifier: "★", decimal_places: "2" }}
             }
         ]
     });
 
+    if (!method.player_name) {
+        return;
+    }
+
+    if (method.beatmap_options.length == 0) {
+        create_alert("please select at least one beatmap option", { type: "warning" });
+        return;
+    }
+
+    if (method.beatmap_status.length == 0) {
+        method.beatmap_status.push("all");        
+    }
+
     console.log(method);
 
-    // if (!method.name) {
-    //     return;
-    // }
-
-    // const task_name = `${player} - ${method.name}`;
-    // await create_task(task_name, download_from_players, player, method.name);
+    const task_name = `${method.player_name} - (${method.beatmap_options.join(", ")}`;
+    await create_task(task_name, download_from_players, method);
 };
 
 const add_new_collection = async () => {
@@ -944,11 +953,20 @@ update_collection_button.addEventListener("click", async () => {
     };
 
     for (let [k, v] of collections) {
+
+        const maps = v?.maps;
         const obj = { name: k, maps: [] };
-        for (let i = 0 ; i < v.length; i++) {
-            const map = v[i];
+
+        if (!maps) {
+            create_alert("invalid map object", { type: "error" });
+            return;
+        }
+
+        for (let i = 0 ; i < maps.length; i++) {
+            const map = maps[i];
             obj.maps.push(map.md5);
         }
+
         new_collection.beatmaps.push(obj);
     }
 
