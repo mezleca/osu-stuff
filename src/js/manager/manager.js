@@ -10,6 +10,7 @@ import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, collections, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { filter_beatmap, sr_filter, status_filter, bpm_filter } from "./ui/filter.js";
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
+import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "./tools/beatmaps.js";
 
 // @TODO: strip manager logic in files. 
@@ -416,6 +417,11 @@ const render_beatmap = (beatmap) => {
         beatmap_status.classList.add(String(status).toLowerCase());
     };
 
+    const open_in_browser = () => {
+        const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+        window.electron.shell.openExternal(url);
+    };
+
     const update_sr = (beatmap_sr) => {
 
         const class_name = star_ranges.find(([min, max]) => beatmap_sr >= min && beatmap_sr <= max)[2];
@@ -450,9 +456,38 @@ const render_beatmap = (beatmap) => {
 
     if (has_beatmap) {
 
-        title.addEventListener("click", () => {
-            const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-            window.electron.shell.openExternal(url);
+        title.addEventListener("click", open_in_browser);
+
+        // add contextmenu handler
+        beatmap_element.addEventListener("contextmenu", () => {
+
+            create_context_menu({
+                id: beatmap.md5,
+                target: beatmap_element,
+                values: [
+                    {
+                        type: "default",
+                        value: "open in browser",
+                        callback: open_in_browser
+                    },
+                    {
+                        type: "submenu",
+                        value: "move to",
+                        values: Array.from(collections.keys),
+                        callback: () => console.log("not implemented yet") // TODO 
+                    },
+                    {
+                        type: "default",
+                        value: "remove beatmap set",
+                        callback: () => console.log("not implemented yet") // TODO
+                    },
+                    {
+                        type: "default",
+                        value: "remove beatmap",
+                        callback: () => { remove_beatmap(beatmap.md5) }
+                    }
+                ]
+            })
         });
 
         // @TODO: get mp3 from osu folder for downloaded beatmaps
@@ -510,6 +545,7 @@ const render_beatmap = (beatmap) => {
             create_alert("searching beatmap...");
 
             const beatmap_data = await download_map(beatmap.md5);
+
             if (!beatmap_data) {
                 create_alert("Beatmap not found :c", { type: "alert" });
                 return;
@@ -532,10 +568,7 @@ const render_beatmap = (beatmap) => {
             update_status(beatmap_data.status);
             update_sr(beatmap_data.difficulty_rating);
 
-            title.addEventListener("click", () => {
-                const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-                window.electron.shell.openExternal(url);
-            });
+            title.addEventListener("click", open_in_browser);
          
             title.textContent = beatmap?.song_title || "Unknown";
             subtitle.textContent = beatmap?.difficulty || "Unknown";

@@ -60,7 +60,7 @@ const generate_context = (options) => {
     return base;
 };
 
-const create_context_menu = (options) => {
+export const create_context_menu = (options) => {
 
     if (!options?.id) {
         console.log("[CONTEXT MENU] missing id");
