@@ -1522,6 +1522,59 @@ input[type="range"]::-moz-range-track {
     transition: transform 0.3s ease;
 }
 
+.target-element {
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 5px;
+    width: 200px;
+    text-align: center;
+    cursor: context-menu;
+    border: 1px solid #ddd;
+}
+
+.context-menu {
+    position: absolute;
+    background-color: var(--hover-color);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 5px 0;
+    min-width: 150px;
+    display: none;
+    z-index: 1000;
+}
+
+.menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    position: relative;
+}
+
+.menu-item:hover {
+    background-color: var(--hover-color);
+}
+
+.menu-item.has-submenu::after {
+    content: '►';
+    position: absolute;
+    right: 10px;
+    font-size: 10px;
+}
+
+.submenu {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background-color: var(--bg-color);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 5px 0;
+    min-width: 150px;
+    display: none;
+    z-index: 1001;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
