@@ -14,7 +14,7 @@ export const osu_login = async (id, secret) => {
         const response = await fetch(`https://osu.ppy.sh/oauth/token`, { method: 'POST', body: form_data });
         const data = await response.json();
 
-        if (data.status != 200) {
+        if (response.status != 200) {
             create_alert("failed to login<br>make sure your osu_id/secret is valid", { type: "error", seconds: 10 });
             return null;
         }
