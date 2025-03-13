@@ -1534,7 +1534,7 @@ input[type="range"]::-moz-range-track {
 
 .context-menu {
     position: absolute;
-    background-color: var(--hover-color);
+    background-color: var(--bg-color);
     border: 1px solid #ccc;
     border-radius: 4px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -1573,7 +1573,7 @@ input[type="range"]::-moz-range-track {
     min-width: 150px;
     display: none;
     z-index: 1001;
-    margin-left: 10px;
+    margin-left: 5px;
 }
 
 @keyframes spin {

@@ -4,8 +4,10 @@ export const zlib = window.nodeAPI.zlib;
 export const collections = new Map();
 export const is_testing = window.electron.dev_mode;
 export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
 export const MAX_RENDER_AMMOUNT = 16;
 export const DRAG_ACTIVATION_THRESHOLD_MS = 500;
+export const CONTEXT_FADE_MS = 100;
 
 export const star_ranges = [
     [0, 2.99, "sr1"],

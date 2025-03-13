@@ -459,35 +459,32 @@ const render_beatmap = (beatmap) => {
         title.addEventListener("click", open_in_browser);
 
         // add contextmenu handler
-        beatmap_element.addEventListener("contextmenu", () => {
-
-            create_context_menu({
-                id: beatmap.md5,
-                target: beatmap_element,
-                values: [
-                    {
-                        type: "default",
-                        value: "open in browser",
-                        callback: open_in_browser
-                    },
-                    {
-                        type: "submenu",
-                        value: "move to",
-                        values: Array.from(collections.keys),
-                        callback: () => console.log("not implemented yet") // TODO 
-                    },
-                    {
-                        type: "default",
-                        value: "remove beatmap set",
-                        callback: () => console.log("not implemented yet") // TODO
-                    },
-                    {
-                        type: "default",
-                        value: "remove beatmap",
-                        callback: () => { remove_beatmap(beatmap.md5) }
-                    }
-                ]
-            })
+        create_context_menu({
+            id: beatmap.md5,
+            target: beatmap_element,
+            values: [
+                {
+                    type: "default",
+                    value: "open in browser",
+                    callback: open_in_browser
+                },
+                {
+                    type: "submenu",
+                    value: "move to",
+                    values: Array.from(collections.keys()).map((k) => { return { value: k }}),
+                    callback: () => console.log("not implemented yet") // TODO 
+                },
+                {
+                    type: "default",
+                    value: "remove beatmap set",
+                    callback: () => console.log("not implemented yet") // TODO
+                },
+                {
+                    type: "default",
+                    value: "remove beatmap",
+                    callback: () => { remove_beatmap(beatmap.md5) }
+                }
+            ]
         });
 
         // @TODO: get mp3 from osu folder for downloaded beatmaps

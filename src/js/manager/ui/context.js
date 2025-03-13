@@ -1,4 +1,4 @@
-const callbacks = new Map();
+import { CONTEXT_FADE_MS } from "../../utils/global.js";
 
 const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
@@ -75,7 +75,7 @@ export const create_context_menu = (options) => {
     const context_element = generate_context(options);
     const context_options = context_element.children[0];
 
-    let is_visible = false, x, y;
+    let is_visible = false, x, y, close_timeout;
 
     const show_menu = (menu, update_pos) => {
 
@@ -104,9 +104,55 @@ export const create_context_menu = (options) => {
         subs.forEach((sub) => sub.style.display = "none");
     };
 
+    const is_in_context = (mouse_x, mouse_y) => {
+
+        const context_rect = context_options.getBoundingClientRect();
+        
+        if (mouse_x >= context_rect.left - 10 && mouse_x <= context_rect.right + 10 && 
+            mouse_y >= context_rect.top - 10 &&
+            mouse_y <= context_rect.bottom + 10) {
+            return true;
+        }
+        
+        const visible_submenus = context_element.querySelectorAll(".submenu[style*='display: block']");
+
+        for (let i = 0; i < visible_submenus.length; i++) {
+
+            const submenu_rect = visible_submenus[i].getBoundingClientRect();
+
+            if (mouse_x >= submenu_rect.left - 10 &&mouse_x <= submenu_rect.right + 10 &&
+                mouse_y >= submenu_rect.top - 10 &&
+                mouse_y <= submenu_rect.bottom + 10) {
+                return true;
+            }
+        }
+        
+        return false;
+    };
+
     document.addEventListener("mousemove", (e) => {
+
         x = e.clientX;
         y = e.clientY;
+
+        if (is_visible && !is_in_context(x, y)) {
+
+            if (close_timeout) {
+                clearTimeout(close_timeout);
+            }
+            
+            close_timeout = setTimeout(() => {
+                close_menu();
+                close_submenus();
+                is_visible = false;
+                close_timeout = null;
+            }, CONTEXT_FADE_MS);
+        } 
+        
+        if (close_timeout && is_in_context(x, y)) {
+            clearTimeout(close_timeout);
+            close_timeout = null;
+        }
     });
 
     options.target.addEventListener("contextmenu", (e) => {
