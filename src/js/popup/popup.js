@@ -51,7 +51,7 @@ export const create_alert = async (text, data) => {
     const options = data ? data : {...DEFAULT_ALERT_OBJECT, text: text };
     const seconds = options?.seconds ? options.seconds : 3;
 
-    const alert_style = ALERT_STYLES[options.alert_mode] || ALERT_STYLES["default"];
+    const alert_style = ALERT_STYLES[options.type] || ALERT_STYLES["default"];
     const alert_id = crypto.randomUUID();
     const alert_text = text;
 
