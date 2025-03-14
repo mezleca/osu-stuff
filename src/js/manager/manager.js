@@ -238,7 +238,7 @@ const delete_beatmaps_manager = async () => {
     const beatmaps = new Map();
 
     if (!all_beatmaps) {
-        create_alert("[Manager] failed to get collection beatmaps", { type: "error" });
+        create_alert("failed to get collection beatmaps", { type: "error" });
         return;
     }
 

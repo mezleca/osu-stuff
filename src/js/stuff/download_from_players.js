@@ -1,6 +1,7 @@
 import { core } from "../utils/config.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
+import { collections } from "../utils/global.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -32,27 +33,33 @@ const add_to_collection = async (maps, name, append) => {
 
     if (append) {
 
-        const collection = core.reader.collections.beatmaps.find((e) => e.name == name);
+        const selected_name = get_selected_collection();
+
+        if (!selected_name) {
+            create_alert("huh");
+            return;
+        }
+
+        const collection = collections.get(selected_name);
 
         if (!collection) {
             create_alert("failed to get collection", { type: "error" });
             return;
         }
 
-        collection.maps = [...collection.maps, ...maps];
-        await add_collection_manager(collection.maps, name);
-        return;
-    }
-
-    core.reader.collections.beatmaps.push({
-        name: name,
-        maps: [...maps]
-    });
-
-    core.reader.collections.length = core.reader.collections.beatmaps.length;
-
-    await add_collection_manager(maps, name);
-    create_alert(`added ${name} to your collections!`, { type: "success" });
+        const beatmaps = [...collection.maps, ...maps];
+        await add_collection_manager(beatmaps, selected_name);
+    } else {
+        core.reader.collections.beatmaps.push({
+            name: name,
+            maps: [...maps]
+        });
+    
+        core.reader.collections.length = core.reader.collections.beatmaps.length;
+    
+        await add_collection_manager(maps, name);
+        create_alert(`added ${name} to your collections!`, { type: "success" });
+    }   
 };
 
 const fetch_maps = async (base_url, limit) => {

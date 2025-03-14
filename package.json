@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "webpack && electron-forge start",
-    "dev": "cross-env NODE_ENV=development electron .",
+    "dev": "NODE_ENV=development electron .",
     "package": "electron-forge package",
     "make": "webpack && electron-forge make",
     "make:win": "webpack && electron-forge make --platform win32",
@@ -20,8 +20,6 @@
     "@electron-forge/maker-zip": "^7.7.0",
     "@reforged/maker-appimage": "^5.0.0",
     "@electron/fuses": "^1.8.0",
-    "autoprefixer": "^10.4.20",
-    "cross-env": "^7.0.3",
     "electron": "34.3.1",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1"
