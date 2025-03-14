@@ -184,7 +184,7 @@ export const check_merge = async (id) => {
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
-        console.log("failed to get draggable item");
+        console.log("[Manager UI] failed to get draggable item");
         return false;
     }
 
@@ -203,7 +203,7 @@ export const check_merge = async (id) => {
     const cl2_id = draggable_items_map.get(id)?.collection_id;
 
     if (!cl1_id || !cl2_id) {
-        console.log("failed to get collection id", id, merge_draggable_item.id);
+        console.log("[Manager UI] failed to get collection id", id, merge_draggable_item.id);
         return false;
     }
 
@@ -229,7 +229,7 @@ export const check_merge = async (id) => {
     const cl2 = collections.get(cl2_id).maps;
 
     if (!cl1 || !cl2) {
-        console.log("failed to get collection", id, merge_draggable_item.id);
+        console.log("[Manager UI] failed to get collection", id, merge_draggable_item.id);
         return false;
     }
 
@@ -267,7 +267,7 @@ export const change_collection_name = async (event, id, element) => {
     const old_collection = collections.get(old_draggable_item.collection_id);
 
     if (!old_collection) {
-        console.log("failed to get old collection", old_draggable_item);
+        console.log("[Manager UI] failed to get old collection", old_draggable_item);
         return;
     }
 
@@ -305,7 +305,7 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
             const collection_id = draggable_items_map.get(id)?.collection_id;
 
             if (!collection_id) {
-                console.log("failed to get collection id", id);
+                console.log("[Manager UI] failed to get collection id on delete", id);
                 return false;
             }
 

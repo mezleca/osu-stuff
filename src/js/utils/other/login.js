@@ -21,7 +21,7 @@ export const osu_login = async (id, secret) => {
         
         return data;
     } catch(err) {
-        console.log("login err", err);
+        console.log("[Login] error:", err);
         return null;
     }
 };

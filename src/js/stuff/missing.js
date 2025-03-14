@@ -67,7 +67,7 @@ export const export_missing = async (id) => {
                     return;
                 }
     
-                console.log("finished checking missing maps");
+                console.log("[Missing Beatmaps] finished checking missing maps");
             }
         
             create_alert("searching beatmap ids\nthis might take a while...");
@@ -91,7 +91,7 @@ export const export_missing = async (id) => {
                     events.emit("progress-update", { id: id, perc: (i / missing_maps.length * 100), i: i, l: missing_maps.length });
                 }
         
-                console.log("finished beatmap search");
+                console.log("[Export Missing Beatmaps] finished beatmap search");
 
                 re();
             });
@@ -106,7 +106,7 @@ export const export_missing = async (id) => {
             resolve("Finished exporting");
         } 
         catch (err) {
-            console.log(`[EXPORT MISSING] Error: ${err}`);
+            console.log(`[Export Missing Beatmaps] Error: ${err}`);
             reject("Something went wrong");
         }
     });
@@ -192,7 +192,7 @@ export const missing_download = async () => {
         }
         catch(err) {
             if (err != "cancelled") {
-                console.log(`[MISSING DOWNLOAD] Error: ${err}`);
+                console.log(`[Missing Beatmaps] Error: ${err}`);
             }
             reject(err == "cancelled" ? "cancelled" : "something went wrong");
         }

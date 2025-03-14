@@ -115,7 +115,7 @@ export const add_collection = async (url) => {
         const new_name = "!stuff - " + collection.name;
     
         // make sure c_maps is valid
-        const maps = c_maps.filter((m) => m !== undefined && typeof m === "string");
+        const maps = c_maps.filter((m) => m != undefined && typeof m == "string");
 
         // create a new collection
         core.reader.collections.beatmaps.push({
@@ -125,7 +125,7 @@ export const add_collection = async (url) => {
     
         core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-        console.log("updated collections object", core.reader.collections);
+        console.log("[Collector] updated collections object", core.reader.collections);
 
         // update the manager
         collections.set(new_name, maps.map((v) => {

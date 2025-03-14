@@ -1,4 +1,4 @@
-import { core, get_files, create_element } from "../utils/config.js"
+import { core, load_osu_files, create_element } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
@@ -56,7 +56,7 @@ const remove_beatmap = (hash) => {
     const beatmaps = collections.get(name).maps;
 
     if (!beatmaps) {
-        console.log("failed to get collection", name);
+        console.log("[Manager] failed to get collection", name);
         return;
     }
 
@@ -240,10 +240,8 @@ const delete_beatmaps_manager = async () => {
     const all_beatmaps = Array.from(old_collection.maps);
     const beatmaps = new Map();
 
-    console.log(old_collection, all_beatmaps, old_collection, old_collection.maps);
-
     if (!all_beatmaps) {
-        create_alert("failed to get collection beatmaps", { type: "error" });
+        create_alert("[Manager] failed to get collection beatmaps", { type: "error" });
         return;
     }
 
@@ -258,8 +256,6 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-
-    console.log(all_beatmaps, beatmaps.values());
     const conf = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.length > 1 ? "s" : ""} from ${name}?`);
 
     if (!conf) {
@@ -412,7 +408,7 @@ const render_beatmap = (beatmap) => {
     const status = Object.entries(_status).find(([k, v]) => v === beatmap.status)?.[0];
     const beatmap_sr = get_beatmap_sr(beatmap);
 
-    const update_status = (status) => {
+    const set_loading_status = (status) => {
         beatmap_status.innerText = String(status).toUpperCase();
         beatmap_status.classList.add(String(status).toLowerCase());
     };
@@ -435,7 +431,7 @@ const render_beatmap = (beatmap) => {
         }
     };
 
-    update_status(status);
+    set_loading_status(status);
 
     if (!isNaN(beatmap_sr)) {
         update_sr(beatmap_sr);
@@ -562,7 +558,7 @@ const render_beatmap = (beatmap) => {
 
             const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
 
-            update_status(beatmap_data.status);
+            set_loading_status(beatmap_data.status);
             update_sr(beatmap_data.difficulty_rating);
 
             title.addEventListener("click", open_in_browser);
@@ -592,7 +588,7 @@ export const render_page = (id, _offset) => {
     const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
-        console.log("failed to get collection", id);
+        console.log("[Manager] failed to get collection", id);
         return;
     }
 
@@ -619,7 +615,7 @@ export const render_page = (id, _offset) => {
 
         // no beatmaps? maybe a empty collection
         if (!beatmaps) {
-            console.log("no beatmaps", collection);
+            console.log("[Manager] no beatmaps", collection);
             add_more = false;
             break;
         }
@@ -700,7 +696,7 @@ update_collection_button.addEventListener("click", async () => {
         new_collection.beatmaps.push(obj);
     }
 
-    console.log("updated collection:", new_collection);
+    console.log("[Manager] updated collection:", new_collection);
 
     core.reader.collections = new_collection;
     const backup_name = `collection_backup_${Date.now()}.db`;
@@ -800,7 +796,7 @@ export const initialize = async (options) => {
     }
     
     if (force) {
-        await get_files(core.config.get("osu_path"));
+        await load_osu_files(core.config.get("osu_path"));
     }
 
     if (collections.size == 0) {

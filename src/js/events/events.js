@@ -56,7 +56,7 @@ const start_task = (task) => {
 const manage_queue_ui = {
 
     create_div() {
-        console.log("creating queue div");
+        console.log("[Queue] creating queue div");
         const html = `
             <div class="cool-container status-container" id="queue_list">
                 <h1>queue list</h1>
@@ -96,7 +96,7 @@ const disable_queue_interval = () => {
     manage_queue_ui.update(0);
     clearInterval(queue_interval);
     queue_interval = null;
-    console.log("disabling queue interval");
+    console.log("[Queue] disabling interval");
 }
 
 const queue_handler = () => {
@@ -136,7 +136,7 @@ export const handle_event = async (data, callback, ...args) => {
         const callback_value = await callback(...args);
 
         if (callback_value) {        
-            console.log("[HANDLE EVENT] callback value", callback_value);
+            console.log("[Event Handler] callback value", callback_value);
         }
         
         if ((!callback_value && download_types.includes(data.id)) || typeof callback_value != "object") {
@@ -161,7 +161,7 @@ export const handle_event = async (data, callback, ...args) => {
         });
 
         if (queue_interval == null) {
-            console.log("initializing queue interval");
+            console.log("[Event Handler] initializing queue interval");
             queue_interval = setInterval(queue_handler, 500);
         }
 
@@ -211,7 +211,7 @@ events.on("progress-update", (data) => {
     const status = tasks.get(data.id);
 
     if (!status) {
-        console.log("[PROGRESS-UPDATE] status not found", data.id);
+        console.log("[Progress Handler] status not found", data.id);
         return;
     }
 
@@ -228,14 +228,14 @@ events.on("progress-end", (id, downloaded) => {
     const data = tasks.get(id);
 
     if (!data) {
-        console.log("Id not found", data, id);
+        console.log("[Progress Handler] Id not found", data, id);
         return;
     }
 
     const status = data.tab;
 
     if (!status) {
-        console.log("[PROGRESS-END] status not found", data.id);
+        console.log("[Progress Handler] status not found", data.id);
         return;
     }
 
@@ -247,7 +247,7 @@ events.on("progress-end", (id, downloaded) => {
     if (panels.status.contains(status)) {
         panels.status.removeChild(status);
     } else {
-        console.log("panel dont contain status", status, );
+        console.log("[Progress Handler] panel dont contain status", status, );
     }
 
     tasks.delete(id);

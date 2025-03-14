@@ -26,7 +26,7 @@ export const url_is_valid = (url, hostname) => {
 const add_to_collection = async (maps, name, append) => {
 
     if (maps.length == 0) {
-        console.log("no maps");
+        console.log("[Download from Players] 0 maps to add");
         return;
     }
 
@@ -61,7 +61,7 @@ const fetch_maps = async (base_url, limit) => {
     let offset = 0;
 
     if (!limit) {
-        console.log("[ERROR] no maps to fetch");
+        console.log("[Download from Players] 0 maps to fetch");
         return;
     }
 
@@ -117,7 +117,7 @@ const get_player_info = async (options) => {
     const default_data = await default_response.json();
 
     if (!default_data?.id) {
-        console.log("player", player_name, "not found");
+        console.log("[Download from Players] player", player_name, "not found");
         return;
     }
 

@@ -61,7 +61,7 @@ export const download_map = async (hash) => {
         return;
     }
 
-    console.log("download single map:", hash);
+    console.log("[Downloader] download single map:", hash);
 
     const new_download = new map_downloader({ hash: hash }, "0");
     return await new_download.init(true);
@@ -111,17 +111,15 @@ class map_downloader {
     async get_map_data(map) {
 
         if (map.id) {
-            console.log("no id");
             return { map, data: {} };
         }
 
         if (!map.hash) {
-            console.log("no hash");
             return { map: null, data: null };
         }
 
         if (core.reader.osu.beatmaps.has(map.hash)) {
-            console.log("map is already downloaded");
+            console.log(`[Downloader] ${map.hash} already downloaded`);
             return { map, data: core.reader.osu.beatmaps.get(map.hash) };
         }
 
@@ -188,7 +186,7 @@ class map_downloader {
         const map_path = path.resolve(core.config.get("osu_songs_path"),`${map.id}.osz`);
 
         if (fs.existsSync(map_path)) {
-            console.log(`skipping ${map?.id} (already downloaded)`);
+            console.log(`[Downloader] skipping ${map?.id}`);
             return { map: null, data: null };
         }
 
@@ -211,7 +209,7 @@ class map_downloader {
 
     async process(map, index) {
 
-        console.log("searching map", map);
+        console.log("[Downloader] searching map", map);
 
         if (this.should_stop) {
             return { stop: true };
@@ -237,7 +235,7 @@ class map_downloader {
     async init(single_map = false) {
 
         if (!this.maps || !this.id) {
-            console.log("no beatmaps to download");
+            console.log("[Downloader] 0 beatmaps to download");
             current_download = null;
             return null;
         }
@@ -249,7 +247,6 @@ class map_downloader {
         if (single_map) {
             const result = await this.process(this.maps, 0);
             await initialize({ no_update: true });
-            console.log(result);
             return result;
         }
 

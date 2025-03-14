@@ -93,8 +93,6 @@ const find_matching_beatmaps = (min_sr, max_sr, status, ignore_from_collections)
 export const delete_beatmaps = async (beatmaps) => {
 
     let failed = false;
-
-    console.log(beatmaps);
     
     for (let i = 0; i < beatmaps.length; i++) {
 
@@ -110,10 +108,10 @@ export const delete_beatmaps = async (beatmaps) => {
 
                 // remove from the reader so manager wont show the map
                 if (core.reader.osu.beatmaps.has(item.md5)) {
-                    console.log("removing", item.md5, "from map");
+                    console.log("[Delete Beatmaps] removing", item.md5, "from map");
                     core.reader.osu.beatmaps.delete(item.md5);
                 } else {
-                    console.log("failed to find:", item);
+                    console.log("[Delete Beatmaps] failed to find:", item);
                 }
 
                 /// dont remove anything in dev mode
@@ -133,7 +131,7 @@ export const delete_beatmaps = async (beatmaps) => {
                     if (!folder.some(file => file.endsWith('.osu'))) {
                         fs.rmdirSync(folder_path, { recursive: true });
                         deleted_folders.add(folder_path);
-                        console.log("deleting folder", folder_path);
+                        console.log("[Delete Beatmaps] deleting folder", folder_path);
                     }
                 }
             }
@@ -230,9 +228,9 @@ export const remove_maps = async (id) => {
             return `removed ${count} beatmaps`;
         } catch(err) {
             if (typeof err == "string") {
-                console.log(err);
+                console.log(`[Delete Beatmaps] ${err}`);
             } else if (err.message) {
-                console.log(err.message);
+                console.log(`[Delete Beatmaps] ${err.message}`);
             }
         }
     });

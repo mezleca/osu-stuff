@@ -25,244 +25,229 @@ const config_options = {
     osu_id: "osu id",
     osu_secret: "osu secret",
     osu_path: "osu path",
-    osu_songs_path: "songs path"
+    osu_songs_path: "songs path",
 };
 
-const update_config = async (key, value) => {
+const default_mirrors = [
+    { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
+    { name: "direct", url: "https://osu.direct/api/d/" },
+];
+
+const osu_db_file = "osu!.db";
+const collection_db_file = "collection.db";
+
+export const save_config = async (key, value) => {
+
     const success = await save_to_db("config", key, value);
+
     if (!success) {
         console.error("failed to save config");
+        return;
     }
+
     core.config.set(key, value);
 };
 
-export const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
+export const create_element = (html_string) => {
+    return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
 };
 
-export const setup_tooltip = () => {
-
-    const tooltips = document.querySelectorAll(".tooltip");
-
-    for (const tooltip of tooltips) {
+const initialize_tooltips = () => {
+    document.querySelectorAll(".tooltip").forEach((tooltip) => {
         tooltip.addEventListener("click", () => {
             const text = tooltips_text[tooltip.id];
             create_alert(text, { html: true, seconds: 5 });
         });
-    }
-}
+    });
+};
 
-export const update_status = (status) => {
+const set_loading_status = (status) => {
 
     const status_div = document.querySelector(".loading-status");
 
-    if (!status_div) {
-        return;
+    if (status_div) {       
+        status_div.innerText = status
     }
+};
 
-    status_div.innerText = status;
-}
+export const load_osu_files = async (osu_path) => {
 
-export const get_files = async (osu) => {
-
-    const db_file = path.resolve(osu, "osu!.db");
-    const cl_file = path.resolve(osu, "collection.db");
+    const db_file = path.resolve(osu_path, osu_db_file);
+    const collection_file = path.resolve(osu_path, collection_db_file);
 
     if (!fs.existsSync(db_file)) {
         create_alert("failed to find osu.db file\nmake sure the osu path is valid", { type: "error" });
         return;
     }
 
-    // if collections.db doesn't exist, create a new file
-    if (!fs.existsSync(cl_file)) {
-
-        core.reader.collections  = {
-            version: 20240820, 
-            length: 0, 
-            beatmaps: []
-        };
-        
-        const file_path = path.resolve(cl_file);
-        await core.reader.write_collections_data(file_path);
-
-        console.log("created a new collections.db file in", file_path);
+    if (!fs.existsSync(collection_file)) {
+        core.reader.collections = { version: 20240820, length: 0, beatmaps: [] };
+        await core.reader.write_collections_data(collection_file);
+        console.log("[Config] created a new collections.db file in", file_path);
     }
 
-    const osu_file = fs.readFileSync(db_file);
-    const collection_file = fs.readFileSync(cl_file);
-    
+    const osu_data = fs.readFileSync(db_file);
+    const collection_data = fs.readFileSync(collection_file);
+
     core.reader.buffer = null;
     core.reader.osu = {};
     core.reader.collections = {};
 
-    update_status("reading osu files...");
+    set_loading_status("reading osu files...");
 
-    core.files.set("osu", osu_file);
-    core.files.set("collection", collection_file);
+    core.files.set("osu", osu_data);
+    core.files.set("collection", collection_data);
 
-    core.reader.set_buffer(collection_file, true);
+    core.reader.set_buffer(collection_data, true);
     await core.reader.get_collections_data();
 
-    core.reader.set_buffer(osu_file, true);
+    core.reader.set_buffer(osu_data, true);
     await core.reader.get_osu_data();
-}
+};
 
-const test_folder_permissions = async (folder) => {
+const check_folder_permissions = async (folder) => {
 
-    console.log("verifying folder access", folder);
+    console.log("[Config] verifying folder access", folder);
 
     try {
-        
+
         const test_file = path.join(folder, `test-${Date.now()}.tmp`);
-        const test_file2 = path.join(folder, "renamed-test.tmp");
+        const test_file_renamed = path.join(folder, "renamed-test.tmp");
 
-        // make sure everything works
-        fs.writeFileSync(test_file, 'test');
+        fs.writeFileSync(test_file, "test");
         fs.readFileSync(test_file);
-        fs.renameSync(test_file, test_file2);
-        fs.unlinkSync(test_file2);
+        fs.renameSync(test_file, test_file_renamed);
+        fs.unlinkSync(test_file_renamed);
 
-        // also try to modify a already existing file
-        const file_test = fs.readdirSync(folder)[0];
+        const first_file = fs.readdirSync(folder)[0];
 
-        if (!file_test) {
-            return true;
+        if (first_file) {
+            const file_path = path.join(folder, first_file);
+            const stats = fs.statSync(file_path);
+            const is_dir = (stats.mode & 0o170000) === 0o040000;
+            const temp_name = path.join(folder, is_dir ? "stufttest0101" : "renamed-test.tmp");
+            fs.renameSync(file_path, temp_name);
+            fs.renameSync(temp_name, file_path);
         }
 
-        // check if it's a directory or a file
-        const file_path = path.join(folder, file_test);
-        const stats = fs.statSync(file_path);
-
-        if ((stats.mode & 0o170000) === 0o040000) {
-            const temp_dir_name = path.join(folder, "stufttest0101");
-            fs.renameSync(file_path, temp_dir_name);
-            fs.renameSync(temp_dir_name, file_path);
-        } else {
-            const temp_file_name = path.join(folder, test_file2);
-            fs.renameSync(file_path, temp_file_name);
-            fs.renameSync(temp_file_name, file_path);
-        }
         return true;
     } catch (err) {
-        console.log("folder perm error:", err);
+        console.log("[Config] folder perm error:", err);
         return false;
     }
-}
+};
 
-const setup_config = async () => {
+const initialize_osu_config = async () => {
 
     const osu_id = core.config.get("osu_id");
-    const osu_secret = core.config.get("osu_secret");  
+    const osu_secret = core.config.get("osu_secret");
     const osu_path = core.config.get("osu_path");
-    const osu_songs = core.config.get("osu_songs_path");
+    const songs_path = core.config.get("osu_songs_path");
 
-    if (osu_id, osu_secret) {
+    if (osu_id && osu_secret) {
+
         core.login = await osu_login(osu_id, osu_secret);
+
         if (!core.login) {
-            create_alert("Failed to login", { type: "error" });
+            create_alert("failed to login", { type: "error" });
             return;
         }
     }
 
-    // check if both paths exists
-    if (!fs.existsSync(osu_path) || !fs.existsSync(osu_songs)) {
+    if (!fs.existsSync(osu_path) || !fs.existsSync(songs_path)) {
         create_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
         return;
     }
 
-    // check if the app has permission to read and write files
-    const osu_perms = test_folder_permissions(osu_path);
-    const songs_perms = test_folder_permissions(osu_songs);
+    const osu_perms = await check_folder_permissions(osu_path);
+    const songs_perms = await check_folder_permissions(songs_path);
 
     if (!osu_perms || !songs_perms) {
-        create_alert("failed to read osufolder\nmake sure you have permission on the drive before using osu-stuff", { type: "error" })
+        create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
         core.perm = false;
     }
 
-    await get_files(osu_path);
+    await load_osu_files(osu_path);
     create_alert("config updated!", { type: "success" });
 };
 
-const handle_config_check = async () => {
+const validate_and_setup_config = async () => {
 
     let is_valid = true;
 
     document.querySelectorAll("#config_fields").forEach((field) => {
         const input = field.querySelector("input");
+
         if (!input.value) {
             create_alert(`missing value for ${input.id}`, { type: "error" });
             is_valid = false;
         }
     });
 
-    if (!is_valid) {
-        return;
+    if (is_valid) {
+        await initialize_osu_config();
+        await initialize();
     }
+};
 
-    await setup_config();
-    await initialize();
-}
-
-const default_mirrors = [
-    { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
-    { name: "direct", url: "https://osu.direct/api/d/" },
-    // { name: "catboy", url: "https://catboy.best/d/" },
-];
-
-const handle_mirrors = async (tab, mirror_add_btn) => {
+const manage_mirrors = async (tab, add_button) => {
 
     tab.innerHTML = "<h1>mirrors list</h1>";
-
     const mirror_data = await get_all_from_database("mirrors");
 
-    if (mirror_data.size == 0) {
-        for (let i = 0; i < default_mirrors.length; i++) {
-            await save_to_db("mirrors", default_mirrors[i].name, default_mirrors[i].url);
-            mirror_data.set(default_mirrors[i].name, default_mirrors[i].url);
+    if (mirror_data.size === 0) {
+        for (const mirror of default_mirrors) {
+            await save_to_db("mirrors", mirror.name, mirror.url);
+            mirror_data.set(mirror.name, mirror.url);
         }
     }
 
-    mirror_data.forEach((v, k) => {
+    mirror_data.forEach((url, name) => {
+
         const element = create_element(`
             <div class="mirror-box">
                 <div class="mirror-info">
-                    <h1>${k}</h1>
-                    <p>${v}</p>
+                    <h1>${name}</h1>
+                    <p>${url}</p>
                 </div>
                 <i class="bi bi-trash-fill" id="remove_mirror"></i>
-            </div>`
-        );
+            </div>
+        `);
+
         const remove_btn = element.querySelector("#remove_mirror");
         remove_btn.addEventListener("click", async () => {
-            await delete_from_db("mirrors", k);
-            await handle_mirrors(tab, mirror_add_btn);
+            await delete_from_db("mirrors", name);
+            await manage_mirrors(tab, add_button);
         });
+        
         tab.appendChild(element);
     });
 
-    tab.appendChild(mirror_add_btn);
+    tab.appendChild(add_button);
     core.mirrors = mirror_data;
 };
 
-export const add_config_shit = async () => {
 
-    update_status("checking config...");
+export const initialize_config = async () => {
+
+    set_loading_status("checking config...");
 
     const config_data = await get_all_from_database("config");
-    
+
     if (config_data) {
         core.config = config_data;
     }
 
-    const empty_config = core.config.size;
     const config_tab = document.getElementById("config_tab");
     const config_menu = all_tabs[1];
-    const label_content = [];
+    const fields = [];
 
+    // check if the app folder exists
     if (!fs.existsSync(core.og_path)) {
         fs.mkdirSync(core.og_path, { recursive: true });
     }
 
+    // get the access_token
     if (core.config.get("osu_id") && core.config.get("osu_secret")) {
         core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
     }
@@ -270,65 +255,66 @@ export const add_config_shit = async () => {
     const osu_base_path = await window.electron.osu_default_path();
     const songs_base_path = path.resolve(osu_base_path, "Songs");
 
-    const osu_exist = fs.existsSync(osu_base_path);
-    const songs_exist = fs.existsSync(songs_base_path);
-
-    if (!core.config.get("osu_path") && osu_exist) {
-        await update_config("osu_path", osu_base_path);
+    // try to get osu_path & osu_songs path
+    if (!core.config.get("osu_path") && fs.existsSync(osu_base_path)) {
+        await save_config("osu_path", osu_base_path);
     }
 
-    if (!core.config.get("osu_songs_path") && songs_exist) {
-        await update_config("osu_songs_path", songs_base_path);
+    if (!core.config.get("osu_songs_path") && fs.existsSync(songs_base_path)) {
+        await save_config("osu_songs_path", songs_base_path);
     }
 
+    // blink it!
     if (!core.config.get("osu_path") || !core.config.get("osu_songs_path")) {
         blink(config_menu);
     }
 
-    for (const [k, v] of Object.entries(config_options)) {
+    // create and initialize config elements
+    for (const [key, label] of Object.entries(config_options)) {
 
-        const should_hide = k == "osu_id" || k == "osu_secret";
-        const is_readonly = !should_hide, is_dialog = !should_hide;
-        const config_value = core.config.get(k);
+        const is_secret = key === "osu_id" || key === "osu_secret";
+        const is_readonly = !is_secret;
+        const value = core.config.get(key) || "";
 
-        const container_element = create_element(`
+        const field = create_element(`
             <div class="input-container" id="config_fields">
-                <label for="${k}">
-                    ${v}
-                    ${tooltips_text[k] ? `<div class="tooltip" id="${k}">(?)</div>` : ''}
+                <label for="${key}">
+                    ${label}
+                    ${tooltips_text[key] ? `<div class="tooltip" id="${key}">(?)</div>` : ""}
                 </label>
                 <input 
-                    class="${is_dialog ? 'config_input' : 'file_input'}" 
-                    type="${should_hide ? 'password' : 'text'}" 
-                    name="${k}" id="${k}" 
-                    value="${config_value || ''}" 
-                    ${is_readonly ? 'readonly' : ''}>
+                    class="${is_readonly ? "config_input" : "file_input"}" 
+                    type="${is_secret ? "password" : "text"}" 
+                    name="${key}" id="${key}" 
+                    value="${value}" 
+                    ${is_readonly ? "readonly" : ""}>
             </div>
         `);
 
-        const option = container_element.querySelector(".input-container > input");
+        const input = field.querySelector("input");
 
-        // update config
-        if (should_hide) {
-            option.addEventListener("input", debounce(async () => { 
-                if (option.value) {
-                    await update_config(k, option.value); 
-                }        
-            } , 300));
+        if (is_secret) {
+            input.addEventListener("input", debounce(async () => {
+                if (input.value) { 
+                    await save_config(key, input.value);
+                }
+            }, 300));
         }
 
-        // open dialog
-        if (is_dialog) {
-            option.addEventListener("click", async () => {
+        if (is_readonly) {
+
+            input.addEventListener("click", async () => {
+
                 const dialog = await window.electron.create_dialog();
+
                 if (!dialog.canceled) {
-                    await update_config(option.name, dialog.filePaths[0]);
-                    option.value = dialog.filePaths[0];
+                    await save_config(key, dialog.filePaths[0]);
+                    input.value = dialog.filePaths[0];
                 }
             });
         }
 
-        label_content.push(container_element);
+        fields.push(field);
     }
 
     config_tab.innerHTML = `
@@ -345,20 +331,15 @@ export const add_config_shit = async () => {
         </div>
     `;
 
-    // append config fields before the check button
     const check_button = config_tab.querySelector(".config-fields > .button-container");
     const mirror_tab = config_tab.querySelector(".mirror-list");
+    const mirror_add_button = create_element(`<button class="mirror-remove-container">Adicionar</button>`);
 
-    const mirror_add_btn = create_element(`
-        <button class="mirror-remove-container">add</button>
-    `);
+    await manage_mirrors(mirror_tab, mirror_add_button);
 
-    // create mirrors list
-    await handle_mirrors(mirror_tab, mirror_add_btn);
+    mirror_add_button.addEventListener("click", async () => {
 
-    mirror_add_btn.addEventListener("click", async () => {
-
-        if (!core.mirrors.size >= 4) {
+        if (core.mirrors.size >= 4) {
             create_alert("no more than 4 mirrors my guy", { type: "alert" });
             return;
         }
@@ -367,62 +348,47 @@ export const add_config_shit = async () => {
             type: message_types.CUSTOM_MENU,
             title: "mirror info",
             elements: [
-                {
-                    key: "name",
-                    element: { input: "mirror name" }
-                },
-                {
-                    key: "url",
-                    element: { input: "mirror url" }
-                },
-            ]
+                { key: "name", element: { input: "mirror name" } },
+                { key: "url", element: { input: "mirror url" } },
+            ],
         });
 
         if (!prompt.name || !prompt.url) {
-            create_alert("invalid mirror", { type: "error" });
+            create_alert("Mirror inválido", { type: "error" });
             return;
         }
-
         if (core.mirrors.get(prompt.name)) {
-            create_alert("theres already a mirror with this name", { type: "alert" });
+            create_alert("Já tem um mirror com esse nome", { type: "alert" });
             return;
         }
 
         await save_to_db("mirrors", prompt.name, prompt.url);
-        await handle_mirrors(mirror_tab, mirror_add_btn);
+        await manage_mirrors(mirror_tab, mirror_add_button);
     });
 
-    mirror_tab.appendChild(mirror_add_btn);
-    
-    label_content.forEach(e => { check_button.insertAdjacentElement("beforebegin", e) });
-    check_button.addEventListener("click", handle_config_check);
+    fields.forEach((field) => check_button.insertAdjacentElement("beforebegin", field));
+    check_button.addEventListener("click", validate_and_setup_config);
 
-    setup_tooltip();
+    initialize_tooltips();
 
-    if (!empty_config) {
-        create_alert("config not found<br>can you take a look at config tab pleease :)", { html: true });
+    if (core.config.size === 0) {
+        create_alert("config not found<br>can you take a look at config tab pleease :)");
         return;
     }
 
-    if (!fs.existsSync(core.config.get("osu_path"))) {
+    if (!fs.existsSync(core.config.get("osu_path")) || !fs.existsSync(core.config.get("osu_songs_path"))) {
         create_alert("failed to get osu path!", { type: "alert" });
         return;
     }
 
-    if (!fs.existsSync(core.config.get("osu_songs_path"))) {
-        create_alert("failed to get osu songs path!", { type: "alert" });
-        return;
-    }
-
-    // check if the app has permission to read and write files
-    const osu_perms = test_folder_permissions(core.config.get("osu_path"));
-    const songs_perms = test_folder_permissions(core.config.get("osu_songs_path"));
+    const osu_perms = await check_folder_permissions(core.config.get("osu_path"));
+    const songs_perms = await check_folder_permissions(core.config.get("osu_songs_path"));
 
     if (!osu_perms || !songs_perms) {
-        create_alert("failed to read osufolder\nmake sure you have permission on the drive before using osu-stuff", { type: "error" })
+        create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
         core.perm = false;
     }
 
-    await get_files(core.config.get("osu_path"));
+    await load_osu_files(core.config.get("osu_path"));
     await initialize();
 };
