@@ -267,7 +267,7 @@ export const add_config_shit = async () => {
         core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
     }
 
-    const osu_base_path = window.nodeAPI.env.osu_default_path;
+    const osu_base_path = await window.electron.osu_default_path();
     const songs_base_path = path.resolve(osu_base_path, "Songs");
 
     const osu_exist = fs.existsSync(osu_base_path);
@@ -405,12 +405,12 @@ export const add_config_shit = async () => {
     }
 
     if (!fs.existsSync(core.config.get("osu_path"))) {
-        create_alert("osu path is invalid!", { type: "alert" });
+        create_alert("failed to get osu path!", { type: "alert" });
         return;
     }
 
     if (!fs.existsSync(core.config.get("osu_songs_path"))) {
-        create_alert("osu songs path is invalid!", { type: "alert" });
+        create_alert("failed to get osu songs path!", { type: "alert" });
         return;
     }
 

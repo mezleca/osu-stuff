@@ -6,10 +6,12 @@ const os = require("os");
 const { contextBridge, ipcRenderer, shell } = require("electron");
 const { exec } = require("child_process");
 
+const windows_default_path = path.resolve(os.homedir(), "..", "Local", "osu!");
+
 const get_og_path = () => {
     switch (process.platform) {
         case 'win32':
-            return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), "osu-stuff");
+            return path.join(path.join(os.homedir(), 'AppData', 'Roaming'), "osu-stuff");
         case 'linux':
             return path.join(os.homedir(), '.local', 'share', "osu-stuff");
         default:
@@ -17,22 +19,48 @@ const get_og_path = () => {
     }
 }
 
-const get_osu_base_path = () => {
+const get_linux_path = async () => {
+
+    return new Promise((resolve, reject) => {
+
+        const default_path = path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu!');
+        const custom_path = path.join(os.homedir(), ".local/share/osuconfig/osupath");
+
+        // check if its in the default path
+        if (fs.existsSync(default_path)) {
+            return resolve(default_path);
+        }
+
+        // maybe its using a custom path?
+        exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1"`, (err, stdout, stderr) => {
+            if (err) {
+                return reject(err);
+            }
+            if (stderr) {
+                return reject(err);
+            }
+            if (stdout == 1) {
+                return resolve(fs.readFileSync(custom_path, "utf-8").split("\n")[0]);
+            }
+        });
+    });
+};
+
+const get_osu_base_path = async () => {
+    // @TODO: macos support
     switch (process.platform) {
         case 'win32':
-            return path.resolve(process.env.APPDATA, "..", "Local", "osu!");
-        case 'linux': // pretty sure everyone uses osu-wine to play stable
-            return path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu!');
+            return windows_default_path;
+        case 'linux': // pretty sure everyone uses osu-wine to play stable on linux
+            return await get_linux_path();
         default:
             return "";
     }
 };
 
-console.log(get_osu_base_path());
-
 const open_folder = (folder_path) => {
     const cmd = `start "" "${folder_path}"`;
-    exec(cmd, (err, stdout, stderr) => {
+    exec(cmd, (err) => {
         if (err) {
             console.log(err);
         }
@@ -40,8 +68,10 @@ const open_folder = (folder_path) => {
 };
 
 const is_running = (name) => {
+
     let platform = process.platform;
     let cmd = '';
+
     switch (platform) {
         case 'win32':
             cmd = `tasklist`;
@@ -55,6 +85,7 @@ const is_running = (name) => {
         default:
             break;
     }
+
     return new Promise(resolve => {
         exec(cmd, (err, stdout, stderr) => {
             const is_running = stdout.toLowerCase().indexOf(name.toLowerCase()) > -1;
@@ -70,7 +101,6 @@ contextBridge.exposeInMainWorld("nodeAPI", {
     env: {
         APPDATA: process.env.APPDATA,
         og_path: get_og_path(),
-        osu_default_path: get_osu_base_path()
     },
     fs: {
         renameSync: (oldPath, newPath) => fs.renameSync(oldPath, newPath),
@@ -104,5 +134,6 @@ contextBridge.exposeInMainWorld('electron', {
     create_dialog: async () => await ipcRenderer.invoke("create-dialog"),
     create_auth: async (url, end) => await ipcRenderer.invoke("create-auth", url, end),
     is_running: async (name) => await is_running(name),
-    open_folder: (folder_path) => open_folder(folder_path)
+    open_folder: (folder_path) => open_folder(folder_path),
+    osu_default_path: async () => await get_osu_base_path()
 });
