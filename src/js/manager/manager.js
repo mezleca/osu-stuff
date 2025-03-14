@@ -13,9 +13,6 @@ import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "./tools/beatmaps.js";
 
-// @TODO: strip manager logic in files. 
-//        1000 lines of different shit in a single file is annoying
-
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
@@ -365,9 +362,6 @@ more_options.addEventListener("click", async () => {
 const render_beatmap = (beatmap) => {
 
     const has_beatmap = Boolean(beatmap.artist_name);
-
-    // @TODO: implement sr thing, status
-
     const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
     const beatmap_html = `
         <div class="mini-container">
@@ -405,7 +399,7 @@ const render_beatmap = (beatmap) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = Object.entries(_status).find(([k, v]) => v === beatmap.status)?.[0];
+    const status = Object.entries(_status).find(([k, v]) => v == beatmap.status)?.[0];
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const set_loading_status = (status) => {
@@ -416,6 +410,24 @@ const render_beatmap = (beatmap) => {
     const open_in_browser = () => {
         const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
         window.electron.shell.openExternal(url);
+    };
+
+    const move_to = (el) => {
+
+        // make sure to get the updated beatmap
+        const updated_beatmap = core.reader.osu.beatmaps.get(beatmap.md5);
+        const collection_name = el.innerText;
+
+        if (!collections.has(collection_name)) {
+            return;
+        }
+
+        const collection = collections.get(collection_name);
+        collection.maps.push(updated_beatmap);
+    };
+
+    const delete_set = () => {
+
     };
 
     const update_sr = (beatmap_sr) => {
@@ -452,6 +464,11 @@ const render_beatmap = (beatmap) => {
 
     if (has_beatmap) {
 
+        const current_collection = get_selected_collection();
+        const collection_keys = Array.from(collections.keys())
+            .filter((k) => k != current_collection)
+            .map((k) => { return { value: k, callback: move_to }});
+
         title.addEventListener("click", open_in_browser);
 
         // add contextmenu handler
@@ -459,27 +476,10 @@ const render_beatmap = (beatmap) => {
             id: beatmap.md5,
             target: beatmap_element,
             values: [
-                {
-                    type: "default",
-                    value: "open in browser",
-                    callback: open_in_browser
-                },
-                {
-                    type: "submenu",
-                    value: "move to",
-                    values: Array.from(collections.keys()).map((k) => { return { value: k }}),
-                    callback: () => console.log("not implemented yet") // TODO 
-                },
-                {
-                    type: "default",
-                    value: "remove beatmap set",
-                    callback: () => console.log("not implemented yet") // TODO
-                },
-                {
-                    type: "default",
-                    value: "remove beatmap",
-                    callback: () => { remove_beatmap(beatmap.md5) }
-                }
+                { type: "default", value: "open in browser", callback: open_in_browser },
+                { type: "submenu", value: "move to", values: collection_keys },
+                { type: "default", value: "remove beatmap set", callback: delete_set},
+                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(beatmap.md5) } }
             ]
         });
 
@@ -707,7 +707,7 @@ update_collection_button.addEventListener("click", async () => {
     await fs.renameSync(old_name, new_name);
 
     core.reader.write_collections_data(old_name);
-    create_alert("done!");
+    create_alert("updated!");
 
     update_collection_button.style.display = "none";
 });

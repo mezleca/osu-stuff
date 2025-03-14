@@ -7,7 +7,7 @@ export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAA
 
 export const MAX_RENDER_AMMOUNT = 16;
 export const DRAG_ACTIVATION_THRESHOLD_MS = 500;
-export const CONTEXT_FADE_MS = 100;
+export const CONTEXT_FADE_MS = 50;
 
 export const star_ranges = [
     [0, 2.99, "sr1"],

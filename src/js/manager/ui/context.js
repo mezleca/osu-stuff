@@ -36,7 +36,7 @@ const generate_context = (options) => {
 
                 if (sub_option.callback) {
                     sub_element.addEventListener("click", () => {
-                        sub_option.callback();
+                        sub_option.callback(sub_element);
                     });
                 }
                 
@@ -49,7 +49,7 @@ const generate_context = (options) => {
 
             if (option.callback) {
                 item_element.addEventListener("click", () => {
-                    option.callback();
+                    option.callback(item_element);
                 });
             }
 
@@ -83,13 +83,34 @@ export const create_context_menu = (options) => {
             document.body.appendChild(context_element);
         }
 
-        if (update_pos) {
-            menu.style.left = x + "px";
-            menu.style.top = y + "px";
-        }
-
         context_element.style.display = "block";
         menu.style.display = "block";
+    
+        if (update_pos) {
+
+            menu.style.left = x + "px";
+            menu.style.top = y + "px";
+    
+            const menu_rect = menu.getBoundingClientRect();
+            const window_width = window.innerWidth;
+            const window_height = window.innerHeight;
+    
+            if (menu_rect.right > window_width) {
+                menu.style.left = (window_width - menu_rect.width) + "px";
+            }
+
+            if (menu_rect.left < 0) {
+                menu.style.left = "0px";
+            }
+    
+            if (menu_rect.bottom > window_height) {
+                menu.style.top = (window_height - menu_rect.height) + "px";
+            }
+
+            if (menu_rect.top < 0) {
+                menu.style.top = "0px";
+            }
+        }
     };
 
     const close_menu = () => {
@@ -180,11 +201,23 @@ export const create_context_menu = (options) => {
             const submenu = context_element.querySelector(`#${data}`);
 
             option.addEventListener("mouseover", () => {
-                const rect = option.getBoundingClientRect();
-                submenu.style.left = rect.right + "px";
-                submenu.style.top = rect.top + "px";
+
                 close_submenus();
+                
+                const rect = option.getBoundingClientRect();
+
                 submenu.style.display = "block";
+                submenu.style.top = rect.top + "px";
+                submenu.style.left = rect.right + "px";
+
+                const submenu_rect = submenu.getBoundingClientRect();
+                const sub_height = rect.top + submenu_rect.height;
+   
+                // make sure the context is rendered on screen
+                if (sub_height > window.innerHeight) {
+                    const diff = sub_height - window.innerHeight;
+                    submenu.style.top = (sub_height - diff - submenu_rect.height) + "px";
+                }
             });
         }
     }

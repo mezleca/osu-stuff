@@ -354,11 +354,11 @@ export const initialize_config = async () => {
         });
 
         if (!prompt.name || !prompt.url) {
-            create_alert("Mirror inválido", { type: "error" });
+            create_alert("invalid mirror", { type: "error" });
             return;
         }
         if (core.mirrors.get(prompt.name)) {
-            create_alert("Já tem um mirror com esse nome", { type: "alert" });
+            create_alert("mirror already exists", { type: "alert" });
             return;
         }
 
