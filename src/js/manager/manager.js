@@ -428,6 +428,25 @@ const render_beatmap = (beatmap) => {
 
     const delete_set = () => {
 
+        // make sure to get the updated beatmap
+        const updated_beatmap = core.reader.osu.beatmaps.get(beatmap.md5);
+        const collection_name = get_selected_collection();
+
+        if (!collections.has(collection_name)) {
+            return;
+        }
+
+        const beatmap_id = updated_beatmap.beatmap_id;
+
+        // remove diffs that have the save beatmap_id
+        Array.from(collections.get(collection_name).maps).forEach((b) => {
+            if (beatmap_id == b.beatmap_id) {
+                remove_beatmap(b.md5);
+            }
+        });
+
+        // need to update
+        update_collection_button.style.display = "block";
     };
 
     const update_sr = (beatmap_sr) => {
@@ -478,7 +497,7 @@ const render_beatmap = (beatmap) => {
             values: [
                 { type: "default", value: "open in browser", callback: open_in_browser },
                 { type: "submenu", value: "move to", values: collection_keys },
-                { type: "default", value: "remove beatmap set", callback: delete_set},
+                { type: "default", value: "remove beatmap set", callback: (el) => { delete_set(el) } },
                 { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(beatmap.md5) } }
             ]
         });
@@ -780,7 +799,6 @@ export const add_collection_manager = async (maps, collection) => {
     collections.set(collection, { maps: updated_map });
 
     await initialize();
-    setup_manager();
 
     // need to save
     update_collection_button.style.display = "block";
