@@ -16,12 +16,8 @@ app to manage/download collections with features like:
 - delete beatmaps from collections
 - etc...
 
-> [!WARNING]  
-> osu-stuff was made exclusively for standard mode<br>
-> you can still create and download collections for other gamemodes but some features like "filter, remove beatmaps" might not work
-
 ## how to download
-- **current app version (v1.4)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **current app version (v1.5)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## dependencies
 - linux users will probably need to download those dependencies:
