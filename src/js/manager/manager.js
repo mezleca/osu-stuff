@@ -655,7 +655,6 @@ export const render_page = (id, _offset) => {
         if (!filter_beatmap(beatmaps[offset])) {
             offset++;   
             i--;
-            console.log("filtered", beatmaps[offset]);
             continue;
         }
 
