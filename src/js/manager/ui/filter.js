@@ -263,19 +263,16 @@ export const filter_beatmap = (beatmap) => {
 
     // filter by sr
     if (beatmap_sr < Number(sr_filter.min.value) || beatmap_sr > Number(sr_filter.max.value)) {
-        //console.log("filterd", beatmap, "by sr", beatmap_sr, sr_filter.max.value, sr_filter.min.value);
         return false;
     }
 
     // filter by status
     if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
-        //console.log("filterd", beatmap, "by status");
         return false;
     }
 
     // filter by bpm
     if (beatmap_bpm < Number(bpm_filter.min.value) || beatmap_bpm > Number(bpm_filter.max.value)) {
-        //console.log("filterd", beatmap, "by bpm", beatmap_bpm, bpm_filter.max.value);
         return false;
     }
 

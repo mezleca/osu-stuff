@@ -423,7 +423,7 @@ const render_beatmap = (beatmap) => {
         }
 
         const collection = collections.get(collection_name);
-        collection.maps.push(updated_beatmap);
+        collection.maps = [...collection.maps, updated_beatmap];
     };
 
     const delete_set = () => {
@@ -655,6 +655,7 @@ export const render_page = (id, _offset) => {
         if (!filter_beatmap(beatmaps[offset])) {
             offset++;   
             i--;
+            console.log("filtered", beatmaps[offset]);
             continue;
         }
 
