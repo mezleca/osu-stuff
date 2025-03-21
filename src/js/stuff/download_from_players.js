@@ -157,7 +157,7 @@ const get_player_info = async (options) => {
 
         return beatmaps.filter((v) => {
 
-            if (v?.beatmap?.difficulty_rating !== undefined) {
+            if (v?.beatmap?.difficulty_rating != undefined) {
 
                 const b = v.beatmap;
                 const status = b.status;
@@ -175,7 +175,7 @@ const get_player_info = async (options) => {
                 return true;
             }
 
-            else if (v?.beatmaps !== undefined) {
+            else if (v?.beatmaps != undefined) {
 
                 const status = v.status;
                 
@@ -201,7 +201,7 @@ const get_player_info = async (options) => {
                 
                 const sr = v?.difficulty_rating;
                 
-                if (sr === undefined || sr < difficulty_range.min || sr > difficulty_range.max) {
+                if (sr == undefined || sr < difficulty_range.min || sr > difficulty_range.max) {
                     return false;
                 }
                 

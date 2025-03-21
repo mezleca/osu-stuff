@@ -96,7 +96,7 @@ class map_downloader {
 
     update_progress(index) {
 
-        if (index > this.current_index || this.current_index === 0) {
+        if (index > this.current_index || this.current_index == 0) {
             this.current_index = index;
         }
 
@@ -148,7 +148,7 @@ class map_downloader {
         try {
             const response = await fetch(`${mirror_url}${map_id}`, { method: "GET" });
             
-            if (response.status === 200) {
+            if (response.status == 200) {
                 const buffer = await response.arrayBuffer();
                 return buffer.byteLength > 0 ? buffer : null;
             }
@@ -164,8 +164,8 @@ class map_downloader {
     }
 
     update_mirror(used_url) {
-        const mirror_index = this.temp_mirrors.findIndex(m => m.url === used_url);
-        if (mirror_index !== -1) {
+        const mirror_index = this.temp_mirrors.findIndex(m => m.url == used_url);
+        if (mirror_index != -1) {
             const [mirror] = this.temp_mirrors.splice(mirror_index, 1);
             this.temp_mirrors.push(mirror);
         }

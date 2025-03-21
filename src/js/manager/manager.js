@@ -7,11 +7,11 @@ import { beatmap_status as _status, beatmap_status, delete_beatmaps } from "../s
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
-import { debounce, collections, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
+import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { filter_beatmap, sr_filter, status_filter, bpm_filter } from "./ui/filter.js";
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_context_menu } from "./ui/context.js";
-import { get_beatmap_sr, get_beatmap_bpm } from "./tools/beatmaps.js";
+import { get_beatmap_sr } from "./tools/beatmaps.js";
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -50,26 +50,18 @@ search_input.addEventListener("input", debounce(() => {
 const remove_beatmap = (hash) => {
 
     const name = get_selected_collection();
-    const beatmaps = collections.get(name).maps;
+    const beatmaps = core.reader.collections.beatmaps.get(name).maps;
 
     if (!beatmaps) {
         console.log("[Manager] failed to get collection", name);
         return;
     }
 
-    for (let i = 0; i < beatmaps.length; i++) {
-
-        const beatmap = beatmaps[i];
-
-        if (beatmap.md5 == hash) {
-            beatmaps.splice(i, 1);
-            break;
-        }
-    }
+    beatmaps.delete(hash);
 
     // need to save
     update_collection_button.style.display = "block";
-    document.getElementById(hash).remove();
+    document.getElementById(`bn_${hash}`).remove();
 };
 
 const create_more_button = (id, offset) => {
@@ -174,7 +166,7 @@ const add_new_collection = async () => {
 
         if (confirmation) {
 
-            const collection = collections.get(current_collection).maps;
+            const collection = core.reader.collections.beatmaps.get(current_collection).maps;
 
             if (!collection) {
                 create_alert(`failed to get current collection ${collection} ${current_collection}`, { type: "error" } );
@@ -186,7 +178,7 @@ const add_new_collection = async () => {
         } 
         else {
                     
-            if (collections.has(collection.name)) {
+            if (core.reader.collections.beatmaps.has(collection.name)) {
                 create_alert("you already have a collection with this name");
                 return;
             }
@@ -196,7 +188,7 @@ const add_new_collection = async () => {
     } 
     else {
         
-        if (collections.has(collection.name)) {
+        if (core.reader.collections.beatmaps.has(collection.name)) {
             create_alert("you already have a collection with this name");
             return;
         }
@@ -233,7 +225,7 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const old_collection = collections.get(name);
+    const old_collection = core.reader.collections.beatmaps.get(name);
     const all_beatmaps = Array.from(old_collection.maps);
     const beatmaps = new Map();
 
@@ -275,7 +267,7 @@ const delete_beatmaps_manager = async () => {
 };
 
 const create_empty_collection = async (name) => {
-    collections.set(name, { maps: [] });
+    core.reader.collections.beatmaps.set(name, { maps: [] });
     setup_manager();
 };
 
@@ -305,7 +297,7 @@ const create_new_collection = async () => {
             return;
         }
 
-        if (collections.has(collection_name)) {
+        if (core.reader.collections.beatmaps.has(collection_name)) {
             return create_alert("this collection already exists");
         }
 
@@ -359,10 +351,12 @@ more_options.addEventListener("click", async () => {
     }
 });
 
-const render_beatmap = (beatmap) => {
+const render_beatmap = (md5) => {
 
-    const has_beatmap = Boolean(beatmap.artist_name);
-    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
+    const beatmap = core.reader.osu.beatmaps.get(md5);
+    
+    const has_beatmap = Boolean(beatmap?.artist_name);
+    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap?.beatmap_id}/covers/cover.jpg`;
     const beatmap_html = `
         <div class="mini-container">
             <img class="bg-image">
@@ -399,7 +393,7 @@ const render_beatmap = (beatmap) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = Object.entries(_status).find(([k, v]) => v == beatmap.status)?.[0];
+    const status = has_beatmap ? Object.entries(_status).find(([k, v]) => v == beatmap.status)?.[0] : "Unknown";
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const set_loading_status = (status) => {
@@ -415,35 +409,35 @@ const render_beatmap = (beatmap) => {
     const move_to = (el) => {
 
         // make sure to get the updated beatmap
-        const updated_beatmap = core.reader.osu.beatmaps.get(beatmap.md5);
         const collection_name = el.innerText;
 
-        if (!collections.has(collection_name)) {
+        if (!core.reader.collections.beatmaps.has(collection_name)) {
             return;
         }
 
-        const collection = collections.get(collection_name);
-        collection.maps = [...collection.maps, updated_beatmap];
+        const collection = core.reader.collections.beatmaps.get(collection_name);
+        collection.maps = new Set([...collection.maps, md5]);
     };
 
     const delete_set = () => {
 
         // make sure to get the updated beatmap
-        const updated_beatmap = core.reader.osu.beatmaps.get(beatmap.md5);
+        const updated_beatmap = core.reader.osu.beatmaps.get(md5);
         const collection_name = get_selected_collection();
 
-        if (!collections.has(collection_name)) {
+        if (!core.reader.collections.beatmaps.has(collection_name)) {
             return;
         }
 
         const beatmap_id = updated_beatmap.beatmap_id;
+        const collection = core.reader.collections.beatmaps.get(collection_name);
 
         // remove diffs that have the save beatmap_id
-        Array.from(collections.get(collection_name).maps).forEach((b) => {
-            if (beatmap_id == b.beatmap_id) {
-                remove_beatmap(b.md5);
+        for (const [k, v] of core.reader.osu.beatmaps) {
+            if (v.beatmap_id == beatmap_id && collection.maps.has(v.md5)) {
+                remove_beatmap(v.md5);
             }
-        });
+        }
 
         // need to update
         update_collection_button.style.display = "block";
@@ -470,21 +464,21 @@ const render_beatmap = (beatmap) => {
 
     // set shit for lazy loading
     beatmap_element.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
-    beatmap_element.dataset.mapper = beatmap.creator_name ? beatmap.creator_name.toLowerCase() : "Unknown";
-    beatmap_element.dataset.tags = beatmap.tags ? beatmap.tags.toLowerCase() : "";
-    beatmap_element.dataset.artist = beatmap.artist_name ? beatmap.artist_name.toLowerCase() : "";
-    beatmap_element.id = beatmap.md5;
+    beatmap_element.dataset.mapper = has_beatmap ? beatmap?.creator_name.toLowerCase() : "Unknown";
+    beatmap_element.dataset.tags = has_beatmap ? beatmap.tags.toLowerCase() : "";
+    beatmap_element.dataset.artist = has_beatmap ? beatmap.artist_name.toLowerCase() : "";
+    beatmap_element.id = `bn_${md5}`;
 
     title.textContent = beatmap?.song_title || "Unknown";
     subtitle.textContent = beatmap?.difficulty || "Unknown";
 
     beatmap_bg.src = has_beatmap ? image_url : placeholder_image;
-    remove_button.id = `bn_${beatmap.beatmap_id}`;
+    remove_button.id = `bn_${md5}`;
 
     if (has_beatmap) {
 
         const current_collection = get_selected_collection();
-        const collection_keys = Array.from(collections.keys())
+        const collection_keys = Array.from(core.reader.collections.beatmaps.keys())
             .filter((k) => k != current_collection)
             .map((k) => { return { value: k, callback: move_to }});
 
@@ -492,13 +486,13 @@ const render_beatmap = (beatmap) => {
 
         // add contextmenu handler
         create_context_menu({
-            id: beatmap.md5,
+            id: md5,
             target: beatmap_element,
             values: [
                 { type: "default", value: "open in browser", callback: open_in_browser },
                 { type: "submenu", value: "move to", values: collection_keys },
                 { type: "default", value: "remove beatmap set", callback: (el) => { delete_set(el) } },
-                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(beatmap.md5) } }
+                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } }
             ]
         });
 
@@ -556,7 +550,7 @@ const render_beatmap = (beatmap) => {
 
             create_alert("searching beatmap...");
 
-            const beatmap_data = await download_map(beatmap.md5);
+            const beatmap_data = await download_map(md5);
 
             if (!beatmap_data) {
                 create_alert("Beatmap not found :c", { type: "alert" });
@@ -589,7 +583,7 @@ const render_beatmap = (beatmap) => {
     }
 
     remove_button.addEventListener("click", () => {
-        remove_beatmap(beatmap.md5);
+        remove_beatmap(md5);
     });
 
     return beatmap_element;
@@ -627,14 +621,14 @@ export const render_page = (id, _offset) => {
         bpm_filter.set_limit(bpm_max);
     }
 
+    // TODO: 
+    const beatmaps = Array.from(collection.maps);
+
     // only render 16 at time
     for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
 
-        const beatmaps = collection?.maps;
-
         // no beatmaps? maybe a empty collection
         if (!beatmaps) {
-            console.log("[Manager] no beatmaps", collection);
             add_more = false;
             break;
         }
@@ -647,6 +641,7 @@ export const render_page = (id, _offset) => {
 
         // check if the beatmap is valid (should be)
         if (!beatmaps[offset]) {
+            console.log("invalid beatmap", beatmaps, offset);
             offset++;
             continue;
         }
@@ -691,34 +686,10 @@ update_collection_button.addEventListener("click", async () => {
         return;
     }
 
-    const new_collection = {
-        version: core.reader.collections.version,
-        length: collections.size,
-        beatmaps: []
-    };
-
-    for (let [k, v] of collections) {
-
-        const maps = v?.maps;
-        const obj = { name: k, maps: [] };
-
-        if (!maps) {
-            create_alert("invalid map object", { type: "error" });
-            return;
-        }
-
-        for (let i = 0 ; i < maps.length; i++) {
-            const map = maps[i];
-            obj.maps.push(map.md5);
-        }
-
-        new_collection.beatmaps.push(obj);
-    }
-
-    console.log("[Manager] updated collection:", new_collection);
-
-    core.reader.collections = new_collection;
+    core.reader.collections.length = core.reader.collections.beatmaps.size;
     const backup_name = `collection_backup_${Date.now()}.db`;
+
+    console.log("[Manager] updating collection:", core.reader.collections);
 
     const old_name = path.resolve(core.config.get("osu_path"), "collection.db"), 
           new_name = path.resolve(core.config.get("osu_path"), backup_name);
@@ -783,9 +754,9 @@ export const setup_manager = () => {
 
 const update_map_info = (map) => {
 
-    if (typeof map === 'string') {
+    if (typeof map == 'string') {
         return core.reader.osu.beatmaps.get(map) || { md5: map };
-    } else if (typeof map === 'object' && map.md5) {
+    } else if (typeof map == 'object' && map.md5) {
         const info = core.reader.osu.beatmaps.get(map.md5);
         return info ? { ...map, ...info } : map;
     }
@@ -796,7 +767,7 @@ const update_map_info = (map) => {
 export const add_collection_manager = async (maps, collection) => {
 
     const updated_map = maps.map(map => update_map_info(map));
-    collections.set(collection, { maps: updated_map });
+    core.reader.collections.beatmaps.set(collection, { maps: updated_map });
 
     await initialize();
 
@@ -808,62 +779,12 @@ export const initialize = async (options) => {
 
     const no_update = options?.no_update || false;
     const force = options?.force || false;
-    
-    if (!core.reader.buffer) {
-        return;
-    }
-    
+
     if (force) {
         await load_osu_files(core.config.get("osu_path"));
     }
 
-    if (collections.size == 0) {
-
-      for (const collection of core.reader.collections.beatmaps) {
-
-            const updated_maps = collection.maps.map(update_map_info);
-            let sr_max = 1, bpm_max = 0;
-
-            for (const map of updated_maps) {
-                const sr = Number(get_beatmap_sr(map));
-                const bpm = Number(get_beatmap_bpm(map));
-                if (sr > sr_max) sr_max = sr;
-                if (bpm > bpm_max) bpm_max = bpm;
-            }
-            
-            collections.set(collection.name, {
-                maps: updated_maps,
-                bpm_max,
-                sr_max
-            });
-      }
-    } else {
-
-        for (const [name, data] of collections) {
-
-            const maps = data?.maps;
-
-            if (!maps) {
-                continue;
-            }
-
-            const updated_maps = maps.map(update_map_info);
-            let sr_max = 1, bpm_max = 0;
-            
-            for (const map of updated_maps) {
-                const sr = Number(get_beatmap_sr(map));
-                const bpm = Number(get_beatmap_bpm(map));
-                if (sr > sr_max) sr_max = sr;
-                if (bpm > bpm_max) bpm_max = bpm;
-            }
-                
-            collections.set(name, {
-                maps: updated_maps,
-                bpm_max,
-                sr_max
-            });
-        }
-    }
+    core.reader.update_collections();
     
     if (!no_update) {
         setup_manager();

@@ -1,6 +1,7 @@
 import { osu_db, collections_db, osdb_schema } from "./definitions.js";
 import { fs, zlib } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
+import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
 
 const decompress_gzip = (data) => {
     return new Promise((resolve, reject) => {
@@ -22,10 +23,6 @@ export class OsuReader {
     buffer;
 
     constructor() {
-        this.type = "osu";
-        this.osu = "";
-        this.collections = "";
-        this.buffer;
         this.offset = 0;
         this.beatmap_offset_start = 0;
     }
@@ -39,39 +36,30 @@ export class OsuReader {
         return arrayBuffer;
     }
 
-    set_buffer = (buffer) => {
-        this.buffer = this.to_array_buffer(buffer);
-        this.dataView = new DataView(this.buffer);
-    }
-
-    set_type = (type) => {
-        this.type = type;
-    }
-
-    set_directory = (directory) => {
-        this.directory = directory;
+    set_buffer = (buf) => {
+        this.buffer = new DataView(this.to_array_buffer(buf));
     }
 
     #byte(s) {
-        const value = !s ? this.dataView.getUint8(this.offset) : this.dataView.getInt8(this.offset);
+        const value = !s ? this.buffer.getUint8(this.offset) : this.buffer.getInt8(this.offset);
         this.offset += 1;
         return value;
     }
 
     #short(s) {
-        const value = !s ? this.dataView.getUint16(this.offset, true) : this.dataView.getInt16(this.offset, true);
+        const value = !s ? this.buffer.getUint16(this.offset, true) : this.buffer.getInt16(this.offset, true);
         this.offset += 2; 
         return value;
     }
 
     #int(s) {
-        const value = !s ? this.dataView.getUint32(this.offset, true) : this.dataView.getInt32(this.offset, true);
+        const value = !s ? this.buffer.getUint32(this.offset, true) : this.buffer.getInt32(this.offset, true);
         this.offset += 4;     
         return value;
     }
 
     #long(s) {
-        const value = !s ? this.dataView.getBigUint64(this.offset, true) : this.dataView.getBigInt64(this.offset, true);
+        const value = !s ? this.buffer.getBigUint64(this.offset, true) : this.buffer.getBigInt64(this.offset, true);
         this.offset += 8;       
         return value;
     }
@@ -84,19 +72,19 @@ export class OsuReader {
             const byte = this.#byte();
             result |= (byte & 0x7F) << shift;
             shift += 7;
-        } while (this.dataView.getUint8(this.offset - 1) & 0x80);
+        } while (this.buffer.getUint8(this.offset - 1) & 0x80);
           
         return { value: result, bytesRead: this.offset };
     }
 
     #single() {
-        const value = this.dataView.getFloat32(this.offset, true);
+        const value = this.buffer.getFloat32(this.offset, true);
         this.offset += 4;
         return value;
     }
 
     #double() {
-        const value = this.dataView.getFloat64(this.offset, true);
+        const value = this.buffer.getFloat64(this.offset, true);
         this.offset += 8; 
         return value;
     }
@@ -115,7 +103,7 @@ export class OsuReader {
 
         const length = this.#uleb();
 
-        const buffer = new Uint8Array(this.buffer, this.offset, length.value);
+        const buffer = new Uint8Array(this.buffer.buffer, this.offset, length.value);
         const decoder = new TextDecoder('utf-8');
         const value = decoder.decode(buffer);
 
@@ -128,7 +116,7 @@ export class OsuReader {
 
         const length = this.#uleb();
 
-        const buffer = new Uint8Array(this.buffer, this.offset, length.value);
+        const buffer = new Uint8Array(this.buffer.buffer, this.offset, length.value);
         const decoder = new TextDecoder('utf-8');
         const value = decoder.decode(buffer);
 
@@ -184,7 +172,7 @@ export class OsuReader {
     
     #writeString(value) {
 
-        if (value === null) {
+        if (value == null) {
             return this.#writeByte(0x00);
         }
 
@@ -207,11 +195,11 @@ export class OsuReader {
         do {
             let byte = value & 0x7F;
             value >>>= 7;
-            if (value !== 0) { /* more bytes to come */
+            if (value != 0) { /* more bytes to come */
                 byte |= 0x80;
             }
             dataView.setUint8(offset++, byte);
-        } while (value !== 0);
+        } while (value != 0);
 
         return buffer.slice(0, offset); // remove unused bytes
     }
@@ -276,25 +264,21 @@ export class OsuReader {
 
     write_collections_data = (p) => {
         
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve) => {
 
             const buffer = [];
 
             if (!this.collections) {
-                console.log("[Reader] No collections found");
+                console.log("[Reader] no collections found");
                 return;
             }
 
-            const data = this.collections;
+            buffer.push(this.#writeInt(this.collections.version));
+            buffer.push(this.#writeInt(this.collections.beatmaps.size)); 
 
-            buffer.push(this.#writeInt(data.version));
-            buffer.push(this.#writeInt(data.beatmaps.length)); 
-
-            for (let i = 0; i < data.length; i++) {
+            for (const [name, collection] of this.collections.beatmaps) {
                     
-                const collection = data.beatmaps[i];
-
-                buffer.push(this.#writeString(collection.name));
+                buffer.push(this.#writeString(name));
                 buffer.push(this.#writeInt(collection.maps.length));
 
                 for (let i = 0; i < collection.maps.length; i++) {
@@ -308,6 +292,49 @@ export class OsuReader {
         });
     };
 
+    // update collections with extra information like bpm, etc...
+    update_collections() {
+
+        if (this.collections.beatmaps.size == 0) {
+            console.log("[Reader] cant update collection cuz no beatmaps found");
+            return;
+        }
+
+        for (const [name, data] of this.collections.beatmaps) {
+
+            const maps = data?.maps;
+
+            if (!maps) {
+                console.log("not beatmaps", data);
+                continue;
+            }
+
+            let sr_max = 1, bpm_max = 0;
+            
+            for (const md5 of maps) {
+
+                const map = this.osu.beatmaps.get(md5);
+
+                if (!map) {
+                    continue;
+                }
+
+                const sr = Number(get_beatmap_sr(map));
+                const bpm = Number(get_beatmap_bpm(map));
+
+                if (sr > sr_max) sr_max = sr;
+                if (bpm > bpm_max) bpm_max = bpm;
+            }
+            
+            // update the collection with extra info
+            this.collections.beatmaps.set(name, {
+                maps: maps,
+                bpm_max,
+                sr_max
+            });
+        }
+    }
+
     /**
      * 
      * @returns { Promise<osdb_schema> } 
@@ -318,8 +345,8 @@ export class OsuReader {
 
         return new Promise(async (resolve, reject) => {
 
-            if (!this.buffer) {
-                return reject(new Error("buffer not set!!"));
+            if (this.buffer.byteLength == 0) {
+                return reject(new Error("invalid buffer"));
             }
     
             try {
@@ -351,7 +378,7 @@ export class OsuReader {
                 
                 if (file_version >= 7) {
 
-                    const compressed_data = this.buffer.slice(this.offset);
+                    const compressed_data = this.buffer.buffer.slice(this.offset);
                     const decompressed_data = await decompress_gzip(compressed_data);
                     
                     this.set_buffer(decompressed_data);
@@ -626,10 +653,9 @@ export class OsuReader {
 
                 data.last_modified = this.#int();	
                 data.mania_scroll_speed = this.#byte();
+                data.beatmap_end = this.offset;   
 
-                beatmaps.set(data.md5, data);
-
-                data.beatmap_end = this.offset;                        
+                beatmaps.set(data.md5, data);         
             }
 
             const extra_start = this.offset;
@@ -663,7 +689,6 @@ export class OsuReader {
 
             this.offset = 0;
             this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permissions_id, permission }; 
-
             resolve(this.osu);     
         });
     };
@@ -677,14 +702,9 @@ export class OsuReader {
 
         return new Promise(async (resolve) => {
 
-            if (this.collections?.beatmaps) {
-                return resolve(this.collections);
-            }
-
             console.log("[Reader] Reading collections data...");
 
-            const beatmaps = [];
-
+            const beatmaps = new Map();
             const version = this.#int();
             const count = this.#int();
 
@@ -704,9 +724,8 @@ export class OsuReader {
                     continue;
                 }
                 
-                beatmaps.push({
-                    name: name,
-                    maps: [...md5],
+                beatmaps.set(name, {
+                    maps: new Set(md5),
                 }); 
             }
 

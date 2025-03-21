@@ -18,7 +18,7 @@ export class event_emitter {
 
   remove_listener(event, callback) {
       if (this.listeners[event]) {
-          this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+          this.listeners[event] = this.listeners[event].filter(cb => cb != callback);
       }
   }
 

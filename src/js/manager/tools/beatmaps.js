@@ -42,7 +42,7 @@ export const get_beatmap_sr = (beatmap) => {
 // https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
 export const get_beatmap_bpm = (beatmap) => {
     
-    if (!beatmap.timing_points || beatmap.timing_points.length == 0) {
+    if (!beatmap?.timing_points || beatmap?.timing_points.length == 0) {
         return 0;
     }
 

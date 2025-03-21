@@ -57,7 +57,7 @@ export const setup_collector = async (url) => {
     const response = is_tournament ? await get_tournament_maps(collection_id) : await fetch(api_url);
     const collection_data = is_tournament ? response : await response.json();
 
-    if (response.status !== 200 || !collection_data.beatmapsets) {
+    if (response.status != 200 || !collection_data.beatmapsets) {
         create_alert("failed to get collection", { type: "error" });
         return null;
     }

@@ -9,7 +9,6 @@ import { debounce, fs, path } from "./global.js";
 export const core = {
     reader: new OsuReader(),
     config: new Map(),
-    files: new Map(),
     mirrors: new Map(),
     og_path: window.nodeAPI.env.og_path, // app folder
     login: null, // login object that contains the access_token
@@ -95,14 +94,13 @@ export const load_osu_files = async (osu_path) => {
 
     set_loading_status("reading osu files...");
 
-    core.files.set("osu", osu_data);
-    core.files.set("collection", collection_data);
-
     core.reader.set_buffer(collection_data, true);
     await core.reader.get_collections_data();
 
     core.reader.set_buffer(osu_data, true);
     await core.reader.get_osu_data();
+
+    core.reader.buffer = null;
 };
 
 const check_folder_permissions = async (folder) => {
@@ -124,7 +122,7 @@ const check_folder_permissions = async (folder) => {
         if (first_file) {
             const file_path = path.join(folder, first_file);
             const stats = fs.statSync(file_path);
-            const is_dir = (stats.mode & 0o170000) === 0o040000;
+            const is_dir = (stats.mode & 0o170000) == 0o040000;
             const temp_name = path.join(folder, is_dir ? "stufttest0101" : "renamed-test.tmp");
             fs.renameSync(file_path, temp_name);
             fs.renameSync(temp_name, file_path);
@@ -195,7 +193,7 @@ const manage_mirrors = async (tab, add_button) => {
     tab.innerHTML = "<h1>mirrors list</h1>";
     const mirror_data = await get_all_from_database("mirrors");
 
-    if (mirror_data.size === 0) {
+    if (mirror_data.size == 0) {
         for (const mirror of default_mirrors) {
             await save_to_db("mirrors", mirror.name, mirror.url);
             mirror_data.set(mirror.name, mirror.url);
@@ -272,7 +270,7 @@ export const initialize_config = async () => {
     // create and initialize config elements
     for (const [key, label] of Object.entries(config_options)) {
 
-        const is_secret = key === "osu_id" || key === "osu_secret";
+        const is_secret = key == "osu_id" || key == "osu_secret";
         const is_readonly = !is_secret;
         const value = core.config.get(key) || "";
 
@@ -371,7 +369,7 @@ export const initialize_config = async () => {
 
     initialize_tooltips();
 
-    if (core.config.size === 0) {
+    if (core.config.size == 0) {
         create_alert("config not found<br>can you take a look at config tab pleease :)");
         return;
     }

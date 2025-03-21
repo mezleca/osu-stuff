@@ -89,12 +89,13 @@ export const osu_db = {
 };
 
 export const collection_beatmap = {
-    name: String,
-    maps: Array
+    bpm_max: Number,
+    sr_max: Number,
+    maps: new Set([String])
 };
 
 export const collections_db = {
     version: Number,
     length: Number,
-    beatmaps: [collection_beatmap]
+    beatmaps: new Map()
 };

@@ -1,7 +1,7 @@
 
-import { collections, DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
+import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections } from "../manager.js";
-import { create_element } from "../../utils/config.js";
+import { core, create_element } from "../../utils/config.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 
 export const draggable_items_map = new Map();
@@ -220,20 +220,20 @@ export const check_merge = async (id) => {
     }
 
     // check if this collection already exists
-    if (collections.has(new_name)) {
+    if (core.reader.collections.beatmaps.has(new_name)) {
         create_alert("this collection already exists");
         return false;
     }
 
-    const cl1 = collections.get(cl1_id).maps;
-    const cl2 = collections.get(cl2_id).maps;
+    const cl1 = core.reader.collections.beatmaps.get(cl1_id).maps;
+    const cl2 = core.reader.collections.beatmaps.get(cl2_id).maps;
 
     if (!cl1 || !cl2) {
         console.log("[Manager UI] failed to get collection", id, merge_draggable_item.id);
         return false;
     }
 
-    collections.set(new_name, { maps: merge_collections(cl1, cl2) });
+    core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1, cl2) });
 
     // need to save
     update_collection_button.style.display = "block";
@@ -256,7 +256,7 @@ export const change_collection_name = async (event, id, element) => {
     }
 
     // check if this collection already exists
-    if (collections.has(new_name)) {
+    if (core.reader.collections.beatmaps.has(new_name)) {
         create_alert("this collection already exists");
         return;
     }
@@ -264,7 +264,7 @@ export const change_collection_name = async (event, id, element) => {
     element.innerText = new_name;
 
     const old_draggable_item = draggable_items_map.get(id);
-    const old_collection = collections.get(old_draggable_item.collection_id);
+    const old_collection = core.reader.collections.beatmaps.get(old_draggable_item.collection_id);
 
     if (!old_collection) {
         console.log("[Manager UI] failed to get old collection", old_draggable_item);
@@ -272,8 +272,8 @@ export const change_collection_name = async (event, id, element) => {
     }
 
     // remove old collection and create a new one with all beatmaps
-    collections.delete(old_draggable_item.collection_id);
-    collections.set(new_name, old_collection);
+    core.reader.collections.beatmaps.delete(old_draggable_item.collection_id);
+    core.reader.collections.beatmaps.set(new_name, old_collection);
 
     // update draggable_item object to contain new name
     old_draggable_item.collection.maps = old_collection.maps;
@@ -309,7 +309,7 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
                 return false;
             }
 
-            collections.delete(collection_id);
+            core.reader.collections.beatmaps.delete(collection_id);
             draggable_items_map.delete(id);
 
             reset_preview_pos();
@@ -327,7 +327,7 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
 
 export const setup_draggables = () => {
 
-    for (let [k, v] of collections) {
+    for (let [k, v] of core.reader.collections.beatmaps) {
 
         // create the new elements and append to draggable_items map
         const id = crypto.randomUUID();

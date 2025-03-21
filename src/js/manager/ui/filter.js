@@ -1,4 +1,5 @@
 import { beatmap_status, beatmap_status_reversed } from "../../stuff/remove_maps.js";
+import { core } from "../../utils/config.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "../tools/beatmaps.js";
 
 const show_filter = document.querySelector(".show-filter");
@@ -176,7 +177,7 @@ export const create_dropdown_filter = (id, name, options) => {
     const dropdown_content = dropdown_filter.element.querySelector(".dropdown-content");
     const selected_options = dropdown_filter.element.querySelector(".selected-options");
     const all_checkbox = dropdown_filter.element.querySelector("input[value='all']");
-    const item_checkboxes = [...dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']")].filter(cb => cb.value !== "all");
+    const item_checkboxes = [...dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']")].filter(cb => cb.value != "all");
     
     dropdown_header.addEventListener("click", () => { dropdown_content.classList.toggle("show") });
     dropdown_content.addEventListener("click", (e) => { e.stopPropagation() });
@@ -256,8 +257,9 @@ export const create_dropdown_filter = (id, name, options) => {
     return dropdown_filter;
 };
 
-export const filter_beatmap = (beatmap) => {
+export const filter_beatmap = (md5) => {
 
+    const beatmap = core.reader.osu.beatmaps.get(md5);
     const beatmap_sr = Number(get_beatmap_sr(beatmap));
     const beatmap_bpm = Number(get_beatmap_bpm(beatmap));
 

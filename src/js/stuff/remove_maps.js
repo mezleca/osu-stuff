@@ -73,7 +73,7 @@ const find_matching_beatmaps = (min_sr, max_sr, status, ignore_from_collections)
         const sp = path.resolve(osu_songs_path, b.folder_name);    
         const song_path = path.resolve(sp, b.file);
 
-        if ((b.status !== status && status !== -1) || (hashes.has(b.md5) && ignore_from_collections) || !check_difficulty_sr(b, min_sr, max_sr)) {
+        if ((b.status != status && status != -1) || (hashes.has(b.md5) && ignore_from_collections) || !check_difficulty_sr(b, min_sr, max_sr)) {
             filtered_maps.set(b.md5, b);
             continue;
         }

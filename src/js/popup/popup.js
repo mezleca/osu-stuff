@@ -1,6 +1,8 @@
 import { create_dropdown_filter, create_range_filter } from "../manager/ui/filter.js";
 import { create_element } from "../utils/config.js";
 
+const alerts = new Map();
+
 const DEFAULT_ALERT_OBJECT = {
     type: "default",
     html: true,
@@ -21,8 +23,6 @@ const ALERT_STYLES = {
     warning: { icon: "bi-exclamation-triangle-fill", class: "alert-warning" },
     default: { icon: "bi-exclamation-circle", class: "alert-default" }
 };
-
-const alerts = new Map();
 
 export const create_custom_popup = async (config) => {
     
@@ -125,7 +125,7 @@ const create_input = async (options) => {
         });
 
         content.addEventListener("click", (e) => {
-            if (e.target === content) {
+            if (e.target == content) {
                 document.body.removeChild(content);
                 resolve(null);
             }
@@ -155,7 +155,7 @@ const create_menu = async (options) => {
     return new Promise((resolve) => {
         if (!important) {
             content.addEventListener("click", (e) => {
-                if (e.target === content) {
+                if (e.target == content) {
                     document.body.removeChild(content);
                     resolve(null);
                 }
@@ -201,7 +201,7 @@ const create_confirmation = async (options) => {
         });
 
         content.addEventListener("click", (e) => {
-            if (e.target === content) {
+            if (e.target == content) {
                 document.body.removeChild(content);
                 resolve(null);
             }
@@ -242,7 +242,7 @@ const create_custom_menu = async (options) => {
         switch (type) {
             case 'list':
 
-                const is_multiple = element[type]?.multiple === true;
+                const is_multiple = element[type]?.multiple == true;
                 
                 if (is_multiple) {
                     const dropdown = create_dropdown_filter(`${safe_key}_dropdown`, label, props);
@@ -303,9 +303,9 @@ const create_custom_menu = async (options) => {
             elements.forEach(({ key, element }) => {
                 const type = Object.keys(element)[0];
                 const safe_key = key.replace(/\s+/g, '_');
-                const is_multiple = type === 'list' && element[type]?.multiple === true;
+                const is_multiple = type == 'list' && element[type]?.multiple == true;
                 
-                if (type === 'range') {
+                if (type == 'range') {
                     const range_filter = filters[safe_key];
                     if (range_filter) {
                         result[safe_key] = {
@@ -313,7 +313,7 @@ const create_custom_menu = async (options) => {
                             max: parseFloat(range_filter.max.value)
                         };
                     }
-                } else if (type === 'list') {
+                } else if (type == 'list') {
                     if (is_multiple) {
                         const dropdown_filter = filters[safe_key];
                         if (dropdown_filter) {
@@ -325,7 +325,7 @@ const create_custom_menu = async (options) => {
                             result[safe_key] = select_el.value;
                         }
                     }
-                } else if (type === 'checkbox') {
+                } else if (type == 'checkbox') {
                     const checkbox = content_wrapper.querySelector(`#${safe_key}`);
                     if (checkbox) {
                         result[safe_key] = checkbox.checked;
@@ -343,7 +343,7 @@ const create_custom_menu = async (options) => {
         });
         
         content_wrapper.addEventListener("click", (e) => {
-            if (e.target === content_wrapper) {
+            if (e.target == content_wrapper) {
                 container.removeChild(content_wrapper);
                 reject(null);
             }
