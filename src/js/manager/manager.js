@@ -408,9 +408,7 @@ const open_in_browser = (beatmap) => {
 const render_beatmap = (md5) => {
 
     const beatmap = core.reader.osu.beatmaps.get(md5);
-    
     const has_beatmap = Boolean(beatmap?.artist_name);
-    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap?.beatmap_id}/covers/cover.jpg`;
     const beatmap_html = `
         <div class="mini-container">
             <img class="bg-image">
@@ -484,7 +482,13 @@ const render_beatmap = (md5) => {
     title.textContent = beatmap?.song_title || "Unknown";
     subtitle.textContent = beatmap?.difficulty || "Unknown";
 
-    beatmap_bg.src = has_beatmap ? image_url : placeholder_image;
+    if (has_beatmap) {
+        beatmap_bg.src = core.reader.get_beatmap_image(beatmap) || placeholder_image;
+        beatmap_bg.classList.add("bg-image-custom");
+    } else {
+        beatmap_bg.src = placeholder_image;
+    }
+    
     remove_button.id = `bn_${md5}`;
 
     if (has_beatmap) {

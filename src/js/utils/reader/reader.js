@@ -1,5 +1,6 @@
-import { osu_db, collections_db, osdb_schema } from "./definitions.js";
-import { fs, zlib } from "../global.js";
+import { osu_db, collections_db, osdb_schema, beatmaps_schema } from "./definitions.js";
+import { fs, zlib, path } from "../global.js";
+import { core } from "../config.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
 
@@ -21,9 +22,12 @@ export class OsuReader {
     osu;
     /** @type {DataView} */
     buffer;
+    /** @type {Map} */
+    image_cache;
 
     constructor() {
         this.offset = 0;
+        this.image_cache = new Map();
         this.beatmap_offset_start = 0;
     }
 
@@ -131,13 +135,6 @@ export class OsuReader {
         return buffer;
     }
     
-    #writeShort(value) {
-        const buffer = new ArrayBuffer(2);
-        const view = new DataView(buffer);
-        view.setUint16(0, value, true);
-        return new Uint8Array(buffer);
-    }
-    
     #writeInt(value) {
         const buffer = new ArrayBuffer(4);
         const view = new DataView(buffer);
@@ -149,20 +146,6 @@ export class OsuReader {
         const buffer = new ArrayBuffer(8);
         const view = new DataView(buffer);
         view.setBigUint64(0, BigInt(value), true);
-        return new Uint8Array(buffer);
-    }
-    
-    #writeSingle(value) {
-        const buffer = new ArrayBuffer(4);
-        const view = new DataView(buffer);
-        view.setFloat32(0, value, true);
-        return new Uint8Array(buffer);
-    }
-    
-    #writeDouble(value) {
-        const buffer = new ArrayBuffer(8);
-        const view = new DataView(buffer);
-        view.setFloat64(0, value, true);
         return new Uint8Array(buffer);
     }
     
@@ -735,4 +718,64 @@ export class OsuReader {
             resolve(this.collections);
         });
     };
+
+    /**
+     * @param {beatmaps_schema} beatmap
+     * @returns { Promise<{ path: String }> } 
+     * 
+    */
+    get_beatmap_image(beatmap) { 
+
+        if (this.image_cache.has(beatmap.beatmap_id)) {
+            return this.image_cache.get(beatmap.beatmap_id);
+        }
+        
+        const file_location = path.resolve(core.config.get("osu_songs_path"), beatmap.folder_name);
+        
+        try {
+
+            const content = fs.readFileSync(path.resolve(file_location, beatmap.file), "utf8");
+            const events_start = content.indexOf("[Events]");
+
+            if (!events_start) {
+                return;
+            }
+            
+            const events_section = content.substring(events_start, content.indexOf("[", events_start + 1));
+            const events_lines = events_section.split("\n");
+            
+            for (let i = 0; i < events_lines.length; i++) {
+
+                const line = events_lines[i];
+
+                if (!line.startsWith("0,0,\"")) {
+                    continue;
+                }
+                
+                const image_match = line.match(/0,0,"([^"]+)"/);
+
+                if (!image_match) {
+                    continue;
+                }
+                
+                const image_name = image_match[1];
+                     
+                if (!image_name.includes(".")) {
+                    continue;
+                }
+
+                if (image_name.endsWith(".avi") || image_name.endsWith(".mp4") || image_name.endsWith(".mov")) {
+                    continue;
+                }
+                
+                const result = path.resolve(file_location, image_name);
+                this.image_cache.set(beatmap.beatmap_id, result);
+                return result;
+            } 
+
+            return;
+        } catch (error) {
+            return;
+        }
+    }
 };

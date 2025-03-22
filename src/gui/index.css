@@ -830,6 +830,10 @@ button {
     filter: brightness(50%);
 }
 
+.bg-image-custom {
+    transform: translateY(-50%);
+}
+
 .small-image {
     width: 100%;
     height: 100%;
