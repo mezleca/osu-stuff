@@ -789,8 +789,6 @@ export const initialize = async (options) => {
     }
 
     core.reader.update_collections();
-
-    console.log(core.reader);
     
     if (!no_update) {
         setup_manager();

@@ -79,6 +79,11 @@ export const create_context_menu = (options) => {
 
     const show_menu = (menu, update_pos) => {
 
+        // ignore invalid positions
+        if (update_pos && (!x || !y)) {
+            return;
+        }
+
         if (!document.body.contains(context_element)) {
             document.body.appendChild(context_element);
         }
@@ -90,7 +95,7 @@ export const create_context_menu = (options) => {
 
             menu.style.left = x + "px";
             menu.style.top = y + "px";
-    
+
             const menu_rect = menu.getBoundingClientRect();
             const window_width = window.innerWidth;
             const window_height = window.innerHeight;

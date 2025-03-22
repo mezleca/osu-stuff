@@ -3,6 +3,7 @@ import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections } from "../manager.js";
 import { core, create_element } from "../../utils/config.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
+import { create_context_menu } from "./context.js";
 
 export const draggable_items_map = new Map();
 
@@ -82,9 +83,6 @@ export const remove_all_selected = () => {
     const draggable_items = [...document.querySelectorAll(".draggable_item")];
 
     for (let i = 0; i < draggable_items.length; i++) {
-
-        const modify_button = draggable_items[i].children[1];
-        modify_button.classList.add("hidden");
 
         if (draggable_items[i].classList.contains("selected")) {
             draggable_items[i].classList.remove("selected");
@@ -335,20 +333,22 @@ export const setup_draggables = () => {
         const draggable_item_html = `
             <div class="draggable_item" id=${id}>
                 <h1>${k}</h1>
-                <i class="bi bi-pencil-square hidden"></i>
             </div>
         `;
 
         const draggable_item = create_element(draggable_item_html);
-
         const draggable_item_name = draggable_item.children[0];
-        const modify_name = draggable_item.children[1];
 
         list.appendChild(draggable_item);
 
         draggable_item_name.addEventListener("mousedown", (event) => {
 
             const draggable_item = draggable_items_map.get(id);
+
+            // ignore mouse2 events
+            if (event.button == 2) {
+                return;
+            }
 
             // save mouse position
             mouse_x = event.clientX;
@@ -375,7 +375,6 @@ export const setup_draggables = () => {
                         remove_all_selected();
 
                         draggable_item.target.classList.add("selected");
-                        draggable_item.target.children[1].classList.remove("hidden");
                         draggable_item.selected = true;
 
                         render_page(id);
@@ -420,8 +419,13 @@ export const setup_draggables = () => {
             requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
         });
 
-        modify_name.addEventListener("click", async (event) => {
-            await change_collection_name(event, id, draggable_item_name);
+        // add contextmenu handler
+        create_context_menu({
+            id: id,
+            target: draggable_item,
+            values: [
+                { type: "default", value: "rename collection", callback: () => { change_collection_name(event, id, draggable_item_name) }},
+            ]
         });
 
         const new_draggable_item = { 

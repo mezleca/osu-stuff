@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "webpack && electron-forge start",
-    "dev": "NODE_ENV=development electron --inspect=9229 .",
+    "dev": "NODE_ENV=development electron .",
     "package": "electron-forge package",
     "make": "webpack && electron-forge make",
     "make:win": "webpack && electron-forge make --platform win32",

@@ -1,7 +1,7 @@
 import path from "node:path";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu } from "electron";
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,7 @@ export const get_icon_path = () => {
   };
 
 const icon_path = get_icon_path();
+Menu.setApplicationMenu(null);
 
 // still need to find a better way to do this
 const create_auth_window = (url, end) => {

@@ -1070,12 +1070,17 @@ button {
     display: grid;
     grid-template-columns: 90% 10%;
     align-items: center;
-    border-radius: 6px;
+    border-radius: 4x;
     padding-left: 15px;
-    transition: 0.3s border;
+    transition: 0.2s border;
     position: relative;
     height: auto;
     background-color: var(--manager-bg-color);
+    border: 1px solid var(--manager-bg-color);
+}
+
+.draggable_item:hover {
+    border: 1px solid #4d4d4d;;
 }
 
 .draggable_item > h1 {
@@ -1115,7 +1120,6 @@ button {
         color: rgb(255, 0, 170);
     }
 
-    transition: 0.3s border;
     border: 1px solid var(--accent-color);
 }
 
