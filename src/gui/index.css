@@ -178,7 +178,7 @@ body {
     height: 100%;
     padding: 20px;
     padding-top: 0px;
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     overflow-y: auto;
 }
@@ -189,6 +189,10 @@ body {
 
 .config_container.row {
     flex-direction: row;
+}
+
+.mirror-list {
+    padding-right: 10px;
 }
 
 button:hover {
@@ -600,19 +604,8 @@ a {
 }
 
 *::-webkit-scrollbar {
+    display: none;
     width: 5px;
-}
-
-*::-webkit-scrollbar-track {
-    background: #1e1e1e;
-}
-
-*::-webkit-scrollbar-thumb {
-    background: #888;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background: #555;
 }
 
 #collection_text {
@@ -723,26 +716,6 @@ a {
     height: auto;
     padding-top: 10px;
     padding-bottom: 10px;
-}
-
-*::-webkit-scrollbar,
-*::-webkit-scrollbar {
-    width: 5px;
-}
-
-*::-webkit-scrollbar-track,
-*::-webkit-scrollbar-track {
-    background: #2a2a2a;
-}
-
-*::-webkit-scrollbar-thumb,
-*::-webkit-scrollbar-thumb {
-    background: #888;
-}
-
-*::-webkit-scrollbar-thumb:hover,
-*::-webkit-scrollbar-thumb:hover {
-    background: #555;
 }
 
 .collection-actions {
@@ -1034,7 +1007,7 @@ button {
 
 .list_container {
     display: grid !important;
-    border-radius: 6px;
+    border-radius: 4px;
     grid-template-columns: minmax(25%, 40%) 60%;
     grid-template-rows: auto 1fr;
 }

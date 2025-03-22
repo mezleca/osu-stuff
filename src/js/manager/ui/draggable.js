@@ -239,14 +239,13 @@ export const check_merge = async (id) => {
     setup_manager();
 };
 
-export const change_collection_name = async (event, id, element) => {
-
-    event.stopPropagation();
+export const change_collection_name = async (id, element) => {
 
     const new_name = await create_custom_popup({
         type: message_types.INPUT,
         title: "new collection name",
         label: "new collection name",
+        value: element.innerText,
         input_type: "text",
     });
 
@@ -325,6 +324,8 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
 };
 
 export const setup_draggables = () => {
+
+    const collection_keys = Array.from(core.reader.collections.beatmaps.keys());
 
     for (let [k, v] of core.reader.collections.beatmaps) {
 
@@ -419,12 +420,56 @@ export const setup_draggables = () => {
             requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
         });
 
+        // @TODO: create one function to do both merge through draggables and context submenu
+        const context_merge = async (el) => {
+            
+            const cl1 = core.reader.collections.beatmaps.get(el);
+
+            if (!cl1) {
+                console.log("[merge] failed to get collection 1");
+                return;
+            }
+
+            // to make sure we get the newest name in case of name changes
+            const cl2_name = draggable_items_map.get(id).collection_id;
+
+            const new_name = await create_custom_popup({
+                type: message_types.INPUT,
+                title: "collection name",
+                label: "new collection name",
+                input_type: "text",
+                value: `${cl2_name} + ${el}`
+            });
+        
+            if (!new_name) {
+                return false;
+            }
+        
+            // check if this collection already exists
+            if (core.reader.collections.beatmaps.has(new_name)) {
+                create_alert("this collection already exists");
+                return false;
+            }
+            
+            core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1.maps, v.maps) });
+            core.reader.update_collections();
+
+            // need to save
+            update_collection_button.style.display = "block";
+            setup_manager();
+        }
+
         // add contextmenu handler
         create_context_menu({
             id: id,
             target: draggable_item,
             values: [
-                { type: "default", value: "rename collection", callback: () => { change_collection_name(event, id, draggable_item_name) }},
+                { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                { 
+                    type: "submenu", 
+                    value: "merge with", 
+                    values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
+                }
             ]
         });
 
