@@ -66,8 +66,6 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
 
         new_limit = parseFloat(new_limit);
 
-        // @TODO: the only reason why i need this is because when i create a empty collection the "sr_max" is invalid
-        // i need to make sure this thing is valid and update when a new map is added
         if (isNaN(new_limit)) {
             return;
         }
@@ -77,8 +75,6 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
         range_slider.max.setAttribute("max", new_limit);
         
         const min_value = parseFloat(range_slider.min.value);
-        
-        // :3
         range_slider.max.value = new_limit;
         
         if (min_value > new_limit) {
@@ -193,15 +189,12 @@ export const create_dropdown_filter = (id, name, options) => {
         dropdown_filter.selected = [];
         
         item_checkboxes.forEach((checkbox) => {
-            if (checkbox.checked) {
-                dropdown_filter.selected.push(checkbox.value);
-            }
+            if (checkbox.checked) dropdown_filter.selected.push(checkbox.value);
         });
         
         check_selected();
         
         const checkboxes = [all_checkbox, ...item_checkboxes];
-
         checkboxes.forEach((checkbox) => {      
 
             if (checkbox.checked && checkbox.value != "all") {
@@ -253,7 +246,6 @@ export const create_dropdown_filter = (id, name, options) => {
     });
     
     update();
-    
     return dropdown_filter;
 };
 

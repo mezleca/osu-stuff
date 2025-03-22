@@ -234,6 +234,7 @@ export const check_merge = async (id) => {
     }
 
     core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1, cl2) });
+    core.reader.update_collections();
 
     // need to save
     update_collection_button.style.display = "block";

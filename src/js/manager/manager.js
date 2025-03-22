@@ -66,10 +66,12 @@ const remove_beatmap = (hash) => {
 
 const create_more_button = (id, offset) => {
 
-    const current_draggable_item = draggable_items_map.get(id);
+    const name = get_selected_collection();
+    const beatmaps = core.reader.collections.beatmaps.get(name);
+
     const button_html = `
         <button class="load_more_button">
-            load more (${offset}/${current_draggable_item.collection.maps.length})
+            load more (${offset}/${beatmaps.maps.size})
         </button>
     `;
 
@@ -235,17 +237,27 @@ const delete_beatmaps_manager = async () => {
     }
 
     for (let i = 0; i < all_beatmaps.length; i++) {
+
         if (filter_beatmap(all_beatmaps[i])) {
-            beatmaps.set(all_beatmaps[i].md5, all_beatmaps[i]);
+
+            const data = core.reader.osu.beatmaps.get(all_beatmaps[i]);
+
+            if (!data) {
+                continue;
+            }
+
+            beatmaps.set(all_beatmaps[i], data);
         }
     }
 
-    if (beatmaps.length == 0) {
+    if (beatmaps.size == 0) {
         create_alert("no beatmaps to delete");
         return;
     }
 
-    const conf = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.length > 1 ? "s" : ""} from ${name}?`);
+    console.log(beatmaps);
+
+    const conf = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
 
     if (!conf) {
         return;
@@ -257,9 +269,6 @@ const delete_beatmaps_manager = async () => {
     if (!success) {
         return;
     }
-
-    // update the current collection with "unknown beatmaps"
-    // collections.set(name, { maps: old_collection.maps.filter((b) => !beatmaps.has(b.md5)) });
 
     // render manager once again
     await initialize();
@@ -417,6 +426,9 @@ const render_beatmap = (md5) => {
 
         const collection = core.reader.collections.beatmaps.get(collection_name);
         collection.maps = new Set([...collection.maps, md5]);
+        
+        // update sr and shit
+        core.reader.update_collections();
     };
 
     const delete_set = () => {
@@ -544,7 +556,8 @@ const render_beatmap = (md5) => {
         });
 
         download_button.remove();
-    } else {
+    } 
+    else {
         preview_button.remove();
         download_button.addEventListener("click", async () => {
 
@@ -574,18 +587,15 @@ const render_beatmap = (md5) => {
             set_loading_status(beatmap_data.status);
             update_sr(beatmap_data.difficulty_rating);
 
-            title.addEventListener("click", open_in_browser);
-         
+            title.addEventListener("click", open_in_browser); 
             title.textContent = beatmap?.song_title || "Unknown";
+
             subtitle.textContent = beatmap?.difficulty || "Unknown";
             beatmap_bg.src = image_url;
         });
     }
 
-    remove_button.addEventListener("click", () => {
-        remove_beatmap(md5);
-    });
-
+    remove_button.addEventListener("click", () => remove_beatmap(md5));
     return beatmap_element;
 };
 
@@ -668,14 +678,7 @@ export const render_page = (id, _offset) => {
 };
 
 export const merge_collections = (cl1, cl2) => {
-
-    const merged_map = new Map();
-  
-    [...cl1, ...cl2].forEach(item => {
-        merged_map.set(item.md5, item);
-    });
-  
-    return Array.from(merged_map.values());
+    return new Set([...cl1, ...cl2]);
 };
 
 update_collection_button.addEventListener("click", async () => {
@@ -755,18 +758,19 @@ export const setup_manager = () => {
 const update_map_info = (map) => {
 
     if (typeof map == 'string') {
-        return core.reader.osu.beatmaps.get(map) || { md5: map };
-    } else if (typeof map == 'object' && map.md5) {
-        const info = core.reader.osu.beatmaps.get(map.md5);
-        return info ? { ...map, ...info } : map;
+        return map;
     }
 
-    return map;
+    if (typeof map == 'object' && map?.md5) {
+        return map.md5;
+    }
+
+    return null;
 };
 
 export const add_collection_manager = async (maps, collection) => {
 
-    const updated_map = maps.map(map => update_map_info(map));
+    const updated_map = maps.map(map => update_map_info(map)).filter((b) => typeof b == "string");
     core.reader.collections.beatmaps.set(collection, { maps: updated_map });
 
     await initialize();
@@ -785,6 +789,8 @@ export const initialize = async (options) => {
     }
 
     core.reader.update_collections();
+
+    console.log(core.reader);
     
     if (!no_update) {
         setup_manager();

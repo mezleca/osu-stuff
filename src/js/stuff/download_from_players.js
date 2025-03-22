@@ -1,7 +1,6 @@
 import { core } from "../utils/config.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
-import { collections } from "../utils/global.js";
 
 export const url_is_valid = (url, hostname) => {
 
@@ -27,9 +26,11 @@ export const url_is_valid = (url, hostname) => {
 const add_to_collection = async (maps, name, append) => {
 
     if (maps.length == 0) {
-        console.log("[Download from Players] 0 maps to add");
+        console.log("[download from players] 0 maps to add");
         return;
     }
+
+    console.log(maps);
 
     if (append) {
 
@@ -40,7 +41,7 @@ const add_to_collection = async (maps, name, append) => {
             return;
         }
 
-        const collection = collections.get(selected_name);
+        const collection = core.reader.collections.beatmaps.get(selected_name);
 
         if (!collection) {
             create_alert("failed to get collection", { type: "error" });
@@ -50,13 +51,6 @@ const add_to_collection = async (maps, name, append) => {
         const beatmaps = [...collection.maps, ...maps];
         await add_collection_manager(beatmaps, selected_name);
     } else {
-        core.reader.collections.beatmaps.push({
-            name: name,
-            maps: [...maps]
-        });
-    
-        core.reader.collections.length = core.reader.collections.beatmaps.length;
-    
         await add_collection_manager(maps, name);
         create_alert(`added ${name} to your collections!`, { type: "success" });
     }   
@@ -68,7 +62,7 @@ const fetch_maps = async (base_url, limit) => {
     let offset = 0;
 
     if (!limit) {
-        console.log("[Download from Players] 0 maps to fetch");
+        console.log("[download from players] 0 maps to fetch");
         return;
     }
 
@@ -124,7 +118,7 @@ const get_player_info = async (options) => {
     const default_data = await default_response.json();
 
     if (!default_data?.id) {
-        console.log("[Download from Players] player", player_name, "not found");
+        console.log("[download from players] player", player_name, "not found");
         return;
     }
 
@@ -232,7 +226,7 @@ export const download_from_players = async (options) => {
 
         let append = false;
 
-        const { player_name, beatmap_options, beatmap_status } = options;
+        const { player_name } = options;
         const player_info = await get_player_info(options);
 
         if (!player_info) {
@@ -284,12 +278,12 @@ export const download_from_players = async (options) => {
         }
         
         if (download_method == "add to collections") {
-            await add_to_collection(maps.md5, options.name, append);
+            await add_to_collection(maps.md5, player_name, append);
             return resolve();
         }
 
         if (download_method == "both") {
-            await add_to_collection(maps.md5, options.name, append);
+            await add_to_collection(maps.md5, player_name, append);
         }
 
         const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());

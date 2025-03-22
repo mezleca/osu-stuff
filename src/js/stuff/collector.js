@@ -3,7 +3,7 @@ import { create_alert } from "../popup/popup.js";
 import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { initialize } from "../manager/manager.js";
-import { fs, path, is_testing, collections } from "../utils/global.js";
+import { fs, path, is_testing } from "../utils/global.js";
 
 const get_tournament_maps = async(id) => {
 
@@ -52,7 +52,7 @@ export const setup_collector = async (url) => {
     const is_tournament = url_array.includes("tournaments");
     const api_url = `https://osucollector.com/api/collections/${collection_id}`;
     
-    console.log(`[Collector] fetching collection ${collection_id}...`);
+    console.log(`[collector] fetching collection ${collection_id}...`);
     
     const response = is_tournament ? await get_tournament_maps(collection_id) : await fetch(api_url);
     const collection_data = is_tournament ? response : await response.json();
@@ -113,24 +113,16 @@ export const add_collection = async (url) => {
         const { c_maps, collection } = await setup_collector(url);
 
         const new_name = "!stuff - " + collection.name;
-    
-        // make sure c_maps is valid
         const maps = c_maps.filter((m) => m != undefined && typeof m == "string");
 
         // create a new collection
-        core.reader.collections.beatmaps.push({
-            name: new_name,
+        core.reader.collections.beatmaps.set(new_name, {
             maps: maps
         });
     
         core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-        console.log("[Collector] updated collections object", core.reader.collections);
-
-        // update the manager
-        collections.set(new_name, maps.map((v) => {
-            return { md5: v };
-        }));
+        console.log("[Collector] updated collection object", core.reader.collections);
     
         if (is_testing) {
             create_alert("Your collection file has been updated!");
@@ -143,13 +135,12 @@ export const add_collection = async (url) => {
         const old_name = await path.resolve(core.config.get("osu_path"), "collection.db"), 
               new_backup_name = await path.resolve(core.config.get("osu_path"), backup_name);
 
-        await fs.renameSync(old_name, new_backup_name);
-
         // write the new file
+        await fs.renameSync(old_name, new_backup_name);
         await core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
     
         // update manager
-        await initialize({ force: true });
+        await initialize();
 
         create_alert("Your collection file has been updated!");
         resolve(`Your collection file has been updated!`);
