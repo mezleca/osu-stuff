@@ -113,6 +113,7 @@ const create_input = async (options) => {
     `;
 
     const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+
     document.body.appendChild(content);
 
     return new Promise((resolve) => {
@@ -125,7 +126,7 @@ const create_input = async (options) => {
         });
 
         content.addEventListener("click", (e) => {
-            if (e.target == content) {
+            if (e.target.classList.contains("popup-container")) {
                 document.body.removeChild(content);
                 resolve(null);
             }
@@ -155,7 +156,7 @@ const create_menu = async (options) => {
     return new Promise((resolve) => {
         if (!important) {
             content.addEventListener("click", (e) => {
-                if (e.target == content) {
+                if (e.target.classList.contains("popup-container")) {
                     document.body.removeChild(content);
                     resolve(null);
                 }
@@ -201,7 +202,7 @@ const create_confirmation = async (options) => {
         });
 
         content.addEventListener("click", (e) => {
-            if (e.target == content) {
+            if (e.target.classList.contains("popup-container")) {
                 document.body.removeChild(content);
                 resolve(null);
             }
