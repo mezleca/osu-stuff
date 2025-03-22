@@ -360,6 +360,51 @@ more_options.addEventListener("click", async () => {
     }
 });
 
+const move_to = (el, md5) => {
+
+    // make sure to get the updated beatmap
+    const collection_name = el.innerText;
+
+    if (!core.reader.collections.beatmaps.has(collection_name)) {
+        return;
+    }
+
+    const collection = core.reader.collections.beatmaps.get(collection_name);
+    collection.maps = new Set([...collection.maps, md5]);
+    
+    // update sr and shit
+    core.reader.update_collections();
+};
+
+const delete_set = (md5) => {
+
+    // make sure to get the updated beatmap
+    const updated_beatmap = core.reader.osu.beatmaps.get(md5);
+    const collection_name = get_selected_collection();
+
+    if (!core.reader.collections.beatmaps.has(collection_name)) {
+        return;
+    }
+
+    const beatmap_id = updated_beatmap.beatmap_id;
+    const collection = core.reader.collections.beatmaps.get(collection_name);
+
+    // remove diffs that have the save beatmap_id
+    for (const [k, v] of core.reader.osu.beatmaps) {
+        if (v.beatmap_id == beatmap_id && collection.maps.has(v.md5)) {
+            remove_beatmap(v.md5);
+        }
+    }
+
+    // need to update
+    update_collection_button.style.display = "block";
+};
+
+const open_in_browser = (beatmap) => {
+    const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+    window.electron.shell.openExternal(url);
+};
+
 const render_beatmap = (md5) => {
 
     const beatmap = core.reader.osu.beatmaps.get(md5);
@@ -410,51 +455,6 @@ const render_beatmap = (md5) => {
         beatmap_status.classList.add(String(status).toLowerCase());
     };
 
-    const open_in_browser = () => {
-        const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-        window.electron.shell.openExternal(url);
-    };
-
-    const move_to = (el) => {
-
-        // make sure to get the updated beatmap
-        const collection_name = el.innerText;
-
-        if (!core.reader.collections.beatmaps.has(collection_name)) {
-            return;
-        }
-
-        const collection = core.reader.collections.beatmaps.get(collection_name);
-        collection.maps = new Set([...collection.maps, md5]);
-        
-        // update sr and shit
-        core.reader.update_collections();
-    };
-
-    const delete_set = () => {
-
-        // make sure to get the updated beatmap
-        const updated_beatmap = core.reader.osu.beatmaps.get(md5);
-        const collection_name = get_selected_collection();
-
-        if (!core.reader.collections.beatmaps.has(collection_name)) {
-            return;
-        }
-
-        const beatmap_id = updated_beatmap.beatmap_id;
-        const collection = core.reader.collections.beatmaps.get(collection_name);
-
-        // remove diffs that have the save beatmap_id
-        for (const [k, v] of core.reader.osu.beatmaps) {
-            if (v.beatmap_id == beatmap_id && collection.maps.has(v.md5)) {
-                remove_beatmap(v.md5);
-            }
-        }
-
-        // need to update
-        update_collection_button.style.display = "block";
-    };
-
     const update_sr = (beatmap_sr) => {
 
         const class_name = star_ranges.find(([min, max]) => beatmap_sr >= min && beatmap_sr <= max)[2];
@@ -492,18 +492,18 @@ const render_beatmap = (md5) => {
         const current_collection = get_selected_collection();
         const collection_keys = Array.from(core.reader.collections.beatmaps.keys())
             .filter((k) => k != current_collection)
-            .map((k) => { return { value: k, callback: move_to }});
+            .map((k) => { return { value: k, callback: (el) => { move_to(el, md5) } }});
 
-        title.addEventListener("click", open_in_browser);
+        title.addEventListener("click", () => { open_in_browser(beatmap) } );
 
         // add contextmenu handler
         create_context_menu({
             id: md5,
             target: beatmap_element,
             values: [
-                { type: "default", value: "open in browser", callback: open_in_browser },
+                { type: "default", value: "open in browser", callback: () => open_in_browser(beatmap) },
                 { type: "submenu", value: "move to", values: collection_keys },
-                { type: "default", value: "remove beatmap set", callback: (el) => { delete_set(el) } },
+                { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
                 { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } }
             ]
         });
@@ -587,7 +587,7 @@ const render_beatmap = (md5) => {
             set_loading_status(beatmap_data.status);
             update_sr(beatmap_data.difficulty_rating);
 
-            title.addEventListener("click", open_in_browser); 
+            title.addEventListener("click", () => { open_in_browser(beatmap) } ); 
             title.textContent = beatmap?.song_title || "Unknown";
 
             subtitle.textContent = beatmap?.difficulty || "Unknown";

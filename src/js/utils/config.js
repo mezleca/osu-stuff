@@ -1,5 +1,5 @@
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
-import { osu_login } from "./other/login.js";
+import { osu_login } from "./other/fetch.js";
 import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
 import { OsuReader } from "./reader/reader.js";
@@ -320,7 +320,7 @@ export const initialize_config = async () => {
             <div class="config-fields">
                 <h1>config</h1>
                 <div class="button-container">
-                    <button class="check_config" style="width: 100%">check config</button>
+                    <button class="check_config" style="width: 100%">update config</button>
                 </div>
             </div>
             <div class="mirror-list">
@@ -331,7 +331,7 @@ export const initialize_config = async () => {
 
     const check_button = config_tab.querySelector(".config-fields > .button-container");
     const mirror_tab = config_tab.querySelector(".mirror-list");
-    const mirror_add_button = create_element(`<button class="mirror-remove-container">Adicionar</button>`);
+    const mirror_add_button = create_element(`<button class="mirror-remove-container">new mirror</button>`);
 
     await manage_mirrors(mirror_tab, mirror_add_button);
 

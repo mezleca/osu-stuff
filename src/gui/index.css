@@ -1,20 +1,6 @@
 @import url("./deps/bootstrap-icons.css");
 
 @font-face {
-    font-family: 'Helvetica Bold';
-    font-style: normal;
-    font-weight: normal;
-    src: local('Helvetica'), url('./deps/Helvetica-Bold.woff') format('woff');
-}
-
-@font-face {
-    font-family: 'Helvetica';
-    font-style: normal;
-    font-weight: normal;
-    src: local('Helvetica'), url('./deps/Helvetica.woff') format('woff');
-}
-
-@font-face {
     font-family: 'Torus Bold';
     font-style: normal;
     font-weight: bold;
@@ -395,7 +381,6 @@ label {
 }
 
 .alert-popup > h2 {
-    font-family: "Helvetica";
     font-weight: 400;
     color: rgb(255, 255, 255);
     font-size: 0.85em;
