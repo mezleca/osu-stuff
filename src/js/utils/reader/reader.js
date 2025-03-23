@@ -260,17 +260,26 @@ export class OsuReader {
             buffer.push(this.#writeInt(this.collections.beatmaps.size)); 
 
             for (const [name, collection] of this.collections.beatmaps) {
-                    
+                
                 buffer.push(this.#writeString(name));
-                buffer.push(this.#writeInt(collection.maps.length));
+                buffer.push(this.#writeInt(collection.maps.size));
 
-                for (let i = 0; i < collection.maps.length; i++) {
-                    buffer.push(this.#writeString(collection.maps[i]));
+                for (const map of collection.maps) {
+
+                    if (!map) {
+                        console.log("[reader] failed to get beatmap from collection!");
+                        return reject();
+                    }
+
+                    buffer.push(this.#writeString(map));
                 }
-            };
+            }
+
+            if (!p) {
+                return resolve();
+            }
 
             await fs.writeFileSync(p, this.join_buffer(buffer));
-
             resolve();
         });
     };
@@ -692,10 +701,9 @@ export class OsuReader {
             const count = this.#int();
 
             for (let i = 0; i < count; i++) {
-
+                
                 const name = this.#string();
                 const bm_count = this.#int();
-                
                 const md5 = [];
 
                 for (let i = 0; i < bm_count; i++) {

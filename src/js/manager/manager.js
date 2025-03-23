@@ -774,7 +774,7 @@ const update_map_info = (map) => {
 
 export const add_collection_manager = async (maps, collection) => {
 
-    const updated_map = maps.map(map => update_map_info(map)).filter((b) => typeof b == "string");
+    const updated_map = new Set(maps.map(map => update_map_info(map)).filter((b) => typeof b == "string"));
     core.reader.collections.beatmaps.set(collection, { maps: updated_map });
 
     await initialize();
