@@ -1392,7 +1392,7 @@ input[type="range"]::-moz-range-track {
 
 .dropdown-header {
     background-color: #1e1e1e;
-    border: 1px solid grey;
+    border: 1px solid #444;
     color: #fff;
     padding: 8px 10px;
     cursor: pointer;
@@ -1420,8 +1420,11 @@ input[type="range"]::-moz-range-track {
     max-height: 150px;
     overflow-y: auto;
     border: 1px solid #444;
-    z-index: 10;
-    margin-top: 2px;
+    z-index: 20;
+    margin-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 4px;
 }
 
 .dropdown-content.show {
@@ -1433,18 +1436,23 @@ input[type="range"]::-moz-range-track {
     cursor: pointer;
     display: flex;
     align-items: center;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    transition: 0.3s background-color;
 }
 
 .dropdown-item > label {
     margin: 0;
-}
-
-.dropdown-item:hover {
-    background-color: #333;
+    font-size: 0.95em;
+    cursor: pointer;
 }
 
 .dropdown-item input[type="checkbox"] {
     margin-right: 6px;
+}
+
+.dropdown-item-selected {
+    background-color: var(--accent-color);
 }
 
 .selected-options {

@@ -136,116 +136,126 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
     return range_slider;
 };
 
-// @TODO: simplify
 export const create_dropdown_filter = (id, name, options) => {
 
     const html = `
         <div class="dropdown-container" id="${id}">
             <div class="dropdown-header">
-            <span class="dropdown-label">${name}</span>
+                <span class="dropdown-label">${name}</span>
             </div>
             <div class="dropdown-content">
-            <div class="dropdown-item">
-                <input type="checkbox" id="option-all" value="all">
-                <label for="option-all">all</label>
-            </div>
-            ${options.map((v, i) => {
-                if (v != "all") {
-                    return `<div class="dropdown-item">
-                        <input type="checkbox" id="option${i}" value="${v}">
-                        <label for="option${i}">${v}</label>
-                    </div>
-                `
-                }
-            }).join("\n")}
+                <div class="dropdown-item" data-value="all">
+                    <label>all</label>
+                </div>
+                ${options
+                    .map((v) => {
+                        if (v != "all") {
+                            return `<div class="dropdown-item" data-value="${v}">
+                                <label>${v}</label>
+                            </div>`;
+                        }
+                    })
+                    .join("\n")}
             </div>
             <div class="selected-options" id="selected-options"></div>
         </div>
     `;
-    
+
     const dropdown_filter = {
         selected: [],
         element: create_element(html),
-        callback: null
-    }
-    
+        callback: null,
+    };
+
     const dropdown_header = dropdown_filter.element.querySelector(".dropdown-header");
     const dropdown_content = dropdown_filter.element.querySelector(".dropdown-content");
-    const selected_options = dropdown_filter.element.querySelector(".selected-options");
-    const all_checkbox = dropdown_filter.element.querySelector("input[value='all']");
-    const item_checkboxes = [...dropdown_filter.element.querySelectorAll(".dropdown-item input[type='checkbox']")].filter(cb => cb.value != "all");
-    
-    dropdown_header.addEventListener("click", () => { dropdown_content.classList.toggle("show") });
-    dropdown_content.addEventListener("click", (e) => { e.stopPropagation() });
-    
-    const check_selected = () => {
-        const allItemsSelected = item_checkboxes.every(cb => cb.checked);
-        all_checkbox.checked = allItemsSelected;
-    };
-    
-    const update = () => {
+    const selected_options_div = dropdown_filter.element.querySelector(".selected-options");
+    const all_item = dropdown_filter.element.querySelector('.dropdown-item[data-value="all"]');
+    const item_items = [
+        ...dropdown_filter.element.querySelectorAll(".dropdown-item"),
+    ].filter((item) => item.dataset.value != "all");
+    const all_options = item_items.map((item) => item.dataset.value);
 
-        selected_options.innerHTML = "";
-        dropdown_filter.selected = [];
-        
-        item_checkboxes.forEach((checkbox) => {
-            if (checkbox.checked) dropdown_filter.selected.push(checkbox.value);
-        });
-        
-        check_selected();
-        
-        const checkboxes = [all_checkbox, ...item_checkboxes];
-        checkboxes.forEach((checkbox) => {      
-
-            if (checkbox.checked && checkbox.value != "all") {
-                
-                dropdown_filter.selected.push(checkbox.value);
-                
-                const option_tag = document.createElement("div");
-                const option_text = document.createElement("span");
-                const remove_btn = document.createElement("span");
-                
-                option_tag.className = "option-tag";
-                remove_btn.className = "remove-option";
-                option_text.textContent = checkbox.value;
-                remove_btn.innerHTML = "×";
-                
-                remove_btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    checkbox.checked = false;
-                    update();
-                });
-                
-                option_tag.appendChild(option_text);
-                option_tag.appendChild(remove_btn);
-                selected_options.appendChild(option_tag);
-            }
-        });
-        
-        if (dropdown_filter.callback) dropdown_filter.callback();
-    };
-        
-    all_checkbox.addEventListener("change", (e) => {
-        if (e.target.checked) {
-            item_checkboxes.forEach(cb => cb.checked = true);
-        } else {
-            item_checkboxes.forEach(cb => cb.checked = false);
-        }
-        update();
+    dropdown_header.addEventListener("click", () => {
+        dropdown_content.classList.toggle("show");
     });
-    
-    item_checkboxes.forEach((checkbox) => {
-        checkbox.addEventListener("change", (e) => {
-            if (!e.target.checked) {
-                all_checkbox.checked = false;
+
+    dropdown_content.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+
+    const dropdown_items = [...dropdown_filter.element.querySelectorAll(".dropdown-item")];
+
+    dropdown_items.forEach((item) => {
+
+        item.addEventListener("click", () => {
+
+            const value = item.dataset.value;
+
+            if (value == "all") {
+                if (dropdown_filter.selected.length == all_options.length) {
+                    dropdown_filter.selected = [];
+                } else {
+                    dropdown_filter.selected = [...all_options];
+                }
             } else {
-                check_selected();
+                if (dropdown_filter.selected.includes(value)) {
+                    dropdown_filter.selected = dropdown_filter.selected.filter((v) => v != value);
+                } else {
+                    dropdown_filter.selected.push(value);
+                }
             }
             update();
         });
     });
-    
+
+    const update = () => {
+
+        item_items.forEach((item) => {
+            if (dropdown_filter.selected.includes(item.dataset.value)) {
+                item.classList.add("dropdown-item-selected");
+            } else {
+                item.classList.remove("dropdown-item-selected");
+            }
+        });
+
+        if (dropdown_filter.selected.length == all_options.length) {
+            all_item.classList.add("dropdown-item-selected");
+        } else {
+            all_item.classList.remove("dropdown-item-selected");
+        }
+
+        selected_options_div.innerHTML = "";
+        dropdown_filter.selected.forEach((value) => {
+
+            const option_tag = document.createElement("div");
+            option_tag.className = "option-tag";
+
+            const option_text = document.createElement("span");
+            option_text.textContent = value;
+
+            const remove_btn = document.createElement("span");
+            remove_btn.className = "remove-option";
+            remove_btn.innerHTML = "×";
+
+            remove_btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                dropdown_filter.selected = dropdown_filter.selected.filter((v) => v != value);
+                update();
+            });
+
+            option_tag.appendChild(option_text);
+            option_tag.appendChild(remove_btn);
+            selected_options_div.appendChild(option_tag);
+        });
+
+        if (dropdown_filter.callback) {
+            dropdown_filter.callback();
+        }
+    }
+
     update();
+
     return dropdown_filter;
 };
 

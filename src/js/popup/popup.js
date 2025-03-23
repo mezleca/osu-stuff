@@ -227,7 +227,7 @@ const create_custom_menu = async (options) => {
             <div class="popup-content-flex">
                 <h1>${title}</h1>
                 <div id="elements_container"></div>
-                <button id="custom_menu_submit">Submit</button>
+                <button id="custom_menu_submit">submit</button>
             </div>
         </div>
     `);
@@ -235,11 +235,12 @@ const create_custom_menu = async (options) => {
     const elements_container = content_wrapper.querySelector("#elements_container");
     
     elements.forEach(({ key, element }) => {
+
         const type = Object.keys(element)[0];
         const props = element[type]?.options ? element[type].options : element[type];
         const label = element[type]?.label || key;
         const safe_key = key.replace(/\s+/g, '_');
-        
+
         switch (type) {
             case 'list':
 
@@ -296,12 +297,14 @@ const create_custom_menu = async (options) => {
     container.appendChild(content_wrapper);
     
     return new Promise((resolve, reject) => {
+
         const submit_btn = content_wrapper.querySelector("#custom_menu_submit");
-        
         submit_btn.addEventListener("click", () => {
+
             const result = {};
             
             elements.forEach(({ key, element }) => {
+
                 const type = Object.keys(element)[0];
                 const safe_key = key.replace(/\s+/g, '_');
                 const is_multiple = type == 'list' && element[type]?.multiple == true;
