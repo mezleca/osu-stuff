@@ -20,12 +20,13 @@ const tooltips_text = {
     "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
 }
 
-const config_options = {
-    osu_id: "osu id",
-    osu_secret: "osu secret",
-    osu_path: "osu path",
-    osu_songs_path: "songs path",
-};
+const config_options = [
+    { type: "password", text: "osu_id",     secret: true },
+    { type: "password", text: "osu_secret", secret: true },
+    { type: "file",     text: "osu_path",                },
+    { type: "file",     text: "osu_songs_path"               },
+    { type: "checkbox", text: "fetch_images_from_osu"    }
+];
 
 const default_mirrors = [
     { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
@@ -174,9 +175,10 @@ const validate_and_setup_config = async () => {
     let is_valid = true;
 
     document.querySelectorAll("#config_fields").forEach((field) => {
+
         const input = field.querySelector("input");
 
-        if (!input.value) {
+        if (input.type != "checkbox" && !input.value) {
             create_alert(`missing value for ${input.id}`, { type: "error" });
             is_valid = false;
         }
@@ -267,52 +269,62 @@ export const initialize_config = async () => {
         blink(config_menu);
     }
 
-    // create and initialize config elements
-    for (const [key, label] of Object.entries(config_options)) {
+    for (const option of config_options) {
 
-        const is_secret = key == "osu_id" || key == "osu_secret";
-        const is_readonly = !is_secret;
-        const value = core.config.get(key) || "";
+        const value = core.config.get(option.text) || "";
+        const text = option.text.replaceAll("_", " ");
+        const is_file = option.type == "file";
+        const is_checkbox = option.type == "checkbox";
 
-        const field = create_element(`
-            <div class="input-container" id="config_fields">
-                <label for="${key}">
-                    ${label}
-                    ${tooltips_text[key] ? `<div class="tooltip" id="${key}">(?)</div>` : ""}
-                </label>
-                <input 
-                    class="${is_readonly ? "config_input" : "file_input"}" 
-                    type="${is_secret ? "password" : "text"}" 
-                    name="${key}" id="${key}" 
-                    value="${value}" 
-                    ${is_readonly ? "readonly" : ""}>
-            </div>
+        const label_element = create_element(`
+            <label for="${option.text}">
+                ${text}
+                ${tooltips_text[option.text] ? `<div class="tooltip" id="${option.key}">(?)</div>` : ""}
+            </label>
         `);
 
-        const input = field.querySelector("input");
+        const input_element = create_element(`
+            <input 
+                class="${is_file ? "config_input" : "file_input"}" 
+                type="${is_file ? "text" : option.type}" 
+                name="${option.text}" id="${option.text}" 
+                ${is_checkbox && value ? `checked` : `value=${value}`} 
+                ${is_file ? "readonly" : ""}
+            >
+        `);
 
-        if (is_secret) {
-            input.addEventListener("input", debounce(async () => {
-                if (input.value) { 
-                    await save_config(key, input.value);
-                }
-            }, 300));
+        const option_container = create_element(`
+            <div class="config-option ${is_checkbox ? "row": ""}" id="config_fields"></div>
+        `);
+
+        if (is_checkbox) {
+            option_container.appendChild(input_element);
+            option_container.appendChild(label_element);
+        } else {
+            option_container.appendChild(label_element);
+            option_container.appendChild(input_element);
         }
 
-        if (is_readonly) {
+        const input = option_container.querySelector("input");    
+
+        if (is_file) {
 
             input.addEventListener("click", async () => {
 
                 const dialog = await window.electron.create_dialog();
 
                 if (!dialog.canceled) {
-                    await save_config(key, dialog.filePaths[0]);
+                    await save_config(option.text, dialog.filePaths[0]);
                     input.value = dialog.filePaths[0];
                 }
             });
         }
 
-        fields.push(field);
+        if (is_checkbox) {
+            input.addEventListener("click", async () => { save_config(option.text, input.checked) });
+        }
+
+        fields.push(option_container);
     }
 
     config_tab.innerHTML = `

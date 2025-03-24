@@ -359,7 +359,6 @@ export const setup_draggables = () => {
             const placeholder_html = `
                 <div class="draggable_item">
                     <h1>${draggable_item_name.innerText}</h1>
-                    <i class="bi bi-pencil-square"></i>
                 </div>
             `
             const placeholder_draggable_item = create_element(placeholder_html);

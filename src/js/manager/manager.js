@@ -465,6 +465,15 @@ const render_beatmap = (md5) => {
             star_rating.style.color = "#ebcf34";
         }
     };
+    
+    const get_beatmap_image = (beatmap) => {
+
+        if (core.config.get("fetch_images_from_osu")) {
+            return `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
+        }
+
+        return core.reader.get_beatmap_image(beatmap);
+    }
 
     set_loading_status(status);
 
@@ -483,7 +492,7 @@ const render_beatmap = (md5) => {
     subtitle.textContent = beatmap?.difficulty || "Unknown";
 
     if (has_beatmap) {
-        beatmap_bg.src = core.reader.get_beatmap_image(beatmap) || placeholder_image;
+        beatmap_bg.src = get_beatmap_image(beatmap) || placeholder_image;
         beatmap_bg.classList.add("bg-image-custom");
     } else {
         beatmap_bg.src = placeholder_image;
@@ -573,8 +582,6 @@ const render_beatmap = (md5) => {
                 create_alert("Beatmap not found :c", { type: "alert" });
                 return;
             }
-
-            console.log(beatmap_data, beatmap);
 
             Object.assign(beatmap, {
                 artist_name: beatmap_data.beatmapset.artist,

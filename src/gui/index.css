@@ -183,12 +183,29 @@ body {
     overflow-y: auto;
 }
 
-.input-container > input {
+.config-option > input {
     width: 100%;
 }
 
-.config_container.row {
+.config-option > input[type="checkbox"] {
+    width: 1.3em;
+    height: 1.3em;
+    margin-right: 5px;
+}
+
+.config-option.row {
+    margin-top: 10px;
+}
+
+.config-option.row > label {
+    margin: 0;
+    text-wrap: no-wrap;
+}
+
+.config-option.row, .config_container.row {
+    display: flex;
     flex-direction: row;
+    align-items: center;
 }
 
 .mirror-list {
@@ -933,7 +950,6 @@ button {
     width: 100%;
     align-items: center;
     justify-content: center;
-    padding-top: 10px;
 }
 
 .config-flex {
