@@ -190,6 +190,7 @@ body {
 .config-option > input[type="checkbox"] {
     width: 1.3em;
     height: 1.3em;
+    margin-left: 0px;
     margin-right: 5px;
 }
 

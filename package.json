@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "just another app to manage osu! stable collections and download beatmaps ",
   "main": "src/index.js",
   "type": "module",
@@ -20,7 +20,7 @@
     "@electron-forge/maker-zip": "^7.7.0",
     "@reforged/maker-appimage": "^5.0.0",
     "@electron/fuses": "^1.8.0",
-    "electron": "34.3.1",
+    "electron": "35.0.3",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1"
   },
