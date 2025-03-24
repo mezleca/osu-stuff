@@ -407,7 +407,7 @@ const open_in_browser = (beatmap) => {
 
 const render_beatmap = (md5) => {
 
-    const beatmap = core.reader.osu.beatmaps.get(md5);
+    const beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
     const beatmap_html = `
         <div class="mini-container">
@@ -573,6 +573,8 @@ const render_beatmap = (md5) => {
                 create_alert("Beatmap not found :c", { type: "alert" });
                 return;
             }
+
+            console.log(beatmap_data, beatmap);
 
             Object.assign(beatmap, {
                 artist_name: beatmap_data.beatmapset.artist,
