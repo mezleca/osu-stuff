@@ -496,7 +496,7 @@ const render_beatmap = (md5) => {
         const og_beatmap_image = get_beatmap_image(beatmap);
         beatmap_bg.src = og_beatmap_image || placeholder_image;
 
-        // only apply offset thing if we're using the bgfull bg image
+        // only apply offset thing if we're using the full bg image
         if (!core.config.get("fetch_images_from_osu")) {
             beatmap_bg.classList.add("bg-image-custom");
         }
