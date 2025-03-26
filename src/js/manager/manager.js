@@ -557,10 +557,16 @@ const render_beatmap = (md5) => {
                 stop();
             }
 
-            const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmap_id}.mp3`);
-            const buffer = await preview_data.arrayBuffer();
+            const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmap_id}.mp3`, {
+                headers: {
+                    "Accept": "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
+                    "Sec-GPC": "1",
+                    "Sec-Fetch-Dest": "audio",
+                }
+            });
 
             // create a new audio source using the preview buffer
+            const buffer = await preview_data.arrayBuffer();
             const audio_source = new Blob([buffer], { type: "audio/wav" }); 
 
             // initialize new audio object
