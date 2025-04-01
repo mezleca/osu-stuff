@@ -297,7 +297,6 @@ export class OsuReader {
             const maps = data?.maps;
 
             if (!maps) {
-                console.log("not beatmaps", data);
                 continue;
             }
 
@@ -325,6 +324,37 @@ export class OsuReader {
                 sr_max
             });
         }
+    }
+
+    update_collection(name) {
+
+        if (!this.collections.beatmaps.has(name)) {
+            console.log("[Reader] collection not found");
+            return;
+        }
+
+        const collection = this.collections.beatmaps.get(name);
+        
+        collection.bpm_max = 0;
+        collection.sr_max = 0;   
+
+        for (const md5 of collection.maps) {
+
+            const map = this.osu.beatmaps.get(md5);
+
+            if (!map) {
+                continue;
+            }
+
+            const sr = Number(get_beatmap_sr(map));
+            const bpm = Number(get_beatmap_bpm(map));
+
+            if (sr > collection.sr_max) collection.sr_max = sr;
+            if (bpm > collection.bpm_max) collection.bpm_max = bpm;
+        }
+
+        // update the collection with extra info
+        this.collections.beatmaps.set(name, collection);
     }
 
     /**

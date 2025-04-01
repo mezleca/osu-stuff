@@ -76,10 +76,10 @@ export const delete_beatmaps = async (beatmaps) => {
 
                 // remove from the reader so manager wont show the map
                 if (core.reader.osu.beatmaps.has(item.md5)) {
-                    console.log("[Delete Beatmaps] removing", item.md5, "from map");
+                    console.log("[delete beatmaps] removing", item.md5, "from map");
                     core.reader.osu.beatmaps.delete(item.md5);
                 } else {
-                    console.log("[Delete Beatmaps] failed to find:", item);
+                    console.log("[delete beatmaps] failed to find:", item);
                 }
 
                 /// dont remove anything in dev mode
@@ -99,7 +99,7 @@ export const delete_beatmaps = async (beatmaps) => {
                     if (!folder.some(file => file.endsWith('.osu'))) {
                         fs.rmdirSync(folder_path, { recursive: true });
                         deleted_folders.add(folder_path);
-                        console.log("[Delete Beatmaps] deleting folder", folder_path);
+                        console.log("[delete beatmaps] deleting folder", folder_path);
                     }
                 }
             }

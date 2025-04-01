@@ -255,24 +255,23 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    console.log(beatmaps);
+    const remove_from_collection = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
 
-    const conf = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
+    if (remove_from_collection) {
 
-    if (!conf) {
-        return;
+        for (const [md5, _] of beatmaps) {
+            remove_beatmap(md5);
+        }
+
+        // update single collection
+        core.reader.update_collection(name);
     }
 
-    // delete beatmaps in the osu folder
-    const success = await delete_beatmaps(Array.from(beatmaps.values()));
+    const remove_from_folder = await quick_confirm(`remove from osu folder?`);
 
-    if (!success) {
-        return;
+    if (remove_from_folder) {
+        await delete_beatmaps(Array.from(beatmaps.values()));
     }
-
-    // render manager once again
-    await initialize();
-    setup_manager();
 };
 
 const create_empty_collection = async (name) => {
@@ -572,8 +571,7 @@ const render_beatmap = (md5) => {
             });
 
             // create a new audio source using the preview buffer
-            const buffer = await preview_data.arrayBuffer();
-            const audio_source = new Blob([buffer], { type: "audio/wav" }); 
+            const audio_source = await preview_data.blob();
 
             // initialize new audio object
             audio_core.audio = new Audio(window.URL.createObjectURL(audio_source));
