@@ -1,9 +1,10 @@
-import path from "node:path";
+import fs from "fs";
+import path from "path";
 import squirrel_startup from 'electron-squirrel-startup';
 
-import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu } from "electron";
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu, protocol } from "electron";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /** @type {BrowserWindow} */
 let main_window = null;
@@ -11,6 +12,8 @@ let main_window = null;
 if (squirrel_startup) {
     app.quit();
 }
+
+Menu.setApplicationMenu(null);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev_mode = process.env.NODE_ENV == "development";
@@ -42,12 +45,18 @@ export const get_icon_path = () => {
       default: 
         return path.join(base_path, "png/256x256.png");
     }
-  };
+};
 
-const icon_path = get_icon_path();
-Menu.setApplicationMenu(null);
+protocol.registerSchemesAsPrivileged([{
+    scheme: 'media',
+    privileges: {
+        secure: true,
+        stream: true,
+        supportFetchAPI: true,
+        bypassCSP: true
+    } 
+}]);
 
-// still need to find a better way to do this
 const create_auth_window = (url, end) => {
 
     if (!url || !end) {
@@ -59,7 +68,7 @@ const create_auth_window = (url, end) => {
         width: w,
         height: h,
         fullscreenable: false,
-        icon: icon_path,
+        icon: get_icon_path(),
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
@@ -105,7 +114,7 @@ const createWindow = () => {
         titleBarStyle: 'hidden',
         frame: true,
         fullscreenable: false,
-        icon: icon_path,
+        icon: get_icon_path(),
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
@@ -122,6 +131,7 @@ const createWindow = () => {
         console.log("opening devtools");
         main_window.webContents.openDevTools()
     });
+
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
 
     // load html yep
@@ -196,6 +206,12 @@ app.whenReady().then(async () => {
     // fetch headers thing
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
         callback({ requestHeaders: { ...details.requestHeaders } });
+    });
+
+    // image protocol so electron dont freak out
+    protocol.handle('media', (req) => { 
+        const path_to_media = decodeURIComponent(req.url.replace('media://', ''));
+        return net.fetch(`file://${path_to_media}`);
     });
 
     createWindow();

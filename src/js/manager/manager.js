@@ -472,7 +472,13 @@ const render_beatmap = (md5) => {
             return `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
         }
 
-        return core.reader.get_beatmap_image(beatmap);
+        const img_src = core.reader.get_beatmap_image(beatmap);
+
+        if (!img_src) {
+            return `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
+        }
+
+        return `media://${encodeURIComponent(img_src)}`;
     }
 
     set_loading_status(status);
