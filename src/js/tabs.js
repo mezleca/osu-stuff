@@ -1,4 +1,5 @@
 import { create_alert } from "./popup/popup.js";
+import { close_window, maximize_window, minimize_window } from "./utils/other/process.js";
 
 export const tasks = new Map();
 
@@ -12,9 +13,9 @@ const maximize_btn = document.querySelector(".maximize");
 const minimize_btn = document.querySelector(".minimize");
 const close_btn = document.querySelector(".close");
 
-maximize_btn.addEventListener("click", () => window.electron.maximize());
-minimize_btn.addEventListener("click", () => window.electron.minimize());
-close_btn.addEventListener("click", () => window.electron.close());
+maximize_btn.addEventListener("click", () => maximize_window);
+minimize_btn.addEventListener("click", () => minimize_window);
+close_btn.addEventListener("click", () => close_window);
 
 all_tabs.map((tab, i) => {
 

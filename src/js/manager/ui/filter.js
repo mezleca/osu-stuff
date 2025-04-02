@@ -290,7 +290,7 @@ export const filter_beatmap = (md5) => {
     const artist = beatmap?.artist_name || "Unknown";
     const title = beatmap?.song_title || "Unknown";
     const difficulty = beatmap?.difficulty || "Unknown";
-    const creator = beatmap?.creator_name || "Unknown";
+    const creator = beatmap?.mapper || "Unknown";
     const tags = beatmap?.tags || "";
 
     // filter by search

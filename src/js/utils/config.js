@@ -4,15 +4,15 @@ import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
 import { OsuReader } from "./reader/reader.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
-import { debounce, fs, path } from "./global.js";
+import { fs, path } from "./global.js";
+import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
 
 export const core = {
     reader: new OsuReader(),
     config: new Map(),
     mirrors: new Map(),
-    og_path: window.nodeAPI.env.og_path, // app folder
-    login: null, // login object that contains the access_token
-    perm: true, // boolean to check on other parts if we have perm to write on osu folder 
+    og_path: get_og_path(),
+    login: null, 
 };
 
 const tooltips_text = {
@@ -20,21 +20,26 @@ const tooltips_text = {
     "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
 }
 
+const osu_db_file = "osu!.db";
+const collection_db_file = "collection.db";
+
+const lazer_mode = (target) => {
+    console.log("lazer mode:", target.checked);
+};
+
 const config_options = [
-    { type: "password", text: "osu_id",     secret: true },
-    { type: "password", text: "osu_secret", secret: true },
-    { type: "file",     text: "osu_path",                },
-    { type: "file",     text: "osu_songs_path"               },
-    { type: "checkbox", text: "fetch_images_from_osu"    }
+    { type: "password", text: "osu_id",     secret: true         },
+    { type: "password", text: "osu_secret", secret: true         },
+    { type: "file",     text: "osu_path",                        },
+    { type: "file",     text: "osu_songs_path"                   },
+    { type: "checkbox", text: "get_images_from_web"            },
+    { type: "checkbox", text: "lazer_mode", callback: lazer_mode }
 ];
 
 const default_mirrors = [
     { name: "nerynian", url: "https://api.nerinyan.moe/d/" },
     { name: "direct", url: "https://osu.direct/api/d/" },
 ];
-
-const osu_db_file = "osu!.db";
-const collection_db_file = "collection.db";
 
 export const save_config = async (key, value) => {
 
@@ -83,7 +88,7 @@ export const load_osu_files = async (osu_path) => {
     if (!fs.existsSync(collection_file)) {
         core.reader.collections = { version: 20240820, length: 0, beatmaps: [] };
         await core.reader.write_collections_data(collection_file);
-        console.log("[Config] created a new collections.db file in", file_path);
+        console.log("[config] created collections.db file in", file_path);
     }
 
     const osu_data = fs.readFileSync(db_file);
@@ -95,18 +100,15 @@ export const load_osu_files = async (osu_path) => {
 
     set_loading_status("reading osu files...");
 
-    core.reader.set_buffer(collection_data, true);
-    await core.reader.get_collections_data();
-
-    core.reader.set_buffer(osu_data, true);
-    await core.reader.get_osu_data();
+    await core.reader.get_collections_data(collection_data);
+    await core.reader.get_osu_data(osu_data);
 
     core.reader.buffer = null;
 };
 
 const check_folder_permissions = async (folder) => {
 
-    console.log("[Config] verifying folder access", folder);
+    console.log("[config] checking folder access", folder);
 
     try {
 
@@ -131,7 +133,7 @@ const check_folder_permissions = async (folder) => {
 
         return true;
     } catch (err) {
-        console.log("[Config] folder perm error:", err);
+        console.log("[config] folder perm error:", err);
         return false;
     }
 };
@@ -163,7 +165,6 @@ const initialize_osu_config = async () => {
 
     if (!osu_perms || !songs_perms) {
         create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
-        core.perm = false;
     }
 
     await load_osu_files(osu_path);
@@ -172,7 +173,7 @@ const initialize_osu_config = async () => {
 
 const validate_and_setup_config = async () => {
 
-    let is_valid = true;
+    let valid = true;
 
     document.querySelectorAll("#config_fields").forEach((field) => {
 
@@ -180,11 +181,11 @@ const validate_and_setup_config = async () => {
 
         if (input.type != "checkbox" && !input.value) {
             create_alert(`missing value for ${input.id}`, { type: "error" });
-            is_valid = false;
+            valid = false;
         }
     });
 
-    if (is_valid) {
+    if (valid) {
         await initialize_osu_config();
         await initialize();
     }
@@ -227,7 +228,6 @@ const manage_mirrors = async (tab, add_button) => {
     core.mirrors = mirror_data;
 };
 
-
 export const initialize_config = async () => {
 
     set_loading_status("checking config...");
@@ -252,7 +252,7 @@ export const initialize_config = async () => {
         core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
     }
 
-    const osu_base_path = await window.electron.osu_default_path();
+    const osu_base_path = await get_osu_base_path();
     const songs_base_path = path.resolve(osu_base_path, "Songs");
 
     // try to get osu_path & osu_songs path
@@ -311,7 +311,7 @@ export const initialize_config = async () => {
 
             input.addEventListener("click", async () => {
 
-                const dialog = await window.electron.create_dialog();
+                const dialog = await create_dialog();
 
                 if (!dialog.canceled) {
                     await save_config(option.text, dialog.filePaths[0]);
@@ -321,7 +321,15 @@ export const initialize_config = async () => {
         }
 
         if (is_checkbox) {
-            input.addEventListener("click", async () => { save_config(option.text, input.checked) });
+
+            input.addEventListener("click", () => {
+
+                if (option?.callback) {
+                    option.callback(input);
+                }
+
+                save_config(option.text, input.checked) 
+            });
         }
 
         fields.push(option_container);
@@ -396,7 +404,6 @@ export const initialize_config = async () => {
 
     if (!osu_perms || !songs_perms) {
         create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
-        core.perm = false;
     }
 
     await load_osu_files(core.config.get("osu_path"));

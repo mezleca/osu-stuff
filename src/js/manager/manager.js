@@ -12,6 +12,7 @@ import { filter_beatmap, sr_filter, status_filter, bpm_filter } from "./ui/filte
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
+import { open_url } from "../utils/other/process.js";
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -401,7 +402,7 @@ const delete_set = (md5) => {
 
 const open_in_browser = (beatmap) => {
     const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
-    window.electron.shell.openExternal(url);
+    open_url(url);
 };
 
 const render_beatmap = (md5) => {
@@ -467,7 +468,7 @@ const render_beatmap = (md5) => {
     
     const get_beatmap_image = (beatmap) => {
 
-        if (core.config.get("fetch_images_from_osu")) {
+        if (core.config.get("get_images_from_web")) {
             return `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
         }
 
@@ -488,7 +489,7 @@ const render_beatmap = (md5) => {
 
     // set shit for lazy loading
     beatmap_element.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
-    beatmap_element.dataset.mapper = has_beatmap ? beatmap?.creator_name.toLowerCase() : "Unknown";
+    beatmap_element.dataset.mapper = has_beatmap ? beatmap?.mapper.toLowerCase() : "Unknown";
     beatmap_element.dataset.tags = has_beatmap ? beatmap.tags.toLowerCase() : "";
     beatmap_element.dataset.artist = has_beatmap ? beatmap.artist_name.toLowerCase() : "";
     beatmap_element.id = `bn_${md5}`;
@@ -502,7 +503,7 @@ const render_beatmap = (md5) => {
         beatmap_bg.src = og_beatmap_image || placeholder_image;
 
         // only apply offset thing if we're using the full bg image
-        if (!core.config.get("fetch_images_from_osu")) {
+        if (!core.config.get("get_images_from_web")) {
             beatmap_bg.classList.add("bg-image-custom");
         }
     } else {
@@ -604,7 +605,7 @@ const render_beatmap = (md5) => {
                 song_title: beatmap_data.beatmapset.title,
                 difficulty: beatmap_data.version,
                 md5: beatmap_data.checksum,
-                creator_name: beatmap_data.beatmapset.creator,
+                mapper: beatmap_data.beatmapset.creator,
                 difficulty_id: beatmap_data.beatmapset_id,
                 beatmap_id: beatmap_data.beatmapset.id,
                 url: beatmap_data.url,
@@ -810,6 +811,11 @@ export const add_collection_manager = async (maps, collection) => {
 
 export const initialize = async (options) => {
 
+    if (!core.reader.osu?.beatmaps) {
+        list.innerHTML = "";
+        return;
+    }
+    
     const no_update = options?.no_update || false;
     const force = options?.force || false;
 

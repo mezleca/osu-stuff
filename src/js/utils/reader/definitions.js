@@ -9,7 +9,7 @@ export const beatmaps_schema = {
     artist_name_unicode: String,
     song_title: String,
     song_title_unicode: String,
-    creator_name: String,
+    mapper: String,
     difficulty: String,
     audio_file_name: String,
     md5: String,
@@ -98,4 +98,14 @@ export const collections_db = {
     version: Number,
     length: Number,
     beatmaps: new Map()
+};
+
+export const permissions = {
+    0: "None",
+    1: "Normal",
+    2: "Moderator",
+    4: "Supporter",
+    8: "Friend",
+    16: "Peppy",
+    32: "World Cup Staff"
 };

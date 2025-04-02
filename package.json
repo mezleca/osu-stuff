@@ -25,7 +25,8 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "realm": "^12.14.1"
   },
   "config": {
     "forge": "./forge.config.js"

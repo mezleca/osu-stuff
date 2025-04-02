@@ -1,5 +1,6 @@
 import { create_alert } from "../../popup/popup.js";
 import { core } from "../config.js";
+import { create_auth, fetchstats } from "./process.js";
 
 export const osu_login = async (id, secret) => {
 
@@ -56,13 +57,13 @@ export const fetch_osustats = async (collection_url) => {
 
     if (!stats_data) {
         create_alert("please login on osustats before using that feature", { type: "warning" });
-        const data = await window.electron.create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
+        const data = await create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
         await save_to_db("stats", "data", data);
     }
 
     const url = `https://osustats.ppy.sh/apiv2/collection/${id}/download`;
     const collection_info = await fetch(`https://osustats.ppy.sh/apiv2/collection/${id}`);
-    const file_data = await window.electron.fetchstats(url, stats_data);
+    const file_data = await fetchstats(url, stats_data);
 
     if (file_data?.cookie) {
         create_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });

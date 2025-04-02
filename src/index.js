@@ -71,7 +71,7 @@ const create_auth_window = (url, end) => {
         icon: get_icon_path(),
         webPreferences: {
             devTools: true,
-            nodeIntegration: true,
+            nodeIntegration: false,
             contextIsolation: true,
             enableRemoteModule: true,
             webSecurity: false
@@ -118,18 +118,11 @@ const createWindow = () => {
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
-            contextIsolation: true,
+            contextIsolation: false, // yeah, thats kinda insecure, but whatever
             enableRemoteModule: true,
-            webSecurity: !dev_mode,
-            preload: path.join(__dirname, 'preload.cjs')
+            webSecurity: false,
         },
         titleBarOverlay: false,
-    });
-
-    // not sure if i need this
-    globalShortcut.register('F12', () => {
-        console.log("opening devtools");
-        main_window.webContents.openDevTools()
     });
 
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });

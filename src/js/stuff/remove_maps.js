@@ -83,7 +83,7 @@ export const delete_beatmaps = async (beatmaps) => {
                 }
 
                 /// dont remove anything in dev mode
-                if (window.electron.dev_mode) {
+                if (process.env.NODE_ENV == "development") {
                     console.log("[dev] skipping delete:", folder_path, item.md5);
                     continue;
                 }

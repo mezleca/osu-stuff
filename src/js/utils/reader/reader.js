@@ -4,16 +4,6 @@ import { core } from "../config.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
 
-const decompress_gzip = (data) => {
-    return new Promise((resolve, reject) => {
-        const result = zlib.gunzip(data);
-        if (!result) {
-            return reject(null);
-        }
-        return resolve(result);
-    });
-}
-
 export class OsuReader {
 
     /** @type {collections_db} */
@@ -26,6 +16,7 @@ export class OsuReader {
     image_cache;
 
     constructor() {
+        this.osu = new Map();
         this.offset = 0;
         this.image_cache = new Map();
         this.beatmap_offset_start = 0;
@@ -292,37 +283,8 @@ export class OsuReader {
             return;
         }
 
-        for (const [name, data] of this.collections.beatmaps) {
-
-            const maps = data?.maps;
-
-            if (!maps) {
-                continue;
-            }
-
-            let sr_max = 1, bpm_max = 0;
-            
-            for (const md5 of maps) {
-
-                const map = this.osu.beatmaps.get(md5);
-
-                if (!map) {
-                    continue;
-                }
-
-                const sr = Number(get_beatmap_sr(map));
-                const bpm = Number(get_beatmap_bpm(map));
-
-                if (sr > sr_max) sr_max = sr;
-                if (bpm > bpm_max) bpm_max = bpm;
-            }
-            
-            // update the collection with extra info
-            this.collections.beatmaps.set(name, {
-                maps: maps,
-                bpm_max,
-                sr_max
-            });
+        for (const [name] of this.collections.beatmaps) {
+            this.update_collection(name);
         }
     }
 
@@ -401,7 +363,7 @@ export class OsuReader {
                 if (file_version >= 7) {
 
                     const compressed_data = this.buffer.buffer.slice(this.offset);
-                    const decompressed_data = await decompress_gzip(compressed_data);
+                    const decompressed_data = zlib.gunzip(compressed_data);
                     
                     this.set_buffer(decompressed_data);
                     this.offset = 0;
@@ -542,7 +504,7 @@ export class OsuReader {
      * @returns { Promise<osu_db> } 
      * 
     */
-    get_osu_data = () => {
+    get_osu_data = (buffer) => {
 
         return new Promise(async (resolve) => {
 
@@ -550,6 +512,9 @@ export class OsuReader {
                 resolve(this.osu);
                 return;
             }
+
+            this.set_buffer(buffer);
+            this.offset = 0;
 
             console.log("[Reader] Reading osu! data...");
 
@@ -583,7 +548,7 @@ export class OsuReader {
                 data.artist_name_unicode = this.#string();
                 data.song_title = this.#string();
                 data.song_title_unicode = this.#string();
-                data.creator_name = this.#string();
+                data.mapper = this.#string();
                 data.difficulty = this.#string();
                 data.audio_file_name = this.#string();
                 data.md5 = this.#string();
@@ -681,36 +646,10 @@ export class OsuReader {
             }
 
             const extra_start = this.offset;
-       
-            const permissions_id = this.#int();
-            let permission = "";
-
-            switch (permissions_id) {
-                case 0:
-                    permission = "None"
-                    break;
-                case 1: 
-                    permission = "Normal"
-                    break;
-                case 2: 
-                    permission = "Moderator"
-                    break;
-                case 4:
-                    permission = "Supporter"
-                    break;
-                case 8: 
-                    permission = "Friend"
-                    break;
-                case 16:
-                    permission = "Peppy"
-                    break;
-                case 32:
-                    permission = "World Cup Staff"
-                    break;
-            }
+            const permission_id = this.#int();
 
             this.offset = 0;
-            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permissions_id, permission }; 
+            this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permission_id }; 
             resolve(this.osu);     
         });
     };
@@ -720,11 +659,14 @@ export class OsuReader {
      * @returns { Promise<collections_db> } 
      * 
     */
-    get_collections_data = (limit) => {
+    get_collections_data = (buffer) => {
 
         return new Promise(async (resolve) => {
 
             console.log("[Reader] Reading collections data...");
+
+            this.set_buffer(buffer);
+            this.offset = 0;
 
             const beatmaps = new Map();
             const version = this.#int();
@@ -739,10 +681,6 @@ export class OsuReader {
                 for (let i = 0; i < bm_count; i++) {
                     const map = this.#string();
                     md5.push(map);
-                }
-
-                if (limit && beatmaps.length + 1 > limit) {
-                    continue;
                 }
                 
                 beatmaps.set(name, {

@@ -1,5 +1,6 @@
 import { create_dropdown_filter, create_range_filter } from "../manager/ui/filter.js";
 import { create_element } from "../utils/config.js";
+import { open_url } from "../utils/other/process.js";
 
 const alerts = new Map();
 
@@ -77,7 +78,7 @@ export const create_alert = async (text, data) => {
         content.querySelectorAll('a[href^="http"]').forEach((a) => {     
             a.addEventListener("click", (element) => {
                 element.preventDefault();
-                window.electron.shell.openExternal(element.target.href);
+                open_url(element.target.href);
             });
         });
     }

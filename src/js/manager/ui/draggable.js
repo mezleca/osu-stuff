@@ -325,6 +325,10 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
 
 export const setup_draggables = () => {
 
+    if (!core.reader.osu?.beatmaps) {
+        return;
+    }
+
     const collection_keys = Array.from(core.reader.collections.beatmaps.keys());
 
     for (let [k, v] of core.reader.collections.beatmaps) {

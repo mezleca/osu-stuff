@@ -1,7 +1,7 @@
-export const fs = window.nodeAPI.fs;
-export const path = window.nodeAPI.path;
-export const zlib = window.nodeAPI.zlib;
-export const is_testing = window.electron.dev_mode;
+export const fs = require('fs');
+export const path = require('path');
+export const zlib = require('zlib');
+export const is_testing = process.env.NODE_ENV == "development";
 export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 export const MAX_RENDER_AMMOUNT = 16;
