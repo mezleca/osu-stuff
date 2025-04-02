@@ -336,13 +336,16 @@ export const setup_draggables = () => {
         // create the new elements and append to draggable_items map
         const id = crypto.randomUUID();
         const draggable_item_html = `
-            <div class="draggable_item" id=${id}>
-                <h1>${k}</h1>
+            <div class="draggable_item">
+                <h1></h1>
             </div>
         `;
 
         const draggable_item = create_element(draggable_item_html);
         const draggable_item_name = draggable_item.children[0];
+
+        draggable_item_name.innerText = k;
+        draggable_item.id = id;
 
         list.appendChild(draggable_item);
 
@@ -362,10 +365,13 @@ export const setup_draggables = () => {
             // @TODO: better way to move element thorugh divs
             const placeholder_html = `
                 <div class="draggable_item">
-                    <h1>${draggable_item_name.innerText}</h1>
+                    <h1></h1>
                 </div>
             `
             const placeholder_draggable_item = create_element(placeholder_html);
+            const placeholder_name = placeholder_draggable_item.children[0];
+
+            placeholder_name.innerText = k;
     
             const handle_up = async () => {
 

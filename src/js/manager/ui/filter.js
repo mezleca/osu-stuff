@@ -111,7 +111,7 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
         }
         
         // update display
-        slider_values.innerHTML = `(${min_value.toFixed(fix)}${iden} - ${max_value.toFixed(fix)}${iden})`;
+        slider_values.innerText = `(${min_value.toFixed(fix)}${iden} - ${max_value.toFixed(fix)}${iden})`;
         
         // update tracker
         const min_percent = (min_value / range_slider.limit) * 100;

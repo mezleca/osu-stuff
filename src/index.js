@@ -118,7 +118,7 @@ const createWindow = () => {
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
-            contextIsolation: false, // yeah, thats kinda insecure, but whatever
+            contextIsolation: false,
             enableRemoteModule: true,
             webSecurity: false,
         },

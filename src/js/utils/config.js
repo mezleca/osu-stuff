@@ -60,6 +60,7 @@ export const create_element = (html_string) => {
 const initialize_tooltips = () => {
     document.querySelectorAll(".tooltip").forEach((tooltip) => {
         tooltip.addEventListener("click", () => {
+            console.log("tooltip clicked", tooltip);
             const text = tooltips_text[tooltip.id];
             create_alert(text, { html: true, seconds: 5 });
         });
@@ -71,7 +72,7 @@ const set_loading_status = (status) => {
     const status_div = document.querySelector(".loading-status");
 
     if (status_div) {       
-        status_div.innerText = status
+        status_div.textContent = status;
     }
 };
 
@@ -279,7 +280,7 @@ export const initialize_config = async () => {
         const label_element = create_element(`
             <label for="${option.text}">
                 ${text}
-                ${tooltips_text[option.text] ? `<div class="tooltip" id="${option.key}">(?)</div>` : ""}
+                ${tooltips_text[option.text] ? `<div class="tooltip" id="${option.text}">(?)</div>` : ""}
             </label>
         `);
 

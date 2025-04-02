@@ -60,15 +60,14 @@ export const create_alert = async (text, data) => {
         throw new Error("[ALERT]: missing option");
     }
 
-    const html = `
+    const content = create_element(`
         <div class="alert-popup ${alert_style.class}">
             <i class="alert-icon ${alert_style.icon}"></i>
-            <h2>${alert_text}</h2>
+            <h2>${options.html ? alert_text : ""}</h2>
             <i class="bi bi-x alert-close" id="${alert_id}"></i>
         </div>
-    `;
+    `);
 
-    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
     const container = document.querySelector(".alert-container");
 
     container.appendChild(content);
@@ -81,6 +80,9 @@ export const create_alert = async (text, data) => {
                 open_url(element.target.href);
             });
         });
+    } else {
+        const content_text = content.querySelector("h2");
+        content_text.textContent = alert_text;
     }
 
     const remove_alert = () => {
@@ -103,17 +105,18 @@ const create_input = async (options) => {
     const { label = 'input:', input_type = 'text' } = options;
     const input_id = crypto.randomUUID();
 
-    const html = `
+    const content = create_element(`
         <div class="popup-container" id="${input_id}">
             <div class="popup-content">
-                <label>${label}</label>
+                <label></label>
                 <input type="${input_type}" id="input_field" value="${options?.value || ""}">
                 <button id="input_submit">Submit</button>
             </div>
         </div>
-    `;
+    `);
 
-    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+    const label_text = content.querySelector("label");
+    label_text.textContent = label;
 
     document.body.appendChild(content);
 
@@ -140,18 +143,20 @@ const create_menu = async (options) => {
     const { title = 'select an option:', items = [], important = false } = options;
     const menu_id = crypto.randomUUID();
 
-    const html = `
+    const content = create_element(`
         <div class="popup-container" id="${menu_id}">
             <div class="popup-content">
-                <h1>${title}</h1>
+                <h1></h1>
                 <div class="popup-buttons">
                     ${items.map(item => `<button>${item}</button>`).join('')}
                 </div>
             </div>
         </div>
-    `;
+    `);
 
-    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+    const title_text = content.querySelector("h1");
+    title_text.textContent = title;
+
     document.body.appendChild(content);
 
     return new Promise((resolve) => {
@@ -180,7 +185,7 @@ const create_confirmation = async (options) => {
     const confirmation_id = crypto.randomUUID();
     const confirm_values = Array.isArray(values) && values.length ? values : ['Yes', 'No'];
 
-    const html = `
+    const content = create_element(`
         <div class="popup-container" id="${confirmation_id}">
             <div class="popup-content">
                 <h1>${title}</h1>
@@ -189,9 +194,11 @@ const create_confirmation = async (options) => {
                 </div>
             </div>
         </div>
-    `;
+    `);
 
-    const content = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+    const title_text = content.querySelector("h1");
+    title_text.textContent = title;
+
     document.body.appendChild(content);
 
     return new Promise((resolve) => {
@@ -226,14 +233,17 @@ const create_custom_menu = async (options) => {
     const content_wrapper = create_element(`
         <div class="popup-container" id="${menu_id}">
             <div class="popup-content-flex">
-                <h1>${title}</h1>
+                <h1></h1>
                 <div id="elements_container"></div>
                 <button id="custom_menu_submit">submit</button>
             </div>
         </div>
     `);
     
+    const popup_title = content_wrapper.querySelector("h1");
     const elements_container = content_wrapper.querySelector("#elements_container");
+
+    popup_title.textContent = title;
     
     elements.forEach(({ key, element }) => {
 
@@ -254,12 +264,13 @@ const create_custom_menu = async (options) => {
                 } else {
                     const select_el = create_element(`
                         <div class="select-container">
-                            <label>${label}</label>
+                            <label></label>
                             <select id="${safe_key}">
                                 ${props.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                             </select>
                         </div>
                     `);
+                    select_el.querySelector("label").textContent = label;
                     elements_container.appendChild(select_el);
                 }
                 break;
@@ -277,19 +288,21 @@ const create_custom_menu = async (options) => {
                 const checkbox_el = create_element(`
                     <div class="checkbox-container">
                         <input type="checkbox" id="${safe_key}">
-                        <label for="${safe_key}">${label}</label>
+                        <label for="${safe_key}"></label>
                     </div>
                 `);
+                checkbox_el.querySelector("label").textContent = label;
                 elements_container.appendChild(checkbox_el);
                 break;
                 
             default:
                 const default_el = create_element(`
                     <div class="input-container">
-                        <label>${label}</label>
+                        <label></label>
                         <${type} type="text" id="${safe_key}">${props.text || ''}</${type}>
                     </div>
                 `);
+                default_el.querySelector("label").textContent = label;
                 elements_container.appendChild(default_el);
                 break;
         }

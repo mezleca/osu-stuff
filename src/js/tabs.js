@@ -43,6 +43,10 @@ export const blink = (tab) => {
     });
 };
 
+const create_element = (html_string) => {
+    return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
+};
+
 export const add_tab = (id) => {
 
     const d_tab = document.getElementById("download_tab");
@@ -57,20 +61,28 @@ export const add_tab = (id) => {
         return null;
     }
 
-    const template_str = `
-        <div class="cool-container download-shit" id="${id}">
-            <h1 id="${id}">${id}</h1>
-            <h2>waiting to start</h2>
+    console.log("[tab] creating tab", id);
+
+    const element = create_element(`
+        <div class="cool-container download-shit">
+            <h1></h1>
+            <h2>waiting...</h2>
             <div style="height: 1.5em; background-color: rgb(50, 120, 200); width: 0%; max-width: 100%;"></div>
         </div>
-    `;
+    `);
 
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = template_str.trim();
+    const title = element.querySelector("h1");
+    const text = element.querySelector("h2");
+    const bar = element.querySelector("div");
 
-    const tab = wrapper.firstElementChild;
-    const text = tab.querySelector("h2");
-    const bar = tab.querySelector("div");
+    title.id = id;
+    title.textContent = id;
+    text.innerHTML = "waiting...";
 
-    return { tab, text, dtab: d_tab, bar, id };
+    return { 
+        tab: element, 
+        text: text, 
+        dtab: d_tab, 
+        bar, id 
+    };
 };
