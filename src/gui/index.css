@@ -431,7 +431,8 @@ label {
 .popup-content, .popup-content-flex {
     background-color: var(--popup-bg);
     padding: 15px;
-    min-width: 35%;
+    min-width: 45%;
+    max-width: 45%;
     border-radius: 4px;
     text-align: center;
     border: 1px solid rgb(255 255 255 / 25%);
@@ -1568,15 +1569,24 @@ input[type="range"]::-moz-range-track {
     margin-left: 5px;
 }
 
+.input-container > input {
+    width: 100%;
+}
+
 .tag-container {
     width: 100%;
     border-radius: 4px;
     overflow: hidden;
 }
 
+.tag-label {
+    font-size: 1.2em;
+}
+
 .tag-input-area {
     display: flex;
     padding: 12px;
+    padding-top: 5px;
     padding-left: 0px;
     padding-right: 0px;
 }

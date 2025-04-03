@@ -1,5 +1,6 @@
 import { core } from "../../app.js";
-import { OsuReader } from "../../utils/reader/reader.js";
+import { create_alert } from "../../popup/popup.js";
+import { Reader } from "../../utils/reader/reader.js";
 import { get_bpm_filter, get_sr_filter, get_status_filter } from "../manager.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "../tools/beatmaps.js";
 
@@ -256,10 +257,11 @@ export const create_dropdown_filter = (id, name, options) => {
     return dropdown_filter;
 };
 
-export const create_tag_filter = (id, placeholder, add_button) => {
+export const create_tag_filter = (id, name, placeholder, add_button, limit) => {
     
     const html = create_element(`
         <div class="tag-container" id="${id}">
+            <label class="tag-label">${name || "text"}</label>
             <div class="tag-input-area">
                 <input type="text" class="tag-input" id="tag-input">
                 ${add_button ?
@@ -287,25 +289,25 @@ export const create_tag_filter = (id, placeholder, add_button) => {
 
     const create_tag_value = () => {
 
-        const html = create_element(`
+        const element = create_element(`
             <div class="tag-item">
                 <span class="tag-item-content"></span>
             </div>
         `);
 
-        const tag_item_content = html.querySelector(".tag-item-content");
+        const text = input.value;
 
-        tag_item_content.textContent = `× ${input.value}`;
-        tag_item_content.addEventListener("click", () => {
-            html.style.opacity = "0";
-            html.style.transform = "translateY(5px)";
+        element.children[0].textContent = `× ${text}`;
+        element.addEventListener("click", () => {
+            element.style.opacity = "0";
+            element.style.transform = "translateY(5px)";
             setTimeout(() => {
-                tag_filter.values.delete(tag_item_content.textContent);
-                html.remove(); 
+                tag_filter.values.delete(text);
+                element.remove(); 
             }, 100);
         });
 
-        return html;
+        return element;
     };
 
     const add_value = () => {
@@ -313,6 +315,17 @@ export const create_tag_filter = (id, placeholder, add_button) => {
         const new_value = input.value;
 
         if (new_value == "") {
+            return;
+        }
+
+        if (tag_filter.values.has(new_value)) {
+            input.value = "";
+            input.focus();
+            return;
+        }
+
+        if (tag_filter.values.size >= limit) {
+            create_alert(`reached the limit (${limit})`, { type: "warning" });
             return;
         }
 
@@ -350,7 +363,7 @@ export const filter_beatmap = (md5) => {
     }
 
     // filter by status
-    if (status_filter.selected.length > 0 && !status_filter.selected.includes(OsuReader.get_status_object_reversed()[beatmap?.status])) {
+    if (status_filter.selected.length > 0 && !status_filter.selected.includes(Reader.get_status_object_reversed()[beatmap?.status])) {
         return false;
     }
 

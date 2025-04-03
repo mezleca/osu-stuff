@@ -226,48 +226,66 @@ export const download_from_players = async (options) => {
 
         let append = false;
 
-        const { player_name } = options;
-        const player_info = await get_player_info(options);
+        const { players } = options;
+        const data = [];
 
-        if (!player_info) {
-            create_alert(`player ${player_name} not found`);
+        for (const player of players) {
+
+            const req = await get_player_info({ ...options, player_name: player });
+
+            if (!req) {
+                create_alert(`failed to find ${player}`, { type: "warning" });
+                continue;
+            }
+
+            data.push(req);
+        }
+
+        if (data.length == 0) {
+            create_alert("couldn't find anyone :(", { type: "warning" });
             return;
         }
 
-        const download = await create_custom_popup({
+        const download_options = await create_custom_popup({
             type: message_types.CUSTOM_MENU,
-            title: "method",
-            elements: [{
-                key: "name",
-                element: { list: ["download", "add to collections", "both"] }
-            }]
+            title: "options",
+            elements: [
+                {
+                    key: "collection name",
+                    element: { input: { } }
+                },
+                {
+                    key: "method",
+                    element: { list: ["download", "add to collections", "both"] }
+                }
+            ]
         });
 
-        const download_method = download.name;
+        const { method, collection_name } = download_options;
 
-        if (!download_method) {
+        if (!method) {
             return reject();
         }
 
         const get_maps = () => {
 
-            const beatmaps = player_info.all_beatmaps;
+            const beatmaps = data.map((d) => d.all_beatmaps);
 
             if (beatmaps.length == 0) {
                 create_alert("found 0 beatmaps");
                 return reject();
             }
-            
+
             return {
-                md5: beatmaps.flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
-                id: beatmaps.flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
+                md5: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
+                id: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
             }
         };
 
         const maps = get_maps();
         const current_collection = get_selected_collection(false);
 
-        if (download_method == "add to collections" || download_method == "both") {
+        if (method == "add to collections" || method == "both") {
             
             if (current_collection) {
                 const confirmation = await quick_confirm(`merge with ${current_collection}?`);
@@ -277,13 +295,13 @@ export const download_from_players = async (options) => {
             }
         }
         
-        if (download_method == "add to collections") {
-            await add_to_collection(maps.md5, player_name, append);
+        if (method == "add to collections") {
+            await add_to_collection(maps.md5, collection_name, append);
             return resolve();
         }
 
-        if (download_method == "both") {
-            await add_to_collection(maps.md5, player_name, append);
+        if (method == "both") {
+            await add_to_collection(maps.md5, collection_name, append);
         }
 
         const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());
@@ -293,6 +311,6 @@ export const download_from_players = async (options) => {
             return reject("No beatmaps to download!");
         }
 
-        resolve(missing_maps.map((id) => { return { id: id } }));
+        return resolve(missing_maps.map((id) => { return { id: id } }));
     });
 };

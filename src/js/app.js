@@ -1,11 +1,11 @@
 import { initialize_config } from "./utils/config.js";
-import { OsuReader } from "./utils/reader/reader.js";
+import { Reader } from "./utils/reader/reader.js";
 
 const in_dev_mode = process.env.NODE_ENV == "development";
 const gui_title = document.querySelector(".title_text");
 
 export const core = {
-    reader: new OsuReader(),
+    reader: new Reader(),
     config: new Map(),
     mirrors: new Map(),
     og_path: "",

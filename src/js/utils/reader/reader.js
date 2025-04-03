@@ -7,7 +7,7 @@ import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
 import { all_schemas, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 
-export class OsuReader {
+export class Reader {
 
     /** @type {collections_db} */
     collections; 

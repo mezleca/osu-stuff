@@ -285,7 +285,8 @@ const create_custom_menu = async (options) => {
             case 'tag':
                 const placeholder = props.placeholder || "name";
                 const show_add = props.show_add || false;
-                const tag = create_tag_filter(`${safe_key}_tag`, placeholder, show_add);
+                const limit = props.limit || 4;
+                const tag = create_tag_filter(`${safe_key}_tag`, safe_key, placeholder, show_add, limit);
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;

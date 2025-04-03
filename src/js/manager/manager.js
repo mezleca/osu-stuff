@@ -15,7 +15,7 @@ import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/definitions.js";
-import { OsuReader } from "../utils/reader/reader.js"
+import { Reader } from "../utils/reader/reader.js"
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -139,7 +139,7 @@ const create_more_button = (id, offset) => {
 const get_from_player = async () => {
 
     if (core.login == null) {
-        create_alert("Did you forgor to setup your config?");
+        create_alert("did you forgor to setup your config?");
         return;
     }
 
@@ -149,7 +149,7 @@ const get_from_player = async () => {
         elements: [
             {
                 key: "players",
-                element: { tag: { placeholder: "players", show_add: true } }
+                element: { tag: { placeholder: "players", show_add: true, limit: 8 } }
             },
             {
                 key: "beatmap options",
@@ -166,12 +166,13 @@ const get_from_player = async () => {
         ]
     });
 
-    if (!method.player_name) {
+    if (method.players.size == 0) {
+        create_alert("uhhh you need at least 1 player bro", { type: "warning" });
         return;
     }
 
     if (method.beatmap_options.length == 0) {
-        create_alert("please select at least one beatmap option", { type: "warning" });
+        create_alert("select at least one beatmap option", { type: "warning" });
         return;
     }
 
@@ -262,7 +263,7 @@ const add_new_collection = async () => {
 const get_missing_beatmaps = async () => {
 
     if (core.login == null) {
-        create_alert("Did you forgor to setup your config?");
+        create_alert("did you forgor to setup your config?");
         return;
     }
 
@@ -496,7 +497,7 @@ const render_beatmap = (md5) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = OsuReader.get_beatmap_status(beatmap.status);
+    const status = Reader.get_beatmap_status(beatmap.status);
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const set_loading_status = (status) => {
@@ -660,7 +661,7 @@ const render_beatmap = (md5) => {
                 difficulty_id: beatmap_data.beatmapset_id,
                 beatmap_id: beatmap_data.beatmapset.id,
                 url: beatmap_data.url,
-                status: OsuReader.get_beatmap_status_code(beatmap_data.status) || 0
+                status: Reader.get_beatmap_status_code(beatmap_data.status) || 0
             });
 
             const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
@@ -798,7 +799,7 @@ export const setup_manager = () => {
     if (manager_filters.size == 0) {
         manager_filters.set("manager-bpm-filter", create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500));
         manager_filters.set("manager-sr-filter", create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10));
-        manager_filters.set("dropdown-status-filter", create_dropdown_filter("dropdown-status-filter", "status", Object.keys(OsuReader.get_status_object())));
+        manager_filters.set("dropdown-status-filter", create_dropdown_filter("dropdown-status-filter", "status", Object.keys(Reader.get_status_object())));
     }
 
     // clean draggable_items list
@@ -874,7 +875,7 @@ export const update_status_filter = () => {
     const container = element.parentNode;
     element.remove();
 
-    const status_filter = create_dropdown_filter(id, name, Object.keys(OsuReader.get_status_object()));
+    const status_filter = create_dropdown_filter(id, name, Object.keys(Reader.get_status_object()));
     status_filter.callback = callback;
 
     console.log(callback);
