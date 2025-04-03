@@ -715,7 +715,6 @@ export const render_page = (id, _offset) => {
         bpm_filter.set_limit(bpm_max);
     }
 
-    // TODO: 
     const beatmaps = Array.from(collection.maps);
 
     // only render 16 at time

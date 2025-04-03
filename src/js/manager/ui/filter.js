@@ -262,6 +262,83 @@ export const create_dropdown_filter = (id, name, options) => {
     return dropdown_filter;
 };
 
+export const create_tag_filter = (id, placeholder) => {
+    
+    const html = create_element(`
+        <div class="tag-container" id="${id}">
+            <div class="tag-input-area">
+                <input type="text" class="tag-input" id="tag-input">
+                <button class="tag-add-button" id="tag-add-button">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+            <div class="tag-list" id="tag-list"></div>
+        </div>
+    `);
+
+    const tag_filter = {
+        id: id,
+        element: html,
+        values: new Set()
+    };
+
+    const tag_list = html.querySelector(".tag-list");
+    const input = html.querySelector(".tag-input");
+    const button = html.querySelector(".tag-add-button");
+
+    input.ariaPlaceholder = placeholder;
+
+    const create_tag_value = () => {
+
+        const html = create_element(`
+            <div class="tag-item">
+                <span class="tag-item-content"></span>
+                <span class="tag-remove">
+                    <i class="bi bi-x"></i>
+                </span>
+            </div>
+        `);
+
+        const tag_item_content = html.querySelector(".tag-item-content");
+        const remove_button = html.querySelector(".tag-remove");
+
+        tag_item_content.textContent = input.value;
+
+        remove_button.addEventListener("click", () => {
+            html.style.opacity = "0";
+            html.style.transform = "translateY(5px)";
+            setTimeout(() => {
+                tag_filter.values.delete(tag_item_content.textContent);
+                html.remove(); 
+            }, 100);
+        });
+
+        return html;
+    };
+
+    const add_value = () => {
+
+        const new_value = input.value;
+
+        if (new_value == "") {
+            return;
+        }
+
+        const element = create_tag_value();
+
+        tag_filter.values.add(input.value);
+        tag_list.appendChild(element);
+
+        input.value = "";
+        input.focus();
+    };
+    
+    button.addEventListener("click", add_value);
+    input.addEventListener("keyup", (event) => { if (event.key == "Enter") add_value()});
+
+    return tag_filter;
+};
+
 export const filter_beatmap = (md5) => {
 
     const sr_filter = get_sr_filter();

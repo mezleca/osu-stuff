@@ -66,6 +66,10 @@
   content: "\f4fe";
 }
 
+.bi-plus-lg::before { 
+  content: "\f64d"; 
+}
+
 .bi-play-btn-fill::before {
   content: "\f4f0";
 }

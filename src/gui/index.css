@@ -19,7 +19,7 @@
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
     --button-color: #f2407e;
-    --button-hover-color: #f2407e;
+    --button-hover-color: #f13476;
     --popup-bg: #2a2a2a;
     --collections-border-color: rgb(56,56,56);
     ----title-bar-height: 32px;
@@ -1565,6 +1565,89 @@ input[type="range"]::-moz-range-track {
     display: none;
     z-index: 1001;
     margin-left: 5px;
+}
+
+.tag-container {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--bg-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.tag-input-area {
+    display: flex;
+    padding: 12px;
+}
+
+.tag-input {
+    flex-grow: 1;
+    outline: none;
+    margin-right: 10px;
+}
+
+.tag-input:focus {
+    background-color: #3c3c3c;
+}
+
+.tag-input::placeholder {
+    color: #aaaaaa;
+}
+
+.tag-add-button {
+    margin: 0;
+    background: var(--button-color);
+    transition: background 0.2s ease;
+}
+
+.tag-add-button:hover {
+    background: var(--button-hover-color);
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
+    padding-top: 0px;
+    min-height: 40px;
+}
+
+.tag-item {
+    background-color: #333333;
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: tagfade 0.2s ease;
+    transition: background 0.2s ease;
+}
+
+.tag-item:hover {
+    background-color: #3c3c3c;
+}
+
+.tag-remove {
+    cursor: pointer;
+    color: #ff66aa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.tag-remove:hover {
+    background-color: rgba(255, 102, 170, 0.2);
+}
+
+@keyframes tagfade {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes spin {
