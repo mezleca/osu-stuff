@@ -1,6 +1,6 @@
+import { core } from "../app.js";
 import { events } from "../events/emitter.js";
 import { create_alert } from "../popup/popup.js";
-import { core } from "../utils/config.js";
 import { url_is_valid } from "./download_from_players.js";
 import { initialize } from "../manager/manager.js";
 import { fs, path, is_testing } from "../utils/global.js";

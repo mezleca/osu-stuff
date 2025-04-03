@@ -1,18 +1,21 @@
-import { core, load_osu_files, create_element } from "../utils/config.js"
+import { core } from "../app.js"
+import { load_osu_files, create_element } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
 import { create_download_task, create_task } from "../events/events.js";
-import { beatmap_status as _status, beatmap_status, delete_beatmaps } from "../stuff/remove_maps.js";
+import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
-import { filter_beatmap, sr_filter, status_filter, bpm_filter } from "./ui/filter.js";
+import { create_dropdown_filter, create_range_filter, filter_beatmap } from "./ui/filter.js";
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
+import { beatmap_status } from "../utils/reader/definitions.js";
+import { OsuReader } from "../utils/reader/reader.js"
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -23,6 +26,8 @@ const update_collection_button = document.querySelector(".update_collection");
 
 const audio_core = { audio: null, id: 0, target: null };
 const default_options = ["create new collection", "get missing beatmaps"];
+
+const manager_filters = new Map();
 
 export const get_selected_collection = (id) => {
 
@@ -36,6 +41,18 @@ export const get_selected_collection = (id) => {
 
     return null;
 };
+
+export const get_sr_filter = () => {
+    return manager_filters.get("manager-sr-filter");
+}
+
+export const get_bpm_filter = () => {
+    return manager_filters.get("manager-bpm-filter");
+}
+
+export const get_status_filter = () => {
+    return manager_filters.get("dropdown-status-filter");
+}
 
 search_input.addEventListener("input", debounce(() => {
 
@@ -445,7 +462,7 @@ const render_beatmap = (md5) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = has_beatmap ? Object.entries(_status).find(([k, v]) => v == beatmap.status)?.[0] : "Unknown";
+    const status = OsuReader.get_beatmap_status(beatmap.status);
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const set_loading_status = (status) => {
@@ -609,7 +626,7 @@ const render_beatmap = (md5) => {
                 difficulty_id: beatmap_data.beatmapset_id,
                 beatmap_id: beatmap_data.beatmapset.id,
                 url: beatmap_data.url,
-                status: _status[beatmap_data.status] || 0
+                status: OsuReader.get_beatmap_status_code(beatmap_data.status) || 0
             });
 
             const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
@@ -651,13 +668,16 @@ export const render_page = (id, _offset) => {
         text_collection.remove();
     }
 
+    const sr_filter = get_sr_filter();
+    const bpm_filter = get_bpm_filter();
+
     // update sr filter slider min/max
     if (sr_filter.limit > 0 && sr_filter.limit != sr_max) {
         sr_filter.set_limit(sr_max);
     }
 
     // update bpm filter slider min/max
-    if (sr_filter.limit > 0 && bpm_filter.limit != bpm_max) {
+    if (bpm_filter.limit > 0 && bpm_filter.limit != bpm_max) {
         bpm_filter.set_limit(bpm_max);
     }
 
@@ -742,6 +762,12 @@ export const setup_manager = () => {
     collection_container.innerHTML = "";
     collection_container.removeAttribute("data-id");
 
+    if (manager_filters.size == 0) {
+        manager_filters.set("manager-bpm-filter", create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500));
+        manager_filters.set("manager-sr-filter", create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10));
+        manager_filters.set("dropdown-status-filter", create_dropdown_filter("dropdown-status-filter", "status", Object.keys(OsuReader.get_status_object())));
+    }
+
     // clean draggable_items list
     for (let [k] of draggable_items_map) {
         draggable_items_map.delete(k);
@@ -749,7 +775,13 @@ export const setup_manager = () => {
 
     // if filters is not intialized, create and append it to filter box
     if (!document.querySelector(".sr-filter-container")) {
+
+        // get filters (kinda stupid)
+        const sr_filter = manager_filters.get("manager-sr-filter");
+        const status_filter = manager_filters.get("dropdown-status-filter");
+        const bpm_filter = manager_filters.get("manager-bpm-filter");
         
+        // create filter containers
         const filter_container = document.querySelector(".filter-box");
         const sr_filter_container = create_element(`<div class="sr-filter-container"></div>`);
         const status_filter_container = create_element(`<div class="status-filter-container"></div>`);
@@ -769,6 +801,7 @@ export const setup_manager = () => {
         }
 
         // update maps on filter update
+
         sr_filter.callback = debounce(update, 100);
         status_filter.callback = debounce(update, 100);
         bpm_filter.callback = debounce(update, 100);

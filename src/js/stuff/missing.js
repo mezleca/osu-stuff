@@ -1,5 +1,5 @@
+import { core } from "../app.js";
 import { message_types, create_alert, create_custom_popup } from "../popup/popup.js";
-import { core } from "../utils/config.js";
 
 export const missing_download = async () => {
 

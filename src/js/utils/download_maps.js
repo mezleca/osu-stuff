@@ -1,4 +1,4 @@
-import { core } from "./config.js";
+import { core } from "../app.js";
 import { create_alert } from "../popup/popup.js";
 import { events } from "../events/emitter.js";
 import { initialize } from "../manager/manager.js";

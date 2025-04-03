@@ -1,62 +1,10 @@
+import { core } from "../app.js";
 import { create_alert } from "../popup/popup.js";
-import { core } from "../utils/config.js";
 import { fs, path } from "../utils/global.js";
 
 // @TODO: rework the filter system
 
 const deleted_folders = new Set();
-
-export const beatmap_status = {
-    "all": -1,
-    "unknown": 0,
-    "unsubmitted": 1,
-    "pending": 2,
-    "unused": 3,
-    "ranked": 4,
-    "approved": 5,
-    "qualified":6,
-    "loved": 7
-}
-
-// @TODO: surely theres a better way to do this
-export const beatmap_status_reversed = {
-    "-1": "all",
-    "0": "unknown",
-    "1": "unsubmitted",
-    "2": "pending", 
-    "3": "unused",
-    "4": "ranked",
-    "5": "approved",
-    "6": "qualified",
-    "7": "loved"
-}
-
-// @TODO: other gamemodes support
-const check_difficulty_sr = (map, min, max) => {
-
-    const b = map.sr;
-
-    for (let i = 0; i < b.length; i++) {
-
-        const bm = b[i];
-
-        if (bm.sr.length == 0) {
-            return false;                   
-        }
-
-        const sr = bm.sr[0][1];
-
-        if (!sr) {
-            return false;
-        }
- 
-        if (sr > min && sr < max) {
-            return true;
-        }
-    }
-
-    return false;
-};
 
 export const delete_beatmaps = async (beatmaps) => {
 

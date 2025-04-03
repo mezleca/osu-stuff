@@ -1,3 +1,5 @@
+import { lazer_status, lazer_status_reversed } from './definitions.js';
+
 const Realm = require('realm');
 const fs = require('fs');
 
@@ -199,6 +201,8 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
         }
         
         const timing_points = [];
+        const sr = [];
+        
         const modes = {
             0: "osu!",
             1: "taiko",
@@ -206,7 +210,6 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             3: "mania"
         };
         
-        const sr = [];
         for (let i = 0; i < 4; i++) {
             sr.push({
                 mode: modes[i],
@@ -228,6 +231,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             file: beatmap.Hash || "",
             status: beatmap.Status || 0,
             hitcircle: beatmap.TotalObjectCount || 0,
+            bpm: beatmap.BPM || 0,
             sliders: 0,
             spinners: 0,
             last_modification: beatmap.LastLocalUpdate ? beatmap.LastLocalUpdate.getTime() : 0,
@@ -237,6 +241,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             od: beatmap.Difficulty?.OverallDifficulty || 0,
             slider_velocity: beatmap.Difficulty?.SliderMultiplier || 0,
             sr: sr,
+            star_rating: beatmap.StarRating || 0, 
             drain_time: beatmap.Length || 0,
             total_time: beatmap.Length || 0,
             audio_preview: beatmap.Metadata?.PreviewTime || 0,

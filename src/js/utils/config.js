@@ -1,19 +1,11 @@
+import { core } from "../app.js";
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { osu_login } from "./other/fetch.js";
 import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
-import { OsuReader } from "./reader/reader.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
 import { fs, path } from "./global.js";
 import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
-
-export const core = {
-    reader: new OsuReader(),
-    config: new Map(),
-    mirrors: new Map(),
-    og_path: get_og_path(),
-    login: null, 
-};
 
 const tooltips_text = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
@@ -243,8 +235,14 @@ export const initialize_config = async () => {
 
     const config_data = await get_all_from_database("config");
 
+    // load saved config
     if (config_data) {
         core.config = config_data;
+    }
+
+    // get app folder
+    if (core.og_path == "") {
+        core.og_path = get_og_path();
     }
 
     const config_tab = document.getElementById("config_tab");
@@ -323,6 +321,7 @@ export const initialize_config = async () => {
                 const dialog = await create_dialog();
 
                 if (!dialog.canceled) {
+                    console.log("saving file:", dialog.filePaths[0]);
                     await save_config(option.text, dialog.filePaths[0]);
                     input.value = dialog.filePaths[0];
                 }

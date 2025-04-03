@@ -1,12 +1,11 @@
 const Realm = require('realm');
-const { stringify,} = require('flatted');
 
-import { osu_db, collections_db, osdb_schema, beatmaps_schema } from "./definitions.js";
+import { core } from "../../app.js";
+import { osu_db, collections_db, osdb_schema, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./definitions.js";
 import { fs, zlib, path } from "../global.js";
-import { core } from "../config.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
-import { all_schemas, get_lazer_beatmaps, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
+import { all_schemas, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 
 export class OsuReader {
 
@@ -323,8 +322,10 @@ export class OsuReader {
                 continue;
             }
 
-            const sr = Number(get_beatmap_sr(map));
-            const bpm = Number(get_beatmap_bpm(map));
+            const sr = map.star_rating || Number(get_beatmap_sr(map));
+            const bpm = map.bpm || Number(get_beatmap_bpm(map));
+
+            console.log(map,sr);
 
             if (sr > collection.sr_max) collection.sr_max = sr;
             if (bpm > collection.bpm_max) collection.bpm_max = bpm;
@@ -843,4 +844,37 @@ export class OsuReader {
             return;
         }
     }
+
+    static get_beatmap_status(code) {
+
+        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+
+        if (lazer_mode) {
+            return lazer_status_reversed[code];
+        }
+
+        return beatmap_status_reversed[code];
+    }
+
+    static get_beatmap_status_code(status) {
+        
+        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+
+        if (lazer_mode) {
+            return lazer_status[status];
+        }
+
+        return beatmap_status[status];
+    }
+
+    // @TODO: i desperately need to rewrite this shit Lol
+    static get_status_object = () => {
+        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        return lazer_mode ? lazer_status : beatmap_status;
+    };
+
+    static get_status_object_reversed = () => {
+        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        return lazer_mode ? lazer_status_reversed : beatmap_status_reversed;
+    };
 };

@@ -8,7 +8,7 @@ export const get_beatmap_sr = (beatmap) => {
         const beatmap_sr = beatmap?.sr;
 
         if (!beatmap_sr || beatmap_sr?.length == 0) {
-            return 0;
+            return Number(0).toFixed(2);
         }
 
         for (let i = 0; i < beatmap_sr.length; i++) {

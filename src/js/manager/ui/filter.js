@@ -1,5 +1,6 @@
-import { beatmap_status, beatmap_status_reversed } from "../../stuff/remove_maps.js";
-import { core } from "../../utils/config.js";
+import { core } from "../../app.js";
+import { OsuReader } from "../../utils/reader/reader.js";
+import { get_bpm_filter, get_sr_filter, get_status_filter } from "../manager.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "../tools/beatmaps.js";
 
 const show_filter = document.querySelector(".show-filter");
@@ -69,6 +70,8 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
         if (isNaN(new_limit)) {
             return;
         }
+
+        console.log("set limit", new_limit);
 
         range_slider.limit = new_limit;
         range_slider.min.setAttribute("max", new_limit);
@@ -261,9 +264,13 @@ export const create_dropdown_filter = (id, name, options) => {
 
 export const filter_beatmap = (md5) => {
 
+    const sr_filter = get_sr_filter();
+    const bpm_filter = get_bpm_filter();
+    const status_filter = get_status_filter();
+
     const beatmap = core.reader.osu.beatmaps.get(md5);
-    const beatmap_sr = Number(get_beatmap_sr(beatmap));
-    const beatmap_bpm = Number(get_beatmap_bpm(beatmap));
+    const beatmap_sr = Math.floor(beatmap?.star_rating * 100) / 100 || Number(get_beatmap_sr(beatmap));
+    const beatmap_bpm = Math.floor(beatmap?.bpm * 100) / 100 || Number(get_beatmap_bpm(beatmap));
 
     // filter by sr
     if (beatmap_sr < Number(sr_filter.min.value) || beatmap_sr > Number(sr_filter.max.value)) {
@@ -271,7 +278,7 @@ export const filter_beatmap = (md5) => {
     }
 
     // filter by status
-    if (status_filter.selected.length > 0 && !status_filter.selected.includes(beatmap_status_reversed[beatmap?.status])) {
+    if (status_filter.selected.length > 0 && !status_filter.selected.includes(OsuReader.get_status_object_reversed()[beatmap?.status])) {
         return false;
     }
 
@@ -297,7 +304,3 @@ export const filter_beatmap = (md5) => {
     const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
     return searchable_text.includes(search_filter.toLowerCase());
 };
-
-export const sr_filter = create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10);
-export const bpm_filter = create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500);
-export const status_filter = create_dropdown_filter("dropdown-status-filter", "status", Object.keys(beatmap_status));

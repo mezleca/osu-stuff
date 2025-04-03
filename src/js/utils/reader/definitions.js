@@ -109,3 +109,51 @@ export const permissions = {
     16: "Peppy",
     32: "World Cup Staff"
 };
+
+export const beatmap_status = {
+    "all": -1,
+    "unknown": 0,
+    "unsubmitted": 1,
+    "pending": 2,
+    "unused": 3,
+    "ranked": 4,
+    "approved": 5,
+    "qualified":6,
+    "loved": 7
+}
+
+export const beatmap_status_reversed = {
+    "-1": "all",
+    "0": "unknown",
+    "1": "unsubmitted",
+    "2": "pending", 
+    "3": "unused",
+    "4": "ranked",
+    "5": "approved",
+    "6": "qualified",
+    "7": "loved"
+}
+
+export const lazer_status = {
+    "LocallyModified": -4,
+    "None": -3,
+    "Graveyard": -2,
+    "WIP": -1,
+    "Pending": 0,
+    "Ranked": 1,
+    "Approved": 2,
+    "Qualified": 3,
+    "Loved": 4
+}
+
+export const lazer_status_reversed = {
+    "-4": "LocallyModified",
+    "-3": "None",
+    "-2": "Graveyard",
+    "-1": "WIP",
+    "0": "Pending",
+    "1": "Ranked",
+    "2": "Approved",
+    "3": "Qualified",
+    "4": "Loved"
+}

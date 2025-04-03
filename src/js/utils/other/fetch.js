@@ -1,5 +1,5 @@
+import { core } from "../../app.js";
 import { create_alert } from "../../popup/popup.js";
-import { core } from "../config.js";
 import { create_auth, fetchstats } from "./process.js";
 
 export const osu_login = async (id, secret) => {
