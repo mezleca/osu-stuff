@@ -1,8 +1,12 @@
+const Realm = require('realm');
+const { stringify,} = require('flatted');
+
 import { osu_db, collections_db, osdb_schema, beatmaps_schema } from "./definitions.js";
 import { fs, zlib, path } from "../global.js";
 import { core } from "../config.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
+import { all_schemas, get_lazer_beatmaps, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 
 export class OsuReader {
 
@@ -14,6 +18,8 @@ export class OsuReader {
     buffer;
     /** @type {Map} */
     image_cache;
+    /** @type {Realm} */
+    instance;
 
     constructor() {
         this.osu = new Map();
@@ -29,6 +35,15 @@ export class OsuReader {
             view[i] = buffer[i];
         }
         return arrayBuffer;
+    }
+
+    create_instance = async (path, schemas) => {
+
+        if (this.instance) {
+            return;
+        }
+
+        this.instance = await get_realm_instance(path, schemas);
     }
 
     set_buffer = (buf) => {
@@ -506,17 +521,42 @@ export class OsuReader {
     */
     get_osu_data = (buffer) => {
 
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
 
             if (this.osu.beatmaps?.size) {
                 resolve(this.osu);
                 return;
             }
 
+
+            // @TODO: implement a way to use both stable and lazer data at the same time
+            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+            
+            if (lazer_mode) {
+
+                console.log("[Reader] reading lazer data...");
+
+                try { 
+                    
+                    // get instance
+                    await this.create_instance(core.config.get("lazer_path"), all_schemas);
+
+                    // convert lazer data to match current osu! stable obj
+                    this.osu = lazer_to_osu_db(this.instance);
+
+                    return resolve();
+                } catch(err) {     
+                    this.instance = null;
+                    create_alert("failed to read lazer db file\ncheck logs for more info", { type: "error" });
+                    console.log(err);
+                    return reject(err);
+                }         
+            }
+
             this.set_buffer(buffer);
             this.offset = 0;
 
-            console.log("[Reader] Reading osu! data...");
+            console.log("[Reader] reading osu! stable data...");
 
             const beatmaps = new Map();
             const version = this.#int();
@@ -581,11 +621,22 @@ export class OsuReader {
                             this.#byte();
                             const diff = this.#double();
                             
-                            diffs.push([ mod, diff ]);
+                            if (mod != 0) {
+                                diffs.push([ mod, diff ]);
+                            }
                         }
                     } else {
+                        
                         for (let i = 0; i < length; i++) {
-                            diffs.push([this.#read_typed_value(), this.#read_typed_value()]);
+
+                            const a = this.#read_typed_value();
+                            const b = this.#read_typed_value();
+
+                            if (diffs.length > 1) {
+                                continue;
+                            }
+
+                            diffs.push([a, b]);
                         }
                     }
 
@@ -661,9 +712,47 @@ export class OsuReader {
     */
     get_collections_data = (buffer) => {
 
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
 
             console.log("[Reader] Reading collections data...");
+
+            if (this.collections) {
+                this.collections = {};
+            }
+
+            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+            
+            if (lazer_mode) {
+
+                try {
+
+                    // get instance
+                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), all_schemas);
+
+                    // get collections data
+                    const data = this.instance.objects("BeatmapCollection").toJSON();
+                    
+                    // @TODO: move thjis to lazer file
+                    this.collections = {
+                        length: data.length,
+                        beatmaps: new Map(),
+                    };
+
+                    for (let i = 0; i < data.length; i++) {
+                        const collection = data[i];
+                        this.collections.beatmaps.set(collection.Name, {
+                            maps: new Set(collection.BeatmapMD5Hashes),
+                        });
+                    }
+
+                    return resolve();
+                } catch (e) {
+                    this.instance = null;
+                    create_alert("error getting lazer collections<br>check logs for more info", { type: "error" });
+                    console.error(e);
+                    return reject(e);
+                }
+            }
 
             this.set_buffer(buffer);
             this.offset = 0;
@@ -706,7 +795,7 @@ export class OsuReader {
             return this.image_cache.get(beatmap.beatmap_id);
         }
         
-        const file_location = path.resolve(core.config.get("osu_songs_path"), beatmap.folder_name);
+        const file_location = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name);
         
         try {
 

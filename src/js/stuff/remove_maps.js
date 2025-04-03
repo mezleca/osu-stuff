@@ -68,7 +68,7 @@ export const delete_beatmaps = async (beatmaps) => {
 
             const item = beatmaps[i];
 
-            const folder_path = path.resolve(core.config.get("osu_songs_path"), item.folder_name);
+            const folder_path = path.resolve(core.config.get("stable_songs_path"), item.folder_name);
             const item_path = path.resolve(folder_path, item.file);
 
             // check if the file exists
@@ -119,18 +119,18 @@ export const delete_beatmaps = async (beatmaps) => {
     // make sure we update this otherwise osu.db will act funny
     update_beatmap_counts(core.reader.osu.beatmaps.size);
 
-    const old_name = path.resolve(core.config.get("osu_path"), "osu!.db");
-    const backup_name = path.resolve(core.config.get("osu_path"), `osu!.db.backup_${Date.now()}`);
+    const old_name = path.resolve(core.config.get("stable_path"), "osu!.db");
+    const backup_name = path.resolve(core.config.get("stable_path"), `osu!.db.backup_${Date.now()}`);
 
     // create a backup incase the new one is corrupted
     fs.renameSync(old_name, backup_name);
-    await core.reader.write_osu_data(beatmaps, path.resolve(core.config.get("osu_path"), "osu!.db"));
+    await core.reader.write_osu_data(beatmaps, path.resolve(core.config.get("stable_path"), "osu!.db"));
 
     return beatmaps.length;
 };
 
 const update_beatmap_counts = (size) => {
-    const osu_songs_path = core.config.get("osu_songs_path");
-    core.reader.osu.folders = fs.readdirSync(osu_songs_path).length;
+    const stable_songs_path = core.config.get("stable_songs_path");
+    core.reader.osu.folders = fs.readdirSync(stable_songs_path).length;
     core.reader.osu.beatmaps_count = size;
 };

@@ -724,8 +724,8 @@ update_collection_button.addEventListener("click", async () => {
 
     console.log("[Manager] updating collection:", core.reader.collections);
 
-    const old_name = path.resolve(core.config.get("osu_path"), "collection.db"), 
-          new_name = path.resolve(core.config.get("osu_path"), backup_name);
+    const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
+          new_name = path.resolve(core.config.get("stable_path"), backup_name);
 
     await fs.renameSync(old_name, new_name);
 
@@ -820,7 +820,7 @@ export const initialize = async (options) => {
     const force = options?.force || false;
 
     if (force) {
-        await load_osu_files(core.config.get("osu_path"));
+        await load_osu_files(core.config.get("stable_path"));
     }
 
     core.reader.update_collections();

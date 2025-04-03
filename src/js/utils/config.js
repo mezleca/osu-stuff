@@ -17,22 +17,31 @@ export const core = {
 
 const tooltips_text = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
-    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>"
+    "osu_secret": "Your Oauth app Secret.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the client secret below</a>",
+    "lazer_mode": "To switch between osu!stable and lazer",
 }
 
 const osu_db_file = "osu!.db";
 const collection_db_file = "collection.db";
 
 const lazer_mode = (target) => {
-    console.log("lazer mode:", target.checked);
+
+    if (target.checked && !core.config.get("lazer_path")) {
+        target.checked = false;
+        create_alert("wheres the lazer path mf", { type: "error" });
+        return;
+    }
+
+    // 
 };
 
 const config_options = [
     { type: "password", text: "osu_id",     secret: true         },
     { type: "password", text: "osu_secret", secret: true         },
-    { type: "file",     text: "osu_path",                        },
-    { type: "file",     text: "osu_songs_path"                   },
-    { type: "checkbox", text: "get_images_from_web"            },
+    { type: "file",     text: "lazer_path"                       },
+    { type: "file",     text: "stable_path",                     },
+    { type: "file",     text: "stable_songs_path"                },
+    { type: "checkbox", text: "get_images_from_web"              },
     { type: "checkbox", text: "lazer_mode", callback: lazer_mode }
 ];
 
@@ -60,7 +69,6 @@ export const create_element = (html_string) => {
 const initialize_tooltips = () => {
     document.querySelectorAll(".tooltip").forEach((tooltip) => {
         tooltip.addEventListener("click", () => {
-            console.log("tooltip clicked", tooltip);
             const text = tooltips_text[tooltip.id];
             create_alert(text, { html: true, seconds: 5 });
         });
@@ -76,10 +84,10 @@ const set_loading_status = (status) => {
     }
 };
 
-export const load_osu_files = async (osu_path) => {
+export const load_osu_files = async (stable_path) => {
 
-    const db_file = path.resolve(osu_path, osu_db_file);
-    const collection_file = path.resolve(osu_path, collection_db_file);
+    const db_file = path.resolve(stable_path, osu_db_file);
+    const collection_file = path.resolve(stable_path, collection_db_file);
 
     if (!fs.existsSync(db_file)) {
         create_alert("failed to find osu.db file\nmake sure the osu path is valid", { type: "error" });
@@ -143,8 +151,8 @@ const initialize_osu_config = async () => {
 
     const osu_id = core.config.get("osu_id");
     const osu_secret = core.config.get("osu_secret");
-    const osu_path = core.config.get("osu_path");
-    const songs_path = core.config.get("osu_songs_path");
+    const stable_path = core.config.get("stable_path");
+    const songs_path = core.config.get("stable_songs_path");
 
     if (osu_id && osu_secret) {
 
@@ -156,19 +164,19 @@ const initialize_osu_config = async () => {
         }
     }
 
-    if (!fs.existsSync(osu_path) || !fs.existsSync(songs_path)) {
+    if (!fs.existsSync(stable_path) || !fs.existsSync(songs_path)) {
         create_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
         return;
     }
 
-    const osu_perms = await check_folder_permissions(osu_path);
+    const osu_perms = await check_folder_permissions(stable_path);
     const songs_perms = await check_folder_permissions(songs_path);
 
     if (!osu_perms || !songs_perms) {
         create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
     }
 
-    await load_osu_files(osu_path);
+    await load_osu_files(stable_path);
     create_alert("config updated!", { type: "success" });
 };
 
@@ -256,17 +264,17 @@ export const initialize_config = async () => {
     const osu_base_path = await get_osu_base_path();
     const songs_base_path = path.resolve(osu_base_path, "Songs");
 
-    // try to get osu_path & osu_songs path
-    if (!core.config.get("osu_path") && fs.existsSync(osu_base_path)) {
-        await save_config("osu_path", osu_base_path);
+    // try to get stable_path & osu_songs path
+    if (!core.config.get("stable_path") && fs.existsSync(osu_base_path)) {
+        await save_config("stable_path", osu_base_path);
     }
 
-    if (!core.config.get("osu_songs_path") && fs.existsSync(songs_base_path)) {
-        await save_config("osu_songs_path", songs_base_path);
+    if (!core.config.get("stable_songs_path") && fs.existsSync(songs_base_path)) {
+        await save_config("stable_songs_path", songs_base_path);
     }
 
     // blink it!
-    if (!core.config.get("osu_path") || !core.config.get("osu_songs_path")) {
+    if (!core.config.get("stable_path") || !core.config.get("stable_songs_path")) {
         blink(config_menu);
     }
 
@@ -395,18 +403,18 @@ export const initialize_config = async () => {
         return;
     }
 
-    if (!fs.existsSync(core.config.get("osu_path")) || !fs.existsSync(core.config.get("osu_songs_path"))) {
+    if (!fs.existsSync(core.config.get("stable_path")) || !fs.existsSync(core.config.get("stable_songs_path"))) {
         create_alert("failed to get osu path!", { type: "alert" });
         return;
     }
 
-    const osu_perms = await check_folder_permissions(core.config.get("osu_path"));
-    const songs_perms = await check_folder_permissions(core.config.get("osu_songs_path"));
+    const osu_perms = await check_folder_permissions(core.config.get("stable_path"));
+    const songs_perms = await check_folder_permissions(core.config.get("stable_songs_path"));
 
     if (!osu_perms || !songs_perms) {
         create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
     }
 
-    await load_osu_files(core.config.get("osu_path"));
+    await load_osu_files(core.config.get("stable_path"));
     await initialize();
 };

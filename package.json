@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "flatted": "^3.3.3",
     "realm": "^12.14.1"
   },
   "config": {

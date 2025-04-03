@@ -188,7 +188,7 @@ const create_confirmation = async (options) => {
     const content = create_element(`
         <div class="popup-container" id="${confirmation_id}">
             <div class="popup-content">
-                <h1>${title}</h1>
+                <h1></h1>
                 <div class="popup-buttons">
                     ${confirm_values.map(value => `<button>${value}</button>`).join('')}
                 </div>

@@ -124,7 +124,7 @@ class map_downloader {
         }
 
         const data = await search_map_id(map.hash);
-        const map_path = path.resolve(core.config.get("osu_songs_path"),`${data.beatmapset_id}.osz`);
+        const map_path = path.resolve(core.config.get("stable_songs_path"),`${data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
             return { map: null, data: null };
@@ -183,7 +183,7 @@ class map_downloader {
 
     async download_map(map, data) {
 
-        const map_path = path.resolve(core.config.get("osu_songs_path"),`${map.id}.osz`);
+        const map_path = path.resolve(core.config.get("stable_songs_path"),`${map.id}.osz`);
 
         if (fs.existsSync(map_path)) {
             console.log(`[Downloader] skipping ${map?.id}`);

@@ -132,12 +132,12 @@ export const add_collection = async (url) => {
     
         // backup 
         const backup_name = `collection_backup_${Date.now()}.db`;
-        const old_name = await path.resolve(core.config.get("osu_path"), "collection.db"), 
-              new_backup_name = await path.resolve(core.config.get("osu_path"), backup_name);
+        const old_name = await path.resolve(core.config.get("stable_path"), "collection.db"), 
+              new_backup_name = await path.resolve(core.config.get("stable_path"), backup_name);
 
         // write the new file
         await fs.renameSync(old_name, new_backup_name);
-        await core.reader.write_collections_data(path.resolve(core.config.get("osu_path"), "collection.db"));
+        await core.reader.write_collections_data(path.resolve(core.config.get("stable_path"), "collection.db"));
     
         // update manager
         await initialize();
