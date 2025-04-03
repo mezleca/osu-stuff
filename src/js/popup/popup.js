@@ -1,4 +1,4 @@
-import { create_dropdown_filter, create_range_filter } from "../manager/ui/filter.js";
+import { create_dropdown_filter, create_range_filter, create_tag_filter } from "../manager/ui/filter.js";
 import { create_element } from "../utils/config.js";
 import { open_url } from "../utils/other/process.js";
 
@@ -254,9 +254,7 @@ const create_custom_menu = async (options) => {
 
         switch (type) {
             case 'list':
-
-                const is_multiple = element[type]?.multiple == true;
-                
+                const is_multiple = element[type]?.multiple == true;     
                 if (is_multiple) {
                     const dropdown = create_dropdown_filter(`${safe_key}_dropdown`, label, props);
                     filters[safe_key] = dropdown;
@@ -282,6 +280,13 @@ const create_custom_menu = async (options) => {
                 const range = create_range_filter(`${safe_key}_range`, label, iden, fix, initial);
                 filters[safe_key] = range;
                 elements_container.appendChild(range.element);
+                break;
+
+            case 'tag':
+                const placeholder = props.placeholder;
+                const tag = create_tag_filter(`${safe_key}_tag`, placeholder);
+                filters[safe_key] = tag;
+                elements_container.appendChild(tag.element);
                 break;
                 
             case 'checkbox':
@@ -348,7 +353,13 @@ const create_custom_menu = async (options) => {
                     if (checkbox) {
                         result[safe_key] = checkbox.checked;
                     }
-                } else {
+                } else if (type == 'tag') {
+                    const tag = filters[safe_key];
+                    if (tag) {
+                        result[safe_key] = tag.values;
+                    }
+                } 
+                else {
                     const el = content_wrapper.querySelector(`#${safe_key}`);
                     if (el) {
                         result[safe_key] = el.value || el.textContent;

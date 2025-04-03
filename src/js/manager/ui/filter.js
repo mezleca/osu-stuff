@@ -293,18 +293,13 @@ export const create_tag_filter = (id, placeholder) => {
         const html = create_element(`
             <div class="tag-item">
                 <span class="tag-item-content"></span>
-                <span class="tag-remove">
-                    <i class="bi bi-x"></i>
-                </span>
             </div>
         `);
 
         const tag_item_content = html.querySelector(".tag-item-content");
-        const remove_button = html.querySelector(".tag-remove");
 
-        tag_item_content.textContent = input.value;
-
-        remove_button.addEventListener("click", () => {
+        tag_item_content.textContent = `× ${input.value}`;
+        tag_item_content.addEventListener("click", () => {
             html.style.opacity = "0";
             html.style.transform = "translateY(5px)";
             setTimeout(() => {

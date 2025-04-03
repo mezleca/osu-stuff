@@ -148,8 +148,8 @@ const get_from_player = async () => {
         title: "custom options",
         elements: [
             {
-                key: "player name",
-                element: { input: { } }
+                key: "players",
+                element: { tag: { placeholder: "players" } }
             },
             {
                 key: "beatmap options",

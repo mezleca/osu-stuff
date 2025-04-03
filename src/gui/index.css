@@ -222,7 +222,7 @@ button:hover {
 }
 
 #elements_container > * {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 input[type="text"], input[type="password"], select {
@@ -1569,15 +1569,14 @@ input[type="range"]::-moz-range-track {
 
 .tag-container {
     width: 100%;
-    max-width: 400px;
-    background-color: var(--bg-color);
-    border-radius: 10px;
+    border-radius: 4px;
     overflow: hidden;
 }
 
 .tag-input-area {
     display: flex;
     padding: 12px;
+    padding-left: 0px;
 }
 
 .tag-input {
@@ -1608,19 +1607,16 @@ input[type="range"]::-moz-range-track {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 15px;
-    padding-top: 0px;
-    min-height: 40px;
 }
 
 .tag-item {
-    background-color: #333333;
+    background-color: var(--bg-color);
+    border: 1px solid rgb(120, 120, 120, 0.5);
     color: #ffffff;
-    border-radius: 6px;
-    padding: 8px 12px;
+    border-radius: 4px;
+    padding: 8px 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
     animation: tagfade 0.2s ease;
     transition: background 0.2s ease;
 }
