@@ -282,10 +282,9 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
     return beatmaps;
 };
 
-export const lazer_to_osu_db = (realmInstance) => {
+export const lazer_to_osu_db = (instance) => {
     
-    const lazer_beatmaps = get_lazer_beatmaps(realmInstance);
-    console.log(lazer_beatmaps);
+    const lazer_beatmaps = get_lazer_beatmaps(instance);
     const converted_beatmaps = convert_lazer_to_stable(lazer_beatmaps);
     
     return {

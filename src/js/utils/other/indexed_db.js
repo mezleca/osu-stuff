@@ -99,7 +99,6 @@ export const get_all_from_database = async (name) => {
                 result.set(cursor.key, cursor.value);
                 cursor.continue();
             } else {
-                console.log(result);
                 resolve(result);
             }
         };

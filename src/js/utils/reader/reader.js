@@ -325,8 +325,6 @@ export class OsuReader {
             const sr = map.star_rating || Number(get_beatmap_sr(map));
             const bpm = map.bpm || Number(get_beatmap_bpm(map));
 
-            console.log(map,sr);
-
             if (sr > collection.sr_max) collection.sr_max = sr;
             if (bpm > collection.bpm_max) collection.bpm_max = bpm;
         }
@@ -529,7 +527,6 @@ export class OsuReader {
                 return;
             }
 
-
             // @TODO: implement a way to use both stable and lazer data at the same time
             const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
             
@@ -540,7 +537,7 @@ export class OsuReader {
                 try { 
                     
                     // get instance
-                    await this.create_instance(core.config.get("lazer_path"), all_schemas);
+                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), all_schemas);
 
                     // convert lazer data to match current osu! stable obj
                     this.osu = lazer_to_osu_db(this.instance);
@@ -722,7 +719,7 @@ export class OsuReader {
             }
 
             const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
-            
+
             if (lazer_mode) {
 
                 try {

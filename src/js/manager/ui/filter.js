@@ -71,8 +71,6 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
             return;
         }
 
-        console.log("set limit", new_limit);
-
         range_slider.limit = new_limit;
         range_slider.min.setAttribute("max", new_limit);
         range_slider.max.setAttribute("max", new_limit);
@@ -165,6 +163,8 @@ export const create_dropdown_filter = (id, name, options) => {
     `;
 
     const dropdown_filter = {
+        id: id,
+        name: name,
         selected: [],
         element: create_element(html),
         callback: null,

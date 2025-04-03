@@ -1,5 +1,5 @@
 import { core } from "../app.js"
-import { load_osu_files, create_element } from "../utils/config.js"
+import { load_osu_files, create_element, save_config } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
@@ -53,6 +53,40 @@ export const get_bpm_filter = () => {
 export const get_status_filter = () => {
     return manager_filters.get("dropdown-status-filter");
 }
+
+// @TODO: rewrite this, some functions shoudn't be initialize here
+export const lazer_mode = async (target, name) => {
+
+    if (target.checked && !core.config.get("lazer_path")) {
+        create_alert("wheres the lazer path mf", { type: "error" });
+        target.checked = false;
+        return;
+    }
+
+    await save_config(name, target.checked);
+
+    if (!target.checked) {
+        await load_osu_files(core.config.get("stable_path"));
+    } else {
+        core.reader.osu = {};
+        await core.reader.get_osu_data();
+        await core.reader.get_collections_data();
+    }
+
+    // update collections so we get the bpm min/max, etc..
+    core.reader.update_collections();
+
+    // @TODO: need to render status on click instead of creating and setting display to none
+    // this way i can get update status values without needing to remove and re-add the status filter
+    update_status_filter();
+    setup_manager();
+
+    if (target.checked) {
+        create_alert("switched to lazer mode!");
+    } else {
+        create_alert("switched to stable mode!");
+    }
+};
 
 search_input.addEventListener("input", debounce(() => {
 
@@ -818,6 +852,7 @@ export const setup_manager = () => {
     setup_draggables();
 };
 
+// make sure we actually have a md5
 const update_map_info = (map) => {
 
     if (typeof map == 'string') {
@@ -829,6 +864,27 @@ const update_map_info = (map) => {
     }
 
     return null;
+};
+ 
+// hack cuz theres no way to currently update the beatmap status list
+export const update_status_filter = () => {
+    
+    const { callback, element, id, name } = get_status_filter();
+
+    // remove the status from the DOM and create a new one using the old callback
+    const container = element.parentNode;
+    element.remove();
+
+    const status_filter = create_dropdown_filter(id, name, Object.keys(OsuReader.get_status_object()));
+    status_filter.callback = callback;
+
+    console.log(callback);
+    
+    // update the status filter
+    manager_filters.delete("dropdown-status-filter");
+    manager_filters.set("dropdown-status-filter", status_filter);
+
+    container.appendChild(status_filter.element);
 };
 
 export const add_collection_manager = async (maps, collection) => {
@@ -849,11 +905,19 @@ export const initialize = async (options) => {
         return;
     }
     
+    const lazer_mode = core.config.get("lazer_mode");
     const no_update = options?.no_update || false;
     const force = options?.force || false;
 
     if (force) {
-        await load_osu_files(core.config.get("stable_path"));
+
+        core.reader.osu = {};
+
+        if (lazer_mode) {
+            await core.reader.get_osu_data();
+        } else {
+            await load_osu_files(core.config.get("stable_path"));
+        }
     }
 
     core.reader.update_collections();

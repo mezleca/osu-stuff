@@ -1,10 +1,10 @@
 import { core } from "../app.js";
-import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { osu_login } from "./other/fetch.js";
-import { initialize } from "../manager/manager.js";
 import { all_tabs, blink } from "../tabs.js";
-import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
 import { fs, path } from "./global.js";
+import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
+import { initialize, lazer_mode } from "../manager/manager.js";
+import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
 import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
 
 const tooltips_text = {
@@ -15,17 +15,6 @@ const tooltips_text = {
 
 const osu_db_file = "osu!.db";
 const collection_db_file = "collection.db";
-
-const lazer_mode = (target) => {
-
-    if (target.checked && !core.config.get("lazer_path")) {
-        target.checked = false;
-        create_alert("wheres the lazer path mf", { type: "error" });
-        return;
-    }
-
-    // 
-};
 
 const config_options = [
     { type: "password", text: "osu_id",     secret: true         },
@@ -56,15 +45,6 @@ export const save_config = async (key, value) => {
 
 export const create_element = (html_string) => {
     return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
-};
-
-const initialize_tooltips = () => {
-    document.querySelectorAll(".tooltip").forEach((tooltip) => {
-        tooltip.addEventListener("click", () => {
-            const text = tooltips_text[tooltip.id];
-            create_alert(text, { html: true, seconds: 5 });
-        });
-    });
 };
 
 const set_loading_status = (status) => {
@@ -175,6 +155,7 @@ const initialize_osu_config = async () => {
 const validate_and_setup_config = async () => {
 
     let valid = true;
+    const lazer_mode = core.config.get("lazer_mode");
 
     document.querySelectorAll("#config_fields").forEach((field) => {
 
@@ -187,8 +168,12 @@ const validate_and_setup_config = async () => {
     });
 
     if (valid) {
-        await initialize_osu_config();
-        await initialize();
+        if (lazer_mode) {
+            await initialize({ force: true });
+        } else {
+            await initialize_osu_config();
+            await initialize({ force: true });
+        }
     }
 };
 
@@ -331,12 +316,11 @@ export const initialize_config = async () => {
         if (is_checkbox) {
 
             input.addEventListener("click", () => {
-
                 if (option?.callback) {
-                    option.callback(input);
+                    option.callback(input, option.text);
+                } else {
+                    save_config(option.text, input.checked);
                 }
-
-                save_config(option.text, input.checked) 
             });
         }
 
@@ -348,7 +332,7 @@ export const initialize_config = async () => {
             <div class="config-fields">
                 <h1>config</h1>
                 <div class="button-container">
-                    <button class="check_config" style="width: 100%">update config</button>
+                    <button class="check_config" style="width: 100%">check config</button>
                 </div>
             </div>
             <div class="mirror-list">
@@ -395,7 +379,13 @@ export const initialize_config = async () => {
     fields.forEach((field) => check_button.insertAdjacentElement("beforebegin", field));
     check_button.addEventListener("click", validate_and_setup_config);
 
-    initialize_tooltips();
+    // initialize tooltips
+    document.querySelectorAll(".tooltip").forEach((tooltip) => {
+        tooltip.addEventListener("click", () => {
+            const text = tooltips_text[tooltip.id];
+            create_alert(text, { html: true, seconds: 5 });
+        });
+    });
 
     if (core.config.size == 0) {
         create_alert("config not found<br>can you take a look at config tab pleease :)");
