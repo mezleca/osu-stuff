@@ -145,11 +145,11 @@ const get_from_player = async () => {
 
     const method = await create_custom_popup({
         type: message_types.CUSTOM_MENU,
-        title: "custom options",
+        title: "search option",
         elements: [
             {
                 key: "players",
-                element: { tag: { placeholder: "players" } }
+                element: { tag: { placeholder: "players", show_add: true } }
             },
             {
                 key: "beatmap options",

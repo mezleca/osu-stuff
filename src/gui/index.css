@@ -1408,13 +1408,14 @@ input[type="range"]::-moz-range-track {
 }
 
 .dropdown-header {
-    background-color: #1e1e1e;
-    border: 1px solid #444;
+    background-color: var(--manager-bg-color);
+    border: 1px solid rgb(120, 120, 120, 0.5);
     color: #fff;
-    padding: 8px 10px;
+    padding: 10px 12px;
     cursor: pointer;
     border-radius: 4px;
-    display: flex;
+    display: flex
+;
     justify-content: space-between;
     align-items: center;
 }
@@ -1577,6 +1578,7 @@ input[type="range"]::-moz-range-track {
     display: flex;
     padding: 12px;
     padding-left: 0px;
+    padding-right: 0px;
 }
 
 .tag-input {
@@ -1619,6 +1621,7 @@ input[type="range"]::-moz-range-track {
     align-items: center;
     animation: tagfade 0.2s ease;
     transition: background 0.2s ease;
+    cursor: pointer;
 }
 
 .tag-item:hover {

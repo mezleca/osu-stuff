@@ -177,17 +177,11 @@ export const create_dropdown_filter = (id, name, options) => {
     const item_items = [
         ...dropdown_filter.element.querySelectorAll(".dropdown-item"),
     ].filter((item) => item.dataset.value != "all");
+    const dropdown_items = [...dropdown_filter.element.querySelectorAll(".dropdown-item")];
     const all_options = item_items.map((item) => item.dataset.value);
 
-    dropdown_header.addEventListener("click", () => {
-        dropdown_content.classList.toggle("show");
-    });
-
-    dropdown_content.addEventListener("click", (e) => {
-        e.stopPropagation();
-    });
-
-    const dropdown_items = [...dropdown_filter.element.querySelectorAll(".dropdown-item")];
+    dropdown_header.addEventListener("click", (e) => dropdown_content.classList.toggle("show"));
+    dropdown_content.addEventListener("click", (e) => e.stopPropagation() );
 
     dropdown_items.forEach((item) => {
 
@@ -262,15 +256,19 @@ export const create_dropdown_filter = (id, name, options) => {
     return dropdown_filter;
 };
 
-export const create_tag_filter = (id, placeholder) => {
+export const create_tag_filter = (id, placeholder, add_button) => {
     
     const html = create_element(`
         <div class="tag-container" id="${id}">
             <div class="tag-input-area">
                 <input type="text" class="tag-input" id="tag-input">
-                <button class="tag-add-button" id="tag-add-button">
-                    <i class="bi bi-plus-lg"></i>
-                </button>
+                ${add_button ?
+                    `<button class="tag-add-button" id="tag-add-button">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>` 
+                    : 
+                    ""
+                }        
             </div>
             <div class="tag-list" id="tag-list"></div>
         </div>
@@ -284,7 +282,6 @@ export const create_tag_filter = (id, placeholder) => {
 
     const tag_list = html.querySelector(".tag-list");
     const input = html.querySelector(".tag-input");
-    const button = html.querySelector(".tag-add-button");
 
     input.ariaPlaceholder = placeholder;
 
@@ -328,7 +325,10 @@ export const create_tag_filter = (id, placeholder) => {
         input.focus();
     };
     
-    button.addEventListener("click", add_value);
+    if (add_button) {
+        html.querySelector(".tag-add-button").addEventListener("click", add_value);
+    }
+
     input.addEventListener("keyup", (event) => { if (event.key == "Enter") add_value()});
 
     return tag_filter;

@@ -274,7 +274,7 @@ const create_custom_menu = async (options) => {
                 break;
                 
             case 'range':
-                const iden = props.identifier || '';
+                const iden = props.identifier || "";
                 const fix = props.decimal_places || 2;
                 const initial = props.max || 100;
                 const range = create_range_filter(`${safe_key}_range`, label, iden, fix, initial);
@@ -283,8 +283,9 @@ const create_custom_menu = async (options) => {
                 break;
 
             case 'tag':
-                const placeholder = props.placeholder;
-                const tag = create_tag_filter(`${safe_key}_tag`, placeholder);
+                const placeholder = props.placeholder || "name";
+                const show_add = props.show_add || false;
+                const tag = create_tag_filter(`${safe_key}_tag`, placeholder, show_add);
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;
