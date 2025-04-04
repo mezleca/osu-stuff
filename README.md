@@ -8,7 +8,8 @@
 </p>
 
 ## wtf is osu-stuff
-app to manage/download collections with features like:
+collection manager app with a bunch of features like:
+- lazer and stable support
 - download collections from osu!collector / osustats
 - create collections from player's top 100, first place and shit like that
 - merge collections
@@ -17,11 +18,9 @@ app to manage/download collections with features like:
 - etc...
 
 ## how to download
-- **current app version (v1.5)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **current app version (v1.6)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
-## dependencies
-- linux users will probably need to download those dependencies:
-
+## linux dependencies
 ### ubuntu
 ```bash
 sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
@@ -39,7 +38,7 @@ if you find bugs, crashes, or anything weird:
 - hit `F12` to open devtools and grab the logs  
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
 
-## build it yourself
+## how can i build this thing?
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
@@ -64,3 +63,6 @@ npm run make
 npm run make:win    # windows
 npm run make:linux  # linux
 ```
+
+## big thanks to
+- [CollectionManager](https://github.com/Piotrekol/CollectionManager) i stole a bunch of functions from that project
