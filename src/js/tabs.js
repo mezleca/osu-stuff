@@ -14,9 +14,9 @@ const maximize_btn = document.querySelector(".maximize");
 const minimize_btn = document.querySelector(".minimize");
 const close_btn = document.querySelector(".close");
 
-maximize_btn.addEventListener("click", () => maximize_window);
-minimize_btn.addEventListener("click", () => minimize_window);
-close_btn.addEventListener("click", () => close_window);
+maximize_btn.addEventListener("click", maximize_window);
+minimize_btn.addEventListener("click", minimize_window);
+close_btn.addEventListener("click", close_window);
 
 all_tabs.map((tab, i) => {
 
