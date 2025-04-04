@@ -1,5 +1,6 @@
 import { core } from "../../app.js";
 import { create_alert } from "../../popup/popup.js";
+import { safe_id, safe_text } from "../../utils/global.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { get_bpm_filter, get_sr_filter, get_status_filter } from "../manager.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "../tools/beatmaps.js";
@@ -24,37 +25,48 @@ const create_element = (data) => {
 
 export const create_range_filter = (id, text, iden, fix, initial) => {
 
-    const html = `
-    <div class="slider-container" id="${id}">
-        <div class="slider-header">
-            <span class="slider-label">${text}</span>
-            <span class="slider-values" id="slider-values">(0.0${iden} - ${initial}.0${iden})</span>
+    if (isNaN(Number(initial))) {
+        console.log(iden, initial);
+        create_alert("failed to create dropdown...", { type: "error" });
+        return;
+    }
+
+    const element = create_element(`
+        <div class="slider-container" id="${safe_id(id)}">
+            <div class="slider-header">
+                <span class="slider-label"></span>
+                <span class="slider-values" id="slider-values">(0.0${iden} - ${initial}.0${iden})</span>
+            </div>
+            <div class="range-container">
+                <div class="track"></div>
+                <div class="track-highlight" id="track-highlight"></div>
+                <input type="range" min="0" max="${initial}" value="0" step="0.01" class="min-slider" id="min-sr">
+                <input type="range" min="0" max="${initial}" value="${initial}" step="0.01" class="max-slider" id="max-sr">
+            </div>
         </div>
-        <div class="range-container">
-            <div class="track"></div>
-            <div class="track-highlight" id="track-highlight"></div>
-            <input type="range" min="0" max="${initial}" value="0" step="0.01" class="min-slider" id="min-sr">
-            <input type="range" min="0" max="${initial}" value="${initial}" step="0.01" class="max-slider" id="max-sr">
-        </div>
-    </div>
-    `;
+    `);
 
     const range_slider = {
-        min: null,      // name
-        max: null,      // name
-        limit: null,    // yep limit
-        element: create_element(html),
-        update: null,   // function to update slider values
-        callback: null, // function to run after min/max change
-        set_limit: null // function to set limit
+        min: null,
+        max: null,
+        limit: null,
+        element: element,
+        update: null,
+        callback: null,
+        set_limit: null
     }
     
-    range_slider.min = range_slider.element.querySelector("#min-sr");
-    range_slider.max = range_slider.element.querySelector("#max-sr");
+    const slider_label = element.querySelector(".slider-label");
+    const slider_values = element.querySelector(".slider-values");
+    const track_highlight = element.querySelector("#track-highlight");
+
+    slider_values.textContent = `(0.0${iden} - ${initial}.0${iden})`;
+    slider_label.textContent = text;
+    
+    range_slider.min = element.querySelector("#min-sr");
+    range_slider.max = element.querySelector("#max-sr");
     range_slider.limit = range_slider.max.value;
     
-    const slider_values = range_slider.element.querySelector("#slider-values");
-    const track_highlight = range_slider.element.querySelector("#track-highlight");
 
     const force_update = () => {
         requestAnimationFrame(() => {
@@ -113,7 +125,7 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
         }
         
         // update display
-        slider_values.innerText = `(${min_value.toFixed(fix)}${iden} - ${max_value.toFixed(fix)}${iden})`;
+        slider_values.textContent = `(${min_value.toFixed(fix)}${iden} - ${max_value.toFixed(fix)}${iden})`;
         
         // update tracker
         const min_percent = (min_value / range_slider.limit) * 100;
@@ -140,67 +152,77 @@ export const create_range_filter = (id, text, iden, fix, initial) => {
 
 export const create_dropdown_filter = (id, name, options) => {
 
-    const html = `
-        <div class="dropdown-container" id="${id}">
+    const element = create_element(`
+        <div class="dropdown-container" id="${safe_id(id)}">
             <div class="dropdown-header">
-                <span class="dropdown-label">${name}</span>
+                <span class="dropdown-label"></span>
             </div>
             <div class="dropdown-content">
                 <div class="dropdown-item" data-value="all">
                     <label>all</label>
                 </div>
-                ${options
-                    .map((v) => {
-                        if (v != "all") {
-                            return `<div class="dropdown-item" data-value="${v}">
-                                <label>${v}</label>
-                            </div>`;
-                        }
-                    })
-                    .join("\n")}
             </div>
             <div class="selected-options" id="selected-options"></div>
         </div>
-    `;
+    `);
+
+    const label = element.querySelector(".dropdown-label");
+    const content = element.querySelector(".dropdown-content");
+    const dropdown_header = element.querySelector(".dropdown-header");
+    const dropdown_content = element.querySelector(".dropdown-content");
+    const selected_options_div = element.querySelector(".selected-options");
+    
+    label.textContent = name;
+
+    for (let option of options) {
+        if (option == "all") {
+            continue;
+        }
+
+        const item = create_element(`
+            <div class="dropdown-item">
+                <label></label>
+            </div>
+        `);
+
+        item.setAttribute("data-value", option);
+        item.children[0].textContent = option;
+        content.appendChild(item);
+    }
 
     const dropdown_filter = {
-        id: id,
+        id: safe_id(id),
         name: name,
-        selected: [],
-        element: create_element(html),
+        selected: new Set(),
+        element: element,
         callback: null,
     };
+    
+    const item_items = [...element.querySelectorAll(".dropdown-item")].filter(item => item.dataset.value != "all");
+    const all_item = element.querySelector('.dropdown-item[data-value="all"]');
+    const dropdown_items = [...element.querySelectorAll(".dropdown-item")];
+    const all_options = item_items.map(item => item.dataset.value);
+    
+    dropdown_header.addEventListener("click", () => dropdown_content.classList.toggle("show"));
+    dropdown_content.addEventListener("click", e => e.stopPropagation());
 
-    const dropdown_header = dropdown_filter.element.querySelector(".dropdown-header");
-    const dropdown_content = dropdown_filter.element.querySelector(".dropdown-content");
-    const selected_options_div = dropdown_filter.element.querySelector(".selected-options");
-    const all_item = dropdown_filter.element.querySelector('.dropdown-item[data-value="all"]');
-    const item_items = [
-        ...dropdown_filter.element.querySelectorAll(".dropdown-item"),
-    ].filter((item) => item.dataset.value != "all");
-    const dropdown_items = [...dropdown_filter.element.querySelectorAll(".dropdown-item")];
-    const all_options = item_items.map((item) => item.dataset.value);
-
-    dropdown_header.addEventListener("click", (e) => dropdown_content.classList.toggle("show"));
-    dropdown_content.addEventListener("click", (e) => e.stopPropagation() );
-
-    dropdown_items.forEach((item) => {
+    dropdown_items.forEach(item => {
 
         item.addEventListener("click", () => {
 
             const value = item.dataset.value;
 
             if (value == "all") {
-                if (dropdown_filter.selected.length == all_options.length) {
-                    dropdown_filter.selected = [];
+                if (dropdown_filter.selected.size == all_options.length) {
+                    dropdown_filter.selected.clear();
                 } else {
-                    dropdown_filter.selected = [...all_options];
+                    dropdown_filter.selected = new Set(all_options);
                 }
             } else {
-                if (dropdown_filter.selected.includes(value)) {
-                    dropdown_filter.selected = dropdown_filter.selected.filter((v) => v != value);
+                if (dropdown_filter.selected.has(value)) {
+                    dropdown_filter.selected.delete(value);
                 } else {
-                    dropdown_filter.selected.push(value);
+                    dropdown_filter.selected.add(value);
                 }
             }
             update();
@@ -209,22 +231,23 @@ export const create_dropdown_filter = (id, name, options) => {
 
     const update = () => {
 
-        item_items.forEach((item) => {
-            if (dropdown_filter.selected.includes(item.dataset.value)) {
+        for (const item of item_items) {
+            if (dropdown_filter.selected.has(item.dataset.value)) {
                 item.classList.add("dropdown-item-selected");
             } else {
                 item.classList.remove("dropdown-item-selected");
             }
-        });
+        }
 
-        if (dropdown_filter.selected.length == all_options.length) {
+        if (dropdown_filter.selected.size == all_options.length) {
             all_item.classList.add("dropdown-item-selected");
         } else {
             all_item.classList.remove("dropdown-item-selected");
         }
 
         selected_options_div.innerHTML = "";
-        dropdown_filter.selected.forEach((value) => {
+
+        for (const value of dropdown_filter.selected) {
 
             const option_tag = document.createElement("div");
             option_tag.className = "option-tag";
@@ -236,16 +259,16 @@ export const create_dropdown_filter = (id, name, options) => {
             remove_btn.className = "remove-option";
             remove_btn.innerHTML = "×";
 
-            remove_btn.addEventListener("click", (e) => {
+            remove_btn.addEventListener("click", e => {
                 e.stopPropagation();
-                dropdown_filter.selected = dropdown_filter.selected.filter((v) => v != value);
+                dropdown_filter.selected.delete(value);
                 update();
             });
 
             option_tag.appendChild(option_text);
             option_tag.appendChild(remove_btn);
             selected_options_div.appendChild(option_tag);
-        });
+        }
 
         if (dropdown_filter.callback) {
             dropdown_filter.callback();
@@ -253,15 +276,13 @@ export const create_dropdown_filter = (id, name, options) => {
     }
 
     update();
-
     return dropdown_filter;
 };
 
 export const create_tag_filter = (id, name, placeholder, add_button, limit) => {
     
     const html = create_element(`
-        <div class="tag-container" id="${id}">
-            <label class="tag-label">${name || "text"}</label>
+        <div class="tag-container" id="${safe_id(id)}">
             <div class="tag-input-area">
                 <input type="text" class="tag-input" id="tag-input">
                 ${add_button ?
@@ -277,7 +298,7 @@ export const create_tag_filter = (id, name, placeholder, add_button, limit) => {
     `);
 
     const tag_filter = {
-        id: id,
+        id: safe_id(id),
         element: html,
         values: new Set()
     };
@@ -285,7 +306,7 @@ export const create_tag_filter = (id, name, placeholder, add_button, limit) => {
     const tag_list = html.querySelector(".tag-list");
     const input = html.querySelector(".tag-input");
 
-    input.ariaPlaceholder = placeholder;
+    input.placeholder = placeholder;
 
     const create_tag_value = () => {
 
@@ -363,7 +384,7 @@ export const filter_beatmap = (md5) => {
     }
 
     // filter by status
-    if (status_filter.selected.length > 0 && !status_filter.selected.includes(Reader.get_status_object_reversed()[beatmap?.status])) {
+    if (status_filter.selected.size > 0 && !status_filter.selected.has(Reader.get_status_object_reversed()[beatmap?.status])) {
         return false;
     }
 

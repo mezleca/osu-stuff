@@ -1575,8 +1575,10 @@ input[type="range"]::-moz-range-track {
 
 .tag-container {
     width: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
+    background: var(--content-bg);
+    padding: 12px;
 }
 
 .tag-label {

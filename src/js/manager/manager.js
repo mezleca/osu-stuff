@@ -149,7 +149,7 @@ const get_from_player = async () => {
         elements: [
             {
                 key: "players",
-                element: { tag: { placeholder: "players", show_add: true, limit: 8 } }
+                element: { tag: { placeholder: "player name", show_add: true, limit: 8 } }
             },
             {
                 key: "beatmap options",
@@ -171,28 +171,25 @@ const get_from_player = async () => {
         return;
     }
 
-    if (method.beatmap_options.length == 0) {
+    if (method.beatmap_options.size == 0) {
         create_alert("select at least one beatmap option", { type: "warning" });
         return;
     }
 
-    if (method.beatmap_status.length == 0) {
-        method.beatmap_status.push("all");        
+    if (method.beatmap_status.size == 0) {
+        method.beatmap_status.add("all");        
     }
-    
 
-    // @TODO: this is a hack, i have no ideia but im getting duplicated options
-    const options = new Set(method.beatmap_options);
-
-    method.name = `${method.player_name} - (${Array.from(options.values()).join(", ")})`;
+    method.name = `${Array.from(method.players).join(", ")})`;
     await create_task(method.name, download_from_players, method);
 };
 
 const add_new_collection = async () => {
 
     const prompt = await create_custom_popup({     
-        type: "input", 
-        label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh" 
+        type: message_types.INPUT, 
+        label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh",
+        html: true
     });
 
     if (!prompt) {

@@ -45,7 +45,6 @@ export const get_linux_path = async () => {
 };
 
 export const get_osu_base_path = async () => {
-    // @TODO: macos support
     switch (process.platform) {
         case 'win32':
             return windows_default_path;

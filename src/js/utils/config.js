@@ -1,7 +1,7 @@
 import { core } from "../app.js";
 import { osu_login } from "./other/fetch.js";
 import { all_tabs, blink } from "../tabs.js";
-import { fs, path } from "./global.js";
+import { fs, path, safe_text } from "./global.js";
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { initialize, lazer_mode } from "../manager/manager.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";

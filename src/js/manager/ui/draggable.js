@@ -286,6 +286,18 @@ export const change_collection_name = async (id, element) => {
     update_collection_button.style.display = "block";
 };
 
+export const delete_draggable = (collection_id, id, target) => {
+
+    core.reader.collections.beatmaps.delete(collection_id);
+    draggable_items_map.delete(id);
+
+    reset_preview_pos();
+    list.removeChild(target);
+    
+    // need to save
+    update_collection_button.style.display = "block";      
+};
+
 export const check_delete_thing = async (id, placeholder_draggable_item) => {
 
     const draggable_item = draggable_items_map.get(id);
@@ -308,14 +320,7 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
                 return false;
             }
 
-            core.reader.collections.beatmaps.delete(collection_id);
-            draggable_items_map.delete(id);
-
-            reset_preview_pos();
-            list.removeChild(draggable_item.target);
-            
-            // need to save
-            update_collection_button.style.display = "block";
+            delete_draggable(collection_id, id, draggable_item.target);
 
             return true;
         }
@@ -475,6 +480,7 @@ export const setup_draggables = () => {
             target: draggable_item,
             values: [
                 { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
                 { 
                     type: "submenu", 
                     value: "merge with", 

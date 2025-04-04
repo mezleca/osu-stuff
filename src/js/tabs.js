@@ -1,4 +1,5 @@
 import { create_alert } from "./popup/popup.js";
+import { safe_text } from "./utils/global.js";
 import { close_window, maximize_window, minimize_window } from "./utils/other/process.js";
 
 export const tasks = new Map();
@@ -47,12 +48,13 @@ const create_element = (html_string) => {
     return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
 };
 
-export const add_tab = (id) => {
+export const add_tab = (_id) => {
 
     const d_tab = document.getElementById("download_tab");
+    const id = safe_text(_id);
 
     if (!id) {
-        create_alert("Missing id", { type: "error" });
+        create_alert("missing id", { type: "error" });
         return null;
     }
 
@@ -80,9 +82,10 @@ export const add_tab = (id) => {
     text.innerHTML = "waiting...";
 
     return { 
+        id: id,
         tab: element, 
         text: text, 
         dtab: d_tab, 
-        bar, id 
+        bar: bar, 
     };
 };

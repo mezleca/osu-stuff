@@ -24,6 +24,28 @@ export const gamemodes = {
     "mania": 3,
 };
 
+export const safe_text = (text) => {
+
+    if (!text) {
+        return "";
+    }
+
+    return String(text).replace(/[<>&"']/g, char => {
+        switch(char) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return char;
+        }
+    });
+};
+
+export const safe_id = (id) => {
+    return String(id).replace(/[^\w-]/g, '');
+};
+
 export const debounce = (func, delay) => {
 
     let timeout;

@@ -1,4 +1,4 @@
-import { CONTEXT_FADE_MS } from "../../utils/global.js";
+import { CONTEXT_FADE_MS, safe_id, safe_text } from "../../utils/global.js";
 
 const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
@@ -18,11 +18,11 @@ const generate_context = (options) => {
     for (let i = 0; i < options.values.length; i++) {
 
         const option = options.values[i];
-        const item_element = create_element(`<div class="menu-item">${option.value}</div>`);
+        const item_element = create_element(`<div class="menu-item">${safe_text(option.value)}</div>`);
 
         if (option.type == "submenu") {
 
-            const safe_key = option.value.replace(/\s+/g, '-');
+            const safe_key = safe_id(option.value.replace(/\s+/g, '-'));
             const sub_container = create_element(`<div id="submenu-${safe_key}" class="submenu"></div>`);
 
             item_element.classList.add("has-submenu");
@@ -32,7 +32,7 @@ const generate_context = (options) => {
             for (let i = 0; i < option.values.length; i++) {
 
                 const sub_option = option.values[i];
-                const sub_element = create_element(`<div class="menu-item">${sub_option.value}</div>`);
+                const sub_element = create_element(`<div class="menu-item">${safe_text(sub_option.value)}</div>`);
 
                 if (sub_option.callback) {
                     sub_element.addEventListener("click", () => {

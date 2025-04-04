@@ -57,11 +57,11 @@ export async function search_map_id(hash) {
 export const download_map = async (hash) => {
 
     if (!hash) {
-        console.error("[Downloader] Missing hash parameter");
+        console.error("[downloader] Missing hash parameter");
         return;
     }
 
-    console.log("[Downloader] download single map:", hash);
+    console.log("[downloader] download single map:", hash);
 
     const new_download = new map_downloader({ hash: hash }, "0");
     return await new_download.init(true);
@@ -119,7 +119,7 @@ class map_downloader {
         }
 
         if (core.reader.osu.beatmaps.has(map.hash)) {
-            console.log(`[Downloader] ${map.hash} already downloaded`);
+            console.log(`[downloader] ${map.hash} already downloaded`);
             return { map, data: core.reader.osu.beatmaps.get(map.hash) };
         }
 
@@ -186,7 +186,7 @@ class map_downloader {
         const map_path = path.resolve(core.config.get("stable_songs_path"),`${map.id}.osz`);
 
         if (fs.existsSync(map_path)) {
-            console.log(`[Downloader] skipping ${map?.id}`);
+            console.log(`[downloader] skipping ${map?.id}`);
             return { map: null, data: null };
         }
 
@@ -209,7 +209,7 @@ class map_downloader {
 
     async process(map, index) {
 
-        console.log("[Downloader] searching map", map);
+        console.log("[downloader] searching map", map);
 
         if (this.should_stop) {
             return { stop: true };
@@ -235,7 +235,7 @@ class map_downloader {
     async init(single_map = false) {
 
         if (!this.maps || !this.id) {
-            console.log("[Downloader] 0 beatmaps to download");
+            console.log("[downloader] 0 beatmaps to download");
             current_download = null;
             return null;
         }

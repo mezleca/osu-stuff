@@ -2,8 +2,6 @@ import { core } from "../app.js";
 import { create_alert } from "../popup/popup.js";
 import { fs, path } from "../utils/global.js";
 
-// @TODO: rework the filter system
-
 const deleted_folders = new Set();
 
 export const delete_beatmaps = async (beatmaps) => {

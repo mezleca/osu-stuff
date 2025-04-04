@@ -257,7 +257,7 @@ export class Reader {
             const buffer = [];
 
             if (!this.collections) {
-                console.log("[Reader] no collections found");
+                console.log("[reader] no collections found");
                 return;
             }
 
@@ -293,7 +293,7 @@ export class Reader {
     update_collections() {
 
         if (this.collections.beatmaps.size == 0) {
-            console.log("[Reader] cant update collection cuz no beatmaps found");
+            console.log("[reader] cant update collection cuz no beatmaps found");
             return;
         }
 
@@ -305,7 +305,7 @@ export class Reader {
     update_collection(name) {
 
         if (!this.collections.beatmaps.has(name)) {
-            console.log("[Reader] collection not found");
+            console.log("[reader] collection not found");
             return;
         }
 
@@ -532,7 +532,7 @@ export class Reader {
             
             if (lazer_mode) {
 
-                console.log("[Reader] reading lazer data...");
+                console.log("[reader] reading lazer data...");
 
                 try { 
                     
@@ -554,7 +554,7 @@ export class Reader {
             this.set_buffer(buffer);
             this.offset = 0;
 
-            console.log("[Reader] reading osu! stable data...");
+            console.log("[reader] reading osu! stable data...");
 
             const beatmaps = new Map();
             const version = this.#int();
@@ -712,7 +712,7 @@ export class Reader {
 
         return new Promise(async (resolve, reject) => {
 
-            console.log("[Reader] Reading collections data...");
+            console.log("[reader] Reading collections data...");
 
             if (this.collections) {
                 this.collections = {};

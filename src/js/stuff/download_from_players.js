@@ -129,8 +129,8 @@ const get_player_info = async (options) => {
         return;
     }
 
-    const option_is_valid = (name) => beatmap_options.includes(name) || beatmap_options.includes("all");
-    const status_is_valid = (name) => beatmap_status.includes(name) || beatmap_status.includes("all");
+    const option_is_valid = (name) => beatmap_options.has(name) || beatmap_options.has("all");
+    const status_is_valid = (name) => beatmap_status.has(name) || beatmap_status.has("all");
 
     const first_place_maps = extra_data.firsts.count && option_is_valid("first place") ? 
         await fetch_maps(`https://osu.ppy.sh/users/${default_data.id}/scores/firsts?mode=osu`, extra_data.firsts.count, difficulty_range) : [];   

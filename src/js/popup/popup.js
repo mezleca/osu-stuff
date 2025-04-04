@@ -1,5 +1,6 @@
 import { create_dropdown_filter, create_range_filter, create_tag_filter } from "../manager/ui/filter.js";
 import { create_element } from "../utils/config.js";
+import { safe_id, safe_text } from "../utils/global.js";
 import { open_url } from "../utils/other/process.js";
 
 const alerts = new Map();
@@ -102,21 +103,29 @@ export const create_alert = async (text, data) => {
 
 const create_input = async (options) => {
 
-    const { label = 'input:', input_type = 'text' } = options;
+    const { label = 'input:', input_type = 'text', html = false } = options;
+    const value = safe_text(options?.value) || "";
     const input_id = crypto.randomUUID();
+
+    console.log(value);
 
     const content = create_element(`
         <div class="popup-container" id="${input_id}">
             <div class="popup-content">
                 <label></label>
-                <input type="${input_type}" id="input_field" value="${options?.value || ""}">
-                <button id="input_submit">Submit</button>
+                <input type="${input_type}" id="input_field" value="${value}">
+                <button id="input_submit">submit</button>
             </div>
         </div>
     `);
 
     const label_text = content.querySelector("label");
-    label_text.textContent = label;
+
+    if (html) {
+        label_text.innerHTML = label;
+    } else {
+        label_text.textContent = label;
+    }
 
     document.body.appendChild(content);
 
@@ -148,7 +157,7 @@ const create_menu = async (options) => {
             <div class="popup-content">
                 <h1></h1>
                 <div class="popup-buttons">
-                    ${items.map(item => `<button>${item}</button>`).join('')}
+                    ${items.map((item) => `<button>${safe_text(item)}</button>`).join('')}
                 </div>
             </div>
         </div>
@@ -190,7 +199,7 @@ const create_confirmation = async (options) => {
             <div class="popup-content">
                 <h1></h1>
                 <div class="popup-buttons">
-                    ${confirm_values.map(value => `<button>${value}</button>`).join('')}
+                    ${confirm_values.map((value) => `<button>${safe_text(value)}</button>`).join('')}
                 </div>
             </div>
         </div>
@@ -250,7 +259,7 @@ const create_custom_menu = async (options) => {
         const type = Object.keys(element)[0];
         const props = element[type]?.options ? element[type].options : element[type];
         const label = element[type]?.label || key;
-        const safe_key = key.replace(/\s+/g, '_');
+        const safe_key = safe_id(key.replace(/\s+/g, '_'));
 
         switch (type) {
             case 'list':
@@ -264,7 +273,7 @@ const create_custom_menu = async (options) => {
                         <div class="select-container">
                             <label></label>
                             <select id="${safe_key}">
-                                ${props.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                ${props.map(opt => `<option value="${safe_text(opt)}">${safe_text(opt)}</option>`).join('')}
                             </select>
                         </div>
                     `);
@@ -306,10 +315,11 @@ const create_custom_menu = async (options) => {
                 const default_el = create_element(`
                     <div class="input-container">
                         <label></label>
-                        <${type} type="text" id="${safe_key}">${props.text || ''}</${type}>
+                        <${type} type="text" id="${safe_key}"></${type}>
                     </div>
                 `);
-                default_el.querySelector("label").textContent = label;
+                default_el.children[0].textContent = label;
+                default_el.children[1].textContent = props.text || "";
                 elements_container.appendChild(default_el);
                 break;
         }
@@ -327,7 +337,7 @@ const create_custom_menu = async (options) => {
             elements.forEach(({ key, element }) => {
 
                 const type = Object.keys(element)[0];
-                const safe_key = key.replace(/\s+/g, '_');
+                const safe_key = safe_id(key.replace(/\s+/g, '_'));
                 const is_multiple = type == 'list' && element[type]?.multiple == true;
                 
                 if (type == 'range') {
