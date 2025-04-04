@@ -18,8 +18,8 @@ Menu.setApplicationMenu(null);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev_mode = process.env.NODE_ENV == "development";
 
-const w = 968, h = 720;
-const min_w = 800, min_h = 600;
+const w = 1120, h = 840;
+const min_w = 968, min_h = 720;
 const max_w = 1366, max_h = 900;
 
 export const create_dialog = async () => {
