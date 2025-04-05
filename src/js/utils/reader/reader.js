@@ -864,8 +864,6 @@ export class Reader {
                     this.pending_deletion.add(collection);
                     this.collections.beatmaps.delete(id);
                 }
-
-                create_alert(`deleted ${id}`);
             }
             catch(err) {
                 create_alert("failed to delete collection<br>check logs for more info", { type: "error", html: true });

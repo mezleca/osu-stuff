@@ -1,7 +1,7 @@
 
 import { core } from "../../app.js";
 import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
-import { setup_manager, render_page, merge_collections } from "../manager.js";
+import { setup_manager, render_page, merge_collections, show_update_button } from "../manager.js";
 import { create_element } from "../../utils/config.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context_menu } from "./context.js";
@@ -235,8 +235,7 @@ export const check_merge = async (id) => {
     core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1, cl2) });
     core.reader.update_collections();
 
-    // need to save
-    update_collection_button.style.display = "block";
+    show_update_button();
     setup_manager();
 };
 
@@ -282,8 +281,7 @@ export const change_collection_name = async (id, element) => {
     draggable_items_map.delete(id);
     draggable_items_map.set(id, old_draggable_item);
 
-    // need to save
-    update_collection_button.style.display = "block";
+    show_update_button();
 };
 
 export const delete_draggable = (collection_id, id, target) => {
@@ -294,8 +292,8 @@ export const delete_draggable = (collection_id, id, target) => {
     reset_preview_pos();
     list.removeChild(target);
     
-    // need to save
-    update_collection_button.style.display = "block";      
+    create_alert(`deleted ${collection_id}`);
+    show_update_button();     
 };
 
 export const check_delete_thing = async (id, placeholder_draggable_item) => {
@@ -469,8 +467,7 @@ export const setup_draggables = () => {
             core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1.maps, v.maps) });
             core.reader.update_collections();
 
-            // need to save
-            update_collection_button.style.display = "block";
+            show_update_button();
             setup_manager();
         }
 
