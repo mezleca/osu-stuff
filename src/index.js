@@ -126,6 +126,7 @@ const createWindow = () => {
     });
 
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
+    globalShortcut.register('F12', () => { main_window.webContents.openDevTools() });
 
     // load html yep
     main_window.loadFile(path.join(__dirname, "./gui/index.html"));
@@ -182,14 +183,28 @@ const createWindow = () => {
     });
 
     main_window.webContents.on('did-finish-load', () => {
+
+        // load files
         main_window.webContents.executeJavaScript(`
             const script = document.createElement('script');
-            script.src = "${dev_mode ? '../js/app.js' : '../dist/bundle.js'}";
+            script.src = "${dev_mode ? '../js/app.js' : '../dist/app.bundle.js'}";
             script.type = "module";
+            
+            const file = location.pathname.split("/").pop();
+            const link = document.createElement("link");
+            const ext = ${dev_mode ? '".css"' : '".min.css"'};
+            console.log(file.substr(0, file.lastIndexOf(".")) + ext);
+            link.href = ${dev_mode ? '"./"' : '"../dist/"'} + file.substr(0, file.lastIndexOf(".")) + ext;
+            link.type = "text/css";
+            link.rel = "stylesheet";
+            link.media = "screen,print";
+           
+            document.getElementsByTagName("head")[0].appendChild(link);
             document.body.appendChild(script);
         `);
+
         if (process.env.NODE_ENV == "development") {
-            main_window.webContents.openDevTools({ mode: "detach", activate: true, });
+            main_window.webContents.openDevTools({ mode: "detach", activate: true });
         }
     });
 };
