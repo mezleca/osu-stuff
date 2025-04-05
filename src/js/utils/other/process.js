@@ -94,7 +94,7 @@ export const is_running = (name) => {
 export const open_url        = (url) => shell.openExternal(url);
 export const fetchstats      = (url, cookies) => ipcRenderer.invoke('fetch-stats', url, cookies)
 export const create_auth     = (url, end) => ipcRenderer.invoke("create-auth", url, end)
-export const create_dialog   = () => ipcRenderer.invoke('create-dialog');
+export const create_dialog   = (options) => ipcRenderer.invoke('create-dialog', options);
 export const maximize_window = () => ipcRenderer.invoke('maximize');
 export const minimize_window = () => ipcRenderer.invoke('minimize');
 export const close_window    = () => ipcRenderer.invoke('close');

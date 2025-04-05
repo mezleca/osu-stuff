@@ -830,8 +830,8 @@ export class Reader extends BinaryReader {
         const zip = new JSZip();
     
         for (let i = 0; i < files.length; i++) {
-            const file_name = path.basename(files[i]);
-            zip.file(file_name, fs.readFileSync(files[i]));
+            const { name, location } = files[i];
+            zip.file(name, fs.readFileSync(location));
         }
     
         return zip.generateAsync({ type: "nodebuffer" });
@@ -840,7 +840,10 @@ export class Reader extends BinaryReader {
     async export_beatmap(beatmap) {
 
         const lazer_mode = is_lazer_mode();
+        const osu_path = lazer_mode ? core.config.get("lazer_path") : path.resolve(core.config.get("stable_path"), core.config.get("stable_songs_path"));
         const export_path = core.config.get("export_path");
+        
+        let buffer = "";
     
         if (!export_path) {
             create_alert("please update your export path before using this feature");
@@ -848,18 +851,34 @@ export class Reader extends BinaryReader {
         }
     
         if (lazer_mode) {
-            console.log("not implemented yet");
-            return;
+            
+            const files = beatmap.beatmapset.Files.map((f) => {
+
+                const hash = f.File.Hash;
+                const location = path.resolve(osu_path, "files", hash.substring(0, 1), hash.substring(0, 2), hash);
+                
+                return { 
+                    name: f.Filename,
+                    location: location
+                }
+            });
+
+            buffer = await this.zip_file(files);
+                 
         } else {
-            const osu_path = path.resolve(core.config.get("stable_path"), core.config.get("stable_songs_path"));
+
             const folder_path = path.resolve(osu_path, beatmap.folder_name);
-            const folder_content = fs.readdirSync(folder_path)
-                .map(f => path.resolve(folder_path, f));
+            const files = fs.readdirSync(folder_path).map((f) => { 
+                return { 
+                    name: f, 
+                    location: path.resolve(folder_path, f) 
+                };
+            });
     
-            const buffer = await this.zip_file(folder_content);
-            fs.writeFileSync(`${export_path}/${beatmap.beatmap_id}.osz`, buffer);
+            buffer = await this.zip_file(files);
         }
 
+        fs.writeFileSync(`${export_path}/${beatmap.beatmap_id}.osz`, buffer);
         create_alert(`exported ${beatmap.beatmap_id}.osz`);
     }
 

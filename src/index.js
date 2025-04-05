@@ -22,10 +22,10 @@ const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
 const max_w = 1366, max_h = 900;
 
-export const create_dialog = async () => {
+export const create_dialog = async (options = {}) => {
     try {
         return await dialog.showOpenDialog(main_window, {
-            properties: ['openDirectory']
+            ...options
         });
     } catch (error) {
         console.error('failed to create dialog:', error);
@@ -138,7 +138,7 @@ const createWindow = () => {
     ipcMain.handle('close'   , () => app.quit());
 
     // other gargabe
-    ipcMain.handle('create-dialog', async () => await create_dialog());
+    ipcMain.handle('create-dialog', async (_, options) => await create_dialog(options));
     ipcMain.handle('dev_mode', () => dev_mode);
 
     // function to get cookies from stats

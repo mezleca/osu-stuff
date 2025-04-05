@@ -328,10 +328,17 @@ export const initialize_config = async () => {
 
             input.addEventListener("click", async () => {
 
-                const dialog = await create_dialog();
+                const options = { title: text, properties: ["openDirectory"] };
+
+                // @TOFIX: this only works on windows...
+                if (value != "") {
+                    options.defaultPath = value;
+                }
+
+                const dialog = await create_dialog(options);
 
                 if (!dialog.canceled) {
-                    console.log("saving file:", dialog.filePaths[0]);
+                    console.log("[config] saving file:", dialog.filePaths[0]);
                     await save_config(option.text, dialog.filePaths[0]);
                     input.value = dialog.filePaths[0];
                 }
