@@ -1,7 +1,7 @@
 import { core } from "../app.js";
 import { osu_login } from "./other/fetch.js";
 import { all_tabs, blink } from "../tabs.js";
-import { fs, path, safe_text } from "./global.js";
+import { fs, path } from "./global.js";
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { initialize, lazer_mode } from "../manager/manager.js";
 import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
@@ -31,6 +31,10 @@ const default_mirrors = [
     { name: "direct", url: "https://osu.direct/api/d/" },
 ];
 
+export const is_lazer_mode = () => {
+    return core.config.get("lazer_mode") == true;
+};
+
 export const save_config = async (key, value) => {
 
     const success = await save_to_db("config", key, value);
@@ -58,7 +62,7 @@ const set_loading_status = (status) => {
 
 export const load_osu_files = async (stable_path) => {
     
-    const lazer_mode = core.config.get("lazer_mode");
+    const lazer_mode = is_lazer_mode();
 
     if (lazer_mode) {
         await core.reader.get_collections_data();
@@ -77,7 +81,7 @@ export const load_osu_files = async (stable_path) => {
     if (!fs.existsSync(collection_file)) {
         core.reader.collections = { version: 20240820, length: 0, beatmaps: [] };
         await core.reader.write_collections_data(collection_file);
-        console.log("[config] created collections.db file in", file_path);
+        console.log("creating placeholder file");
     }
 
     const osu_data = fs.readFileSync(db_file);
@@ -163,7 +167,7 @@ const initialize_osu_config = async () => {
 const validate_and_setup_config = async () => {
 
     let valid = true;
-    const lazer_mode = core.config.get("lazer_mode");
+    const lazer_mode = is_lazer_mode();
 
     document.querySelectorAll("#config_fields").forEach((field) => {
 

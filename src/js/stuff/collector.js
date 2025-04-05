@@ -135,8 +135,11 @@ export const add_collection = async (url) => {
         const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
               new_backup_name = path.resolve(core.config.get("stable_path"), backup_name);
 
+        if (fs.existsSync(old_name)) {
+            fs.renameSync(old_name, new_backup_name);
+        }
+        
         // write the new file
-        fs.renameSync(old_name, new_backup_name);
         core.reader.write_collections_data(path.resolve(core.config.get("stable_path"), "collection.db"));
     
         // update manager

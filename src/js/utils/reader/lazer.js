@@ -209,7 +209,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             2: "ctb",
             3: "mania"
         };
-        
+
         for (let i = 0; i < 4; i++) {
             sr.push({
                 mode: modes[i],
@@ -230,6 +230,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             md5: beatmap.MD5Hash,
             file: beatmap.Hash || "",
             status: beatmap.Status || 0,
+            beatmapset: beatmap.BeatmapSet,
             hitcircle: beatmap.TotalObjectCount || 0,
             bpm: beatmap.BPM || 0,
             sliders: 0,

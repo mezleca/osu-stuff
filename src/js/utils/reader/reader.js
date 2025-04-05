@@ -6,6 +6,7 @@ import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
 import { all_schemas, BeatmapCollection, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
+import { is_lazer_mode } from "../config.js";
 
 export class Reader {
 
@@ -255,7 +256,7 @@ export class Reader {
         
         return new Promise(async (resolve, reject) => {
 
-            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+            const lazer_mode = is_lazer_mode();
             const buffer = [];
 
             if (lazer_mode) {
@@ -583,7 +584,7 @@ export class Reader {
             }
 
             // @TODO: implement a way to use both stable and lazer data at the same time
-            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+            const lazer_mode = is_lazer_mode();
             
             if (lazer_mode) {
 
@@ -773,7 +774,7 @@ export class Reader {
                 this.collections = {};
             }
 
-            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+            const lazer_mode = is_lazer_mode();
 
             if (lazer_mode) {
 
@@ -838,7 +839,7 @@ export class Reader {
 
     delete_collection(id) {
 
-        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
 
@@ -870,22 +871,39 @@ export class Reader {
         }        
     }
 
-    /**
-     * @param {beatmaps_schema} beatmap
-     * @returns { Promise<{ path: String }> } 
-     * 
-    */
-    get_beatmap_image(beatmap) { 
+    get_beatmap_location(beatmap) {
 
-        if (this.image_cache.has(beatmap.beatmap_id)) {
-            return this.image_cache.get(beatmap.beatmap_id);
+        const lazer_mode = is_lazer_mode();
+
+        if (lazer_mode) {
+            
+            const file_data = beatmap.beatmapset.Files.find((f) => f.Filename.split(".")[1] == "osu");
+
+            if (!file_data) {
+                return "";
+            }
+
+            const file_hash = file_data.File.Hash;
+            return path.resolve(core.config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
         }
-        
-        const file_location = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name);
-        
-        try {
+        else {
+            const folder = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name);
+            return path.resolve(folder, beatmap.file);
+        }
+    }
 
-            const content = fs.readFileSync(path.resolve(file_location, beatmap.file), "utf8");
+    search_image(beatmap) {
+
+        try { 
+
+            const file_location = this.get_beatmap_location(beatmap);
+
+            if (!file_location) {
+                console.log("[reader] failed to get folder for", beatmap);
+                return;
+            }
+
+            const content = fs.readFileSync(file_location, "utf8");
             const events_start = content.indexOf("[Events]");
 
             if (!events_start) {
@@ -919,20 +937,56 @@ export class Reader {
                     continue;
                 }
                 
-                const result = path.resolve(file_location, image_name);
-                this.image_cache.set(beatmap.beatmap_id, result);
-                return result;
-            } 
+                return image_name;
+            }
 
+        } catch(err) {
+            console.log("[reader]", err);
+        }
+    }
+
+    /**
+     * @param {beatmaps_schema} beatmap
+     * @returns { Promise<{ path: String }> } 
+     * 
+    */
+    get_beatmap_image(beatmap) { 
+
+        if (this.image_cache.has(beatmap.beatmap_id)) {
+            return this.image_cache.get(beatmap.beatmap_id);
+        }
+        
+        const lazer_mode = is_lazer_mode();
+        const image_name = this.search_image(beatmap);
+
+        if (!image_name) {
             return;
-        } catch (error) {
-            return;
+        }
+
+        if (lazer_mode) {
+
+            const thing = beatmap.beatmapset.Files.find((f) => f.Filename == image_name);
+
+            if (!thing) {
+                console.log("[reader] file not found", beatmap.beatmapset);
+                return;
+            }
+
+            const file_hash = thing.File.Hash;
+            const result = path.resolve(core.config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
+            this.image_cache.set(beatmap.beatmap_id, result);
+            return result;
+        } 
+        else {
+            const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
+            this.image_cache.set(beatmap.beatmap_id, result);
+            return result;
         }
     }
 
     static get_beatmap_status(code) {
 
-        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
             return lazer_status_reversed[code];
@@ -943,7 +997,7 @@ export class Reader {
 
     static get_beatmap_status_code(status) {
         
-        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
             return lazer_status[status];
@@ -954,12 +1008,12 @@ export class Reader {
 
     // @TODO: i desperately need to rewrite this shit Lol
     static get_status_object = () => {
-        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        const lazer_mode = is_lazer_mode();
         return lazer_mode ? lazer_status : beatmap_status;
     };
 
     static get_status_object_reversed = () => {
-        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+        const lazer_mode = is_lazer_mode();
         return lazer_mode ? lazer_status_reversed : beatmap_status_reversed;
     };
 };

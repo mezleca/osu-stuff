@@ -1,5 +1,5 @@
 import { core } from "../app.js"
-import { load_osu_files, create_element, save_config } from "../utils/config.js"
+import { load_osu_files, create_element, save_config, is_lazer_mode } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/download_maps.js"
@@ -712,17 +712,17 @@ export const render_page = (id, _offset) => {
     const sr_filter = get_sr_filter();
     const bpm_filter = get_bpm_filter();
 
+    const beatmaps = Array.from(collection.maps);
+
     // update sr filter slider min/max
-    if (sr_filter.limit > 0 && sr_filter.limit != sr_max) {
+    if (beatmaps.length >= 0 && sr_filter.limit != sr_max) {
         sr_filter.set_limit(sr_max);
     }
 
     // update bpm filter slider min/max
-    if (bpm_filter.limit > 0 && bpm_filter.limit != bpm_max) {
+    if (beatmaps.length >= 0 && bpm_filter.limit != bpm_max) {
         bpm_filter.set_limit(bpm_max);
     }
-
-    const beatmaps = Array.from(collection.maps);
 
     // only render 16 at time
     for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
@@ -741,7 +741,6 @@ export const render_page = (id, _offset) => {
 
         // check if the beatmap is valid (should be)
         if (!beatmaps[offset]) {
-            console.log("invalid beatmap", beatmaps, offset);
             offset++;
             continue;
         }
@@ -773,7 +772,7 @@ export const merge_collections = (cl1, cl2) => {
 
 update_collection_button.addEventListener("click", async () => {
 
-    const lazer_mode = core.config.get("lazer_mode");
+    const lazer_mode = is_lazer_mode();
     const confirm = await quick_confirm("are you sure?");
 
     if (!confirm) {
@@ -795,8 +794,10 @@ update_collection_button.addEventListener("click", async () => {
         const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
             new_name = path.resolve(core.config.get("stable_path"), backup_name);
 
-        fs.renameSync(old_name, new_name);
-
+        if (fs.existsSync(old_name)) {
+            fs.renameSync(old_name, new_name);
+        }
+        
         await core.reader.write_collections_data(old_name);
         create_alert("updated!");
     }
@@ -892,8 +893,6 @@ export const update_status_filter = () => {
 
     const status_filter = create_dropdown_filter(id, name, Object.keys(Reader.get_status_object()));
     status_filter.callback = callback;
-
-    console.log(callback);
     
     // update the status filter
     manager_filters.delete("dropdown-status-filter");
@@ -918,7 +917,7 @@ export const initialize = async (options) => {
         return;
     }
     
-    const lazer_mode = core.config.get("lazer_mode");
+    const lazer_mode = is_lazer_mode();
     const no_update = options?.no_update || false;
     const force = options?.force || false;
 
