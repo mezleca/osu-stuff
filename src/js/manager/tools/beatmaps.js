@@ -7,6 +7,10 @@ export const get_beatmap_sr = (beatmap) => {
         const nomod = 0;
         const beatmap_sr = beatmap?.sr;
 
+        if (typeof beatmap_sr == "number") {
+            return beatmap_sr.toFixed(2);
+        }
+
         if (!beatmap_sr || beatmap_sr?.length == 0) {
             return Number(0).toFixed(2);
         }

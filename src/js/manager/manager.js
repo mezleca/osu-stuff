@@ -547,7 +547,7 @@ const render_beatmap = (md5) => {
 
     // set shit for lazy loading
     beatmap_element.dataset.title = has_beatmap ? `${beatmap.artist_name} - ${beatmap.song_title} [${beatmap.difficulty}]`.toLowerCase() : "Unknown (not downloaded)".toLowerCase();
-    beatmap_element.dataset.mapper = has_beatmap ? beatmap?.mapper.toLowerCase() : "Unknown";
+    beatmap_element.dataset.mapper = has_beatmap ? beatmap.mapper.toLowerCase() : "Unknown";
     beatmap_element.dataset.tags = has_beatmap ? beatmap.tags.toLowerCase() : "";
     beatmap_element.dataset.artist = has_beatmap ? beatmap.artist_name.toLowerCase() : "";
     beatmap_element.id = `bn_${md5}`;
@@ -654,11 +654,11 @@ const render_beatmap = (md5) => {
             const beatmap_data = await download_map(md5);
 
             if (!beatmap_data) {
-                create_alert("Beatmap not found :c", { type: "alert" });
+                create_alert("failed to find beatmap :c", { type: "alert" });
                 return;
             }
 
-            Object.assign(beatmap, {
+            const updated = Object.assign(beatmap, {
                 artist_name: beatmap_data.beatmapset.artist,
                 song_title: beatmap_data.beatmapset.title,
                 difficulty: beatmap_data.version,
@@ -667,8 +667,13 @@ const render_beatmap = (md5) => {
                 difficulty_id: beatmap_data.beatmapset_id,
                 beatmap_id: beatmap_data.beatmapset.id,
                 url: beatmap_data.url,
+                sr: beatmap_data.difficulty_rating,
+                bpm: beatmap_data.bpm,
+                tags: "",
                 status: Reader.get_beatmap_status_code(beatmap_data.status) || 0
             });
+
+            core.reader.osu.beatmaps.set(beatmap_data.checksum, updated);
 
             const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
 

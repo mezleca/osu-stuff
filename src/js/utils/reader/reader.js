@@ -277,14 +277,19 @@ export class Reader {
                     }
 
                     // update/create the rest
+                    // @NOTE: sometimes for some reason this fail saying the subject is null
+                    // it only gave that error 1 time i cant seem to reproduce...
                     for (const [name, data] of Array.from(this.collections.beatmaps)) {
 
                         const exists = data?.uuid ? this.instance.objectForPrimaryKey("BeatmapCollection", data.uuid) : null;
                         this.instance.write(() => {
     
                             if (exists == null) {
-                                
+
                                 const id = new Realm.BSON.UUID();
+
+                                console.log("creating new collection", id, name, data);
+                                
                                 this.instance.create(BeatmapCollection, {
                                     ID: id,
                                     Name: name,
@@ -876,6 +881,10 @@ export class Reader {
         const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
+
+            if (!beatmap?.beatmapset) {
+                return "";
+            }
             
             const file_data = beatmap.beatmapset.Files.find((f) => f.Filename.split(".")[1] == "osu");
 
@@ -899,7 +908,6 @@ export class Reader {
             const file_location = this.get_beatmap_location(beatmap);
 
             if (!file_location) {
-                console.log("[reader] failed to get folder for", beatmap);
                 return;
             }
 
