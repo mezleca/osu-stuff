@@ -17,8 +17,9 @@ const osu_db_file = "osu!.db";
 const collection_db_file = "collection.db";
 
 const config_options = [
-    { type: "password", text: "osu_id",     secret: true         },
-    { type: "password", text: "osu_secret", secret: true         },
+    { type: "password", text: "osu_id",      secret: true        },
+    { type: "password", text: "osu_secret",  secret: true        },
+    { type: "file",     text: "export_path", secret: true        },
     { type: "file",     text: "lazer_path"                       },
     { type: "file",     text: "stable_path",                     },
     { type: "file",     text: "stable_songs_path"                },
@@ -254,6 +255,18 @@ export const initialize_config = async () => {
     // get the access_token
     if (core.config.get("osu_id") && core.config.get("osu_secret")) {
         core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
+    }
+
+    // if we dont have a export path, create one in the app config thing
+    if (!core.config.get("export_path")) {
+
+        const export_path = path.resolve(core.og_path, "exports");
+
+        if (!fs.existsSync(export_path)) {
+            fs.mkdirSync(export_path, { recursive: true });
+        }
+
+        core.config.set("export_path", export_path);
     }
 
     const osu_base_path = await get_osu_base_path();

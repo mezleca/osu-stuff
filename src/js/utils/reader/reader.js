@@ -1,41 +1,34 @@
 const Realm = require('realm');
+const JSZip = require("jszip");
 
 import { core } from "../../app.js";
-import { osu_db, collections_db, osdb_schema, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./definitions.js";
+import { osu_db, collections_db, osdb_schema, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
 import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
-import { all_schemas, BeatmapCollection, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
+import { all_schemas, BeatmapCollection } from "./models/lazer.js";
+import { get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 import { is_lazer_mode } from "../config.js";
+import { BinaryReader } from "./binary.js";
 
-export class Reader {
+export class Reader extends BinaryReader {
 
     /** @type {collections_db} */
     collections; 
     /** @type {osu_db} */
     osu;
-    /** @type {DataView} */
-    buffer;
     /** @type {Map} */
     image_cache;
     /** @type {Realm} */
     instance;
 
     constructor() {
+        super();
         this.osu = new Map();
         this.pending_deletion = new Set();
         this.offset = 0;
         this.image_cache = new Map();
         this.beatmap_offset_start = 0;
-    }
-
-    to_array_buffer = (buffer) => {
-        const arrayBuffer = new ArrayBuffer(buffer.length);
-        const view = new Uint8Array(arrayBuffer);
-        for (let i = 0; i < buffer.length; ++i) {
-            view[i] = buffer[i];
-        }
-        return arrayBuffer;
     }
 
     create_instance = async (path, schemas) => {
@@ -45,164 +38,6 @@ export class Reader {
         }
 
         this.instance = await get_realm_instance(path, schemas);
-    }
-
-    set_buffer = (buf) => {
-        this.buffer = new DataView(this.to_array_buffer(buf));
-    }
-
-    #byte(s) {
-        const value = !s ? this.buffer.getUint8(this.offset) : this.buffer.getInt8(this.offset);
-        this.offset += 1;
-        return value;
-    }
-
-    #short(s) {
-        const value = !s ? this.buffer.getUint16(this.offset, true) : this.buffer.getInt16(this.offset, true);
-        this.offset += 2; 
-        return value;
-    }
-
-    #int(s) {
-        const value = !s ? this.buffer.getUint32(this.offset, true) : this.buffer.getInt32(this.offset, true);
-        this.offset += 4;     
-        return value;
-    }
-
-    #long(s) {
-        const value = !s ? this.buffer.getBigUint64(this.offset, true) : this.buffer.getBigInt64(this.offset, true);
-        this.offset += 8;       
-        return value;
-    }
-
-    #uleb() {
-        let result = 0;
-        let shift = 0;
-
-        do {
-            const byte = this.#byte();
-            result |= (byte & 0x7F) << shift;
-            shift += 7;
-        } while (this.buffer.getUint8(this.offset - 1) & 0x80);
-          
-        return { value: result, bytesRead: this.offset };
-    }
-
-    #single() {
-        const value = this.buffer.getFloat32(this.offset, true);
-        this.offset += 4;
-        return value;
-    }
-
-    #double() {
-        const value = this.buffer.getFloat64(this.offset, true);
-        this.offset += 8; 
-        return value;
-    }
-
-    #bool() {
-        return this.#byte() !== 0x00;
-    }
-
-    #string() {
-
-        const is_present = this.#bool();
-
-        if (!is_present) {
-            return null;
-        }
-
-        const length = this.#uleb();
-
-        const buffer = new Uint8Array(this.buffer.buffer, this.offset, length.value);
-        const decoder = new TextDecoder('utf-8');
-        const value = decoder.decode(buffer);
-
-        this.offset += length.value;
-
-        return value;
-    }
-
-    #string2() {
-
-        const length = this.#uleb();
-
-        const buffer = new Uint8Array(this.buffer.buffer, this.offset, length.value);
-        const decoder = new TextDecoder('utf-8');
-        const value = decoder.decode(buffer);
-
-        this.offset += length.value;
-
-        return value;
-    }
-
-    #writeByte(value) {
-        const buffer = new Uint8Array(1);
-        buffer[0] = value;
-        return buffer;
-    }
-    
-    #writeInt(value) {
-        const buffer = new ArrayBuffer(4);
-        const view = new DataView(buffer);
-        view.setUint32(0, value, true);
-        return new Uint8Array(buffer);
-    }
-    
-    #writeLong(value) {
-        const buffer = new ArrayBuffer(8);
-        const view = new DataView(buffer);
-        view.setBigUint64(0, BigInt(value), true);
-        return new Uint8Array(buffer);
-    }
-    
-    #writeBool(value) {
-        return this.#writeByte(value ? 0x01 : 0x00);
-    }
-    
-    #writeString(value) {
-
-        if (value == null) {
-            return this.#writeByte(0x00);
-        }
-
-        const stringBuffer = new TextEncoder().encode(value);
-        const lengthBuffer = this.#writeULEB128(stringBuffer.byteLength);
-        const resultBuffer = new Uint8Array(lengthBuffer.byteLength + stringBuffer.byteLength + 1);
-
-        resultBuffer.set(new Uint8Array([0x0B]), 0);
-        resultBuffer.set(new Uint8Array(lengthBuffer), 1);
-        resultBuffer.set(new Uint8Array(stringBuffer), 1 + lengthBuffer.byteLength);
-
-        return resultBuffer.buffer;
-    }
-    
-    #writeULEB128(value) {
-        const buffer = new ArrayBuffer(5);
-        const dataView = new DataView(buffer);
-        let offset = 0;
-
-        do {
-            let byte = value & 0x7F;
-            value >>>= 7;
-            if (value != 0) { /* more bytes to come */
-                byte |= 0x80;
-            }
-            dataView.setUint8(offset++, byte);
-        } while (value != 0);
-
-        return buffer.slice(0, offset); // remove unused bytes
-    }
-
-    join_buffer(buffers) {
-        let total_length = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
-        let result = new Uint8Array(total_length);
-        let offset = 0;
-        for (let buffer of buffers) {
-            result.set(new Uint8Array(buffer), offset);
-            offset += buffer.byteLength;
-        }
-        return result;
     }
 
     write_osu_data = (maps, p) => {
@@ -215,12 +50,12 @@ export class Reader {
 
             const buffer = [];
 
-            buffer.push(this.#writeInt(this.osu.version));
-            buffer.push(this.#writeInt(this.osu.folders));
-            buffer.push(this.#writeBool(this.osu.account_unlocked));
-            buffer.push(this.#writeLong(this.osu.last_unlocked_time));
-            buffer.push(this.#writeString(this.osu.player_name));
-            buffer.push(this.#writeInt(this.osu.beatmaps_count));
+            buffer.push(this.writeInt(this.osu.version));
+            buffer.push(this.writeInt(this.osu.folders));
+            buffer.push(this.writeBool(this.osu.account_unlocked));
+            buffer.push(this.writeLong(this.osu.last_unlocked_time));
+            buffer.push(this.writeString(this.osu.player_name));
+            buffer.push(this.writeInt(this.osu.beatmaps_count));
             
             let last_index = this.beatmap_offset_start;
 
@@ -322,13 +157,13 @@ export class Reader {
                 return;
             }
 
-            buffer.push(this.#writeInt(this.collections.version));
-            buffer.push(this.#writeInt(this.collections.beatmaps.size)); 
+            buffer.push(this.writeInt(this.collections.version));
+            buffer.push(this.writeInt(this.collections.beatmaps.size)); 
 
             for (const [name, collection] of this.collections.beatmaps) {
                 
-                buffer.push(this.#writeString(name));
-                buffer.push(this.#writeInt(collection.maps.size));
+                buffer.push(this.writeString(name));
+                buffer.push(this.writeInt(collection.maps.size));
 
                 for (const map of collection.maps) {
 
@@ -337,7 +172,7 @@ export class Reader {
                         return reject();
                     }
 
-                    buffer.push(this.#writeString(map));
+                    buffer.push(this.writeString(map));
                 }
             }
 
@@ -411,7 +246,7 @@ export class Reader {
             try {
 
                 const data = {};
-                const version_string = this.#string2();
+                const version_string = this.string2();
                 
                 const versions = {
                     "o!dm": 1,
@@ -443,70 +278,70 @@ export class Reader {
                     this.set_buffer(decompressed_data);
                     this.offset = 0;
                     
-                    this.#string2();
+                    this.string2();
                 }
                 
-                data.save_date = this.#double();
-                data.last_editor = this.#string2();
-                data.collections_count = this.#int();
+                data.save_date = this.double();
+                data.last_editor = this.string2();
+                data.collections_count = this.int();
                 
                 data.collections = [];
                 
                 for (let i = 0; i < data.collections_count; i++) {
 
                     const collection = {
-                        name: this.#string2(),
+                        name: this.string2(),
                         beatmaps: [],
                         hash_only_beatmaps: []
                     };
                     
                     if (file_version >= 7) {
-                        collection.online_id = this.#int();
+                        collection.online_id = this.int();
                     }
                     
-                    const beatmaps_count = this.#int();
+                    const beatmaps_count = this.int();
                     
                     for (let j = 0; j < beatmaps_count; j++) {
 
                         const beatmap = {
-                            map_id: this.#int(),
-                            map_set_id: file_version >= 2 ? this.#int() : -1
+                            map_id: this.int(),
+                            map_set_id: file_version >= 2 ? this.int() : -1
                         };
                         
                         if (!is_minimal) {
-                            beatmap.artist = this.#string2();
-                            beatmap.title = this.#string2();
-                            beatmap.diff_name = this.#string2();
+                            beatmap.artist = this.string2();
+                            beatmap.title = this.string2();
+                            beatmap.diff_name = this.string2();
                         }
                         
-                        beatmap.md5 = this.#string2();
+                        beatmap.md5 = this.string2();
                         
                         if (file_version >= 4) {
-                            beatmap.user_comment = this.#string2();
+                            beatmap.user_comment = this.string2();
                         }
                         
                         if (file_version >= 8 || (file_version >= 5 && !is_minimal)) {
-                            beatmap.play_mode = this.#byte();
+                            beatmap.play_mode = this.byte();
                         }
                         
                         if (file_version >= 8 || (file_version >= 6 && !is_minimal)) {
-                            beatmap.stars_nomod = this.#double();
+                            beatmap.stars_nomod = this.double();
                         }
                         
                         collection.beatmaps.push(beatmap);
                     }
                     
                     if (file_version >= 3) {
-                        const hash_count = this.#int();
+                        const hash_count = this.int();
                         for (let j = 0; j < hash_count; j++) {
-                            collection.hash_only_beatmaps.push(this.#string2());
+                            collection.hash_only_beatmaps.push(this.string2());
                         }
                     }
                     
                     data.collections.push(collection);
                 }
                 
-                const footer = this.#string2();
+                const footer = this.string2();
 
                 if (footer != "By Piotrekol") {
                     throw new Error("invalid file footer, this collection might be corrupted.");
@@ -519,51 +354,51 @@ export class Reader {
         });
     }
 
-    #read_typed_value() {
+    read_typed_value() {
 
-        const type = this.#byte();
+        const type = this.byte();
         
         switch (type) {
             case 1:
-                return this.#bool();
+                return this.bool();
             case 2:
-                return this.#byte();
+                return this.byte();
             case 3:
-                return this.#short();
+                return this.short();
             case 4:
-                return this.#int();
+                return this.int();
             case 5:
-                return this.#long();
+                return this.long();
             case 6:
-                return this.#byte(true);
+                return this.byte(true);
             case 7:
-                return this.#short(true);
+                return this.short(true);
             case 8:
-                return this.#int(true);
+                return this.int(true);
             case 9:
-                return this.#long(true);
+                return this.long(true);
             case 10:
-                return String.fromCharCode(this.#short());
+                return String.fromCharCode(this.short());
             case 11:
-                return this.#string();
+                return this.string();
             case 12:
-                return this.#single();
+                return this.single();
             case 13:
-                return this.#double();
+                return this.double();
             case 14:
-                return this.#double();
+                return this.double();
             case 15:
-                return this.#long(true);
+                return this.long(true);
             case 16: {
-                const num = this.#int() - 4294967296;
-                return num > 0 ? this.#byte() : 0;
+                const num = this.int() - 4294967296;
+                return num > 0 ? this.byte() : 0;
             }
             case 17: {
-                const length = this.#int(true);
+                const length = this.int(true);
                 if (length > 0) {
                     const chars = new Array(length);
                     for (let i = 0; i < length; i++) {
-                        chars[i] = this.#byte();
+                        chars[i] = this.byte();
                     }
                     return String.fromCharCode(...chars);
                 }
@@ -618,14 +453,14 @@ export class Reader {
             console.log("[reader] reading osu! stable data...");
 
             const beatmaps = new Map();
-            const version = this.#int();
-            const folders = this.#int();
-            const account_unlocked = this.#bool();
+            const version = this.int();
+            const folders = this.int();
+            const account_unlocked = this.bool();
 
-            const last_unlocked_time = this.#long();
+            const last_unlocked_time = this.long();
             
-            const player_name = this.#string();
-            const beatmaps_count = this.#int();
+            const player_name = this.string();
+            const beatmaps_count = this.int();
 
             this.beatmap_offset_start = this.offset;
 
@@ -642,43 +477,43 @@ export class Reader {
 
                 data.beatmap_start = this.offset;
 
-                data.entry = version < 20191106 ? this.#int() : 0;
-                data.artist_name = this.#string();
-                data.artist_name_unicode = this.#string();
-                data.song_title = this.#string();
-                data.song_title_unicode = this.#string();
-                data.mapper = this.#string();
-                data.difficulty = this.#string();
-                data.audio_file_name = this.#string();
-                data.md5 = this.#string();
-                data.file = this.#string();
-                data.status = this.#byte();
-                data.hitcircle = this.#short();
-                data.sliders = this.#short();
-                data.spinners = this.#short();
-                data.last_modification = this.#long();
-                data.approach_rate = version < 20140609 ? this.#byte() : this.#single();
-                data.circle_size = version < 20140609 ? this.#byte() : this.#single();
-                data.hp = version < 20140609 ? this.#byte() : this.#single();
-                data.od = version < 20140609 ? this.#byte() : this.#single();
-                data.slider_velocity = this.#double();
+                data.entry = version < 20191106 ? this.int() : 0;
+                data.artist_name = this.string();
+                data.artist_name_unicode = this.string();
+                data.song_title = this.string();
+                data.song_title_unicode = this.string();
+                data.mapper = this.string();
+                data.difficulty = this.string();
+                data.audio_file_name = this.string();
+                data.md5 = this.string();
+                data.file = this.string();
+                data.status = this.byte();
+                data.hitcircle = this.short();
+                data.sliders = this.short();
+                data.spinners = this.short();
+                data.last_modification = this.long();
+                data.approach_rate = version < 20140609 ? this.byte() : this.single();
+                data.circle_size = version < 20140609 ? this.byte() : this.single();
+                data.hp = version < 20140609 ? this.byte() : this.single();
+                data.od = version < 20140609 ? this.byte() : this.single();
+                data.slider_velocity = this.double();
 
                 data.sr = [];
                 data.timing_points = [];
 
                 for (let i = 0; i < 4; i++) {
 
-                    const length = this.#int();
+                    const length = this.int();
                     const diffs = [];
 
                     if (version < 20250107) {
 
                         for (let i = 0; i < length; i++) {
 
-                            this.#byte();
-                            const mod = this.#int();
-                            this.#byte();
-                            const diff = this.#double();
+                            this.byte();
+                            const mod = this.int();
+                            this.byte();
+                            const diff = this.double();
                             
                             if (mod != 0) {
                                 diffs.push([ mod, diff ]);
@@ -688,8 +523,8 @@ export class Reader {
                         
                         for (let i = 0; i < length; i++) {
 
-                            const a = this.#read_typed_value();
-                            const b = this.#read_typed_value();
+                            const a = this.read_typed_value();
+                            const b = this.read_typed_value();
 
                             if (diffs.length > 1) {
                                 continue;
@@ -705,58 +540,58 @@ export class Reader {
                     });
                 }
                 
-                data.drain_time = this.#int();
-                data.total_time = this.#int();
-                data.audio_preview = this.#int();
-                data.timing_points_length = this.#int();
+                data.drain_time = this.int();
+                data.total_time = this.int();
+                data.audio_preview = this.int();
+                data.timing_points_length = this.int();
                 
                 for (let i = 0; i < data.timing_points_length; i++) {
 
-                    const length = this.#double();
-                    const offset = this.#double();
-                    const inherited = this.#bool();  
+                    const length = this.double();
+                    const offset = this.double();
+                    const inherited = this.bool();  
 
                     data.timing_points.push({ beat_length: length, offset, inherited });
                 }
 
-                data.difficulty_id = this.#int();
-                data.beatmap_id = this.#int();
-                data.thread_id = this.#int();
-                data.grade_standard = this.#byte();
-                data.grade_taiko = this.#byte();
-                data.grade_ctb = this.#byte();
-                data.grade_mania = this.#byte();
-                data.local_offset = this.#short();
-                data.stack_leniency = this.#single();
-                data.mode = this.#byte();
-                data.source = this.#string();
-                data.tags = this.#string();
-                data.online_offset = this.#short();
-                data.font = this.#string();
-                data.unplayed = this.#bool();
-                data.last_played = this.#long();
-                data.is_osz2 = this.#bool();
-                data.folder_name = this.#string();
-                data.last_checked = this.#long();
-                data.ignore_sounds = this.#bool();
-                data.ignore_skin = this.#bool();
-                data.disable_storyboard = this.#bool();
-                data.disable_video = this.#bool();
-                data.visual_override = this.#bool();
+                data.difficulty_id = this.int();
+                data.beatmap_id = this.int();
+                data.thread_id = this.int();
+                data.grade_standard = this.byte();
+                data.grade_taiko = this.byte();
+                data.grade_ctb = this.byte();
+                data.grade_mania = this.byte();
+                data.local_offset = this.short();
+                data.stack_leniency = this.single();
+                data.mode = this.byte();
+                data.source = this.string();
+                data.tags = this.string();
+                data.online_offset = this.short();
+                data.font = this.string();
+                data.unplayed = this.bool();
+                data.last_played = this.long();
+                data.is_osz2 = this.bool();
+                data.folder_name = this.string();
+                data.last_checked = this.long();
+                data.ignore_sounds = this.bool();
+                data.ignore_skin = this.bool();
+                data.disable_storyboard = this.bool();
+                data.disable_video = this.bool();
+                data.visual_override = this.bool();
 
                 if (version < 20140609) {
-                    data.unknown = this.#short();
+                    data.unknown = this.short();
                 }
 
-                data.last_modified = this.#int();	
-                data.mania_scroll_speed = this.#byte();
+                data.last_modified = this.int();	
+                data.mania_scroll_speed = this.byte();
                 data.beatmap_end = this.offset;   
 
                 beatmaps.set(data.md5, data);         
             }
 
             const extra_start = this.offset;
-            const permission_id = this.#int();
+            const permission_id = this.int();
 
             this.offset = 0;
             this.osu = { version, folders, account_unlocked, last_unlocked_time, player_name, beatmaps_count, beatmaps, extra_start, permission_id }; 
@@ -816,17 +651,17 @@ export class Reader {
             this.offset = 0;
 
             const beatmaps = new Map();
-            const version = this.#int();
-            const count = this.#int();
+            const version = this.int();
+            const count = this.int();
 
             for (let i = 0; i < count; i++) {
                 
-                const name = this.#string();
-                const bm_count = this.#int();
+                const name = this.string();
+                const bm_count = this.int();
                 const md5 = [];
 
                 for (let i = 0; i < bm_count; i++) {
-                    const map = this.#string();
+                    const map = this.string();
                     md5.push(map);
                 }
                 
@@ -872,7 +707,7 @@ export class Reader {
         } else {
             this.collections.beatmaps.delete(id);
         }        
-    }
+    };
 
     get_beatmap_location(beatmap) {
 
@@ -897,7 +732,7 @@ export class Reader {
             const folder = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name);
             return path.resolve(folder, beatmap.file);
         }
-    }
+    };
 
     search_image(beatmap) {
 
@@ -949,7 +784,7 @@ export class Reader {
         } catch(err) {
             console.log("[reader]", err);
         }
-    }
+    };
 
     /**
      * @param {beatmaps_schema} beatmap
@@ -988,6 +823,44 @@ export class Reader {
             this.image_cache.set(beatmap.beatmap_id, result);
             return result;
         }
+    };
+
+    zip_file(files) {
+
+        const zip = new JSZip();
+    
+        for (let i = 0; i < files.length; i++) {
+            const file_name = path.basename(files[i]);
+            zip.file(file_name, fs.readFileSync(files[i]));
+        }
+    
+        return zip.generateAsync({ type: "nodebuffer" });
+    }
+    
+    async export_beatmap(beatmap) {
+
+        const lazer_mode = is_lazer_mode();
+        const export_path = core.config.get("export_path");
+    
+        if (!export_path) {
+            create_alert("please update your export path before using this feature");
+            return;
+        }
+    
+        if (lazer_mode) {
+            console.log("not implemented yet");
+            return;
+        } else {
+            const osu_path = path.resolve(core.config.get("stable_path"), core.config.get("stable_songs_path"));
+            const folder_path = path.resolve(osu_path, beatmap.folder_name);
+            const folder_content = fs.readdirSync(folder_path)
+                .map(f => path.resolve(folder_path, f));
+    
+            const buffer = await this.zip_file(folder_content);
+            fs.writeFileSync(`${export_path}/${beatmap.beatmap_id}.osz`, buffer);
+        }
+
+        create_alert(`exported ${beatmap.beatmap_id}.osz`);
     }
 
     static get_beatmap_status(code) {
@@ -999,7 +872,7 @@ export class Reader {
         }
 
         return beatmap_status_reversed[code];
-    }
+    };
 
     static get_beatmap_status_code(status) {
         
@@ -1010,7 +883,7 @@ export class Reader {
         }
 
         return beatmap_status[status];
-    }
+    };
 
     // @TODO: i desperately need to rewrite this shit Lol
     static get_status_object = () => {

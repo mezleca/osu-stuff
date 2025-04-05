@@ -14,7 +14,7 @@ import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
-import { beatmap_status } from "../utils/reader/definitions.js";
+import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js"
 
 const list = document.querySelector(".list_draggable_items");
@@ -584,10 +584,11 @@ const render_beatmap = (md5) => {
             id: md5,
             target: beatmap_element,
             values: [
-                { type: "default", value: "open in browser", callback: () => open_in_browser(beatmap) },
+                { type: "default", value: "open in browser", callback: () => { open_in_browser(beatmap) } },
+                { type: "default", value: "export beatmap", callback: () => { core.reader.export_beatmap(beatmap) } },
                 { type: "submenu", value: "move to", values: collection_keys },
                 { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
-                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } }
+                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } },
             ]
         });
 
