@@ -35,7 +35,7 @@ export const get_selected_collection = (id) => {
 
     for (let i = 0; i < draggable_items.length; i++) {
         if (draggable_items[i].classList.contains("selected")) {
-            return id ? draggable_items[i].id : draggable_items[i].innerText;
+            return id ? draggable_items[i].id : draggable_items[i].children[0].textContent;
         }
     }
 

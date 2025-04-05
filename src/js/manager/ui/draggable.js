@@ -246,7 +246,7 @@ export const change_collection_name = async (id, element) => {
         type: message_types.INPUT,
         title: "new collection name",
         label: "new collection name",
-        value: element.innerText,
+        value: element.textContent,
         input_type: "text",
     });
 
@@ -260,7 +260,7 @@ export const change_collection_name = async (id, element) => {
         return;
     }
 
-    element.innerText = new_name;
+    element.textContent = new_name;
 
     const old_draggable_item = draggable_items_map.get(id);
     const old_collection = core.reader.collections.beatmaps.get(old_draggable_item.collection_id);
@@ -350,7 +350,7 @@ export const setup_draggables = () => {
         const draggable_item = create_element(draggable_item_html);
         const draggable_item_name = draggable_item.children[0];
 
-        draggable_item_name.innerText = k;
+        draggable_item_name.textContent = k;
         draggable_item.id = id;
 
         list.appendChild(draggable_item);
@@ -377,7 +377,7 @@ export const setup_draggables = () => {
             const placeholder_draggable_item = create_element(placeholder_html);
             const placeholder_name = placeholder_draggable_item.children[0];
 
-            placeholder_name.innerText = k;
+            placeholder_name.textContent = k;
     
             const handle_up = async () => {
 
