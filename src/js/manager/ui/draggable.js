@@ -183,7 +183,7 @@ export const check_merge = async (id) => {
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
-        console.log("[Manager UI] failed to get draggable item");
+        console.log("[manager ui] failed to get draggable item");
         return false;
     }
 
@@ -202,7 +202,7 @@ export const check_merge = async (id) => {
     const cl2_id = draggable_items_map.get(id)?.collection_id;
 
     if (!cl1_id || !cl2_id) {
-        console.log("[Manager UI] failed to get collection id", id, merge_draggable_item.id);
+        console.log("[manager ui] failed to get collection id", id, merge_draggable_item.id);
         return false;
     }
 
@@ -228,7 +228,7 @@ export const check_merge = async (id) => {
     const cl2 = core.reader.collections.beatmaps.get(cl2_id).maps;
 
     if (!cl1 || !cl2) {
-        console.log("[Manager UI] failed to get collection", id, merge_draggable_item.id);
+        console.log("[manager ui] failed to get collection", id, merge_draggable_item.id);
         return false;
     }
 
@@ -266,12 +266,12 @@ export const change_collection_name = async (id, element) => {
     const old_collection = core.reader.collections.beatmaps.get(old_draggable_item.collection_id);
 
     if (!old_collection) {
-        console.log("[Manager UI] failed to get old collection", old_draggable_item);
+        console.log("[manager ui] failed to get old collection", old_draggable_item);
         return;
     }
 
     // remove old collection and create a new one with all beatmaps
-    core.reader.collections.beatmaps.delete(old_draggable_item.collection_id);
+    core.reader.delete_collection(old_draggable_item.collection_id);
     core.reader.collections.beatmaps.set(new_name, old_collection);
 
     // update draggable_item object to contain new name
@@ -288,7 +288,7 @@ export const change_collection_name = async (id, element) => {
 
 export const delete_draggable = (collection_id, id, target) => {
 
-    core.reader.collections.beatmaps.delete(collection_id);
+    core.reader.delete_collection(collection_id);
     draggable_items_map.delete(id);
 
     reset_preview_pos();
@@ -309,14 +309,14 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
     // check if is colliding with the bin
     if (detect_collision(placeholder_draggable_item, draggable_item_bin)) {
     
-        const will_delete = await quick_confirm("Are you sure?");
+        const will_delete = await quick_confirm("are you sure?");
 
         if (will_delete) {
 
             const collection_id = draggable_items_map.get(id)?.collection_id;
 
             if (!collection_id) {
-                console.log("[Manager UI] failed to get collection id on delete", id);
+                console.log("[manager ui] failed to get collection id on delete", id);
                 return false;
             }
 

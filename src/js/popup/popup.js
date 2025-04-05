@@ -107,14 +107,13 @@ const create_input = async (options) => {
     const value = safe_text(options?.value) || "";
     const input_id = crypto.randomUUID();
 
-    console.log(value);
-
+    // @TODO: move css stuff later
     const content = create_element(`
         <div class="popup-container" id="${input_id}">
-            <div class="popup-content">
-                <label></label>
-                <input type="${input_type}" id="input_field" value="${value}">
-                <button id="input_submit">submit</button>
+            <div class="popup-content input-only" style="display: flex; flex-direction: column;">
+                <label style="margin-bottom: 10px;"></label>
+                <input style="flex-grow: 1;" type="${input_type}" id="input_field" value="${value}">
+                <button style="align-self: center; font-size: 1.1em; width: 25%; padding: 10px;" id="input_submit">submit</button>
             </div>
         </div>
     `);
@@ -189,7 +188,7 @@ const create_menu = async (options) => {
 
 const create_confirmation = async (options) => {
 
-    const { title = 'Are you sure?', values } = options;
+    const { title = 'are you sure?', values } = options;
 
     const confirmation_id = crypto.randomUUID();
     const confirm_values = Array.isArray(values) && values.length ? values : ['Yes', 'No'];

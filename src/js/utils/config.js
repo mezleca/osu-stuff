@@ -57,6 +57,14 @@ const set_loading_status = (status) => {
 };
 
 export const load_osu_files = async (stable_path) => {
+    
+    const lazer_mode = core.config.get("lazer_mode");
+
+    if (lazer_mode) {
+        await core.reader.get_collections_data();
+        await core.reader.get_osu_data();
+        return;
+    }
 
     const db_file = path.resolve(stable_path, osu_db_file);
     const collection_file = path.resolve(stable_path, collection_db_file);
@@ -388,7 +396,7 @@ export const initialize_config = async () => {
     });
 
     if (core.config.size == 0) {
-        create_alert("config not found<br>can you take a look at config tab pleease :)");
+        create_alert("config not found<br>can you take a look at config tab pleease :)", { type: "warning", html: true });
         return;
     }
 

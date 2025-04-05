@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const LAZER_SCHEMA_VERSION = 48;
 
-class BeatmapDifficulty extends Realm.Object {
+export class BeatmapDifficulty extends Realm.Object {
     static schema = {
         name: 'BeatmapDifficulty',
         embedded: true,
@@ -20,7 +20,7 @@ class BeatmapDifficulty extends Realm.Object {
     };
 };
 
-class BeatmapMetadata extends Realm.Object {
+export class BeatmapMetadata extends Realm.Object {
     static schema = {
         name: 'BeatmapMetadata',
         properties: {
@@ -38,7 +38,7 @@ class BeatmapMetadata extends Realm.Object {
     };
 };
 
-class BeatmapUserSettings extends Realm.Object {
+export class BeatmapUserSettings extends Realm.Object {
     static schema = {
         name: 'BeatmapUserSettings',
         embedded: true,
@@ -48,7 +48,7 @@ class BeatmapUserSettings extends Realm.Object {
     };
 };
 
-class RealmUser extends Realm.Object {
+export class RealmUser extends Realm.Object {
     static schema = {
         name: 'RealmUser',
         embedded: true,
@@ -60,7 +60,7 @@ class RealmUser extends Realm.Object {
     };
 };
 
-class Ruleset extends Realm.Object {
+export class Ruleset extends Realm.Object {
     static schema = {
         name: 'Ruleset',
         primaryKey: 'ShortName',
@@ -75,7 +75,7 @@ class Ruleset extends Realm.Object {
     };
 };
 
-class File extends Realm.Object {
+export class File extends Realm.Object {
     static schema = {
         name: 'File',
         primaryKey: 'Hash',
@@ -85,7 +85,7 @@ class File extends Realm.Object {
     };
 };
 
-class RealmNamedFileUsage extends Realm.Object {
+export class RealmNamedFileUsage extends Realm.Object {
     static schema = {
         name: 'RealmNamedFileUsage',
         embedded: true,
@@ -96,7 +96,7 @@ class RealmNamedFileUsage extends Realm.Object {
     };
 };
 
-class BeatmapCollection extends Realm.Object {
+export class BeatmapCollection extends Realm.Object {
     static schema = {
         name: 'BeatmapCollection',
         primaryKey: "ID",
@@ -109,7 +109,7 @@ class BeatmapCollection extends Realm.Object {
     };
 };
 
-class BeatmapSet extends Realm.Object {
+export class BeatmapSet extends Realm.Object {
     static schema = {
         name: 'BeatmapSet',
         primaryKey: 'ID',
@@ -129,7 +129,7 @@ class BeatmapSet extends Realm.Object {
     };
 };
 
-class Beatmap extends Realm.Object {
+export class Beatmap extends Realm.Object {
     static schema = {
         name: 'Beatmap',
         primaryKey: 'ID',

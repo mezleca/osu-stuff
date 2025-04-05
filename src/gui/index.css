@@ -247,6 +247,10 @@ select {
     box-sizing: border-box;
 }
 
+select > option {
+    color: white;
+}
+
 input:focus, select:focus {
     outline: none;
     border-color: var(--accent-color);
@@ -453,6 +457,10 @@ label {
 
 .popup-content > label {
     margin-bottom: 0.2em;
+}
+
+.input-only > label {
+    justify-self: center !important;
 }
 
 .popup-content-flex > label {

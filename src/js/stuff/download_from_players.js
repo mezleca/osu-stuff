@@ -285,8 +285,7 @@ export const download_from_players = async (options) => {
         const maps = get_maps();
         const current_collection = get_selected_collection(false);
 
-        if (method == "add to collections" || method == "both") {
-            
+        if (method == "add to collections" || method == "both") {      
             if (current_collection) {
                 const confirmation = await quick_confirm(`merge with ${current_collection}?`);
                 if (confirmation) {

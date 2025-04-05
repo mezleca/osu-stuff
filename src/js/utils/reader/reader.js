@@ -5,7 +5,7 @@ import { osu_db, collections_db, osdb_schema, beatmaps_schema, beatmap_status_re
 import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
-import { all_schemas, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
+import { all_schemas, BeatmapCollection, get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 
 export class Reader {
 
@@ -22,6 +22,7 @@ export class Reader {
 
     constructor() {
         this.osu = new Map();
+        this.pending_deletion = new Set();
         this.offset = 0;
         this.image_cache = new Map();
         this.beatmap_offset_start = 0;
@@ -252,9 +253,63 @@ export class Reader {
 
     write_collections_data = (p) => {
         
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
 
+            const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
             const buffer = [];
+
+            if (lazer_mode) {
+
+                if (!this.instance) {
+                    console.log("[reader] failed to get instance (cant write collection)", this.instance);
+                    return;
+                }
+
+                try {
+                    
+                    // delete pending collections
+                    for (const pending of this.pending_deletion) {
+                        this.instance.write(() => {
+                            const collection = this.instance.objectForPrimaryKey("BeatmapCollection", pending.uuid);
+                            this.instance.delete(collection);
+                        });
+                    }
+
+                    // update/create the rest
+                    for (const [name, data] of Array.from(this.collections.beatmaps)) {
+
+                        const exists = data?.uuid ? this.instance.objectForPrimaryKey("BeatmapCollection", data.uuid) : null;
+                        this.instance.write(() => {
+    
+                            if (exists == null) {
+                                
+                                const id = new Realm.BSON.UUID();
+                                this.instance.create(BeatmapCollection, {
+                                    ID: id,
+                                    Name: name,
+                                    BeatmapMD5Hashes: Array.from(data.maps) || [],
+                                    LastModified: new Date()
+                                });
+    
+                                this.collections.beatmaps.get(name).uuid = id;
+                            
+                            } else {
+                                const collection = exists;
+                                collection.Name = name;
+                                collection.BeatmapMD5Hashes = Array.from(data.maps);
+                                collection.LastModified = new Date();
+                            }
+                        });
+                    }
+
+                    return resolve(); 
+
+                } catch(err) {
+                    create_alert("failed to save collection, check logs for more info", { type: "error" });
+                    console.log("[reader] error while saving", err);
+                    return reject(err);
+                }
+            }
 
             if (!this.collections) {
                 console.log("[reader] no collections found");
@@ -284,7 +339,7 @@ export class Reader {
                 return resolve();
             }
 
-            await fs.writeFileSync(p, this.join_buffer(buffer));
+            fs.writeFileSync(p, this.join_buffer(buffer));
             resolve();
         });
     };
@@ -729,8 +784,6 @@ export class Reader {
 
                     // get collections data
                     const data = this.instance.objects("BeatmapCollection").toJSON();
-                    
-                    // @TODO: move thjis to lazer file
                     this.collections = {
                         length: data.length,
                         beatmaps: new Map(),
@@ -739,6 +792,7 @@ export class Reader {
                     for (let i = 0; i < data.length; i++) {
                         const collection = data[i];
                         this.collections.beatmaps.set(collection.Name, {
+                            uuid: collection.ID,
                             maps: new Set(collection.BeatmapMD5Hashes),
                         });
                     }
@@ -746,7 +800,7 @@ export class Reader {
                     return resolve();
                 } catch (e) {
                     this.instance = null;
-                    create_alert("error getting lazer collections<br>check logs for more info", { type: "error" });
+                    create_alert("error getting lazer collections<br>check logs for more info", { type: "error", html: true });
                     console.error(e);
                     return reject(e);
                 }
@@ -781,6 +835,40 @@ export class Reader {
             resolve(this.collections);
         });
     };
+
+    delete_collection(id) {
+
+        const lazer_mode = core.config.get("lazer_mode") && core.config.get("lazer_path");
+
+        if (lazer_mode) {
+
+            try {
+            
+                if (!this.instance) {
+                    create_alert("failed to delete collection (no instance)");
+                    return;
+                }
+
+                const collection = this.collections.beatmaps.get(id);
+
+                if (!collection?.uuid) {
+                    this.collections.beatmaps.delete(id);
+                } else {
+                    // to remove later using realm shit (need to implement this to stable collections so i can create a "undo" feature)
+                    this.pending_deletion.add(collection);
+                    this.collections.beatmaps.delete(id);
+                }
+
+                create_alert(`deleted ${id}`);
+            }
+            catch(err) {
+                create_alert("failed to delete collection<br>check logs for more info", { type: "error", html: true });
+                console.log("[reader]", err);
+            }
+        } else {
+            this.collections.beatmaps.delete(id);
+        }        
+    }
 
     /**
      * @param {beatmaps_schema} beatmap

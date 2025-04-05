@@ -42,17 +42,25 @@ export const get_selected_collection = (id) => {
     return null;
 };
 
+export const show_update_button = () => {
+    update_collection_button.style.display = "block";  
+};
+
+export const hide_update_button = () => {
+    update_collection_button.style.display = "none";  
+};
+
 export const get_sr_filter = () => {
     return manager_filters.get("manager-sr-filter");
-}
+};
 
 export const get_bpm_filter = () => {
     return manager_filters.get("manager-bpm-filter");
-}
+};
 
 export const get_status_filter = () => {
     return manager_filters.get("dropdown-status-filter");
-}
+};
 
 // @TODO: rewrite this, some functions shoudn't be initialize here
 export const lazer_mode = async (target, name) => {
@@ -105,14 +113,13 @@ const remove_beatmap = (hash) => {
     const beatmaps = core.reader.collections.beatmaps.get(name).maps;
 
     if (!beatmaps) {
-        console.log("[Manager] failed to get collection", name);
+        console.log("[manager] failed to get collection", name);
         return;
     }
 
     beatmaps.delete(hash);
 
-    // need to save
-    update_collection_button.style.display = "block";
+    show_update_button();
     document.getElementById(`bn_${hash}`).remove();
 };
 
@@ -327,6 +334,7 @@ const delete_beatmaps_manager = async () => {
 const create_empty_collection = async (name) => {
     core.reader.collections.beatmaps.set(name, { maps: [] });
     setup_manager();
+    show_update_button();
 };
 
 const create_new_collection = async () => {
@@ -423,6 +431,8 @@ const move_to = (el, md5) => {
     
     // update sr and shit
     core.reader.update_collections();
+
+    show_update_button();
 };
 
 const delete_set = (md5) => {
@@ -445,8 +455,7 @@ const delete_set = (md5) => {
         }
     }
 
-    // need to update
-    update_collection_button.style.display = "block";
+    show_update_button();
 };
 
 const open_in_browser = (beatmap) => {
@@ -690,7 +699,7 @@ export const render_page = (id, _offset) => {
     const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
-        console.log("[Manager] failed to get collection", id);
+        console.log("[manager] failed to get collection", id);
         return;
     }
 
@@ -764,26 +773,35 @@ export const merge_collections = (cl1, cl2) => {
 
 update_collection_button.addEventListener("click", async () => {
 
-    const confirm = await quick_confirm("are you sure?<br>if you click yes your collection file will be modified");
+    const lazer_mode = core.config.get("lazer_mode");
+    const confirm = await quick_confirm("are you sure?");
 
     if (!confirm) {
         return;
     }
-
+    
+    // make sure we have the correct length
     core.reader.collections.length = core.reader.collections.beatmaps.size;
-    const backup_name = `collection_backup_${Date.now()}.db`;
 
-    console.log("[Manager] updating collection:", core.reader.collections);
+    console.log("[manager] updating collection:", core.reader.collections);
 
-    const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
-          new_name = path.resolve(core.config.get("stable_path"), backup_name);
+    if (lazer_mode) {
+        // yep no backup for lazer...
+        await core.reader.write_collections_data();
+        create_alert("updated!");
+    } 
+    else {
+        const backup_name = `collection_backup_${Date.now()}.db`;
+        const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
+            new_name = path.resolve(core.config.get("stable_path"), backup_name);
 
-    await fs.renameSync(old_name, new_name);
+        fs.renameSync(old_name, new_name);
 
-    core.reader.write_collections_data(old_name);
-    create_alert("updated!");
+        await core.reader.write_collections_data(old_name);
+        create_alert("updated!");
+    }
 
-    update_collection_button.style.display = "none";
+    hide_update_button();
 });
 
 export const setup_manager = () => {
@@ -890,9 +908,7 @@ export const add_collection_manager = async (maps, collection) => {
     core.reader.collections.beatmaps.set(collection, { maps: updated_map });
 
     await initialize();
-
-    // need to save
-    update_collection_button.style.display = "block";
+    show_update_button();
 };
 
 export const initialize = async (options) => {

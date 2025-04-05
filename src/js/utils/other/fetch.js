@@ -17,7 +17,7 @@ export const osu_login = async (id, secret) => {
         const data = await response.json();
 
         if (response.status != 200) {
-            create_alert("failed to login<br>make sure your osu_id/secret is valid", { type: "error", seconds: 10 });
+            create_alert("failed to login<br>make sure your osu_id/secret is valid", { type: "error", seconds: 10, html: true });
             return null;
         }
         
@@ -66,7 +66,7 @@ export const fetch_osustats = async (collection_url) => {
     const file_data = await fetchstats(url, stats_data);
 
     if (file_data?.cookie) {
-        create_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error" });
+        create_alert("hmm, something went wrong...<br>if you're logging for the first time, try again", { type: "error", html: true });
         return;
     }
 
