@@ -226,12 +226,13 @@ button:hover {
     margin-bottom: 10px;
 }
 
-input[type="text"], input[type="password"], select {
+input[type="text"], input[type="password"], input[type="search"], select {
     padding: 10px;
     border-radius: 4px;
     font-size: 0.95em;
     transition: border-color var(--transition-delay);
     font-family: "Torus Bold";
+    transition: var(--transition-delay) all;
 }
 
 input[type="text"], input[type="password"] {
@@ -252,16 +253,11 @@ select > option {
     color: white;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, input:hover {
     outline: none;
-    border-color: var(--accent-color);
+    border-color: var(--accent-color) !important;
+    transition: var(--transition-delay) all;
 }
-
-input:focus, select:focus {
-    outline: none;
-    border-color: var(--accent-color);
-}
-
 hr {
     color: rgba(255, 255, 255, 0.164);
 }
@@ -807,10 +803,11 @@ button {
     color: white;
     font-family: "Torus Bold";
     box-shadow: 0 0 3px rgb(12, 12, 12);
-    transition: var(--transition-delay) border-color;
+    transition: var(--transition-delay) transform;
     align-self: center;
     overflow: hidden;
     margin-bottom: 10px;
+    transform: scale(1);
 }
 
 .mini-container > * {
@@ -818,9 +815,15 @@ button {
 }
 
 .mini-container:hover {
-    .bg-image { filter: brightness(50%) };
-    transition: var(--transition-delay) border-color;
-    border-color: #1976D2;
+
+    .bg-image { 
+        filter: brightness(50%);
+        transition: var(--transition-delay) all;
+    }
+
+    transition: var(--transition-delay) trasform;
+    transform: scale(1.02);
+    border: 2px solid var(--accent-color);
 }
 
 .bg-image {
@@ -830,7 +833,7 @@ button {
     width: 100%;
     height: auto;
     filter: brightness(30%);
-    transition: var(--transition-delay) filter;
+    transition: var(--transition-delay) all;
 }
 
 .bg-image-custom {
