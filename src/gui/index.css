@@ -16,6 +16,7 @@
     --blink-color: #db2a0a;
     --accent-color: #f06595;
     --accent-color2:rgb(240, 77, 134);
+    --accent-color3: #f44336;
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
     --button-color: #f2407e;
@@ -24,6 +25,7 @@
     --collections-border-color: rgb(56,56,56);
     --title-bar-height: 32px;
     --transition-delay: 0.3s;
+    --context-fade-delay: 0.15s;
 }
 
 * {
@@ -333,8 +335,7 @@ label {
     position: absolute;
     top: 8%;
     right: 10px;
-    width: 100%;
-    height: 100%;
+    width: 80%;
     pointer-events: none;
     z-index: 9999;
 }
@@ -630,8 +631,8 @@ a {
     padding-bottom: 20px;
     height: auto;
     z-index: 999;
-    background: linear-gradient(180deg, var(--bg-color), #202020e8);
-    border-bottom: 1px solid grey;
+    background-color: var(--bg-color);
+    box-shadow: 0 4px 12px var(--manager-sel-color);
 }
 
 .search-box {
@@ -641,26 +642,23 @@ a {
 }
 
 .filter-box {
+    opacity: 0;
     display: none;
+    flex-direction: column;
     height: fit-content;
     width: 100%;
-    transition: all var(--transition-delay);
+    transition: opacity var(--transition-delay) ease;
     margin-top: 10px;
 }
 
 .filter-box.enabled {
     display: flex;
-    flex-direction: column;
-    height: fit-content;
+    opacity: 1;
 }
 
 .sr-filter-container, .bpm-filter-container {
     width: 100%;
     margin-right: 10px;
-}
-
-.disabled {
-    display: none !important;
 }
 
 .collection-list {
@@ -794,12 +792,14 @@ button {
 .mini-container {
     position: relative;
     width: 95%;
-    height: 85px;
-    border-radius: 8px;
+    height: 6em;
+    border-radius: 4px;
     display: grid;
     grid-template-columns: 1fr auto;
     justify-content: center;
     padding: 8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
     color: white;
     font-family: "Torus Bold";
     box-shadow: 0 0 3px rgb(12, 12, 12);
@@ -807,7 +807,6 @@ button {
     align-self: center;
     overflow: hidden;
     margin-bottom: 10px;
-    transform: scale(1);
 }
 
 .mini-container > * {
@@ -822,7 +821,6 @@ button {
     }
 
     transition: var(--transition-delay) trasform;
-    transform: scale(1.02);
     border: 2px solid var(--accent-color);
 }
 
@@ -1485,21 +1483,37 @@ input[type="range"]::-moz-range-track {
 
 .show-filter {
     position: absolute;
-    bottom: -15px;
-    padding: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -12px;
+    width: 50px;
+    height: 24px;
     background-color: var(--content-bg);
-    background: none;
-    margin: 0;
-    border: 1px solid grey;
-    border-radius: 5px;
-    background-color: var(--content-bg);
-    transform: rotate(180deg);
-    transition: transform var(--transition-delay) ease;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px var(--bg-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.show-filter.enabled {
-    transform: rotate(360deg);
-    transition: transform var(--transition-delay) ease;
+.expand-indicator {
+    display: flex;
+    gap: 4px;
+    transition: transform 0.3s ease;
+}
+
+.dot {
+    width: 4px;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+}
+
+.show-filter:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .target-element {
@@ -1512,26 +1526,41 @@ input[type="range"]::-moz-range-track {
     border: 1px solid #ddd;
 }
 
-.context-menu {
+.context-menu, .submenu {
     position: absolute;
+    color: white;
     background-color: var(--bg-color);
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
+    border: 2px solid var(--collections-border-color);
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    transition: var(--transition-delay) color;
     min-width: 150px;
+}
+
+.context-menu {
     display: none;
     z-index: 1000;
+    animation: smooth-appear var(--context-fade-delay) forwards;
+}
+
+.context-menu.disabled {  
+    animation: smooth-disappear var(--context-fade-delay) forwards;
 }
 
 .menu-item {
-    padding: 8px 15px;
+    padding: 10px;
     cursor: pointer;
-    position: relative;
+    font-size: 0.95em;
+    display: flex;
+    justify-items: initial;
+    align-items: center;
 }
 
 .menu-item:hover {
-    background-color: var(--hover-color);
+    color: var(--accent-color);
 }
 
 .menu-item.has-submenu::after {
@@ -1542,18 +1571,11 @@ input[type="range"]::-moz-range-track {
 }
 
 .submenu {
-    position: absolute;
+    display: none;
     left: 100%;
     top: 0;
-    background-color: var(--bg-color);
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
-    min-width: 150px;
-    display: none;
     z-index: 1001;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 .input-container > input {
@@ -1596,8 +1618,8 @@ input[type="range"]::-moz-range-track {
 
 .tag-add-button {
     margin: 0;
-    background: var(--button-color);
-    transition: background 0.2s ease;
+    background: var(--accent-color3);
+    transition: var(--transition-delay) background;
 }
 
 .tag-add-button:hover {
@@ -1642,6 +1664,36 @@ input[type="range"]::-moz-range-track {
 .tag-remove:hover {
     background-color: rgba(255, 102, 170, 0.2);
 }
+
+.progress {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    background-color: var(--manager-bg-color);
+    border: 1px solid rgb(120, 120, 120, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    padding: 12px 16px;
+    z-index: 9999;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.progress.hidden {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: #eee;
+}
+
+.fade-out {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+} 
 
 @keyframes tagfade {
     from { opacity: 0; transform: translateY(5px); }

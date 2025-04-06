@@ -1,4 +1,4 @@
-import { CONTEXT_FADE_MS, safe_id, safe_text } from "../../utils/global.js";
+import { CONTEXT_FADE_MS, debounce, safe_id, safe_text } from "../../utils/global.js";
 
 const create_element = (data) => {
     return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
@@ -90,6 +90,8 @@ export const create_context_menu = (options) => {
 
         context_element.style.display = "block";
         menu.style.display = "block";
+
+        context_options.classList.remove("disabled");
     
         if (update_pos) {
 
@@ -119,10 +121,21 @@ export const create_context_menu = (options) => {
     };
 
     const close_menu = () => {
-        context_element.style.display = "none";
-        if (document.body.contains(context_element)) {
-            document.body.removeChild(context_element);
+        
+        if (!document.body.contains(context_element)) {
+            return;
         }
+        
+        if (context_element.classList.contains("disabled")) {
+            return;
+        }
+
+        context_options.classList.add("disabled");
+
+        const interval = setInterval(() => {
+            context_element.remove();
+            clearInterval(interval);
+        }, 150);
     };
 
     const close_submenus = () => {

@@ -51,7 +51,7 @@ export const create_custom_popup = async (config) => {
 export const create_alert = async (text, data) => {
 
     const options = data ? data : {...DEFAULT_ALERT_OBJECT, text: text };
-    const seconds = options?.seconds ? options.seconds : 3;
+    const seconds = 99999999; // options?.seconds ? options.seconds : 3
 
     const alert_style = ALERT_STYLES[options.type] || ALERT_STYLES["default"];
     const alert_id = crypto.randomUUID();
@@ -326,7 +326,7 @@ const create_custom_menu = async (options) => {
     
     container.appendChild(content_wrapper);
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
 
         const submit_btn = content_wrapper.querySelector("#custom_menu_submit");
         submit_btn.addEventListener("click", () => {
@@ -385,7 +385,7 @@ const create_custom_menu = async (options) => {
         content_wrapper.addEventListener("click", (e) => {
             if (e.target == content_wrapper) {
                 container.removeChild(content_wrapper);
-                reject(null);
+                resolve(null);
             }
         });
     });
