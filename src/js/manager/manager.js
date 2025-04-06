@@ -280,7 +280,7 @@ const delete_beatmaps_manager = async () => {
 
     // make sure the collection is valid
     if (!name) {
-        create_alert("failed to get current collection", { type: "error" });
+        core.progress.update("failed to get current collection", { type: "error" });
         return;
     }
 
@@ -289,7 +289,7 @@ const delete_beatmaps_manager = async () => {
     const beatmaps = new Map();
 
     if (!all_beatmaps) {
-        create_alert("failed to get collection beatmaps", { type: "error" });
+        core.progress.update("failed to get collection beatmaps", { type: "error" });
         return;
     }
 
@@ -308,7 +308,7 @@ const delete_beatmaps_manager = async () => {
     }
 
     if (beatmaps.size == 0) {
-        create_alert("no beatmaps to delete");
+        core.progress.update("no beatmaps to delete");
         return;
     }
 
@@ -412,7 +412,6 @@ more_options.addEventListener("click", async () => {
             delete_beatmaps_manager();
             break;
         default:
-            create_alert("invalid option");
             break;
     }
 });
@@ -585,7 +584,10 @@ const render_beatmap = (md5) => {
             target: beatmap_element,
             values: [
                 { type: "default", value: "open in browser", callback: () => { open_in_browser(beatmap) } },
-                { type: "default", value: "export beatmap", callback: () => { core.reader.export_beatmap(beatmap) } },
+                { type: "default", value: "export beatmap", callback: () => { 
+                    core.reader.export_beatmap(beatmap);
+                    create_alert(`exported ${beatmap.beatmap_id}`);
+                }},
                 { type: "submenu", value: "move to", values: collection_keys },
                 { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
                 { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } },
@@ -650,7 +652,7 @@ const render_beatmap = (md5) => {
         preview_button.remove();
         download_button.addEventListener("click", async () => {
 
-            create_alert("searching beatmap...");
+            core.progress.update("searching beatmap...");
 
             const beatmap_data = await download_map(md5);
 

@@ -65,6 +65,7 @@ export const create_progress = (options = {}) => {
     };
     
     const update = (message) => {
+        console.log("[progress]", message);
         progress_text.textContent = safe_text(message);
         show();
     };

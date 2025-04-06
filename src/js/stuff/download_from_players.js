@@ -37,14 +37,14 @@ const add_to_collection = async (maps, name, append) => {
         const selected_name = get_selected_collection();
 
         if (!selected_name) {
-            create_alert("huh");
+            core.progress.update("failed to get collection name");
             return;
         }
 
         const collection = core.reader.collections.beatmaps.get(selected_name);
 
         if (!collection) {
-            create_alert("failed to get collection", { type: "error" });
+            core.progress.update("failed to get collection", { type: "error" });
             return;
         }
 
@@ -52,7 +52,7 @@ const add_to_collection = async (maps, name, append) => {
         await add_collection_manager(beatmaps, selected_name);
     } else {
         await add_collection_manager(maps, name);
-        create_alert(`added ${name} to your collections!`, { type: "success" });
+        create_alert(`added ${name}!`, { type: "success" });
     }   
 };
 

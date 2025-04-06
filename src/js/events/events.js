@@ -2,6 +2,7 @@ import { tasks, blink, panels, tabs, add_tab } from "../tabs.js";
 import { create_alert, message_types, create_custom_popup } from "../popup/popup.js";
 import { download_maps, current_download } from "../utils/download_maps.js";
 import { events } from "./emitter.js";
+import { core } from "../app.js";
 
 export let queue_interval = null;
 
@@ -44,7 +45,7 @@ const start_task = (task) => {
                 panels.status.removeChild(task.tab);
             }
 
-            create_alert("download cancelled");
+            core.progress.update("download cancelled");
         });
     }
 
@@ -147,7 +148,7 @@ export const handle_event = async (data, callback, ...args) => {
         }
 
         if (queue.size != 0) {
-            create_alert("added download to queue");
+            core.progress.update("added download to queue");
         }
 
         queue.set(data.id, { 

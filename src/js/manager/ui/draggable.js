@@ -292,7 +292,7 @@ export const delete_draggable = (collection_id, id, target) => {
     reset_preview_pos();
     list.removeChild(target);
     
-    create_alert(`deleted ${collection_id}`);
+    core.progress.update(`deleted ${collection_id}`);
     show_update_button();     
 };
 
@@ -325,6 +325,33 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
     }
 
     return false;
+};
+
+export const export_all_beatmaps = async (id) => {
+    
+    const collection = core.reader.collections.beatmaps.get(id);
+    const exported = new Set();
+
+    if (collection.maps.size == 0) {
+        create_alert("no maps to export :c");
+        return;
+    }
+
+    for (const hash of collection.maps) {
+
+        const beatmap = core.reader.osu.beatmaps.get(hash);
+
+        if (!beatmap || exported.has(beatmap.beatmap_id)) {
+            continue;
+        }
+
+        core.progress.update(`exporting ${beatmap.beatmap_id}...`);
+
+        await core.reader.export_beatmap(beatmap);
+        exported.add(beatmap.beatmap_id);
+    }
+
+    create_alert(`exported all ${exported.size} beamtaps succesfully!`);
 };
 
 export const setup_draggables = () => {
@@ -477,6 +504,7 @@ export const setup_draggables = () => {
             target: draggable_item,
             values: [
                 { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
                 { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
                 { 
                     type: "submenu", 

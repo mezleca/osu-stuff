@@ -70,11 +70,12 @@ export const download_map = async (hash) => {
 export const download_maps = async (maps, id) => {
 
     if (!id) {
-        return create_alert("Missing id", { type: "error" });
+        create_alert("missing id", { type: "error" });
+        return;
     }
 
     if (!maps) {
-        create_alert("0 maps to download");
+        core.progress.update("0 maps to download");
         return;
     }
 

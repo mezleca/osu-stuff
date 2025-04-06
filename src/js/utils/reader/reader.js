@@ -830,7 +830,13 @@ export class Reader extends BinaryReader {
         const zip = new JSZip();
     
         for (let i = 0; i < files.length; i++) {
+            
             const { name, location } = files[i];
+
+            if (fs.statSync(location).isDirectory()) {
+                continue;
+            }
+
             zip.file(name, fs.readFileSync(location));
         }
     
@@ -879,7 +885,6 @@ export class Reader extends BinaryReader {
         }
 
         fs.writeFileSync(`${export_path}/${beatmap.beatmap_id}.osz`, buffer);
-        create_alert(`exported ${beatmap.beatmap_id}.osz`);
     }
 
     static get_beatmap_status(code) {
