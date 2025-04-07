@@ -2,7 +2,7 @@ import { core } from "../app.js"
 import { load_osu_files, create_element, save_config, is_lazer_mode } from "../utils/config.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
-import { download_map } from "../utils/download_maps.js"
+import { download_map } from "../utils/downloader.js"
 import { create_download_task, create_task } from "../events/events.js";
 import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
@@ -583,7 +583,7 @@ const render_beatmap = (md5) => {
             id: md5,
             target: beatmap_element,
             values: [
-                { type: "default", value: "open in browser", callback: () => { open_in_browser(beatmap) } },
+                { type: "default", value: "open on browser", callback: () => { open_in_browser(beatmap) } },
                 { type: "default", value: "export beatmap", callback: () => { 
                     core.reader.export_beatmap(beatmap);
                     create_alert(`exported ${beatmap.beatmap_id}`);

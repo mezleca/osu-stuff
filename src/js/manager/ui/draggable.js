@@ -351,7 +351,7 @@ export const export_all_beatmaps = async (id) => {
         exported.add(beatmap.beatmap_id);
     }
 
-    create_alert(`exported all ${exported.size} beamtaps succesfully!`);
+    create_alert(`exported all ${exported.size} beatmaps successfully!`);
 };
 
 export const setup_draggables = () => {

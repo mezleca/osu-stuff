@@ -238,8 +238,8 @@ input[type="text"], input[type="password"], input[type="search"], select {
 }
 
 input[type="text"], input[type="password"] {
-    background-color: #333;
-    border: 1px solid #444;
+    background-color: var(--manager-sel-color);
+    border: 1px solid #333;
     color: white;
 }
 
@@ -309,7 +309,7 @@ label {
     margin-top: 10px;
     margin-bottom: 5px;
     margin-left: 2px;
-    font-size: 1em;
+    font-size: 0.95em;
     justify-self: start;
 }
 
@@ -950,10 +950,10 @@ button {
     display: flex;
     flex-direction: row;
     width: 100%;
-    background-color: var(--popup-bg);
-    padding: 8px;
-    /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */
-    border: 1px solid rgb(255 255 255 / 0.25);
+    background-color: var(--manager-sel-color);
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #333;
     border-radius: 4px;
     justify-content: space-between;
     align-self: center;
