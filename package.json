@@ -1,7 +1,7 @@
 {
   "name": "osu-stuff",
   "productName": "osu-stuff",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "just another app to manage osu! stable collections and download beatmaps ",
   "main": "src/index.js",
   "type": "module",
@@ -22,10 +22,10 @@
     "@reforged/maker-appimage": "^5.0.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
-    "electron": "v36.0.0-beta.2",
+    "electron": "v35.1.4",
     "mini-css-extract-plugin": "^2.9.2",
     "terser-webpack-plugin": "^5.3.14",
-    "webpack": "^5.98.0",
+    "webpack": "^5.99.0",
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
