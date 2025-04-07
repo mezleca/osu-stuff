@@ -1,44 +1,44 @@
 {
-  "name": "osu-stuff",
-  "productName": "osu-stuff",
-  "version": "1.6.0",
-  "description": "just another app to manage osu! stable collections and download beatmaps ",
-  "main": "src/index.js",
-  "type": "module",
-  "scripts": {
-    "start": "webpack && electron-forge start",
-    "dev": "NODE_ENV=development electron .",
-    "package": "electron-forge package",
-    "make": "webpack && electron-forge make",
-    "make:win": "webpack && electron-forge make --platform win32",
-    "make:linux": "webpack && electron-forge make --platform linux"
-  },
-  "devDependencies": {
-    "@electron-forge/cli": "^7.8.0",
-    "@electron-forge/maker-deb": "^7.8.0",
-    "@electron-forge/maker-squirrel": "^7.8.0",
-    "@electron-forge/maker-zip": "^7.8.0",
-    "@electron/fuses": "^1.8.0",
-    "@reforged/maker-appimage": "^5.0.0",
-    "css-loader": "^7.1.2",
-    "css-minimizer-webpack-plugin": "^7.0.2",
-    "electron": "v35.1.4",
-    "mini-css-extract-plugin": "^2.9.2",
-    "terser-webpack-plugin": "^5.3.14",
-    "webpack": "^5.99.0",
-    "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {
-    "electron-squirrel-startup": "^1.0.1",
-    "jszip": "^3.10.1",
-    "realm": "^12.14.1"
-  },
-  "config": {
-    "forge": "./forge.config.js"
-  },
-  "author": {
-    "name": "rel",
-    "email": "92015390+mezleca@users.noreply.github.com"
-  },
-  "license": "MIT"
+	"name": "osu-stuff",
+	"productName": "osu-stuff",
+	"version": "1.6.0",
+	"description": "just another app to manage osu! stable collections and download beatmaps ",
+	"main": "src/index.js",
+	"type": "module",
+	"scripts": {
+		"start": "webpack && electron-forge start",
+		"dev": "NODE_ENV=development electron .",
+		"package": "electron-forge package",
+		"make": "webpack && electron-forge make",
+		"make:win": "webpack && electron-forge make --platform win32",
+		"make:linux": "webpack && electron-forge make --platform linux"
+	},
+	"devDependencies": {
+		"@electron-forge/cli": "^7.8.0",
+		"@electron-forge/maker-deb": "^7.8.0",
+		"@electron-forge/maker-squirrel": "^7.8.0",
+		"@electron-forge/maker-zip": "^7.8.0",
+		"@electron/fuses": "^1.8.0",
+		"@reforged/maker-appimage": "^5.0.0",
+		"css-loader": "^7.1.2",
+		"css-minimizer-webpack-plugin": "^7.0.2",
+		"electron": "v35.1.4",
+		"mini-css-extract-plugin": "^2.9.2",
+		"terser-webpack-plugin": "^5.3.14",
+		"webpack": "^5.99.0",
+		"webpack-cli": "^6.0.1"
+	},
+	"dependencies": {
+		"electron-squirrel-startup": "^1.0.1",
+		"jszip": "^3.10.1",
+		"realm": "^12.14.1"
+	},
+	"config": {
+		"forge": "./forge.config.js"
+	},
+	"author": {
+		"name": "rel",
+		"email": "92015390+mezleca@users.noreply.github.com"
+	},
+	"license": "MIT"
 }
