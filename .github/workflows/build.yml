@@ -54,7 +54,7 @@ jobs:
   create-release:
     needs:
       - build-linux
-      - build-windows
+      # - build-windows
     runs-on: ubuntu-latest
     steps:
       - name: download artifacts
@@ -65,6 +65,6 @@ jobs:
         uses: softprops/gh-action-release@v1
         with:
           draft: true
+          # artifacts/windows-build/*
           files: |
             artifacts/linux-build/*
-            artifacts/windows-build/*
