@@ -1,3 +1,7 @@
+# build process thing
+# TODO: enable windows
+# TODO: a way to generate the release information so i can remove the draft
+
 name: build osu-stuff
 
 on:
@@ -9,12 +13,13 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout code
+      - name: checkout
         uses: actions/checkout@v4
-      - name: set up Node.js
+      - name: nodejs setup
         uses: actions/setup-node@v2
         with:
           node-version: 20
+      # prob not needed
       - name: install system dependencies
         run: |
           sudo apt-get update
@@ -30,14 +35,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: out/*
-
+          path: |
+            out/make/AppImage/x64/*.AppImage
+            out/make/deb/x64/*.deb
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: checkout code
+      - name: checkout
         uses: actions/checkout@v4
-      - name: set up Node.js
+      - name: nodejs setup
         uses: actions/setup-node@v2
         with:
           node-version: 20
@@ -49,22 +55,25 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: out/*
-
+          path: |
+            out/make/squirrel.windows/*.exe
   create-release:
-    needs:
+    needs: 
       - build-linux
-      # - build-windows
+   #  - build-windows
     runs-on: ubuntu-latest
     steps:
-      - name: download artifacts
+      - name: download
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-      - name: create draft
+          name: linux-build
+          path: artifacts/linux-build
+      - name: create draft release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          # artifacts/windows-build/*
+          # ./artifacts/linux-build/squirrel.windows/x64/*.exe
           files: |
-            artifacts/linux-build/*
+            ./artifacts/linux-build/AppImage/x64/*.AppImage
+            ./artifacts/linux-build/deb/x64/*.deb
+          token: ${{ secrets.GITHUB_TOKEN }}
