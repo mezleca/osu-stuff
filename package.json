@@ -6,6 +6,9 @@
 	"main": "src/index.js",
 	"type": "module",
 	"license": "MIT",
+	"repository": {
+		"url": "https://github.com/mezleca/osu-stuff"
+	},
 	"scripts": {
 		"start": "webpack && electron .",
 		"dev": "cross-env NODE_ENV=development electron .",
