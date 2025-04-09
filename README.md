@@ -58,11 +58,11 @@ cd osu-stuff
 npm install
 
 # build it for your platform
-npm run make
+npm run build
 
 # or build for a specific platform
-npm run make:win    # windows
-npm run make:linux  # linux
+npm run build:win    # windows
+npm run build:linux  # linux
 
 # binaries folder: /dist/...
 
