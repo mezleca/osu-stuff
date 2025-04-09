@@ -1,6 +1,6 @@
-# build process thing
-# TODO: enable windows
+
 # TODO: a way to generate the release information so i can remove the draft
+
 
 name: build osu-stuff
 
@@ -8,6 +8,7 @@ on:
   create:
     tags:
       - 'v*'
+
 
 jobs:
   build-linux:
@@ -36,8 +37,9 @@ jobs:
         with:
           name: linux-build
           path: |
-            out/make/AppImage/x64/*.AppImage
-            out/make/deb/x64/*.deb
+            dist/*.AppImage
+            dist/*.deb
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -56,11 +58,12 @@ jobs:
         with:
           name: windows-build
           path: |
-            out/make/squirrel.windows/*.exe
+            dist/*.exe
+            
   create-release:
     needs: 
       - build-linux
-   #  - build-windows
+      - build-windows
     runs-on: ubuntu-latest
     steps:
       - name: download
@@ -72,8 +75,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          # ./artifacts/linux-build/squirrel.windows/x64/*.exe
           files: |
-            ./artifacts/linux-build/AppImage/x64/*.AppImage
-            ./artifacts/linux-build/deb/x64/*.deb
+            ./artifacts/linux-build/*.AppImage
+            ./artifacts/linux-build/*.deb
+            ./artifacts/linux-build/*.exe
           token: ${{ secrets.GITHUB_TOKEN }}

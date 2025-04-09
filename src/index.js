@@ -1,26 +1,24 @@
-import fs from "fs";
 import path from "path";
-import squirrel_startup from 'electron-squirrel-startup';
 
 import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu, protocol } from "electron";
-import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 /** @type {BrowserWindow} */
 let main_window = null;
 
-if (squirrel_startup) {
-    app.quit();
-}
-
 Menu.setApplicationMenu(null);
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dev_mode = process.env.NODE_ENV == "development";
 
 const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
 const max_w = 1366, max_h = 900;
+
+if (process.argv[1] && ["--squirrel-install", "--squirrel-updated", "--squirrel-uninstall"].includes(process.argv[1])) {
+    console.log("[osu-stuff] detected squirrel thingy");
+    app.quit();
+}
 
 export const create_dialog = async (options = {}) => {
     try {

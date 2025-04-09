@@ -2,43 +2,84 @@
 	"name": "osu-stuff",
 	"productName": "osu-stuff",
 	"version": "1.6.0",
-	"description": "just another app to manage osu! stable collections and download beatmaps ",
+	"description": "yet another collection manager",
 	"main": "src/index.js",
 	"type": "module",
+	"license": "MIT",
 	"scripts": {
-		"start": "webpack && electron-forge start",
-		"dev": "NODE_ENV=development electron .",
-		"package": "electron-forge package",
-		"make": "webpack && electron-forge make",
-		"make:win": "webpack && electron-forge make --platform win32",
-		"make:linux": "webpack && electron-forge make --platform linux"
+		"start": "webpack && electron .",
+		"dev": "cross-env NODE_ENV=development electron .",
+		"build": "webpack && electron-builder build",
+		"build:win": "webpack && electron-builder build --win",
+		"build:linux": "webpack && electron-builder build --linux",
+		"build:mac": "webpack && electron-builder build --mac"
+	},
+	"author": {
+		"name": "rel",
+		"email": "92015390+mezleca@users.noreply.github.com"
 	},
 	"devDependencies": {
-		"@electron-forge/cli": "^7.8.0",
-		"@electron-forge/maker-deb": "^7.8.0",
-		"@electron-forge/maker-squirrel": "^7.8.0",
-		"@electron-forge/maker-zip": "^7.8.0",
-		"@electron/fuses": "^1.8.0",
-		"@reforged/maker-appimage": "^5.0.0",
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
 		"electron": "v35.1.4",
+		"electron-builder": "^24.6.4",
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
 		"webpack": "^5.99.0",
 		"webpack-cli": "^6.0.1"
 	},
 	"dependencies": {
-		"electron-squirrel-startup": "^1.0.1",
+		"cross-env": "^7.0.3",
 		"jszip": "^3.10.1",
 		"realm": "^12.14.1"
 	},
-	"config": {
-		"forge": "./forge.config.js"
-	},
-	"author": {
-		"name": "rel",
-		"email": "92015390+mezleca@users.noreply.github.com"
-	},
-	"license": "MIT"
+	"build": {
+		"appId": "com.osustuff.app",
+		"productName": "osu-stuff",
+		"executableName": "osu-stuff",
+		"asar": true,
+		"files": [
+			"src/index.js",
+			"package.json",
+			"node_modules/**/*",
+			"!node_modules/.bin/**/*",
+			"!node_modules/realm/prebuilds/android-*/**/*",
+			"!node_modules/realm/prebuilds/apple-*/**/*"
+		],
+		"directories": {
+			"buildResources": "build",
+			"output": "dist"
+		},
+		"extraResources": [
+			{
+				"from": "build/icons",
+				"to": "icons"
+			}
+		],
+		"win": {
+			"icon": "build/icons/win/icon.ico",
+			"target": [
+				{
+					"target": "nsis",
+					"arch": ["x64"]
+				}
+			]
+		},
+		"nsis": {
+			"oneClick": true,
+			"perMachine": true,
+			"installerIcon": "build/icons/win/icon.ico",
+			"uninstallerIcon": "build/icons/win/icon.ico",
+			"artifactName": "osu-stuff-${version}.exe"
+		},
+		"mac": {
+			"icon": "build/icons/mac/icon.icns",
+			"target": ["zip", "dmg"]
+		},
+		"linux": {
+			"icon": "build/icons/png",
+			"target": ["deb", "AppImage"],
+			"category": "Utility"
+		}
+	}
 }
