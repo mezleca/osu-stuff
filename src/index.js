@@ -192,7 +192,7 @@ const createWindow = () => {
             const link = document.createElement("link");
             const ext = ${dev_mode ? '".css"' : '".min.css"'};
             console.log(file.substr(0, file.lastIndexOf(".")) + ext);
-            link.href = ${dev_mode ? '"./"' : '"../dist/"'} + file.substr(0, file.lastIndexOf(".")) + ext;
+            link.href = ${dev_mode ? '"./index.css"' : '"../dist/index.min.css"'};
             link.type = "text/css";
             link.rel = "stylesheet";
             link.media = "screen,print";

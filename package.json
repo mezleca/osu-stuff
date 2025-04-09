@@ -43,8 +43,8 @@
 		"asar": true,
 		"files": [
 			"src/index.js",
-			"src/dist/index.bundle.js",
-			"src/dist/index.min.css",
+			"src/gui/index.html",
+			"src/dist/**",
 			"package.json",
 			"node_modules/**/*",
 			"!node_modules/.bin/**/*",
