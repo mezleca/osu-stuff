@@ -8,9 +8,9 @@
 </p>
 
 ## wtf is osu-stuff
-collection manager app with a bunch of features like:
-- lazer and stable support
-- download collections from osu!collector / osustats
+a very simple a useful app that gives you the freedom to:
+- manage your lazer / stable collections
+- get collection from osu!Collector or osu stats
 - create collections from player's top 100, first place and shit like that
 - merge collections
 - get missing beatmaps from collections
@@ -24,10 +24,11 @@ collection manager app with a bunch of features like:
 - **current app version (v1.6)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## linux dependencies
-### ubuntu
+### debian/ubuntu
 ```bash
 sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
 ```
+
 ### arch
 ```bash
 sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
@@ -41,7 +42,7 @@ if you find bugs, crashes, or anything weird:
 - hit `F12` to open devtools and grab the logs  
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
 
-## how can i build this thing?
+## how can i manually build/test it?
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
@@ -49,15 +50,12 @@ if you find bugs, crashes, or anything weird:
 
 ### steps
 ```bash
-# clone repo
+# clone repo using your terminal
 git clone https://github.com/mezleca/osu-stuff.git
 
-# install dependencies
+# install all dependencies
 cd osu-stuff
-npm install && npm install -g electron-builder
-
-# run the app
-npm start
+npm install
 
 # build it for your platform
 npm run make
@@ -65,6 +63,17 @@ npm run make
 # or build for a specific platform
 npm run make:win    # windows
 npm run make:linux  # linux
+
+# binaries folder: /dist/...
+
+# in case you wanna run instead of building it:
+
+# (minified mode/all features)
+npm start
+
+# (not minified/limited features)
+nem run dev
+
 ```
 
 ## big thanks to
