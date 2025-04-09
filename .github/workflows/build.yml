@@ -70,7 +70,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build
-          path: artifacts/linux-build
+          path: artifacts/build
       - name: create draft release
         uses: softprops/action-gh-release@v2
         with:
