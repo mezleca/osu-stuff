@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const windows_default_path = path.resolve(os.homedir(), "..", "Local", "osu!");
+const windows_default_path = path.resolve(os.homedir(), "AppData", "Local", "osu!");
 
 export const get_og_path = () => {
     switch (process.platform) {
