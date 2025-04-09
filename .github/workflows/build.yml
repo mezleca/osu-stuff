@@ -31,7 +31,7 @@ jobs:
       - name: install dependencies
         run: npm install
       - name: build
-        run: npm run make
+        run: npm run build
       - name: upload
         uses: actions/upload-artifact@v4
         with:
@@ -52,14 +52,14 @@ jobs:
       - name: install dependencies
         run: npm install
       - name: build app
-        run: npm run make
+        run: npm run build
       - name: upload
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: |
             dist/*.exe
-            
+
   create-release:
     needs: 
       - build-linux
