@@ -8,7 +8,7 @@
 </p>
 
 ## wtf is osu-stuff
-a very simple a useful app that gives you the freedom to:
+a very simple and useful app that gives you the freedom to:
 - manage your lazer / stable collections
 - get collection from osu!Collector or osu stats
 - create collections from player's top 100, first place and shit like that
