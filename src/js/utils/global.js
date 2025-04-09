@@ -4,6 +4,7 @@ export const zlib = require('zlib');
 export const is_testing = process.env.NODE_ENV == "development";
 export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
+export const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
 export const MAX_RENDER_AMMOUNT = 16;
 export const DRAG_ACTIVATION_THRESHOLD_MS = 500;
 export const CONTEXT_FADE_MS = 50;

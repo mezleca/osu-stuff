@@ -15,16 +15,16 @@ const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
 const max_w = 1366, max_h = 900;
 
-if (process.argv[1] && ["--squirrel-install", "--squirrel-updated", "--squirrel-uninstall"].includes(process.argv[1])) {
-    console.log("[osu-stuff] detected squirrel thingy");
+const squirrel_params = ["--squirrel-install", "--squirrel-updated", "--squirrel-uninstall"];
+
+// quit if we are installing or updating it
+if (process.argv[1] && squirrel_params.includes(process.argv[1])) {
     app.quit();
 }
 
 export const create_dialog = async (options = {}) => {
     try {
-        return await dialog.showOpenDialog(main_window, {
-            ...options
-        });
+        return await dialog.showOpenDialog(main_window, { ...options });
     } catch (error) {
         console.error('failed to create dialog:', error);
         return { canceled: true };
@@ -72,7 +72,7 @@ const create_auth_window = (url, end) => {
             nodeIntegration: false,
             contextIsolation: true,
             enableRemoteModule: true,
-            webSecurity: false
+            webSecurity: true
         }
     });
   

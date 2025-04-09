@@ -273,7 +273,7 @@ export class Reader extends BinaryReader {
                 if (file_version >= 7) {
 
                     const compressed_data = this.buffer.buffer.slice(this.offset);
-                    const decompressed_data = zlib.gunzip(compressed_data);
+                    const decompressed_data = zlib.gunzipSync(compressed_data);
                     
                     this.set_buffer(decompressed_data);
                     this.offset = 0;
