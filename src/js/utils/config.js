@@ -306,7 +306,6 @@ export const initialize_config = async () => {
                 type="${is_file ? "text" : option.type}" 
                 name="${option.text}" id="${option.text}" 
                 ${is_checkbox && value ? `checked` : `value=${value}`} 
-                ${is_file ? "readonly" : ""}
             >
         `);
 
@@ -322,11 +321,10 @@ export const initialize_config = async () => {
             option_container.appendChild(input_element);
         }
 
-        const input = option_container.querySelector("input");    
-
         if (is_file) {
 
-            input.addEventListener("click", async () => {
+            input_element.setAttribute("readonly", true);
+            input_element.addEventListener("click", async () => {
 
                 const options = { title: text, properties: ["openDirectory"] };
 
@@ -340,18 +338,18 @@ export const initialize_config = async () => {
                 if (!dialog.canceled) {
                     console.log("[config] saving file:", dialog.filePaths[0]);
                     await save_config(option.text, dialog.filePaths[0]);
-                    input.value = dialog.filePaths[0];
+                    input_element.value = dialog.filePaths[0];
                 }
             });
         }
 
         if (is_checkbox) {
 
-            input.addEventListener("click", () => {
+            input_element.addEventListener("click", () => {
                 if (option?.callback) {
-                    option.callback(input, option.text);
+                    option.callback(input_element, option.text);
                 } else {
-                    save_config(option.text, input.checked);
+                    save_config(option.text, iinput_element.checked);
                 }
             });
         }
