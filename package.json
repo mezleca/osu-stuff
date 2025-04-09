@@ -62,7 +62,7 @@
 			}
 		],
 		"win": {
-			"icon": "build/icons/win/icon.ico",
+			"icon": "build/icons/win/",
 			"target": [
 				{
 					"target": "nsis",
@@ -78,7 +78,7 @@
 			"artifactName": "osu-stuff-${version}.exe"
 		},
 		"mac": {
-			"icon": "build/icons/mac/icon.icns",
+			"icon": "build/icons/mac/",
 			"target": ["zip", "dmg"]
 		},
 		"linux": {
