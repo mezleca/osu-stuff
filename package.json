@@ -61,15 +61,6 @@
 				"to": "icons"
 			}
 		],
-		"win": {
-			"icon": "build/icons/win/",
-			"target": [
-				{
-					"target": "nsis",
-					"arch": ["x64"]
-				}
-			]
-		},
 		"nsis": {
 			"oneClick": true,
 			"perMachine": true,
@@ -77,8 +68,17 @@
 			"uninstallerIcon": "build/icons/win/icon.ico",
 			"artifactName": "osu-stuff-${version}.exe"
 		},
+		"win": {
+			"icon": "build/icons/win/icon.ico",
+			"target": [
+				{
+					"target": "nsis",
+					"arch": ["x64"]
+				}
+			]
+		},
 		"mac": {
-			"icon": "build/icons/mac/",
+			"icon": "build/icons/mac",
 			"target": ["zip", "dmg"]
 		},
 		"linux": {
