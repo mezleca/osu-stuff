@@ -17,6 +17,7 @@
     --accent-color: #f06595;
     --accent-color2:rgb(240, 77, 134);
     --accent-color3: #f44336;
+    --accent-hover-color: #f37da6af;
     --hover-color: #2b2b2b;
     --input-bg: #3d3d3d;
     --button-color: #f2407e;
@@ -626,9 +627,7 @@ a {
     gap: 8px;
     align-items: center;
     justify-content: center;
-    padding: 10px;
-    padding-top: 10px;
-    padding-bottom: 20px;
+    padding: 10px 10px 20px;
     height: auto;
     z-index: 999;
     background-color: var(--bg-color);
@@ -797,9 +796,7 @@ button {
     display: grid;
     grid-template-columns: 1fr auto;
     justify-content: center;
-    padding: 8px;
-    padding-top: 0px;
-    padding-bottom: 0px;
+    padding: 8px 8px 0;
     color: white;
     font-family: "Torus Bold";
     box-shadow: 0 0 3px rgb(12, 12, 12);
@@ -1429,8 +1426,7 @@ input[type="range"]::-moz-range-track {
     border: 1px solid #444;
     z-index: 20;
     margin-top: 5px;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 5px;
     border-radius: 4px;
 }
 
@@ -1446,6 +1442,10 @@ input[type="range"]::-moz-range-track {
     border-radius: 4px;
     margin-bottom: 5px;
     transition: var(--transition-delay) background-color;
+}
+
+.dropdown-item:hover {
+    background-color: var(--accent-hover-color); 
 }
 
 .dropdown-item > label {

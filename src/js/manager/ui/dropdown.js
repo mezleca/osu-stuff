@@ -130,7 +130,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
         }
 
         // update header text
-        header_text.textContent = Array.from(self.selected).join(", ") || options.name;
+        header_text.textContent = Array.from(self.selected).filter((v) => v != "all").join(", ") || options.name;
 
         // execute callback
         if (self.callback) {
