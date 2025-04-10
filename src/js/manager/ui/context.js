@@ -1,8 +1,4 @@
-import { CONTEXT_FADE_MS, debounce, safe_id, safe_text } from "../../utils/global.js";
-
-const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
-};
+import { CONTEXT_FADE_MS, safe_id, safe_text, create_element } from "../../utils/global.js";
 
 const generate_context = (options) => {
 

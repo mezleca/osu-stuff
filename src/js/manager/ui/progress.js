@@ -1,9 +1,5 @@
 
-import { safe_text } from "../../utils/global.js";
-
-const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
-};
+import { safe_text, create_element } from "../../utils/global.js";
 
 export const create_progress = (options = {}) => {
     

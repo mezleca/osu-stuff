@@ -2,7 +2,7 @@
 import { core } from "../../app.js";
 import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button } from "../manager.js";
-import { create_element } from "../../utils/config.js";
+import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context_menu } from "./context.js";
 
@@ -10,7 +10,6 @@ export const draggable_items_map = new Map();
 
 const draggable_item_bin = document.querySelector(".draggable_item_bin");
 const list = document.querySelector(".list_draggable_items");
-const update_collection_button = document.querySelector(".update_collection");
 const collection_container = document.querySelector(".collection-container");
 const list_container = document.querySelector(".list_container");
 

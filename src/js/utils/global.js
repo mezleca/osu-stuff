@@ -47,6 +47,10 @@ export const safe_id = (id) => {
     return String(id).replace(/[^\w-]/g, '');
 };
 
+export const create_element = (data) => {
+    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
+};
+
 export const debounce = (func, delay) => {
 
     let timeout;

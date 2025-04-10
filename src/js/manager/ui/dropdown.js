@@ -1,8 +1,4 @@
-import { safe_id } from "../../utils/global.js";
-
-const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
-};
+import { safe_id, create_element } from "../../utils/global.js";
 
 export const create_dropdown = (options = { id: "a", name: "dropdown", values: ["abc", "fgh", "qre"]}) => {
 

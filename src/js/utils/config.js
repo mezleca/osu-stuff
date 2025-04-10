@@ -48,7 +48,7 @@ export const save_config = async (key, value) => {
     core.config.set(key, value);
 };
 
-export const create_element = (html_string) => {
+const create_element = (html_string) => {
     return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
 };
 

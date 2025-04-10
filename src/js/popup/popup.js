@@ -1,7 +1,7 @@
-import { create_range_filter, create_tag_filter } from "../manager/ui/filter.js";
+import { create_tag } from "../manager/ui/tag.js";
 import { create_dropdown } from "../manager/ui/dropdown.js";
-import { create_element } from "../utils/config.js";
-import { safe_id, safe_text } from "../utils/global.js";
+import { create_range } from "../manager/ui/range.js";
+import { safe_id, safe_text, create_element } from "../utils/global.js";
 import { open_url } from "../utils/other/process.js";
 
 const alerts = new Map();
@@ -286,16 +286,18 @@ const create_custom_menu = async (options) => {
                 const iden = props.identifier || "";
                 const fix = props.decimal_places || 2;
                 const initial = props.max || 100;
-                const range = create_range_filter(`${safe_key}_range`, label, iden, fix, initial);
+                const range = create_range({id: `${safe_key}_range`, text: label, iden: iden, fix: fix, initial: initial});
                 filters[safe_key] = range;
                 elements_container.appendChild(range.element);
                 break;
 
             case 'tag':
-                const placeholder = props.placeholder || "name";
-                const show_add = props.show_add || false;
-                const limit = props.limit || 4;
-                const tag = create_tag_filter(`${safe_key}_tag`, safe_key, placeholder, show_add, limit);
+                const tag = create_tag({ 
+                    id: `${safe_key}_tag`, 
+                    name: safe_key, 
+                    placeholder: props.placeholder || "name", 
+                    add_button: props.show_add || false, limit: props.limit || 4 
+                });
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;

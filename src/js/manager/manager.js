@@ -1,5 +1,6 @@
 import { core } from "../app.js"
-import { load_osu_files, create_element, save_config, is_lazer_mode } from "../utils/config.js"
+import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js"
+import { create_element } from "../utils/global.js"
 import { setup_collector } from "../stuff/collector.js"
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
 import { download_map } from "../utils/downloader.js"
@@ -10,7 +11,8 @@ import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { create_dropdown } from "./ui/dropdown.js"
-import { create_range_filter, filter_beatmap } from "./ui/filter.js";
+import { filter_beatmap } from "./tools/filter.js";
+import { create_range } from "./ui/range.js"
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
@@ -824,8 +826,8 @@ export const setup_manager = () => {
     collection_container.removeAttribute("data-id");
 
     if (manager_filters.size == 0) {
-        manager_filters.set("manager-bpm-filter", create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500));
-        manager_filters.set("manager-sr-filter", create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10));
+        manager_filters.set("manager-bpm-filter", create_range({ id: "manager-bpm-filter", text: "bpm range", iden: "", fix: 0, initial: 500 }));
+        manager_filters.set("manager-sr-filter", create_range({ id: "manager-sr-filter", text: "difficulty range", iden: "★", fix: 2, initial: 10 }));
         manager_filters.set("dropdown-status-filter", create_dropdown({ id: "dropdown-status-filter", name: "status", values: Object.keys(Reader.get_status_object()) }));
     }
 

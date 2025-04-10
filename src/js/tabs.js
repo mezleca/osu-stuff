@@ -1,5 +1,5 @@
 import { create_alert } from "./popup/popup.js";
-import { safe_text } from "./utils/global.js";
+import { safe_text, create_element } from "./utils/global.js";
 import { close_window, maximize_window, minimize_window } from "./utils/other/process.js";
 
 export const tasks = new Map();
@@ -42,10 +42,6 @@ export const blink = (tab) => {
         tab.style = "";
         tab.removeEventListener("click", () => {});
     });
-};
-
-const create_element = (html_string) => {
-    return new DOMParser().parseFromString(html_string, "text/html").body.firstElementChild;
 };
 
 export const add_tab = (_id) => {
