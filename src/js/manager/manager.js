@@ -9,7 +9,8 @@ import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
-import { create_dropdown_filter, create_range_filter, filter_beatmap } from "./ui/filter.js";
+import { create_dropdown } from "./ui/dropdown.js"
+import { create_range_filter, filter_beatmap } from "./ui/filter.js";
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
@@ -84,8 +85,6 @@ export const lazer_mode = async (target, name) => {
     // update collections so we get the bpm min/max, etc..
     core.reader.update_collections();
 
-    // @TODO: need to render status on click instead of creating and setting display to none
-    // this way i can get update status values without needing to remove and re-add the status filter
     update_status_filter();
     setup_manager();
 
@@ -173,17 +172,21 @@ const get_from_player = async () => {
         ]
     });
 
-    if (method.players.size == 0) {
+    if (method == null) {
+        return;
+    }
+
+    if (method?.players.size == 0) {
         create_alert("uhhh you need at least 1 player bro", { type: "warning" });
         return;
     }
 
-    if (method.beatmap_options.size == 0) {
+    if (method?.beatmap_options.size == 0) {
         create_alert("select at least one beatmap option", { type: "warning" });
         return;
     }
 
-    if (method.beatmap_status.size == 0) {
+    if (method?.beatmap_status.size == 0) {
         method.beatmap_status.add("all");        
     }
 
@@ -823,7 +826,7 @@ export const setup_manager = () => {
     if (manager_filters.size == 0) {
         manager_filters.set("manager-bpm-filter", create_range_filter("manager-bpm-filter", "bpm range", "", 0, 500));
         manager_filters.set("manager-sr-filter", create_range_filter("manager-sr-filter", "difficulty range", "★", 2, 10));
-        manager_filters.set("dropdown-status-filter", create_dropdown_filter("dropdown-status-filter", "status", Object.keys(Reader.get_status_object())));
+        manager_filters.set("dropdown-status-filter", create_dropdown({ id: "dropdown-status-filter", name: "status", values: Object.keys(Reader.get_status_object()) }));
     }
 
     // clean draggable_items list
@@ -847,6 +850,8 @@ export const setup_manager = () => {
 
         const update = () => {
 
+            console.log("executing callback");
+
             const current_id = get_selected_collection(true);
 
             if (!current_id) {
@@ -859,9 +864,8 @@ export const setup_manager = () => {
         }
 
         // update maps on filter update
-
+        status_filter.set_callback(debounce(update, 100));
         sr_filter.callback = debounce(update, 100);
-        status_filter.callback = debounce(update, 100);
         bpm_filter.callback = debounce(update, 100);
 
         status_filter_container.appendChild(status_filter.element);
@@ -890,23 +894,9 @@ const update_map_info = (map) => {
     return null;
 };
  
-// hack cuz theres no way to currently update the beatmap status list
 export const update_status_filter = () => {
-    
-    const { callback, element, id, name } = get_status_filter();
-
-    // remove the status from the DOM and create a new one using the old callback
-    const container = element.parentNode;
-    element.remove();
-
-    const status_filter = create_dropdown_filter(id, name, Object.keys(Reader.get_status_object()));
-    status_filter.callback = callback;
-    
-    // update the status filter
-    manager_filters.delete("dropdown-status-filter");
-    manager_filters.set("dropdown-status-filter", status_filter);
-
-    container.appendChild(status_filter.element);
+    const filter = get_status_filter();
+    filter.create(Object.keys(Reader.get_status_object()));
 };
 
 export const add_collection_manager = async (maps, collection) => {

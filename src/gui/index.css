@@ -1414,6 +1414,9 @@ input[type="range"]::-moz-range-track {
 
 .dropdown-label {
     font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .dropdown-content {

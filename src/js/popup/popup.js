@@ -1,4 +1,5 @@
-import { create_dropdown_filter, create_range_filter, create_tag_filter } from "../manager/ui/filter.js";
+import { create_range_filter, create_tag_filter } from "../manager/ui/filter.js";
+import { create_dropdown } from "../manager/ui/dropdown.js";
 import { create_element } from "../utils/config.js";
 import { safe_id, safe_text } from "../utils/global.js";
 import { open_url } from "../utils/other/process.js";
@@ -264,7 +265,7 @@ const create_custom_menu = async (options) => {
             case 'list':
                 const is_multiple = element[type]?.multiple == true;     
                 if (is_multiple) {
-                    const dropdown = create_dropdown_filter(`${safe_key}_dropdown`, label, props);
+                    const dropdown = create_dropdown({ id: `${safe_key}_dropdown`, name: label, values: props});
                     filters[safe_key] = dropdown;
                     elements_container.appendChild(dropdown.element);
                 } else {
