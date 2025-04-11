@@ -462,27 +462,30 @@ const create_beatmap_card = (md5) => {
     const beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
     const beatmap_html = `
-        <div class="mini-container">
+        <div class="beatmap-card">
             <img class="bg-image">
-            <div class="beatmap_metadata">
-                <div class="title">placeholder</div>
-                <div class="subtitle">placeholder</div>
-                <div class="beatmap_thing_status">
-                    <div class="beatmap_status">UNKNOWN</div>
-                    <div class="beatmap_status star_fucking_rate">★ 0.00</div>
+            <div class="beatmap-card-data">
+                <div class="beatmap-metadata">
+                    <div class="title">placeholder</div>
+                    <div class="subtitle">placeholder</div>
+                    <div class="beatmap-card-status">
+                        <div class="beatmap-status">UNKNOWN</div>
+                        <div class="beatmap-status star_fucking_rate">★ 0.00</div>
+                    </div>
+                </div>
+                <div class="beatmap-status-control">
+                    <button class="preview-button">
+                        <i class="bi bi-play-fill"></i>
+                    </button>      
+                    <button class="download-button">
+                        <i class="bi bi-download"></i>
+                    </button>
+                    <button class="remove-btn">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
                 </div>
             </div>
-            <div class="beatmap_controls">
-                <button class="preview-button">
-                    <i class="bi bi-play-fill"></i>
-                </button>      
-                <button class="download-button">
-                    <i class="bi bi-download"></i>
-                </button>
-                <button class="remove-btn">
-                    <i class="bi bi-trash-fill"></i>
-                </button>
-            </div>
+
         </div>
     `;
 
@@ -492,7 +495,7 @@ const create_beatmap_card = (md5) => {
     const subtitle = beatmap_element.querySelector('.subtitle')
     const download_button = beatmap_element.querySelector(".download-button");
     const beatmap_bg = beatmap_element.querySelector(".bg-image");
-    const beatmap_status = beatmap_element.querySelector(".beatmap_thing_status").children[0];
+    const beatmap_status = beatmap_element.querySelector(".beatmap-card-status").children[0];
     const remove_button = beatmap_element.querySelector(".remove-btn");
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");

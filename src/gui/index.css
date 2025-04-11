@@ -734,13 +734,11 @@ a {
     height: 100%;
     max-height: 100%;
     overflow-y: scroll;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding: 10px;
 }
 
 .collection-container::-webkit-scrollbar {
     display: block !important;
-    width: 5px;
 }
 
 .collection-actions {
@@ -819,15 +817,12 @@ button {
     margin-bottom: 10px;
 }
 
-.mini-container {
+.beatmap-card {
     position: relative;
-    width: 95%;
+    width: 100%;
     min-height: 6em;
     border-radius: 4px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    justify-content: center;
-    padding: 8px 8px 0;
+    padding: 2px 8px 2px;
     color: white;
     font-family: "Torus Bold";
     box-shadow: 0 0 3px rgb(12, 12, 12);
@@ -837,11 +832,11 @@ button {
     margin-bottom: 10px;
 }
 
-.mini-container > * {
+.beatmap-card > * {
     font-family: "Torus Bold";
 }
 
-.mini-container:hover {
+.beatmap-card:hover {
 
     .bg-image { 
         filter: brightness(50%);
@@ -1228,7 +1223,7 @@ button {
     transition: var(--transition-delay) color;
 }
 
-.beatmap_status {
+.beatmap-status {
     font-family: "Torus Bold";
     background-color: #545454;
     color: white;
@@ -1244,58 +1239,64 @@ button {
     margin-right: 5px;
 }
 
-.beatmap_status.ranked {
+.beatmap-status.ranked {
     background-color: #6bfb70;
 }
 
-.beatmap_status.pending {
+.beatmap-status.pending {
     background-color: rgb(233, 227, 67);
 }
 
-.beatmap_status.qualified {
+.beatmap-status.qualified {
     background-color: rgb(67, 181, 233);
 }
 
-.beatmap_status.loved {
+.beatmap-status.loved {
     background-color: rgb(228, 67, 233);
 }
 
-.beatmap_status.sr1 {
+.beatmap-status.sr1 {
     background-color: #3eb5e1;
 }
 
-.beatmap_status.sr2 {
+.beatmap-status.sr2 {
     background-color: #c0e13e;
 }
 
-.beatmap_status.sr3 {
+.beatmap-status.sr3 {
     background-color: #d03163;
 }
 
-.beatmap_status.sr4 {
+.beatmap-status.sr4 {
     background-color: #5c18b0;
 }
 
-.beatmap_status.sr5 {
+.beatmap-status.sr5 {
     background-color: #011275;
 }
 
-.beatmap_status.sr6 {
+.beatmap-status.sr6 {
     background-color: #222222;
 }
 
-.beatmap_metadata, .beatmap_controls {
+.beatmap-card-data {
+    display: flex;
+    height: 100%;
+}
+
+.beatmap-metadata, .beatmap-status-control {
     display: flex;
     z-index: 99;
     justify-content: center;
 }
 
-.beatmap_metadata {
+.beatmap-metadata {
     flex-direction: column;
     overflow: hidden;
+    width: 90%;
 }
 
-.beatmap_thing_status {
+.beatmap-card-status {
     display: flex;
 }
 
