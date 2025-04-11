@@ -24,17 +24,17 @@
 	"devDependencies": {
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
-		"electron": "v35.1.4",
-		"electron-builder": "^24.6.4",
+		"electron": "35.1.5",
+		"electron-builder": "^26.0.12",
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
-		"webpack": "^5.99.0",
+		"webpack": "^5.99.5",
 		"webpack-cli": "^6.0.1"
 	},
 	"dependencies": {
 		"cross-env": "^7.0.3",
 		"jszip": "^3.10.1",
-		"realm": "^12.14.1"
+		"realm": "^12.14.2"
 	},
 	"build": {
 		"appId": "com.osustuff.app",
@@ -46,10 +46,19 @@
 			"src/gui/index.html",
 			"src/dist/**",
 			"package.json",
+			"!**/._*",
 			"node_modules/**/*",
+			"!.editorconfig",
+			"!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+			"!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+			"!**/{appveyor.yml,.travis.yml,circle.yml}",
+			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
 			"!node_modules/.bin/**/*",
 			"!node_modules/realm/prebuilds/android-*/**/*",
-			"!node_modules/realm/prebuilds/apple-*/**/*"
+			"!node_modules/realm/prebuilds/apple-*/**/*",
+			"!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+			"!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+			"!**/node_modules/*.d.ts"
 		],
 		"directories": {
 			"buildResources": "build",

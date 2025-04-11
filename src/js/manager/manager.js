@@ -777,14 +777,14 @@ collection_container.addEventListener("scroll", () => {
     const clientH = collection_container.clientHeight;
 
     // render more items until we finish the list
-    if ((height - clientH) - top < 10) {
+    if (last_card && (height - clientH) - top < 10) {
         render_page(get_selected_collection(true), Number(last_card.dataset.id) + 1);
         return;
     }
 
     // if we are close to the top and the first beatmap card id is not equal to 0
     // render more
-    if (top < 10 && first_card.dataset.id != 0) {
+    if (first_card && top < 10 && first_card.dataset.id != 0) {
         const ammount = Number(first_card.dataset.id) - MAX_RENDER_AMMOUNT;
         render_page(get_selected_collection(true), ammount > 0 ? ammount : 0, false, true);
         return;

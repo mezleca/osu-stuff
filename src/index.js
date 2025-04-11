@@ -22,7 +22,7 @@ if (process.argv[1] && squirrel_params.includes(process.argv[1])) {
     app.quit();
 }
 
-export const create_dialog = async (options = {}) => {
+const create_dialog = async (options = {}) => {
     try {
         return await dialog.showOpenDialog(main_window, { ...options });
     } catch (error) {
@@ -31,7 +31,7 @@ export const create_dialog = async (options = {}) => {
     }
 };
 
-export const get_icon_path = () => {
+const get_icon_path = () => {
     
     const base_path = path.resolve("./build/icons");
     
@@ -124,7 +124,7 @@ const createWindow = () => {
     });
 
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
-    globalShortcut.register('F12', () => { main_window.webContents.openDevTools() });
+    globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" })});
 
     // load html yep
     main_window.loadFile(path.join(__dirname, "./gui/index.html"));
@@ -202,7 +202,7 @@ const createWindow = () => {
         `);
 
         if (process.env.NODE_ENV == "development") {
-            main_window.webContents.openDevTools({ mode: "detach", activate: true });
+            main_window.webContents.openDevTools({ mode: "detach" });
         }
     });
 };
