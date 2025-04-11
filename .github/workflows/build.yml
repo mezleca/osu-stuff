@@ -83,7 +83,7 @@ jobs:
       - name: create release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          name: ${{ steps.get_version.outputs.VERSION }}
           body_path: ./changelog/${{ steps.get_version.outputs.VERSION }}/NOTES.md
           files: |
             ./artifacts/build/*.AppImage
