@@ -29,10 +29,10 @@
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
 		"webpack": "^5.99.5",
-		"webpack-cli": "^6.0.1"
+		"webpack-cli": "^6.0.1",
+		"cross-env": "^7.0.3"
 	},
 	"dependencies": {
-		"cross-env": "^7.0.3",
 		"jszip": "^3.10.1",
 		"realm": "^12.14.2"
 	},
@@ -41,24 +41,17 @@
 		"productName": "osu-stuff",
 		"executableName": "osu-stuff",
 		"asar": true,
+		"electronLanguages": ["en-US"],
+		"compression": "store",
 		"files": [
 			"src/index.js",
 			"src/gui/index.html",
 			"src/dist/**",
 			"package.json",
-			"!**/._*",
 			"node_modules/**/*",
-			"!.editorconfig",
-			"!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-			"!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-			"!**/{appveyor.yml,.travis.yml,circle.yml}",
 			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-			"!node_modules/.bin/**/*",
-			"!node_modules/realm/prebuilds/android-*/**/*",
-			"!node_modules/realm/prebuilds/apple-*/**/*",
-			"!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-			"!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-			"!**/node_modules/*.d.ts"
+			"!node_modules/realm/prebuilds/android*/**",
+			"!node_modules/realm/prebuilds/apple*/**"
 		],
 		"directories": {
 			"buildResources": "build",
