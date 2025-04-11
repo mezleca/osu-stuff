@@ -4,7 +4,7 @@ import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
-import { create_context_menu } from "./context.js";
+import { create_context } from "./context.js";
 
 export const draggable_items_map = new Map();
 
@@ -512,7 +512,7 @@ export const setup_draggables = () => {
         }
 
         // add contextmenu handler
-        create_context_menu({
+        create_context({
             id: id,
             target: draggable_item,
             values: [

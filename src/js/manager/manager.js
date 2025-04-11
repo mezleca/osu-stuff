@@ -17,15 +17,8 @@ import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
 import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
 import { create_dropdown } from "./ui/dropdown.js";
-import { create_context_menu } from "./ui/context.js";
+import { create_context } from "./ui/context.js";
 import { create_range } from "./ui/range.js";
-
-/* @TODO:
-    - [x] remove "show more" button
-    - [x] remember the last index of the selected collection so i can re-render the collection using the old index as start
-    - [x] implement top / down scroll render
-    - [ ] make sure it works (and optmizations if needed)
-*/
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -38,6 +31,11 @@ const text_collection = document.getElementById("collection_text");
 
 const audio_core = { audio: null, id: 0, target: null };
 const default_options = ["create new collection", "get missing beatmaps"];
+
+const beatmaps_context = create_context({
+    id: crypto.randomUUID(),
+    values: []
+});
 
 const manager_filters = new Map();
 
@@ -554,6 +552,8 @@ const create_beatmap_card = (md5) => {
 
     if (has_beatmap) {
 
+        download_button.remove();
+
         const og_beatmap_image = get_beatmap_image(beatmap);
         beatmap_bg.src = og_beatmap_image || placeholder_image;
 
@@ -561,36 +561,33 @@ const create_beatmap_card = (md5) => {
         if (!core.config.get("get_images_from_web")) {
             beatmap_bg.classList.add("bg-image-custom");
         }
-    } else {
-        beatmap_bg.src = placeholder_image;
-    }
-    
-    remove_button.id = `bn_${md5}`;
-
-    if (has_beatmap) {
 
         const current_collection = get_selected_collection();
         const collection_keys = Array.from(core.reader.collections.beatmaps.keys())
             .filter((k) => k != current_collection)
             .map((k) => { return { value: k, callback: (el) => { move_to(el, md5) } }});
 
-        title.addEventListener("click", () => { open_in_browser(beatmap) } );
+        // update & show context on click
+        beatmap_element.addEventListener("contextmenu", () => {
 
-        // add contextmenu handler
-        create_context_menu({
-            id: md5,
-            target: beatmap_element,
-            values: [
-                { type: "default", value: "open on browser", callback: () => { open_in_browser(beatmap) } },
-                { type: "default", value: "export beatmap", callback: () => { 
-                    core.reader.export_beatmap(beatmap);
-                    create_alert(`exported ${beatmap.beatmap_id}`);
-                }},
-                { type: "submenu", value: "move to", values: collection_keys },
-                { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
-                { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } },
-            ]
+            // update options on click
+            if (beatmaps_context.id != md5) {
+                beatmaps_context.update([
+                    { type: "default", value: "open on browser", callback: () => { open_in_browser(beatmap) } },
+                    { type: "default", value: "export beatmap", callback: () => { 
+                        core.reader.export_beatmap(beatmap);
+                        create_alert(`exported ${beatmap.beatmap_id}`);
+                    }},
+                    { type: "submenu", value: "move to", values: collection_keys },
+                    { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
+                    { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } },
+                ]);
+            }
+
+            beatmaps_context.show();
         });
+
+        title.addEventListener("click", () => { open_in_browser(beatmap) } );
 
         // @TODO: get mp3 from osu folder for downloaded beatmaps
         preview_button.addEventListener("click", async () => {
@@ -644,10 +641,11 @@ const create_beatmap_card = (md5) => {
             play();
         });
 
-        download_button.remove();
-    } 
-    else {
+    } else {
+
         preview_button.remove();
+        beatmap_bg.src = placeholder_image;
+
         download_button.addEventListener("click", async () => {
 
             core.progress.update("searching beatmap...");
@@ -688,8 +686,10 @@ const create_beatmap_card = (md5) => {
             beatmap_bg.src = image_url;
         });
     }
-
+    
+    remove_button.id = `bn_${md5}`;
     remove_button.addEventListener("click", () => remove_beatmap(md5));
+
     return beatmap_element;
 };
 

@@ -11,9 +11,9 @@ const generate_context = (options) => {
     const context_menu = base.querySelector("#context-menu");
 
     // loop through items options
-    for (let i = 0; i < options.values.length; i++) {
+    for (let i = 0; i < options.length; i++) {
 
-        const option = options.values[i];
+        const option = options[i];
         const item_element = create_element(`<div class="menu-item">${safe_text(option.value)}</div>`);
 
         if (option.type == "submenu") {
@@ -25,9 +25,9 @@ const generate_context = (options) => {
             item_element.setAttribute("data-submenu", `submenu-${safe_key}`);
 
             // loop through submenu options
-            for (let i = 0; i < option.values.length; i++) {
+            for (let j = 0; j < option.values.length; j++) {
 
-                const sub_option = option.values[i];
+                const sub_option = option.values[j];
                 const sub_element = create_element(`<div class="menu-item">${safe_text(sub_option.value)}</div>`);
 
                 if (sub_option.callback) {
@@ -56,43 +56,55 @@ const generate_context = (options) => {
     return base;
 };
 
-export const create_context_menu = (options) => {
+export const create_context = (options) => {
 
     if (!options?.id) {
         console.log("[CONTEXT MENU] missing id");
         return;
     }
 
-    if (!options?.target) {
-        console.log("[CONTEXT MENU] mssing target");
-        return;
-    }
-
-    const context_element = generate_context(options);
-    const context_options = context_element.children[0];
-
-    let is_visible = false, x, y, close_timeout;
+    const self = {
+        x: 0,
+        y: 0,
+        id: options.id,
+        target: options?.target,
+        is_visible: false,
+        show: null,
+        close: null,
+        update: null,
+        element: null,
+        options: null,
+        close_timeout: null
+    };
 
     const show_menu = (menu, update_pos) => {
 
         // ignore invalid positions
-        if (update_pos && (!x || !y)) {
+        if (update_pos && (!self.x || !self.y)) {
             return;
         }
 
-        if (!document.body.contains(context_element)) {
-            document.body.appendChild(context_element);
+        // rmove existing context
+        const existing = document.querySelector(`.context-container[data-id="${self.id}"]`);
+
+        if (existing) {
+            existing.remove();
         }
 
-        context_element.style.display = "block";
-        menu.style.display = "block";
+        // set a id to find the context later
+        if (!document.body.contains(self.element)) {
+            self.element.setAttribute('data-id', self.id);
+            document.body.appendChild(self.element);
+        }
 
-        context_options.classList.remove("disabled");
+        menu.style.display = "block";
+        self.element.style.display = "block";
+        self.options.classList.remove("disabled");
     
         if (update_pos) {
 
-            menu.style.left = x + "px";
-            menu.style.top = y + "px";
+            menu.style.left = self.x + "px";
+            menu.style.top = self.y + "px";
 
             const menu_rect = menu.getBoundingClientRect();
             const window_width = window.innerWidth;
@@ -118,30 +130,111 @@ export const create_context_menu = (options) => {
 
     const close_menu = () => {
         
-        if (!document.body.contains(context_element)) {
+        if (!self.is_visible) {
             return;
         }
         
-        if (context_element.classList.contains("disabled")) {
+        if (!document.body.contains(self.element)) {
+            return;
+        }
+        
+        if (self.options.classList.contains("disabled")) {
             return;
         }
 
-        context_options.classList.add("disabled");
+        close_submenus();
+
+        self.options.classList.add("disabled");
 
         const interval = setInterval(() => {
-            context_element.remove();
+            if (document.body.contains(self.element)) self.element.remove();
             clearInterval(interval);
         }, 150);
+        
+        self.is_visible = false;
+    };
+
+    const show = () => {
+
+        // to prevent multiple contexts
+        if (self.is_visible) {
+            close_menu();
+        }
+        
+        show_menu(self.options, true);
+        self.is_visible = true;
+    };
+
+    const close = () => {
+        close_menu();
     };
 
     const close_submenus = () => {
-        const subs = context_element.querySelectorAll(".submenu");
-        subs.forEach((sub) => sub.style.display = "none");
+        if (self.element && document.body.contains(self.element)) {
+            const subs = self.element.querySelectorAll(".submenu");
+            subs.forEach((sub) => sub.style.display = "none");
+        }
+    };
+
+    const setup_submenu_listeners = () => {
+
+        for (let i = 0; i < self.options.children.length; i++) {
+
+            const option = self.options.children[i];
+
+            if (option.classList.contains("has-submenu")) {
+
+                const data = option.getAttribute("data-submenu");
+                const submenu = self.element.querySelector(`#${data}`);
+
+                option.addEventListener("mouseover", () => {
+
+                    close_submenus();
+                    
+                    const rect = option.getBoundingClientRect();
+
+                    submenu.style.display = "block";
+                    submenu.style.top = rect.top + "px";
+                    submenu.style.left = rect.right + "px";
+
+                    const submenu_rect = submenu.getBoundingClientRect();
+                    const sub_height = rect.top + submenu_rect.height;
+
+                    if (sub_height > window.innerHeight) {
+                        const diff = sub_height - window.innerHeight;
+                        submenu.style.top = (sub_height - diff - submenu_rect.height) + "px";
+                    }
+                });
+            }
+        }
+    };
+
+    const update = (new_options) => {
+        
+        const visible = self.is_visible;
+        
+        if (visible) {
+            close_menu();
+        }
+        
+        self.element = generate_context(new_options);
+        self.options = self.element.querySelector(".context-menu");
+        
+        setup_submenu_listeners();
+        
+        if (visible) {
+            show_menu(self.options, true);
+            self.is_visible = true;
+        }
     };
 
     const is_in_context = (mouse_x, mouse_y) => {
 
-        const context_rect = context_options.getBoundingClientRect();
+        if (!document.body.contains(self.element)) {
+            return false;
+        }
+        
+        const context_rect = self.options.getBoundingClientRect();
         
         if (mouse_x >= context_rect.left - 10 && mouse_x <= context_rect.right + 10 && 
             mouse_y >= context_rect.top - 10 &&
@@ -149,13 +242,13 @@ export const create_context_menu = (options) => {
             return true;
         }
         
-        const visible_submenus = context_element.querySelectorAll(".submenu[style*='display: block']");
+        const visible_submenus = self.element.querySelectorAll(".submenu[style*='display: block']");
 
         for (let i = 0; i < visible_submenus.length; i++) {
 
             const submenu_rect = visible_submenus[i].getBoundingClientRect();
 
-            if (mouse_x >= submenu_rect.left - 10 &&mouse_x <= submenu_rect.right + 10 &&
+            if (mouse_x >= submenu_rect.left - 10 && mouse_x <= submenu_rect.right + 10 &&
                 mouse_y >= submenu_rect.top - 10 &&
                 mouse_y <= submenu_rect.bottom + 10) {
                 return true;
@@ -167,78 +260,46 @@ export const create_context_menu = (options) => {
 
     document.addEventListener("mousemove", (e) => {
 
-        x = e.clientX;
-        y = e.clientY;
+        self.x = e.clientX;
+        self.y = e.clientY;
 
-        if (is_visible && !is_in_context(x, y)) {
+        if (self.is_visible && !is_in_context(self.x, self.y)) {
 
-            if (close_timeout) {
-                clearTimeout(close_timeout);
+            if (self.close_timeout) {
+                clearTimeout(self.close_timeout);
             }
             
-            close_timeout = setTimeout(() => {
+            self.close_timeout = setTimeout(() => {
                 close_menu();
-                close_submenus();
-                is_visible = false;
-                close_timeout = null;
+                self.close_timeout = null;
             }, CONTEXT_FADE_MS);
         } 
         
-        if (close_timeout && is_in_context(x, y)) {
-            clearTimeout(close_timeout);
-            close_timeout = null;
+        if (self.close_timeout && is_in_context(self.x, self.y)) {
+            clearTimeout(self.close_timeout);
+            self.close_timeout = null;
         }
     });
 
-    options.target.addEventListener("contextmenu", (e) => {
-
-        // prevent default context
-        e.preventDefault();
-
-        if (!is_visible) {
-            show_menu(context_options, true);
-            is_visible = true;
-        } else {
-            close_menu();
-            is_visible = false;
-        }
-    });
-
-    // setup options
-    for (let i = 0; i < context_options.children.length; i++) {
-
-        const option = context_options.children[i];
-
-        if (option.classList.contains("has-submenu")) {
-
-            const data = option.getAttribute("data-submenu");
-            const submenu = context_element.querySelector(`#${data}`);
-
-            option.addEventListener("mouseover", () => {
-
-                close_submenus();
-                
-                const rect = option.getBoundingClientRect();
-
-                submenu.style.display = "block";
-                submenu.style.top = rect.top + "px";
-                submenu.style.left = rect.right + "px";
-
-                const submenu_rect = submenu.getBoundingClientRect();
-                const sub_height = rect.top + submenu_rect.height;
-   
-                // make sure the context is rendered on screen
-                if (sub_height > window.innerHeight) {
-                    const diff = sub_height - window.innerHeight;
-                    submenu.style.top = (sub_height - diff - submenu_rect.height) + "px";
-                }
-            });
-        }
+    // automatic show / close
+    if (options.target) {
+        options.target.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            show();
+        });
     }
 
     document.addEventListener("click", () => {
-        close_menu();
-        close_submenus();
-        is_visible = false;
+        if (self.is_visible) close_menu();
     });
+
+    // initialize context menu
+    update(options.values || { values: [] });
+
+    // update self object
+    self.close = close;
+    self.show = show;
+    self.update = update;
+
+    return self;
 };
