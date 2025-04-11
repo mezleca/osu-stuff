@@ -2,9 +2,10 @@
 import { core } from "../../app.js";
 import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
-import { create_element } from "../../utils/global.js";
+import { create_element, path } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context } from "./context.js";
+import { Reader } from "../../utils/reader/reader.js";
 
 export const draggable_items_map = new Map();
 
@@ -358,6 +359,34 @@ export const export_all_beatmaps = async (id) => {
     create_alert(`exported all ${exported.size} beatmaps successfully!`);
 };
 
+// @TODO: option to export as osdb
+export const export_collection = async (id) => {
+
+    // get the collcetion by id and create a new collection.db with the exported one
+    const collection = core.reader.collections.beatmaps.get(id);
+
+    if (!collection) {
+        create_alert("failed to get collection", { type: "error" });
+        return;
+    }
+
+    const reader = new Reader();
+    
+    // set data
+    reader.collections = {
+        length: 1,
+        version: core.reader.collections.version,
+        beatmaps: new Map()
+    }
+
+    reader.collections.beatmaps.set(id, collection);
+    
+    const export_path = path.resolve(core.config.get("export_path"), `${id}.db`);
+    await reader.write_collections_data(export_path);
+
+    core.progress.update(`exported ${id} on ${export_path}`);
+};
+
 export const setup_draggables = () => {
 
     if (!core.reader.osu?.beatmaps) {
@@ -521,11 +550,11 @@ export const setup_draggables = () => {
 
                 draggable_context.update([
                     { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                    { type: "default", value: "export collection", callback: () => { export_collection(k) }},
                     { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
                     { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
                     { 
-                        type: "submenu", 
-                        value: "merge with", 
+                        type: "submenu", value: "merge with", 
                         values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
                     }
                 ]);
