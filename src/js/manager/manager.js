@@ -1,24 +1,31 @@
-import { core } from "../app.js"
-import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js"
-import { create_element } from "../utils/global.js"
-import { setup_collector } from "../stuff/collector.js"
-import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js"
-import { download_map } from "../utils/downloader.js"
+import { core } from "../app.js";
+import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js";
+import { create_element } from "../utils/global.js";
+import { setup_collector } from "../stuff/collector.js";
+import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
+import { download_map } from "../utils/downloader.js";
 import { create_download_task, create_task } from "../events/events.js";
 import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
-import { create_dropdown } from "./ui/dropdown.js"
 import { filter_beatmap } from "./tools/filter.js";
-import { create_range } from "./ui/range.js"
-import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
-import { create_context_menu } from "./ui/context.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
-import { Reader } from "../utils/reader/reader.js"
+import { Reader } from "../utils/reader/reader.js";
+import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
+import { create_dropdown } from "./ui/dropdown.js";
+import { create_context_menu } from "./ui/context.js";
+import { create_range } from "./ui/range.js";
+
+/* @TODO:
+    - [x] remove "show more" button
+    - [x] remember the last index of the selected collection so i can re-render the collection using the old index as start
+    - [x] implement top / down scroll render
+    - [ ] make sure it works (and optmizations if needed)
+*/
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -26,6 +33,8 @@ const more_options = document.querySelector(".more_options");
 const collection_container = document.querySelector(".collection-container");
 const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
+
+const text_collection = document.getElementById("collection_text");
 
 const audio_core = { audio: null, id: 0, target: null };
 const default_options = ["create new collection", "get missing beatmaps"];
@@ -122,26 +131,6 @@ const remove_beatmap = (hash) => {
 
     show_update_button();
     document.getElementById(`bn_${hash}`).remove();
-};
-
-const create_more_button = (id, offset) => {
-
-    const name = get_selected_collection();
-    const beatmaps = core.reader.collections.beatmaps.get(name);
-
-    const button_html = `
-        <button class="load_more_button">
-            load more (${offset}/${beatmaps.maps.size})
-        </button>
-    `;
-
-    const button_element = create_element(button_html);
-    button_element.addEventListener("click", () => {
-        button_element.remove();
-        render_page(id, offset);
-    });
-
-    return button_element;
 };
 
 const get_from_player = async () => {
@@ -383,6 +372,7 @@ const create_new_collection = async () => {
 };
 
 header_text.addEventListener("click", async () => {
+    text_collection.style.display = "block";
     remove_all_selected();
     setup_manager();
 });
@@ -467,7 +457,7 @@ const open_in_browser = (beatmap) => {
     open_url(url);
 };
 
-const render_beatmap = (md5) => {
+const create_beatmap_card = (md5) => {
 
     const beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
@@ -700,16 +690,10 @@ const render_beatmap = (md5) => {
     return beatmap_element;
 };
 
-export const render_page = (id, _offset) => {
+export const render_page = (id, offset = 0, _new = false, _inverted = false) => {
 
-    let offset = _offset || 0, add_more = true;
-
-    if (offset == 0) {
-        collection_container.innerHTML = "";
-    }
-
+    const elements = [];
     const collection = draggable_items_map.get(id)?.collection;
-    const text_collection = document.getElementById("collection_text");
 
     if (!collection) {
         console.log("[manager] failed to get collection", id);
@@ -719,7 +703,7 @@ export const render_page = (id, _offset) => {
     const { sr_max, bpm_max } = draggable_items_map.get(id)?.collection;
 
     if (text_collection) {
-        text_collection.remove();
+        text_collection.style.display = "none";
     }
 
     const sr_filter = get_sr_filter();
@@ -737,47 +721,72 @@ export const render_page = (id, _offset) => {
         bpm_filter.set_limit(bpm_max);
     }
 
-    // only render 16 at time
-    for (let i = 0; i < MAX_RENDER_AMMOUNT; i++) {
+    collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 
-        // no beatmaps? maybe a empty collection
-        if (!beatmaps) {
-            add_more = false;
-            break;
-        }
+    if (!beatmaps) {
+        return;
+    }
 
-        // check if i reached the collection limit
-        if (offset >= beatmaps.length) {
-            add_more = false;
-            break;
-        }
+    for (let i = offset; i < beatmaps.length; i++) {
 
-        // check if the beatmap is valid (should be)
-        if (!beatmaps[offset]) {
-            offset++;
+        const beatmap = beatmaps[i];
+
+        // make sure we have a valid beatmap (should be valid)
+        if (!beatmap) {
             continue;
+        }
+
+        // only render x ammounts of item per iteration
+        if (elements.length > MAX_RENDER_AMMOUNT) {
+            break;
         }
 
         // filter by name
-        if (!filter_beatmap(beatmaps[offset])) {
-            offset++;   
-            i--;
+        if (!filter_beatmap(beatmap)) {
             continue;
         }
 
-        const beatmap_item = render_beatmap(beatmaps[offset]);
-        collection_container.appendChild(beatmap_item);
+        const beatmap_item = create_beatmap_card(beatmap);
+        beatmap_item.dataset.id = i;
 
-        offset++;
+        // yay we are gonna render it!!!
+        elements.push(beatmap_item);
     }
 
-    if (add_more) {
-        const load_more_button = create_more_button(id, offset);
-        collection_container.appendChild(load_more_button);
+    if (offset == 0 || _new) {
+        collection_container.replaceChildren(...elements);
+    } else {
+        if (_inverted) {
+            collection_container.prepend(...elements);
+        } else {
+            collection_container.append(...elements);
+        }
     }
-
-    collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 };
+
+collection_container.addEventListener("scroll", () => {
+
+    const first_card = collection_container.firstChild;
+    const last_card = collection_container.lastChild;
+
+    const top = collection_container.scrollTop;
+    const height = collection_container.scrollHeight;
+    const clientH = collection_container.clientHeight;
+
+    // render more items until we finish the list
+    if ((height - clientH) - top < 10) {
+        render_page(get_selected_collection(true), Number(last_card.dataset.id) + 1);
+        return;
+    }
+
+    // if we are close to the top and the first beatmap card id is not equal to 0
+    // render more
+    if (top < 10 && first_card.dataset.id != 0) {
+        const ammount = Number(first_card.dataset.id) - MAX_RENDER_AMMOUNT;
+        render_page(get_selected_collection(true), ammount > 0 ? ammount : 0, false, true);
+        return;
+    } 
+});
 
 export const merge_collections = (cl1, cl2) => {
     return new Set([...cl1, ...cl2]);
@@ -852,8 +861,6 @@ export const setup_manager = () => {
 
         const update = () => {
 
-            console.log("executing callback");
-
             const current_id = get_selected_collection(true);
 
             if (!current_id) {
@@ -866,9 +873,9 @@ export const setup_manager = () => {
         }
 
         // update maps on filter update
-        status_filter.set_callback(debounce(update, 100));
-        sr_filter.callback = debounce(update, 100);
-        bpm_filter.callback = debounce(update, 100);
+        status_filter.set_callback(update);
+        sr_filter.set_callback(update);
+        bpm_filter.set_callback(update);
 
         status_filter_container.appendChild(status_filter.element);
         sr_filter_container.appendChild(sr_filter.element);

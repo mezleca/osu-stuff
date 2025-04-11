@@ -1,4 +1,4 @@
-import { safe_id, create_element } from "../../utils/global.js";
+import { safe_id, create_element, debounce } from "../../utils/global.js";
 
 export const create_range = (options = { id: crypto.randomUUID(), text: "range", iden: "", fix: 2, initial: 0 }) => {
 
@@ -29,7 +29,8 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         element: element,
         update: null,
         callback: null,
-        set_limit: null
+        set_limit: null,
+        set_callback: (c) => range_slider.callback = c 
     }
     
     const slider_label = element.querySelector(".slider-label");
@@ -51,7 +52,7 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         });
     };
 
-    const set_limit = (new_limit) => {
+    const set_limit = (new_limit, ignore) => {
 
         new_limit = parseFloat(new_limit);
 
@@ -73,7 +74,7 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         update();
     };
 
-    const update = () => {
+    const update = (ignore) => {
 
         let min_value = parseFloat(range_slider.min.value);
         let max_value = parseFloat(range_slider.max.value);
@@ -111,10 +112,10 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         track_highlight.style.left = `${min_percent}%`;
         
         force_update();
-        if (range_slider.callback) range_slider.callback();
+        if (!ignore && range_slider.callback) debounce(range_slider.callback);
     };
     
-    set_limit(range_slider.limit);
+    set_limit(range_slider.limit, true);
 
     range_slider.update = update;
     range_slider.set_limit = set_limit;

@@ -1,4 +1,4 @@
-import { safe_id, create_element } from "../../utils/global.js";
+import { safe_id, create_element, debounce } from "../../utils/global.js";
 
 export const create_dropdown = (options = { id: "a", name: "dropdown", values: ["abc", "fgh", "qre"]}) => {
 
@@ -17,7 +17,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
         selected: new Set(),
         element: container,
         create: (v) => { create(v) },
-        set_callback: (callback) => { self.callback = callback }
+        set_callback: (c) => { self.callback = c }
     };
 
     const label = container.querySelector(".dropdown-label");
@@ -130,7 +130,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
 
         // execute callback
         if (self.callback) {
-            self.callback(self, name);
+            debounce(self.callback(self, name));
         }
     };
 

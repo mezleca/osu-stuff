@@ -1,7 +1,7 @@
 
 import { core } from "../../app.js";
 import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
-import { setup_manager, render_page, merge_collections, show_update_button } from "../manager.js";
+import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context_menu } from "./context.js";
@@ -410,6 +410,20 @@ export const setup_draggables = () => {
 
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
+
+                        const current_selected = get_selected_collection(true);          
+
+                        // save the offset of the previous selected collection
+                        if (current_selected && collection_container.children.length > 16) {
+
+                            const c_rect = collection_container.getBoundingClientRect();
+                            const visible = Array.from(collection_container.children).find((element) => {
+                                const rect = element.getBoundingClientRect();
+                                return rect.bottom > c_rect.top && rect.top < c_rect.bottom;
+                            });
+
+                            draggable_items_map.get(current_selected).offset = visible.dataset.id;
+                        }
   
                         // remove selected from all divs
                         remove_all_selected();
@@ -417,7 +431,7 @@ export const setup_draggables = () => {
                         draggable_item.target.classList.add("selected");
                         draggable_item.selected = true;
 
-                        render_page(id);
+                        render_page(id, draggable_item?.offset || 0, true);
                     }
                 }
 
