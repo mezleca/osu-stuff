@@ -8,6 +8,11 @@ import { create_context } from "./context.js";
 
 export const draggable_items_map = new Map();
 
+const draggable_context = create_context({
+    id: crypto.randomUUID(),
+    values: []
+});
+
 const draggable_item_bin = document.querySelector(".draggable_item_bin");
 const list = document.querySelector(".list_draggable_items");
 const collection_container = document.querySelector(".collection-container");
@@ -365,13 +370,12 @@ export const setup_draggables = () => {
 
         // create the new elements and append to draggable_items map
         const id = crypto.randomUUID();
-        const draggable_item_html = `
+        const draggable_item = create_element(`
             <div class="draggable_item">
                 <h1></h1>
             </div>
-        `;
+        `);
 
-        const draggable_item = create_element(draggable_item_html);
         const draggable_item_name = draggable_item.children[0];
 
         draggable_item_name.textContent = k;
@@ -511,20 +515,25 @@ export const setup_draggables = () => {
             setup_manager();
         }
 
-        // add contextmenu handler
-        create_context({
-            id: id,
-            target: draggable_item,
-            values: [
-                { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
-                { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
-                { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
-                { 
-                    type: "submenu", 
-                    value: "merge with", 
-                    values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
-                }
-            ]
+        draggable_item.addEventListener("contextmenu", () => {
+
+            if (draggable_context.id != id) {
+
+                draggable_context.update([
+                    { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                    { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
+                    { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
+                    { 
+                        type: "submenu", 
+                        value: "merge with", 
+                        values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
+                    }
+                ]);
+
+                draggable_context.id = id;
+            }
+
+            draggable_context.show();
         });
 
         const new_draggable_item = { 

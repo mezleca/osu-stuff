@@ -85,9 +85,10 @@ export const create_context = (options) => {
         }
 
         // rmove existing context
-        const existing = document.querySelector(`.context-container[data-id="${self.id}"]`);
+        const existing = document.querySelector(`.context-container`);
 
-        if (existing) {
+        // @TODO: sometimes this will close the context menu (if we created a new one before the ending animation finish)
+        if (existing && existing.children[0].classList.contains("disabled")) {
             existing.remove();
         }
 
