@@ -1239,7 +1239,11 @@ button {
     margin-right: 5px;
 }
 
-.beatmap-status.ranked {
+.beatmap-status.unsubmitted {
+    background-color: white;
+}
+
+.beatmap-status.ranked, .beatmap-status.approved {
     background-color: #6bfb70;
 }
 
