@@ -21,7 +21,7 @@ a very simple and useful app that gives you the freedom to:
 > for now, all downloaded beatmaps using (lazer mode) will be placed on the exports folder.
 
 ## how to download
-- **current app version (v1.6)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **latest version (v1.6)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## linux dependencies
 ### debian/ubuntu
