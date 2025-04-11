@@ -500,7 +500,7 @@ const create_beatmap_card = (md5) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = Reader.get_beatmap_status(beatmap.status);
+    const status = Reader.get_beatmap_status(beatmap.status) || "Unknown";
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     const set_loading_status = (status) => {
