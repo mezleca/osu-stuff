@@ -377,7 +377,7 @@ const create_new_collection = async () => {
                 title: "select the file",
                 properties: ["openFile"],
                 filters: [
-                    { name: "collection files", extensions: [/*"osdb"*/, "db"], }
+                    { name: "collection files", extensions: [/*"osdb",*/"db"], }
                 ]
             });
 
