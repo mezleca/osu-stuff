@@ -1166,6 +1166,7 @@ button {
 
 .draggable_item.hidden {
     opacity: 0;
+    display: none;
 }
 
 .draggable_item_bin {

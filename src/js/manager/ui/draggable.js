@@ -14,6 +14,7 @@ const draggable_context = create_context({
     values: []
 });
 
+const search_input = document.querySelector(".collection-search");
 const draggable_item_bin = document.querySelector(".draggable_item_bin");
 const list = document.querySelector(".list_draggable_items");
 const collection_container = document.querySelector(".collection-container");
@@ -332,6 +333,31 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
     return false;
 };
 
+const show_all_draggables = () => {
+
+    for (const [k, v] of draggable_items_map) {
+
+    }    
+};
+
+search_input.addEventListener("input", () => {
+
+    const value = search_input.value;
+
+    for (const [k, v] of draggable_items_map) {
+        
+        const target = v.target;
+        const name = target.querySelector(".collection-name");
+        
+        if (name.textContent.toLowerCase().includes(value.toLowerCase())) {
+            target.classList.remove("hidden");
+        } else {
+            console.log("hidding", v.target);
+            target.classList.add("hidden");
+        }
+    }    
+});
+
 export const export_all_beatmaps = async (id) => {
     
     const collection = core.reader.collections.beatmaps.get(id);
@@ -636,14 +662,14 @@ export const setup_draggables = () => {
             if (draggable_context.id != id) {
 
                 draggable_context.update([
+                    { 
+                        type: "submenu", value: "merge with", 
+                        values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
+                    },
                     { type: "default", value: "rename collection", callback: () => { change_collection_name(id, name_element) }},
                     { type: "default", value: "export collection", callback: () => { export_collection(k) }},
                     { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
                     { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
-                    { 
-                        type: "submenu", value: "merge with", 
-                        values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
-                    }
                 ]);
 
                 draggable_context.id = id;
