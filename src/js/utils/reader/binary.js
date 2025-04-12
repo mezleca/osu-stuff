@@ -161,6 +161,25 @@ export class BinaryReader {
         return buffer.slice(0, offset); // remove unused bytes
     }
 
+    writeDouble(value) {
+        const buffer = new ArrayBuffer(8);
+        const view = new DataView(buffer);
+        view.setFloat64(0, value, true);
+        return new Uint8Array(buffer);
+    }
+    
+    writeString2(value) {
+        
+        const string_buffer = new TextEncoder().encode(value);
+        const length_buffer = this.writeULEB128(string_buffer.byteLength);
+        const result = new Uint8Array(length_buffer.byteLength + string_buffer.byteLength);
+        
+        result.set(new Uint8Array(length_buffer), 0);
+        result.set(string_buffer, length_buffer.byteLength);
+        
+        return result;
+    }
+
     join_buffer(buffers) {
         let total_length = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
         let result = new Uint8Array(total_length);

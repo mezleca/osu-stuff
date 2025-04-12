@@ -2,7 +2,7 @@ const Realm = require('realm');
 const JSZip = require("jszip");
 
 import { core } from "../../app.js";
-import { osu_db, collections_db, osdb_schema, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
+import { osu_db, collections_db, osdb_schema, osdb_versions, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
 import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
@@ -247,30 +247,15 @@ export class Reader extends BinaryReader {
 
                 const data = {};
                 const version_string = this.string2();
-                
-                const versions = {
-                    "o!dm": 1,
-                    "o!dm2": 2,
-                    "o!dm3": 3,
-                    "o!dm4": 4,
-                    "o!dm5": 5,
-                    "o!dm6": 6,
-                    "o!dm7": 7,
-                    "o!dm8": 8,
-                    "o!dm7min": 1007,
-                    "o!dm8min": 1008,
-                };
-
-                const version = versions[version_string];
+                const version = osdb_versions[version_string];
                 
                 if (!version) {
                     throw new Error(`invalid osdb version (got: ${version_string})`);
                 }
                 
-                const file_version = versions[version_string];
                 const is_minimal = version_string.endsWith("min");
                 
-                if (file_version >= 7) {
+                if (version >= 7) {
 
                     const compressed_data = this.buffer.buffer.slice(this.offset);
                     const decompressed_data = zlib.gunzipSync(compressed_data);
@@ -281,7 +266,7 @@ export class Reader extends BinaryReader {
                     this.string2();
                 }
                 
-                data.save_date = this.double();
+                data.save_date = this.long();
                 data.last_editor = this.string2();
                 data.collections_count = this.int();
                 
@@ -295,7 +280,7 @@ export class Reader extends BinaryReader {
                         hash_only_beatmaps: []
                     };
                     
-                    if (file_version >= 7) {
+                    if (version >= 7) {
                         collection.online_id = this.int();
                     }
                     
@@ -305,7 +290,7 @@ export class Reader extends BinaryReader {
 
                         const beatmap = {
                             map_id: this.int(),
-                            map_set_id: file_version >= 2 ? this.int() : -1
+                            map_set_id: version >= 2 ? this.int() : -1
                         };
                         
                         if (!is_minimal) {
@@ -316,22 +301,22 @@ export class Reader extends BinaryReader {
                         
                         beatmap.md5 = this.string2();
                         
-                        if (file_version >= 4) {
+                        if (version >= 4) {
                             beatmap.user_comment = this.string2();
                         }
                         
-                        if (file_version >= 8 || (file_version >= 5 && !is_minimal)) {
+                        if (version >= 8 || (version >= 5 && !is_minimal)) {
                             beatmap.play_mode = this.byte();
                         }
                         
-                        if (file_version >= 8 || (file_version >= 6 && !is_minimal)) {
+                        if (version >= 8 || (version >= 6 && !is_minimal)) {
                             beatmap.stars_nomod = this.double();
                         }
                         
                         collection.beatmaps.push(beatmap);
                     }
                     
-                    if (file_version >= 3) {
+                    if (version >= 3) {
                         const hash_count = this.int();
                         for (let j = 0; j < hash_count; j++) {
                             collection.hash_only_beatmaps.push(this.string2());
@@ -352,7 +337,112 @@ export class Reader extends BinaryReader {
                 reject(error);
             }
         });
-    }
+    };
+
+    async write_osdb_data(data, version_string) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                if (!data || !data.collections) {
+                    return reject(new Error("Invalid data structure"));
+                }
+    
+                const version = osdb_versions[version_string];
+
+                if (!version) {
+                    throw new Error(`invalid osdb version: ${version_string}`);
+                }
+    
+                const is_minimal = version_string.endsWith("min");
+                
+                const buffers = [];
+                const buffer = [];
+
+                buffers.push(this.writeString2(version_string));
+                           
+                if (version >= 7) {
+                    buffer.push(this.writeString2(version_string));
+                }
+                
+                buffer.push(this.writeLong(data.save_date || new Date().getTime()));
+                buffer.push(this.writeString2(data.last_editor || ""));
+                buffer.push(this.writeInt(data.collections.length));
+                
+                for (let i = 0; i < data.collections.length; i++) {
+
+                    const collection = data.collections[i];
+
+                    buffer.push(this.writeString2(collection.name || ""));
+                    
+                    if (version >= 7) {
+                        buffer.push(this.writeInt(collection.online_id || 0));
+                    }
+                    
+                    buffer.push(this.writeInt(collection.beatmaps.length || 0));
+                    
+                   
+                    for (let i = 0; i < collection.beatmaps.length; i++) {
+
+                        const beatmap = collection.beatmaps[i];
+
+                        buffer.push(this.writeInt(beatmap.map_id || 0));
+                        
+                        if (version >= 2) {
+                            buffer.push(this.writeInt(beatmap.map_set_id || -1));
+                        }
+                        
+                        if (!is_minimal) {
+                            buffer.push(this.writeString2(beatmap.artist || ""));
+                            buffer.push(this.writeString2(beatmap.title || ""));
+                            buffer.push(this.writeString2(beatmap.diff_name || ""));
+                        }
+                        
+                        buffer.push(this.writeString2(beatmap.md5 || ""));
+                        
+                        if (version >= 4) {
+                            buffer.push(this.writeString2(beatmap?.user_comment || ""));
+                        }
+                        
+                        if (version >= 8 || (version >= 5 && !is_minimal)) {
+                            buffer.push(this.writeByte(beatmap?.play_mode || 0));
+                        }
+                        
+                        if (version >= 8 || (version >= 6 && !is_minimal)) {
+                            buffer.push(this.writeDouble(beatmap?.stars_nomod || 0.0));
+                        }
+                    }
+                    
+                    if (version >= 3) {
+
+                        const all_hashes = collection.hash_only_beatmaps;
+                        console.log(collection)
+                        buffer.push(this.writeInt(all_hashes.length));
+                        
+                        for (let i = 0; i < all_hashes.length; i++) {
+                            const hash = all_hashes[i];
+                            buffer.push(this.writeString2(hash || ""));
+                        }
+                    }
+                }
+                
+                buffer.push(this.writeString2("By Piotrekol"));
+                const content_buffer = this.join_buffer(buffer);
+                
+                if (version >= 7) {
+                    buffers.push(new Uint8Array(zlib.gzipSync(content_buffer)));
+                } else {
+                    buffers.push(content_buffer);
+                }
+                
+                const final_buffer = this.join_buffer(buffers);
+                resolve(final_buffer);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    };
 
     read_typed_value() {
 

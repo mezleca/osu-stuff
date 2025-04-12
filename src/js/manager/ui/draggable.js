@@ -1,11 +1,12 @@
 
 import { core } from "../../app.js";
-import { DRAG_ACTIVATION_THRESHOLD_MS } from "../../utils/global.js";
+import { DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element, path } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context } from "./context.js";
 import { Reader } from "../../utils/reader/reader.js";
+import { osdb_versions } from "../../utils/reader/models/stable.js";
 
 export const draggable_items_map = new Map();
 
@@ -370,21 +371,65 @@ export const export_collection = async (id) => {
         return;
     }
 
-    const reader = new Reader();
-    
-    // set data
-    reader.collections = {
-        length: 1,
-        version: core.reader.collections.version,
-        beatmaps: new Map()
+    const method = await create_custom_popup({
+        type: message_types.CUSTOM_MENU,
+        title: "search option",
+        elements: [
+            {
+                key: "export as",
+                element: { list: { options: ["stable collection", "osdb"] }}
+            },
+        ]
+    });
+
+    if (!method) {
+        return;
     }
 
-    reader.collections.beatmaps.set(id, collection);
-    
-    const export_path = path.resolve(core.config.get("export_path"), `${id}.db`);
-    await reader.write_collections_data(export_path);
+    const reader = new Reader();
 
-    core.progress.update(`exported ${id} on ${export_path}`);
+    if (method.export_as != "osdb") {
+
+        // set data
+        reader.collections = {
+            length: 1,
+            version: core.reader.collections.version,
+            beatmaps: new Map()
+        }
+    
+        reader.collections.beatmaps.set(id, collection);
+        
+        const export_path = path.resolve(core.config.get("export_path"), `${id}.db`);
+        await reader.write_collections_data(export_path);
+    
+        core.progress.update(`exported ${id} on ${export_path}`);
+    } else {
+
+        const export_path = path.resolve(core.config.get("export_path"), `${id}.osdb`);
+        const beatmaps = Array.from(collection.maps);
+        const buffer = await reader.write_osdb_data({
+            save_date: new Date(),
+            last_editor: "", // no ideia what this is
+            collections: [{ 
+                name: id,
+                online_id: 0, // maybe something related to osu!stats
+                hash_only_beatmaps: beatmaps,
+                beatmaps: beatmaps.map((md5) => {
+                    const beatmap = core.reader.osu.beatmaps.get(md5);
+                    return { 
+                        md5: md5, 
+                        map_id: beatmap?.beatmap_id || 0, // maybe its fine to return 0?
+                        map_set_id: beatmap?.beatmapset_id || 0, // maybe its fIne to return 0?
+                        user_comment: "",
+                    }
+                }),
+                
+            }]
+        }, "o!dm7min"); // minimal cuz we might have missing beatmaps
+
+        console.log(buffer);
+        fs.writeFileSync(export_path, Buffer.from(buffer));
+    }   
 };
 
 export const setup_draggables = () => {

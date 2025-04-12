@@ -132,33 +132,33 @@ const check_folder_permissions = async (folder) => {
     }
 };
 
-const initialize_osu_config = async () => {
+const get_access_token = async () => {
 
     const osu_id = core.config.get("osu_id");
     const osu_secret = core.config.get("osu_secret");
+
+    if (osu_id && osu_secret) {
+        core.login = await osu_login(osu_id, osu_secret);
+    }
+};
+
+const initialize_osu_config = async () => {
+
     const stable_path = core.config.get("stable_path");
     const songs_path = core.config.get("stable_songs_path");
 
-    if (osu_id && osu_secret) {
-
-        core.login = await osu_login(osu_id, osu_secret);
-
-        if (!core.login) {
-            create_alert("failed to login", { type: "error" });
-            return;
-        }
-    }
-
     if (!fs.existsSync(stable_path) || !fs.existsSync(songs_path)) {
-        create_alert("failed to get osu/songs directory\nPlease make sure the directory is correct", { type: "error" });   
+        create_alert("failed to get osu/songs directory<br>make sure the directory is correct", { type: "error", html: true });   
         return;
     }
+
+    await get_access_token();
 
     const osu_perms = await check_folder_permissions(stable_path);
     const songs_perms = await check_folder_permissions(songs_path);
 
     if (!osu_perms || !songs_perms) {
-        create_alert("failed to read osufolder\nmake sure you have read and write perms on the drive", { type: "error" })
+        create_alert("failed to read osufolder<br>make sure you have read and write perms on the drive", { type: "error", html: true })
     }
 
     await load_osu_files(stable_path);
@@ -188,6 +188,8 @@ const validate_and_setup_config = async () => {
             await initialize({ force: true });
         }
     }
+
+    await get_access_token();
 };
 
 const manage_mirrors = async (tab, add_button) => {
@@ -252,10 +254,7 @@ export const initialize_config = async () => {
         fs.mkdirSync(core.og_path, { recursive: true });
     }
 
-    // get the access_token
-    if (core.config.get("osu_id") && core.config.get("osu_secret")) {
-        core.login = await osu_login(core.config.get("osu_id"), core.config.get("osu_secret"));
-    }
+    await get_access_token();
 
     // if we dont have a export path, create one in the app config thing
     if (!core.config.get("export_path")) {
@@ -321,36 +320,40 @@ export const initialize_config = async () => {
             option_container.appendChild(input_element);
         }
 
-        if (is_file) {
+        if (is_file || is_checkbox) {
 
-            input_element.setAttribute("readonly", true);
-            input_element.addEventListener("click", async () => {
+            input_element.addEventListener("click", async (event) => {
 
-                const options = { title: text, properties: ["openDirectory"] };
+                const element = event.target;
 
-                // @TOFIX: this only works on windows...
-                if (value != "") {
-                    options.defaultPath = value;
-                }
+                if (is_file) {
 
-                const dialog = await create_dialog(options);
+                    const options = { title: text, properties: ["openDirectory"] };
 
-                if (!dialog.canceled) {
-                    console.log("[config] saving file:", dialog.filePaths[0]);
-                    await save_config(option.text, dialog.filePaths[0]);
-                    input_element.value = dialog.filePaths[0];
+                    // @TOFIX: this only works on windows...
+                    if (value != "") {
+                        options.defaultPath = value;
+                    }
+
+                    const dialog = await create_dialog(options);
+
+                    if (!dialog.canceled) {
+                        await save_config(option.text, dialog.filePaths[0]);
+                        element.value = dialog.filePaths[0];
+                    }
+                } 
+                else {
+
+                    if (option?.callback) {
+                        option.callback(element, option.text);
+                    } else {
+                        save_config(option.text, element.checked);
+                    }
                 }
             });
-        }
-
-        if (is_checkbox) {
-
-            input_element.addEventListener("click", () => {
-                if (option?.callback) {
-                    option.callback(input_element, option.text);
-                } else {
-                    save_config(option.text, iinput_element.checked);
-                }
+        } else {
+            input_element.addEventListener("input", () => {
+                save_config(option.text, input_element.value);
             });
         }
 
@@ -397,6 +400,7 @@ export const initialize_config = async () => {
             create_alert("invalid mirror", { type: "error" });
             return;
         }
+
         if (core.mirrors.get(prompt.name)) {
             create_alert("mirror already exists", { type: "alert" });
             return;
