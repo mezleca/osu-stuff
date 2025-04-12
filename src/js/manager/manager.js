@@ -15,7 +15,7 @@ import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
-import { draggable_items_map, remove_all_selected, setup_draggables } from "./ui/draggable.js";
+import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count } from "./ui/draggable.js";
 import { create_dropdown } from "./ui/dropdown.js";
 import { create_context } from "./ui/context.js";
 import { create_range } from "./ui/range.js";
@@ -45,7 +45,7 @@ export const get_selected_collection = (id) => {
 
     for (let i = 0; i < draggable_items.length; i++) {
         if (draggable_items[i].classList.contains("selected")) {
-            return id ? draggable_items[i].id : draggable_items[i].children[0].textContent;
+            return id ? draggable_items[i].id : draggable_items[i].querySelector(".collection-name").textContent;
         }
     }
 
@@ -126,6 +126,7 @@ const remove_beatmap = (hash) => {
     }
 
     beatmaps.delete(hash);
+    update_collection_count(get_selected_collection(true));
 
     show_update_button();
     document.getElementById(`bn_${hash}`).remove();

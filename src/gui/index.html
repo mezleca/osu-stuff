@@ -75,8 +75,16 @@
             <div class="tab-panel active" id="collections_tab" style="flex-direction: row !important; align-items: flex-start;">
                 <div class="cool-container list_container">
                     <div class="collections_header">
-                        <h2 class="collection_header_text">collections</h2>
-                        <div class="update_collection">update</div>         
+                        <div class="collection-text">
+                            <h2 class="collection_header_text">collections</h2>
+                            <div class="update_collection">update</div>   
+                        </div>
+                        <div class="search-box" style="padding: 20px; padding-top: 0px;">
+                            <div class="input-box">
+                                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                <input type="search" name="" class="collection-search" placeholder="search collections...">
+                            </div>
+                        </div>
                     </div>   
                     <div class="list">
                         <div class="list_draggable_items">
@@ -90,8 +98,11 @@
                     <div class="main-content">
                         <div class="search-container">
                             <div class="search-box">
-                                <input type="search" name="" id="current_search" placeholder="search beatmaps">
-                                <i class="more_options bi bi-plus"></i>
+                                <div class="input-box">
+                                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    <input type="search" name="" id="current_search" placeholder="search beatmaps...">
+                                </div>
+                                <button class="more_options bi bi-plus"></button>
                             </div>
                             <div class="filter-box"></div>
                             <div class="show-filter">

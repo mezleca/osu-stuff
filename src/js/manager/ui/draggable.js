@@ -6,7 +6,6 @@ import { create_element, path } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { create_context } from "./context.js";
 import { Reader } from "../../utils/reader/reader.js";
-import { osdb_versions } from "../../utils/reader/models/stable.js";
 
 export const draggable_items_map = new Map();
 
@@ -360,7 +359,6 @@ export const export_all_beatmaps = async (id) => {
     create_alert(`exported all ${exported.size} beatmaps successfully!`);
 };
 
-// @TODO: option to export as osdb
 export const export_collection = async (id) => {
 
     // get the collcetion by id and create a new collection.db with the exported one
@@ -432,6 +430,42 @@ export const export_collection = async (id) => {
     }   
 };
 
+const create_collection_item = (id, name) => {
+
+    const element = create_element(`
+        <div class="draggable_item">
+            <div class="collection-info">
+                <svg class="music-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <h1 class="collection-name"></h1>
+            </div>
+            <p class="beatmap-count">
+                0 maps
+            </p>
+        </div>
+    `);
+
+    const name_element = element.querySelector(".collection-name");
+    const count_element = element.querySelector(".beatmap-count");
+
+    name_element.textContent = name;
+    element.id = id;
+
+    return { draggable_item: element, name_element: name_element, count_element: count_element };
+};
+
+export const update_collection_count = (id) => {
+
+    const item = document.getElementById(id);
+    const collection = core.reader.collections.beatmaps.get(get_selected_collection());
+    const count = item.querySelector(".beatmap-count");
+
+    if (collection.maps.size == 1) {
+        count.textContent = "1 map";
+    } else {
+        count.textContent = `${collection.maps.size} maps`;
+    }
+};
+
 export const setup_draggables = () => {
 
     if (!core.reader.osu?.beatmaps) {
@@ -444,20 +478,21 @@ export const setup_draggables = () => {
 
         // create the new elements and append to draggable_items map
         const id = crypto.randomUUID();
-        const draggable_item = create_element(`
-            <div class="draggable_item">
-                <h1></h1>
-            </div>
-        `);
+        const { draggable_item, name_element, count_element } = create_collection_item(id, k);
 
-        const draggable_item_name = draggable_item.children[0];
-
-        draggable_item_name.textContent = k;
-        draggable_item.id = id;
+        if (!draggable_item) {
+            continue;
+        }
 
         list.appendChild(draggable_item);
+        
+        if (v.maps.size == 1) {
+            count_element.textContent = "1 map";
+        } else {
+            count_element.textContent = `${v.maps.size} maps`;
+        }
 
-        draggable_item_name.addEventListener("mousedown", (event) => {
+        draggable_item.addEventListener("mousedown", (event) => {
 
             const draggable_item = draggable_items_map.get(id);
 
@@ -470,16 +505,7 @@ export const setup_draggables = () => {
             mouse_x = event.clientX;
             mouse_y = event.clientY;
     
-            // @TODO: better way to move element thorugh divs
-            const placeholder_html = `
-                <div class="draggable_item">
-                    <h1></h1>
-                </div>
-            `
-            const placeholder_draggable_item = create_element(placeholder_html);
-            const placeholder_name = placeholder_draggable_item.children[0];
-
-            placeholder_name.textContent = k;
+            const placeholder_draggable_item = draggable_item.target.cloneNode(true);
     
             const handle_up = async () => {
 
@@ -594,7 +620,7 @@ export const setup_draggables = () => {
             if (draggable_context.id != id) {
 
                 draggable_context.update([
-                    { type: "default", value: "rename collection", callback: () => { change_collection_name(id, draggable_item_name) }},
+                    { type: "default", value: "rename collection", callback: () => { change_collection_name(id, name_element) }},
                     { type: "default", value: "export collection", callback: () => { export_collection(k) }},
                     { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
                     { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
