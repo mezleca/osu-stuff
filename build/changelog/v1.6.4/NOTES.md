@@ -1,6 +1,6 @@
 ## changelog
 - added search bar for collection search
-- improved beatmap-card design
+- improved collection-card design
 - fixed a bunch of beatmap-card render related stuff
 - removed junk from beatmap-card render system (still ass tho)
 - added option to export collections as 
