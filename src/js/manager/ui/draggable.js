@@ -453,6 +453,22 @@ const create_collection_item = (id, name) => {
     return { draggable_item: element, name_element: name_element, count_element: count_element };
 };
 
+export const update_collections_count = () => {
+
+    for (let [k, v] of draggable_items_map) {
+
+        const item = v.target;
+        const collection = v.collection;
+        const count = item.querySelector(".beatmap-count");
+
+        if (collection.maps.size == 1) {
+            count.textContent = "1 map";
+        } else {
+            count.textContent = `${collection.maps.size} maps`;
+        }
+    }
+};
+
 export const update_collection_count = (id) => {
 
     const item = document.getElementById(id);

@@ -15,7 +15,7 @@ import { get_beatmap_sr } from "./tools/beatmaps.js";
 import { open_url } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
-import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count } from "./ui/draggable.js";
+import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count, update_collections_count } from "./ui/draggable.js";
 import { create_dropdown } from "./ui/dropdown.js";
 import { create_context } from "./ui/context.js";
 import { create_range } from "./ui/range.js";
@@ -930,6 +930,9 @@ export const add_collection_manager = async (maps, collection) => {
 
     const updated_map = new Set(maps.map(map => update_map_info(map)).filter((b) => typeof b == "string"));
     core.reader.collections.beatmaps.set(collection, { maps: updated_map });
+
+    // update all collections count
+    update_collections_count();
 
     await initialize();
     show_update_button();
