@@ -3,6 +3,7 @@ import { create_dropdown } from "../manager/ui/dropdown.js";
 import { create_range } from "../manager/ui/range.js";
 import { safe_id, safe_text, create_element } from "../utils/global.js";
 import { open_url } from "../utils/other/process.js";
+import { create_collection_item } from "../manager/ui/draggable.js";
 
 const alerts = new Map();
 
@@ -301,6 +302,24 @@ const create_custom_menu = async (options) => {
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;
+
+            case 'cards':
+                const cards = new Set();
+                const container = create_element('<div class="cards-container"></div>');
+                for (const card of props) {
+                    const card_data = create_collection_item(crypto.randomUUID(), card.name);
+                    if (card.selectable) {
+                        card_data.draggable_item.addEventListener("click", () => card_data.draggable_item.classList.toggle("selected"));
+                    } else {
+                        card_data.name_element.textContent += " (already imported)";
+                    }
+                    card_data.count_element.textContent = card.count + " maps";
+                    cards.add(card_data);
+                    container.appendChild(card_data.draggable_item);
+                }
+                filters[safe_key] = { container: container, cards: cards };
+                elements_container.appendChild(container);
+                break;
                 
             case 'checkbox':
                 const checkbox_el = create_element(`
@@ -372,7 +391,14 @@ const create_custom_menu = async (options) => {
                     if (tag) {
                         result[safe_key] = tag.values;
                     }
-                } 
+                }
+                else if (type == 'cards') {
+                    const data = filters[safe_key];
+                    if (data) {
+                        const filtered_cards = Array.from(data.cards).filter((c) => c.draggable_item.classList.contains("selected"));
+                        result[safe_key] = filtered_cards.map((c) => c.name_element.textContent);
+                    }
+                }
                 else {
                     const el = content_wrapper.querySelector(`#${safe_key}`);
                     if (el) {

@@ -456,7 +456,7 @@ export const export_collection = async (id) => {
     }   
 };
 
-const create_collection_item = (id, name) => {
+export const create_collection_item = (id, name) => {
 
     const element = create_element(`
         <div class="draggable_item">

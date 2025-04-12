@@ -12,7 +12,7 @@ import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { filter_beatmap } from "./tools/filter.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
-import { open_url } from "../utils/other/process.js";
+import { create_dialog, open_url } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
 import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count, update_collections_count } from "./ui/draggable.js";
@@ -340,7 +340,7 @@ const create_new_collection = async () => {
         title: "method",
         elements: [{
             key: "name",
-            element: { list: ["empty", "from url", "from player"] }
+            element: { list: ["empty", "from url", "from file", "from player"] }
         }]
     });
 
@@ -348,28 +348,90 @@ const create_new_collection = async () => {
         return;
     }
 
-    if (method.name == "empty") {
+    switch (method.name) {
 
-        const collection_name = await create_custom_popup({     
-            type: message_types.INPUT, 
-            label: "collection name" 
-        });
-        
-        if (!collection_name) {
-            return;
+        case "empty": {
+
+            const collection_name = await create_custom_popup({     
+                type: message_types.INPUT, 
+                label: "collection name" 
+            });
+            
+            if (!collection_name) {
+                return;
+            }
+    
+            if (core.reader.collections.beatmaps.has(collection_name)) {
+                return create_alert("this collection already exists");
+            }
+    
+            create_empty_collection(collection_name);
+            break;
         }
+        case "from url": 
+            add_new_collection();
+            break;
+        case "from file": {
 
-        if (core.reader.collections.beatmaps.has(collection_name)) {
-            return create_alert("this collection already exists");
+            const file = await create_dialog({
+                title: "select the file",
+                properties: ["openFile"],
+                filters: [
+                    { name: "collection files", extensions: [/*"osdb"*/, "db"], }
+                ]
+            });
+
+            if (file.canceled) {
+                return;
+            }
+
+            const file_path = file.filePaths[0];
+
+            if (!fs.existsSync(file_path)) {
+                create_alert("this file dont exist my guy", { type: "error" });
+                return;
+            }
+
+            const reader = new Reader();
+            const buffer = fs.readFileSync(file_path);
+
+            const collections = await reader.get_collections_data(buffer);
+            const select = await create_custom_popup({
+                type: message_types.CUSTOM_MENU,
+                title: "collections to import",
+                elements: [
+                    { 
+                        key: "collections",
+                        element: { 
+                            cards: Array.from(collections.beatmaps).map(([k, c]) => {
+                                // dont make existing collections selectable 
+                                const is_selectable = core.reader.collections.beatmaps.has(k);
+                                return {
+                                    selectable: !is_selectable,
+                                    name: k,
+                                    count: c.maps.size
+                                }
+                            })
+                        }
+                    }
+                ]
+            });
+
+            // cancelled
+            if (!select || select?.collections.length == 0) {
+                return;
+            }
+
+            // add collections to manager
+            for (const name of select.collections) {
+                add_collection_manager(Array.from(collections.beatmaps.get(name).maps), name);
+            }
+
+            break;
         }
-
-        create_empty_collection(collection_name);
-    }
-    else if (method.name == "from url") {
-        add_new_collection();
-    }
-    else {
-        get_from_player();
+        default:
+            get_from_player();
+            break;
     }
 };
 

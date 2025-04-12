@@ -502,13 +502,13 @@ label {
     justify-self: start;
 }
 
-.popup-content-flex h2 {
+.popup-content-flex > h2 {
     font-size: 0.90em;
     align-self: flex-start;
     margin-left: 15px;
 }
 
-.popup-content h1, .popup-content-flex h1 {
+.popup-content > h1, .popup-content-flex > h1 {
     margin-bottom: 20px;
     font-size: 1.2em;
 }
@@ -1108,6 +1108,7 @@ button {
     background: transparent;
     border: 1px solid transparent;
     margin-bottom: 5px;
+    height: fit-content;
     color: white;
     text-align: left;
     cursor: pointer;
