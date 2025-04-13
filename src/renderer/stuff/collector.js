@@ -1,5 +1,5 @@
 import { core } from "../app.js";
-import { events } from "../events/emitter.js";
+
 import { create_alert } from "../popup/popup.js";
 import { url_is_valid } from "./download_from_players.js";
 import { initialize } from "../manager/manager.js";
@@ -122,25 +122,16 @@ export const add_collection = async (url) => {
     
         core.reader.collections.length = core.reader.collections.beatmaps.length;
 
-        console.log("[Collector] updated collection object", core.reader.collections);
+        console.log("[collector] updated collection object", core.reader.collections);
     
         if (is_testing) {
             create_alert("Your collection file has been updated!");
             resolve(`Your collection file has been updated!`);
             return;
         }
-    
-        // backup 
-        const backup_name = `collection_backup_${Date.now()}.db`;
-        const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
-              new_backup_name = path.resolve(core.config.get("stable_path"), backup_name);
-
-        if (fs.existsSync(old_name)) {
-            fs.renameSync(old_name, new_backup_name);
-        }
         
         // write the new file
-        core.reader.write_collections_data(path.resolve(core.config.get("stable_path"), "collection.db"));
+        core.reader.write_collections_data();
     
         // update manager
         await initialize();

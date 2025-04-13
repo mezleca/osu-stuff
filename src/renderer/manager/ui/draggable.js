@@ -424,12 +424,17 @@ export const export_collection = async (id) => {
         reader.collections.beatmaps.set(id, collection);
         
         const export_path = path.resolve(core.config.get("export_path"), `${id}.db`);
-        await reader.write_collections_data(export_path);
-    
+        const buffer = await reader.write_stable_collection();
+
+        if (!core.config.get("export_path")) {
+            create_alert("uhhh, can you please set you export path again? :3");
+            return;
+        }
+
+        await fs.save_exported(`${id}.db`, buffer);
         core.progress.update(`exported ${id} on ${export_path}`);
     } else {
 
-        const export_path = path.resolve(core.config.get("export_path"), `${id}.osdb`);
         const beatmaps = Array.from(collection.maps);
         const buffer = await reader.write_osdb_data({
             save_date: new Date(),
@@ -451,8 +456,12 @@ export const export_collection = async (id) => {
             }]
         }, "o!dm7min"); // minimal cuz we might have missing beatmaps
 
-        console.log(buffer);
-        fs.writeFileSync(export_path, Buffer.from(buffer));
+        if (!core.config.get("export_path")) {
+            create_alert("uhhh, can you please set you export path again? :3");
+            return;
+        }
+
+        fs.save_exported(`${id}.osdb`, buffer);
     }   
 };
 

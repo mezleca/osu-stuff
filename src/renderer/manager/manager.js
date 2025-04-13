@@ -12,7 +12,7 @@ import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { filter_beatmap } from "./tools/filter.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
-import { create_dialog, open_url } from "../utils/other/process.js";
+import { create_dialog, open_url, select_file } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
 import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count, update_collections_count } from "./ui/draggable.js";
@@ -373,7 +373,7 @@ const create_new_collection = async () => {
             break;
         case "from file": {
 
-            const file = await create_dialog({
+            const buffer = await select_file({
                 title: "select the file",
                 properties: ["openFile"],
                 filters: [
@@ -381,19 +381,12 @@ const create_new_collection = async () => {
                 ]
             });
 
-            if (file.canceled) {
-                return;
-            }
-
-            const file_path = file.filePaths[0];
-
-            if (!fs.existsSync(file_path)) {
-                create_alert("this file dont exist my guy", { type: "error" });
+            // cancelled
+            if (!buffer) {
                 return;
             }
 
             const reader = new Reader();
-            const buffer = fs.readFileSync(file_path);
 
             const collections = await reader.get_collections_data(buffer);
             const select = await create_custom_popup({
@@ -631,7 +624,7 @@ const create_beatmap_card = (md5) => {
                     { type: "default", value: "open on browser", callback: () => { open_in_browser(beatmap) } },
                     { type: "default", value: "export beatmap", callback: () => { 
                         core.reader.export_beatmap(beatmap);
-                        create_alert(`exported ${beatmap.beatmap_id}`);
+                        core.progress.update(`exported ${beatmap.beatmap_id}`);
                     }},
                     { type: "submenu", value: "move to", values: collection_keys },
                     { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
@@ -874,7 +867,6 @@ export const merge_collections = (cl1, cl2) => {
 
 update_collection_button.addEventListener("click", async () => {
 
-    const lazer_mode = is_lazer_mode();
     const confirm = await quick_confirm("are you sure?");
 
     if (!confirm) {
@@ -886,23 +878,8 @@ update_collection_button.addEventListener("click", async () => {
 
     console.log("[manager] updating collection:", core.reader.collections);
 
-    if (lazer_mode) {
-        // yep no backup for lazer...
-        await core.reader.write_collections_data();
-        create_alert("updated!");
-    } 
-    else {
-        const backup_name = `collection_backup_${Date.now()}.db`;
-        const old_name = path.resolve(core.config.get("stable_path"), "collection.db"), 
-            new_name = path.resolve(core.config.get("stable_path"), backup_name);
-
-        if (fs.existsSync(old_name)) {
-            fs.renameSync(old_name, new_name);
-        }
-        
-        await core.reader.write_collections_data(old_name);
-        create_alert("updated!");
-    }
+    await core.reader.write_collections_data();
+    create_alert("updated!");
 
     hide_update_button();
 });

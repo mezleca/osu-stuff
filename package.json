@@ -45,7 +45,7 @@
 		"compression": "store",
 		"files": [
 			"src/index.js",
-			"src/gui/index.html",
+			"src/renderer/gui/index.html",
 			"src/dist/**",
 			"package.json",
 			"node_modules/**/*",

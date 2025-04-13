@@ -1,7 +1,7 @@
 import { tasks, blink, panels, tabs, add_tab } from "../tabs.js";
 import { create_alert, message_types, create_custom_popup } from "../popup/popup.js";
 import { download_maps, current_download } from "../utils/downloader.js";
-import { events } from "./emitter.js";
+
 import { core } from "../app.js";
 
 export let queue_interval = null;
@@ -205,49 +205,49 @@ export const create_download_task = async (name, maps) => {
     await handle_event(data, () => { return maps });
 };
 
-events.on("progress-update", (data) => {
+// events.on("progress-update", (data) => {
 
-    const status = tasks.get(data.id);
+//     const status = tasks.get(data.id);
 
-    if (!status) {
-        console.log("[progress] task not found", data, tasks);
-        return;
-    }
+//     if (!status) {
+//         console.log("[progress] task not found", data, tasks);
+//         return;
+//     }
 
-    const index = data.i || 0;
-    const length = !data.l ? "???" : data.l;
-    const perc = (index / length) * 100 || 0;
+//     const index = data.i || 0;
+//     const length = !data.l ? "???" : data.l;
+//     const perc = (index / length) * 100 || 0;
 
-    status.text.innerText = `${index} / ${length} (${perc.toFixed(0)}%)`;
-    status.bar.style.width = `${perc}%`;
-});
+//     status.text.innerText = `${index} / ${length} (${perc.toFixed(0)}%)`;
+//     status.bar.style.width = `${perc}%`;
+// });
 
-events.on("progress-end", (id, downloaded) => {
+// events.on("progress-end", (id, downloaded) => {
 
-    const data = tasks.get(id);
+//     const data = tasks.get(id);
 
-    if (!data) {
-        console.log("[progress] id not found", data, id);
-        return;
-    }
+//     if (!data) {
+//         console.log("[progress] id not found", data, id);
+//         return;
+//     }
 
-    const status = data.tab;
+//     const status = data.tab;
 
-    if (!status) {
-        console.log("[progress] status not found", data.id);
-        return;
-    }
+//     if (!status) {
+//         console.log("[progress] status not found", data.id);
+//         return;
+//     }
 
-    if (downloaded) {
-        data.status = "finished";
-        queue.set(id, data);
-    }
+//     if (downloaded) {
+//         data.status = "finished";
+//         queue.set(id, data);
+//     }
 
-    if (panels.status.contains(status)) {
-        panels.status.removeChild(status);
-    } else {
-        console.log("[progress] panel dont contain status", status, );
-    }
+//     if (panels.status.contains(status)) {
+//         panels.status.removeChild(status);
+//     } else {
+//         console.log("[progress] panel dont contain status", status, );
+//     }
 
-    tasks.delete(id);
-});
+//     tasks.delete(id);
+// });

@@ -1,7 +1,9 @@
 import path from "path";
+import fs from "fs";
 
 import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu, protocol } from "electron";
 import { fileURLToPath } from 'url';
+import { init_downloader } from "./downloader.js";
 
 /** @type {BrowserWindow} */
 let main_window = null;
@@ -116,9 +118,10 @@ const createWindow = () => {
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
             enableRemoteModule: true,
-            webSecurity: false,
+            webSecurity: true,
+            preload: path.resolve("./src/preload.js")
         },
         titleBarOverlay: false,
     });
@@ -127,7 +130,7 @@ const createWindow = () => {
     globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" })});
 
     // load html yep
-    main_window.loadFile(path.join(__dirname, "./gui/index.html"));
+    main_window.loadFile(path.join(__dirname, "./renderer/gui/index.html"));
     main_window.setMenuBarVisibility(false);
 
     // window controls
@@ -135,8 +138,19 @@ const createWindow = () => {
     ipcMain.handle('minimize', () => main_window.minimize());
     ipcMain.handle('close'   , () => app.quit());
 
-    // other gargabe
+    // other garbage
     ipcMain.handle('create-dialog', async (_, options) => await create_dialog(options));
+    ipcMain.handle('select-file', async (_, options) => {
+        
+        const file = await create_dialog(options);
+
+        if (file.canceled) {
+            return;
+        }
+
+        const file_path = file.filePaths[0];
+        return fs.readFileSync(file_path);
+    });
     ipcMain.handle('dev_mode', () => dev_mode);
 
     // function to get cookies from stats
@@ -185,7 +199,7 @@ const createWindow = () => {
         // load files
         main_window.webContents.executeJavaScript(`
             const script = document.createElement('script');
-            script.src = "${dev_mode ? '../js/app.js' : '../dist/app.bundle.js'}";
+            script.src = "${dev_mode ? '../app.js' : '../dist/app.bundle.js'}";
             script.type = "module";
             
             const file = location.pathname.split("/").pop();
@@ -205,6 +219,8 @@ const createWindow = () => {
             main_window.webContents.openDevTools({ mode: "detach" });
         }
     });
+
+    init_downloader(main_window);
 };
 
 app.whenReady().then(async () => {

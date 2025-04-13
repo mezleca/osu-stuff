@@ -4,7 +4,7 @@ import { all_tabs, blink } from "../tabs.js";
 import { fs, path } from "./global.js";
 import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
 import { initialize, lazer_mode } from "../manager/manager.js";
-import { delete_from_db, get_all_from_database, save_to_db } from "./other/indexed_db.js";
+import { indexed } from "./other/indexed_db.js";
 import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
 
 const tooltips_text = {
@@ -38,7 +38,7 @@ export const is_lazer_mode = () => {
 
 export const save_config = async (key, value) => {
 
-    const success = await save_to_db("config", key, value);
+    const success = await indexed.save("config", key, value);
 
     if (!success) {
         console.error("failed to save config");
@@ -81,55 +81,26 @@ export const load_osu_files = async (stable_path) => {
 
     if (!fs.existsSync(collection_file)) {
         core.reader.collections = { version: 20240820, length: 0, beatmaps: [] };
-        await core.reader.write_collections_data(collection_file);
-        console.log("creating placeholder file");
+        await core.reader.write_collections_data();
     }
 
-    const osu_data = fs.readFileSync(db_file);
-    const collection_data = fs.readFileSync(collection_file);
+    set_loading_status("reading osu files...");
+
+    const { cl, db } = await window.extra.get_osu_files();
 
     core.reader.buffer = null;
     core.reader.osu = {};
     core.reader.collections = {};
 
-    set_loading_status("reading osu files...");
-
-    await core.reader.get_collections_data(collection_data);
-    await core.reader.get_osu_data(osu_data);
+    await core.reader.get_collections_data(cl);
+    await core.reader.get_osu_data(db);
 
     core.reader.buffer = null;
 };
 
 const check_folder_permissions = async (folder) => {
-
     console.log("[config] checking folder access", folder);
-
-    try {
-
-        const test_file = path.join(folder, `test-${Date.now()}.tmp`);
-        const test_file_renamed = path.join(folder, "renamed-test.tmp");
-
-        fs.writeFileSync(test_file, "test");
-        fs.readFileSync(test_file);
-        fs.renameSync(test_file, test_file_renamed);
-        fs.unlinkSync(test_file_renamed);
-
-        const first_file = fs.readdirSync(folder)[0];
-
-        if (first_file) {
-            const file_path = path.join(folder, first_file);
-            const stats = fs.statSync(file_path);
-            const is_dir = (stats.mode & 0o170000) == 0o040000;
-            const temp_name = path.join(folder, is_dir ? "stufttest0101" : "renamed-test.tmp");
-            fs.renameSync(file_path, temp_name);
-            fs.renameSync(temp_name, file_path);
-        }
-
-        return true;
-    } catch (err) {
-        console.log("[config] folder perm error:", err);
-        return false;
-    }
+    return await window.extra.check_folder_permissions(folder);
 };
 
 const get_access_token = async () => {
@@ -195,11 +166,11 @@ const validate_and_setup_config = async () => {
 const manage_mirrors = async (tab, add_button) => {
 
     tab.innerHTML = "<h1>mirrors list</h1>";
-    const mirror_data = await get_all_from_database("mirrors");
+    const mirror_data = await indexed.all("mirrors");
 
     if (mirror_data.size == 0) {
         for (const mirror of default_mirrors) {
-            await save_to_db("mirrors", mirror.name, mirror.url);
+            await indexed.save("mirrors", mirror.name, mirror.url);
             mirror_data.set(mirror.name, mirror.url);
         }
     }
@@ -218,7 +189,7 @@ const manage_mirrors = async (tab, add_button) => {
 
         const remove_btn = element.querySelector("#remove_mirror");
         remove_btn.addEventListener("click", async () => {
-            await delete_from_db("mirrors", name);
+            await indexed.delete("mirrors", name);
             await manage_mirrors(tab, add_button);
         });
         
@@ -233,7 +204,7 @@ export const initialize_config = async () => {
 
     set_loading_status("checking config...");
 
-    const config_data = await get_all_from_database("config");
+    const config_data = await indexed.all("config");
 
     // load saved config
     if (config_data) {
@@ -406,7 +377,7 @@ export const initialize_config = async () => {
             return;
         }
 
-        await save_to_db("mirrors", prompt.name, prompt.url);
+        await indexed.save("mirrors", prompt.name, prompt.url);
         await manage_mirrors(mirror_tab, mirror_add_button);
     });
 

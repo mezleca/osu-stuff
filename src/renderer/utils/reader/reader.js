@@ -1,12 +1,8 @@
-const Realm = require('realm');
-const JSZip = require("jszip");
-
 import { core } from "../../app.js";
 import { osu_db, collections_db, osdb_schema, osdb_versions, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
 import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
 import { get_beatmap_bpm, get_beatmap_sr } from "../../manager/tools/beatmaps.js";
-import { all_schemas, BeatmapCollection } from "./models/lazer.js";
 import { get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 import { is_lazer_mode } from "../config.js";
 import { BinaryReader } from "./binary.js";
@@ -19,7 +15,7 @@ export class Reader extends BinaryReader {
     osu;
     /** @type {Map} */
     image_cache;
-    /** @type {Realm} */
+
     instance;
 
     constructor() {
@@ -82,17 +78,47 @@ export class Reader extends BinaryReader {
                 buffer.push(new Uint8Array(this.buffer.slice(last_index)));
             }
             
-            await fs.writeFileSync(p, this.join_buffer(buffer));
+            fs.save_osu_file(this.join_buffer(buffer));
             res();
         });
     };
 
-    write_collections_data = (p) => {
+    write_stable_collection = () => {
+
+        if (!this.collections) {
+            console.log("[reader] no collections found");
+            return;
+        }
+
+        const buffer = [];
+
+        buffer.push(this.writeInt(this.collections.version));
+        buffer.push(this.writeInt(this.collections.beatmaps.size)); 
+
+        for (const [name, collection] of this.collections.beatmaps) {
+            
+            buffer.push(this.writeString(name));
+            buffer.push(this.writeInt(collection.maps.size));
+
+            for (const map of collection.maps) {
+
+                if (!map) {
+                    console.log("[reader] failed to get beatmap from collection!");
+                    return reject();
+                }
+
+                buffer.push(this.writeString(map));
+            }
+        }
+
+        return this.join_buffer(buffer);
+    };
+    
+    write_collections_data = (_path) => {
         
         return new Promise(async (resolve, reject) => {
 
             const lazer_mode = is_lazer_mode();
-            const buffer = [];
 
             if (lazer_mode) {
 
@@ -105,10 +131,7 @@ export class Reader extends BinaryReader {
                     
                     // delete pending collections
                     for (const pending of this.pending_deletion) {
-                        this.instance.write(() => {
-                            const collection = this.instance.objectForPrimaryKey("BeatmapCollection", pending.uuid);
-                            this.instance.delete(collection);
-                        });
+                        await window.realmjs.delete_collection(this.instance, pending.uuid);
                     }
 
                     // update/create the rest
@@ -116,35 +139,15 @@ export class Reader extends BinaryReader {
                     // it only gave that error 1 time i cant seem to reproduce...
                     for (const [name, data] of Array.from(this.collections.beatmaps)) {
 
-                        const exists = data?.uuid ? this.instance.objectForPrimaryKey("BeatmapCollection", data.uuid) : null;
-                        this.instance.write(() => {
-    
-                            if (exists == null) {
+                        const result = await window.realmjs.update_collection(this.instance, data.uuid, name, data.maps);
 
-                                const id = new Realm.BSON.UUID();
-
-                                console.log("creating new collection", id, name, data);
-                                
-                                this.instance.create(BeatmapCollection, {
-                                    ID: id,
-                                    Name: name,
-                                    BeatmapMD5Hashes: Array.from(data.maps) || [],
-                                    LastModified: new Date()
-                                });
-    
-                                this.collections.beatmaps.get(name).uuid = id;
-                            
-                            } else {
-                                const collection = exists;
-                                collection.Name = name;
-                                collection.BeatmapMD5Hashes = Array.from(data.maps);
-                                collection.LastModified = new Date();
-                            }
-                        });
+                        // true == new one
+                        if (result.new) {
+                            this.collections.beatmaps.get(name).uuid = result.id;
+                        }
                     }
 
                     return resolve(); 
-
                 } catch(err) {
                     create_alert("failed to save collection, check logs for more info", { type: "error" });
                     console.log("[reader] error while saving", err);
@@ -152,35 +155,8 @@ export class Reader extends BinaryReader {
                 }
             }
 
-            if (!this.collections) {
-                console.log("[reader] no collections found");
-                return;
-            }
-
-            buffer.push(this.writeInt(this.collections.version));
-            buffer.push(this.writeInt(this.collections.beatmaps.size)); 
-
-            for (const [name, collection] of this.collections.beatmaps) {
-                
-                buffer.push(this.writeString(name));
-                buffer.push(this.writeInt(collection.maps.size));
-
-                for (const map of collection.maps) {
-
-                    if (!map) {
-                        console.log("[reader] failed to get beatmap from collection!");
-                        return reject();
-                    }
-
-                    buffer.push(this.writeString(map));
-                }
-            }
-
-            if (!p) {
-                return resolve();
-            }
-
-            fs.writeFileSync(p, this.join_buffer(buffer));
+            const buffer = this.write_stable_collection();
+            window.extra.save_collection_file(this.join_buffer(buffer), _path);
             resolve();
         });
     };
@@ -523,7 +499,7 @@ export class Reader extends BinaryReader {
                 try { 
                     
                     // get instance
-                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), all_schemas);
+                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), ["All"]);
 
                     // convert lazer data to match current osu! stable obj
                     this.osu = lazer_to_osu_db(this.instance);
@@ -706,15 +682,15 @@ export class Reader extends BinaryReader {
 
             const lazer_mode = is_lazer_mode();
 
-            if (lazer_mode) {
+            if (lazer_mode && !buffer) {
 
                 try {
 
                     // get instance
-                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), all_schemas);
+                    await this.create_instance(path.resolve(core.config.get("lazer_path"), "client.realm"), ["All"]);
 
                     // get collections data
-                    const data = this.instance.objects("BeatmapCollection").toJSON();
+                    const data = await window.realmjs.objects(this.instance, "BeatmapCollection");
                     this.collections = {
                         length: data.length,
                         beatmaps: new Map(),
@@ -824,7 +800,7 @@ export class Reader extends BinaryReader {
         }
     };
 
-    search_image(beatmap) {
+    async search_image(beatmap) {
 
         try { 
 
@@ -834,7 +810,7 @@ export class Reader extends BinaryReader {
                 return;
             }
 
-            const content = fs.readFileSync(file_location, "utf8");
+            const content = await window.extra.get_osu_file(file_location);
             const events_start = content.indexOf("[Events]");
 
             if (!events_start) {
@@ -915,22 +891,9 @@ export class Reader extends BinaryReader {
         }
     };
 
-    zip_file(files) {
-
-        const zip = new JSZip();
-    
-        for (let i = 0; i < files.length; i++) {
-            
-            const { name, location } = files[i];
-
-            if (fs.statSync(location).isDirectory()) {
-                continue;
-            }
-
-            zip.file(name, fs.readFileSync(location));
-        }
-    
-        return zip.generateAsync({ type: "nodebuffer" });
+    async zip_file(files) {
+        const result = await window.JSZip.zip_file(files);
+        return result;
     }
     
     async export_beatmap(beatmap) {
@@ -974,7 +937,12 @@ export class Reader extends BinaryReader {
             buffer = await this.zip_file(files);
         }
 
-        fs.writeFileSync(`${export_path}/${beatmap.beatmap_id}.osz`, buffer);
+        if (!core.config.get("export_path")) {
+            create_alert("uhhh, can you please set you export path again? :3");
+            return;
+        }
+
+        fs.save_exported(`${beatmap.beatmap_id}.osz`, buffer);
     }
 
     static get_beatmap_status(code) {

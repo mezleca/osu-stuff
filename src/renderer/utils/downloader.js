@@ -1,6 +1,6 @@
 import { core } from "../app.js";
 import { create_alert } from "../popup/popup.js";
-import { events } from "../events/emitter.js";
+
 import { initialize } from "../manager/manager.js";
 import { osu_fetch } from "./other/fetch.js";
 import { fs, path, is_testing } from "./global.js";

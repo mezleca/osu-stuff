@@ -1,7 +1,7 @@
 import { core } from "../../app.js";
 import { create_alert } from "../../popup/popup.js";
 import { OSU_STATS_URL } from "../global.js";
-import { get_from_database, save_to_db } from "./indexed_db.js";
+import { indexed } from "./indexed_db.js";
 import { create_auth, fetchstats } from "./process.js";
 
 export const osu_login = async (id, secret) => {
@@ -55,12 +55,12 @@ export const fetch_osustats = async (collection_url) => {
         return;
     }
 
-    const stats_data = await get_from_database("stats", "data");
+    const stats_data = await indexed.get("stats", "data");
 
     if (!stats_data) {
         core.progress.update("started osu!stats auth");
         const data = await create_auth(OSU_STATS_URL, "https://osustats.ppy.sh/");
-        await save_to_db("stats", "data", data);
+        await indexed.save("stats", "data", data);
     }
 
     const url = `https://osustats.ppy.sh/apiv2/collection/${id}/download`;

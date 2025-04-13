@@ -1,34 +1,23 @@
-import { 
-    Beatmap, BeatmapCollection, BeatmapDifficulty, BeatmapMetadata, 
-    BeatmapSet, BeatmapUserSettings, RealmNamedFileUsage, RealmUser, Ruleset 
-} from './models/lazer.js';
-
-const Realm = require('realm');
-const fs = require('fs');
+import { fs } from "../global.js";
 
 const LAZER_SCHEMA_VERSION = 48;
 
 export const get_realm_instance = (path, schemas) => {
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
 
         if (!fs.existsSync(path)) {
             return reject("path does not exist");
         }
 
-        const realm = new Realm({
-            path: path,
-            schema: [...schemas],
-            schemaVersion: LAZER_SCHEMA_VERSION
-        });
-
+        const realm = await window.realmjs.openRealm(path, schemas, LAZER_SCHEMA_VERSION);
         resolve(realm);
     });
 };
 
 export const get_lazer_beatmaps = (realm) => {
-    const beatmaps = realm.objects(Beatmap);
-    return beatmaps.toJSON();
+    const beatmaps = window.realmjs.objects(realm, "Beatmap");
+    return beatmaps;
 };
 
 export const convert_lazer_to_stable = (lazer_beatmaps) => {
