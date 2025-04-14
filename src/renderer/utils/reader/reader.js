@@ -393,7 +393,6 @@ export class Reader extends BinaryReader {
                     if (version >= 3) {
 
                         const all_hashes = collection.hash_only_beatmaps;
-                        console.log(collection)
                         buffer.push(this.writeInt(all_hashes.length));
                         
                         for (let i = 0; i < all_hashes.length; i++) {
@@ -890,7 +889,6 @@ export class Reader extends BinaryReader {
             return result;
         } 
         else {
-            console.log(core.config.get("stable_songs_path"));
             const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
             this.image_cache.set(beatmap.beatmap_id, result);
             return result;

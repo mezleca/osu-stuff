@@ -198,8 +198,6 @@ export class BinaryReader {
             result.set(arraybf, offset);
             offset += arraybf.byteLength;
         }
-
-        console.log(result, offset);
     
         return result;
     }

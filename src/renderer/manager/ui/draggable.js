@@ -352,7 +352,6 @@ search_input.addEventListener("input", () => {
         if (name.textContent.toLowerCase().includes(value.toLowerCase())) {
             target.classList.remove("hidden");
         } else {
-            console.log("hidding", v.target);
             target.classList.add("hidden");
         }
     }    

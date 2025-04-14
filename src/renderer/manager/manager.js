@@ -712,8 +712,6 @@ const create_beatmap_card = (md5) => {
 
                 const single = await downloader.single(md5);
 
-                console.log(single);
-
                 if (!single.success) {
                     create_alert("failed to find beatmap :c", { type: "alert" });
                     return;

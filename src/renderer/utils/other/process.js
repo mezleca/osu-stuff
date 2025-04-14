@@ -1,6 +1,5 @@
 import { path, extra } from "../global.js";
 
-console.log(extra.homedir);
 const windows_default_path = path.resolve(extra.homedir, "AppData", "Local", "osu!");
 
 export const get_og_path = () => {
