@@ -121,7 +121,8 @@ const createWindow = () => {
             contextIsolation: true,
             enableRemoteModule: true,
             webSecurity: true,
-            preload: path.resolve("./src/preload.js")
+            preload: path.resolve("./src/dist/preload.bundle.js"),
+            sandbox: false,
         },
         titleBarOverlay: false,
     });
@@ -220,7 +221,7 @@ const createWindow = () => {
         }
     });
 
-    init_downloader(main_window);
+    init_downloader(main_window, ipcMain);
 };
 
 app.whenReady().then(async () => {
@@ -240,7 +241,7 @@ app.whenReady().then(async () => {
 });
 
 
-// hardware accelearion on linux causes window freezing after a while (at least for me) 
+// hardware acceleraion on linux makes app unstable after 10/20 min (need to test this again btw)
 app.on('activate', () => {
     if (process.platform == "linux") {
         app.disableHardwareAcceleration();
