@@ -15,7 +15,6 @@
 		"build": "webpack && electron-builder build",
 		"build:win": "webpack && electron-builder build --win",
 		"build:linux": "webpack && electron-builder build --linux",
-		"build:mac": "webpack && electron-builder build --mac",
 		"build:preload": "webpack --config preload.config.js"
 	},
 	"author": {
@@ -51,6 +50,7 @@
 		"compression": "store",
 		"files": [
 			"src/index.js",
+			"src/downloader.js",
 			"src/renderer/gui/index.html",
 			"src/dist/**",
 			"package.json",

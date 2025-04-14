@@ -121,14 +121,14 @@ const createWindow = () => {
             contextIsolation: true,
             enableRemoteModule: true,
             webSecurity: true,
-            preload: path.resolve("./src/dist/preload.bundle.js"),
+            preload: path.resolve(__dirname, "dist", "preload.bundle.js"),
             sandbox: false,
         },
         titleBarOverlay: false,
     });
 
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
-    globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" })});
+    globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" }); });
 
     // load html yep
     main_window.loadFile(path.join(__dirname, "./renderer/gui/index.html"));
@@ -200,14 +200,14 @@ const createWindow = () => {
         // load files
         main_window.webContents.executeJavaScript(`
             const script = document.createElement('script');
-            script.src = "${dev_mode ? '../app.js' : '../dist/app.bundle.js'}";
+            script.src = "${dev_mode ? '../app.js' : '../../dist/app.bundle.js'}";
             script.type = "module";
             
             const file = location.pathname.split("/").pop();
             const link = document.createElement("link");
             const ext = ${dev_mode ? '".css"' : '".min.css"'};
             console.log(file.substr(0, file.lastIndexOf(".")) + ext);
-            link.href = ${dev_mode ? '"./index.css"' : '"../dist/index.min.css"'};
+            link.href = ${dev_mode ? '"./index.css"' : '"../../dist/index.min.css"'};
             link.type = "text/css";
             link.rel = "stylesheet";
             link.media = "screen,print";

@@ -15,8 +15,7 @@ export default {
     },
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'src', 'dist'),
-        clean: true
+        path: path.resolve(__dirname, 'src', 'dist')
     },
     target: 'electron-renderer',
     mode: 'production',
