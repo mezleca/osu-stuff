@@ -379,22 +379,40 @@ const create_new_collection = async () => {
             break;
         case "from file": {
 
-            const buffer = await select_file({
+            const data = await select_file({
                 title: "select the file",
                 properties: ["openFile"],
                 filters: [
-                    { name: "collection files", extensions: [/*"osdb",*/"db"], }
+                    { name: "collection files", extensions: ["osdb", "db"], }
                 ]
             });
 
             // cancelled
-            if (!buffer) {
+            if (!data) {
                 return;
             }
 
+            const { name, buffer } = data;
             const reader = new Reader();
 
-            const collections = await reader.get_collections_data(buffer);
+            const collections = path.extname(name) == ".osdb" ? { b: await reader.get_osdb_data(buffer) } : await reader.get_collections_data(buffer);
+            
+            // lazy ass solution
+            if (path.extname(name) == ".osdb") {
+
+                collections.beatmaps = new Map();
+
+                for (let i = 0; i < collections.b.collections.length; i++) {
+
+                    const data = collections.b.collections[i];
+                    const beatmaps = data.hash_only_beatmaps.length == 0 ? data.beatmaps.map((b) => b.md5) : data.hash_only_beatmaps;
+
+                    collections.beatmaps.set(data.name, { maps: new Set(beatmaps) });
+                } 
+            }
+
+            console.log(collections);
+
             const select = await create_custom_popup({
                 type: message_types.CUSTOM_MENU,
                 title: "collections to import",

@@ -150,7 +150,7 @@ const createWindow = () => {
         }
 
         const file_path = file.filePaths[0];
-        return fs.readFileSync(file_path);
+        return { name: path.basename(file_path), buffer: fs.readFileSync(file_path) };
     });
     ipcMain.handle('dev_mode', () => dev_mode);
 
@@ -191,7 +191,7 @@ const createWindow = () => {
         });
     });
 
-    ipcMain.handle("create-auth", async (event, url, end) => {
+    ipcMain.handle("create-auth", async (_, url, end) => {
         return create_auth_window(url, end);
     });
 
@@ -199,14 +199,16 @@ const createWindow = () => {
 
         // load files
         main_window.webContents.executeJavaScript(`
+
+            const ext = ${dev_mode ? '".css"' : '".min.css"'};
             const script = document.createElement('script');
+
             script.src = "${dev_mode ? '../app.js' : '../../dist/app.bundle.js'}";
             script.type = "module";
             
             const file = location.pathname.split("/").pop();
             const link = document.createElement("link");
-            const ext = ${dev_mode ? '".css"' : '".min.css"'};
-            console.log(file.substr(0, file.lastIndexOf(".")) + ext);
+
             link.href = ${dev_mode ? '"./index.css"' : '"../../dist/index.min.css"'};
             link.type = "text/css";
             link.rel = "stylesheet";
@@ -243,9 +245,7 @@ app.whenReady().then(async () => {
 
 // hardware acceleraion on linux makes app unstable after 10/20 min (need to test this again btw)
 app.on('activate', () => {
-    if (process.platform == "linux") {
-        app.disableHardwareAcceleration();
-    }
+    app.disableHardwareAcceleration();
 });
 
 app.on('window-all-closed', () => {

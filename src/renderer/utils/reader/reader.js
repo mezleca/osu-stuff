@@ -211,13 +211,19 @@ export class Reader extends BinaryReader {
      * @link https://github.com/Piotrekol/CollectionManager/blob/master/CollectionManagerDll/Modules/FileIO/FileCollections/OsdbCollectionHandler.cs
      * 
     */
-    async get_osdb_data() {
+    async get_osdb_data(buffer) {
 
         return new Promise(async (resolve, reject) => {
+
+            if (buffer) {
+                this.set_buffer(buffer);
+            }
 
             if (this.buffer.byteLength == 0) {
                 return reject(new Error("invalid buffer"));
             }
+
+            console.log(this.buffer);
     
             try {
 
@@ -780,7 +786,7 @@ export class Reader extends BinaryReader {
 
         if (lazer_mode) {
 
-            if (!beatmap?.beatmapset) {
+            if (!beatmap?.beatmapset || !beatmap?.folder_name) {
                 return "";
             }
             
