@@ -228,6 +228,8 @@ export const download_from_players = async (options) => {
 
     for (const player of players) {
 
+        core.progress.update(`fething data from ${player}...`);
+
         const req = await get_player_info({ ...options, player_name: player });
 
         if (!req) {
@@ -273,10 +275,21 @@ export const download_from_players = async (options) => {
             return;
         }
 
-        return {
-            md5: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
-            id: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
-        }
+        const result = beatmaps[0].flatMap((b) => {
+            if (b?.beatmap) {
+                return [{ 
+                    checksum: b.beatmap.checksum, 
+                    id: b.beatmap.beatmapset_id 
+                }];
+            } else {
+                return b.beatmaps.map((bm) => ({
+                    checksum: bm.checksum,
+                    id: b.id
+                }));
+            }   
+        });
+
+        return result;
     };
 
     const maps = get_maps();
@@ -290,18 +303,25 @@ export const download_from_players = async (options) => {
             }
         }
     }
+
+    const missing_maps = [];
+    const md5_only = maps.map((m) => { 
+        
+        if (!core.reader.osu.beatmaps.get(m.checksum)) {
+            missing_maps.push(m);
+        }
+
+        return m.checksum;
+    });
     
     if (method == "add to collections") {
-        await add_to_collection(maps.md5, collection_name, append);
+        await add_to_collection(md5_only, collection_name, append);
         return;
     }
 
     if (method == "both") {
-        await add_to_collection(maps.md5, collection_name, append);
+        await add_to_collection(md5_only, collection_name, append);
     }
-
-    const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());
-    const missing_maps = maps.id.filter(id => !osu_beatmaps.find(b => b.beatmap_id == id));
 
     if (missing_maps.length == 0) {
         create_alert("no beatmaps to download!", { type: "warning" });
@@ -314,5 +334,5 @@ export const download_from_players = async (options) => {
     }
 
     // add download to the queue
-    downloader.create_download({ id: crypto.randomUUID(), name: collection_name, hashes: missing_maps.map((id) => { return { id: id } })});
+    downloader.create_download({ id: crypto.randomUUID(), name: collection_name, maps: missing_maps });
 };

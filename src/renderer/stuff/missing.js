@@ -11,7 +11,7 @@ export const missing_download = async () => {
         for (const [k, v] of core.reader.collections.beatmaps) {
             for (const m of v.maps) {
                 if (m && !core.reader.osu.beatmaps.get(m)) {
-                    missing_maps.push({ collection_name: k, hash: m });
+                    missing_maps.push({ collection_name: k, checksum: m });
                 }
             }
         }
@@ -54,17 +54,7 @@ export const missing_download = async () => {
                 return;
             }
 
-            const abc = missing_maps;
-            missing_maps = [];
-
-            for (let i = 0; i < abc.length; i++) {
-                
-                if (abc[i].collection_name != name || !abc[i].hash) {
-                    continue;
-                }
-
-                missing_maps.push(abc[i]);
-            }
+            missing_maps = missing_maps.filter((c) => c.collection_name == name);
 
             if (!missing_maps) {
                 return;
@@ -77,7 +67,7 @@ export const missing_download = async () => {
         }
 
         // add to downloader queue
-        downloader.create_download({ id: crypto.randomUUID(), name: "missing beatmaps", hashes: missing_maps });
+        downloader.create_download({ id: crypto.randomUUID(), name: "missing beatmaps", maps: missing_maps });
     }
     catch(err) {
         console.log(`[missing beatmaps] error: ${err}`);

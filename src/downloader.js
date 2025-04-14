@@ -188,7 +188,7 @@ const process_map = async (win, map, index, options) => {
 
     try {
 
-        const map_data = map.id ? { hash: map.checksum, beatmapset_id: map.id } : await search_map_id(hash);
+        const map_data = map.id ? { hash: map.checksum, beatmapset_id: map.id } : await search_map_id(map.checksum);
         
         if (!map_data) {
             update_progress(win, id, index, total, { hash: map.checksum, success: false });
@@ -216,7 +216,7 @@ const process_map = async (win, map, index, options) => {
             downloaded_maps.set(map_data.beatmapset_id, { 
                 ...map_data, 
                 checksum: map.checksum, 
-                md5: map.hash 
+                md5: map.checksum 
             });
         }
 
@@ -241,6 +241,9 @@ const process_queue = async (win) => {
     }
 
     const { maps, id, name } = download_queue.shift();
+
+    console.log("starting download", id);
+    console.log("using mirrors", mirrors);
     
     is_processing = true;
     current_download.id = id;
