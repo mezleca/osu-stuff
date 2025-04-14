@@ -104,7 +104,7 @@ export class Reader extends BinaryReader {
 
                 if (!map) {
                     console.log("[reader] failed to get beatmap from collection!");
-                    return reject();
+                    return;
                 }
 
                 buffer.push(this.writeString(map));
@@ -155,8 +155,8 @@ export class Reader extends BinaryReader {
                 }
             }
 
-            const buffer = this.write_stable_collection();
-            window.extra.save_collection_file(this.join_buffer(buffer), _path);
+            const buffers = this.write_stable_collection();
+            fs.save_collection_file(buffers, _path);
             resolve();
         });
     };
@@ -322,13 +322,13 @@ export class Reader extends BinaryReader {
             try {
 
                 if (!data || !data.collections) {
-                    return reject(new Error("Invalid data structure"));
+                    return reject(new Error("[osdb] invalid data structure"));
                 }
     
                 const version = osdb_versions[version_string];
 
                 if (!version) {
-                    throw new Error(`invalid osdb version: ${version_string}`);
+                    throw new Error(`[osdb] invalid osdb version: ${version_string}`);
                 }
     
                 const is_minimal = version_string.endsWith("min");
@@ -810,7 +810,12 @@ export class Reader extends BinaryReader {
                 return;
             }
 
-            const content = await window.extra.get_osu_file(file_location);
+            const content = await fs.get_osu_file(file_location);
+
+            if (!content) {
+                return;
+            }
+
             const events_start = content.indexOf("[Events]");
 
             if (!events_start) {
@@ -848,7 +853,7 @@ export class Reader extends BinaryReader {
             }
 
         } catch(err) {
-            console.log("[reader]", err);
+            console.log("[reader] search image error:", err);
         }
     };
 
@@ -857,14 +862,14 @@ export class Reader extends BinaryReader {
      * @returns { Promise<{ path: String }> } 
      * 
     */
-    get_beatmap_image(beatmap) { 
+    async get_beatmap_image(beatmap) { 
 
         if (this.image_cache.has(beatmap.beatmap_id)) {
             return this.image_cache.get(beatmap.beatmap_id);
         }
         
         const lazer_mode = is_lazer_mode();
-        const image_name = this.search_image(beatmap);
+        const image_name = await this.search_image(beatmap);
 
         if (!image_name) {
             return;
@@ -885,6 +890,7 @@ export class Reader extends BinaryReader {
             return result;
         } 
         else {
+            console.log(core.config.get("stable_songs_path"));
             const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
             this.image_cache.set(beatmap.beatmap_id, result);
             return result;

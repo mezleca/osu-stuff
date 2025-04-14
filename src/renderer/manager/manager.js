@@ -3,16 +3,15 @@ import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js";
 import { create_element } from "../utils/global.js";
 import { setup_collector } from "../stuff/collector.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
-import { download_map } from "../utils/downloader.js";
-import { create_download_task, create_task } from "../events/events.js";
+import { downloader } from "../utils/downloader/client.js";
 import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
-import { debounce, fs, path, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
+import { debounce, placeholder_image, MAX_RENDER_AMMOUNT, star_ranges } from "../utils/global.js";
 import { filter_beatmap } from "./tools/filter.js";
 import { get_beatmap_sr } from "./tools/beatmaps.js";
-import { create_dialog, open_url, select_file } from "../utils/other/process.js";
+import { open_url, select_file } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
 import { Reader } from "../utils/reader/reader.js";
 import { draggable_items_map, remove_all_selected, setup_draggables, update_collection_count, update_collections_count } from "./ui/draggable.js";
@@ -184,7 +183,8 @@ const get_from_player = async () => {
     }
 
     method.name = `${Array.from(method.players).join(", ")})`;
-    await create_task(method.name, download_from_players, method);
+
+    download_from_players(method);
 };
 
 const add_new_collection = async () => {
@@ -257,7 +257,13 @@ const add_new_collection = async () => {
         return;
     }
 
-    await create_download_task(collection.name, yep_maps);
+    if (!core.login?.access_token) {
+        create_alert("no osu_id / secret configured :c", { type: "error" });
+        return;
+    }
+
+    // add to downloader queue
+    downloader.create_download({ id: crypto.randomUUID(), name: collection.name, maps: yep_maps });
 };
 
 const get_missing_beatmaps = async () => {
@@ -267,7 +273,7 @@ const get_missing_beatmaps = async () => {
         return;
     }
 
-    create_task("missing beatmaps", missing_download);
+    missing_download();
 };
 
 const delete_beatmaps_manager = async () => {
@@ -577,13 +583,13 @@ const create_beatmap_card = (md5) => {
         }
     };
     
-    const get_beatmap_image = (bmap) => {
+    const get_beatmap_image = async (bmap) => {
 
         if (core.config.get("get_images_from_web")) {
             return `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
         }
 
-        const img_src = core.reader.get_beatmap_image(bmap);
+        const img_src = await core.reader.get_beatmap_image(bmap);
 
         if (!img_src) {
             return `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
@@ -605,8 +611,9 @@ const create_beatmap_card = (md5) => {
 
         download_button.remove();
 
-        const beatmap_image = get_beatmap_image(beatmap);
-        beatmap_bg.src = beatmap_image || placeholder_image;
+        get_beatmap_image(beatmap).then((v) => {
+            beatmap_bg.src = v || placeholder_image;
+        });
 
         if (!core.config.get("get_images_from_web")) {
             beatmap_bg.classList.add("bg-image-custom");
@@ -703,42 +710,45 @@ const create_beatmap_card = (md5) => {
 
             try {
 
-                const beatmap_data = await download_map(md5);
+                const single = await downloader.single(md5);
 
-                if (!beatmap_data) {
+                console.log(single);
+
+                if (!single.success) {
                     create_alert("failed to find beatmap :c", { type: "alert" });
                     return;
                 }
 
+                const data = single.data;
                 const updated = Object.assign(beatmap, {
-                    artist_name: beatmap_data.beatmapset.artist,
-                    song_title: beatmap_data.beatmapset.title,
-                    difficulty: beatmap_data.version,
-                    md5: beatmap_data.checksum,
-                    mapper: beatmap_data.beatmapset.creator,
-                    difficulty_id: beatmap_data.beatmapset_id,
-                    beatmap_id: beatmap_data.beatmapset.id,
-                    url: beatmap_data.url,
-                    sr: beatmap_data.difficulty_rating,
-                    bpm: beatmap_data.bpm,
+                    artist_name: data.beatmapset.artist,
+                    song_title: data.beatmapset.title,
+                    difficulty: data.version,
+                    md5: data.checksum,
+                    mapper: data.beatmapset.creator,
+                    difficulty_id: data.beatmapset_id,
+                    beatmap_id: data.beatmapset.id,
+                    url: data.url,
+                    sr: data.difficulty_rating,
+                    bpm: data.bpm,
                     tags: "",
-                    status: Reader.get_beatmap_status_code(beatmap_data.status) || 0
+                    status: Reader.get_beatmap_status_code(data.status) || 0
                 });
 
-                core.reader.osu.beatmaps.set(beatmap_data.checksum, updated);
+                core.reader.osu.beatmaps.set(data.checksum, updated);
 
                 const image_url = `https://assets.ppy.sh/beatmaps/${updated.beatmap_id}/covers/cover.jpg`;
 
-                set_loading_status(beatmap_data.status);
-                update_sr(beatmap_data.difficulty_rating);
+                set_loading_status(data.status);
+                update_sr(data.difficulty_rating);
 
                 title.addEventListener("click", () => { open_in_browser(updated) }); 
                 title.textContent = updated.song_title || "Unknown";
                 subtitle.textContent = updated.difficulty || "Unknown";
                 beatmap_bg.src = image_url;
             } catch (error) {
-                console.error("Error downloading beatmap:", error);
-                create_alert("Error downloading beatmap", { type: "alert" });
+                console.log(error);
+                core.progress.update("failed to download beatmap...");
             }
         });
     }

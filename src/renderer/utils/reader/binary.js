@@ -68,7 +68,7 @@ export class BinaryReader {
     }
 
     bool() {
-        return this.byte() !== 0x00;
+        return this.byte() != 0x00;
     }
 
     string() {
@@ -139,9 +139,9 @@ export class BinaryReader {
 
         resultBuffer.set(new Uint8Array([0x0B]), 0);
         resultBuffer.set(new Uint8Array(lengthBuffer), 1);
-        resultBuffer.set(new Uint8Array(stringBuffer), 1 + lengthBuffer.byteLength);
+        resultBuffer.set(new Uint8Array(stringBuffer.buffer), 1 + lengthBuffer.byteLength);
 
-        return resultBuffer.buffer;
+        return resultBuffer;
     }
     
     writeULEB128(value) {
@@ -181,13 +181,26 @@ export class BinaryReader {
     }
 
     join_buffer(buffers) {
-        let total_length = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
-        let result = new Uint8Array(total_length);
+
+        let total_length = 0;
         let offset = 0;
-        for (let buffer of buffers) {
-            result.set(new Uint8Array(buffer), offset);
-            offset += buffer.byteLength;
+
+        for (let i = 0; i < buffers.length; i++) {
+            const buffer = buffers[i];
+            total_length += buffer.buffer ? buffer.buffer.byteLength : buffer.byteLength;
         }
+        
+        let result = new Uint8Array(total_length);
+
+        for (let i = 0; i < buffers.length; i++) {
+            const buffer = buffers[i];
+            const arraybf = buffer.buffer ? new Uint8Array(buffer.buffer) : buffer;
+            result.set(arraybf, offset);
+            offset += arraybf.byteLength;
+        }
+
+        console.log(result, offset);
+    
         return result;
     }
 }

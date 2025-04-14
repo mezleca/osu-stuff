@@ -1794,7 +1794,70 @@ input[type="range"]::-moz-range-track {
     opacity: 0;
     transform: translateY(10px);
     pointer-events: none;
-} 
+}
+
+.download-container {
+    background-color: var(--content-bg);
+    border-radius: 4px;
+    padding: 20px;
+    width: 100%;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgb(120, 120, 120, 0.25);
+    transition: border var(--transition-delay);
+    cursor: pointer;
+}
+
+.download-container:hover {
+    transition: border var(--transition-delay);
+    border: 1px solid var(--accent-color);
+}
+
+.download-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.file-name {
+    font-size: 1.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+.percentage {
+    color: var(--accent-color);
+    font-size: 1.1em;
+}
+
+.progress-bar-container {
+    height: 6px;
+    background-color: var(--bg-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.download-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-text {
+    color: var(--text-gray);
+    font-size: 0.9em;
+}
 
 @keyframes tagfade {
     from { opacity: 0; transform: translateY(5px); }

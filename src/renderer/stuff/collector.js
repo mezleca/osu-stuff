@@ -52,7 +52,7 @@ export const setup_collector = async (url) => {
     const is_tournament = url_array.includes("tournaments");
     const api_url = `https://osucollector.com/api/collections/${collection_id}`;
     
-    console.log(`[collector] fetching collection ${collection_id}...`);
+    core.progress.update(`fetching collection ${collection_id}...`);
     
     const response = is_tournament ? await get_tournament_maps(collection_id) : await fetch(api_url);
     const collection_data = is_tournament ? response : await response.json();
@@ -61,21 +61,31 @@ export const setup_collector = async (url) => {
         create_alert("failed to get collection", { type: "error" });
         return null;
     }
-
+    
+    let new_maps = null;
     const get_hashes = is_tournament ? beatmapsets => beatmapsets.map(b => b.checksum) : beatmapsets => beatmapsets.flatMap(b => b.beatmaps.map(map => map.checksum));
-
-    const existing_map_hashes = new Set(core.reader.osu.beatmaps.keys());
     const collection_hashes = [...new Set(get_hashes(collection_data.beatmapsets))];
 
-    const new_maps = is_tournament
-        ? collection_data.beatmapsets
-            .filter(beatmap => !existing_map_hashes.has(beatmap.checksum) && beatmap.checksum && beatmap.beatmapset)
-            .map(b => b.beatmapset)
-        : collection_data.beatmapsets
-            .filter(beatmapset => !beatmapset.beatmaps.some(beatmap => existing_map_hashes.has(beatmap.checksum)));
+    if (is_tournament) {
+        new_maps = collection_data.beatmapsets.map((c) => { return { id: c.id, checksum: c.checksum } })
+            .filter((c) => !core.reader.osu.beatmaps.get(c.checksum));
+    } else {
+        new_maps = collection_data.beatmapsets.flatMap((a) => a.beatmaps.flatMap((c) => { return { id: a.id, checksum: c.checksum } }))
+            .filter((c) => !core.reader.osu.beatmaps.get(c.checksum));
+    }
+
+    const unique = new Map();
+
+    // return unique
+    for (let i = 0; i < new_maps.length; i++) {
+        const a = new_maps[i];
+        if (!unique.has(a.id)) {
+            unique.set(a.id, a);
+        }
+    }
 
     return {
-        maps: new_maps,
+        maps: Array.from(unique.values()),
         c_maps: collection_hashes,
         collection: collection_data
     };

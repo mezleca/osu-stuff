@@ -1,4 +1,5 @@
 import { core } from "../app.js";
+import { downloader } from "../utils/downloader/client.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
 
@@ -29,8 +30,6 @@ const add_to_collection = async (maps, name, append) => {
         console.log("[download from players] 0 maps to add");
         return;
     }
-
-    console.log(maps);
 
     if (append) {
 
@@ -222,94 +221,98 @@ const get_player_info = async (options) => {
 
 export const download_from_players = async (options) => {
 
-    return new Promise(async (resolve, reject) => {
+    let append = false;
 
-        let append = false;
+    const { players } = options;
+    const data = [];
 
-        const { players } = options;
-        const data = [];
+    for (const player of players) {
 
-        for (const player of players) {
+        const req = await get_player_info({ ...options, player_name: player });
 
-            const req = await get_player_info({ ...options, player_name: player });
-
-            if (!req) {
-                create_alert(`failed to find ${player}`, { type: "warning" });
-                continue;
-            }
-
-            data.push(req);
+        if (!req) {
+            create_alert(`failed to find ${player}`, { type: "warning" });
+            continue;
         }
 
-        if (data.length == 0) {
-            create_alert("couldn't find anyone :(", { type: "warning" });
+        data.push(req);
+    }
+
+    if (data.length == 0) {
+        create_alert("couldn't find anyone :(", { type: "warning" });
+        return;
+    }
+
+    const download_options = await create_custom_popup({
+        type: message_types.CUSTOM_MENU,
+        title: "options",
+        elements: [
+            {
+                key: "collection name",
+                element: { input: { } }
+            },
+            {
+                key: "method",
+                element: { list: ["download", "add to collections", "both"] }
+            }
+        ]
+    });
+
+    const { method, collection_name } = download_options;
+
+    if (!method) {
+        return;
+    }
+
+    const get_maps = () => {
+
+        const beatmaps = data.map((d) => d.all_beatmaps);
+
+        if (beatmaps.length == 0) {
+            create_alert("found 0 beatmaps");
             return;
         }
 
-        const download_options = await create_custom_popup({
-            type: message_types.CUSTOM_MENU,
-            title: "options",
-            elements: [
-                {
-                    key: "collection name",
-                    element: { input: { } }
-                },
-                {
-                    key: "method",
-                    element: { list: ["download", "add to collections", "both"] }
-                }
-            ]
-        });
-
-        const { method, collection_name } = download_options;
-
-        if (!method) {
-            return reject();
+        return {
+            md5: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
+            id: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
         }
+    };
 
-        const get_maps = () => {
+    const maps = get_maps();
+    const current_collection = get_selected_collection(false);
 
-            const beatmaps = data.map((d) => d.all_beatmaps);
-
-            if (beatmaps.length == 0) {
-                create_alert("found 0 beatmaps");
-                return reject();
-            }
-
-            return {
-                md5: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.checksum : b.beatmaps.map((b) => b.checksum)),
-                id: beatmaps[0].flatMap((b) => b?.beatmap ? b.beatmap.beatmapset_id : b.id)
-            }
-        };
-
-        const maps = get_maps();
-        const current_collection = get_selected_collection(false);
-
-        if (method == "add to collections" || method == "both") {      
-            if (current_collection) {
-                const confirmation = await quick_confirm(`merge with ${current_collection}?`);
-                if (confirmation) {
-                    append = true;
-                }
+    if (method == "add to collections" || method == "both") {      
+        if (current_collection) {
+            const confirmation = await quick_confirm(`merge with ${current_collection}?`);
+            if (confirmation) {
+                append = true;
             }
         }
-        
-        if (method == "add to collections") {
-            await add_to_collection(maps.md5, collection_name, append);
-            return resolve();
-        }
+    }
+    
+    if (method == "add to collections") {
+        await add_to_collection(maps.md5, collection_name, append);
+        return;
+    }
 
-        if (method == "both") {
-            await add_to_collection(maps.md5, collection_name, append);
-        }
+    if (method == "both") {
+        await add_to_collection(maps.md5, collection_name, append);
+    }
 
-        const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());
-        const missing_maps = maps.id.filter(id => !osu_beatmaps.find(b => b.beatmap_id == id));
+    const osu_beatmaps = Array.from(core.reader.osu.beatmaps.values());
+    const missing_maps = maps.id.filter(id => !osu_beatmaps.find(b => b.beatmap_id == id));
 
-        if (missing_maps.length == 0) {
-            return reject("No beatmaps to download!");
-        }
+    if (missing_maps.length == 0) {
+        create_alert("no beatmaps to download!", { type: "warning" });
+        return;
+    }
 
-        return resolve(missing_maps.map((id) => { return { id: id } }));
-    });
+    if (!core.login?.access_token) {
+        create_alert("no osu_id / secret configured :c", { type: "error" });
+        return;
+    }
+
+    // add download to the queue
+    downloader.create_download({ id: crypto.randomUUID(), name: collection_name, hashes: missing_maps.map((id) => { return { id: id } })});
 };

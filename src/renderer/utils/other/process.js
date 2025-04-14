@@ -1,13 +1,14 @@
-import { path, os, fs } from "../global.js";
+import { path, extra } from "../global.js";
 
-const windows_default_path = path.resolve(os.homedir(), "AppData", "Local", "osu!");
+console.log(extra.homedir);
+const windows_default_path = path.resolve(extra.homedir, "AppData", "Local", "osu!");
 
 export const get_og_path = () => {
     switch (window.process.platform) {
         case 'win32':
-            return path.join(path.join(os.homedir(), 'AppData', 'Roaming'), "osu-stuff");
+            return path.join(path.join(extra.homedir, 'AppData', 'Roaming'), "osu-stuff");
         case 'linux':
-            return path.join(os.homedir(), '.local', 'share', "osu-stuff");
+            return path.join(extra.homedir, '.local', 'share', "osu-stuff");
         default:
             return "";
     }

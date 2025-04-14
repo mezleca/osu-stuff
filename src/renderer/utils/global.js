@@ -2,7 +2,7 @@
 export const fs = window.fs;
 export const path = window.path;
 export const zlib = window.zlib;
-export const os = window.os;
+export const extra = window.extra;
 
 // CONSTANTS
 export const is_testing = window.process.env.NODE_ENV == "development";

@@ -6,6 +6,7 @@ import { create_custom_popup, create_alert, message_types } from "../popup/popup
 import { initialize, lazer_mode } from "../manager/manager.js";
 import { indexed } from "./other/indexed_db.js";
 import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
+import { downloader } from "./downloader/client.js";
 
 const tooltips_text = {
     "osu_id": "Your OAuth app ID.<br>Create a new OAuth Application <a class='tooltp' href='https://osu.ppy.sh/home/account/edit#new-oauth-application'>here</a> and paste the ID below</a>",
@@ -86,7 +87,7 @@ export const load_osu_files = async (stable_path) => {
 
     set_loading_status("reading osu files...");
 
-    const { cl, db } = await window.extra.get_osu_files();
+    const { cl, db } = await fs.get_osu_files();
 
     core.reader.buffer = null;
     core.reader.osu = {};
@@ -109,7 +110,13 @@ const get_access_token = async () => {
     const osu_secret = core.config.get("osu_secret");
 
     if (osu_id && osu_secret) {
+
         core.login = await osu_login(osu_id, osu_secret);
+
+        // update downloader token
+        if (core.login?.access_token) {
+            downloader.update_token(core.login.access_token);
+        }
     }
 };
 

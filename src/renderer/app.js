@@ -1,5 +1,7 @@
 import { create_progress } from "./manager/ui/progress.js";
 import { initialize_config } from "./utils/config.js";
+import { downloader } from "./utils/downloader/client.js";
+import { initialize_listeners } from "./utils/downloader/events.js";
 import { Reader } from "./utils/reader/reader.js";
 
 const in_dev_mode = window.process.env.NODE_ENV == "development";
@@ -18,7 +20,13 @@ export const core = {
     
     // initialize config/manager
     await initialize_config();
- 
+
+    // initialize downloader client
+    await downloader.intitialize();
+
+    // and the downloader listeners
+    initialize_listeners();
+
     // remove loading screen
     document.body.removeChild(document.getElementById('loading-screen'));
     core.progress.update("initialized");
