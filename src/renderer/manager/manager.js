@@ -539,7 +539,7 @@ const open_in_browser = (beatmap) => {
 const create_beatmap_card = (md5) => {
 
     // get beatmap info from osu db file
-    const beatmap = core.reader.osu.beatmaps.get(md5) || {};
+    let beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
     const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`)
     const beatmap_element = create_element(`
@@ -688,6 +688,17 @@ const create_beatmap_card = (md5) => {
         return extra;
     };
 
+    const show_extra = (beatmap) => {
+
+        const extra = create_extra_information(beatmap);
+
+        if (!extra) {
+            return;
+        }
+
+        beatmap_container.appendChild(extra);
+    };
+
     set_loading_status(status);
 
     // to make sure
@@ -697,6 +708,28 @@ const create_beatmap_card = (md5) => {
 
     title.textContent = beatmap?.song_title || "Unknown";
     subtitle.textContent = beatmap?.difficulty || "Unknown";
+
+    // show more information on click
+    beatmap_element.addEventListener("click", () => {
+
+        if (!beatmap?.artist_name) {
+            return;
+        }
+
+        show_extra(beatmap);
+    });
+
+    // open in browser
+    title.addEventListener("click", (e) => {
+
+        e.stopPropagation();
+
+        if (!beatmap?.url && !beatmap?.difficulty_id) {
+            return;
+        }
+
+        open_in_browser(beatmap);
+    });
 
     if (has_beatmap) {
 
@@ -727,23 +760,6 @@ const create_beatmap_card = (md5) => {
             }
 
             beatmaps_context.show(extra);
-        });
-
-        // show more information on click
-        beatmap_element.addEventListener("click", () => {
-
-            const extra = create_extra_information(beatmap);
-
-            if (!extra) {
-                return;
-            }
-
-            beatmap_container.appendChild(extra);
-        });
-
-        title.addEventListener("click", (e) => {
-            e.stopPropagation();
-            open_in_browser(beatmap);
         });
 
         preview_button.addEventListener("click", async () => {
@@ -810,14 +826,16 @@ const create_beatmap_card = (md5) => {
 
             try {
 
-                downloader.single(md5).then((data) => {
+                downloader.single(md5).then((info) => {
 
-                    if (!data.success) {
+                    if (!info.success) {
                         create_alert("failed to find beatmap :c", { type: "alert" });
                         return;
                     }
-    
-                    const updated = Object.assign(beatmap, {
+
+                    const data = info.data;
+
+                    beatmap = Object.assign(beatmap, {
                         artist_name: data.beatmapset.artist,
                         song_title: data.beatmapset.title,
                         difficulty: data.version,
@@ -829,19 +847,21 @@ const create_beatmap_card = (md5) => {
                         sr: data.difficulty_rating,
                         bpm: data.bpm,
                         tags: "",
+                        od: data.accuracy,
+                        approach_rate: data.ar,
+                        circle_size: data.cs,
+                        hp: data.drain, 
                         status: Reader.get_beatmap_status_code(data.status) || 0
                     });
-    
-                    core.reader.osu.beatmaps.set(data.checksum, updated);
-    
-                    const image_url = `https://assets.ppy.sh/beatmaps/${updated.beatmap_id}/covers/cover.jpg`;
+
+                    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
     
                     set_loading_status(data.status);
-                    update_sr(data.difficulty_rating);
+                    update_sr(data.difficulty_rating);      
     
-                    title.addEventListener("click", () => { open_in_browser(updated) }); 
-                    title.textContent = updated.song_title || "Unknown";
-                    subtitle.textContent = updated.difficulty || "Unknown";
+                    core.reader.osu.beatmaps.set(data.checksum, beatmap);
+                    title.textContent = beatmap.song_title || "Unknown";
+                    subtitle.textContent = beatmap.difficulty || "Unknown";
                     beatmap_bg.src = image_url;
                 });
 
