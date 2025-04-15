@@ -7,33 +7,6 @@
     src: local('Torus Bold'), url('./deps/Torus.otf') format('opentype');
 }
 
-/*
-    @TODO: this is a mess
-*/
-:root {
-    --bg-color: #202020;
-    --manager-bg-color: #242424;
-    --manager-sel-color: #1f1f1f;
-    --content-bg: #222222;
-    --text-color: #ffffff;
-    --blink-color: #db2a0a;
-    --accent-color: #f06595;
-    --accent-color2:rgb(204, 64, 113);
-    --accent-color3: #f44336;
-    --accent-color4: #ff66ab5d;
-    --accent-hover-color: #f37da6af;
-    --hover-color: #2b2b2b;
-    --input-bg: #3d3d3d;
-    --button-color: #f2407e;
-    --button-hover-color: #f13476;
-    --popup-bg: #2a2a2a;
-    --text-gray: #aaa;
-    --collections-border-color: rgb(56,56,56);
-    --title-bar-height: 32px;
-    --transition-delay: 0.3s;
-    --context-fade-delay: 0.15s;
-}
-
 * {
     font-weight: bold;
     -webkit-user-select: none;

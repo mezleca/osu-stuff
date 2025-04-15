@@ -115,6 +115,8 @@ const createWindow = () => {
         frame: true,
         fullscreenable: false,
         icon: get_icon_path(),
+        backgroundColor: "#202020",
+        center: true,
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
@@ -152,6 +154,7 @@ const createWindow = () => {
         const file_path = file.filePaths[0];
         return { name: path.basename(file_path), buffer: fs.readFileSync(file_path) };
     });
+
     ipcMain.handle('dev_mode', () => dev_mode);
 
     // function to get cookies from stats
