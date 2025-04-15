@@ -613,6 +613,8 @@ const create_beatmap_card = (md5) => {
             return `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
         }
 
+        beatmap_bg.classList.add("bg-image-custom");
+
         return `media://${encodeURIComponent(img_src)}`;
     }
 
@@ -632,11 +634,6 @@ const create_beatmap_card = (md5) => {
         get_beatmap_image(beatmap).then((v) => {
             beatmap_bg.src = v || placeholder_image;
         });
-
-        if (!core.config.get("get_images_from_web")) {
-            beatmap_bg.classList.add("bg-image-custom");
-        }
-
         beatmap_element.addEventListener("contextmenu", () => {
 
             if (beatmaps_context.id != md5) {
