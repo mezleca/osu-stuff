@@ -541,6 +541,7 @@ const create_beatmap_card = (md5) => {
     // get beatmap info from osu db file
     const beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
+    const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`)
     const beatmap_element = create_element(`
         <div class="beatmap-card">
             <img class="bg-image">
@@ -619,7 +620,73 @@ const create_beatmap_card = (md5) => {
     
             element.src = `media://${encodeURIComponent(src)}`;
         });
-    }
+    };
+
+    const create_extra_information = (beatmap) => {
+
+        if (!beatmap) {
+            return;
+        }
+
+        if (beatmap_container.querySelector(".extra-info-container")) {
+            return;
+        }
+        
+        const extra = create_element(`
+            <div class="extra-info-container">
+                <div class="extra-info-content">
+                    <div class="stats-grid">
+                    </div>
+                </div>
+                <div class="close-container">
+                    <button class="close-btn">hide</button>
+                </div>
+            </div>    
+        `);
+
+        const create_stat_item = (name, value) => {
+
+            const item = create_element(`
+                <div class="stat-item">
+                    <span class="stat-label"></span>
+                    <span class="stat-value"></span>
+                    <div class="stat-bar">
+                        <div class="stat-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            `);
+
+            const stat_label = item.querySelector(".stat-label");
+            const stat_value = item.querySelector(".stat-value");
+            const stat_bar = item.querySelector(".stat-bar-fill");
+
+            stat_label.textContent = name.toUpperCase();
+            stat_value.textContent = Number(value).toFixed(1);
+            stat_bar.style.width = Math.round((value / 10) * 100) + "%"; 
+            
+            item.classList.add(name);
+            return item;
+        };
+
+        const stats_grid = extra.querySelector(".stats-grid");
+        const close = extra.querySelector(".close-btn");
+
+        const ar = create_stat_item("ar", beatmap.approach_rate);
+        const hp = create_stat_item("hp", beatmap.hp);
+        const cs = create_stat_item("cs", beatmap.circle_size);
+        const od = create_stat_item("od", beatmap.od);
+
+        stats_grid.appendChild(ar);
+        stats_grid.appendChild(cs);
+        stats_grid.appendChild(hp);
+        stats_grid.appendChild(od);
+
+        close.addEventListener("click", () => {
+            extra.remove();
+        });
+
+        return extra;
+    };
 
     set_loading_status(status);
 
@@ -634,7 +701,6 @@ const create_beatmap_card = (md5) => {
     if (has_beatmap) {
 
         download_button.remove();
-
         set_beatmap_image(beatmap, beatmap_bg);
 
         // update context menu object on right click
@@ -660,10 +726,25 @@ const create_beatmap_card = (md5) => {
                 beatmaps_context.id = md5;
             }
 
-            beatmaps_context.show();
+            beatmaps_context.show(extra);
         });
 
-        title.addEventListener("click", () => { open_in_browser(beatmap) });
+        // show more information on click
+        beatmap_element.addEventListener("click", () => {
+
+            const extra = create_extra_information(beatmap);
+
+            if (!extra) {
+                return;
+            }
+
+            beatmap_container.appendChild(extra);
+        });
+
+        title.addEventListener("click", (e) => {
+            e.stopPropagation();
+            open_in_browser(beatmap);
+        });
 
         preview_button.addEventListener("click", async () => {
 
@@ -773,8 +854,9 @@ const create_beatmap_card = (md5) => {
     
     remove_button.id = `bn_${md5}`;
     remove_button.addEventListener("click", () => remove_beatmap(md5));
+    beatmap_container.appendChild(beatmap_element);
 
-    return beatmap_element;
+    return beatmap_container;
 };
 
 export const render_page = (id, offset = 0, _new = false, _inverted = false) => {

@@ -823,23 +823,27 @@ button {
 .beatmap-card {
     position: relative;
     width: 100%;
-    min-height: 6em;
-    border-radius: 4px;
-    padding: 2px 8px 2px;
+    height: 6em;
     color: white;
     font-family: "Torus Bold";
-    box-shadow: 0 0 3px rgb(12, 12, 12);
     transition: var(--transition-delay) transform;
     align-self: center;
-    overflow-y: hidden;
-    margin-bottom: 10px;
+    overflow: hidden;
 }
 
 .beatmap-card > * {
     font-family: "Torus Bold";
 }
 
-.beatmap-card:hover {
+.beatmap-card-container {
+    border-radius: 4px;
+    box-shadow: 0 0 3px rgb(12, 12, 12);
+    margin: 0 auto;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.beatmap-card-container:hover {
 
     .bg-image { 
         filter: brightness(50%);
@@ -1325,6 +1329,7 @@ button {
 .beatmap-card-data {
     display: flex;
     height: 100%;
+    padding: 10px;
 }
 
 .beatmap-metadata, .beatmap-status-control {
@@ -1830,6 +1835,102 @@ input[type="range"]::-moz-range-track {
 .status-text {
     color: var(--text-gray);
     font-size: 0.9em;
+}
+
+.extra-info-container {
+    height: fit-content;
+    background-color: var(--manager-sel-color);
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 1;
+    position: relative;
+    padding: 10px;
+}
+
+.stats-grid {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    width: 22%;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--secondary-text);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.stat-bar {
+    height: 5px;
+    background-color: var(--stat-bar-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.stat-bar-fill {
+    height: 100%;
+    background-color: var(--stat-bar-fill);
+    border-radius: 3px;
+    box-shadow: 0 0 4px rgba(255, 102, 170, 0.5);
+}
+
+.ar .stat-bar-fill {
+    background: linear-gradient(to right, #ff66aa, #ff99cc);
+}
+
+.cs .stat-bar-fill {
+    background: linear-gradient(to right, #66a5ff, #99c2ff);
+}
+
+.od .stat-bar-fill {
+    background: linear-gradient(to right, #66ffbb, #99ffd6);
+}
+
+.hp .stat-bar-fill {
+    background: linear-gradient(to right, #ffb366, #ffd699);
+}
+
+.close-container {
+    text-align: center;
+    position: relative;
+}
+
+.close-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--secondary-text);
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-color);
+}
+
+.close-btn::after {
+    content: "▲";
+    font-size: 10px;
 }
 
 @keyframes tagfade {
