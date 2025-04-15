@@ -19,8 +19,6 @@ import { create_dropdown } from "./ui/dropdown.js";
 import { create_context } from "./ui/context.js";
 import { create_range } from "./ui/range.js";
 
-// @TODO: rewrite the entire beatmap-card system (its unoptimized, buggy, unfixable)
-
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
 const more_options = document.querySelector(".more_options");
@@ -540,10 +538,10 @@ const open_in_browser = (beatmap) => {
 
 const create_beatmap_card = (md5) => {
 
+    // get beatmap info from osu db file
     const beatmap = core.reader.osu.beatmaps.get(md5) || {};
     const has_beatmap = Boolean(beatmap?.artist_name);
-    
-    const beatmap_html = `
+    const beatmap_element = create_element(`
         <div class="beatmap-card">
             <img class="bg-image">
             <div class="beatmap-card-data">
@@ -568,10 +566,9 @@ const create_beatmap_card = (md5) => {
                 </div>
             </div>
         </div>
-    `;
-
-    const beatmap_element = create_element(beatmap_html);
+    `);
     
+    // get important elements
     const title = beatmap_element.querySelector('.title');
     const subtitle = beatmap_element.querySelector('.subtitle');
     const download_button = beatmap_element.querySelector(".download-button");
@@ -601,25 +598,32 @@ const create_beatmap_card = (md5) => {
         }
     };
     
-    const get_beatmap_image = async (bmap) => {
+    const set_beatmap_image = async (bmap, element) => {
 
+        // fething from web
         if (core.config.get("get_images_from_web")) {
-            return `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
+            element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
+            return;
         }
 
-        const img_src = await core.reader.get_beatmap_image(bmap);
+        // or just getting straight of the songs folder
+        core.reader.get_beatmap_image(bmap).then((src) => {
 
-        if (!img_src) {
-            return `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
-        }
-
-        beatmap_bg.classList.add("bg-image-custom");
-
-        return `media://${encodeURIComponent(img_src)}`;
+            if (!src) {
+                element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
+                return;
+            }
+    
+            // use this on files from osu folder to make it more "centered"
+            beatmap_bg.classList.add("bg-image-custom");
+    
+            element.src = `media://${encodeURIComponent(src)}`;
+        });
     }
 
     set_loading_status(status);
 
+    // to make sure
     if (!isNaN(beatmap_sr)) {
         update_sr(beatmap_sr);
     }
@@ -631,9 +635,9 @@ const create_beatmap_card = (md5) => {
 
         download_button.remove();
 
-        get_beatmap_image(beatmap).then((v) => {
-            beatmap_bg.src = v || placeholder_image;
-        });
+        set_beatmap_image(beatmap, beatmap_bg);
+
+        // update context menu object on right click
         beatmap_element.addEventListener("contextmenu", () => {
 
             if (beatmaps_context.id != md5) {
@@ -725,40 +729,41 @@ const create_beatmap_card = (md5) => {
 
             try {
 
-                const single = await downloader.single(md5);
+                downloader.single(md5).then((data) => {
 
-                if (!single.success) {
-                    create_alert("failed to find beatmap :c", { type: "alert" });
-                    return;
-                }
-
-                const data = single.data;
-                const updated = Object.assign(beatmap, {
-                    artist_name: data.beatmapset.artist,
-                    song_title: data.beatmapset.title,
-                    difficulty: data.version,
-                    md5: data.checksum,
-                    mapper: data.beatmapset.creator,
-                    difficulty_id: data.beatmapset_id,
-                    beatmap_id: data.beatmapset.id,
-                    url: data.url,
-                    sr: data.difficulty_rating,
-                    bpm: data.bpm,
-                    tags: "",
-                    status: Reader.get_beatmap_status_code(data.status) || 0
+                    if (!data.success) {
+                        create_alert("failed to find beatmap :c", { type: "alert" });
+                        return;
+                    }
+    
+                    const updated = Object.assign(beatmap, {
+                        artist_name: data.beatmapset.artist,
+                        song_title: data.beatmapset.title,
+                        difficulty: data.version,
+                        md5: data.checksum,
+                        mapper: data.beatmapset.creator,
+                        difficulty_id: data.beatmapset_id,
+                        beatmap_id: data.beatmapset.id,
+                        url: data.url,
+                        sr: data.difficulty_rating,
+                        bpm: data.bpm,
+                        tags: "",
+                        status: Reader.get_beatmap_status_code(data.status) || 0
+                    });
+    
+                    core.reader.osu.beatmaps.set(data.checksum, updated);
+    
+                    const image_url = `https://assets.ppy.sh/beatmaps/${updated.beatmap_id}/covers/cover.jpg`;
+    
+                    set_loading_status(data.status);
+                    update_sr(data.difficulty_rating);
+    
+                    title.addEventListener("click", () => { open_in_browser(updated) }); 
+                    title.textContent = updated.song_title || "Unknown";
+                    subtitle.textContent = updated.difficulty || "Unknown";
+                    beatmap_bg.src = image_url;
                 });
 
-                core.reader.osu.beatmaps.set(data.checksum, updated);
-
-                const image_url = `https://assets.ppy.sh/beatmaps/${updated.beatmap_id}/covers/cover.jpg`;
-
-                set_loading_status(data.status);
-                update_sr(data.difficulty_rating);
-
-                title.addEventListener("click", () => { open_in_browser(updated) }); 
-                title.textContent = updated.song_title || "Unknown";
-                subtitle.textContent = updated.difficulty || "Unknown";
-                beatmap_bg.src = image_url;
             } catch (error) {
                 console.log(error);
                 core.progress.update("failed to download beatmap...");
