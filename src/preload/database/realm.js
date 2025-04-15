@@ -40,24 +40,30 @@ export const realm = {
         const exists = uuid ? instance.objectForPrimaryKey("BeatmapCollection", uuid) : null;
                         
         instance.write(() => {
+            
+            try {
 
-            if (exists == null) {
+                if (exists == null) {
 
-                const id = new Realm.BSON.UUID();
-                result.id = id;
-                result.new = true;
-                
-                instance.create("BeatmapCollection", {
-                    ID: id,
-                    Name: name,
-                    BeatmapMD5Hashes: Array.from(maps) || [],
-                    LastModified: new Date()
-                });
-            } else {
-                const collection = exists;
-                collection.Name = name;
-                collection.BeatmapMD5Hashes = Array.from(maps);
-                collection.LastModified = new Date();
+                    const id = new Realm.BSON.UUID();
+                    result.id = id;
+                    result.new = true;
+                    
+                    instance.create("BeatmapCollection", {
+                        ID: id,
+                        Name: name,
+                        BeatmapMD5Hashes: Array.from(maps) || [],
+                        LastModified: new Date()
+                    });
+                } else {
+                    const collection = exists;
+                    collection.Name = name;
+                    collection.BeatmapMD5Hashes = Array.from(maps);
+                    collection.LastModified = new Date();
+                }
+
+            } catch(err) {
+                console.log("write error", err);
             }
         });
 
@@ -68,7 +74,7 @@ export const realm = {
         const instance = instances.get(realm);
 
         instance.write(() => {
-            const collection = instance.objectForPrimaryKey("BeatmapCollection", uuid);
+            const collection = instance.objectForPrimaryKey("BeatmapCollection", new Realm.BSON.UUID(Buffer.from(uuid.buffer)));
             instance.delete(collection);
         });
     },

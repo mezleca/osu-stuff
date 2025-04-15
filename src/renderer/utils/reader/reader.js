@@ -132,6 +132,7 @@ export class Reader extends BinaryReader {
                     // delete pending collections
                     for (const pending of this.pending_deletion) {
                         await window.realmjs.delete_collection(this.instance, pending.uuid);
+                        this.pending_deletion.delete(pending);
                     }
 
                     // update/create the rest
