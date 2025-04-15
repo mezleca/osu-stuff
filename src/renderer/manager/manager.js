@@ -771,7 +771,9 @@ const create_beatmap_card = (md5) => {
             beatmaps_context.show(extra);
         });
 
-        preview_button.addEventListener("click", async () => {
+        preview_button.addEventListener("click", async (e) => {
+
+            e.stopPropagation();
 
             const preview_icon = preview_button.children[0];
             
@@ -829,7 +831,9 @@ const create_beatmap_card = (md5) => {
         preview_button.remove();
         beatmap_bg.src = placeholder_image;
 
-        download_button.addEventListener("click", async () => {
+        download_button.addEventListener("click", async (e) => {
+
+            e.stopPropagation();
 
             core.progress.update("searching beatmap...");
 
@@ -880,10 +884,14 @@ const create_beatmap_card = (md5) => {
             }
         });
     }
-    
+
+    remove_button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        remove_beatmap(md5);
+    });
+
+    beatmap_container.appendChild(beatmap_element)
     remove_button.id = `bn_${md5}`;
-    remove_button.addEventListener("click", () => remove_beatmap(md5));
-    beatmap_container.appendChild(beatmap_element);
 
     return beatmap_container;
 };
