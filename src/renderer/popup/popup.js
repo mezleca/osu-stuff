@@ -313,7 +313,7 @@ const create_custom_menu = async (options) => {
                     } else {
                         card_data.name_element.textContent += " (already imported)";
                     }
-                    card_data.count_element.textContent = card.count + " maps";
+                    card_data.count_element.textContent = card.count || 0 + " maps";
                     cards.add(card_data);
                     container.appendChild(card_data.draggable_item);
                 }

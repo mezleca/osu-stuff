@@ -538,7 +538,7 @@ export const setup_draggables = () => {
         if (v.maps.size == 1) {
             count_element.textContent = "1 map";
         } else {
-            count_element.textContent = `${v.maps.size} maps`;
+            count_element.textContent = `${v.maps?.size || 0} maps`;
         }
 
         draggable_item.addEventListener("mousedown", (event) => {
