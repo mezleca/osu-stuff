@@ -347,6 +347,14 @@ export const init_downloader = (window, ipcMain) => {
         }
     });
 
+    ipcMain.handle("is-downloading", (_) => {
+        return current_download.id != null;
+    });
+
+    ipcMain.handle("get-queue", (_) => {
+        return [ current_download, ...download_queue ];
+    });
+
     ipcMain.handle("create-download", (_, data) => {
 
         if (!data?.id) {

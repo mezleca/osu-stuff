@@ -26,6 +26,14 @@ export const downloader = {
         return window.electronAPI.single_map(hash);
     },
 
+    is_downloading: async () => {
+        return window.electronAPI.is_downloading();
+    },
+
+    get_queue: async () => {
+        return window.electronAPI.get_queue();
+    },
+
     update_mirrors: async (list) => {
         return window.electronAPI.update_mirrors(list);
     },

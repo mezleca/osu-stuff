@@ -22,10 +22,8 @@ export const core = {
     await initialize_config();
 
     // initialize downloader client
+    await initialize_listeners();
     await downloader.intitialize();
-
-    // and the downloader listeners
-    initialize_listeners();
 
     // remove loading screen
     document.body.removeChild(document.getElementById('loading-screen'));

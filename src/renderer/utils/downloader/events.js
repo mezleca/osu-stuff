@@ -4,13 +4,7 @@ import { panels, blink, tabs } from "../../tabs.js";
 import { quick_confirm } from "../../popup/popup.js";
 import { core } from "../../app.js";
 
-const on_download_create = (data) => {
-
-    // check if we alredy renderer that item 
-    if (document.getElementById(data.id)) {
-        console.log("download element already exists");
-        return;
-    }
+const create_download_box = (data) => {
 
     const container = create_element(`
         <div class="download-container">
@@ -44,8 +38,21 @@ const on_download_create = (data) => {
         downloader.stop_download(data.id);
     });
 
+    return { container: container };
+};
+
+const on_download_create = (data) => {
+
+    // check if we alredy renderer that item 
+    if (document.getElementById(data.id)) {
+        console.log("download element already exists");
+        return;
+    }
+
     // add container to queue list
+    const { container } = create_download_box(data);
     panels.status.children[0].appendChild(container);
+
     blink(tabs.status);
 };
 
@@ -54,9 +61,8 @@ const on_progress_update = (data) => {
     // get target container
     const target = document.getElementById(data.id);
 
-    // if we fail to get target, end the current download (prob reseted or smth)
+    // shouldn't happen
     if (!target) {
-        downloader.stop_download(data.id);
         return;
     }
     
@@ -90,7 +96,29 @@ const on_progress_end = (data) => {
     target.remove();
 };
 
-export const initialize_listeners = () => {
+export const initialize_listeners = async () => {
+
+    const is_downloading = await downloader.is_downloading();
+
+    // check if we are download something in the main process
+    if (is_downloading) {
+
+        const list = await downloader.get_queue();
+
+        if (list.length == 0) {
+            return;
+        }
+
+        core.progress.update("restoring downloads...");
+        
+        for (let i = 0; i < list.length; i++) {
+            const current = list[i];
+            const { container } = create_download_box(current);
+            panels.status.children[0].appendChild(container);
+            blink(tabs.status);
+        }
+    }
+
     downloader.setup_listeners({
         on_download_create: on_download_create,
         on_progress_update: on_progress_update,

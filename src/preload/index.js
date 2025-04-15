@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     create_download: (data) => ipcRenderer.invoke("create-download", data),
     stop_download: (id) => ipcRenderer.invoke("stop-download", id),
     single_map: (hash) => ipcRenderer.invoke("single-map", hash),
+    is_downloading: () => ipcRenderer.invoke("is-downloading"),
+    get_queue: () => ipcRenderer.invoke("get-queue"),
     on_download_create: (callback) => {
         ipcRenderer.on("download-create", (_, data) => callback(data));
     },
