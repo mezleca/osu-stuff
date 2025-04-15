@@ -582,7 +582,7 @@ const create_beatmap_card = (md5) => {
     const status = Reader.get_beatmap_status(beatmap.status) || "Unknown";
     const beatmap_sr = get_beatmap_sr(beatmap);
 
-    beatmap_element.id = `bn_${md5}`;
+    beatmap_container.id = `bn_${md5}`;
 
     const set_loading_status = (status) => {
         beatmap_status.innerText = String(status).toUpperCase();
