@@ -1283,48 +1283,48 @@ button {
     margin-right: 5px;
 }
 
-.beatmap-status.unsubmitted {
+.unsubmitted {
     background-color: white;
 }
 
-.beatmap-status.ranked, .beatmap-status.approved {
+.ranked, .approved {
     background-color: #6bfb70;
 }
 
-.beatmap-status.pending {
+.pending {
     background-color: rgb(233, 227, 67);
 }
 
-.beatmap-status.qualified {
+.qualified {
     background-color: rgb(67, 181, 233);
 }
 
-.beatmap-status.loved {
+.loved {
     background-color: rgb(228, 67, 233);
 }
 
-.beatmap-status.sr1 {
-    background-color: #3eb5e1;
+.sr1 {
+    background-color: #3eb5e1 !important;
 }
 
-.beatmap-status.sr2 {
-    background-color: #c0e13e;
+.sr2 {
+    background-color: #c0e13e !important;
 }
 
-.beatmap-status.sr3 {
-    background-color: #d03163;
+.sr3 {
+    background-color: #d03163 !important;
 }
 
-.beatmap-status.sr4 {
-    background-color: #5c18b0;
+.sr4 {
+    background-color: #5c18b0 !important;
 }
 
-.beatmap-status.sr5 {
-    background-color: #011275;
+.sr5 {
+    background-color: #011275 !important;
 }
 
-.beatmap-status.sr6 {
-    background-color: #222222;
+.sr6 {
+    background-color: #222222 !important;
 }
 
 .beatmap-card-data {
@@ -1845,12 +1845,12 @@ input[type="range"]::-moz-range-track {
     opacity: 1;
     position: relative;
     padding: 10px;
+    padding-bottom: 0px;
 }
 
 .stats-grid {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 18px;
 }
 
 .stat-item {
@@ -1860,23 +1860,19 @@ input[type="range"]::-moz-range-track {
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: 0.85em;
     color: var(--secondary-text);
-    margin-bottom: 6px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-weight: 600;
 }
 
 .stat-value {
     font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .stat-bar {
     height: 5px;
-    background-color: var(--stat-bar-bg);
+    background-color: var(--hover-color);
     border-radius: 3px;
     overflow: hidden;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -1884,25 +1880,9 @@ input[type="range"]::-moz-range-track {
 
 .stat-bar-fill {
     height: 100%;
-    background-color: var(--stat-bar-fill);
+    background-color: var(--accent-color);
     border-radius: 3px;
     box-shadow: 0 0 4px rgba(255, 102, 170, 0.5);
-}
-
-.ar .stat-bar-fill {
-    background: linear-gradient(to right, #ff66aa, #ff99cc);
-}
-
-.cs .stat-bar-fill {
-    background: linear-gradient(to right, #66a5ff, #99c2ff);
-}
-
-.od .stat-bar-fill {
-    background: linear-gradient(to right, #66ffbb, #99ffd6);
-}
-
-.hp .stat-bar-fill {
-    background: linear-gradient(to right, #ffb366, #ffd699);
 }
 
 .close-container {

@@ -590,9 +590,14 @@ const create_beatmap_card = (md5) => {
     };
 
     const update_sr = (sr) => {
+
         const class_name = star_ranges.find(([min, max]) => sr >= min && sr <= max)[2];
+
         star_rating.innerText = `★ ${sr}`;
         star_rating.classList.add(class_name);
+        
+        // to use on beatmap info
+        beatmap.srcolor = class_name;
         
         if (sr >= 7) {
             star_rating.style.color = "#ebcf34";
@@ -648,17 +653,21 @@ const create_beatmap_card = (md5) => {
 
             const item = create_element(`
                 <div class="stat-item">
-                    <span class="stat-label"></span>
-                    <span class="stat-value"></span>
                     <div class="stat-bar">
                         <div class="stat-bar-fill" style="width: 0%"></div>
                     </div>
+                    <span class="stat-label"></span>
+                    <span class="stat-value"></span>         
                 </div>
             `);
 
             const stat_label = item.querySelector(".stat-label");
             const stat_value = item.querySelector(".stat-value");
             const stat_bar = item.querySelector(".stat-bar-fill");
+
+            if (beatmap.srcolor) {
+                stat_bar.classList.add(beatmap.srcolor);
+            }
 
             stat_label.textContent = name.toUpperCase();
             stat_value.textContent = Number(value).toFixed(1);
