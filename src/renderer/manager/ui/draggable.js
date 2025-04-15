@@ -417,13 +417,10 @@ export const export_collection = async (id) => {
         reader.collections = {
             length: 1,
             version: core.reader.collections.version,
-            beatmaps: new Map()
+            beatmaps: new Map([[id, collection]])
         }
     
-        reader.collections.beatmaps.set(id, collection);
-        
-        const export_path = path.resolve(core.config.get("export_path"), `${id}.db`);
-        const buffer = await reader.write_stable_collection();
+        const buffer = reader.write_stable_collection();
 
         if (!core.config.get("export_path")) {
             create_alert("uhhh, can you please set you export path again? :3");
@@ -431,7 +428,7 @@ export const export_collection = async (id) => {
         }
 
         await fs.save_exported(`${id}.db`, buffer);
-        core.progress.update(`exported ${id} on ${export_path}`);
+
     } else {
 
         const beatmaps = Array.from(collection.maps);
@@ -461,7 +458,9 @@ export const export_collection = async (id) => {
         }
 
         fs.save_exported(`${id}.osdb`, buffer);
-    }   
+    }
+    
+    core.progress.update(`exported ${id}`);
 };
 
 export const create_collection_item = (id, name) => {
