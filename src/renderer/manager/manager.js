@@ -501,9 +501,18 @@ const move_to = (el, md5) => {
 
     const collection = core.reader.collections.beatmaps.get(collection_name);
     collection.maps = new Set([...collection.maps, md5]);
-    
+
+    // update collection count
+    for (const [k, v] of draggable_items_map) {
+        if (v.collection_id == collection_name) {
+            update_collections_count(k)
+            break;
+        }
+    }
+
     // update sr and shit
     core.reader.update_collections();
+    // update_collection_count();
 
     show_update_button();
 };
@@ -540,6 +549,7 @@ const create_beatmap_card = (md5) => {
 
     // get beatmap info from osu db file
     let beatmap = core.reader.osu.beatmaps.get(md5) || {};
+
     const has_beatmap = Boolean(beatmap?.artist_name);
     const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`)
     const beatmap_element = create_element(`
