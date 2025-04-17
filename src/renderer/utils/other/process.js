@@ -61,6 +61,11 @@ export const is_running = (name) => {
     });
 };
 
+export const open_in_browser = (beatmap) => {
+    const url = beatmap.url || `https://osu.ppy.sh/b/${beatmap.difficulty_id}`;
+    open_url(url);
+};
+
 export const open_url        = (url, options) => window.shell.openExternal(url, options);
 export const fetchstats      = (url, cookies) => window.extra.fetch_stats(url, cookies);
 export const create_auth     = (url, end) => window.extra.create_auth(url, end);
