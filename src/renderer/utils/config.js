@@ -369,8 +369,8 @@ export const initialize_config = async () => {
             type: message_types.CUSTOM_MENU,
             title: "mirror info",
             elements: [
-                { key: "name", element: { input: "mirror name" } },
-                { key: "url", element: { input: "mirror url" } },
+                { key: "name", element: { input: { label: "mirror name" } } },
+                { key: "url", element: { input: { label: "mirror url" } } },
             ],
         });
 

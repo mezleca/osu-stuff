@@ -281,8 +281,7 @@ const create_custom_menu = async (options) => {
                     select_el.querySelector("label").textContent = label;
                     elements_container.appendChild(select_el);
                 }
-                break;
-                
+                break;             
             case 'range':
                 const iden = props.identifier || "";
                 const fix = props.decimal_places || 2;
@@ -291,7 +290,6 @@ const create_custom_menu = async (options) => {
                 filters[safe_key] = range;
                 elements_container.appendChild(range.element);
                 break;
-
             case 'tag':
                 const tag = create_tag({ 
                     id: `${safe_key}_tag`, 
@@ -302,7 +300,6 @@ const create_custom_menu = async (options) => {
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;
-
             case 'cards':
                 const cards = new Set();
                 const container = create_element('<div class="cards-container"></div>');
@@ -319,8 +316,7 @@ const create_custom_menu = async (options) => {
                 }
                 filters[safe_key] = { container: container, cards: cards };
                 elements_container.appendChild(container);
-                break;
-                
+                break;               
             case 'checkbox':
                 const checkbox_el = create_element(`
                     <div class="checkbox-container">
@@ -331,7 +327,18 @@ const create_custom_menu = async (options) => {
                 checkbox_el.querySelector("label").textContent = label;
                 elements_container.appendChild(checkbox_el);
                 break;
-                
+            case 'input':
+                const input_el = create_element(`
+                    <div class="input-container">
+                        <input type="text" id="${safe_key}"/>
+                    </div>
+                `);
+                const label_el = create_element("<label></label>");
+                label_el.textContent = props?.label || key;
+                elements_container.appendChild(label_el);
+                input_el.children[0].value = props?.value || "";
+                elements_container.appendChild(input_el);
+                break;             
             default:
                 const default_el = create_element(`
                     <div class="input-container">
@@ -360,6 +367,7 @@ const create_custom_menu = async (options) => {
                 const type = Object.keys(element)[0];
                 const safe_key = safe_id(key.replace(/\s+/g, '_'));
                 const is_multiple = type == 'list' && element[type]?.multiple == true;
+                const content = content_wrapper.querySelector(`#${safe_key}`);
                 
                 if (type == 'range') {
                     const range_filter = filters[safe_key];
@@ -376,33 +384,32 @@ const create_custom_menu = async (options) => {
                             result[safe_key] = dropdown_filter.selected;
                         }
                     } else {
-                        const select_el = content_wrapper.querySelector(`#${safe_key}`);
-                        if (select_el) {
-                            result[safe_key] = select_el.value;
+                        if (content) {
+                            result[safe_key] = content.value;
                         }
                     }
                 } else if (type == 'checkbox') {
-                    const checkbox = content_wrapper.querySelector(`#${safe_key}`);
-                    if (checkbox) {
-                        result[safe_key] = checkbox.checked;
+                    if (content) {
+                        result[safe_key] = content.checked;
+                    }
+                } else if (type == 'input') {
+                    if (content) {
+                        result[safe_key] = content.value;
                     }
                 } else if (type == 'tag') {
                     const tag = filters[safe_key];
                     if (tag) {
                         result[safe_key] = tag.values;
                     }
-                }
-                else if (type == 'cards') {
+                } else if (type == 'cards') {
                     const data = filters[safe_key];
                     if (data) {
                         const filtered_cards = Array.from(data.cards).filter((c) => c.draggable_item.classList.contains("selected"));
                         result[safe_key] = filtered_cards.map((c) => c.name_element.textContent);
                     }
-                }
-                else {
-                    const el = content_wrapper.querySelector(`#${safe_key}`);
-                    if (el) {
-                        result[safe_key] = el.value || el.textContent;
+                } else {
+                    if (content) {
+                        result[safe_key] = content.textContent;
                     }
                 }
             });

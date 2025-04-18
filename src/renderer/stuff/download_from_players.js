@@ -251,7 +251,7 @@ export const download_from_players = async (options) => {
         elements: [
             {
                 key: "collection name",
-                element: { input: { } }
+                element: { input: { value: Array.from(players).join(", ") } }
             },
             {
                 key: "method",
@@ -259,6 +259,11 @@ export const download_from_players = async (options) => {
             }
         ]
     });
+
+    // cancelled
+    if (!download_options) {
+        return;
+    }
 
     const { method, collection_name } = download_options;
 

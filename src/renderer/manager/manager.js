@@ -718,10 +718,8 @@ export const initialize = async (options) => {
     }
     
     const lazer_mode = is_lazer_mode();
-    const no_update = options?.no_update || false;
-    const force = options?.force || false;
 
-    if (force) {
+    if (options?.force) {
 
         core.reader.osu = {};
 
@@ -733,8 +731,5 @@ export const initialize = async (options) => {
     }
 
     core.reader.update_collections();
-    
-    if (!no_update) {
-        setup_manager();
-    }
+    setup_manager();
 };
