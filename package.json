@@ -44,6 +44,7 @@
 		"productName": "osu-stuff",
 		"executableName": "osu-stuff",
 		"asar": true,
+		"publish": "never",
 		"electronLanguages": [
 			"en-US"
 		],
