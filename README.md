@@ -1,6 +1,6 @@
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">your least favorite collection manager</p>
+    <p align="center">yet another collection manager</p>
 </div>
 
 <p align="center">
@@ -9,12 +9,13 @@
 
 ## wtf is osu-stuff
 a very simple and useful app that gives you the freedom to:
-- manage your lazer / stable collections
-- get collection from osu!Collector or osu stats
-- create collections from player's top 100, first place and shit like that
-- merge collections
-- get missing beatmaps from collections
-- delete beatmaps from collections
+- manage your lazer / stable collections.
+- get collection from osu!Collector or osu stats.
+- create collections from player's best performance, favorites maps, first place and created maps. 
+- merge collections.
+- get missing beatmaps from collections.
+- delete beatmaps from collections.
+- delete beatmaps from your osu folder (only use this if you really need to).
 - etc...
 
 > [!NOTE]  
@@ -68,12 +69,8 @@ npm run build:linux  # linux
 
 # in case you wanna run instead of building it:
 
-# (minified mode/all features)
+# (minified mode)
 npm start
-
-# (not minified/limited features)
-nem run dev
-
 ```
 
 ## big thanks to
