@@ -101,13 +101,13 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
 
         } else {
 
-            const option = document.getElementById(`option_${name}`);
+            const option = content.querySelector(`#option_${name}`);
             const selected = option.classList.contains("dropdown-item-selected");
 
             if (selected) {
 
                 // if we have "all" selected, deselect them
-                if ((self.selected.size) == values.length) {
+                if (self.selected.size == values.length) {
                     all.classList.remove("dropdown-item-selected");
                 }
 
@@ -116,7 +116,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
             } else {
 
                 // check "all" if we selected everything except for "all"
-                if ((self.selected.size) + 1 == values.length) {
+                if (self.selected.size + 1 == values.length) {
                     all.classList.add("dropdown-item-selected");
                 }
 
