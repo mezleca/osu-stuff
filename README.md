@@ -40,7 +40,8 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
 - [beatconnect](https://beatconnect.io)
 
 if you find bugs, crashes, or anything weird:  
-- hit `F12` to open devtools and grab the logs  
+- hit `F12` to open devtools and grab the logs
+- if you have a issue with the osu-stuff downloader, logs should be on osu-stuff folder (one folder before the exports one) 
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
 
 ## how can i manually build/test it?

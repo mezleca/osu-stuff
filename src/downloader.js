@@ -1,5 +1,8 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
+
+import { create_logger } from "./logger.js";
 
 let download_path = "";
 let mirrors = [];
@@ -19,6 +22,7 @@ const downloaded_maps = new Map();
 const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const concurrency = 3;
 const download_queue = [];
+const logger = create_logger({ name: "downloader", show_date: true, save_to_path: { path: path.join(os.homedir(), '.local', 'share', "osu-stuff") }});
 
 const parallel_map = async (array, mapper, concurrency) => {
 
@@ -45,7 +49,7 @@ const parallel_map = async (array, mapper, concurrency) => {
 
             results[current_index] = result;
         } catch (error) {
-            console.error(`error processing item at index ${current_index}:`, error);
+            logger.error(`error processing item at index ${current_index}:`, error);
         }
         
         await run();
@@ -72,7 +76,7 @@ const search_map_id = async (hash) => {
         const data = await response.json();
         return { ...data, id: data.beatmapset_id };
     } catch (error) {
-        console.error("error searching map:", error);
+        logger.error("error searching map:", error);
         return null;
     }
 };
@@ -82,7 +86,7 @@ const save_map_file = (map_path, buffer) => {
         fs.writeFileSync(map_path, Buffer.from(buffer));
         return true;
     } catch (error) {
-        console.error(`[downloader] failed to save file ${map_path}:`, error);
+        logger.error(`failed to save file ${map_path}:`, error);
         return false;
     }
 };
@@ -145,7 +149,7 @@ const try_mirror = async (mirror_url, map_id) => {
 
         return null;
     } catch (error) {
-        console.log(error);
+        logger.error(error);
         return null;
     }
 };
@@ -165,6 +169,7 @@ const get_buffer = async (map_id) => {
         const result = await try_mirror(url, map_id);
         
         if (result?.error == "bad_status") {
+            logger.debug("chaging", name, "mirror position (bad status)");
             update_mirror(url);
             continue;
         }
@@ -198,6 +203,7 @@ const process_map = async (win, map, index, options) => {
         const map_path = path.resolve(download_path, `${map_data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
+            logger.debug("ignoring", map.checksum, "(already downloaded)");
             update_progress(win, id, index, total, { hash: map.checksum, success: true });
             return null;
         }
@@ -205,7 +211,7 @@ const process_map = async (win, map, index, options) => {
         const map_buffer = await get_buffer(map_data.beatmapset_id);
 
         if (!map_buffer) {
-            console.log("failed to get buffer", map_data);
+            logger.error("failed to get buffer", map_data);
             update_progress(win, id, index, total, { hash: map.checksum, success: false });
             return null;
         }
@@ -221,13 +227,14 @@ const process_map = async (win, map, index, options) => {
         }
 
         if (id != current_download.id) {
+            logger.error("stoping download (download id does not match)");
             return { stop: true };
         }    
 
         update_progress(win, id, item_index, total, { hash: map.checksum, success: saved });
         return map_data;
     } catch (error) {
-        console.error("download failed:", error);
+        logger.error("download failed:", error);
         update_progress(win, id, index, total, { hash: map.checksum, success: false });
         return null;
     }
@@ -236,14 +243,15 @@ const process_map = async (win, map, index, options) => {
 const process_queue = async (win) => {
 
     if (download_queue.length == 0) {
+        logger.debug("finished all queue items");
         is_processing = false;
         return;
     }
 
     const { maps, id, name } = download_queue.shift();
 
-    console.log("starting download", id);
-    console.log("using mirrors", mirrors);
+    logger.debug("starting download", id);
+    logger.debug("using mirrors", mirrors);
     
     is_processing = true;
     current_download.id = id;
@@ -282,20 +290,21 @@ async function download_single_map(hash) {
         const map_data = await search_map_id(hash);
         
         if (!map_data) {
-            console.log("[downloader] not found", hash);
+            logger.error("not found", hash);
             return { success: false };
         }
 
         const map_path = path.resolve(download_path, `${map_data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
+            logger.debug("ignoring", hash, "(already downloaded)");
             return { success: true, data: map_data };
         }
 
         const map_buffer = await get_buffer(map_data.beatmapset_id);
 
         if (!map_buffer) {
-            console.log("[downloader] failed to get buffer", hash);
+            logger.error("failed to get buffer", hash);
             return { success: false };
         }
 
@@ -342,7 +351,7 @@ export const init_downloader = (window, ipcMain) => {
             }
             return true;
         } catch (error) {
-            console.error("Error updating download path:", error);
+            logger.error("Error updating download path:", error);
             return false;
         }
     });
@@ -358,12 +367,12 @@ export const init_downloader = (window, ipcMain) => {
     ipcMain.handle("create-download", (_, data) => {
 
         if (!data?.id) {
-            console.log("invalid id", data);
+            logger.error("create download data.id is null", data);
             return false;
         }
 
         if (!data?.maps || data?.maps.length == 0) {
-            console.log("invalid maps", data);
+            logger.error("create download data.maps is null", data);
             return false;
         }
         
