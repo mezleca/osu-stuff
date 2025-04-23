@@ -260,13 +260,6 @@ export const download_from_players = async (options) => {
         ]
     });
 
-    // cancelled
-    if (!download_options) {
-        return;
-    }
-
-    const { method, collection_name } = download_options;
-
     const get_maps = () => {
 
         const beatmaps = data.map((d) => d.all_beatmaps);
@@ -295,6 +288,13 @@ export const download_from_players = async (options) => {
 
     const maps = get_maps();
     const current_collection = get_selected_collection(false);
+    
+    // cancelled
+    if (!download_options) {
+        return;
+    }
+
+    const { method, collection_name } = download_options;
 
     if (!method) {
         return;
