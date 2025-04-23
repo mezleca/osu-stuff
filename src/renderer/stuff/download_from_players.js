@@ -267,10 +267,6 @@ export const download_from_players = async (options) => {
 
     const { method, collection_name } = download_options;
 
-    if (!method) {
-        return;
-    }
-
     const get_maps = () => {
 
         const beatmaps = data.map((d) => d.all_beatmaps);
@@ -300,6 +296,10 @@ export const download_from_players = async (options) => {
     const maps = get_maps();
     const current_collection = get_selected_collection(false);
 
+    if (!method) {
+        return;
+    }
+
     if (method == "add to collections" || method == "both") {      
         if (current_collection) {
             const confirmation = await quick_confirm(`merge with ${current_collection}?`);
@@ -309,6 +309,7 @@ export const download_from_players = async (options) => {
         }
     }
 
+    // @TODO: rework this, i want the function get_maps to already return only missing and unique beatmaps
     const missing_maps = [];
     const md5_only = maps.map((m) => { 
         
@@ -338,6 +339,10 @@ export const download_from_players = async (options) => {
         return;
     }
 
+    const unique = [
+        ...new Map(missing_maps.map(m => [m.id, m])).values()
+    ];
+
     // add download to the queue
-    downloader.create_download({ id: crypto.randomUUID(), name: collection_name, maps: missing_maps });
+    downloader.create_download({ id: crypto.randomUUID(), name: collection_name, maps: unique });
 };
