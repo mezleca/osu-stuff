@@ -78,9 +78,10 @@ const on_progress_update = (data) => {
     const status = target.querySelector(".status-text");
 
     // update it
+    const progress = ` (${data.current} / ${data.length})`;
     percentage_text.textContent = value + "%";
     progress_bar.style.width = `${value}%`;
-    status.textContent = value >= 90 ? "almost done..." : "downloading...";
+    status.textContent = value >= 90 ? "almost done..." : "downloading..." + progress;
 };
 
 const on_progress_end = (data) => {
