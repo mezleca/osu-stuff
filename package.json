@@ -44,7 +44,7 @@
 		"productName": "osu-stuff",
 		"executableName": "osu-stuff",
 		"asar": true,
-		"publish": "never",
+		"publish": false,
 		"electronLanguages": [
 			"en-US"
 		],
@@ -53,6 +53,7 @@
 			"src/dist/**",
 			"src/index.js",
 			"src/downloader.js",
+			"src/logger.js",
 			"src/renderer/gui/index.html",
 			"src/renderer/gui/start.css",
 			"package.json",
