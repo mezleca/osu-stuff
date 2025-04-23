@@ -2,6 +2,9 @@ import { core } from "../app.js";
 import { message_types, create_alert, create_custom_popup } from "../popup/popup.js";
 import { downloader } from "../utils/downloader/client.js";
 
+// @TODO: this will look every single beatmap hash
+// however some hashes might be from the same diff
+// i need to make something on the downloader to check if the hash list contains the hash of the downloader beatmap, if so: remove it since its alredy included 
 export const missing_download = async () => {
 
     try {
