@@ -1,16 +1,15 @@
 import { safe_id, create_element, debounce } from "../../utils/global.js";
 
-export const create_dropdown = (options = { id: "a", name: "dropdown", values: ["abc", "fgh", "qre"]}) => {
+export const create_dropdown = (options = { id: crypto.randomUUID(), name: "dropdown", values: ["abc", "fgh", "qre"]}) => {
 
     const container = create_element(`
-        <div class="dropdown-container" id="${safe_id(options.id)}">
+        <div class="dropdown-container" id="${safe_id(options.id.replace(/\s+/g, '_'))}">
             <div class="dropdown-header">
                 <span class="dropdown-label"></span>
             </div>
             <div class="dropdown-content"></div>
         </div>
     `);
-
     const self = {
         id: safe_id(options.id),
         name: options.name,
@@ -54,7 +53,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
             if (childrens.length == 0 && values.length > 1) {
                 option.children[0].textContent = "all";
             } else {
-                option.id = `option_${value}`;
+                option.dataset.id = value;
                 option.children[0].textContent = value;
             }
 
@@ -101,7 +100,7 @@ export const create_dropdown = (options = { id: "a", name: "dropdown", values: [
 
         } else {
 
-            const option = content.querySelector(`#option_${name}`);
+            const option = content.querySelector(`div[data-id="${name}"]`);
             const selected = option.classList.contains("dropdown-item-selected");
 
             if (selected) {
