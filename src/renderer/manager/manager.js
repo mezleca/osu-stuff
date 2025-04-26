@@ -17,6 +17,7 @@ import { draggable_items_map, remove_all_selected, setup_draggables, update_coll
 import { create_dropdown } from "./ui/dropdown.js";
 import { create_range } from "./ui/range.js";
 import { create_beatmap_card } from "./ui/beatmap.js";
+import { create_context } from "./ui/context.js";
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -448,6 +449,12 @@ header_text.addEventListener("click", async () => {
     setup_manager();
 });
 
+const options_context = create_context({
+    id: crypto.randomUUID(),
+    values: [],
+    margin: 50,
+});
+
 more_options.addEventListener("click", async () => {
 
     // if theres a collection selected, add extra option
@@ -457,29 +464,14 @@ more_options.addEventListener("click", async () => {
         default_options.push("delete beatmaps");
     }
 
-    const option = await create_custom_popup({
-        type: message_types.MENU,
-        title: "extra options",
-        items: default_options
-    });
+    // @TODO: update to available options before showing the menu (some options have to be disabled in some cases)
+    options_context.update([
+        { type: "default", value: "create new collection", callback: create_new_collection },
+        { type: "default", value: "get missing beatmaps", callback: get_missing_beatmaps },
+        { type: "default", value: "delete beatmaps", callback: delete_beatmaps_manager }
+    ]);
 
-    if (!option) {
-        return;
-    }
-
-    switch (option) {
-        case "create new collection":
-            create_new_collection();
-            break;
-        case "get missing beatmaps":
-            get_missing_beatmaps();
-            break;
-        case "delete beatmaps":
-            delete_beatmaps_manager();
-            break;
-        default:
-            break;
-    }
+    options_context.show(true);
 });
 
 export const render_page = (id, offset = 0, _new = false, _inverted = false) => {

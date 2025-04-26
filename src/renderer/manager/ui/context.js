@@ -1,6 +1,6 @@
 import { CONTEXT_FADE_MS, safe_id, safe_text, create_element } from "../../utils/global.js";
 
-const generate_context = (options) => {
+const generate_context = (options, close) => {
 
     const base = create_element(`
         <div class="context-container">
@@ -33,6 +33,7 @@ const generate_context = (options) => {
                 if (sub_option.callback) {
                     sub_element.addEventListener("click", () => {
                         sub_option.callback(sub_element);
+                        if (close) close();              
                     });
                 }
                 
@@ -46,6 +47,7 @@ const generate_context = (options) => {
             if (option.callback) {
                 item_element.addEventListener("click", () => {
                     option.callback(item_element);
+                    if (close) close();
                 });
             }
 
@@ -66,6 +68,7 @@ export const create_context = (options) => {
     const self = {
         x: 0,
         y: 0,
+        margin: options?.margin || 0, // @TODO: mhm
         id: options.id,
         target: options?.target,
         is_visible: false,
@@ -74,7 +77,7 @@ export const create_context = (options) => {
         update: null,
         element: null,
         options: null,
-        close_timeout: null
+        close_timeout: null,
     };
 
     const show_menu = (menu, update_pos) => {
@@ -112,7 +115,8 @@ export const create_context = (options) => {
             const window_height = window.innerHeight;
     
             if (menu_rect.right > window_width) {
-                menu.style.left = (window_width - menu_rect.width) + "px";
+                const ammount = (window_width - menu_rect.width - self.margin);
+                menu.style.left = ammount + "px";
             }
 
             if (menu_rect.left < 0) {
@@ -155,12 +159,15 @@ export const create_context = (options) => {
         self.is_visible = false;
     };
 
-    const show = () => {
+    const show = (clicked) => {
 
         // to prevent multiple contexts
         if (self.is_visible) {
             close_menu();
         }
+
+        // to prevent closing
+        self.clicked = clicked;
         
         show_menu(self.options, true);
         self.is_visible = true;
@@ -218,7 +225,7 @@ export const create_context = (options) => {
             close_menu();
         }
         
-        self.element = generate_context(new_options);
+        self.element = generate_context(new_options, close_menu);
         self.options = self.element.querySelector(".context-menu");
         
         setup_submenu_listeners();
@@ -291,7 +298,7 @@ export const create_context = (options) => {
     }
 
     document.addEventListener("click", () => {
-        if (self.is_visible) close_menu();
+        if (self.is_visible && !self.clicked) close_menu();
     });
 
     // initialize context menu
