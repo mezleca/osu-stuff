@@ -76,3 +76,4 @@ npm start
 
 ## big thanks to
 - [CollectionManager](https://github.com/Piotrekol/CollectionManager) i stole a bunch of functions from that project
+- [ctxmenu](https://github.com/nkappler/ctxmenu) used for custom context menu

@@ -18,14 +18,14 @@ const osu_db_file = "osu!.db";
 const collection_db_file = "collection.db";
 
 const config_options = [
-    { type: "password", text: "osu_id",      secret: true        },
-    { type: "password", text: "osu_secret",  secret: true        },
-    { type: "file",     text: "export_path", secret: true        },
-    { type: "file",     text: "lazer_path"                       },
-    { type: "file",     text: "stable_path",                     },
-    { type: "file",     text: "stable_songs_path"                },
-    { type: "checkbox", text: "get_images_from_web"              },
-    { type: "checkbox", text: "lazer_mode", callback: lazer_mode }
+    { type: "password", text: "osu_id",      secret: true,        required: true  },
+    { type: "password", text: "osu_secret",  secret: true,        required: true  },
+    { type: "file",     text: "export_path", secret: true,        required: true  },
+    { type: "file",     text: "lazer_path",                       required: false },
+    { type: "file",     text: "stable_path",                      required: false },
+    { type: "file",     text: "stable_songs_path",                required: false },
+    { type: "checkbox", text: "get_images_from_web",              required: false },
+    { type: "checkbox", text: "lazer_mode", callback: lazer_mode, required: false }
 ];
 
 const default_mirrors = [
@@ -145,29 +145,34 @@ const initialize_osu_config = async () => {
 
 const validate_and_setup_config = async () => {
 
-    let valid = true;
-    const lazer_mode = is_lazer_mode();
+    const fields = [...document.querySelectorAll("#config_fields")];
+    const required = config_options
+        .filter(opt => opt.required)
+        .map(opt => opt.text);
 
-    document.querySelectorAll("#config_fields").forEach((field) => {
+    for (let i = 0; i < fields.length; i++) {
 
+        const field = fields[i];
         const input = field.querySelector("input");
 
-        if (input.type != "checkbox" && !input.value) {
+        // if its required and not configured, show error
+        if (input.type != "checkbox" && required.includes(input.id) && !input.value) {
             create_alert(`missing value for ${input.id}`, { type: "error" });
-            valid = false;
+            return;
         }
-    });
 
-    if (valid) {
-        if (lazer_mode) {
-            await initialize({ force: true });
-        } else {
-            await initialize_osu_config();
-            await initialize({ force: true });
-        }
+        // save the value in case its not saved
+        indexed.save("config", input.id, input.value);
+    } 
+
+    if (is_lazer_mode()) {
+        await initialize({ force: true });
+    } else {
+        await initialize_osu_config();
+        await initialize({ force: true });
     }
 
-    await get_access_token();
+    get_access_token();
 };
 
 const manage_mirrors = async (tab, add_button) => {

@@ -18,11 +18,11 @@ export const create_progress = (options = {}) => {
 
     const container = create_element(`
         <div class="progress ${!is_visible ? "hidden" : ""}">
-            <div class="progress-text">${safe_text(settings.message)}</div>
+            <div class="progress-content">${safe_text(settings.message)}</div>
         </div>
     `);
 
-    const progress_text = container.querySelector(".progress-text");
+    const progress_content = container.querySelector(".progress-content");
     
     document.body.appendChild(container);
     
@@ -60,9 +60,27 @@ export const create_progress = (options = {}) => {
         }
     };
     
-    const update = (message) => {
-        console.log("[progress]", message);
-        progress_text.textContent = safe_text(message);
+    const update = (...args) => {
+
+        let msg = "";
+        progress_content.innerHTML = "";
+
+        for (let i = 0; i < args.length; i++) {
+            if (typeof args[i] == "string") {
+                const element = create_element(`<p class="progress-text">${safe_text(args[i])}</p>`);
+                progress_content.appendChild(element);
+                msg += args[i] + " ";
+            } else {
+                if (args[i].type == "folder") {
+                    const element = create_element(`<p class="progress-link">${safe_text(args[i].url)}</p>`);
+                    progress_content.appendChild(element);
+                    element.addEventListener("click", () => window.electronAPI.open_folder(args[i].url));
+                    msg += element.outerHTML + " ";
+                }
+            }
+        }
+        
+        console.log("[progress]", msg);
         show();
     };
     

@@ -4,15 +4,9 @@ import { DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
-import { create_context } from "./context.js";
 import { Reader } from "../../utils/reader/reader.js";
 
 export const draggable_items_map = new Map();
-
-const draggable_context = create_context({
-    id: crypto.randomUUID(),
-    values: []
-});
 
 const search_input = document.querySelector(".collection-search");
 const draggable_item_bin = document.querySelector(".draggable_item_bin");
@@ -287,6 +281,20 @@ export const change_collection_name = async (id, element) => {
     draggable_items_map.delete(id);
     draggable_items_map.set(id, old_draggable_item);
 
+    // remove old context menu
+    window.ctxmenu.delete(`#${id}`);
+
+    const collection_keys = Array.from(core.reader.collections.beatmaps.keys());
+
+    // setup context menu with updated collection id
+    window.ctxmenu.attach(`#${id}`, [
+        { text: "merge with", subMenu: collection_keys.filter((e) => e != new_name).map((e) => { return { text: e, action: () => context_merge(e) }}) },
+        { text: "rename collection", action: () => change_collection_name(id, element) },
+        { text: "export collection", action: () => export_collection(new_name) },
+        { text: "export beatmaps", action: () => export_all_beatmaps(new_name) },
+        { text: "delete", action: () => delete_draggable(new_name, id, old_draggable_item.target) }
+    ]);
+
     show_update_button();
 };
 
@@ -294,6 +302,8 @@ export const delete_draggable = (collection_id, id, target) => {
 
     core.reader.delete_collection(collection_id);
     draggable_items_map.delete(id);
+
+    window.ctxmenu.delete(`#${id}`);
 
     reset_preview_pos();
     list.removeChild(target);
@@ -375,9 +385,8 @@ export const export_all_beatmaps = async (id) => {
             continue;
         }
 
-        core.progress.update(`exporting ${beatmap.beatmap_id}...`);
-
         await core.reader.export_beatmap(beatmap);
+        core.progress.update(`exported ${beatmap.beatmap_id} on`, { type: "folder", url: core.config.get("export_path") });
         exported.add(beatmap.beatmap_id);
     }
 
@@ -396,7 +405,7 @@ export const export_collection = async (id) => {
 
     const method = await create_custom_popup({
         type: message_types.CUSTOM_MENU,
-        title: "search option",
+        title: "export option",
         elements: [
             {
                 key: "export as",
@@ -460,7 +469,7 @@ export const export_collection = async (id) => {
         fs.save_exported(`${id}.osdb`, buffer);
     }
     
-    core.progress.update(`exported ${id}`);
+    core.progress.update(`exported ${id} on`, { type: "folder", url: core.config.get("export_path") });
 };
 
 export const create_collection_item = (id, name) => {
@@ -502,10 +511,10 @@ export const update_collections_count = () => {
     }
 };
 
-export const update_collection_count = (id) => {
+export const update_collection_count = (id, cid) => {
 
     const item = document.getElementById(id);
-    const collection = core.reader.collections.beatmaps.get(get_selected_collection());
+    const collection = core.reader.collections.beatmaps.get(cid);
     const count = item.querySelector(".beatmap-count");
 
     if (collection.maps.size == 1) {
@@ -526,7 +535,7 @@ export const setup_draggables = () => {
     for (let [k, v] of core.reader.collections.beatmaps) {
 
         // create the new elements and append to draggable_items map
-        const id = crypto.randomUUID();
+        const id = "db_" + crypto.randomUUID();
         const { draggable_item, name_element, count_element } = create_collection_item(id, k);
 
         if (!draggable_item) {
@@ -564,10 +573,10 @@ export const setup_draggables = () => {
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
 
-                        const current_selected = get_selected_collection(true);          
+                        const { id: selected_id } = get_selected_collection();
 
                         // save the offset of the previous selected collection
-                        if (current_selected && collection_container.children.length > 16) {
+                        if (selected_id && collection_container.children.length > 16) {
 
                             const c_rect = collection_container.getBoundingClientRect();
                             const visible = Array.from(collection_container.children).find((element) => {
@@ -575,7 +584,7 @@ export const setup_draggables = () => {
                                 return rect.bottom > c_rect.top && rect.top < c_rect.bottom;
                             });
 
-                            draggable_items_map.get(current_selected).offset = visible.dataset.id;
+                            draggable_items_map.get(selected_id).offset = visible.dataset.id;
                         }
   
                         // remove selected from all divs
@@ -586,10 +595,10 @@ export const setup_draggables = () => {
 
                         render_page(id, draggable_item?.offset || 0, true);
                     }
+                } else {
+                    check_merge(id);
+                    check_delete_thing(id, placeholder_draggable_item)
                 }
-
-                check_merge(id);
-                check_delete_thing(id, placeholder_draggable_item)
 
                 reset_preview_pos(id);
 
@@ -664,26 +673,14 @@ export const setup_draggables = () => {
             setup_manager();
         }
 
-        draggable_item.addEventListener("contextmenu", () => {
-
-            if (draggable_context.id != id) {
-
-                draggable_context.update([
-                    { 
-                        type: "submenu", value: "merge with", 
-                        values: collection_keys.filter((e) => e != k).map((e) => { return { value: e, callback: () => context_merge(e) } }), 
-                    },
-                    { type: "default", value: "rename collection", callback: () => { change_collection_name(id, name_element) }},
-                    { type: "default", value: "export collection", callback: () => { export_collection(k) }},
-                    { type: "default", value: "export beatmaps", callback: () => { export_all_beatmaps(k) }},
-                    { type: "default", value: "remove", callback: () => { delete_draggable(k, id, draggable_item) }},
-                ]);
-
-                draggable_context.id = id;
-            }
-
-            draggable_context.show();
-        });
+        // setup draggable context menu
+        window.ctxmenu.attach(`#${id}`, [
+            { text: "merge with", subMenu: collection_keys.filter((e) => e != k).map((e) => { return { text: e, action: () => context_merge(e) }}) },
+            { text: "rename collection", action: () => change_collection_name(id, name_element) },
+            { text: "export collection", action: () => export_collection(k) },
+            { text: "export beatmaps", action: () => export_all_beatmaps(k) },
+            { text: "delete", action: () => delete_draggable(k, id, draggable_item) }
+        ]);
 
         const new_draggable_item = { 
             id: id,

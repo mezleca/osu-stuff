@@ -3,22 +3,19 @@ import { create_element, placeholder_image, star_ranges } from "../../utils/glob
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { open_in_browser } from "../../utils/other/process.js";
-import { create_context } from "./context.js";
 import { get_beatmap_sr } from "../tools/beatmaps.js";
-import { get_selected_collection, remove_beatmap } from "../manager.js";
+import { get_selected_collection, remove_beatmap, show_update_button } from "../manager.js";
+import { draggable_items_map, update_collection_count } from "./draggable.js";
 
 const audio_core = { audio: null, id: 0, target: null };
-const beatmaps_context = create_context({
-    id: crypto.randomUUID(),
-    values: []
-});
 
 const move_to = (el, md5) => {
 
     // make sure to get the updated beatmap
-    const collection_name = el.innerText;
+    const collection_name = el.textContent;
 
     if (!core.reader.collections.beatmaps.has(collection_name)) {
+        console.log("[move to] failed to find collection", el, md5);
         return;
     }
 
@@ -28,14 +25,13 @@ const move_to = (el, md5) => {
     // update collection count
     for (const [k, v] of draggable_items_map) {
         if (v.collection_id == collection_name) {
-            update_collections_count(k)
+            update_collection_count(k, collection_name);
             break;
         }
     }
 
     // update sr and shit
     core.reader.update_collections();
-
     show_update_button();
 };
 
@@ -43,14 +39,14 @@ const delete_set = (md5) => {
 
     // make sure to get the updated beatmap
     const updated_beatmap = core.reader.osu.beatmaps.get(md5);
-    const collection_name = get_selected_collection();
+    const { name } = get_selected_collection();
 
-    if (!core.reader.collections.beatmaps.has(collection_name)) {
+    if (!core.reader.collections.beatmaps.has(name)) {
         return;
     }
 
     const beatmap_id = updated_beatmap.beatmap_id;
-    const collection = core.reader.collections.beatmaps.get(collection_name);
+    const collection = core.reader.collections.beatmaps.get(name);
 
     // remove diffs that have the save beatmap_id
     for (const [k, v] of core.reader.osu.beatmaps) {
@@ -271,31 +267,30 @@ export const create_beatmap_card = (md5) => {
         download_button.remove();
         set_beatmap_image(beatmap, beatmap_bg);
 
-        // update context menu object on right click
-        beatmap_element.addEventListener("contextmenu", () => {
+        const export_beatmap = () => {
+            core.reader.export_beatmap(beatmap).then((success) => {
+                if (success) {
+                    core.progress.update(`exported ${beatmap.beatmap_id} on`, { type: "folder", url: core.config.get("export_path") });
+                } else {
+                    core.progress.update(`failed to export ${beatmap.beatmap_id}`);
+                }
+            });         
+        };
 
-            if (beatmaps_context.id != md5) {
-                const current_collection = get_selected_collection();
-                const collection_keys = Array.from(core.reader.collections.beatmaps.keys())
-                    .filter((k) => k != current_collection)
-                    .map((k) => { return { value: k, callback: (el) => { move_to(el, md5) } }});
-                
-                beatmaps_context.update([
-                    { type: "default", value: "open on browser", callback: () => { open_in_browser(beatmap) } },
-                    { type: "default", value: "export beatmap", callback: () => { 
-                        core.reader.export_beatmap(beatmap);
-                        core.progress.update(`exported ${beatmap.beatmap_id}`);
-                    }},
-                    { type: "submenu", value: "move to", values: collection_keys },
-                    { type: "default", value: "remove beatmap set", callback: () => { delete_set(md5) } },
-                    { type: "default", value: "remove beatmap", callback: () => { remove_beatmap(md5) } },
-                ]);
-                
-                beatmaps_context.id = md5;
-            }
+        const { name } = get_selected_collection();
+        const collection_keys = Array.from(core.reader.collections.beatmaps.keys())
+            .filter((k) => k != name)
+            .map((k) => { return { text: k, action: (el) => { move_to(el.target, md5) } }});
 
-            beatmaps_context.show(extra);
-        });
+        // setup beatmap context menu
+        window.ctxmenu.attach(beatmap_container, [
+            { text: "open on browser", action: () => open_in_browser(beatmap) },
+            { isDivider: true },
+            { text: "export beatmap", action: () => export_beatmap() },
+            { text: "move to", subMenu: collection_keys },
+            { text: "remove beatmap", action: () => remove_beatmap(md5) },
+            { text: "remove beatmapset", action: () => delete_set(md5) }
+        ]);
 
         preview_button.addEventListener("click", async (e) => {
 

@@ -915,9 +915,9 @@ export class Reader extends BinaryReader {
         
         let buffer = "";
     
-        if (!export_path) {
+        if (export_path == "") {
             create_alert("please update your export path before using this feature");
-            return;
+            return false;
         }
     
         if (lazer_mode) {
@@ -950,10 +950,11 @@ export class Reader extends BinaryReader {
 
         if (!core.config.get("export_path")) {
             create_alert("uhhh, can you please set you export path again? :3");
-            return;
+            return false;
         }
 
         fs.save_exported(`${beatmap.beatmap_id}.osz`, buffer);
+        return true;
     }
 
     static get_beatmap_status(code) {

@@ -54,7 +54,7 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         });
     };
 
-    const set_limit = (new_limit) => {
+    const set_limit = (new_limit, u = false) => {
 
         new_limit = parseFloat(new_limit);
 
@@ -73,10 +73,10 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
             self.min.value = Math.max(0, new_limit - 0.1);
         }
         
-        update();
+        update(false);
     };
 
-    const update = () => {
+    const update = (c) => {
 
         let min_value = parseFloat(self.min.value);
         let max_value = parseFloat(self.max.value);
@@ -116,12 +116,12 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         force_update();
         
         // execute callback
-        if (self.callback) {
+        if (c && self.callback) {
             debounce_callback();
         }
     };
     
-    set_limit(self.limit, true);
+    set_limit(self.limit, false);
 
     self.update = update;
     self.set_limit = set_limit;

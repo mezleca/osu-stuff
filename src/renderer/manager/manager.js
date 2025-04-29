@@ -17,32 +17,29 @@ import { draggable_items_map, remove_all_selected, setup_draggables, update_coll
 import { create_dropdown } from "./ui/dropdown.js";
 import { create_range } from "./ui/range.js";
 import { create_beatmap_card } from "./ui/beatmap.js";
-import { create_context } from "./ui/context.js";
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
-const more_options = document.querySelector(".more_options");
 const collection_container = document.querySelector(".collection-container");
 const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
 const text_collection = document.getElementById("collection_text");
-const default_options = ["create new collection", "get missing beatmaps"];
 
 const manager_filters = new Map();
 const rendered_beatmaps = { id: 0, idx: new Set() };
 
-export const get_selected_collection = (id) => {
+export const get_selected_collection = () => {
 
     const draggable_items = [...document.querySelectorAll(".draggable_item")];
 
     for (let i = 0; i < draggable_items.length; i++) {
         if (draggable_items[i].classList.contains("selected")) {
-            return id ? draggable_items[i].id : draggable_items[i].querySelector(".collection-name").textContent;
+            return { id: draggable_items[i].id, name: draggable_items[i].querySelector(".collection-name").textContent }
         }
     }
 
-    return null;
+    return { id: null, name: "" };
 };
 
 export const show_update_button = () => {
@@ -99,18 +96,18 @@ export const lazer_mode = async (target, name) => {
 
 search_input.addEventListener("input", debounce(() => {
 
-    const selected_id = get_selected_collection(true);
+    const { id } = get_selected_collection();
 
-    if (!selected_id) {
+    if (!id) {
         return;
     }
 
-    render_page(selected_id, 0, true);
+    render_page(id, 0, true);
 }, 300));
 
 export const remove_beatmap = (hash) => {
 
-    const name = get_selected_collection();
+    const { id, name } = get_selected_collection();
     const beatmaps = core.reader.collections.beatmaps.get(name).maps;
 
     if (!beatmaps) {
@@ -118,11 +115,11 @@ export const remove_beatmap = (hash) => {
         return;
     }
 
-    beatmaps.delete(hash);
-    update_collection_count(get_selected_collection(true));
-
-    show_update_button();
     document.getElementById(`bn_${hash}`).remove();
+    beatmaps.delete(hash);
+    window.ctxmenu.delete(`bn_${hash}`);
+    update_collection_count(id, name);
+    show_update_button();
 };
 
 const get_from_player = async () => {
@@ -204,23 +201,23 @@ const add_new_collection = async () => {
     }
 
     const { c_maps: maps, maps: yep_maps, collection } = info;
-    const current_collection = get_selected_collection(false);
+    const { name } = get_selected_collection();
 
-    if (current_collection) {
+    if (name) {
 
-        const confirmation = await quick_confirm(`merge with ${current_collection}?`);
+        const confirmation = await quick_confirm(`merge with ${name}?`);
 
         if (confirmation) {
 
-            const collection = core.reader.collections.beatmaps.get(current_collection).maps;
+            const collection = core.reader.collections.beatmaps.get(name).maps;
 
             if (!collection) {
-                create_alert(`failed to get current collection ${collection} ${current_collection}`, { type: "error" } );
+                create_alert(`failed to get current collection ${collection} ${name}`, { type: "error" } );
                 return;
             }
 
             const new_maps = [...collection, ...maps];
-            await add_collection_manager(new_maps, current_collection);
+            await add_collection_manager(new_maps, name);
         } 
         else {
                     
@@ -269,11 +266,11 @@ const get_missing_beatmaps = async () => {
 
 const delete_beatmaps_manager = async () => {
     
-    const name = get_selected_collection();
+    const { name } = get_selected_collection();
 
     // make sure the collection is valid
     if (!name) {
-        core.progress.update("failed to get current collection", { type: "error" });
+        core.progress.update("failed to get current collection");
         return;
     }
 
@@ -282,7 +279,7 @@ const delete_beatmaps_manager = async () => {
     const beatmaps = new Map();
 
     if (!all_beatmaps) {
-        core.progress.update("failed to get collection beatmaps", { type: "error" });
+        core.progress.update("failed to get collection beatmaps");
         return;
     }
 
@@ -453,45 +450,16 @@ header_text.addEventListener("click", async () => {
     setup_manager();
 });
 
-const options_context = create_context({
-    id: crypto.randomUUID(),
-    values: [],
-    fixed: { left: true, top: true },
-    style: {
-        "context-menu": {
-            padding: "15px",
-            width: "250px",
-            maxWidth: "250px",
-            marginLeft: "-25px",
-            left: "calc(100vw - 250px)",
-            top: `${more_options.getBoundingClientRect().top + 65}px`
-        },
-        "menu-item": {
-            fontSize: "1.1em"
-        }
-    }
-});
+// setup more options context menu
+window.ctxmenu.attach(".more_options", [
+    { text: "more options" },
+    { isDivider: true },
+    { text: "create new collection", action: () => create_new_collection },
+    { text: "get missing beatmaps", action: () => get_missing_beatmaps },
+    { text: "delete beatmaps", action: () => delete_beatmaps_manager }
+], { onClick: true });
 
-more_options.addEventListener("click", async () => {
-
-    // if theres a collection selected, add extra option
-    const current_collection = get_selected_collection(false);
-
-    if (current_collection && !default_options.includes("delete beatmaps")) {
-        default_options.push("delete beatmaps");
-    }
-
-    // @TODO: update to available options before showing the menu (some options have to be disabled in some cases)
-    options_context.update([
-        { type: "default", value: "create new collection", callback: create_new_collection },
-        { type: "default", value: "get missing beatmaps", callback: get_missing_beatmaps },
-        { type: "default", value: "delete beatmaps", callback: delete_beatmaps_manager }
-    ]);
-
-    options_context.show(true);
-});
-
-export const render_page = (id, offset = 0, _new = false, _inverted = false) => {
+const render = (id, offset = 0, _new = false, _inverted = false) => {
 
     const elements = [];
     const collection = draggable_items_map.get(id)?.collection;
@@ -514,12 +482,12 @@ export const render_page = (id, offset = 0, _new = false, _inverted = false) => 
 
     // update sr filter slider min/max
     if (beatmaps.length >= 0 && sr_filter.limit != sr_max) {
-        sr_filter.set_limit(sr_max);
+        sr_filter.set_limit(sr_max, false);
     }
 
     // update bpm filter slider min/max
     if (beatmaps.length >= 0 && bpm_filter.limit != bpm_max) {
-        bpm_filter.set_limit(bpm_max);
+        bpm_filter.set_limit(bpm_max, false);
     }
 
     if (rendered_beatmaps.id != id || _new) {
@@ -578,6 +546,10 @@ export const render_page = (id, offset = 0, _new = false, _inverted = false) => 
     }
 };
 
+export const render_page = debounce((id, offset = 0, _new = false, _inverted = false) => {
+    render(id, offset, _new, _inverted);
+}, 10);
+
 collection_container.addEventListener("scroll", () => {
 
     const first_card = collection_container.firstChild;
@@ -588,7 +560,7 @@ collection_container.addEventListener("scroll", () => {
     
     if (last_card && (height - clientH) - top < 10) {
         const next_offset = Number(last_card.dataset.id) + 1;
-        render_page(get_selected_collection(true), next_offset);
+        render_page(get_selected_collection().id, next_offset);
         return;
     }
     
@@ -598,7 +570,7 @@ collection_container.addEventListener("scroll", () => {
         const new_offset = Math.max(0, current_first_id - MAX_RENDER_AMMOUNT);
         
         if (new_offset < current_first_id) {
-            render_page(get_selected_collection(true), new_offset, false, true);
+            render_page(get_selected_collection().id, new_offset, false, true);
         }
     }
 });
@@ -660,14 +632,14 @@ export const setup_manager = () => {
 
         const update = () => {
 
-            const current_id = get_selected_collection(true);;
+            const { id } = get_selected_collection();
 
-            if (!current_id) {
+            if (!id) {
                 return;
             }
 
             // render page again
-            render_page(current_id, 0, true);
+            render_page(id, 0, true);
         }
 
         // update maps on filter update

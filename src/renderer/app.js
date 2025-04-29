@@ -27,7 +27,7 @@ export const core = {
 
     // remove loading screen
     document.body.removeChild(document.getElementById('loading-screen'));
-    core.progress.update("initialized");
+    core.progress.update("initialized", "test a, b", "555");
 
     if (in_dev_mode) {
         gui_title.innerText = "osu-stuff - (dev mode)";

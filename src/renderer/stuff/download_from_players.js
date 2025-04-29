@@ -33,7 +33,7 @@ const add_to_collection = async (maps, name, append) => {
 
     if (append) {
 
-        const selected_name = get_selected_collection();
+        const { name: selected_name } = get_selected_collection();
 
         if (!selected_name) {
             core.progress.update("failed to get collection name");
@@ -43,7 +43,7 @@ const add_to_collection = async (maps, name, append) => {
         const collection = core.reader.collections.beatmaps.get(selected_name);
 
         if (!collection) {
-            core.progress.update("failed to get collection", { type: "error" });
+            core.progress.update("failed to get collection");
             return;
         }
 
@@ -287,7 +287,7 @@ export const download_from_players = async (options) => {
     };
 
     const maps = get_maps();
-    const current_collection = get_selected_collection(false);
+    const { name: current_collection } = get_selected_collection();
     
     // cancelled
     if (!download_options) {
