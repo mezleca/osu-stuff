@@ -12,6 +12,11 @@ export const MAX_RENDER_AMMOUNT = 8;
 export const DRAG_ACTIVATION_THRESHOLD_MS = 500;
 export const CONTEXT_FADE_MS = 50;
 
+export const cursor = {
+    x: 0,
+    y: 0
+}
+
 // OTHER GARBAGE
 export const star_ranges = [
     [0, 2.99, "sr1"],
@@ -51,16 +56,42 @@ export const safe_id = (id) => {
     return String(id).replace(/[^\w-]/g, '');
 };
 
-export const create_element = (data) => {
-    return new DOMParser().parseFromString(data, "text/html").body.firstElementChild;
-};
+export const create_element = (data, style) => {
+    
+    const content = new DOMParser().parseFromString(data, "text/html").body;
+    const element = content.firstElementChild;
 
-export const debounce = (func, delay) => {
+    if (style) {
 
-    let timeout;
+        for (const [target_id, data] of Object.entries(style)) {
 
-    return (...args) => {
-        clearTimeout(timeout)
-        timeout = setTimeout(() => func(...args), delay)
+            const target = content.querySelector(`.${target_id}`);
+    
+            if (!target) {
+                //console.log("[css] failed to get", target_id, content);
+                continue;
+            }
+
+            for (const [k, v] of Object.entries(data)) {
+                target.style[k] = v;
+                //console.log("applying", v, "to", k, "in", target_id);
+            }            
+        }
     }
+    
+    return element;
 };
+
+export function debounce (func, timeout = 250) {
+    let timer;
+    return (...args) => {
+        console.log(...args);
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
+}
+
+document.addEventListener("mousemove", (e) => {
+    cursor.x = e.clientX;
+    cursor.y = e.clientY;
+});

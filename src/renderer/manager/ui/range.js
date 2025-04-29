@@ -22,16 +22,16 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         </div>
     `);
 
-    const range_slider = {
+    const self = {
+        element: element,
         min: null,
         max: null,
         limit: null,
-        element: element,
         update: null,
         callback: null,
         set_limit: null,
-        set_callback: (c) => range_slider.callback = c 
-    }
+        callback: null,
+    };
     
     const slider_label = element.querySelector(".slider-label");
     const slider_values = element.querySelector(".slider-values");
@@ -40,9 +40,11 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
     slider_values.textContent = `(0.0${options.iden} - ${options.initial}.0${options.iden})`;
     slider_label.textContent = options.text;
     
-    range_slider.min = element.querySelector("#min-sr");
-    range_slider.max = element.querySelector("#max-sr");
-    range_slider.limit = range_slider.max.value;
+    self.min = element.querySelector("#min-sr");
+    self.max = element.querySelector("#max-sr");
+    self.limit = self.max.value;
+
+    const debounce_callback = debounce(() => self.callback(), 100);
     
     const force_update = () => {
         requestAnimationFrame(() => {
@@ -52,7 +54,7 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
         });
     };
 
-    const set_limit = (new_limit, ignore) => {
+    const set_limit = (new_limit) => {
 
         new_limit = parseFloat(new_limit);
 
@@ -60,24 +62,24 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
             return;
         }
 
-        range_slider.limit = new_limit;
-        range_slider.min.setAttribute("max", new_limit);
-        range_slider.max.setAttribute("max", new_limit);
+        self.limit = new_limit;
+        self.min.setAttribute("max", new_limit);
+        self.max.setAttribute("max", new_limit);
         
-        const min_value = parseFloat(range_slider.min.value);
-        range_slider.max.value = new_limit;
+        const min_value = parseFloat(self.min.value);
+        self.max.value = new_limit;
         
         if (min_value > new_limit) {
-            range_slider.min.value = Math.max(0, new_limit - 0.1);
+            self.min.value = Math.max(0, new_limit - 0.1);
         }
         
         update();
     };
 
-    const update = (ignore) => {
+    const update = () => {
 
-        let min_value = parseFloat(range_slider.min.value);
-        let max_value = parseFloat(range_slider.max.value);
+        let min_value = parseFloat(self.min.value);
+        let max_value = parseFloat(self.max.value);
         
         // prevent min exceeding max
         if (min_value >= max_value) {
@@ -86,42 +88,46 @@ export const create_range = (options = { id: crypto.randomUUID(), text: "range",
                 return;
             }
 
-            range_slider.min.value = (max_value - 0.1).toFixed(options.fix);
-            min_value = parseFloat(range_slider.min.value);
+            self.min.value = (max_value - 0.1).toFixed(options.fix);
+            min_value = parseFloat(self.min.value);
         }
 
-        if (max_value > range_slider.limit) {
-            max_value = range_slider.limit;
-            range_slider.max.value = max_value;
+        if (max_value > self.limit) {
+            max_value = self.limit;
+            self.max.value = max_value;
         }
         
         if (min_value < 0) {
             min_value = 0;
-            range_slider.min.value = 0;
+            self.min.value = 0;
         }
         
         // update display
         slider_values.textContent = `(${min_value.toFixed(options.fix)}${options.iden} - ${max_value.toFixed(options.fix)}${options.iden})`;
         
         // update tracker
-        const min_percent = (min_value / range_slider.limit) * 100;
-        const max_percent = (max_value / range_slider.limit) * 100;
+        const min_percent = (min_value / self.limit) * 100;
+        const max_percent = (max_value / self.limit) * 100;
         const width_percent = max_percent - min_percent;
         
         track_highlight.style.width = `${width_percent}%`;
         track_highlight.style.left = `${min_percent}%`;
         
         force_update();
-        if (!ignore && range_slider.callback) debounce(range_slider.callback);
+        
+        // execute callback
+        if (self.callback) {
+            debounce_callback();
+        }
     };
     
-    set_limit(range_slider.limit, true);
+    set_limit(self.limit, true);
 
-    range_slider.update = update;
-    range_slider.set_limit = set_limit;
+    self.update = update;
+    self.set_limit = set_limit;
 
-    range_slider.min.addEventListener("input", update);
-    range_slider.max.addEventListener("input", update);
+    self.min.addEventListener("input", update);
+    self.max.addEventListener("input", update);
 
-    return range_slider;
+    return self;
 };

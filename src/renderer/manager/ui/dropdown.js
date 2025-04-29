@@ -10,13 +10,14 @@ export const create_dropdown = (options = { id: crypto.randomUUID(), name: "drop
             <div class="dropdown-content"></div>
         </div>
     `);
+
     const self = {
         id: safe_id(options.id),
         name: options.name,
         selected: new Set(),
         element: container,
         create: (v) => { create(v) },
-        set_callback: (c) => { self.callback = c }
+        callback: null,
     };
 
     const label = container.querySelector(".dropdown-label");
@@ -25,6 +26,8 @@ export const create_dropdown = (options = { id: crypto.randomUUID(), name: "drop
     const header_text = container.querySelector(".dropdown-label");
 
     label.textContent = options.name;
+
+    const debounce_callback = debounce(() => self.callback(), 100);
 
     // create and append all options
     const create = (values) => {
@@ -129,7 +132,7 @@ export const create_dropdown = (options = { id: crypto.randomUUID(), name: "drop
 
         // execute callback
         if (self.callback) {
-            debounce(self.callback(self, name));
+            debounce_callback();
         }
     };
 
