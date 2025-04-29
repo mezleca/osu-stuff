@@ -1,12 +1,12 @@
-import { CONTEXT_FADE_MS, safe_id, safe_text, create_element } from "../../utils/global.js";
+import { CONTEXT_FADE_MS, safe_id, safe_text, create_element, cursor } from "../../utils/global.js";
 
-const generate_context = (options, close) => {
+const generate_context = (options, style, close) => {
 
     const base = create_element(`
         <div class="context-container">
             <div id="context-menu" class="context-menu"></div>
         </div>`
-    );
+    , style);
 
     const context_menu = base.querySelector("#context-menu");
 
@@ -14,12 +14,12 @@ const generate_context = (options, close) => {
     for (let i = 0; i < options.length; i++) {
 
         const option = options[i];
-        const item_element = create_element(`<div class="menu-item">${safe_text(option.value)}</div>`);
+        const item_element = create_element(`<div class="menu-item">${safe_text(option.value)}</div>`, style);
 
         if (option.type == "submenu") {
 
             const safe_key = safe_id(option.value.replace(/\s+/g, '-'));
-            const sub_container = create_element(`<div id="submenu-${safe_key}" class="submenu"></div>`);
+            const sub_container = create_element(`<div id="submenu-${safe_key}" class="submenu"></div>`, style);
 
             item_element.classList.add("has-submenu");
             item_element.setAttribute("data-submenu", `submenu-${safe_key}`);
@@ -28,7 +28,7 @@ const generate_context = (options, close) => {
             for (let j = 0; j < option.values.length; j++) {
 
                 const sub_option = option.values[j];
-                const sub_element = create_element(`<div class="menu-item">${safe_text(sub_option.value)}</div>`);
+                const sub_element = create_element(`<div class="menu-item">${safe_text(sub_option.value)}</div>`, style);
 
                 if (sub_option.callback) {
                     sub_element.addEventListener("click", () => {
@@ -43,14 +43,12 @@ const generate_context = (options, close) => {
             base.appendChild(sub_container);
             context_menu.appendChild(item_element);
         } else {
-
             if (option.callback) {
                 item_element.addEventListener("click", () => {
                     option.callback(item_element);
                     if (close) close();
                 });
             }
-
             context_menu.appendChild(item_element);
         }
     }
@@ -58,7 +56,20 @@ const generate_context = (options, close) => {
     return base;
 };
 
-export const create_context = (options) => {
+// @TODO: jsconfig
+/**
+ * @typedef {Partial<CSSStyleDeclaration>} StyleObj
+ * @typedef {Record<string, StyleObj>} StyleMap
+*/
+
+/**
+ * @param {Object} [options]
+ * @param {string} [options.id]
+ * @param {HTMLElement|null} [options.target]
+ * @param {object} [options.fixed]
+ * @param {StyleMap} [options.style]
+*/
+export const create_context = (options = { id: crypto.randomUUID(), target: null, fixed: { left: false, top:  false }, style: {} }) => {
 
     if (!options?.id) {
         console.log("[CONTEXT MENU] missing id");
@@ -66,9 +77,6 @@ export const create_context = (options) => {
     }
 
     const self = {
-        x: 0,
-        y: 0,
-        margin: options?.margin || 0, // @TODO: mhm
         id: options.id,
         target: options?.target,
         is_visible: false,
@@ -82,17 +90,16 @@ export const create_context = (options) => {
 
     const show_menu = (menu, update_pos) => {
 
-        // ignore invalid positions
-        if (update_pos && (!self.x || !self.y)) {
-            return;
-        }
-
         // rmove existing context
         const existing = document.querySelector(`.context-container`);
 
         // @TODO: sometimes this will close the context menu (if we created a new one before the ending animation finish)
         if (existing && existing.children[0].classList.contains("disabled")) {
             existing.remove();
+        }
+
+        if (!options?.fixed) {
+            options.fixed = { top: false, left: false };
         }
 
         // set a id to find the context later
@@ -107,28 +114,35 @@ export const create_context = (options) => {
     
         if (update_pos) {
 
-            menu.style.left = self.x + "px";
-            menu.style.top = self.y + "px";
-
             const menu_rect = menu.getBoundingClientRect();
             const window_width = window.innerWidth;
             const window_height = window.innerHeight;
+            
+            if (!options.fixed.left) {
+
+                menu.style.left = cursor.x + "px";
+
+                if (cursor.y + menu_rect.width > window_width) {
+                    const ammount = (window_width - menu_rect.width);
+                    menu.style.left = ammount + "px";
+                }
     
-            if (menu_rect.right > window_width) {
-                const ammount = (window_width - menu_rect.width - self.margin);
-                menu.style.left = ammount + "px";
+                if (menu_rect.left < 0) {
+                    menu.style.left = "0px";
+                }
             }
 
-            if (menu_rect.left < 0) {
-                menu.style.left = "0px";
-            }
-    
-            if (menu_rect.bottom > window_height) {
-                menu.style.top = (window_height - menu_rect.height) + "px";
-            }
+            if (!options.fixed.top) {
 
-            if (menu_rect.top < 0) {
-                menu.style.top = "0px";
+                menu.style.top = cursor.y + "px";
+
+                if (cursor.y + menu_rect.height > window_height) {
+                    menu.style.top = (window_height - menu_rect.height) + "px";
+                }
+    
+                if (menu_rect.top < 0) {
+                    menu.style.top = "0px";
+                }             
             }
         }
     };
@@ -179,8 +193,10 @@ export const create_context = (options) => {
 
     const close_submenus = () => {
         if (self.element && document.body.contains(self.element)) {
-            const subs = self.element.querySelectorAll(".submenu");
-            subs.forEach((sub) => sub.style.display = "none");
+            const subs = [...self.element.querySelectorAll(".submenu")]
+            for (let i = 0; i < subs.length; i++) {
+                subs[i].style.display = "none"
+            }
         }
     };
 
@@ -225,7 +241,7 @@ export const create_context = (options) => {
             close_menu();
         }
         
-        self.element = generate_context(new_options, close_menu);
+        self.element = generate_context(new_options, options.style, close_menu);
         self.options = self.element.querySelector(".context-menu");
         
         setup_submenu_listeners();
@@ -266,12 +282,9 @@ export const create_context = (options) => {
         return false;
     };
 
-    document.addEventListener("mousemove", (e) => {
+    document.addEventListener("mousemove", () => {
 
-        self.x = e.clientX;
-        self.y = e.clientY;
-
-        if (self.is_visible && !is_in_context(self.x, self.y)) {
+        if (self.is_visible && !is_in_context(cursor.x, cursor.y)) {
 
             if (self.close_timeout) {
                 clearTimeout(self.close_timeout);
@@ -283,7 +296,7 @@ export const create_context = (options) => {
             }, CONTEXT_FADE_MS);
         } 
         
-        if (self.close_timeout && is_in_context(self.x, self.y)) {
+        if (self.close_timeout && is_in_context(cursor.x, cursor.y)) {
             clearTimeout(self.close_timeout);
             self.close_timeout = null;
         }

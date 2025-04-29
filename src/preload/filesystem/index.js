@@ -11,7 +11,6 @@ export const stuff_fs = {
     unlinkSync: (path) => fs.unlinkSync(path),
     rmdirSync: (path, options) => fs.rmdirSync(path, options),
     renameSync: (a, b) => fs.renameSync(a, b),
-
     save_exported: async (name, buffer) => {
 
         const _path = await database.get("config", "export_path");

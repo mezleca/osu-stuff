@@ -306,6 +306,10 @@ const delete_beatmaps_manager = async () => {
     }
 
     const remove_from_collection = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
+    
+    if (remove_from_collection == null) {
+        return;
+    }
 
     if (remove_from_collection) {
 
@@ -452,7 +456,20 @@ header_text.addEventListener("click", async () => {
 const options_context = create_context({
     id: crypto.randomUUID(),
     values: [],
-    margin: 50,
+    fixed: { left: true, top: true },
+    style: {
+        "context-menu": {
+            padding: "15px",
+            width: "250px",
+            maxWidth: "250px",
+            marginLeft: "-25px",
+            left: "calc(100vw - 250px)",
+            top: `${more_options.getBoundingClientRect().top + 65}px`
+        },
+        "menu-item": {
+            fontSize: "1.1em"
+        }
+    }
 });
 
 more_options.addEventListener("click", async () => {
@@ -643,10 +660,9 @@ export const setup_manager = () => {
 
         const update = () => {
 
-            const current_id = get_selected_collection(true);
+            const current_id = get_selected_collection(true);;
 
             if (!current_id) {
-                sr_filter.callback = null;
                 return;
             }
 
@@ -655,9 +671,9 @@ export const setup_manager = () => {
         }
 
         // update maps on filter update
-        status_filter.set_callback(update);
-        sr_filter.set_callback(update);
-        bpm_filter.set_callback(update);
+        status_filter.callback = update;
+        sr_filter.callback = update;
+        bpm_filter.callback = update;
 
         status_filter_container.appendChild(status_filter.element);
         sr_filter_container.appendChild(sr_filter.element);

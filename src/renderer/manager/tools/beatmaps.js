@@ -56,19 +56,19 @@ export const get_beatmap_bpm = (beatmap) => {
     const last_time = beatmap.total_time > 0 
       ? beatmap.total_time 
       : timing_points[timing_points.length - 1].offset;
-  
-    timing_points.forEach((point, index) => {
 
-        const beat_length = Math.round((60000 / point.beat_length) * 1000) / 1000;     
+    for (let i = 0; i < timing_points.length; i++) {
+        
+        const beat_length = Math.round((60000 / timing_points[i].beat_length) * 1000) / 1000;     
 
-        if (point.offset > last_time) {
-            return;
+        if (timing_points[i].offset > last_time) {
+            continue;
         }
         
-        const current_time = index == 0 ? 0 : point.offset;
-        const next_time = index == timing_points.length - 1 ? last_time : timing_points[index + 1].offset;
+        const current_time = i == 0 ? 0 : timing_points[i].offset;
+        const next_time = i == timing_points.length - 1 ? last_time : timing_points[i + 1].offset;
         beat_length_map[beat_length] = (beat_length_map[beat_length] || 0) + (next_time - current_time);
-    });
+    }
     
     let most_common_beat_length = 0;
     let longest_duration = 0;

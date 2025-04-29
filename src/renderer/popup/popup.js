@@ -230,6 +230,9 @@ const create_confirmation = async (options) => {
 
 export const quick_confirm = async (title) => {
     const confirm = await create_custom_popup({ type: message_types.CONFIRMATION, title: title });
+    if (confirm == null) {
+        return null;
+    }
     return confirm == "Yes";
 };
 
