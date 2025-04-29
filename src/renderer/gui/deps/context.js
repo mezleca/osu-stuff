@@ -123,20 +123,41 @@
         hdir = "r";
         vdir = "d";
     }
-    function setPosition(container, parentOrEvent) {
+    function setPosition(container, parentOrEvent, fixedPos) {
+
         var scale = getScale();
         var _a = window.visualViewport, width = _a.width, height = _a.height;
+
         Object.assign(container.style, {
             maxHeight: height / scale.y + "px",
             maxWidth: width / scale.x + "px"
         });
+
+        // NEW: yep
+        if (fixedPos) {
+            
+            var rect = getUnmountedBoundingRect(container);
+
+            Object.assign(container.style, {
+                left: fixedPos.left,
+                top: fixedPos.top,
+                width: rect.width + "px",
+                height: rect.height + "px"
+            });
+
+            return;
+        }
+
         var rect = getUnmountedBoundingRect(container);
+
         rect.width = Math.trunc(rect.width) + 1;
         rect.height = Math.trunc(rect.height) + 1;
+
         var pos = {
             x: 0,
             y: 0
         };
+
         if (parentOrEvent instanceof Element) {
             var _b = getBoundingRect(parentOrEvent), x = _b.x, width_1 = _b.width, y = _b.y;
             pos = {
@@ -165,6 +186,7 @@
                 y: (parentOrEvent.clientY - body.y) / scale.y
             });
         }
+        
         Object.assign(container.style, {
             left: pos.x + "px",
             top: pos.y + "px",
@@ -321,10 +343,10 @@
             this.hide();
             this.onHide = config.onHide;
             this.onBeforeHide = config.onBeforeHide;
-            var newMenu = (_b = (_a = config.onBeforeShow) === null || _a === void 0 ? void 0 : _a.call(config, ctxMenu.slice(), eventOrElement instanceof MouseEvent ? eventOrElement : void 0)) !== null && _b !== void 0 ? _b : ctxMenu;
-            this.menu = this.generateDOM(newMenu, eventOrElement, config.attributes);
+            var newMenu = (_b = (_a = config.onBeforeShow) === null || _a === void 0 ? void 0 : _a.call(config, ctxMenu.slice(), eventOrElement instanceof MouseEvent ? eventOrElement : void 0)) !== null && _b !== void 0 ? _b : ctxMenu;     
+            this.menu = this.generateDOM(newMenu, eventOrElement, config.attributes, config.Fixed);   
             document.body.appendChild(this.menu);
-            (_c = config.onShow) === null || _c === void 0 ? void 0 : _c.call(config, this.menu);
+            (_c = config.onShow) === null || _c === void 0 ? void 0 : _c.call(config, this.menu);  
             this.menu.addEventListener("wheel", (function() {
                 _this.preventCloseOnScroll = true;
             }), {
@@ -347,11 +369,11 @@
                 this.onHide = void 0;
             }
         };
-        ContextMenu.prototype.generateDOM = function(ctxMenu, parentOrEvent, attributes) {
+        ContextMenu.prototype.generateDOM = function(ctxMenu, parentOrEvent, attributes, fixedPos) {
             var _this = this;
             if (attributes === void 0) attributes = {};
             var container = generateMenu(ctxMenu);
-            setPosition(container, parentOrEvent);
+            setPosition(container, parentOrEvent, fixedPos);
             ctxMenu.forEach((function(item, i) {
                 var li = container.children[i];
                 onHoverDebounced(li, (function() {

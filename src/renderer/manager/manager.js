@@ -451,13 +451,14 @@ header_text.addEventListener("click", async () => {
 });
 
 // setup more options context menu
-window.ctxmenu.attach(".more_options", [
+const more_options = document.querySelector(".more_options");
+window.ctxmenu.attach(more_options, [
     { text: "more options" },
     { isDivider: true },
-    { text: "create new collection", action: () => create_new_collection },
-    { text: "get missing beatmaps", action: () => get_missing_beatmaps },
-    { text: "delete beatmaps", action: () => delete_beatmaps_manager }
-], { onClick: true });
+    { text: "create new collection", action: () => create_new_collection() },
+    { text: "get missing beatmaps", action: () => get_missing_beatmaps() },
+    { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
+], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom + 15}px` }});
 
 const render = (id, offset = 0, _new = false, _inverted = false) => {
 
