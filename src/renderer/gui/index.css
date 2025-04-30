@@ -1109,6 +1109,10 @@ button {
     transition: var(--transition-delay) color, var(--transition-delay) background-color;
 }
 
+.draggable_item.placeholder {
+    pointer-events: none;
+}
+
 .draggable_item:hover {
     background-color: #4d4d4d;
     border: 1px solid #4d4d4d;

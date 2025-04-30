@@ -1,6 +1,6 @@
 
 import { core } from "../../app.js";
-import { DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
+import { cursor, DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
@@ -14,13 +14,6 @@ const list = document.querySelector(".list_draggable_items");
 const collection_container = document.querySelector(".collection-container");
 const list_container = document.querySelector(".list_container");
 
-let mouse_y, mouse_x;
-
-const handle_move = (event) => {
-    mouse_x = event.clientX;
-    mouse_y = event.clientY;
-};
-
 // yeah i could do this with css but i dont give a shit
 const update_draggable_item_pos = (draggable_item, id) => {
 
@@ -32,15 +25,15 @@ const update_draggable_item_pos = (draggable_item, id) => {
     }
  
     if (draggable_item.y == null) {
-        draggable_item.y = mouse_y;
+        draggable_item.y = cursor.y;
     }
 
     if (draggable_item.x == null) {
-        draggable_item.x = mouse_x;
+        draggable_item.x = cursor.x;
     }
 
-    const new_x = mouse_x - draggable_item.x;
-    const new_y = mouse_y - draggable_item.y;
+    const new_x = cursor.x - draggable_item.x;
+    const new_y = cursor.y - draggable_item.y;
 
     // set pos preview
     draggable_item.style.transform = `translate(${new_x}px, ${new_y}px)`;
@@ -73,10 +66,6 @@ const reset_preview_pos = (id) => {
     draggable_item.y = null;
     draggable_item.stop = false;
     draggable_item.hold_time = 0;
-
-    // reset mouse state
-    mouse_x = 0;
-    mouse_y = 0;
 };
 
 export const remove_all_selected = () => {
@@ -116,6 +105,9 @@ const detect_collision = (el1, el2, center) => {
     );
 };
 
+draggable_item_bin.addEventListener("mouseover", () => draggable_item_bin.classList.add("hover"));
+draggable_item_bin.addEventListener("mouseout", () => draggable_item_bin.classList.remove("hover"));
+
 const drag_callback = (id, placeholder_draggable_item) => {
     
     const draggable_item = draggable_items_map.get(id);
@@ -130,6 +122,8 @@ const drag_callback = (id, placeholder_draggable_item) => {
         return;
     }
 
+    draggable_item_bin.classList.add("enabled");
+
     if (!draggable_item.hold_time) {
         draggable_item.hold_time = 0;
     }
@@ -141,8 +135,6 @@ const drag_callback = (id, placeholder_draggable_item) => {
         return requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
     }
 
-    draggable_item_bin.classList.add("enabled");
-
     // append the placeholder element
     if (!list_container.contains(placeholder_draggable_item)) {
         placeholder_draggable_item.classList.add("selected");
@@ -150,93 +142,72 @@ const drag_callback = (id, placeholder_draggable_item) => {
         list_container.appendChild(placeholder_draggable_item);
     }
 
-    // enable color transition
-    if (detect_collision(placeholder_draggable_item, draggable_item_bin)) {
-        draggable_item_bin.classList.add("hover");
-    } else {
-        draggable_item_bin.classList.remove("hover");
-    }
-
-    for (let [k, v] of draggable_items_map) {    
-
-        const other_draggable_item = v.target;
-
-        // ignore hidden draggable_items
-        if (other_draggable_item.classList.contains("hidden")) {
-            continue;
-        }
-
-        if (!detect_collision(placeholder_draggable_item, other_draggable_item, true)) {
-            other_draggable_item.classList.remove("merge");      
-            continue;
-        }
-
-        other_draggable_item.classList.add("merge");
-    }
-
     update_draggable_item_pos(placeholder_draggable_item, id);
     requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
 };
 
-export const check_merge = async (id) => {
+const can_merge = (id) => {
 
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
-        console.log("[manager ui] failed to get draggable item");
+        console.log("[merge] failed to get draggable item");
         return false;
     }
 
-    // get the merge draggable_item
-    const merge_draggable_item = document.querySelector(".merge");
+    const merge_draggable = document.querySelector('.merge:not(.placeholder)');
 
-    if (!merge_draggable_item) {
+    if (!merge_draggable) {
         return false;
     }
 
-    // force draggable cursor to stop
-    draggable_item.stop = true;
-
-    // create a unique array with content from current_draggable_item and merge
-    const cl1_id = draggable_items_map.get(merge_draggable_item.id)?.collection_id;
+    const cl1_id = draggable_items_map.get(merge_draggable.id)?.collection_id;
     const cl2_id = draggable_items_map.get(id)?.collection_id;
 
     if (!cl1_id || !cl2_id) {
-        console.log("[manager ui] failed to get collection id", id, merge_draggable_item.id);
+        console.log("[merge] failed to get collection id", id, merge_draggable.id);
         return false;
     }
+
+    return { cl1_id, cl2_id, default_name: `${cl1_id} + ${cl2_id}` };
+};
+
+const merge_context = async (cl1_id, cl2_id, default_name) => {
 
     const new_name = await create_custom_popup({
         type: message_types.INPUT,
         title: "collection name",
         label: "new collection name",
         input_type: "text",
-        value: `${cl2_id} + ${cl1_id}`
+        value: default_name
     });
 
     if (!new_name) {
         return false;
     }
 
-    // check if this collection already exists
     if (core.reader.collections.beatmaps.has(new_name)) {
         create_alert("this collection already exists");
         return false;
     }
 
-    const cl1 = core.reader.collections.beatmaps.get(cl1_id).maps;
-    const cl2 = core.reader.collections.beatmaps.get(cl2_id).maps;
+    const maps1 = core.reader.collections.beatmaps.get(cl1_id).maps;
+    const maps2 = core.reader.collections.beatmaps.get(cl2_id).maps;
 
-    if (!cl1 || !cl2) {
-        console.log("[manager ui] failed to get collection", id, merge_draggable_item.id);
+    if (!maps1 || !maps2) {
+        console.log("[merge] failed to get maps for", cl1_id, cl2_id);
         return false;
     }
 
-    core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1, cl2) });
+    core.reader.collections.beatmaps.set(new_name, {
+        maps: merge_collections(maps1, maps2)
+    });
+
     core.reader.update_collections();
 
     show_update_button();
     setup_manager();
+    return true;
 };
 
 export const change_collection_name = async (id, element) => {
@@ -284,16 +255,19 @@ export const change_collection_name = async (id, element) => {
     // remove old context menu
     window.ctxmenu.delete(`#${id}`);
 
-    const collection_keys = Array.from(core.reader.collections.beatmaps.keys());
-
     // setup context menu with updated collection id
-    window.ctxmenu.attach(`#${id}`, [
-        { text: "merge with", subMenu: collection_keys.filter((e) => e != new_name).map((e) => { return { text: e, action: () => context_merge(e) }}) },
-        { text: "rename collection", action: () => change_collection_name(id, element) },
-        { text: "export collection", action: () => export_collection(new_name) },
-        { text: "export beatmaps", action: () => export_all_beatmaps(new_name) },
-        { text: "delete", action: () => delete_draggable(new_name, id, old_draggable_item.target) }
-    ]);
+    create_context(old_draggable_item);
+
+    // update the rest of the context menus
+    for (const [k, v] of Array.from(draggable_items_map)) {
+
+        // ignore the current one
+        if (k == id) {
+            continue;
+        }
+
+        create_context(v);
+    }
 
     show_update_button();
 };
@@ -335,7 +309,6 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
             }
 
             delete_draggable(collection_id, id, draggable_item.target);
-
             return true;
         }
     }
@@ -496,25 +469,35 @@ export const update_collections_count = () => {
         const collection = v.collection;
         const count = item.querySelector(".beatmap-count");
 
-        if (collection.maps.size == 1) {
-            count.textContent = "1 map";
-        } else {
-            count.textContent = `${collection.maps.size} maps`;
-        }
+        count.textContent = collection.maps.size == 1 ? "1 map" : `${collection.maps.size} maps`;
     }
 };
 
 export const update_collection_count = (id, cid) => {
-
     const item = document.getElementById(id);
     const collection = core.reader.collections.beatmaps.get(cid);
     const count = item.querySelector(".beatmap-count");
+    count.textContent = collection.maps.size == 1 ? "1 map" : `${collection.maps.size} maps`;
+};
 
-    if (collection.maps.size == 1) {
-        count.textContent = "1 map";
-    } else {
-        count.textContent = `${collection.maps.size} maps`;
-    }
+const create_context = (draggable) => {
+    const name = draggable.target.querySelector(".collection-name");
+    window.ctxmenu.attach(`#${draggable.id}`, [
+        { 
+            text: "merge with", 
+            subMenu: Array.from(core.reader.collections.beatmaps.keys()).filter((e) => e != draggable.collection_id)
+                .map((e) => {
+                    return { text: e, action: (e) => { 
+                        const name = `${draggable.collection_id} + ${e.target.textContent}`;
+                        merge_context(draggable.collection_id, e.target.textContent, name); 
+                    }
+                }}) 
+        },
+        { text: "rename collection", action: () => change_collection_name(draggable.id, name) },
+        { text: "export collection", action: () => export_collection(draggable.collection_id) },
+        { text: "export beatmaps", action: () => export_all_beatmaps(draggable.id) },
+        { text: "delete", action: () => delete_draggable(draggable.colletion_id, draggable.id, draggable.target) }
+    ]);
 };
 
 export const setup_draggables = () => {
@@ -523,45 +506,38 @@ export const setup_draggables = () => {
         return;
     }
 
-    const collection_keys = Array.from(core.reader.collections.beatmaps.keys());
-
     for (let [k, v] of core.reader.collections.beatmaps) {
 
         // create the new elements and append to draggable_items map
         const id = "db_" + crypto.randomUUID();
-        const { draggable_item, name_element, count_element } = create_collection_item(id, k);
+        const { draggable_item, count_element } = create_collection_item(id, k);
 
         if (!draggable_item) {
             continue;
         }
 
         list.appendChild(draggable_item);
-        
-        if (v.maps.size == 1) {
-            count_element.textContent = "1 map";
-        } else {
-            count_element.textContent = `${v.maps?.size || 0} maps`;
-        }
+        count_element.textContent = v.maps.size == 1 ? "1 map" : `${v.maps?.size || 0} maps`;
 
+        draggable_item.addEventListener("mouseover", () => draggable_item.classList.add("merge"));
+        draggable_item.addEventListener("mouseout", () => draggable_item.classList.remove("merge"));
+        
         draggable_item.addEventListener("mousedown", (event) => {
 
             const draggable_item = draggable_items_map.get(id);
 
-            // ignore mouse2 events
-            if (event.button == 2) {
+            // ignore other mouse buttons
+            if (event.button != 0) {
                 return;
             }
-
-            // save mouse position
-            mouse_x = event.clientX;
-            mouse_y = event.clientY;
     
             const placeholder_draggable_item = draggable_item.target.cloneNode(true);
-    
+            placeholder_draggable_item.classList.add("placeholder");
+
             const handle_up = async () => {
 
-                // if the holdtime is less than 500, then render the beatmaps page
-                if (draggable_item.hold_time * 60 < 500) {
+                // if the holdtime is less than 500ms, then render the beatmaps page
+                if (draggable_item.hold_time * 60 < DRAG_ACTIVATION_THRESHOLD_MS) {
 
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
@@ -589,8 +565,9 @@ export const setup_draggables = () => {
                         render_page(id, draggable_item?.offset || 0, true);
                     }
                 } else {
-                    check_merge(id);
-                    check_delete_thing(id, placeholder_draggable_item)
+                    const merge = can_merge(id);
+                    if (merge) merge_context(...Object.values(merge));
+                    check_delete_thing(id, placeholder_draggable_item);
                 }
 
                 reset_preview_pos(id);
@@ -602,12 +579,9 @@ export const setup_draggables = () => {
                 draggable_item_bin.classList.remove("enabled");
                 draggable_item_bin.classList.remove("hover");
 
-                document.removeEventListener("mousemove", handle_move);
                 document.removeEventListener("mouseup", handle_up);
             };
     
-            // create listeners to get mouse_pos and mouse up
-            document.addEventListener("mousemove", handle_move);
             document.addEventListener("mouseup", handle_up);
 
             draggable_item.dragging = true;
@@ -628,54 +602,7 @@ export const setup_draggables = () => {
             requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
         });
 
-        // @TODO: create one function to do both merge through draggables and context submenu
-        const context_merge = async (el) => {
-            
-            const cl1 = core.reader.collections.beatmaps.get(el);
-
-            if (!cl1) {
-                console.log("[merge] failed to get collection 1");
-                return;
-            }
-
-            // to make sure we get the newest name in case of name changes
-            const cl2_name = draggable_items_map.get(id).collection_id;
-
-            const new_name = await create_custom_popup({
-                type: message_types.INPUT,
-                title: "collection name",
-                label: "new collection name",
-                input_type: "text",
-                value: `${cl2_name} + ${el}`
-            });
-        
-            if (!new_name) {
-                return false;
-            }
-        
-            // check if this collection already exists
-            if (core.reader.collections.beatmaps.has(new_name)) {
-                create_alert("this collection already exists");
-                return false;
-            }
-            
-            core.reader.collections.beatmaps.set(new_name, { maps: merge_collections(cl1.maps, v.maps) });
-            core.reader.update_collections();
-
-            show_update_button();
-            setup_manager();
-        }
-
-        // setup draggable context menu
-        window.ctxmenu.attach(`#${id}`, [
-            { text: "merge with", subMenu: collection_keys.filter((e) => e != k).map((e) => { return { text: e, action: () => context_merge(e) }}) },
-            { text: "rename collection", action: () => change_collection_name(id, name_element) },
-            { text: "export collection", action: () => export_collection(k) },
-            { text: "export beatmaps", action: () => export_all_beatmaps(k) },
-            { text: "delete", action: () => delete_draggable(k, id, draggable_item) }
-        ]);
-
-        const new_draggable_item = { 
+        const new_draggable = { 
             id: id,
             y: null,
             x: null,
@@ -686,6 +613,9 @@ export const setup_draggables = () => {
             selected: false 
         };
 
-        draggable_items_map.set(id, new_draggable_item); 
+        // setup draggable context menu
+        create_context(new_draggable);
+
+        draggable_items_map.set(id, new_draggable); 
     }
 };
