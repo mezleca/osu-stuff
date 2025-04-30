@@ -5,7 +5,7 @@ export const zlib = window.zlib;
 export const extra = window.extra;
 
 // CONSTANTS
-export const is_testing = window.process.env.NODE_ENV == "development";
+export const is_testing = window.process.env.STUFF_ENV == "development";
 export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 export const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
 export const MAX_RENDER_AMMOUNT = 8;

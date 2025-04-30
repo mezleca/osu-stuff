@@ -11,7 +11,7 @@ let main_window = null;
 Menu.setApplicationMenu(null);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dev_mode = process.env.NODE_ENV == "development";
+const dev_mode = process.env.STUFF_ENV == "development";
 
 const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
@@ -200,28 +200,7 @@ const createWindow = () => {
 
     main_window.webContents.on('did-finish-load', () => {
 
-        // load files
-        main_window.webContents.executeJavaScript(`
-
-            const ext = ${dev_mode ? '".css"' : '".min.css"'};
-            const script = document.createElement('script');
-
-            script.src = "${dev_mode ? '../app.js' : '../../dist/app.bundle.js'}";
-            script.type = "module";
-            
-            const file = location.pathname.split("/").pop();
-            const link = document.createElement("link");
-
-            link.href = ${dev_mode ? '"./index.css"' : '"../../dist/index.min.css"'};
-            link.type = "text/css";
-            link.rel = "stylesheet";
-            link.media = "screen,print";
-           
-            document.getElementsByTagName("head")[0].appendChild(link);
-            document.body.appendChild(script);
-        `);
-
-        if (process.env.NODE_ENV == "development") {
+        if (dev_mode) {
             main_window.webContents.openDevTools({ mode: "detach" });
         }
     });

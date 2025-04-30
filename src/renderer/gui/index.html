@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>osu-stuff</title>
-    <link rel="stylesheet" href="start.css">
+    <link href="../../dist/index.min.css" type="text/css" rel="stylesheet">
     <script src="./deps/context.js"></script>
 </head>
 <body>
@@ -96,5 +96,18 @@
             </div>
         </div>
     </div>
+    <script>
+        const script = document.createElement('script');
+
+
+        if (window.process.env.STUFF_ENV == "development") {
+            script.src = "../app.js";
+        } else {
+            script.src = "../../dist/app.bundle.js";
+        }
+
+        script.type = "module";
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>

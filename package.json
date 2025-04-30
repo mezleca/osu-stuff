@@ -11,7 +11,7 @@
 	},
 	"scripts": {
 		"start": "webpack && electron .",
-		"dev": "webpack --config preload.config.js && cross-env NODE_ENV=development electron .",
+		"dev": "webpack && cross-env STUFF_ENV=development electron .",
 		"build": "webpack && electron-builder build",
 		"build:win": "webpack && electron-builder build --win",
 		"build:linux": "webpack && electron-builder build --linux",
@@ -22,22 +22,22 @@
 		"email": "92015390+mezleca@users.noreply.github.com"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.26.10",
+		"@babel/core": "^7.27.1",
 		"babel-loader": "^10.0.0",
 		"cross-env": "^7.0.3",
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
 		"electron": "35.2.0",
-		"electron-builder": "^26.0.12",
+		"electron-builder": "26.0.12",
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
-		"webpack": "^5.99.6",
-		"webpack-cli": "^6.0.1"
+		"webpack": "^5.99.7",
+		"webpack-cli": "^6.0.1",
+        "webpack-node-externals": "^3.0.0"
 	},
 	"dependencies": {
 		"jszip": "^3.10.1",
-		"realm": "^12.14.2",
-		"webpack-node-externals": "^3.0.0"
+		"realm": "^12.14.2"
 	},
 	"build": {
 		"appId": "com.osustuff.app",
@@ -51,11 +51,9 @@
 		"compression": "store",
 		"files": [
 			"src/dist/**",
-			"src/index.js",
-			"src/downloader.js",
-			"src/logger.js",
+			"src/*.js",
 			"src/renderer/gui/index.html",
-			"src/renderer/gui/start.css",
+            "src/renderer/gui/deps/context.js",
 			"package.json",
 			"node_modules/**/*",
 			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",

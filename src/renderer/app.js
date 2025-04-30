@@ -4,7 +4,7 @@ import { downloader } from "./utils/downloader/client.js";
 import { initialize_listeners } from "./utils/downloader/events.js";
 import { Reader } from "./utils/reader/reader.js";
 
-const in_dev_mode = window.process.env.NODE_ENV == "development";
+const in_dev_mode = window.process.env.STUFF_ENV == "development";
 const gui_title = document.querySelector(".title_text");
 
 export const core = {
