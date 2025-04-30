@@ -343,13 +343,6 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
     return false;
 };
 
-const show_all_draggables = () => {
-
-    for (const [k, v] of draggable_items_map) {
-
-    }    
-};
-
 search_input.addEventListener("input", () => {
 
     const value = search_input.value;
@@ -386,7 +379,7 @@ export const export_all_beatmaps = async (id) => {
         }
 
         await core.reader.export_beatmap(beatmap);
-        core.progress.update(`exported ${beatmap.beatmap_id} on`, { type: "folder", url: core.config.get("export_path") });
+        core.progress.update(`exported ${beatmap.beatmap_id} to`, { type: "folder", url: core.config.get("export_path") });
         exported.add(beatmap.beatmap_id);
     }
 
@@ -469,7 +462,7 @@ export const export_collection = async (id) => {
         fs.save_exported(`${id}.osdb`, buffer);
     }
     
-    core.progress.update(`exported ${id} on`, { type: "folder", url: core.config.get("export_path") });
+    core.progress.update(`exported ${id} to`, { type: "folder", url: core.config.get("export_path") });
 };
 
 export const create_collection_item = (id, name) => {

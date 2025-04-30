@@ -171,13 +171,17 @@ export const create_beatmap_card = (md5) => {
                 </div>
                 <div class="beatmap-status-control">
                     <button class="preview-button">
-                        <i class="bi bi-play-fill"></i>
+                        <svg id="play-button" viewBox="0 0 84 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                            <polygon points="10,0 10,100 90,50"/>
+                        </svg>
                     </button>      
                     <button class="download-button">
                         <i class="bi bi-download"></i>
                     </button>
                     <button class="remove-btn">
-                        <i class="bi bi-trash-fill"></i>
+                        <svg viewBox="0 0 10 10" width="14px" height="14px" stroke="currentColor" stroke-width="2">
+                            <path d="M1,1 9,9 M9,1 1,9" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -270,7 +274,7 @@ export const create_beatmap_card = (md5) => {
         const export_beatmap = () => {
             core.reader.export_beatmap(beatmap).then((success) => {
                 if (success) {
-                    core.progress.update(`exported ${beatmap.beatmap_id} on`, { type: "folder", url: core.config.get("export_path") });
+                    core.progress.update(`exported ${beatmap.beatmap_id} to`, { type: "folder", url: core.config.get("export_path") });
                 } else {
                     core.progress.update(`failed to export ${beatmap.beatmap_id}`);
                 }
@@ -292,27 +296,42 @@ export const create_beatmap_card = (md5) => {
             { text: "remove beatmapset", action: () => delete_set(md5) }
         ]);
 
+        const set_play = (target) => {
+
+            target.innerHTML = `
+            <svg viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <rect x="15" y="0" width="25" height="100"/>
+                <rect x="65" y="0" width="25" height="100"/>
+            </svg>
+        `;
+        };
+
+        const set_pause = (target) => {
+            target.innerHTML = `
+                <svg id="play-button" viewBox="0 0 84 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                    <polygon points="10,0 10,100 90,50"/>
+                </svg>
+            `;
+        };
+
         preview_button.addEventListener("click", async (e) => {
 
             e.stopPropagation();
-            const preview_icon = preview_button.children[0];
             
             const play = () => {
+                set_play(audio_core.target);
                 audio_core.audio.play();
-                audio_core.target.classList.add("bi-pause-fill");
-                audio_core.target.classList.remove("bi-play-fill"); 
             };
 
             const stop = () => {
+                set_pause(audio_core.target);
                 audio_core.audio.pause();
                 audio_core.audio.currentTime = 0;
-                audio_core.target.classList.remove("bi-pause-fill");
-                audio_core.target.classList.add("bi-play-fill"); 
             };
 
             if (audio_core.id == beatmap.beatmap_id) {
                 if (audio_core.audio.paused) {            
-                    audio_core.target = preview_icon;    
+                    audio_core.target = preview_button;    
                     return play();
                 }
                 return stop();
@@ -337,7 +356,7 @@ export const create_beatmap_card = (md5) => {
                 audio_core.audio = new Audio(window.URL.createObjectURL(audio_source));
                 audio_core.audio.volume = 0.5;
                 audio_core.id = beatmap.beatmap_id;
-                audio_core.target = preview_icon;
+                audio_core.target = preview_button;
                 audio_core.audio.addEventListener("ended", stop);
                 
                 play();

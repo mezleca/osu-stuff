@@ -824,6 +824,7 @@ button {
     position: relative;
     width: 100%;
     height: 6em;
+    border-radius: 4px;
     color: white;
     font-family: "Torus Bold";
     transition: var(--transition-delay) transform;
@@ -837,22 +838,22 @@ button {
 
 .beatmap-card-container {
     border-radius: 4px;
-    box-shadow: 0 0 3px rgb(12, 12, 12);
     border: 2px solid transparent;
     margin: 0 auto;
     width: 100%;
     margin-bottom: 10px;
+    transition: calc(var(--transition-delay) / 2) border;
 }
 
 .beatmap-card-container:hover {
 
     .bg-image { 
         filter: brightness(50%);
-        transition: var(--transition-delay) all;
+        transition: calc(var(--transition-delay) / 2) border;
     }
 
-    transition: var(--transition-delay) trasform;
     border: 2px solid var(--accent-color);
+    transition: calc(var(--transition-delay) / 2) border;
 }
 
 .bg-image {
@@ -937,6 +938,21 @@ button {
     max-width: 15%;
     min-width: 40px;
     padding: 10px 5px;
+}
+
+.preview-button > svg, .remove-btn > svg {
+    width: 14px;
+    height: 14px;
+    color: white;
+    transition: var(--transition-delay) color;
+}
+
+.preview-button:hover, .remove-btn:hover {
+    background: none;
+    svg {
+        color: var(--accent-color);
+        transition: var(--transition-delay) color;
+    }
 }
 
 .manager-panel {
@@ -1072,7 +1088,7 @@ button {
 
 .list_draggable_items {
     display: grid;
-    grid-template-rows: repeat(auto-fill, 3.5em); 
+    grid-template-rows: repeat(auto-fill, 3.8em); 
     overflow-y: auto;
     min-height: 0;
 }
