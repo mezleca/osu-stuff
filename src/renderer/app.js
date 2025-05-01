@@ -11,6 +11,8 @@ export const core = {
     reader: new Reader(),
     config: new Map(),
     mirrors: new Map(),
+    search_filters: new Map(),
+    search_query: "",
     progress: create_progress({ }),
     og_path: "",
     login: null, 

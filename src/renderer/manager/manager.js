@@ -102,6 +102,19 @@ search_input.addEventListener("input", debounce(() => {
         return;
     }
 
+    if (search_input.value.length > 3) {
+
+        if (core.search_filters.size != 0) {
+            core.search_filters = new Map();
+        }
+
+        const result = search_input.value.matchAll(/\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*"!?|\S*))/g);
+        for (const [text, k, o, v] of result) {
+            core.search_filters.set(k, { text: text, o: o, v: v });
+        }
+    }
+    
+    core.search_query = search_input.value;
     render_page(id, 0, true);
 }, 300));
 

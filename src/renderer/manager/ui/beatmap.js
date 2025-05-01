@@ -133,9 +133,9 @@ const create_extra_information = (container, beatmap) => {
     const stats_grid = extra.querySelector(".stats-grid");
     const close = extra.querySelector(".close-btn");
 
-    const ar = create_stat_item("ar", beatmap.approach_rate);
+    const ar = create_stat_item("ar", beatmap.ar);
     const hp = create_stat_item("hp", beatmap.hp);
-    const cs = create_stat_item("cs", beatmap.circle_size);
+    const cs = create_stat_item("cs", beatmap.cs);
     const od = create_stat_item("od", beatmap.od);
 
     stats_grid.appendChild(ar);
@@ -399,8 +399,8 @@ export const create_beatmap_card = (md5) => {
                         bpm: data.bpm,
                         tags: "",
                         od: data.accuracy,
-                        approach_rate: data.ar,
-                        circle_size: data.cs,
+                        ar: data.ar,
+                        cs: data.cs,
                         hp: data.drain, 
                         status: Reader.get_beatmap_status_code(data.status) || 0
                     });

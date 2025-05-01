@@ -5,7 +5,6 @@ import { get_beatmap_sr, get_beatmap_bpm } from "./beatmaps.js";
 
 const show_filter = document.querySelector(".show-filter");
 const filter_box = document.querySelector(".filter-box");
-const search_input = document.getElementById("current_search");
 
 show_filter.addEventListener("click", () => {
     if (show_filter.classList.contains("enabled")) {
@@ -16,6 +15,63 @@ show_filter.addEventListener("click", () => {
         show_filter.classList.add("enabled");
     }
 });
+
+const validate_filter = (key, op, value) => {
+
+    if (!key) {
+        return false;
+    }
+
+    switch(op) {
+        case "=":
+            return key == value;
+        case "!=":
+            return key != value;
+        case ">":
+            return key > value;
+        case ">=":
+            return key >= value;
+        case "<":
+            return key < value;
+        case "<=":
+            return key <= value;  
+    }
+
+    return true;
+}
+
+// @TODO: only cs/ar/od/hp will work
+// i want to make every single attribute work (like artist, mapper, etc...)
+// however i will need to create a function to link a filter attribute to the stable object name
+// ex: artist -> artist_name  
+export const search_filter = (beatmap) => {
+
+    let query = core.search_query;
+
+    if (query == "") {
+        return true;
+    }
+
+    // filter by basic keywords
+    const artist = beatmap?.artist_name || "Unknown";
+    const title = beatmap?.song_title || "Unknown";
+    const difficulty = beatmap?.difficulty || "Unknown";
+    const creator = beatmap?.mapper || "Unknown";
+    const tags = beatmap?.tags || "";
+
+    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
+
+    for (const [key, data] of core.search_filters) {
+
+        query = query.replace(data.text, "");
+
+        if (!validate_filter(beatmap?.[key], data.o, data.v)) {
+            return false;
+        }
+    }
+
+    return searchable_text.includes(query.toLowerCase());
+};
 
 export const filter_beatmap = (md5) => {
 
@@ -42,20 +98,7 @@ export const filter_beatmap = (md5) => {
         return false;
     }
 
-    const search_filter = search_input.value;
-
-    if (!search_filter) {
-        return true;
-    }
-
-    // do this so the user can search for not downloaded beatmaps
-    const artist = beatmap?.artist_name || "Unknown";
-    const title = beatmap?.song_title || "Unknown";
-    const difficulty = beatmap?.difficulty || "Unknown";
-    const creator = beatmap?.mapper || "Unknown";
-    const tags = beatmap?.tags || "";
-
     // filter by search
-    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
-    return searchable_text.includes(search_filter.toLowerCase());
+    const a = search_filter(beatmap);
+    return a;
 };

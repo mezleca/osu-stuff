@@ -6,5 +6,6 @@
 - added option to open folder on beatmap/collection export (on progress box).
 - improved context menu (less buggy).
 - use fixed context menu for more options instead of popup menu (cleaner).
+- updated electron to version 36.
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v1.6.6...v1.6.7

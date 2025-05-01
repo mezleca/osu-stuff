@@ -4,6 +4,5 @@
 - added beatmap information on click (cs, ar, od, hp) on beatmap card.
 - added option to import collections from osdb files.
 - a lot of internal changes / small bugfixes.
-- updated electron to version 36.
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v1.6.4...v1.6.5

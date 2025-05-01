@@ -564,8 +564,8 @@ export class Reader extends BinaryReader {
                 data.sliders = this.short();
                 data.spinners = this.short();
                 data.last_modification = this.long();
-                data.approach_rate = version < 20140609 ? this.byte() : this.single();
-                data.circle_size = version < 20140609 ? this.byte() : this.single();
+                data.ar = version < 20140609 ? this.byte() : this.single();
+                data.cs = version < 20140609 ? this.byte() : this.single();
                 data.hp = version < 20140609 ? this.byte() : this.single();
                 data.od = version < 20140609 ? this.byte() : this.single();
                 data.slider_velocity = this.double();
