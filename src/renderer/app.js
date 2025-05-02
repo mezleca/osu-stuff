@@ -1,22 +1,10 @@
-import { create_progress } from "./manager/ui/progress.js";
 import { initialize_config } from "./utils/config.js";
 import { downloader } from "./utils/downloader/client.js";
 import { initialize_listeners } from "./utils/downloader/events.js";
-import { Reader } from "./utils/reader/reader.js";
+import { core } from "./manager/manager.js";
 
 const in_dev_mode = window.process.env.STUFF_ENV == "development";
 const gui_title = document.querySelector(".title_text");
-
-export const core = {
-    reader: new Reader(),
-    config: new Map(),
-    mirrors: new Map(),
-    search_filters: new Map(),
-    search_query: "",
-    progress: create_progress({ }),
-    og_path: "",
-    login: null, 
-};
 
 (async () => {
     

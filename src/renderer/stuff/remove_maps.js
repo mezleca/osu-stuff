@@ -1,4 +1,4 @@
-import { core } from "../app.js";
+import { core } from "../manager/manager.js";
 import { create_alert } from "../popup/popup.js";
 import { fs, path } from "../utils/global.js";
 

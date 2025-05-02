@@ -1,4 +1,4 @@
-import { core } from "../../app.js";
+import { core } from "../../manager/manager.js";
 import { create_alert } from "../../popup/popup.js";
 import { OSU_STATS_URL } from "../global.js";
 import { indexed } from "./indexed_db.js";

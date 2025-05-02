@@ -1,4 +1,3 @@
-import { core } from "../app.js";
 import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js";
 import { create_element } from "../utils/global.js";
 import { setup_collector } from "../stuff/collector.js";
@@ -8,7 +7,7 @@ import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { missing_download } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
-import { debounce, MAX_RENDER_AMMOUNT } from "../utils/global.js";
+import { debounce } from "../utils/global.js";
 import { filter_beatmap } from "./tools/filter.js";
 import { select_file } from "../utils/other/process.js";
 import { beatmap_status } from "../utils/reader/models/stable.js";
@@ -17,6 +16,19 @@ import { draggable_items_map, remove_all_selected, setup_draggables, update_coll
 import { create_dropdown } from "./ui/dropdown.js";
 import { create_range } from "./ui/range.js";
 import { create_beatmap_card } from "./ui/beatmap.js";
+import { create_virtual_list } from "./ui/virtual.js";
+import { create_progress } from "./ui/progress.js";
+
+export const core = {
+    reader: new Reader(),
+    config: new Map(),
+    mirrors: new Map(),
+    search_filters: [],
+    search_query: "",
+    progress: create_progress({ }),
+    og_path: "",
+    login: null, 
+};
 
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
@@ -25,9 +37,7 @@ const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
 const text_collection = document.getElementById("collection_text");
-
 const manager_filters = new Map();
-const rendered_beatmaps = { id: 0, idx: new Set() };
 
 export const get_selected_collection = () => {
 
@@ -40,6 +50,29 @@ export const get_selected_collection = () => {
     }
 
     return { id: null, name: "" };
+};
+
+export const collection_list = create_virtual_list({
+    id: "collection-list", 
+    target: collection_container,
+    create: (index) => {
+        const { name } = get_selected_collection();
+        const beatmaps = Array.from(core.reader.collections.beatmaps.get(name).maps.keys());
+        const beatmap = beatmaps[index];
+        return create_beatmap_card(beatmap);
+    }
+});
+
+export const update_collection_list = (beatmaps) => {
+
+    collection_list.create = (index) => {
+        const beatmap = beatmaps[index];
+        return create_beatmap_card(beatmap);
+    };
+
+    collection_list.get = () => {
+        return beatmaps.size;
+    };
 };
 
 export const show_update_button = () => {
@@ -105,17 +138,17 @@ search_input.addEventListener("input", debounce(() => {
     if (search_input.value.length > 3) {
 
         if (core.search_filters.size != 0) {
-            core.search_filters = new Map();
+            core.search_filters = [];
         }
 
         const result = search_input.value.matchAll(/\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*"!?|\S*))/g);
         for (const [text, k, o, v] of result) {
-            core.search_filters.set(k, { text: text, o: o, v: v });
+            core.search_filters.push({ text: text, k: k, o: o, v: v });
         }
     }
-    
-    core.search_query = search_input.value;
-    render_page(id, 0, true);
+
+    core.search_query = search_input.value.replace(/\s{2,}/g, ' '); // remove extra spaces
+    render_page(id, true);
 }, 300));
 
 export const remove_beatmap = (hash) => {
@@ -465,6 +498,7 @@ header_text.addEventListener("click", async () => {
 
 // setup more options context menu
 const more_options = document.querySelector(".more_options");
+
 window.ctxmenu.attach(more_options, [
     { text: "more options" },
     { isDivider: true },
@@ -473,9 +507,8 @@ window.ctxmenu.attach(more_options, [
     { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
 ], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom + 15}px` }});
 
-const render = (id, offset = 0, _new = false, _inverted = false) => {
+export const render = (id, force = false) => {
 
-    const elements = [];
     const collection = draggable_items_map.get(id)?.collection;
 
     if (!collection) {
@@ -492,102 +525,36 @@ const render = (id, offset = 0, _new = false, _inverted = false) => {
     const sr_filter = get_sr_filter();
     const bpm_filter = get_bpm_filter();
 
-    const beatmaps = Array.from(collection.maps);
-
     // update sr filter slider min/max
-    if (beatmaps.length >= 0 && sr_filter.limit != sr_max) {
+    if (sr_filter.limit != sr_max) {
         sr_filter.set_limit(sr_max, false);
     }
 
     // update bpm filter slider min/max
-    if (beatmaps.length >= 0 && bpm_filter.limit != bpm_max) {
+    if (bpm_filter.limit != bpm_max) {
         bpm_filter.set_limit(bpm_max, false);
     }
 
-    if (rendered_beatmaps.id != id || _new) {
-        rendered_beatmaps.id = id;
-        rendered_beatmaps.idx = new Set();
+    const beatmaps = Array.from(collection.maps);
+    const filtered_beatmaps = beatmaps.filter((beatmap) => filter_beatmap(beatmap));
+
+    update_collection_list(filtered_beatmaps);
+
+    // update virtual length
+    collection_list.length = filtered_beatmaps.length;
+
+    // initialize if its not intiialzied
+    if (!collection_list.initialized) {
+        collection_list.initialize();
     }
 
+    collection_list.refresh(force);
     collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
-
-    if (!beatmaps) {
-        return;
-    }
-
-    for (let i = offset; i < beatmaps.length; i++) {
-
-        const beatmap = beatmaps[i];
-
-        // make sure we have a valid beatmap (should be valid)
-        if (!beatmap) {
-            continue;
-        }
-
-        // only render x ammounts of item per iteration
-        if (elements.length > MAX_RENDER_AMMOUNT) {
-            break;
-        }
-
-        if (rendered_beatmaps.idx.has(i)) {
-            continue;
-        }
-
-        // filter by name
-        if (!filter_beatmap(beatmap)) {
-            continue;
-        }
-
-        const beatmap_item = create_beatmap_card(beatmap);
-        beatmap_item.dataset.id = i;
-
-        // yay we are gonna render it!!!
-        elements.push(beatmap_item);
-
-        // @TODO: this is a very horrible hack
-        // but since this entire function sucks ass i gonna have to refactor everything to change this shit
-        rendered_beatmaps.idx.add(i);
-    }
-
-    if (offset == 0 || _new) {
-        collection_container.replaceChildren(...elements);
-    } else {
-        if (_inverted) {
-            collection_container.prepend(...elements);
-        } else {
-            collection_container.append(...elements);
-        }
-    }
 };
 
-export const render_page = debounce((id, offset = 0, _new = false, _inverted = false) => {
-    render(id, offset, _new, _inverted);
-}, 10);
-
-collection_container.addEventListener("scroll", () => {
-
-    const first_card = collection_container.firstChild;
-    const last_card = collection_container.lastChild;
-    const top = collection_container.scrollTop;
-    const height = collection_container.scrollHeight;
-    const clientH = collection_container.clientHeight;
-    
-    if (last_card && (height - clientH) - top < 10) {
-        const next_offset = Number(last_card.dataset.id) + 1;
-        render_page(get_selected_collection().id, next_offset);
-        return;
-    }
-    
-    if (first_card && top < 10 && first_card.dataset.id != 0) {
-
-        const current_first_id = Number(first_card.dataset.id);
-        const new_offset = Math.max(0, current_first_id - MAX_RENDER_AMMOUNT);
-        
-        if (new_offset < current_first_id) {
-            render_page(get_selected_collection().id, new_offset, false, true);
-        }
-    }
-});
+export const render_page = debounce((id, force) => {
+    render(id, force);
+}, 50);
 
 export const merge_collections = (cl1, cl2) => {
     return new Set([...cl1, ...cl2]);
@@ -653,7 +620,7 @@ export const setup_manager = () => {
             }
 
             // render page again
-            render_page(id, 0, true);
+            render_page(id, true);
         }
 
         // update maps on filter update

@@ -2,7 +2,7 @@ import { create_element } from "../global.js";
 import { downloader } from "./client.js";
 import { panels, blink, tabs } from "../../tabs.js";
 import { quick_confirm } from "../../popup/popup.js";
-import { core } from "../../app.js";
+import { core } from "../../manager/manager.js";
 
 const create_download_box = (data) => {
 

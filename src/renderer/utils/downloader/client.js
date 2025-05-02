@@ -1,4 +1,4 @@
-import { core } from '../../app.js';
+import { core } from "../../manager/manager.js";
 
 export const downloader = {
 

@@ -1,5 +1,5 @@
 
-import { core } from "../../app.js";
+import { collection_list, core } from "../manager.js";
 import { cursor, DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
@@ -542,7 +542,7 @@ export const setup_draggables = () => {
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
 
-                        const { id: selected_id } = get_selected_collection();
+                        const { id: selected_id, name } = get_selected_collection();
 
                         // save the offset of the previous selected collection
                         if (selected_id && collection_container.children.length > 16) {
@@ -561,8 +561,8 @@ export const setup_draggables = () => {
 
                         draggable_item.target.classList.add("selected");
                         draggable_item.selected = true;
-
-                        render_page(id, draggable_item?.offset || 0, true);
+                        
+                        render_page(id, true);
                     }
                 } else {
                     const merge = can_merge(id);

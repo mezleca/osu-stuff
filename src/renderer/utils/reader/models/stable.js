@@ -56,7 +56,7 @@ export const beatmaps_schema = {
         }
     ],
     drain_time: Number,
-    total_time: Number,
+    length: Number,
     audio_preview: Number,
     difficulty_id: Number,
     beatmap_id: Number,

@@ -76,7 +76,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             sr: sr,
             star_rating: beatmap.StarRating || 0, 
             drain_time: beatmap.Length || 0,
-            total_time: beatmap.Length || 0,
+            length: beatmap.Length || 0,
             audio_preview: beatmap.Metadata?.PreviewTime || 0,
             timing_points_length: timing_points.length,
             timing_points: timing_points,

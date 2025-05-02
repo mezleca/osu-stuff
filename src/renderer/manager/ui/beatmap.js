@@ -1,4 +1,4 @@
-import { core } from "../../app.js";
+import { collection_list, core } from "../manager.js";
 import { create_element, placeholder_image, star_ranges } from "../../utils/global.js";
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
@@ -156,7 +156,7 @@ export const create_beatmap_card = (md5) => {
     let beatmap = core.reader.osu.beatmaps.get(md5) || {};
 
     const has_beatmap = Boolean(beatmap?.artist_name);
-    const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`)
+    const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`);
     const beatmap_element = create_element(`
         <div class="beatmap-card">
             <img class="bg-image">
@@ -428,7 +428,7 @@ export const create_beatmap_card = (md5) => {
         remove_beatmap(md5);
     });
 
-    beatmap_container.appendChild(beatmap_element)
+    beatmap_container.appendChild(beatmap_element);
     remove_button.id = `bn_${md5}`;
 
     return beatmap_container;

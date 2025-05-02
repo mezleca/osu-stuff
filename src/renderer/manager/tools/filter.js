@@ -1,4 +1,4 @@
-import { core } from "../../app.js";
+import { core } from "../manager.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { get_bpm_filter, get_sr_filter, get_status_filter } from "../manager.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "./beatmaps.js";
@@ -15,6 +15,11 @@ show_filter.addEventListener("click", () => {
         show_filter.classList.add("enabled");
     }
 });
+
+const to_type = (v) => {
+    const value = Number(v);
+    return isNaN(value) ? v : value;
+};
 
 const validate_filter = (key, op, value) => {
 
@@ -47,6 +52,7 @@ const validate_filter = (key, op, value) => {
 export const search_filter = (beatmap) => {
 
     let query = core.search_query;
+    let valid = true;
 
     if (query == "") {
         return true;
@@ -58,19 +64,33 @@ export const search_filter = (beatmap) => {
     const difficulty = beatmap?.difficulty || "Unknown";
     const creator = beatmap?.mapper || "Unknown";
     const tags = beatmap?.tags || "";
+    
+    for (let i = 0; i < core.search_filters.length; i++) {
 
-    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
-
-    for (const [key, data] of core.search_filters) {
-
-        query = query.replace(data.text, "");
-
-        if (!validate_filter(beatmap?.[key], data.o, data.v)) {
-            return false;
+        const filter = core.search_filters[i];
+        query = query.replace(filter.text, "");
+        
+        if (!valid) {
+            continue;
+        }
+        
+        if (!validate_filter(beatmap?.[filter.k], filter.o, to_type(filter.v))) {
+            valid = false;
         }
     }
 
-    return searchable_text.includes(query.toLowerCase());
+    if (!valid) {
+        return false;
+    }
+
+    if (query == "") {
+        return true;
+    }
+
+    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
+    const text_included = query.length > 0 ? searchable_text.includes(query.toLowerCase()) : true;
+
+    return valid && text_included;
 };
 
 export const filter_beatmap = (md5) => {

@@ -1,4 +1,4 @@
-import { core } from "../../app.js";
+import { core } from "../../manager/manager.js";
 import { osu_db, collections_db, osdb_schema, osdb_versions, beatmaps_schema, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
 import { fs, zlib, path } from "../global.js";
 import { create_alert } from "../../popup/popup.js";
@@ -613,7 +613,7 @@ export class Reader extends BinaryReader {
                 }
                 
                 data.drain_time = this.int();
-                data.total_time = this.int();
+                data.length = this.int();
                 data.audio_preview = this.int();
                 data.timing_points_length = this.int();
                 

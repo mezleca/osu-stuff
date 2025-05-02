@@ -1,9 +1,9 @@
-import { core } from "../app.js";
+import { core } from "../manager/manager.js";
 
 import { create_alert } from "../popup/popup.js";
 import { url_is_valid } from "./download_from_players.js";
 import { initialize } from "../manager/manager.js";
-import { fs, path, is_testing } from "../utils/global.js";
+import { is_testing } from "../utils/global.js";
 
 const get_tournament_maps = async(id) => {
 

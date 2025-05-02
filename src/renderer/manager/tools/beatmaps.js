@@ -53,8 +53,8 @@ export const get_beatmap_bpm = (beatmap) => {
     const beat_length_map = {};
 
     const timing_points = [...beatmap.timing_points].sort((a, b) => a.offset - b.offset);
-    const last_time = beatmap.total_time > 0 
-      ? beatmap.total_time 
+    const last_time = beatmap.length > 0 
+      ? beatmap.length 
       : timing_points[timing_points.length - 1].offset;
 
     for (let i = 0; i < timing_points.length; i++) {

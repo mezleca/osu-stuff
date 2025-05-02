@@ -1,4 +1,4 @@
-import { core } from "../app.js";
+import { core } from "../manager/manager.js";
 import { downloader } from "../utils/downloader/client.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";

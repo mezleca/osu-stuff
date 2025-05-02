@@ -1,5 +1,4 @@
 @import url("./deps/bootstrap-icons.css");
-@import url("./start.css");
 
 @font-face {
     font-family: 'Torus Bold';
@@ -21,6 +20,77 @@
 
 *:focus {
     outline: none;
+}
+
+:root {
+    --bg-color: #202020;
+    --manager-bg-color: #242424;
+    --manager-sel-color: #1f1f1f;
+    --content-bg: #222222;
+    --text-color: #ffffff;
+    --blink-color: #db2a0a;
+    --accent-color: #f06595;
+    --accent-color2:rgb(204, 64, 113);
+    --accent-color3: #f44336;
+    --accent-color4: #ff66ab5d;
+    --accent-hover-color: #f37da6af;
+    --hover-color: #2b2b2b;
+    --input-bg: #3d3d3d;
+    --button-color: #f2407e;
+    --button-hover-color: #f13476;
+    --popup-bg: #2a2a2a;
+    --text-gray: #aaa;
+    --collections-border-color: rgb(56,56,56);
+    --title-bar-height: 32px;
+    --transition-delay: 0.3s;
+    --context-fade-delay: 0.15s;
+}
+
+body {
+    border: 1px solid grey;
+    border-width: thin;
+    overflow: hidden;
+    display: block;
+    box-sizing: border-box;
+    color: #ffffff;
+    background-color: var(--bg-color);
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#loading-screen {
+    z-index: 10000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #202020;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.2s ease-out, background-color var(--transition-delay) ease;
+}
+
+.loading-status {
+    margin-top: 10px;
+    font-size: 1.5em;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f2407e;
+    border-top: 5px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 ::-webkit-scrollbar {
@@ -606,11 +676,6 @@ a {
     max-width: 25em;
 }
 
-*::-webkit-scrollbar {
-    display: none;
-    width: 5px;
-}
-
 #collection_text {
     text-align: center;
     font-size: 1.3em;
@@ -732,13 +797,8 @@ a {
 }
 
 .collection-container {
-    display: flex;
-    flex-direction: column;
     width: 100%;
     height: 100%;
-    max-height: 100%;
-    overflow-y: scroll;
-    padding: 10px;
 }
 
 .collection-container::-webkit-scrollbar {
@@ -822,15 +882,16 @@ button {
 }
 
 .beatmap-card {
-    position: relative;
     width: 100%;
-    height: 6em;
+    height: 100%;
     border-radius: 4px;
     color: white;
     font-family: "Torus Bold";
-    transition: var(--transition-delay) transform;
     align-self: center;
     overflow: hidden;
+    position: relative;
+    border: 2px solid transparent;
+    transition: var(--transition-delay) transform, calc(var(--transition-delay) / 2) border;
 }
 
 .beatmap-card > * {
@@ -838,15 +899,27 @@ button {
 }
 
 .beatmap-card-container {
+    position: absolute;
     border-radius: 4px;
-    border: 2px solid transparent;
     margin: 0 auto;
-    width: 100%;
+    width: calc(100% - 20px);
     margin-bottom: 10px;
-    transition: calc(var(--transition-delay) / 2) border;
+    padding: 0 10px;
+    left: 10px;
 }
 
-.beatmap-card-container:hover {
+.beatmap-card-container::before {
+    content: '';
+    display: block;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+.beatmap-card:hover {
 
     .bg-image { 
         filter: brightness(50%);
@@ -1364,6 +1437,8 @@ button {
     flex-direction: column;
     overflow: hidden;
     width: 90%;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .beatmap-card-status {
@@ -1986,6 +2061,18 @@ html{
 .close-btn::after {
     content: "▲";
     font-size: 10px;
+}
+
+.virtual-list {
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.virtual-container {
+    position: absolute;
+    width: 100%;
+    top: 0px;
 }
 
 @keyframes tagfade {
