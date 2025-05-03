@@ -1,4 +1,4 @@
-import { collection_list, core } from "../manager.js";
+import { core } from "../manager.js";
 import { create_element, placeholder_image, star_ranges } from "../../utils/global.js";
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
@@ -89,15 +89,18 @@ const create_extra_information = (container, beatmap) => {
     if (container.querySelector(".extra-info-container")) {
         return;
     }
+
+    // popup kind div that will close when clicking on it (outside)
+    const main_div = create_element(`<div class="popup-container"></div>`);
     
     const extra = create_element(`
         <div class="extra-info-container">
+            <div class="extra-info-header">
+                <h1 class="extra-info-title">beamap extra information</h1>
+            </div>
             <div class="extra-info-content">
                 <div class="stats-grid">
                 </div>
-            </div>
-            <div class="close-container">
-                <button class="close-btn">hide</button>
             </div>
         </div>    
     `);
@@ -131,7 +134,6 @@ const create_extra_information = (container, beatmap) => {
     };
 
     const stats_grid = extra.querySelector(".stats-grid");
-    const close = extra.querySelector(".close-btn");
 
     const ar = create_stat_item("ar", beatmap.ar);
     const hp = create_stat_item("hp", beatmap.hp);
@@ -143,10 +145,25 @@ const create_extra_information = (container, beatmap) => {
     stats_grid.appendChild(hp);
     stats_grid.appendChild(od);
 
-    close.addEventListener("click", () => {
-        extra.remove();
+    const style = window.getComputedStyle(document.querySelector(`.${beatmap.srcolor}`));
+    const color = style.backgroundColor;
+
+    if (color) {
+        extra.style.border = `1px solid ${color}`;
+    }
+
+    const close_container = () => {
+        main_div.remove();
+    };
+
+    main_div.addEventListener("click", (e) => {
+        if (e.target == main_div) {
+            close_container();
+        }
     });
 
+    main_div.appendChild(extra);
+    document.body.appendChild(main_div);
     return extra;
 };
 
@@ -224,14 +241,7 @@ export const create_beatmap_card = (md5) => {
     };
 
     const show_extra = (container, beatmap) => {
-
-        const extra = create_extra_information(container, beatmap);
-
-        if (!extra) {
-            return;
-        }
-
-        beatmap_container.appendChild(extra);
+        return create_extra_information(container, beatmap);
     };
 
     set_beatmap_status(status);

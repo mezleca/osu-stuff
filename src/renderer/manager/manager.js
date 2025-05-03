@@ -23,6 +23,7 @@ export const core = {
     reader: new Reader(),
     config: new Map(),
     mirrors: new Map(),
+    filtered_beatmaps: new Map(),
     search_filters: [],
     search_query: "",
     progress: create_progress({ }),
@@ -73,6 +74,8 @@ export const update_collection_list = (beatmaps) => {
     collection_list.get = () => {
         return beatmaps.size;
     };
+
+    collection_list.refresh({ clean: true, force: false });
 };
 
 export const show_update_button = () => {
@@ -161,11 +164,20 @@ export const remove_beatmap = (hash) => {
         return;
     }
 
+    // remove beatmap-card element
     document.getElementById(`bn_${hash}`).remove();
+    
+    // remove from the map
     beatmaps.delete(hash);
+
+    // and also remove the context menu
     window.ctxmenu.delete(`bn_${hash}`);
-    update_collection_count(id, name);
-    show_update_button();
+
+    update_beatmaps().then(() => {
+        update_collection_list(core.filtered_beatmaps);
+        update_collection_count(id, name);
+        show_update_button();
+    });
 };
 
 const get_from_player = async () => {
@@ -507,6 +519,13 @@ window.ctxmenu.attach(more_options, [
     { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
 ], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom + 15}px` }});
 
+export const update_beatmaps = async () => {
+    const { id, name } = get_selected_collection();
+    const beatmaps = core.reader.collections.beatmaps.get(name).maps;
+    const beatmap = Array.from(beatmaps);
+    core.filtered_beatmaps = beatmap.filter((beatmap) => filter_beatmap(beatmap));
+};
+
 export const render = (id, force = false) => {
 
     const collection = draggable_items_map.get(id)?.collection;
@@ -535,20 +554,18 @@ export const render = (id, force = false) => {
         bpm_filter.set_limit(bpm_max, false);
     }
 
-    const beatmaps = Array.from(collection.maps);
-    const filtered_beatmaps = beatmaps.filter((beatmap) => filter_beatmap(beatmap));
-
-    update_collection_list(filtered_beatmaps);
+    update_beatmaps();
+    update_collection_list(core.filtered_beatmaps);
 
     // update virtual length
-    collection_list.length = filtered_beatmaps.length;
+    collection_list.length = core.filtered_beatmaps.length;
 
     // initialize if its not intiialzied
     if (!collection_list.initialized) {
         collection_list.initialize();
     }
 
-    collection_list.refresh(force);
+    collection_list.refresh({ force: force });
     collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 };
 

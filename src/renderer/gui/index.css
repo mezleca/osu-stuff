@@ -1993,8 +1993,14 @@ html{
     transition: max-height 0.3s ease, opacity 0.3s ease;
     opacity: 1;
     position: relative;
-    padding: 10px;
-    padding-bottom: 0px;
+    padding: 20px;
+    width: 50%;
+    border: 1px solid var(--collections-border-color);
+}
+
+.extra-info-title {
+    font-size: 1.2em;
+    margin-bottom: 20px;
 }
 
 .stats-grid {
