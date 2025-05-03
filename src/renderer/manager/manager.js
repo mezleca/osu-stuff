@@ -23,7 +23,7 @@ export const core = {
     reader: new Reader(),
     config: new Map(),
     mirrors: new Map(),
-    filtered_beatmaps: new Map(),
+    filtered_beatmaps: [],
     search_filters: [],
     search_query: "",
     progress: create_progress({ }),
@@ -173,6 +173,7 @@ export const remove_beatmap = (hash) => {
     // and also remove the context menu
     window.ctxmenu.delete(`bn_${hash}`);
 
+    // update filtered beatmaps, etc...
     update_beatmaps({ clean: true, force: false }).then(() => {
         update_collection_count(id, name);
         show_update_button();
@@ -331,35 +332,15 @@ const delete_beatmaps_manager = async () => {
         return;
     }
 
-    const old_collection = core.reader.collections.beatmaps.get(name);
-    const all_beatmaps = Array.from(old_collection.maps);
-    const beatmaps = new Map();
-
-    if (!all_beatmaps) {
-        core.progress.update("failed to get collection beatmaps");
-        return;
-    }
-
-    for (let i = 0; i < all_beatmaps.length; i++) {
-
-        if (filter_beatmap(all_beatmaps[i])) {
-
-            const data = core.reader.osu.beatmaps.get(all_beatmaps[i]);
-
-            if (!data) {
-                continue;
-            }
-
-            beatmaps.set(all_beatmaps[i], data);
-        }
-    }
-
+    const all_beatmaps = core.reader.collections.beatmaps.get(name).maps;
+    const beatmaps = core.filtered_beatmaps;
+    
     if (beatmaps.size == 0) {
         core.progress.update("no beatmaps to delete");
         return;
     }
 
-    const remove_from_collection = await quick_confirm(`delete ${beatmaps.size == all_beatmaps.length ? "all" : beatmaps.size } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
+    const remove_from_collection = await quick_confirm(`delete ${beatmaps.length == all_beatmaps.size ? "all" : beatmaps.length } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
     
     if (remove_from_collection == null) {
         return;
@@ -367,7 +348,7 @@ const delete_beatmaps_manager = async () => {
 
     if (remove_from_collection) {
 
-        for (const [md5, _] of beatmaps) {
+        for (const md5 of beatmaps) {
             remove_beatmap(md5);
         }
 
