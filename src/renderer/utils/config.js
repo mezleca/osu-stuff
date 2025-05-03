@@ -378,6 +378,11 @@ export const initialize_config = async () => {
             ],
         });
 
+        // cancelled
+        if (!prompt) {
+            return;
+        }
+
         if (!prompt.name || !prompt.url) {
             create_alert("invalid mirror", { type: "error" });
             return;

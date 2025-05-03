@@ -310,6 +310,8 @@ export const create_beatmap_card = (md5) => {
             .map((k) => { return { text: k, action: (el) => { move_to(el.target, md5) } }});
 
         // setup beatmap context menu
+        // @NOTE: theres a chance that the context menu submenu will be bigger than the screen
+        // normal human beings will not have this issue, but if you have a lot of collections it might be a problem
         window.ctxmenu.attach(beatmap_container, [
             { text: "open on browser", action: () => open_in_browser(beatmap) },
             { isDivider: true },

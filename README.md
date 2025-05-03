@@ -10,8 +10,9 @@
 ## wtf is osu-stuff
 a very simple and useful app that gives you the freedom to:
 - manage your lazer / stable collections.
-- get collection from osu!Collector or osu stats.
-- create collections from player's best performance, favorites maps, first place and created maps. 
+- import collections from files / websites(osu!collector, osustats).
+- export collections to legacy db files or osdb files (minimal).
+- create collections from player's best performance, favorites maps, first place, etc...
 - merge collections.
 - get missing beatmaps from collections.
 - delete beatmaps from collections.
@@ -22,7 +23,7 @@ a very simple and useful app that gives you the freedom to:
 > for now, all downloaded beatmaps using (lazer mode) will be placed on the exports folder.
 
 ## how to download
-- **latest version (v1.6)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **latest version (v1.7)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## linux dependencies
 ### debian/ubuntu
@@ -76,4 +77,5 @@ npm start
 
 ## big thanks to
 - [CollectionManager](https://github.com/Piotrekol/CollectionManager) i stole a bunch of functions from that project
-- [ctxmenu](https://github.com/nkappler/ctxmenu) used for custom context menu
+- [ctxmenu](https://github.com/nkappler/ctxmenu) cool custom context menu
+- [osu-cad](https://github.com/minetoblend/osu-cad) used on beatmap preview

@@ -15,7 +15,7 @@ const dev_mode = process.env.STUFF_ENV == "development";
 
 const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
-const max_w = 1366, max_h = 900;
+const max_w = 1366, max_h = 1024;
 
 const squirrel_params = ["--squirrel-install", "--squirrel-updated", "--squirrel-uninstall"];
 

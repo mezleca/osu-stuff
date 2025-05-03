@@ -3,8 +3,10 @@
 - fixed quick confirm ignoring user rejection (cancelation).
 - fixed page rendering more than 1 time on collection change.
 - fixed config requiring you to use every single option in order to save. 
+- added beatmap preview on extra information (wip).
+- added beatmap filters to serach box (ar, cs, od, etc...).
 - added folder url (clickable) on beatmap / collection export.
-- now you can use beatmap filters on search box (ar, cs, od, etc...).
+- added virtual list to render beatmaps method (cleaner, dont lag on huge ass collections).
 - improved context menu (less buggy).
 - now more options uses a context menu instead of a message popup to show more option.
 - updated electron to version 36.

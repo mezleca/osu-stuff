@@ -21,6 +21,7 @@ export const missing_download = async () => {
         
         create_alert(`found ${missing_maps.length} missing maps`);
 
+        // @TODO: use cards type so the user can select multiple collections
         const confirm = await create_custom_popup({
             type: message_types.MENU,
             title: "download from a specific collection?",
