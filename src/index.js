@@ -11,7 +11,7 @@ let main_window = null;
 Menu.setApplicationMenu(null);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dev_mode = process.env.STUFF_ENV == "development";
+const dev_mode = process.env.STUFF_ENV == "dev";
 
 const w = 1120, h = 840;
 const min_w = 968, min_h = 720;

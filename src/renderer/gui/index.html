@@ -99,8 +99,7 @@
     <script>
         const script = document.createElement('script');
 
-
-        if (window.process.env.STUFF_ENV == "development") {
+        if (window.process.env.STUFF_ENV == "dev") {
             script.src = "../app.js";
         } else {
             script.src = "../../dist/app.bundle.js";

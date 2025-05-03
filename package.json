@@ -1,7 +1,7 @@
 {
 	"name": "osu-stuff",
 	"productName": "osu-stuff",
-	"version": "1.6.6",
+	"version": "1.7.0",
 	"description": "yet another collection manager",
 	"main": "src/index.js",
 	"type": "module",
@@ -10,11 +10,11 @@
 		"url": "https://github.com/mezleca/osu-stuff"
 	},
 	"scripts": {
-		"start": "webpack && electron .",
-		"dev": "webpack && cross-env STUFF_ENV=development electron .",
-		"build": "webpack && electron-builder build",
-		"build:win": "webpack && electron-builder build --win",
-		"build:linux": "webpack && electron-builder build --linux",
+		"start": "webpack && env-cmd -f .env.production electron .",
+		"dev": "webpack && env-cmd -f .env.development electron .",
+		"build": "webpack && env-cmd -f .env.production electron-builder build",
+		"build:win": "webpack && env-cmd -f .env.production electron-builder build --win",
+		"build:linux": "webpack && env-cmd -f .env.production electron-builder build --linux",
 		"build:preload": "webpack --config preload.config.js"
 	},
 	"author": {
@@ -24,16 +24,16 @@
 	"devDependencies": {
 		"@babel/core": "^7.27.1",
 		"babel-loader": "^10.0.0",
-		"cross-env": "^7.0.3",
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
 		"electron": "36.1.0",
 		"electron-builder": "26.0.12",
+		"env-cmd": "^10.1.0",
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
 		"webpack": "^5.99.7",
 		"webpack-cli": "^6.0.1",
-        "webpack-node-externals": "^3.0.0"
+		"webpack-node-externals": "^3.0.0"
 	},
 	"dependencies": {
 		"jszip": "^3.10.1",
@@ -53,7 +53,7 @@
 			"src/dist/**",
 			"src/*.js",
 			"src/renderer/gui/index.html",
-            "src/renderer/gui/deps/js/context.js",
+			"src/renderer/gui/deps/js/context.js",
 			"package.json",
 			"node_modules/**/*",
 			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
