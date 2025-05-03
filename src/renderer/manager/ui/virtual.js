@@ -249,6 +249,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
         },
         
         show: () => {
+
             if (!virtual_list.initialized) {
                 virtual_list.initialize();
                 return virtual_list;
@@ -257,7 +258,6 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             virtual_list.hidden = false;
             virtual_list.list.style.display = "";
             
-            render(options.id, true);
             return virtual_list;
         },
         

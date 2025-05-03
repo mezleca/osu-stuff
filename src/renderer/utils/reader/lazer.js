@@ -74,7 +74,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             od: beatmap.Difficulty?.OverallDifficulty || 0,
             slider_velocity: beatmap.Difficulty?.SliderMultiplier || 0,
             sr: sr,
-            star_rating: beatmap.StarRating || 0, 
+            star: beatmap.StarRating || 0, 
             drain_time: beatmap.Length || 0,
             length: beatmap.Length || 0,
             audio_preview: beatmap.Metadata?.PreviewTime || 0,

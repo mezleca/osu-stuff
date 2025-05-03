@@ -496,7 +496,10 @@ const create_context = (draggable) => {
         { text: "rename collection", action: () => change_collection_name(draggable.id, name) },
         { text: "export collection", action: () => export_collection(draggable.collection_id) },
         { text: "export beatmaps", action: () => export_all_beatmaps(draggable.id) },
-        { text: "delete", action: () => delete_draggable(draggable.colletion_id, draggable.id, draggable.target) }
+        { text: "delete", action: () => {
+            console.log(draggable)
+            delete_draggable(draggable.colletion_id, draggable.id, draggable.target)
+        } }
     ]);
 };
 

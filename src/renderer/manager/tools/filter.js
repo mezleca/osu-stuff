@@ -70,8 +70,15 @@ export const search_filter = (beatmap) => {
         if (!valid) {
             continue;
         }
+
+        const thing = to_type(filter.v);
+
+        // ignore invalid filters
+        if (!thing) {
+            continue;
+        }
         
-        if (!validate_filter(beatmap?.[filter.k], filter.o, to_type(filter.v))) {
+        if (!validate_filter(beatmap?.[filter.k], filter.o, thing)) {
             valid = false;
         }
     }
@@ -97,7 +104,7 @@ export const filter_beatmap = (md5) => {
     const status_filter = get_status_filter();
 
     const beatmap = core.reader.osu.beatmaps.get(md5);
-    const beatmap_sr = Math.floor(beatmap?.star_rating * 100) / 100 || Number(get_beatmap_sr(beatmap));
+    const beatmap_sr = Math.floor(beatmap?.star * 100) / 100 || Number(get_beatmap_sr(beatmap));
     const beatmap_bpm = Math.floor(beatmap?.bpm * 100) / 100 || Number(get_beatmap_bpm(beatmap));
 
     // filter by sr

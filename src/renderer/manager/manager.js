@@ -138,13 +138,12 @@ search_input.addEventListener("input", debounce(() => {
         return;
     }
 
+    core.search_filters = [];
+
     if (search_input.value.length > 3) {
 
-        if (core.search_filters.size != 0) {
-            core.search_filters = [];
-        }
-
         const result = search_input.value.matchAll(/\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*"!?|\S*))/g);
+        
         for (const [text, k, o, v] of result) {
             core.search_filters.push({ text: text, k: k, o: o, v: v });
         }
@@ -482,11 +481,14 @@ const create_new_collection = async () => {
     }
 };
 
-header_text.addEventListener("click", async () => {
+export const hide_list = () => {
     text_collection.style.display = "block";
     remove_all_selected();
+    collection_list.hide();
     setup_manager();
-});
+};
+
+header_text.addEventListener("click", hide_list);
 
 // setup more options context menu
 const more_options = document.querySelector(".more_options");
@@ -497,7 +499,7 @@ window.ctxmenu.attach(more_options, [
     { text: "create new collection", action: () => create_new_collection() },
     { text: "get missing beatmaps", action: () => get_missing_beatmaps() },
     { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
-], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom + 15}px` }});
+], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom - 5}px` }});
 
 export const update_beatmaps = async (extra) => {
 
@@ -510,6 +512,11 @@ export const update_beatmaps = async (extra) => {
     update_collection_list(core.filtered_beatmaps);
 
     if (extra) {
+
+        if (collection_list.hidden) {
+            collection_list.show();
+        }
+
         collection_list.refresh(extra);
     }
 };
@@ -548,7 +555,6 @@ export const render = (id, force = false, clean = true) => {
     }
 
     update_beatmaps({ force: force, clean: clean });
-
     collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 };
 
@@ -583,7 +589,6 @@ export const setup_manager = () => {
 
     // clean list and container
     list.innerHTML = "";
-    collection_container.innerHTML = "";
     collection_container.removeAttribute("data-id");
 
     if (manager_filters.size == 0) {

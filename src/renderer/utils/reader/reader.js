@@ -195,8 +195,17 @@ export class Reader extends BinaryReader {
                 continue;
             }
 
-            const sr = map.star_rating || Number(get_beatmap_sr(map));
-            const bpm = map.bpm || Number(get_beatmap_bpm(map));
+            const sr = map?.star || Number(get_beatmap_sr(map));
+            const bpm = map?.bpm || Number(get_beatmap_bpm(map));
+
+            // save to make sure
+            if (!map?.bpm) {
+                map.bpm = bpm;
+            }
+
+            if (!map?.star) {
+                map.star = sr;
+            }
 
             if (sr > collection.sr_max) collection.sr_max = sr;
             if (bpm > collection.bpm_max) collection.bpm_max = bpm;
@@ -875,31 +884,34 @@ export class Reader extends BinaryReader {
         }
         
         const lazer_mode = is_lazer_mode();
-        const image_name = await this.search_image(beatmap);
 
-        if (!image_name) {
-            return;
-        }
+        this.search_image(beatmap).then((image_name) => {
 
-        if (lazer_mode) {
+            if (lazer_mode) {
 
-            const thing = beatmap.beatmapset.Files.find((f) => f.Filename == image_name);
+                const thing = beatmap.beatmapset.Files.find((f) => f.Filename == image_name);
+    
+                if (!thing) {
+                    console.log("[reader] file not found", beatmap.beatmapset);
+                    return;
+                }
+    
+                const file_hash = thing.File.Hash;
+                const result = path.resolve(core.config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
+                this.image_cache.set(beatmap.beatmap_id, result);
+                return result;
+            } 
+            else {
 
-            if (!thing) {
-                console.log("[reader] file not found", beatmap.beatmapset);
-                return;
+                if (!beatmap?.folder_name || !image_name) {
+                    return;
+                }
+                
+                const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
+                this.image_cache.set(beatmap.beatmap_id, result);
+                return result;
             }
-
-            const file_hash = thing.File.Hash;
-            const result = path.resolve(core.config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
-            this.image_cache.set(beatmap.beatmap_id, result);
-            return result;
-        } 
-        else {
-            const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
-            this.image_cache.set(beatmap.beatmap_id, result);
-            return result;
-        }
+        });
     };
 
     async zip_file(files) {
