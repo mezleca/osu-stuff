@@ -72,10 +72,10 @@ export const update_collection_list = (beatmaps) => {
     };
 
     collection_list.get = () => {
-        return beatmaps.size;
+        return beatmaps.length;
     };
 
-    collection_list.refresh({ clean: true, force: false });
+    collection_list.length = beatmaps.length;
 };
 
 export const show_update_button = () => {
@@ -173,8 +173,7 @@ export const remove_beatmap = (hash) => {
     // and also remove the context menu
     window.ctxmenu.delete(`bn_${hash}`);
 
-    update_beatmaps().then(() => {
-        update_collection_list(core.filtered_beatmaps);
+    update_beatmaps({ clean: true, force: false }).then(() => {
         update_collection_count(id, name);
         show_update_button();
     });
@@ -519,14 +518,22 @@ window.ctxmenu.attach(more_options, [
     { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
 ], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom + 15}px` }});
 
-export const update_beatmaps = async () => {
-    const { id, name } = get_selected_collection();
+export const update_beatmaps = async (extra) => {
+
+    const { name } = get_selected_collection();
+
     const beatmaps = core.reader.collections.beatmaps.get(name).maps;
     const beatmap = Array.from(beatmaps);
+    
     core.filtered_beatmaps = beatmap.filter((beatmap) => filter_beatmap(beatmap));
+    update_collection_list(core.filtered_beatmaps);
+
+    if (extra) {
+        collection_list.refresh(extra);
+    }
 };
 
-export const render = (id, force = false) => {
+export const render = (id, force = false, clean = true) => {
 
     const collection = draggable_items_map.get(id)?.collection;
 
@@ -554,18 +561,13 @@ export const render = (id, force = false) => {
         bpm_filter.set_limit(bpm_max, false);
     }
 
-    update_beatmaps();
-    update_collection_list(core.filtered_beatmaps);
-
-    // update virtual length
-    collection_list.length = core.filtered_beatmaps.length;
-
     // initialize if its not intiialzied
     if (!collection_list.initialized) {
         collection_list.initialize();
     }
 
-    collection_list.refresh({ force: force });
+    update_beatmaps({ force: force, clean: clean });
+
     collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 };
 

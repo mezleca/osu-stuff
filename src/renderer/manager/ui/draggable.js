@@ -562,7 +562,7 @@ export const setup_draggables = () => {
                         draggable_item.target.classList.add("selected");
                         draggable_item.selected = true;
                         
-                        render_page(id, true);
+                        render_page(id, true, true);
                     }
                 } else {
                     const merge = can_merge(id);

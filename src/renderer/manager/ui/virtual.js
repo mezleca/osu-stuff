@@ -67,6 +67,12 @@ const render_items = (id, force = false) => {
     }
 
     const item_total_height = virtual_list.base_size.height + PADDING;
+
+    // if we have empty elements, remove them
+    if (virtual_list.length == 0) {
+        virtual_list.cleanup();
+        return;
+    }
     
     // check if our total height is still valid
     if (item_total_height * virtual_list.length != virtual_list.total_height) {
@@ -226,6 +232,8 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             
             element_size_cache.delete(options.id);
             virtual_list.element_pool.clear();
+            virtual_list.container.replaceChildren();
+            virtual_list.last_rendered;
             list_target.removeEventListener("scroll", debounce(() => render(options.id), 30));
             
             return virtual_list;

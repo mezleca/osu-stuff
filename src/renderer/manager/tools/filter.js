@@ -45,10 +45,7 @@ const validate_filter = (key, op, value) => {
     return true;
 }
 
-// @TODO: only cs/ar/od/hp will work
-// i want to make every single attribute work (like artist, mapper, etc...)
-// however i will need to create a function to link a filter attribute to the stable object name
-// ex: artist -> artist_name  
+// @TODO: more shit
 export const search_filter = (beatmap) => {
 
     let query = core.search_query;
