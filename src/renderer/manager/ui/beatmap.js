@@ -2,7 +2,7 @@ import { core } from "../manager.js";
 import { create_element, placeholder_image, star_ranges } from "../../utils/global.js";
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
-import { open_in_browser } from "../../utils/other/process.js";
+import { open_in_browser, open_url } from "../../utils/other/process.js";
 import { get_beatmap_sr } from "../tools/beatmaps.js";
 import { get_selected_collection, remove_beatmap, show_update_button } from "../manager.js";
 import { draggable_items_map, update_collection_count } from "./draggable.js";
@@ -86,20 +86,25 @@ const create_extra_information = (container, beatmap) => {
         return;
     }
 
+    // check if the container already exists
     if (container.querySelector(".extra-info-container")) {
         return;
     }
 
     // popup kind div that will close when clicking on it (outside)
     const main_div = create_element(`<div class="popup-container"></div>`);
+    const preview_url = `https://viewer.osucad.com/b/${beatmap.beatmap_id}/${beatmap.difficulty_id}`;
     
     const extra = create_element(`
         <div class="extra-info-container">
             <div class="extra-info-header">
-                <h1 class="extra-info-title">beamap extra information</h1>
+                <h1 class="extra-info-title">extra information</h1>
             </div>
             <div class="extra-info-content">
-                <div class="stats-grid">
+                <div class="stats-grid"></div>
+                <div class="preview-container">
+                    <p class="extra-info-preview">preview</p>
+                    <iframe src="https://viewer.osucad.com/embed/${beatmap.beatmap_id}/${beatmap.difficulty_id}" allowfullscreen width="300" height="300"></iframe>
                 </div>
             </div>
         </div>    
@@ -134,16 +139,22 @@ const create_extra_information = (container, beatmap) => {
     };
 
     const stats_grid = extra.querySelector(".stats-grid");
+    const extra_info_title = extra.querySelector(".extra-info-title");
+    const extra_info_preview = extra.querySelector(".extra-info-preview");
 
+    // open link on browser
+    extra_info_preview.addEventListener("click", (e) => {
+        e.stopPropagation();
+        open_url(preview_url);
+    });
+
+    // create stats
     const ar = create_stat_item("ar", beatmap.ar);
     const hp = create_stat_item("hp", beatmap.hp);
     const cs = create_stat_item("cs", beatmap.cs);
     const od = create_stat_item("od", beatmap.od);
 
-    stats_grid.appendChild(ar);
-    stats_grid.appendChild(cs);
-    stats_grid.appendChild(hp);
-    stats_grid.appendChild(od);
+    stats_grid.replaceChildren(ar, hp, cs, od);
 
     const style = window.getComputedStyle(document.querySelector(`.${beatmap.srcolor}`));
     const color = style.backgroundColor;
@@ -151,6 +162,8 @@ const create_extra_information = (container, beatmap) => {
     if (color) {
         extra.style.border = `1px solid ${color}`;
     }
+
+    extra_info_title.textContent = `${beatmap.song_title} [${beatmap.difficulty}]`;
 
     const close_container = () => {
         main_div.remove();

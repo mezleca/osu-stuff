@@ -1,8 +1,6 @@
 import { create_element, debounce } from "../../utils/global.js";
 
 export const virtual_lists = new Map();
-
-// Cache das dimensões dos elementos para evitar reflow constante
 const element_size_cache = new Map();
 
 const get_element_size = (element, id, force_recalc = false) => {
@@ -38,7 +36,7 @@ const update_size = (target, value) => {
 };
 
 const PADDING = 6;
-const BUFFER_SIZE = 2;
+const BUFFER_SIZE = 6;
 
 const render = (id, force = false) => {
 
@@ -234,7 +232,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             virtual_list.element_pool.clear();
             virtual_list.container.replaceChildren();
             virtual_list.last_rendered;
-            list_target.removeEventListener("scroll", debounce(() => render(options.id), 30));
+            list_target.removeEventListener("scroll", debounce(() => render(options.id), 20));
             
             return virtual_list;
         },

@@ -1994,13 +1994,37 @@ html{
     opacity: 1;
     position: relative;
     padding: 20px;
-    width: 50%;
+    width: 60%;
     border: 1px solid var(--collections-border-color);
 }
 
 .extra-info-title {
     font-size: 1.2em;
     margin-bottom: 20px;
+    overflow: hidden;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+
+.extra-info-content {
+    height: 100%;
+}
+
+.preview-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    width: 100%;
+    height: 25em;
+}
+
+.preview-container > iframe {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    border: 1px solid var(--collections-border-color);
 }
 
 .stats-grid {
