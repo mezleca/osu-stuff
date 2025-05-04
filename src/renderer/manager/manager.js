@@ -18,6 +18,7 @@ import { create_range } from "./ui/range.js";
 import { create_beatmap_card } from "./ui/beatmap.js";
 import { create_virtual_list } from "./ui/virtual.js";
 import { create_progress } from "./ui/progress.js";
+import { ctxmenu } from "./ui/context.js";
 
 export const core = {
     reader: new Reader(),
@@ -170,7 +171,7 @@ export const remove_beatmap = (hash) => {
     beatmaps.delete(hash);
 
     // and also remove the context menu
-    window.ctxmenu.delete(`bn_${hash}`);
+    ctxmenu.delete(`bn_${hash}`);
 
     // update filtered beatmaps, etc...
     update_beatmaps({ clean: true, force: false }).then(() => {
@@ -493,7 +494,7 @@ header_text.addEventListener("click", hide_list);
 // setup more options context menu
 const more_options = document.querySelector(".more_options");
 
-window.ctxmenu.attach(more_options, [
+ctxmenu.attach(more_options, [
     { text: "more options" },
     { isDivider: true },
     { text: "create new collection", action: () => create_new_collection() },

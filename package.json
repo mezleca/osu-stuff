@@ -53,7 +53,6 @@
 			"src/dist/**",
 			"src/*.js",
 			"src/renderer/gui/index.html",
-			"src/renderer/gui/deps/js/context.js",
 			"package.json",
 			"node_modules/**/*",
 			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",

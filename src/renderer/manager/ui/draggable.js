@@ -5,6 +5,7 @@ import { setup_manager, render_page, merge_collections, show_update_button, get_
 import { create_element } from "../../utils/global.js";
 import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
 import { Reader } from "../../utils/reader/reader.js";
+import { ctxmenu } from "./context.js";
 
 export const draggable_items_map = new Map();
 
@@ -253,7 +254,7 @@ export const change_collection_name = async (id, element) => {
     draggable_items_map.set(id, old_draggable_item);
 
     // remove old context menu
-    window.ctxmenu.delete(`#${id}`);
+    ctxmenu.delete(`#${id}`);
 
     // setup context menu with updated collection id
     create_context(old_draggable_item);
@@ -277,7 +278,7 @@ export const delete_draggable = (collection_id, id, target) => {
     core.reader.delete_collection(collection_id);
     draggable_items_map.delete(id);
 
-    window.ctxmenu.delete(`#${id}`);
+    ctxmenu.delete(`#${id}`);
 
     reset_preview_pos();
     list.removeChild(target);
@@ -482,7 +483,7 @@ export const update_collection_count = (id, cid) => {
 
 const create_context = (draggable) => {
     const name = draggable.target.querySelector(".collection-name");
-    window.ctxmenu.attach(`#${draggable.id}`, [
+    ctxmenu.attach(`#${draggable.id}`, [
         { 
             text: "merge with", 
             subMenu: Array.from(core.reader.collections.beatmaps.keys()).filter((e) => e != draggable.collection_id)
