@@ -1,4 +1,4 @@
-import renderer from "./renderer.config.js";
-import preload from './preload.config.js';
+import renderer from "./config/renderer.config.js";
+import preload from './config/preload.config.js';
 
 export default [renderer, preload];

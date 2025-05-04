@@ -10,11 +10,11 @@
 		"url": "https://github.com/mezleca/osu-stuff"
 	},
 	"scripts": {
-		"start": "webpack && env-cmd -f .env.production electron .",
-		"dev": "webpack && env-cmd -f .env.development electron .",
-		"build": "webpack && env-cmd -f .env.production electron-builder build",
-		"build:win": "webpack && env-cmd -f .env.production electron-builder build --win",
-		"build:linux": "webpack && env-cmd -f .env.production electron-builder build --linux",
+		"start": "webpack && env-cmd -f ./env/.production electron .",
+		"dev": "webpack && env-cmd -f ./env/.development electron .",
+		"build": "webpack && env-cmd -f ./env/.production electron-builder build",
+		"build:win": "webpack && env-cmd -f ./env/.production electron-builder build --win",
+		"build:linux": "webpack && env-cmd -f ./env/.production electron-builder build --linux",
 		"build:preload": "webpack --config preload.config.js"
 	},
 	"author": {
