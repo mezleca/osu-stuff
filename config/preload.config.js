@@ -7,12 +7,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default {
-    entry: "./src/preload/index.js",
+    entry: path.resolve(__dirname, '..', 'src', 'preload', 'index.js'),
     target: 'electron-preload',
     mode: 'production',
     output: {
         filename: 'preload.bundle.js',
-        path: path.resolve(__dirname, 'src', 'dist'),
+        path: path.resolve(__dirname, '..', 'src', 'dist'),
         libraryTarget: 'commonjs2',
     },
     devtool: false,

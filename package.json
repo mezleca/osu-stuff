@@ -11,7 +11,8 @@
 	},
 	"scripts": {
 		"start": "webpack && env-cmd -f ./env/.production electron .",
-		"dev": "webpack && env-cmd -f ./env/.development electron .",
+        "dev": "webpack && concurrently \"npm run webpack:watch\" \"env-cmd -f ./env/.development electron .\"",
+        "webpack:watch": "webpack --watch",
 		"build": "webpack && env-cmd -f ./env/.production electron-builder build",
 		"build:win": "webpack && env-cmd -f ./env/.production electron-builder build --win",
 		"build:linux": "webpack && env-cmd -f ./env/.production electron-builder build --linux",
@@ -24,6 +25,7 @@
 	"devDependencies": {
 		"@babel/core": "^7.27.1",
 		"babel-loader": "^10.0.0",
+		"concurrently": "^9.1.2",
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
 		"electron": "36.1.0",

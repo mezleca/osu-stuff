@@ -10,12 +10,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default {
     entry: {
-        app: './src/renderer/app.js',
-        index: './src/renderer/gui/index.css'
+        app: path.resolve(__dirname, '..', 'src', 'renderer', 'app.js'),
+        index: path.resolve(__dirname, '..', 'src', 'renderer', 'gui', 'index.css'),
     },
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'src', 'dist')
+        path: path.resolve(__dirname, '..', 'src', 'dist')
     },
     target: 'electron-renderer',
     mode: 'production',
