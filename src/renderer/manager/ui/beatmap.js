@@ -94,7 +94,6 @@ const create_extra_information = (container, beatmap) => {
 
     // popup kind div that will close when clicking on it (outside)
     const main_div = create_element(`<div class="popup-container"></div>`);
-    const preview_url = `https://viewer.osucad.com/b/${beatmap.beatmap_id}/${beatmap.difficulty_id}`;
     
     const extra = create_element(`
         <div class="extra-info-container">
@@ -103,9 +102,8 @@ const create_extra_information = (container, beatmap) => {
             </div>
             <div class="extra-info-content">
                 <div class="stats-grid"></div>
-                <div class="preview-container">
-                    <p class="extra-info-preview">preview</p>
-                    <iframe src="https://viewer.osucad.com/embed/${beatmap.beatmap_id}/${beatmap.difficulty_id}" allowfullscreen width="300" height="300"></iframe>
+                <div class="preview-container" style="style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                    <button>load preview</button>         
                 </div>
             </div>
         </div>    
@@ -141,12 +139,26 @@ const create_extra_information = (container, beatmap) => {
 
     const stats_grid = extra.querySelector(".stats-grid");
     const extra_info_title = extra.querySelector(".extra-info-title");
-    const extra_info_preview = extra.querySelector(".extra-info-preview");
+    const preview_container = extra.querySelector(".preview-container");
+    const load_preview = preview_container.children[0];
 
-    // open link on browser
-    extra_info_preview.addEventListener("click", (e) => {
-        e.stopPropagation();
-        open_url(preview_url);
+    load_preview.addEventListener("click", (e) => {
+
+        const preview_url = `https://viewer.osucad.com/b/${beatmap.beatmap_id}/${beatmap.difficulty_id}`;
+        const iframe = create_element(`
+            <iframe src="${preview_url}" allowfullscreen autoplay width="300" height="300">
+        `);
+        const open_on_browser = create_element(`
+            <h2 class="extra-info-preview" style="cursor: pointer; font-size: 1.2em;">open preview on browser</h2>
+        `);
+
+        open_on_browser.addEventListener("click", (e) => {
+            e.stopPropagation();
+            open_url(preview_url);
+        });
+
+        // add iframe to preview container
+        preview_container.replaceChildren(open_on_browser, iframe);
     });
 
     // create stats

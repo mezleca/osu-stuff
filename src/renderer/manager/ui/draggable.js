@@ -483,7 +483,6 @@ export const update_collection_count = (id, cid) => {
 
 const create_context = (draggable) => {
     const name = draggable.target.querySelector(".collection-name");
-    console.log(draggable);
     ctxmenu.attach(`#${draggable.id}`, [
         { 
             text: "merge with", 
