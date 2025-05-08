@@ -484,10 +484,17 @@ const create_new_collection = async () => {
 };
 
 export const hide_list = () => {
+    
+    // show shit again
     text_collection.style.display = "block";
+
+    // do other sutff
     remove_all_selected();
     collection_list.hide();
     setup_manager();
+
+    // reset matches
+    match_text.textContent = "0 matches";
 };
 
 header_text.addEventListener("click", hide_list);
