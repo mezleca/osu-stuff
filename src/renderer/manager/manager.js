@@ -35,6 +35,7 @@ export const core = {
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
 const collection_container = document.querySelector(".collection-container");
+const match_text = document.querySelector(".match-fucker").children[0];
 const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
@@ -509,8 +510,12 @@ export const update_beatmaps = async (extra) => {
     const beatmaps = core.reader.collections.beatmaps.get(name).maps;
     const beatmap = Array.from(beatmaps);
     
+    // update filtered beatmaps
     core.filtered_beatmaps = beatmap.filter((beatmap) => filter_beatmap(beatmap));
     update_collection_list(core.filtered_beatmaps);
+
+    // update match text
+    match_text.textContent = core.filtered_beatmaps.length + " matches";
 
     if (extra) {
 
