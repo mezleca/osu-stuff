@@ -7,6 +7,10 @@ const in_dev_mode = window.process.env.STUFF_ENV == "dev";
 const gui_title = document.querySelector(".title_text");
 
 (async () => {
+
+    if (in_dev_mode) {
+        gui_title.innerText = "osu-stuff - (dev mode)";
+    }
     
     // initialize config/manager
     await initialize_config();
@@ -18,8 +22,4 @@ const gui_title = document.querySelector(".title_text");
     // remove loading screen
     document.body.removeChild(document.getElementById('loading-screen'));
     core.progress.update("initialized");
-
-    if (in_dev_mode) {
-        gui_title.innerText = "osu-stuff - (dev mode)";
-    }
 })();
