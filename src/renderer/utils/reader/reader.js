@@ -776,7 +776,7 @@ export class Reader extends BinaryReader {
                 if (!collection?.uuid) {
                     this.collections.beatmaps.delete(id);
                 } else {
-                    // to remove later using realm shit (need to implement this to stable collections so i can create a "undo" feature)
+                    // @TODO: need to implement this to stable collections so i can create a "undo" feature
                     this.pending_deletion.add(collection);
                     this.collections.beatmaps.delete(id);
                 }
@@ -822,53 +822,46 @@ export class Reader extends BinaryReader {
             const file_location = this.get_beatmap_location(beatmap);
 
             if (!file_location) {
-                return;
+                return null;
             }
 
             const content = await fs.get_osu_file(file_location);
 
             if (!content) {
-                return;
+                return null;
             }
 
             const events_start = content.indexOf("[Events]");
 
             if (!events_start) {
-                return;
+                return null;
             }
             
-            const events_section = content.substring(events_start, content.indexOf("[", events_start + 1));
-            const events_lines = events_section.split("\n");
-            
-            for (let i = 0; i < events_lines.length; i++) {
+            const events_end = content.indexOf("[", events_start + 1);
+            const events_section = content.substring(events_start, events_end != -1 ? events_end : undefined);
+            const image_matches = events_section.matchAll(/0,0,"([^"]+)"/g);
+            const valid = ["avi", "mp4", "mov"];
 
-                const line = events_lines[i];
+            for (let i = 0; i < image_matches.length; i++) {
 
-                if (!line.startsWith("0,0,\"")) {
+                const match = image_matches[i];
+                const image_name = match[1];
+                
+                if (!image_name || !image_name.includes(".")) {
                     continue;
                 }
                 
-                const image_match = line.match(/0,0,"([^"]+)"/);
+                const ext = image_name.split('.').pop().toLowerCase();
 
-                if (!image_match) {
-                    continue;
-                }
-                
-                const image_name = image_match[1];
-                     
-                if (!image_name.includes(".")) {
-                    continue;
-                }
-
-                if (image_name.endsWith(".avi") || image_name.endsWith(".mp4") || image_name.endsWith(".mov")) {
+                if (valid.includes(ext)) {
                     continue;
                 }
                 
                 return image_name;
             }
-
         } catch(err) {
             console.log("[reader] search image error:", err);
+            return null;
         }
     };
 
@@ -877,41 +870,67 @@ export class Reader extends BinaryReader {
      * @returns { Promise<{ path: String }> } 
      * 
     */
-    async get_beatmap_image(beatmap) { 
+    async get_beatmap_image(beatmap) {
 
+        if (!beatmap?.beatmap_id) {
+            return null;
+        }
+        
         if (this.image_cache.has(beatmap.beatmap_id)) {
             return this.image_cache.get(beatmap.beatmap_id);
         }
         
-        const lazer_mode = is_lazer_mode();
+        try {
 
-        this.search_image(beatmap).then((image_name) => {
+            const image_name = await this.search_image(beatmap);
 
+            if (!image_name) {
+                return null;
+            }
+            
+            const lazer_mode = is_lazer_mode();
+            let result = null;
+            
             if (lazer_mode) {
 
-                const thing = beatmap.beatmapset.Files.find((f) => f.Filename == image_name);
-    
-                if (!thing) {
-                    console.log("[reader] file not found", beatmap.beatmapset);
-                    return;
-                }
-    
-                const file_hash = thing.File.Hash;
-                const result = path.resolve(core.config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
-                this.image_cache.set(beatmap.beatmap_id, result);
-                return result;
-            } 
-            else {
-
-                if (!beatmap?.folder_name || !image_name) {
-                    return;
+                if (!beatmap.beatmapset?.Files) {
+                    return null;
                 }
                 
-                const result = path.resolve(core.config.get("stable_songs_path"), beatmap.folder_name, image_name);
-                this.image_cache.set(beatmap.beatmap_id, result);
-                return result;
+                const thing = beatmap.beatmapset.Files.find(f => f.Filename == image_name);
+
+                if (!thing?.File?.Hash) {
+                    return null;
+                }
+                
+                const hash = thing.File.Hash;
+                result = path.resolve(
+                    core.config.get("lazer_path"), "files", 
+                    hash.substring(0, 1), hash.substring(0, 2),
+                    hash
+                );
+            } else {
+
+                if (!beatmap.folder_name) {
+                    return null;
+                }
+                
+                result = path.resolve(
+                    core.config.get("stable_songs_path"), 
+                    beatmap.folder_name, 
+                    image_name
+                );
             }
-        });
+            
+            if (result) {
+                this.image_cache.set(beatmap.beatmap_id, result);
+            }
+            
+            return result;
+        } catch (error) {
+            console.log("[reader] get_beatmap_image error:", error);
+            return null;
+        }
     };
 
     async zip_file(files) {
