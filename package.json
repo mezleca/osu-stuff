@@ -1,7 +1,7 @@
 {
 	"name": "osu-stuff",
 	"productName": "osu-stuff",
-	"version": "1.7.1",
+	"version": "1.7.2",
 	"description": "yet another collection manager",
 	"main": "src/index.js",
 	"type": "module",
@@ -28,12 +28,12 @@
 		"concurrently": "^9.1.2",
 		"css-loader": "^7.1.2",
 		"css-minimizer-webpack-plugin": "^7.0.2",
-		"electron": "36.1.0",
+		"electron": "36.2.0",
 		"electron-builder": "26.0.12",
 		"env-cmd": "^10.1.0",
 		"mini-css-extract-plugin": "^2.9.2",
 		"terser-webpack-plugin": "^5.3.14",
-		"webpack": "^5.99.7",
+		"webpack": "^5.99.8",
 		"webpack-cli": "^6.0.1",
 		"webpack-node-externals": "^3.0.0"
 	},
