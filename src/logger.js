@@ -40,6 +40,11 @@ export const create_logger = (config = { name: "default", show_date: true, save_
         }
 
         const log_path = path.resolve(config.save_to_path.path, `${config.name}.log`);
+        const log_dir = path.dirname(log_path);
+
+        if (!fs.existsSync(log_dir)) {
+            fs.mkdirSync(log_dir, { recursive: true });
+        }
 
         if (!fs.existsSync(log_path)) {
             fs.writeFileSync(log_path, "", { encoding: "utf-8" });

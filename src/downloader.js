@@ -18,11 +18,24 @@ let current_download = {
     items: []
 };
 
+const osu_stuff_path = () => {
+    switch (process.platform) {
+        case 'win32':
+            return path.join(os.homedir(), 'AppData', 'Roaming', "osu-stuff");
+        case 'linux':
+            return path.join(os.homedir(), '.local', 'share', "osu-stuff");
+        default:
+            return "";
+    }
+}
+
 const downloaded_maps = new Map();
 const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
 const concurrency = 3;
 const download_queue = [];
-const logger = create_logger({ name: "downloader", show_date: true, save_to_path: { path: path.join(os.homedir(), '.local', 'share', "osu-stuff") }});
+const logger = create_logger({ name: "downloader", show_date: true, save_to_path: { path: osu_stuff_path() }});
+
+console.log(osu_stuff_path());
 
 const parallel_map = async (array, mapper, concurrency) => {
 
