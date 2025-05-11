@@ -726,6 +726,14 @@ a {
     width: 100%;
 }
 
+#beatmap-match {
+    font-size: 0.75em;
+    color: var(--accent-color);
+    padding: 5px;
+    margin: 0;
+    padding-left: 0px;
+}
+
 .input-box > svg {
     width: 1.2em;
 }
