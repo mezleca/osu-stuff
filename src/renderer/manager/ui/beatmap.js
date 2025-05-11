@@ -1,4 +1,4 @@
-import { core } from "../manager.js";
+import { core, update_beatmaps } from "../manager.js";
 import { create_element, placeholder_image, star_ranges } from "../../utils/global.js";
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
@@ -40,7 +40,7 @@ const delete_set = (md5) => {
 
     // make sure to get the updated beatmap
     const updated_beatmap = core.reader.osu.beatmaps.get(md5);
-    const { name } = get_selected_collection();
+    const { id, name } = get_selected_collection();
 
     if (!core.reader.collections.beatmaps.has(name)) {
         return;
@@ -52,9 +52,15 @@ const delete_set = (md5) => {
     // remove diffs that have the save beatmap_id
     for (const [k, v] of core.reader.osu.beatmaps) {
         if (v.beatmap_id == beatmap_id && collection.maps.has(v.md5)) {
-            remove_beatmap(v.md5);
+            remove_beatmap(v.md5, false);
         }
     }
+
+    // update filtered beatmaps, etc...
+    update_beatmaps({ check: true, force: false }).then(() => {
+        update_collection_count(id, name);
+        show_update_button();
+    });
 
     show_update_button();
 };
@@ -330,7 +336,7 @@ export const create_beatmap_card = (md5) => {
             { isDivider: true },
             { text: "export beatmap", action: () => export_beatmap() },
             { text: "move to", subMenu: collection_keys },
-            { text: "remove beatmap", action: () => remove_beatmap(md5) },
+            { text: "remove beatmap", action: () => remove_beatmap(md5, true) },
             { text: "remove beatmapset", action: () => delete_set(md5) }
         ]);
 
@@ -463,7 +469,7 @@ export const create_beatmap_card = (md5) => {
 
     remove_button.addEventListener("click", (e) => {
         e.stopPropagation();
-        remove_beatmap(md5);
+        remove_beatmap(md5, true);
     });
 
     beatmap_container.appendChild(beatmap_element);

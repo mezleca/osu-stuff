@@ -159,7 +159,7 @@ search_input.addEventListener("input", debounce(() => {
     render_page(id, true);
 }, 300));
 
-export const remove_beatmap = (hash) => {
+export const remove_beatmap = (hash, update) => {
 
     const { id, name } = get_selected_collection();
     const beatmaps = core.reader.collections.beatmaps.get(name).maps;
@@ -168,9 +168,6 @@ export const remove_beatmap = (hash) => {
         console.log("[manager] failed to get collection", name);
         return;
     }
-
-    // remove beatmap-card element
-    document.getElementById(`bn_${hash}`).remove();
     
     // remove from the map
     beatmaps.delete(hash);
@@ -178,11 +175,13 @@ export const remove_beatmap = (hash) => {
     // and also remove the context menu
     ctxmenu.delete(`bn_${hash}`);
 
-    // update filtered beatmaps, etc...
-    update_beatmaps({ check: true, force: false }).then(() => {
-        update_collection_count(id, name);
-        show_update_button();
-    });
+    if (update) {
+        // update filtered beatmaps, etc...
+        update_beatmaps({ check: true, force: false }).then(() => {
+            update_collection_count(id, name);
+            show_update_button();
+        });
+    }
 };
 
 const get_from_player = async () => {
@@ -329,7 +328,7 @@ const get_missing_beatmaps = async () => {
 
 const delete_beatmaps_manager = async () => {
     
-    const { name } = get_selected_collection();
+    const { id, name } = get_selected_collection();
 
     // make sure the collection is valid
     if (!name) {
@@ -354,12 +353,18 @@ const delete_beatmaps_manager = async () => {
     if (remove_from_collection) {
 
         for (const md5 of beatmaps) {
-            remove_beatmap(md5);
+            remove_beatmap(md5, false);
         }
 
         // update single collection
         core.reader.update_collection(name);
     }
+
+    // update filtered beatmaps, etc...
+    update_beatmaps({ check: true, force: false }).then(() => {
+        update_collection_count(id, name);
+        show_update_button();
+    });
 
     const remove_from_folder = await quick_confirm(`remove from osu folder?`);
 
