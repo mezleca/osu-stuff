@@ -38,7 +38,7 @@ const update_size = (target, value) => {
 const PADDING = 6;
 const BUFFER_SIZE = 6;
 
-const render = (id, force = false) => {
+const render = (id, extra) => {
 
     const virtual_list = virtual_lists.get(id);
 
@@ -48,19 +48,20 @@ const render = (id, force = false) => {
     
     virtual_list.render_scheduled = true;
     requestAnimationFrame(() => {
-        render_items(id, force);
+        render_items(id, extra);
         virtual_list.render_scheduled = false;
     });
 };
 
 // @TODO: dynamic size
 // also this code is a mess
-const render_items = (id, force = false) => {
+const render_items = (id, extra = { force: false, check: false }) => {
 
     const virtual_list = virtual_lists.get(id);
 
     // dont show if its hidden or invalid
     if (!virtual_list || virtual_list?.hidden) {
+        console.log("[virtual] not doing shit cuz hidden");
         return;
     }
 
@@ -86,7 +87,7 @@ const render_items = (id, force = false) => {
     const items_in_view = Math.ceil(visible_height / item_total_height) + BUFFER_SIZE * 2;
     const max_amount = Math.min(base_index + items_in_view, virtual_list.length);
     
-    if (!force && virtual_list.last_rendered) {
+    if (!extra?.force && !extra?.check && virtual_list.last_rendered) {
 
         const { first_index, last_index } = virtual_list.last_rendered;
 
@@ -95,7 +96,7 @@ const render_items = (id, force = false) => {
         }
     }
     
-    if (force) {
+    if (extra?.force) {
         virtual_list.element_pool.clear();
     }
 
@@ -103,17 +104,30 @@ const render_items = (id, force = false) => {
 
     for (let i = base_index; i < max_amount; i++) {
 
-        let element = virtual_list.element_pool.get(i);
-        
-        if (!element) {
-            element = virtual_list.create(i);
-            virtual_list.element_pool.set(i, element);
+        let content = virtual_list.element_pool.get(i) || {};
+
+        // check if the stored element id matches the current one
+        if (content && extra?.check) {
+
+            const new_item_content = virtual_list.create(i);
+
+            if (new_item_content.id != content.id) {
+                content.element = new_item_content.element;
+            }
         }
         
-        const pos = i * item_total_height;
-        element.style.top = `${pos}px`;
+        // if this item is not created, create it!!!
+        if (!content?.element) {;
+            content = virtual_list.create(i); 
+            virtual_list.element_pool.set(i, content);
+        }
 
-        elements.push(element);
+        //console.log(content);
+        
+        const pos = i * item_total_height;
+        content.element.style.top = `${pos}px`;
+
+        elements.push(content.element);
         
         // save first item position
         if (i == base_index) {
@@ -164,7 +178,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
                 return virtual_list;
             }
             
-            const base_size = get_element_size(options.create(0), options.id);
+            const base_size = get_element_size(options.create(0).element, options.id);
             virtual_list.base_size = base_size;
             
             const item_total_height = base_size.height + PADDING;
@@ -190,7 +204,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             virtual_lists.set(options.id, virtual_list);
             virtual_list.initialized = true;
             
-            render(options.id, true);
+            render(options.id, { force: true });
             return virtual_list;
         },
         
@@ -206,10 +220,6 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             const item_height = vl.base_size.height + PADDING;  
             const new_total = item_height * vl.length;
 
-            if (extra.clean) {
-                vl.element_pool.clear();
-            }
-
             update_size(vl.virtual_height, new_total);
             
             if (extra.force) {
@@ -218,7 +228,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
                 delete vl.last_rendered;
             }
             
-            render(options.id, extra?.force || false);
+            render(options.id, extra);
             return virtual_list;
         },
         
@@ -232,7 +242,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
             virtual_list.element_pool.clear();
             virtual_list.container.replaceChildren();
             virtual_list.last_rendered;
-            list_target.removeEventListener("scroll", debounce(() => render(options.id), 20));
+            list_target.removeEventListener("scroll", debounce(() => render(options.id, {}), 20));
             
             return virtual_list;
         },
@@ -266,7 +276,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
                 return virtual_list;
             }
             
-            render(options.id);
+            render(options.id, {});
             return virtual_list;
         }
     };

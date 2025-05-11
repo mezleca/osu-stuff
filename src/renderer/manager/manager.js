@@ -35,7 +35,7 @@ export const core = {
 const list = document.querySelector(".list_draggable_items");
 const header_text = document.querySelector(".collection_header_text");
 const collection_container = document.querySelector(".collection-container");
-const match_text = document.querySelector(".match-fucker").children[0];
+const match_text = document.getElementById("beatmap-match");
 const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
@@ -59,18 +59,22 @@ export const collection_list = create_virtual_list({
     id: "collection-list", 
     target: collection_container,
     create: (index) => {
+
         const { name } = get_selected_collection();
+
         const beatmaps = Array.from(core.reader.collections.beatmaps.get(name).maps.keys());
         const beatmap = beatmaps[index];
-        return create_beatmap_card(beatmap);
+
+        // save a id to check later
+        // @NOTE: id is still not that great since i could just say, keep everything the same except at index below 24 or soemthign
+        return { element: create_beatmap_card(beatmap), id: beatmap };
     }
 });
 
 export const update_collection_list = (beatmaps) => {
 
     collection_list.create = (index) => {
-        const beatmap = beatmaps[index];
-        return create_beatmap_card(beatmap);
+        return { element: create_beatmap_card(beatmaps[index]), id: beatmaps[index] };
     };
 
     collection_list.get = () => {
@@ -175,7 +179,7 @@ export const remove_beatmap = (hash) => {
     ctxmenu.delete(`bn_${hash}`);
 
     // update filtered beatmaps, etc...
-    update_beatmaps({ clean: true, force: false }).then(() => {
+    update_beatmaps({ check: true, force: false }).then(() => {
         update_collection_count(id, name);
         show_update_button();
     });
@@ -567,7 +571,7 @@ export const render = (id, force = false, clean = true) => {
         collection_list.initialize();
     }
 
-    update_beatmaps({ force: force, clean: clean });
+    update_beatmaps({ force: force, check: clean });
     collection_container.dataset.id = draggable_items_map.get(id)?.collection_id;
 };
 
