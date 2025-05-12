@@ -8,24 +8,37 @@
 </p>
 
 ## wtf is osu-stuff
-a very simple and useful app that gives you the freedom to:
-- manage your lazer / stable collections.
-- import collections from files / websites(osu!collector, osustats).
-- export collections to legacy db files or osdb files (minimal).
-- create collections from player's best performance, favorites maps, first place, etc...
-- merge collections.
-- get missing beatmaps from collections.
-- delete beatmaps from collections.
-- delete beatmaps from your osu folder (only use this if you really need to).
+a simple and useful app that gives you freedom to:
+- manage your lazer/stable collections
+- import collections from files/websites (osu!collector, osustats)
+- export collections to legacy db files or osdb files (minimal)
+- create collections from player's best performance, favorites maps, first place, etc.
+- merge collections
+- get missing beatmaps from collections
+- delete beatmaps from collections
+- delete beatmaps from your osu folder (still experimental)
 - etc...
 
-> [!NOTE]  
-> for now, all downloaded beatmaps using (lazer mode) will be placed on the exports folder.
+## found bugs or crashes?
+- hit `F12` to open devtools and grab the logs
+- if issues with osu-stuff downloader, logs are in the osu-stuff folder (one folder before exports)
+- send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or create an issue on this repo
 
-## how to download
-- **latest version (v1.7)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+> [!NOTE]  
+> for now, all beatmaps downloaded using (lazer mode) will be placed in the exports folder
+
+## download
+- **latest version (v1.7.x)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+
+## custom mirrors
+| name         | url                                                      |
+| ------------ | -------------------------------------------------------- |
+| `beatconnect` | [https://beatconnect.io/d/](https://beatconnect.io/d/)   |
+| `catboy`      | [https://catboy.best/d/](https://catboy.best/d/)         |
+| `sayobot`     | [https://dl.sayobot.cn/beatmaps/download/](https://dl.sayobot.cn/beatmaps/download/) |
 
 ## linux dependencies
+
 ### debian/ubuntu
 ```bash
 sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
@@ -36,16 +49,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 l
 sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
 ```
 
-## optional mirrors
-- [catboy...](https://catboy.best)
-- [beatconnect](https://beatconnect.io)
-
-if you find bugs, crashes, or anything weird:  
-- hit `F12` to open devtools and grab the logs
-- if you have a issue with the osu-stuff downloader, logs should be on osu-stuff folder (one folder before the exports one) 
-- send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or open an issue here.  
-
-## how can i manually build/test it?
+## build it yourself
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
@@ -53,29 +57,27 @@ if you find bugs, crashes, or anything weird:
 
 ### steps
 ```bash
-# clone repo using your terminal
+# clone repo
 git clone https://github.com/mezleca/osu-stuff.git
 
-# install all dependencies
+# install dependencies
 cd osu-stuff
 npm install
 
-# build it for your platform
+# build for your platform
 npm run build
 
-# or build for a specific platform
+# or build for specific platform
 npm run build:win    # windows
 npm run build:linux  # linux
 
-# binaries folder: /dist/...
+# binaries location: /dist/...
 
-# in case you wanna run instead of building it:
-
-# (minified mode)
+# to run instead of building:
 npm start
 ```
 
-## big thanks to
-- [CollectionManager](https://github.com/Piotrekol/CollectionManager) i stole a bunch of functions from that project
-- [ctxmenu](https://github.com/nkappler/ctxmenu) cool custom context menu
-- [osu-cad](https://github.com/minetoblend/osu-cad) used on beatmap preview
+## credits
+- [CollectionManager](https://github.com/Piotrekol/CollectionManager) - stole some functions logic
+- [ctxmenu](https://github.com/nkappler/ctxmenu) - custom context menu
+- [osu-cad](https://github.com/minetoblend/osu-cad) - used for beatmap preview
