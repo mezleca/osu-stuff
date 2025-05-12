@@ -66,15 +66,15 @@ export const collection_list = create_virtual_list({
         const beatmap = beatmaps[index];
 
         // save a id to check later
-        // @NOTE: id is still not that great since i could just say, keep everything the same except at index below 24 or soemthign
-        return { element: create_beatmap_card(beatmap), id: beatmap };
+        return { element: () => create_beatmap_card(beatmap), id: beatmap };
     }
 });
 
 export const update_collection_list = (beatmaps) => {
 
     collection_list.create = (index) => {
-        return { element: create_beatmap_card(beatmaps[index]), id: beatmaps[index] };
+        // save a id to check later
+        return { element: () => create_beatmap_card(beatmaps[index]), id: beatmaps[index] };
     };
 
     collection_list.get = () => {

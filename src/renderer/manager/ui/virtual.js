@@ -98,6 +98,7 @@ const render_items = (id, extra = { force: false, check: false }) => {
     
     if (extra?.force) {
         virtual_list.element_pool.clear();
+        virtual_list.container.innerHTML = "";
     }
 
     const elements = [];
@@ -106,28 +107,24 @@ const render_items = (id, extra = { force: false, check: false }) => {
 
         let content = virtual_list.element_pool.get(i) || {};
 
-        // check if the stored element id matches the current one
         if (content && extra?.check) {
 
             const new_item_content = virtual_list.create(i);
 
             if (new_item_content.id != content.id) {
-                content.element = new_item_content.element;
+                content.element = new_item_content.element();
             }
         }
-        
+
         // if this item is not created, create it!!!
-        if (!content?.element) {;
-            content = virtual_list.create(i); 
+        if (!content?.element) {
+            const new_item_content = virtual_list.create(i);
+            content = { element: new_item_content.element(), id: new_item_content.id };
             virtual_list.element_pool.set(i, content);
         }
-
-        //console.log(content);
         
         const pos = i * item_total_height;
         content.element.style.top = `${pos}px`;
-
-        elements.push(content.element);
         
         // save first item position
         if (i == base_index) {
@@ -140,6 +137,8 @@ const render_items = (id, extra = { force: false, check: false }) => {
             virtual_list.last_visible_index = i;
             virtual_list.last_pos = pos;
         }
+
+        elements.push(content.element);
     }
 
     if (elements.length > 0) {
@@ -178,7 +177,7 @@ export const create_virtual_list = (options = { id: 0, elements: [], target: nul
                 return virtual_list;
             }
             
-            const base_size = get_element_size(options.create(0).element, options.id);
+            const base_size = get_element_size(options.create(0).element(), options.id);
             virtual_list.base_size = base_size;
             
             const item_total_height = base_size.height + PADDING;
