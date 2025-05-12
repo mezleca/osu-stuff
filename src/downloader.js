@@ -30,7 +30,7 @@ const osu_stuff_path = () => {
 }
 
 const downloaded_maps = new Map();
-const bad_status = [204, 401, 403, 408, 410, 500, 503, 504, 429];
+const bad_status = [401, 403, 408, 410, 500, 503, 504, 429];
 const concurrency = 3;
 const download_queue = [];
 const logger = create_logger({ name: "downloader", show_date: true, save_to_path: { path: osu_stuff_path() }});
@@ -149,12 +149,14 @@ const try_mirror = async (mirror_url, map_id) => {
 
     try {
 
-        const response = await fetch(`${mirror_url}${map_id}`, { method: "GET" });
+        // make sure we have a valid mirror url
+        const response = await fetch(`${mirror_url?.endsWith('/') ? mirror_url : mirror_url + '/'}${map_id}`, { method: "GET" });
         
         if (response.status == 200) {
             const buffer = await response.arrayBuffer();
             return buffer.byteLength > 0 ? buffer : null;
         }
+
 
         if (bad_status.includes(response.status)) {
             return { error: "bad_status" };
@@ -364,7 +366,7 @@ export const init_downloader = (window, ipcMain) => {
             }
             return true;
         } catch (error) {
-            logger.error("Error updating download path:", error);
+            logger.error("error updating download path:", error);
             return false;
         }
     });
