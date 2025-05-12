@@ -93,7 +93,7 @@ const on_progress_end = (data) => {
         return;
     }
 
-    core.progress.update(`finished downloading ${data.name}`);
+    core.progress.update(`finished downloading (${data.name})`);
     target.remove();
 };
 

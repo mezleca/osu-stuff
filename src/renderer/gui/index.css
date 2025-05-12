@@ -1,5 +1,3 @@
-@import url("./deps/bootstrap-icons.css");
-
 @font-face {
     font-family: 'Torus Bold';
     font-style: normal;
@@ -260,10 +258,6 @@ body::-webkit-scrollbar {
     padding-right: 10px;
 }
 
-button:hover {
-    background-color: var(--button-hover-color);
-}
-
 .config_input, .file_input {
     cursor: pointer;
 }
@@ -391,8 +385,8 @@ label {
     max-width: 50%;
     margin-bottom: 10px;
     padding: 10px;
-    border-radius: 4px;
-    background-color: #ffffff;
+    border-radius: 6px;
+    background-color: var(--content-bg);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     pointer-events: auto;
@@ -414,18 +408,15 @@ label {
 }
 
 .alert-error {
-    background-color: rgb(242, 36, 36);
-    border: 2px solid rgb(181, 0, 0);
+    border: 2px solid rgb(255, 66, 66);
 }
 
 .alert-success, .alert-default {
-    background-color: rgb(36, 153, 242);
-    border: 2px solid rgb(0, 103, 181);
+    border: 2px solid rgb(81, 178, 252);
 }
 
 .alert-warning {
-    background-color: rgb(217, 210, 9);
-    border: 2px solid rgb(255, 255, 31);
+    border: 2px solid rgb(255, 255, 95);
 }
 
 .alert-popup.fade-out {
@@ -435,7 +426,7 @@ label {
 .alert-close { 
     position: absolute;
     align-self: center;
-    margin-right: 10px;
+    margin-right: 15px;
     cursor: pointer;
     right: 0;
 }
@@ -948,7 +939,7 @@ button {
     width: fit-content;
 }
 
-.remove-btn, .download-button, .preview-button {
+.remove-btn, .download-button, .preview-button, #remove_mirror {
     background: none;
     border: none;
     color: white;
@@ -965,8 +956,7 @@ button {
     transition: var(--transition-delay) color;
 }
 
-.preview-button:hover, .remove-btn:hover {
-    background: none;
+.preview-button:hover, .remove-btn:hover, .download-button:hover, #remove_mirror:hover, #more-options:hover, .alert-close:hover {
     svg {
         color: var(--accent-color);
         transition: var(--transition-delay) color;
@@ -1029,19 +1019,6 @@ button {
 }
 
 #add_mirror:hover {
-    background-color: var(--accent-color);
-}
-
-#remove_mirror {
-    align-self: center;
-    cursor: pointer;
-    margin-right: 5px;
-    padding: 10px 10px;
-    border-radius: 3px;
-    transition: var(--transition-delay) background-color;
-}
-
-#remove_mirror:hover {
     background-color: var(--accent-color);
 }
 
@@ -1250,6 +1227,10 @@ button {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color var(--transition-delay);
+}
+
+.more_options > svg {
+    color: white;
 }
 
 .more_options:hover {

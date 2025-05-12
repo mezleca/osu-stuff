@@ -22,10 +22,10 @@ const MESSAGE_TYPES = {
 };
 
 const ALERT_STYLES = {
-    error: { icon: "bi-x-circle-fill", class: "alert-error" },
-    success: { icon: "bi-check-circle-fill", class: "alert-success" },
-    warning: { icon: "bi-exclamation-triangle-fill", class: "alert-warning" },
-    default: { icon: "bi-exclamation-circle", class: "alert-default" }
+    error: { class: "alert-error" },
+    success: { class: "alert-success" },
+    warning: { class: "alert-warning" },
+    default: { class: "alert-default" }
 };
 
 export const create_custom_popup = async (config) => {
@@ -65,9 +65,12 @@ export const create_alert = async (text, data) => {
 
     const content = create_element(`
         <div class="alert-popup ${alert_style.class}">
-            <i class="alert-icon ${alert_style.icon}"></i>
             <h2>${options.html ? alert_text : ""}</h2>
-            <i class="bi bi-x alert-close" id="${alert_id}"></i>
+            <div class="alert-close" id="${alert_id}">
+                <svg viewBox="0 0 10 10" width="14px" height="14px" stroke="currentColor" stroke-width="2">
+                    <path d="M1,1 9,9 M9,1 1,9" />
+                </svg>
+            </div>
         </div>
     `);
 
