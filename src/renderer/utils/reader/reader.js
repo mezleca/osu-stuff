@@ -989,7 +989,7 @@ export class Reader extends BinaryReader {
     }
 
     static get_beatmap_status(code) {
-
+      
         const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
@@ -1001,6 +1001,10 @@ export class Reader extends BinaryReader {
 
     static get_beatmap_status_code(status) {
         
+        if (!status) {
+            return 0;
+        }
+
         const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {

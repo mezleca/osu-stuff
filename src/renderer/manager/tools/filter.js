@@ -107,18 +107,25 @@ export const filter_beatmap = (md5) => {
     const beatmap_sr = Math.floor(beatmap?.star * 100) / 100 || Number(get_beatmap_sr(beatmap));
     const beatmap_bpm = Math.floor(beatmap?.bpm * 100) / 100 || Number(get_beatmap_bpm(beatmap));
 
-    // filter by sr
-    if (beatmap_sr < Number(sr_filter.min.value) || beatmap_sr > Number(sr_filter.max.value)) {
-        return false;
-    }
-
     // filter by status
     if (status_filter.selected.size > 0 && !status_filter.selected.has(Reader.get_status_object_reversed()[beatmap?.status])) {
         return false;
     }
 
+    const sr_min = Number(sr_filter.min.value);
+    const sr_max = Number(sr_filter.max.value);
+
+    // filter by sr
+    if (sr_max && (beatmap_sr < sr_min || beatmap_sr > sr_max)) {
+        console.log("sr", beatmap_sr, sr_filter.min.value, sr_filter.max.value);
+        return false;
+    }
+
+    const bpm_min = Number(bpm_filter.min.value);
+    const bpm_max = Number(bpm_filter.max.value);
+
     // filter by bpm
-    if (beatmap_bpm < Number(bpm_filter.min.value) || beatmap_bpm > Number(bpm_filter.max.value)) {
+    if (bpm_max && (beatmap_bpm < bpm_min || beatmap_bpm > bpm_max)) {
         return false;
     }
 

@@ -355,11 +355,11 @@ export const create_beatmap_card = (md5) => {
                     set_beatmap_status(data.status);
                     update_sr(data.difficulty_rating);      
     
-                    core.reader.osu.beatmaps.set(data.checksum, beatmap);
+                    core.reader.osu.beatmaps.set(md5, beatmap);
                     title.textContent = beatmap.title || "unknown";
                     subtitle.textContent = beatmap.difficulty || "unknown";
                     beatmap_bg.src = `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
-
+                    
                     set_as_downloaded();
                 });
 

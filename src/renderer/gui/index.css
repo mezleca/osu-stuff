@@ -1226,7 +1226,7 @@ button {
     color: #fff;
     font-size: 26px;
     margin: 0px;
-    padding: 8px 12px;
+    padding: 8px 16px;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color var(--transition-delay);

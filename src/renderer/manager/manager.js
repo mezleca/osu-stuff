@@ -125,9 +125,7 @@ export const lazer_mode = async (target, name) => {
 
     // update collections so we get the bpm min/max, etc..
     core.reader.update_collections();
-
-    update_status_filter();
-    setup_manager();
+    hide_list();
 
     if (target.checked) {
         create_alert("switched to lazer mode!");

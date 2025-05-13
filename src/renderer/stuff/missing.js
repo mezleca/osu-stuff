@@ -14,7 +14,7 @@ export const missing_download = async () => {
         for (const [k, v] of core.reader.collections.beatmaps) {
             for (const m of v.maps) {
                 if (m && !core.reader.osu.beatmaps.get(m)) {
-                    missing_maps.push({ collection_name: k, checksum: m });
+                    missing_maps.push({ collection_name: k, md5: m });
                 }
             }
         }

@@ -341,6 +341,7 @@ var ContextMenu = function() {
         }));
 
         var timeout = 0;
+
         window.addEventListener("wheel", (function() {
             clearTimeout(timeout);
             timeout = setTimeout((function() {
@@ -353,14 +354,20 @@ var ContextMenu = function() {
         }), {
             passive: true
         });
+        
         window.addEventListener("keydown", (function(e) {
             if (e.key === "Escape") _this.hide();
         }));
     }
 
     ContextMenu.getInstance = function() {
-        if (!ContextMenu.instance) ContextMenu.instance = new ContextMenu;
+
+        if (!ContextMenu.instance) {
+            ContextMenu.instance = new ContextMenu;
+        }
+
         var instance = ContextMenu.instance;
+        
         return {
             attach: instance.attach.bind(instance),
             delete: instance.delete.bind(instance),
@@ -372,7 +379,11 @@ var ContextMenu = function() {
 
     ContextMenu.prototype.attach = function(target, ctxMenu, config) {
         var _this = this;
-        if (config === void 0) config = {};
+
+        if (config === void 0) {
+            config = {};
+        }
+
         // NEW: target can also be a element (to add listener to non-created elements)
         var t = typeof target == "string" ? document.querySelector(target) : target;
         if (this.cache[typeof target == "string" ? target : target.id] !== void 0) {
@@ -380,18 +391,22 @@ var ContextMenu = function() {
             this.update(target, ctxMenu, config);
             return;
         }
+
         if (!t) {
             //console.error("target element ".concat(target, " not found"));
             return;
         }
+
         var handler = function(e) {
             _this.show(ctxMenu, e, config);
         };
+
         this.cache[typeof target == "string" ? target : target.id] = {
             ctxMenu: ctxMenu,
             handler: handler,
             config: config
         };
+
         // NEW: yeah
         t.addEventListener(config?.onClick ? "click" : "contextmenu", handler);
     };
@@ -409,14 +424,17 @@ var ContextMenu = function() {
 
     ContextMenu.prototype.delete = function(target) {
         var o = this.cache[typeof target == "string" ? target : target.id];
+
         if (!o) {
-            // return console.error("no context menu for target element ".concat(target, " found"));
             return;      
         }
+        
         delete this.cache[typeof target == "string" ? target : target.id];
         var t = document.querySelector(target);
-        if (!t) return console.error("target element ".concat(target, " does not exist (anymore)"));
-        t.removeEventListener("contextmenu", o.handler);
+
+        if (t) {
+            t.removeEventListener("contextmenu", o.handler);
+        }
     };
 
     ContextMenu.prototype.show = function(ctxMenu, eventOrElement, config) {

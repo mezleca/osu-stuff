@@ -122,7 +122,7 @@ export const setup_collector = async (url) => {
             }
         }
         
-        processed.status = Reader.get_beatmap_status_code(processed.status);
+        processed.status = Reader.get_beatmap_status_code(processed.status) || 0;
 
         // delete unused keys
         for (let i = 0; i < KEYS_TO_DELETE.length; i++) {

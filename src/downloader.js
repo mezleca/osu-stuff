@@ -211,7 +211,7 @@ const process_map = async (win, map, index, options) => {
         const map_data = map.id ? { hash: map.md5, beatmapset_id: map.id } : await search_map_id(map.md5);
         
         if (!map_data) {
-            logger.error("map not found", map.md5, map_data);
+            logger.error("map not found", map, map_data);
             update_progress(win, id, index, total, { hash: map.md5, success: false });
             return null;
         }
