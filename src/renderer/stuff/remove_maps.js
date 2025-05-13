@@ -70,8 +70,8 @@ export const delete_beatmaps = async (beatmaps) => {
 
     // create a backup incase the new one is corrupted
     fs.renameSync(old_name, backup_name);
-    await core.reader.write_osu_data(beatmaps, path.resolve(core.config.get("stable_path"), "osu!.db"));
 
+    await core.reader.write_osu_data(beatmaps.filter((b) => b.beatmap_start != undefined), path.resolve(core.config.get("stable_path"), "osu!.db"));
     return beatmaps.length;
 };
 

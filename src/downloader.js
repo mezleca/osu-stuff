@@ -391,7 +391,6 @@ export const init_downloader = (window, ipcMain) => {
             return false;
         }
 
-        logger.debug("DATA", data, "DATA:MAPS", data.maps); 
         download_queue.push({ maps: data.maps, id: data.id, name: data?.name || "download task" });
         
         if (!is_processing) {
