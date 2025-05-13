@@ -232,8 +232,6 @@ export class Reader extends BinaryReader {
             if (this.buffer.byteLength == 0) {
                 return reject(new Error("invalid buffer"));
             }
-
-            console.log(this.buffer);
     
             try {
 

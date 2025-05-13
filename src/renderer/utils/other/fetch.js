@@ -95,9 +95,8 @@ export const fetch_osustats = async (collection_url) => {
         return acc;
     }, []);
 
-    collection_data.name = collection_data.title;
-
-    return { 
+    return {
+        name: collection_data.title,
         maps: missing_beatmaps,
         c_maps: all_hashes,
         collection: collection_data

@@ -208,18 +208,19 @@ const process_map = async (win, map, index, options) => {
 
     try {
 
-        const map_data = map.id ? { hash: map.checksum, beatmapset_id: map.id } : await search_map_id(map.checksum);
+        const map_data = map.id ? { hash: map.md5, beatmapset_id: map.id } : await search_map_id(map.md5);
         
         if (!map_data) {
-            update_progress(win, id, index, total, { hash: map.checksum, success: false });
+            logger.error("map not found", map.md5, map_data);
+            update_progress(win, id, index, total, { hash: map.md5, success: false });
             return null;
         }
 
         const map_path = path.resolve(download_path, `${map_data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
-            logger.debug("ignoring", map.checksum, "(already downloaded)");
-            update_progress(win, id, index, total, { hash: map.checksum, success: true });
+            logger.debug("ignoring", map.md5, "(already downloaded)");
+            update_progress(win, id, index, total, { hash: map.md5, success: true });
             return null;
         }
 
@@ -227,7 +228,7 @@ const process_map = async (win, map, index, options) => {
 
         if (!map_buffer) {
             logger.error("failed to get buffer", map_data);
-            update_progress(win, id, index, total, { hash: map.checksum, success: false });
+            update_progress(win, id, index, total, { hash: map.md5, success: false });
             return null;
         }
 
@@ -236,8 +237,7 @@ const process_map = async (win, map, index, options) => {
         if (saved) {
             downloaded_maps.set(map_data.beatmapset_id, { 
                 ...map_data, 
-                checksum: map.checksum, 
-                md5: map.checksum 
+                md5: map.md5
             });
         }
 
@@ -246,11 +246,11 @@ const process_map = async (win, map, index, options) => {
             return { stop: true };
         }    
 
-        update_progress(win, id, item_index, total, { hash: map.checksum, success: saved });
+        update_progress(win, id, item_index, total, { hash: map.md5, success: saved });
         return map_data;
     } catch (error) {
         logger.error("download failed:", error);
-        update_progress(win, id, index, total, { hash: map.checksum, success: false });
+        update_progress(win, id, index, total, { hash: map.md5, success: false });
         return null;
     }
 };
@@ -288,11 +288,12 @@ const process_queue = async (win) => {
     await parallel_map(maps, (map, index) => process_map(win, map, index + 1, { id, total: maps.length }), concurrency);
     
     if (current_download.id == id) {
-        win.webContents.send("progress-end", { id, name, success: true });
-        
+
         current_download.id = null;
         current_download.name = "";
         current_download.items = [];
+
+        win.webContents.send("progress-end", { id, name, success: true });    
     }
     
     process_queue(win);
@@ -326,8 +327,7 @@ async function download_single_map(hash) {
         save_map_file(map_path, map_buffer);
 
         downloaded_maps.set(map_data.beatmapset_id, { 
-            ...map_data, 
-            checksum: hash, 
+            ...map_data,
             md5: hash 
         });
         
@@ -390,7 +390,8 @@ export const init_downloader = (window, ipcMain) => {
             logger.error("create download data.maps is null", data);
             return false;
         }
-        
+
+        logger.debug("DATA", data, "DATA:MAPS", data.maps); 
         download_queue.push({ maps: data.maps, id: data.id, name: data?.name || "download task" });
         
         if (!is_processing) {

@@ -272,12 +272,12 @@ export const download_from_players = async (options) => {
         const result = beatmaps[0].flatMap((b) => {
             if (b?.beatmap) {
                 return [{ 
-                    checksum: b.beatmap.checksum, 
+                    md5: b.beatmap.checksum, 
                     id: b.beatmap.beatmapset_id 
                 }];
             } else {
                 return b.beatmaps.map((bm) => ({
-                    checksum: bm.checksum,
+                    md5: bm.checksum,
                     id: b.id
                 }));
             }   
@@ -313,11 +313,11 @@ export const download_from_players = async (options) => {
     const missing_maps = [];
     const md5_only = maps.map((m) => { 
         
-        if (!core.reader.osu.beatmaps.get(m.checksum)) {
+        if (!core.reader.osu.beatmaps.get(m.md5)) {
             missing_maps.push(m);
         }
 
-        return m.checksum;
+        return m.md5;
     });
     
     if (method == "add to collections") {

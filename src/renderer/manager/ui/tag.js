@@ -7,11 +7,12 @@ export const create_tag = (options = { id: crypto.randomUUID(), name: "tags", pl
             <div class="tag-input-area">
                 <input type="text" class="tag-input" id="tag-input">
                 ${options.add_button ?
-                    `<button class="tag-add-button" id="tag-add-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                    `<div class="add-container tag-add-button" id="tag-add-button">
+                        <svg id="add-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="16" height="16" stroke="currentColor" fill="none">
+                            <line x1="5" y1="2" x2="5" y2="8" stroke-width="1"/>
+                            <line x1="2" y1="5" x2="8" y2="5" stroke-width="1"/>
                         </svg>
-                    </button>` 
+                    </div>` 
                     : 
                     ""
                 }        

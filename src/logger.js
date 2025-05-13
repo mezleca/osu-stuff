@@ -20,7 +20,7 @@ export const create_logger = (config = { name: "default", show_date: true, save_
 
         if (Array.isArray(value)) {
             return value.map((item) => format_value(item)).join(", ");
-        } else if (typeof value === "object" && value !== null) {
+        } else if (typeof value == "object" && value != null) {
             return JSON.stringify(value, null, 2);
         }
 

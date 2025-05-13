@@ -14,26 +14,46 @@ const RENAME_MAP = {
     creator: "mapper"
 };
 
+const KEYS_TO_DELETE = Object.keys(RENAME_MAP);
+
 const get_tournament_maps = async(id) => {
 
     const response = await fetch(`https://osucollector.com/api/tournaments/${id}`);
     const data = await response.json();
-
-    const maps = [];
+    
+    const beatmaps = [], beatmapsets = [];
     const collection = {};
     const rounds = data.rounds;
 
+    // get each round (nm, hr, dt, fm)
     for (let i = 0; i < rounds.length; i++) {
+
         const round = rounds[i].mods;
+    
+        // loop through each round
         for (let k = 0; k < round.length; k++) {
-            const mods = round[k].maps;
-            maps.push(...mods);
+
+            // get all beatmaps from each round (and separate then into beatmap / beatmapset)
+            round[k].maps.map((beatmap) => {
+
+                const beatmapset = beatmap.beatmapset;
+                                
+                // remove beatmapset from the beatmap object (to make it separate)
+                delete beatmap.beatmapset;
+
+                // also add beatmapset_id to each individual diff so we can check it later
+                beatmap.beatmapset_id = beatmapset.id;
+
+                beatmaps.push(beatmap);
+                beatmapsets.push(beatmapset);
+            });
         }
     }
 
     collection.name = data.name;
     collection.status = response.status;
-    collection.beatmapsets = maps;
+    collection.beatmaps = beatmaps;
+    collection.beatmapsets = beatmapsets;
 
     return collection;
 };
@@ -74,19 +94,10 @@ export const setup_collector = async (url) => {
         create_alert("failed to get collection", { type: "error" });
         return null;
     }
-    
-    let new_maps = null;
-    const collection_hashes = [...new Set(collection_data.beatmaps.map(b => b.checksum))];
-
-    if (is_tournament) {
-        new_maps = collection_data.beatmapsets.map((c) => { return { id: c.id, checksum: c.checksum } })
-            .filter((c) => !core.reader.osu.beatmaps.get(c.checksum));
-    } else {
-        new_maps = collection_data.beatmaps.filter((c) => !core.reader.osu.beatmaps.get(c.checksum));
-    }
 
     const unique = new Map();
-    const KEYS_TO_DELETE = Object.keys(RENAME_MAP);
+    const new_maps = collection_data.beatmaps.filter((c) => !core.reader.osu.beatmaps.get(c.checksum));
+    const collection_hashes = [...new Set(collection_data.beatmaps.map(b => b.checksum))];
 
     for (const b of new_maps) {
 
@@ -94,19 +105,15 @@ export const setup_collector = async (url) => {
             continue;
         }
         
-        const processed = {...b};
-
-        if (!is_tournament) {
-
-            const extra = collection_data.beatmapsets.find((set) => set.id == b.beatmapset_id) || {};
+        const processed = { ...b };
+        const extra = collection_data.beatmapsets.find((set) => set.id == b.beatmapset_id) || {};
+    
+        extra.beatmapset_id = extra.id;
         
-            extra.beatmapset_id = extra.id;
-            
-            delete extra.checksum;
-            delete extra.id;
-            
-            Object.assign(processed, extra);
-        }
+        delete extra.checksum;
+        delete extra.id;
+        
+        Object.assign(processed, extra);
         
         // rename other keys
         for (const [old_key, new_key] of Object.entries(RENAME_MAP)) {
@@ -124,7 +131,7 @@ export const setup_collector = async (url) => {
 
         unique.set(processed.difficulty_id, processed);
     }
-
+    
     return {
         name: collection_name,
         maps: Array.from(unique.values()),

@@ -959,7 +959,7 @@ button {
     transition: var(--transition-delay) color;
 }
 
-.preview-button:hover, .remove-btn:hover, .download-button:hover, #remove_mirror:hover, #more-options:hover, .alert-close:hover {
+.preview-button:hover, .remove-btn:hover, .download-button:hover, #remove_mirror:hover, #add-btn:hover, .alert-close:hover {
     svg {
         color: var(--accent-color);
         transition: var(--transition-delay) color;
@@ -1220,7 +1220,7 @@ button {
     border: 1px solid var(--accent-color);
 }
 
-.more_options {
+.add-container {
     background-color: #f44336;
     border: none;
     color: #fff;
@@ -1232,11 +1232,11 @@ button {
     transition: background-color var(--transition-delay);
 }
 
-.more_options > svg {
+.add-container > svg {
     color: white;
 }
 
-.more_options:hover {
+.add-container:hover {
     background-color: #f44336c6;
 }
 
@@ -1689,16 +1689,6 @@ input[type="range"]::-moz-range-track {
 
 .tag-input::placeholder {
     color: #aaaaaa;
-}
-
-.tag-add-button {
-    margin: 0;
-    background: var(--accent-color3);
-    transition: var(--transition-delay) background;
-}
-
-.tag-add-button:hover {
-    background: var(--button-hover-color);
 }
 
 .tag-list {
