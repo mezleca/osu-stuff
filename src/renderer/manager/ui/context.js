@@ -375,7 +375,7 @@ var ContextMenu = function() {
         if (config === void 0) config = {};
         // NEW: target can also be a element (to add listener to non-created elements)
         var t = typeof target == "string" ? document.querySelector(target) : target;
-        if (this.cache[target] !== void 0) {
+        if (this.cache[typeof target == "string" ? target : target.id] !== void 0) {
             //console.error("target element ".concat(target, " already has a context menu assigned. Use ContextMenu.update() intstead."));
             this.update(target, ctxMenu, config);
             return;
@@ -387,7 +387,7 @@ var ContextMenu = function() {
         var handler = function(e) {
             _this.show(ctxMenu, e, config);
         };
-        this.cache[target] = {
+        this.cache[typeof target == "string" ? target : target.id] = {
             ctxMenu: ctxMenu,
             handler: handler,
             config: config
@@ -398,22 +398,22 @@ var ContextMenu = function() {
 
     ContextMenu.prototype.update = function(target, ctxMenu, _config) {
         if (_config === void 0) _config = {};
-        var o = this.cache[target];
+        var o = this.cache[typeof target == "string" ? target : target.id];
         var config = Object.assign({}, o === null || o === void 0 ? void 0 : o.config, _config);
         // NEW: target can also be a element (to add listener to non-created elements)
         var t = typeof target == "string" ? document.querySelector(target) : target;
         o && (t === null || t === void 0 ? void 0 : t.removeEventListener("contextmenu", o.handler));
-        delete this.cache[target];
+        delete this.cache[typeof target == "string" ? target : target.id];
         this.attach(target, ctxMenu || (o === null || o === void 0 ? void 0 : o.ctxMenu) || [], config);
     };
 
     ContextMenu.prototype.delete = function(target) {
-        var o = this.cache[target];
+        var o = this.cache[typeof target == "string" ? target : target.id];
         if (!o) {
             // return console.error("no context menu for target element ".concat(target, " found"));
             return;      
         }
-        delete this.cache[target];
+        delete this.cache[typeof target == "string" ? target : target.id];
         var t = document.querySelector(target);
         if (!t) return console.error("target element ".concat(target, " does not exist (anymore)"));
         t.removeEventListener("contextmenu", o.handler);

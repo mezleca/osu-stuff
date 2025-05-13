@@ -56,10 +56,10 @@ export const search_filter = (beatmap) => {
     }
 
     // filter by basic keywords
-    const artist = beatmap?.artist_name || "Unknown";
-    const title = beatmap?.song_title || "Unknown";
-    const difficulty = beatmap?.difficulty || "Unknown";
-    const creator = beatmap?.mapper || "Unknown";
+    const artist = beatmap?.artist || "unknown";
+    const title = beatmap?.title || "unknown";
+    const difficulty = beatmap?.difficulty || "unknown";
+    const creator = beatmap?.mapper || "unknown";
     const tags = beatmap?.tags || "";
     
     for (let i = 0; i < core.search_filters.length; i++) {

@@ -5,7 +5,7 @@
 - removed junk from beatmap-card render system (still ass tho)
 - added option to export collections as 
     - osu! stable collection (.db files)
-    - osdb collections (minimal, only hashes and beatmap_id for some maps)
+    - osdb collections (minimal, only hashes and beatmapset_id for some maps)
 - added option to import collection from files (only stable collection for now)
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v1.6.3...v1.6.4

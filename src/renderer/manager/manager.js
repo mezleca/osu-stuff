@@ -262,7 +262,15 @@ const add_new_collection = async () => {
         return;
     }
 
-    const { c_maps: maps, maps: yep_maps, collection } = info;
+    const { name: c_name, c_maps: maps, maps: yep_maps } = info;
+
+    // temp add the beatmaps to the osu obj
+    for (let i = 0; i < yep_maps.length; i++) {
+        if (yep_maps[i]?.md5) {
+            core.reader.osu.beatmaps.set(yep_maps[i].md5, yep_maps[i]);
+        }
+    }
+
     const { name } = get_selected_collection();
 
     if (name) {
@@ -283,25 +291,25 @@ const add_new_collection = async () => {
         } 
         else {
                     
-            if (core.reader.collections.beatmaps.has(collection.name)) {
+            if (core.reader.collections.beatmaps.has(c_name)) {
                 create_alert("you already have a collection with this name");
                 return;
             }
 
-            await add_collection_manager(maps, collection.name);
+            await add_collection_manager(maps, c_name);
         }
     } 
     else {
         
-        if (core.reader.collections.beatmaps.has(collection.name)) {
+        if (core.reader.collections.beatmaps.has(c_name)) {
             create_alert("you already have a collection with this name");
             return;
         }
 
-        await add_collection_manager(maps, collection.name);
+        await add_collection_manager(maps, c_name);
     }
 
-    const download = await quick_confirm(`download maps from ${collection.name}?`);
+    const download = await quick_confirm(`download maps from ${c_name}?`);
 
     if (!download) {
         return;
@@ -313,7 +321,7 @@ const add_new_collection = async () => {
     }
 
     // add to downloader queue
-    downloader.create_download({ id: crypto.randomUUID(), name: collection.name, maps: yep_maps });
+    downloader.create_download({ id: crypto.randomUUID(), name: c_name, maps: yep_maps });
 };
 
 const get_missing_beatmaps = async () => {

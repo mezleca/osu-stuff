@@ -301,7 +301,7 @@ const process_queue = async (win) => {
 async function download_single_map(hash) {
 
     try {
-
+        
         const map_data = await search_map_id(hash);
         
         if (!map_data) {

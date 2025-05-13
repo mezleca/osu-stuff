@@ -559,10 +559,10 @@ export class Reader extends BinaryReader {
                 data.beatmap_start = this.offset;
 
                 data.entry = version < 20191106 ? this.int() : 0;
-                data.artist_name = this.string();
-                data.artist_name_unicode = this.string();
-                data.song_title = this.string();
-                data.song_title_unicode = this.string();
+                data.artist = this.string();
+                data.artist_unicode = this.string();
+                data.title = this.string();
+                data.title_unicode = this.string();
                 data.mapper = this.string();
                 data.difficulty = this.string();
                 data.audio_file_name = this.string();
@@ -636,7 +636,7 @@ export class Reader extends BinaryReader {
                 }
 
                 data.difficulty_id = this.int();
-                data.beatmap_id = this.int();
+                data.beatmapset_id = this.int();
                 data.thread_id = this.int();
                 data.grade_standard = this.byte();
                 data.grade_taiko = this.byte();
@@ -666,7 +666,9 @@ export class Reader extends BinaryReader {
 
                 data.last_modified = this.int();	
                 data.mania_scroll_speed = this.byte();
-                data.beatmap_end = this.offset;   
+                data.beatmap_end = this.offset;  
+                
+                data.downloaded = true;
 
                 beatmaps.set(data.md5, data);         
             }
@@ -872,12 +874,12 @@ export class Reader extends BinaryReader {
     */
     async get_beatmap_image(beatmap) {
 
-        if (!beatmap?.beatmap_id) {
+        if (!beatmap?.beatmapset_id) {
             return null;
         }
         
-        if (this.image_cache.has(beatmap.beatmap_id)) {
-            return this.image_cache.get(beatmap.beatmap_id);
+        if (this.image_cache.has(beatmap.beatmapset_id)) {
+            return this.image_cache.get(beatmap.beatmapset_id);
         }
         
         try {
@@ -923,7 +925,7 @@ export class Reader extends BinaryReader {
             }
             
             if (result) {
-                this.image_cache.set(beatmap.beatmap_id, result);
+                this.image_cache.set(beatmap.beatmapset_id, result);
             }
             
             return result;
@@ -984,7 +986,7 @@ export class Reader extends BinaryReader {
             return false;
         }
 
-        fs.save_exported(`${beatmap.beatmap_id}.osz`, buffer);
+        fs.save_exported(`${beatmap.beatmapset_id}.osz`, buffer);
         return true;
     }
 
@@ -1004,13 +1006,13 @@ export class Reader extends BinaryReader {
         const lazer_mode = is_lazer_mode();
 
         if (lazer_mode) {
-            return lazer_status[status];
+            const key = Object.keys(lazer_status).find(k => k.toLowerCase() == status.toLowerCase());
+            return lazer_status[key];
         }
 
         return beatmap_status[status];
     };
 
-    // @TODO: i desperately need to rewrite this shit Lol
     static get_status_object = () => {
         const lazer_mode = is_lazer_mode();
         return lazer_mode ? lazer_status : beatmap_status;

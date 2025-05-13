@@ -78,6 +78,6 @@ npm start
 ```
 
 ## credits
-- [CollectionManager](https://github.com/Piotrekol/CollectionManager) - stole some functions logic
+- [CollectionManager](https://github.com/Piotrekol/CollectionManager) - osdb
 - [ctxmenu](https://github.com/nkappler/ctxmenu) - custom context menu
 - [osu-cad](https://github.com/minetoblend/osu-cad) - used for beatmap preview

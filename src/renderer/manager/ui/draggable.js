@@ -1,5 +1,5 @@
 
-import { collection_list, core } from "../manager.js";
+import { core } from "../manager.js";
 import { cursor, DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
@@ -348,13 +348,13 @@ export const export_all_beatmaps = async (id) => {
 
         const beatmap = core.reader.osu.beatmaps.get(hash);
 
-        if (!beatmap || exported.has(beatmap.beatmap_id)) {
+        if (!beatmap || exported.has(beatmap.beatmapset_id)) {
             continue;
         }
 
         await core.reader.export_beatmap(beatmap);
-        core.progress.update(`exported ${beatmap.beatmap_id} to`, { type: "folder", url: core.config.get("export_path") });
-        exported.add(beatmap.beatmap_id);
+        core.progress.update(`exported ${beatmap.beatmapset_id} to`, { type: "folder", url: core.config.get("export_path") });
+        exported.add(beatmap.beatmapset_id);
     }
 
     create_alert(`exported all ${exported.size} beatmaps successfully!`);
@@ -419,7 +419,7 @@ export const export_collection = async (id) => {
                     const beatmap = core.reader.osu.beatmaps.get(md5);
                     return { 
                         md5: md5, 
-                        map_id: beatmap?.beatmap_id || 0, // maybe its fine to return 0?
+                        map_id: beatmap?.beatmapset_id || 0, // maybe its fine to return 0?
                         map_set_id: beatmap?.beatmapset_id || 0, // maybe its fIne to return 0?
                         user_comment: "",
                     }
@@ -543,7 +543,7 @@ export const setup_draggables = () => {
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
 
-                        const { id: selected_id, name } = get_selected_collection();
+                        const { id: selected_id } = get_selected_collection();
 
                         // save the offset of the previous selected collection
                         if (selected_id && collection_container.children.length > 16) {

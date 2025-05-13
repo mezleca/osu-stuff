@@ -5,7 +5,7 @@ export const get_beatmap_sr = (beatmap) => {
     try {
 
         const nomod = 0;
-        const beatmap_sr = beatmap?.sr;
+        const beatmap_sr = beatmap?.sr || beatmap?.star;
 
         if (typeof beatmap_sr == "number") {
             return beatmap_sr.toFixed(2);

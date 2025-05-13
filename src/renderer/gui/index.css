@@ -812,11 +812,15 @@ button {
 }
 
 .btn-delete {
-    background-color: #F44336;
+    background-color: var(--accent-color3);
 }
 
 .btn-delete:hover {
     background-color: #D32F2F;
+}
+
+.not-downloaded {
+    border: 2px solid var(--accent-color3) !important;
 }
 
 .beatmap-card {
@@ -855,13 +859,12 @@ button {
 }
 
 .beatmap-card:hover {
-
     .bg-image { 
         filter: brightness(50%);
         transition: calc(var(--transition-delay) / 2) border;
     }
 
-    border: 2px solid var(--accent-color);
+    border: 2px solid var(--accent-color) !important;
     transition: calc(var(--transition-delay) / 2) border;
 }
 

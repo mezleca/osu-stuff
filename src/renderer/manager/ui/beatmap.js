@@ -7,6 +7,7 @@ import { get_beatmap_sr } from "../tools/beatmaps.js";
 import { get_selected_collection, remove_beatmap, show_update_button } from "../manager.js";
 import { draggable_items_map, update_collection_count } from "./draggable.js";
 import { ctxmenu } from "./context.js";
+import { create_alert } from "../../popup/popup.js";
 
 const audio_core = { audio: null, id: 0, target: null };
 
@@ -46,12 +47,12 @@ const delete_set = (md5) => {
         return;
     }
 
-    const beatmap_id = updated_beatmap.beatmap_id;
+    const beatmapset_id = updated_beatmap.beatmapset_id;
     const collection = core.reader.collections.beatmaps.get(name);
 
-    // remove diffs that have the save beatmap_id
+    // remove diffs that have the save beatmapset_id
     for (const [k, v] of core.reader.osu.beatmaps) {
-        if (v.beatmap_id == beatmap_id && collection.maps.has(v.md5)) {
+        if (v.beatmapset_id == beatmapset_id && collection.maps.has(v.md5)) {
             remove_beatmap(v.md5, false);
         }
     }
@@ -68,8 +69,8 @@ const delete_set = (md5) => {
 const set_beatmap_image = async (bmap, element) => {
 
     // fething from web
-    if (core.config.get("get_images_from_web")) {
-        element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
+    if (core.config.get("get_images_from_web") || !bmap?.downloaded) {
+        element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmapset_id}/covers/cover.jpg`;
         return;
     }
 
@@ -77,7 +78,7 @@ const set_beatmap_image = async (bmap, element) => {
     core.reader.get_beatmap_image(bmap).then((src) => {
 
         if (!src) {
-            element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmap_id}/covers/cover.jpg`;
+            element.src = `https://assets.ppy.sh/beatmaps/${bmap.beatmapset_id}/covers/cover.jpg`;
             return;
         }
 
@@ -150,7 +151,7 @@ const create_extra_information = (container, beatmap) => {
 
     load_preview.addEventListener("click", (e) => {
 
-        const preview_url = `https://viewer.osucad.com/b/${beatmap.beatmap_id}/${beatmap.difficulty_id}`;
+        const preview_url = `https://viewer.osucad.com/b/${beatmap.beatmapset_id}/${beatmap.difficulty_id}`;
         const iframe = create_element(`
             <iframe src="${preview_url}" allowfullscreen autoplay width="300" height="300">
         `);
@@ -182,7 +183,7 @@ const create_extra_information = (container, beatmap) => {
         extra.style.border = `1px solid ${color}`;
     }
 
-    extra_info_title.textContent = `${beatmap.song_title} [${beatmap.difficulty}]`;
+    extra_info_title.textContent = `${beatmap.title} [${beatmap.difficulty}]`;
 
     const close_container = () => {
         main_div.remove();
@@ -202,12 +203,12 @@ const create_extra_information = (container, beatmap) => {
 export const create_beatmap_card = (md5) => {
 
     // get beatmap info from osu db file
-    let beatmap = core.reader.osu.beatmaps.get(md5) || {};
+    const beatmap = core.reader.osu.beatmaps.get(md5) || {};
+    const has_beatmap = !!beatmap?.artist;
 
-    const has_beatmap = Boolean(beatmap?.artist_name);
     const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`);
     const beatmap_element = create_element(`
-        <div class="beatmap-card">
+        <div class="beatmap-card not-downloaded">
             <img class="bg-image">
             <div class="beatmap-card-data">
                 <div class="beatmap-metadata">
@@ -225,9 +226,8 @@ export const create_beatmap_card = (md5) => {
                         </svg>
                     </button>      
                     <button class="download-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16">
-                            <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293z"/>
-                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-arrow-down-fill" viewBox="0 0 16 16">
+                            <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1m-1 4v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 11.293V7.5a.5.5 0 0 1 1 0"/>
                         </svg>
                     </button>
                     <button class="remove-btn">
@@ -250,7 +250,7 @@ export const create_beatmap_card = (md5) => {
     const preview_button = beatmap_element.querySelector(".preview-button");
     const star_rating = beatmap_element.querySelector(".star_fucking_rate");
 
-    const status = Reader.get_beatmap_status(beatmap.status) || "Unknown";
+    const status = Reader.get_beatmap_status(beatmap.status) || "unknown";
     const beatmap_sr = get_beatmap_sr(beatmap);
 
     beatmap_container.id = `bn_${md5}`;
@@ -275,10 +275,6 @@ export const create_beatmap_card = (md5) => {
         }
     };
 
-    const show_extra = (container, beatmap) => {
-        return create_extra_information(container, beatmap);
-    };
-
     set_beatmap_status(status);
 
     // to make sure
@@ -286,17 +282,17 @@ export const create_beatmap_card = (md5) => {
         update_sr(beatmap_sr);
     }
 
-    title.textContent = beatmap?.song_title || "Unknown";
-    subtitle.textContent = beatmap?.difficulty || "Unknown";
+    title.textContent = beatmap?.title || "unknown";
+    subtitle.textContent = beatmap?.difficulty || "unknown";
 
     // show more information on click
     beatmap_element.addEventListener("click", () => {
 
-        if (!beatmap?.artist_name) {
+        if (!beatmap?.artist) {
             return;
         }
 
-        show_extra(beatmap_container, beatmap);
+        create_extra_information(beatmap_container, beatmap);
     });
 
     // open in browser
@@ -311,17 +307,79 @@ export const create_beatmap_card = (md5) => {
         open_in_browser(beatmap);
     });
 
+    const set_as_downloaded = () => {
+        download_button?.remove();
+        beatmap_element.classList.remove("not-downloaded");
+    };
+
+    // remove download icon if we already have the map
+    if (beatmap?.downloaded) {
+        set_as_downloaded();
+    } else { 
+        download_button.addEventListener("click", async (e) => {
+
+            e.stopPropagation();
+            core.progress.update("searching beatmap...");
+
+            try {
+
+                downloader.single(md5).then((info) => {
+
+                    if (!info.success) {
+                        create_alert("failed to find beatmap :c", { type: "alert" });
+                        return;
+                    }
+
+                    const data = info.data;
+
+                    Object.assign(beatmap, {
+                        artist: data.beatmapset.artist,
+                        title: data.beatmapset.title,
+                        difficulty: data.version,
+                        md5: data.checksum,
+                        mapper: data.beatmapset.creator,
+                        difficulty_id: data.beatmapset_id,
+                        beatmapset_id: data.beatmapset.id,
+                        url: data.url,
+                        sr: data.difficulty_rating,
+                        bpm: data.bpm,
+                        tags: "",
+                        od: data.accuracy,
+                        ar: data.ar,
+                        cs: data.cs,
+                        hp: data.drain,
+                        downloaded: true,
+                        status: Reader.get_beatmap_status_code(data.status) || 0
+                    });
+    
+                    set_beatmap_status(data.status);
+                    update_sr(data.difficulty_rating);      
+    
+                    core.reader.osu.beatmaps.set(data.checksum, beatmap);
+                    title.textContent = beatmap.title || "unknown";
+                    subtitle.textContent = beatmap.difficulty || "unknown";
+                    beatmap_bg.src = `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
+
+                    set_as_downloaded();
+                });
+
+            } catch (error) {
+                console.log(error);
+                core.progress.update("failed to download beatmap...");
+            }
+        });
+    }
+
     if (has_beatmap) {
 
-        download_button.remove();
         set_beatmap_image(beatmap, beatmap_bg);
 
         const export_beatmap = () => {
             core.reader.export_beatmap(beatmap).then((success) => {
                 if (success) {
-                    core.progress.update(`exported ${beatmap.beatmap_id} to`, { type: "folder", url: core.config.get("export_path") });
+                    core.progress.update(`exported ${beatmap.beatmapset_id} to`, { type: "folder", url: core.config.get("export_path") });
                 } else {
-                    core.progress.update(`failed to export ${beatmap.beatmap_id}`);
+                    core.progress.update(`failed to export ${beatmap.beatmapset_id}`);
                 }
             });         
         };
@@ -332,25 +390,24 @@ export const create_beatmap_card = (md5) => {
             .map((k) => { return { text: k, action: (el) => { move_to(el.target, md5) } }});
 
         // setup beatmap context menu
-        // @NOTE: theres a chance that the context menu submenu will be bigger than the screen
-        // normal human beings will not have this issue, but if you have a lot of collections it might be a problem
         ctxmenu.attach(beatmap_container, [
             { text: "open on browser", action: () => open_in_browser(beatmap) },
             { isDivider: true },
             { text: "export beatmap", action: () => export_beatmap() },
+            // @NOTE: theres a chance that the context menu submenu will be bigger than the screen
+            // normal human beings will not have this issue, but if you have a lot of collections it might be a problem
             { text: "move to", subMenu: collection_keys },
             { text: "remove beatmap", action: () => remove_beatmap(md5, true) },
             { text: "remove beatmapset", action: () => delete_set(md5) }
         ]);
 
         const set_play = (target) => {
-
             target.innerHTML = `
-            <svg viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                <rect x="15" y="0" width="25" height="100"/>
-                <rect x="65" y="0" width="25" height="100"/>
-            </svg>
-        `;
+                <svg viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                    <rect x="15" y="0" width="25" height="100"/>
+                    <rect x="65" y="0" width="25" height="100"/>
+                </svg>
+            `;
         };
 
         const set_pause = (target) => {
@@ -376,7 +433,7 @@ export const create_beatmap_card = (md5) => {
                 audio_core.audio.currentTime = 0;
             };
 
-            if (audio_core.id == beatmap.beatmap_id) {
+            if (audio_core.id == beatmap.beatmapset_id) {
                 if (audio_core.audio.paused) {            
                     audio_core.target = preview_button;    
                     return play();
@@ -390,7 +447,7 @@ export const create_beatmap_card = (md5) => {
 
             try {
 
-                const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmap_id}.mp3`, {
+                const preview_data = await fetch(`https://b.ppy.sh/preview/${beatmap.beatmapset_id}.mp3`, {
                     headers: {
                         "Accept": "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
                         "Sec-GPC": "1",
@@ -402,7 +459,7 @@ export const create_beatmap_card = (md5) => {
 
                 audio_core.audio = new Audio(window.URL.createObjectURL(audio_source));
                 audio_core.audio.volume = 0.5;
-                audio_core.id = beatmap.beatmap_id;
+                audio_core.id = beatmap.beatmapset_id;
                 audio_core.target = preview_button;
                 audio_core.audio.addEventListener("ended", stop);
                 
@@ -413,61 +470,8 @@ export const create_beatmap_card = (md5) => {
         });
 
     } else {
-
         preview_button.remove();
-        beatmap_bg.src = placeholder_image;
-
-        download_button.addEventListener("click", async (e) => {
-
-            e.stopPropagation();
-            core.progress.update("searching beatmap...");
-
-            try {
-
-                downloader.single(md5).then((info) => {
-
-                    if (!info.success) {
-                        create_alert("failed to find beatmap :c", { type: "alert" });
-                        return;
-                    }
-
-                    const data = info.data;
-
-                    beatmap = Object.assign(beatmap, {
-                        artist_name: data.beatmapset.artist,
-                        song_title: data.beatmapset.title,
-                        difficulty: data.version,
-                        md5: data.checksum,
-                        mapper: data.beatmapset.creator,
-                        difficulty_id: data.beatmapset_id,
-                        beatmap_id: data.beatmapset.id,
-                        url: data.url,
-                        sr: data.difficulty_rating,
-                        bpm: data.bpm,
-                        tags: "",
-                        od: data.accuracy,
-                        ar: data.ar,
-                        cs: data.cs,
-                        hp: data.drain, 
-                        status: Reader.get_beatmap_status_code(data.status) || 0
-                    });
-
-                    const image_url = `https://assets.ppy.sh/beatmaps/${beatmap.beatmap_id}/covers/cover.jpg`;
-    
-                    set_beatmap_status(data.status);
-                    update_sr(data.difficulty_rating);      
-    
-                    core.reader.osu.beatmaps.set(data.checksum, beatmap);
-                    title.textContent = beatmap.song_title || "Unknown";
-                    subtitle.textContent = beatmap.difficulty || "Unknown";
-                    beatmap_bg.src = image_url;
-                });
-
-            } catch (error) {
-                console.log(error);
-                core.progress.update("failed to download beatmap...");
-            }
-        });
+        beatmap_bg.src = placeholder_image; 
     }
 
     remove_button.addEventListener("click", (e) => {
