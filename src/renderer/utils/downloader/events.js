@@ -81,7 +81,7 @@ const on_progress_update = (data) => {
     const progress = ` (${data.current} / ${data.length})`;
     percentage_text.textContent = value + "%";
     progress_bar.style.width = `${value}%`;
-    status.textContent = value >= 90 ? "almost done..." : "downloading..." + progress;
+    status.textContent = (value >= 90 ? "almost done..." : "downloading...") + progress;
 };
 
 const on_progress_end = (data) => {

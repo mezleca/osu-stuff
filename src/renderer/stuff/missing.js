@@ -1,79 +1,96 @@
 import { core } from "../manager/manager.js";
-import { message_types, create_alert, create_custom_popup } from "../popup/popup.js";
+import { create_alert, create_custom_popup, message_types } from "../popup/popup.js";
 import { downloader } from "../utils/downloader/client.js";
 
-// @TODO: this will look every single beatmap hash
-// however some hashes might be from the same diff
-// i need to make something on the downloader to check if the hash list contains the hash of the downloader beatmap, if so: remove it since its alredy included 
-export const missing_download = async () => {
+export const get_missing_beatmaps = (id) => {
 
-    try {
+    const collection = core.reader.collections.beatmaps.get(id);
 
-        let missing_maps = [];
+    if (!collection) {
+        create_alert("failed to get collection", id);
+        return [];
+    }
 
-        for (const [k, v] of core.reader.collections.beatmaps) {
-            for (const m of v.maps) {
-                if (m && !core.reader.osu.beatmaps.get(m)) {
-                    missing_maps.push({ collection_name: k, md5: m });
+    const beatmaps = [];
+
+    // check if we have any matching hash on our osu db file
+    for (const m of collection.maps) {
+        if (m && !core.reader.osu.beatmaps.get(m)) {
+            beatmaps.push({ collection_name: id, md5: m });
+        }
+    }
+
+    return beatmaps;
+};
+
+export const download_missing_beatmaps = (id, beatmaps) => {
+
+    if (!core.login?.access_token) {
+        create_alert("no osu_id / secret configured :c", { type: "error" });
+        return;
+    }
+
+    // add to downloader queue
+    downloader.create_download({ id: crypto.randomUUID(), name: id, maps: beatmaps });
+};
+
+// function to use on get missing beatmaps
+export const show_missing_beatmaps = async () => {
+
+    const collections = new Map();
+
+    for (const [k, _] of core.reader.collections.beatmaps) {
+
+        const beatmaps = get_missing_beatmaps(k);
+
+        if (beatmaps.length == 0) {
+            continue;
+        }
+
+        collections.set(k, beatmaps.map((b) => b.md5));
+    }
+
+    const selected = await create_custom_popup({
+        type: message_types.CUSTOM_MENU,
+        title: "collections to download",
+        elements: [
+            { 
+                key: "collections",
+                element: { 
+                    cards: Array.from(collections).map(([k, v]) => {
+                        return {
+                            selectable: true,
+                            name: k,
+                            count: v.length
+                        }
+                    })
                 }
             }
-        }
-        
-        create_alert(`found ${missing_maps.length} missing maps`);
+        ]
+    });
 
-        // @TODO: use cards type so the user can select multiple collections
-        const confirm = await create_custom_popup({
-            type: message_types.MENU,
-            title: "download from a specific collection?",
-            items: ["yes", "no"]
-        });
-
-        if (confirm == null) {
-            return;
-        }
-
-        if (confirm == "yes") {
-
-            const collections = [...new Set(missing_maps.map(a => a.collection_name))];
-            const obj = [];
-
-            for (let i = 0; i < collections.length; i++) {
-                if (collections[i]) {
-                    obj.push(collections[i]);
-                }
-            }
-
-            const collection = await create_custom_popup({
-                type: message_types.CUSTOM_MENU,
-                title: "select one",
-                elements: [{
-                    key: "name",
-                    element: { list: [...obj] }
-                }]
-            });
-
-            const name = collection.name;
-
-            if (!name) {
-                return;
-            }
-
-            missing_maps = missing_maps.filter((c) => c.collection_name == name);
-
-            if (!missing_maps) {
-                return;
-            }
-        }
-
-        if (!core.login?.access_token) {
-            create_alert("no osu_id / secret configured :c", { type: "error" });
-            return;
-        }
-
-        // add to downloader queue
-        downloader.create_download({ id: crypto.randomUUID(), name: "missing beatmaps", maps: missing_maps });
+    if (selected == null || selected?.collections.length == 0) {
+        return;
     }
-    catch(err) {
-        console.log(`[missing beatmaps] error: ${err}`);
+
+    // get only the selected collections
+    const selected_collections = Array.from(collections).filter((c) => selected.collections.includes(c[0]));
+    const beatmaps = [], added = [];
+
+    // create a new array of unique hashes to download
+    for (const [_, hashes] of selected_collections) {
+
+        for (const md5 of hashes) {
+            
+            if (added.includes(md5)) {
+                continue;
+            }
+
+            beatmaps.push({ md5: md5 });
+            added.push(md5);
+        }
     }
+
+    // add a new downloaded to queue
+    downloader.create_download({ id: crypto.randomUUID(), name: "missing beatmaps", maps: beatmaps});
 };

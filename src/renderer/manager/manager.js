@@ -5,7 +5,7 @@ import { create_alert, create_custom_popup, message_types, quick_confirm } from 
 import { downloader } from "../utils/downloader/client.js";
 import { delete_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
-import { missing_download } from "../stuff/missing.js";
+import { show_missing_beatmaps } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
 import { debounce } from "../utils/global.js";
 import { filter_beatmap } from "./tools/filter.js";
@@ -322,16 +322,6 @@ const add_new_collection = async () => {
     downloader.create_download({ id: crypto.randomUUID(), name: c_name, maps: yep_maps });
 };
 
-const get_missing_beatmaps = async () => {
-
-    if (core.login == null) {
-        create_alert("did you forgor to setup your config?");
-        return;
-    }
-
-    missing_download();
-};
-
 const delete_beatmaps_manager = async () => {
     
     const { id, name } = get_selected_collection();
@@ -457,8 +447,6 @@ const create_new_collection = async () => {
                 } 
             }
 
-            console.log(collections);
-
             const select = await create_custom_popup({
                 type: message_types.CUSTOM_MENU,
                 title: "collections to import",
@@ -515,13 +503,13 @@ export const hide_list = () => {
 header_text.addEventListener("click", hide_list);
 
 // setup more options context menu
-const more_options = document.querySelector(".more_options");
+const more_options = document.querySelector(".more_options"); 
 
 ctxmenu.attach(more_options, [
     { text: "more options" },
     { isDivider: true },
     { text: "create new collection", action: () => create_new_collection() },
-    { text: "get missing beatmaps", action: () => get_missing_beatmaps() },
+    { text: "get missing beatmaps", action: () => show_missing_beatmaps() },
     { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
 ], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom - 5}px` }});
 
