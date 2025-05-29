@@ -1,5 +1,5 @@
 import { core, update_beatmaps } from "../manager.js";
-import { create_element, placeholder_image, star_ranges } from "../../utils/global.js";
+import { BEATMAP_CARD_TEMPLATE, create_element, placeholder_image, star_ranges } from "../../utils/global.js";
 import { downloader } from "../../utils/downloader/client.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { open_in_browser, open_url } from "../../utils/other/process.js";
@@ -100,7 +100,8 @@ const create_extra_information = (container, beatmap) => {
     }
 
     // popup kind div that will close when clicking on it (outside)
-    const main_div = create_element(`<div class="popup-container"></div>`);
+    const frag = document.createDocumentFragment();
+    const popup_container = create_element(`<div class="popup-container"></div>`);
     
     const extra = create_element(`
         <div class="extra-info-container">
@@ -185,19 +186,15 @@ const create_extra_information = (container, beatmap) => {
 
     extra_info_title.textContent = `${beatmap.title} [${beatmap.difficulty}]`;
 
-    const close_container = () => {
-        main_div.remove();
-    };
-
-    main_div.addEventListener("click", (e) => {
-        if (e.target == main_div) {
-            close_container();
+    popup_container.addEventListener("click", (e) => {
+        if (e.target == popup_container) {
+            popup_container.remove();
         }
     });
 
-    main_div.appendChild(extra);
-    document.body.appendChild(main_div);
-    return extra;
+    popup_container.appendChild(extra);
+    frag.appendChild(popup_container);
+    document.body.appendChild(frag);
 };
 
 export const create_beatmap_card = (md5) => {
@@ -207,48 +204,21 @@ export const create_beatmap_card = (md5) => {
     const has_beatmap = !!beatmap?.artist;
 
     const beatmap_container = create_element(`<div class="beatmap-card-container"></div>`);
-    const beatmap_element = create_element(`
-        <div class="beatmap-card not-downloaded">
-            <img class="bg-image">
-            <div class="beatmap-card-data">
-                <div class="beatmap-metadata">
-                    <div class="title">placeholder</div>
-                    <div class="subtitle">placeholder</div>
-                    <div class="beatmap-card-status">
-                        <div class="beatmap-status">UNKNOWN</div>
-                        <div class="beatmap-status star_fucking_rate">★ 0.00</div>
-                    </div>
-                </div>
-                <div class="beatmap-status-control">
-                    <button class="preview-button">
-                        <svg id="play-button" viewBox="0 0 84 100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                            <polygon points="10,0 10,100 90,50"/>
-                        </svg>
-                    </button>      
-                    <button class="download-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-arrow-down-fill" viewBox="0 0 16 16">
-                            <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1m-1 4v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 11.293V7.5a.5.5 0 0 1 1 0"/>
-                        </svg>
-                    </button>
-                    <button class="remove-btn">
-                        <svg viewBox="0 0 10 10" width="14px" height="14px" stroke="currentColor" stroke-width="2">
-                            <path d="M1,1 9,9 M9,1 1,9" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `);
+    const beatmap_element = create_element(BEATMAP_CARD_TEMPLATE);
+
+    beatmap_container.appendChild(beatmap_element);
     
-    // get important elements
-    const title = beatmap_element.querySelector('.title');
-    const subtitle = beatmap_element.querySelector('.subtitle');
-    const download_button = beatmap_element.querySelector(".download-button");
-    const beatmap_bg = beatmap_element.querySelector(".bg-image");
-    const beatmap_status = beatmap_element.querySelector(".beatmap-card-status").children[0];
-    const remove_button = beatmap_element.querySelector(".remove-btn");
-    const preview_button = beatmap_element.querySelector(".preview-button");
-    const star_rating = beatmap_element.querySelector(".star_fucking_rate");
+    // get metadata elements
+    const elements = {
+        title: beatmap_element.querySelector('.title'),
+        subtitle: beatmap_element.querySelector('.subtitle'),
+        download_button: beatmap_element.querySelector('.download-button'),
+        beatmap_bg: beatmap_element.querySelector('.bg-image'),
+        beatmap_status: beatmap_element.querySelector('.beatmap-card-status').children[0],
+        remove_button: beatmap_element.querySelector('.remove-btn'),
+        preview_button: beatmap_element.querySelector('.preview-button'),
+        star_rating: beatmap_element.querySelector('.star_fucking_rate')
+    };
 
     const status = Reader.get_beatmap_status(beatmap.status) || "unknown";
     const beatmap_sr = get_beatmap_sr(beatmap);
@@ -256,22 +226,22 @@ export const create_beatmap_card = (md5) => {
     beatmap_container.id = `bn_${md5}`;
 
     const set_beatmap_status = (status) => {
-        beatmap_status.innerText = String(status).toUpperCase();
-        beatmap_status.classList.add(String(status).toLowerCase());
+        elements.beatmap_status.innerText = String(status).toUpperCase();
+        elements.beatmap_status.classList.add(String(status).toLowerCase());
     };
 
     const update_sr = (sr) => {
 
         const class_name = star_ranges.find(([min, max]) => sr >= min && sr <= max)[2];
 
-        star_rating.innerText = `★ ${sr}`;
-        star_rating.classList.add(class_name);
+        elements.star_rating.innerText = `★ ${sr}`;
+        elements.star_rating.classList.add(class_name);
         
         // to use on beatmap info
         beatmap.srcolor = class_name;
         
         if (sr >= 7) {
-            star_rating.style.color = "#ebcf34";
+            elements.star_rating.style.color = "#ebcf34";
         }
     };
 
@@ -282,8 +252,8 @@ export const create_beatmap_card = (md5) => {
         update_sr(beatmap_sr);
     }
 
-    title.textContent = beatmap?.title || "unknown";
-    subtitle.textContent = beatmap?.difficulty || "unknown";
+    elements.title.textContent = beatmap?.title || "unknown";
+    elements.subtitle.textContent = beatmap?.difficulty || "unknown";
 
     // show more information on click
     beatmap_element.addEventListener("click", () => {
@@ -296,7 +266,7 @@ export const create_beatmap_card = (md5) => {
     });
 
     // open in browser
-    title.addEventListener("click", (e) => {
+    elements.title.addEventListener("click", (e) => {
 
         e.stopPropagation();
 
@@ -308,7 +278,7 @@ export const create_beatmap_card = (md5) => {
     });
 
     const set_as_downloaded = () => {
-        download_button?.remove();
+        elements.download_button?.remove();
         beatmap_element.classList.remove("not-downloaded");
     };
 
@@ -316,7 +286,7 @@ export const create_beatmap_card = (md5) => {
     if (beatmap?.downloaded) {
         set_as_downloaded();
     } else { 
-        download_button.addEventListener("click", async (e) => {
+        elements.download_button.addEventListener("click", async (e) => {
 
             e.stopPropagation();
             core.progress.update("searching beatmap...");
@@ -356,9 +326,10 @@ export const create_beatmap_card = (md5) => {
                     update_sr(data.difficulty_rating);      
     
                     core.reader.osu.beatmaps.set(md5, beatmap);
-                    title.textContent = beatmap.title || "unknown";
-                    subtitle.textContent = beatmap.difficulty || "unknown";
-                    beatmap_bg.src = `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
+
+                    elements.title.textContent = beatmap.title || "unknown";
+                    elements.subtitle.textContent = beatmap.difficulty || "unknown";
+                    elements.beatmap_bg.src = `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
                     
                     set_as_downloaded();
                 });
@@ -372,7 +343,7 @@ export const create_beatmap_card = (md5) => {
 
     if (has_beatmap) {
 
-        set_beatmap_image(beatmap, beatmap_bg);
+        set_beatmap_image(beatmap, elements.beatmap_bg);
 
         const export_beatmap = () => {
             core.reader.export_beatmap(beatmap).then((success) => {
@@ -418,7 +389,7 @@ export const create_beatmap_card = (md5) => {
             `;
         };
 
-        preview_button.addEventListener("click", async (e) => {
+        elements.preview_button.addEventListener("click", async (e) => {
 
             e.stopPropagation();
             
@@ -435,7 +406,7 @@ export const create_beatmap_card = (md5) => {
 
             if (audio_core.id == beatmap.beatmapset_id) {
                 if (audio_core.audio.paused) {            
-                    audio_core.target = preview_button;    
+                    audio_core.target = elements.preview_button;    
                     return play();
                 }
                 return stop();
@@ -460,7 +431,7 @@ export const create_beatmap_card = (md5) => {
                 audio_core.audio = new Audio(window.URL.createObjectURL(audio_source));
                 audio_core.audio.volume = 0.5;
                 audio_core.id = beatmap.beatmapset_id;
-                audio_core.target = preview_button;
+                audio_core.target = elements.preview_button;
                 audio_core.audio.addEventListener("ended", stop);
                 
                 play();
@@ -468,19 +439,15 @@ export const create_beatmap_card = (md5) => {
                 console.error("failed to load preview:", error);
             }
         });
-
     } else {
-        preview_button.remove();
-        beatmap_bg.src = placeholder_image; 
+        elements.preview_button.remove();
+        elements.beatmap_bg.src = placeholder_image; 
     }
 
-    remove_button.addEventListener("click", (e) => {
+    elements.remove_button.addEventListener("click", (e) => {
         e.stopPropagation();
         remove_beatmap(md5, true);
     });
-
-    beatmap_container.appendChild(beatmap_element);
-    remove_button.id = `bn_${md5}`;
 
     return beatmap_container;
 };

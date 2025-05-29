@@ -11,7 +11,6 @@ const get_element_size = (element, id, force_recalc = false) => {
 
     const new_el = element.cloneNode(true);
     
-    // mhm
     Object.assign(new_el.style, {
         visibility: 'hidden',
         position: 'absolute',
@@ -101,7 +100,7 @@ const render_items = (id, extra = { force: false, check: false }) => {
         virtual_list.container.innerHTML = "";
     }
 
-    const elements = [];
+    const frag = document.createDocumentFragment();
 
     for (let i = base_index; i < max_amount; i++) {
 
@@ -138,11 +137,11 @@ const render_items = (id, extra = { force: false, check: false }) => {
             virtual_list.last_pos = pos;
         }
 
-        elements.push(content.element);
+        frag.appendChild(content.element);
     }
 
-    if (elements.length > 0) {
-        virtual_list.container.replaceChildren(...elements);
+    if (frag.children.length > 0) {
+        virtual_list.container.replaceChildren(frag);
         virtual_list.last_rendered = {
             first_index: base_index,
             last_index: max_amount - 1
@@ -150,7 +149,7 @@ const render_items = (id, extra = { force: false, check: false }) => {
     }
 };
 
-export const create_virtual_list = (options = { id: 0, elements: [], target: null, create: (i) => { }, get: () => { } }) => {
+export const create_virtual_list = (options = { id: 0, target: null, create: (i) => { }, get: () => { } }) => {
 
     const virtual_height = create_element(`<div class="virtual-height" id="${options.id}"></div>`);
     const list_target = create_element(`<div class="virtual-list" id="${options.id}"></div>`);

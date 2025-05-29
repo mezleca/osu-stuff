@@ -136,7 +136,8 @@ search_input.addEventListener("input", debounce(() => {
         }
     }
 
-    core.search_query = search_input.value.replace(/\s{2,}/g, ' '); // remove extra spaces
+    // remove extra spaces
+    core.search_query = search_input.value.replace(/\s{2,}/g, ' '); 
     render_page(id, true);
 }, 300));
 
@@ -157,7 +158,6 @@ export const remove_beatmap = (hash, update) => {
     ctxmenu.delete(`bn_${hash}`);
 
     if (update) {
-        // update filtered beatmaps, etc...
         update_beatmaps({ check: true, force: false }).then(() => {
             update_collection_count(id, name);
             show_update_button();
@@ -335,11 +335,9 @@ const delete_beatmaps_manager = async () => {
             remove_beatmap(md5, false);
         }
 
-        // update single collection
         core.reader.update_collection(name);
     }
 
-    // update filtered beatmaps, etc...
     update_beatmaps({ check: true, force: false }).then(() => {
         update_collection_count(id, name);
         show_update_button();
@@ -572,15 +570,13 @@ update_collection_button.addEventListener("click", async () => {
     if (!confirm) {
         return;
     }
-    
-    // make sure we have the correct length
-    core.reader.collections.length = core.reader.collections.beatmaps.size;
 
     console.log("[manager] updating collection:", core.reader.collections);
-
+    
+    core.reader.collections.length = core.reader.collections.beatmaps.size;
     await core.reader.write_collections_data();
-    create_alert("updated!");
 
+    create_alert("updated!");
     hide_update_button();
 });
 
