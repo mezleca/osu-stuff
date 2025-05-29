@@ -62,7 +62,7 @@ export const delete_beatmaps = async (beatmaps) => {
         return null;
     }
 
-    // make sure we update this otherwise osu.db will act funny
+    // make sure we update this otherwise osu will act funny
     update_beatmap_counts(core.reader.osu.beatmaps.size);
 
     const old_name = path.resolve(core.config.get("stable_path"), "osu!.db");

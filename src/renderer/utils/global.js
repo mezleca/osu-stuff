@@ -1,10 +1,7 @@
-// APIS
 export const fs = window.fs;
 export const path = window.path;
 export const zlib = window.zlib;
 export const extra = window.extra;
-
-// CONSTANTS
 export const is_testing = window.process.env.STUFF_ENV == "dev";
 export const placeholder_image = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 export const OSU_STATS_URL = "https://osustats.ppy.sh/apiv2/account/login?returnUrl=https://osustats.ppy.sh/";
@@ -17,7 +14,6 @@ export const cursor = {
     y: 0
 }
 
-// OTHER GARBAGE
 export const star_ranges = [
     [0, 2.99, "sr1"],
     [3, 4.99, "sr2"],

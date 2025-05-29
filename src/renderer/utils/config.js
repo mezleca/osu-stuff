@@ -137,9 +137,6 @@ const initialize_osu_config = async () => {
     if (!osu_perms || !songs_perms) {
         create_alert("failed to read osufolder<br>make sure you have read and write perms on the drive", { type: "error", html: true })
     }
-
-    await load_osu_files(stable_path);
-    create_alert("config updated!", { type: "success" });
 };
 
 const validate_and_setup_config = async () => {
@@ -171,6 +168,7 @@ const validate_and_setup_config = async () => {
         await initialize({ force: true });
     }
 
+    create_alert("your config is valid!", { type: "success" });
     get_access_token();
 };
 
