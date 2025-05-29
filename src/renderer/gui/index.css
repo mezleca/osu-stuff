@@ -412,7 +412,7 @@ label {
 }
 
 .alert-success, .alert-default {
-    border: 2px solid rgb(81, 178, 252);
+    border: 2px solid var(--accent-color);
 }
 
 .alert-warning {
