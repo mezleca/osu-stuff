@@ -72,7 +72,7 @@ export const setup_collector = async (url) => {
 
     const url_array = url.split("/");
     const collection_id = url_array.find(part => Number(part));
-    const collection_name = decodeURIComponent(url_array[url_array.length - 1]).replace(/-/g, " ");
+    const collection_name = decodeURIComponent(url_array[url_array.length - 1].split("?")[0]).replace(/-/g, " ");
     
     if (!collection_id) {
         create_alert("invalid url", { type: "error" });
@@ -82,7 +82,6 @@ export const setup_collector = async (url) => {
     const is_tournament = url_array.includes("tournaments");
 
     // @NOTE: pretty sure this is not supposed to return all of the beatmaps in 1 request
-    // its prob gonna be fixed soon soo i will take a look later
     const collection_url = `https://osucollector.com/api/collections/${collection_id}/beatmapsv3?perPage=50`;
 
     core.progress.update(`fetching collection ${collection_name || collection_id}...`);
