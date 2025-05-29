@@ -40,7 +40,7 @@ const search_input = document.getElementById("current_search");
 const update_collection_button = document.querySelector(".update_collection");
 
 const text_collection = document.getElementById("collection_text");
-const manager_filters = new Map();
+export const manager_filters = new Map();
 
 export const get_selected_collection = () => {
 
@@ -84,25 +84,8 @@ export const update_collection_list = (beatmaps) => {
     collection_list.length = beatmaps.length;
 };
 
-export const show_update_button = () => {
-    update_collection_button.style.display = "block";  
-};
-
-export const hide_update_button = () => {
-    update_collection_button.style.display = "none";  
-};
-
-export const get_sr_filter = () => {
-    return manager_filters.get("manager-sr-filter");
-};
-
-export const get_bpm_filter = () => {
-    return manager_filters.get("manager-bpm-filter");
-};
-
-export const get_status_filter = () => {
-    return manager_filters.get("dropdown-status-filter");
-};
+export const show_update_button = () => update_collection_button.style.display = "block";
+export const hide_update_button = () => update_collection_button.style.display = "none";
 
 // @TODO: rewrite this, some functions shoudn't be initialize here
 export const lazer_mode = async (target, name) => {
@@ -552,8 +535,8 @@ export const render = (id, force = false, clean = true) => {
         text_collection.style.display = "none";
     }
 
-    const sr_filter = get_sr_filter();
-    const bpm_filter = get_bpm_filter();
+    const sr_filter = manager_filters.get("manager-sr-filter");
+    const bpm_filter = manager_filters.get("manager-bpm-filter");
 
     // update sr filter slider min/max
     if (sr_filter.limit != sr_max) {
@@ -610,7 +593,7 @@ export const setup_manager = () => {
     if (manager_filters.size == 0) {
         manager_filters.set("manager-bpm-filter", create_range({ id: "manager-bpm-filter", text: "bpm range", iden: "", fix: 0, initial: 500 }));
         manager_filters.set("manager-sr-filter", create_range({ id: "manager-sr-filter", text: "difficulty range", iden: "★", fix: 2, initial: 10 }));
-        manager_filters.set("dropdown-status-filter", create_dropdown({ id: "dropdown-status-filter", name: "status", values: Object.keys(Reader.get_status_object()) }));
+        manager_filters.set("manager-status-filter", create_dropdown({ id: "manager-status-filter", name: "status", values: Object.keys(Reader.get_status_object()) }));
     }
 
     // clean draggable_items list
@@ -623,7 +606,7 @@ export const setup_manager = () => {
 
         // get filters (kinda stupid)
         const sr_filter = manager_filters.get("manager-sr-filter");
-        const status_filter = manager_filters.get("dropdown-status-filter");
+        const status_filter = manager_filters.get("manager-status-filter");
         const bpm_filter = manager_filters.get("manager-bpm-filter");
         
         // create filter containers
@@ -676,7 +659,7 @@ const update_map_info = (map) => {
 };
  
 export const update_status_filter = () => {
-    const filter = get_status_filter();
+    const filter = manager_filters.get("manager-status-filter");
     filter.create(Object.keys(Reader.get_status_object()));
 };
 

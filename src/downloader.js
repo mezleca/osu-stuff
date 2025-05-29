@@ -4,20 +4,6 @@ import os from "os";
 
 import { create_logger } from "./logger.js";
 
-let download_path = "";
-let mirrors = [];
-let is_processing = false;
-let access_token = null;
-let current_download = {
-    id: null,
-    name: "",
-    progress: {
-        index: 0,
-        total: 0
-    },
-    items: []
-};
-
 const osu_stuff_path = () => {
     switch (process.platform) {
         case 'win32':
@@ -27,15 +13,22 @@ const osu_stuff_path = () => {
         default:
             return "";
     }
-}
+};
 
-const downloaded_maps = new Map();
+const downloader = {
+    current: {
+        id: null,
+        name: "",
+        progress: { index: 0, total: 0 },
+        items: []
+    },
+    queue: [],
+    finished: new Map()
+};
+
 const bad_status = [401, 403, 408, 410, 500, 503, 504, 429];
 const concurrency = 3;
-const download_queue = [];
 const logger = create_logger({ name: "downloader", show_date: true, save_to_path: { path: osu_stuff_path() }});
-
-console.log(osu_stuff_path());
 
 const parallel_map = async (array, mapper, concurrency) => {
 
@@ -78,7 +71,7 @@ const search_map_id = async (hash) => {
 
         const response = await fetch(`https://osu.ppy.sh/api/v2/beatmaps/lookup?checksum=${hash}`, {
             headers: {
-                "Authorization": "Bearer " + access_token
+                "Authorization": "Bearer " + downloader.access_token
             }
         });
         
@@ -106,21 +99,21 @@ const save_map_file = (map_path, buffer) => {
 
 const send_progress_update = (win, id) => {
 
-    if (!id || !win || id != current_download.id) {
+    if (!id || !win || id != downloader.current.id) {
         return;
     }
     
-    const completed = current_download.items.filter(item => item.processed).length;
-    const total = current_download.items.length;
+    const completed = downloader.current.items.filter(item => item.processed).length;
+    const total = downloader.current.items.length;
     
     win.webContents.send("progress-update", {
         id,
         current: completed,
         length: total,
-        status: current_download.status || {}
+        status: downloader.current.status || {}
     });
     
-    current_download.progress = {
+    downloader.current.progress = {
         index: completed,
         total
     };
@@ -128,15 +121,15 @@ const send_progress_update = (win, id) => {
 
 const update_progress = (win, id, item_index, total, status) => {
 
-    if (!id || !win || id != current_download.id) {
+    if (!id || !win || id != downloader.current.id) {
         return;
     }
     
-    current_download.status = status;
+    downloader.current.status = status;
     
-    if (item_index >= 0 && item_index < current_download.items.length) {
-        current_download.items[item_index] = {
-            ...current_download.items[item_index],
+    if (item_index >= 0 && item_index < downloader.current.items.length) {
+        downloader.current.items[item_index] = {
+            ...downloader.current.items[item_index],
             processed: true,
             success: status.success
         };
@@ -149,14 +142,12 @@ const try_mirror = async (mirror_url, map_id) => {
 
     try {
 
-        // make sure we have a valid mirror url
         const response = await fetch(`${mirror_url?.endsWith('/') ? mirror_url : mirror_url + '/'}${map_id}`, { method: "GET" });
         
         if (response.status == 200) {
             const buffer = await response.arrayBuffer();
             return buffer.byteLength > 0 ? buffer : null;
         }
-
 
         if (bad_status.includes(response.status)) {
             return { error: "bad_status" };
@@ -170,16 +161,16 @@ const try_mirror = async (mirror_url, map_id) => {
 };
 
 const update_mirror = (used_url) => {
-    const mirror_index = mirrors.findIndex((m) => m[1] == used_url);
+    const mirror_index = downloader.mirrors.findIndex((m) => m[1] == used_url);
     if (mirror_index != -1) {
-        const [ mirror ] = mirrors.splice(mirror_index, 1);
-        mirrors.push(mirror);
+        const [ mirror ] = downloader.mirrors.splice(mirror_index, 1);
+        downloader.mirrors.push(mirror);
     }
 };
 
 const get_buffer = async (map_id) => {
 
-    for (const [name, url] of mirrors) {
+    for (const [name, url] of downloader.mirrors) {
 
         const result = await try_mirror(url, map_id);
         
@@ -202,7 +193,7 @@ const process_map = async (win, map, index, options) => {
     const { id, total } = options;
     const item_index = index - 1;
     
-    if (id != current_download.id) {
+    if (id != downloader.current.id) {
         return { stop: true };
     }
 
@@ -216,7 +207,7 @@ const process_map = async (win, map, index, options) => {
             return null;
         }
 
-        const map_path = path.resolve(download_path, `${map_data.beatmapset_id}.osz`);
+        const map_path = path.resolve(downloader.download_path, `${map_data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
             logger.debug("ignoring", map.md5, "(already downloaded)");
@@ -235,13 +226,13 @@ const process_map = async (win, map, index, options) => {
         const saved = save_map_file(map_path, map_buffer);
         
         if (saved) {
-            downloaded_maps.set(map_data.beatmapset_id, { 
+            downloader.finished.set(map_data.beatmapset_id, { 
                 ...map_data, 
                 md5: map.md5
             });
         }
 
-        if (id != current_download.id) {
+        if (id != downloader.current.id) {
             logger.error("stoping download (download id does not match)");
             return { stop: true };
         }    
@@ -257,26 +248,31 @@ const process_map = async (win, map, index, options) => {
 
 const process_queue = async (win) => {
 
-    if (download_queue.length == 0) {
-        logger.debug("finished all queue items");
-        is_processing = false;
+    if (!downloader?.mirrors || !downloader?.access_token) {
+        logger.error("missing mirror / access_token", downloader);
         return;
     }
 
-    const { maps, id, name } = download_queue.shift();
+    if (downloader.queue.length == 0) {
+        logger.debug("finished all queue items");
+        downloader.is_processing = false;
+        return;
+    }
+
+    const { maps, id, name } = downloader.queue.shift();
 
     logger.debug("starting download", id);
-    logger.debug("using mirrors", mirrors);
+    logger.debug("using mirrors", downloader.mirrors);
     
-    is_processing = true;
-    current_download.id = id;
-    current_download.name = name;
-    current_download.progress = {
+    downloader.is_processing = true;
+    downloader.current.id = id;
+    downloader.current.name = name;
+    downloader.current.progress = {
         index: 0,
         total: maps.length
     };
     
-    current_download.items = maps.map((hash, index) => ({
+    downloader.current.items = maps.map((hash, index) => ({
         hash,
         index,
         processed: false,
@@ -287,11 +283,11 @@ const process_queue = async (win) => {
     
     await parallel_map(maps, (map, index) => process_map(win, map, index + 1, { id, total: maps.length }), concurrency);
     
-    if (current_download.id == id) {
+    if (downloader.current.id == id) {
 
-        current_download.id = null;
-        current_download.name = "";
-        current_download.items = [];
+        downloader.current.id = null;
+        downloader.current.name = "";
+        downloader.current.items = [];
 
         win.webContents.send("progress-end", { id, name, success: true });    
     }
@@ -310,7 +306,7 @@ async function download_single_map(hash) {
             return { success: false };
         }
 
-        const map_path = path.resolve(download_path, `${map_data.beatmapset_id}.osz`);
+        const map_path = path.resolve(downloader.download_path, `${map_data.beatmapset_id}.osz`);
 
         if (fs.existsSync(map_path)) {
             logger.debug("ignoring", hash, "(already downloaded)");
@@ -326,7 +322,7 @@ async function download_single_map(hash) {
 
         save_map_file(map_path, map_buffer);
 
-        downloaded_maps.set(map_data.beatmapset_id, { 
+        downloader.finished.set(map_data.beatmapset_id, { 
             ...map_data,
             md5: hash 
         });
@@ -340,29 +336,29 @@ async function download_single_map(hash) {
 
 export const init_downloader = (window, ipcMain) => {
 
-    current_download.id = null;
-    current_download.name = "";
-    current_download.items = [];
-    current_download.progress.index = 0;
-    current_download.progress.total = 0;
+    downloader.current.id = null;
+    downloader.current.name = "";
+    downloader.current.items = [];
+    downloader.current.progress.index = 0;
+    downloader.current.progress.total = 0;
 
     ipcMain.handle("update-token", (_, token) => {
-        access_token = token;
+        downloader.access_token = token;
         return true;
     });
 
     ipcMain.handle("update-mirrors", (_, mirror_list) => {
-        mirrors = mirror_list;
+        downloader.mirrors = mirror_list;
         return true;
     });
 
     ipcMain.handle("update-path", (_, new_path) => {
 
-        download_path = new_path;
+        downloader.download_path = new_path;
         
         try {
-            if (!fs.existsSync(download_path)) {
-                fs.mkdirSync(download_path, { recursive: true });
+            if (!fs.existsSync(downloader.download_path)) {
+                fs.mkdirSync(downloader.download_path, { recursive: true });
             }
             return true;
         } catch (error) {
@@ -371,13 +367,8 @@ export const init_downloader = (window, ipcMain) => {
         }
     });
 
-    ipcMain.handle("is-downloading", (_) => {
-        return current_download.id != null;
-    });
-
-    ipcMain.handle("get-queue", (_) => {
-        return [ current_download, ...download_queue ];
-    });
+    ipcMain.handle("is-downloading", (_) => downloader.current.id != null);
+    ipcMain.handle("get-queue", (_) => [downloader.current, ...downloader.queue]);
 
     ipcMain.handle("create-download", (_, data) => {
 
@@ -391,9 +382,9 @@ export const init_downloader = (window, ipcMain) => {
             return false;
         }
 
-        download_queue.push({ maps: data.maps, id: data.id, name: data?.name || "download task" });
+        downloader.queue.push({ maps: data.maps, id: data.id, name: data?.name || "download task" });
         
-        if (!is_processing) {
+        if (!downloader.is_processing) {
             process_queue(window);
         }
         
@@ -402,17 +393,17 @@ export const init_downloader = (window, ipcMain) => {
 
     ipcMain.handle("stop-download", (_, id) => {
 
-        const queue_index = download_queue.findIndex(item => item.id == id);
+        const queue_index = downloader.queue.findIndex(item => item.id == id);
 
         if (queue_index != -1) {
-            download_queue.splice(queue_index, 1);
+            downloader.queue.splice(queue_index, 1);
             return true;
         }
 
-        if (current_download.id == id) {
+        if (downloader.current.id == id) {
 
-            current_download.id = null;
-            window.webContents.send("progress-end", { id: id, name: current_download.name, success: false });
+            downloader.current.id = null;
+            window.webContents.send("progress-end", { id: id, name: downloader.current.name, success: false });
             
             setTimeout(() => {
                 process_queue(window);

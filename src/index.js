@@ -5,9 +5,6 @@ import { app, BrowserWindow, ipcMain, dialog, session, net, globalShortcut, Menu
 import { fileURLToPath } from 'url';
 import { init_downloader } from "./downloader.js";
 
-/** @type {BrowserWindow} */
-let main_window = null;
-
 Menu.setApplicationMenu(null);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,12 +14,8 @@ const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
 const max_w = 1366, max_h = 1024;
 
-const squirrel_params = ["--squirrel-install", "--squirrel-updated", "--squirrel-uninstall"];
-
-// quit if we are installing or updating it
-if (process.argv[1] && squirrel_params.includes(process.argv[1])) {
-    app.quit();
-}
+/** @type {BrowserWindow} */
+let main_window = null;
 
 const create_dialog = async (options = {}) => {
     try {
@@ -101,7 +94,7 @@ const create_auth_window = (url, end) => {
     });
 };
 
-const createWindow = () => {
+const create_window = () => {
 
     main_window = new BrowserWindow(
     {
@@ -132,16 +125,15 @@ const createWindow = () => {
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
     globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" }); });
 
-    // load html yep
     main_window.loadFile(path.join(__dirname, "./renderer/gui/index.html"));
     main_window.setMenuBarVisibility(false);
 
     // window controls
-    ipcMain.handle('maximize', () => { }); // maximized version looks ugly as hell, need to finish css for that
+    // @TODO: maximized version looks ugly as hell, need to finish css for that
+    ipcMain.handle('maximize', () => { }); 
     ipcMain.handle('minimize', () => main_window.minimize());
     ipcMain.handle('close'   , () => app.quit());
 
-    // other garbage
     ipcMain.handle('create-dialog', async (_, options) => await create_dialog(options));
     ipcMain.handle('select-file', async (_, options) => {
         
@@ -194,12 +186,10 @@ const createWindow = () => {
         });
     });
 
-    ipcMain.handle("create-auth", async (_, url, end) => {
-        return create_auth_window(url, end);
-    });
+    ipcMain.handle("create-auth", (_, url, end) => create_auth_window(url, end));
 
+    // open dev tools window on dev mode
     main_window.webContents.on('did-finish-load', () => {
-
         if (dev_mode) {
             main_window.webContents.openDevTools({ mode: "detach" });
         }
@@ -221,21 +211,10 @@ app.whenReady().then(async () => {
         return net.fetch(`file://${path_to_media}`);
     });
 
-    createWindow();
+    create_window();
 });
-
 
 // hardware acceleraion on linux makes app unstable after 10/20 min (need to test this again btw)
-app.on('activate', () => {
-    app.disableHardwareAcceleration();
-});
-
-app.on('window-all-closed', () => {
-    if (process.platform != 'darwin') {
-        app.quit();
-    }
-});
-
-app.on('will-quit', () => {
-    globalShortcut.unregisterAll();
-});
+app.on('activate', app.disableHardwareAcceleration);
+app.on('will-quit', () => globalShortcut.unregisterAll);
+app.on('window-all-closed', app.quit);

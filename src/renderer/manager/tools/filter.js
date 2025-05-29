@@ -1,6 +1,5 @@
-import { core } from "../manager.js";
+import { core, manager_filters } from "../manager.js";
 import { Reader } from "../../utils/reader/reader.js";
-import { get_bpm_filter, get_sr_filter, get_status_filter } from "../manager.js";
 import { get_beatmap_sr, get_beatmap_bpm } from "./beatmaps.js";
 
 const show_filter = document.querySelector(".show-filter");
@@ -99,9 +98,9 @@ export const search_filter = (beatmap) => {
 
 export const filter_beatmap = (md5) => {
 
-    const sr_filter = get_sr_filter();
-    const bpm_filter = get_bpm_filter();
-    const status_filter = get_status_filter();
+    const sr_filter = manager_filters.get("manager-sr-filter");
+    const bpm_filter = manager_filters.get("manager-bpm-filter");
+    const status_filter = manager_filters.get("manager-status-filter");
 
     const beatmap = core.reader.osu.beatmaps.get(md5);
     const beatmap_sr = Math.floor(beatmap?.star * 100) / 100 || Number(get_beatmap_sr(beatmap));
@@ -117,7 +116,6 @@ export const filter_beatmap = (md5) => {
 
     // filter by sr
     if (sr_max && (beatmap_sr < sr_min || beatmap_sr > sr_max)) {
-        console.log("sr", beatmap_sr, sr_filter.min.value, sr_filter.max.value);
         return false;
     }
 

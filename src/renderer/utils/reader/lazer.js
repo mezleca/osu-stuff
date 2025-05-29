@@ -1,5 +1,6 @@
 import { fs } from "../global.js";
 
+// @TODO: update collections in real time (collections added on lazer (while osu-stuff is open) are not automatically added here)
 const LAZER_SCHEMA_VERSION = 48;
 
 export const get_realm_instance = (path, schemas) => {
@@ -106,7 +107,8 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
             visual_override: false, 
             last_modified: beatmap.LastLocalUpdate ? Math.floor(beatmap.LastLocalUpdate.getTime() / 1000) : 0,
             mania_scroll_speed: 0, 
-            beatmap_end: 0 
+            beatmap_end: 0,
+            downloaded: true
         };
         
         beatmaps.set(data.md5, data);
