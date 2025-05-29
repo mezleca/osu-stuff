@@ -15,7 +15,17 @@ export const get_missing_beatmaps = (id) => {
 
     // check if we have any matching hash on our osu db file
     for (const m of collection.maps) {
-        if (m && !core.reader.osu.beatmaps.get(m)) {
+
+        // ignore invalid hashes
+        if (!m) {
+            continue;
+        }
+
+        const beatmap = core.reader.osu.beatmaps.get(m) || { };
+
+        // if you download something from osu!Collector, the function will add basic metadata to reader object such as: title, artist, etc...
+        // so we need to make sure this variable is false
+        if (!beatmap?.downloaded) {
             beatmaps.push({ collection_name: id, md5: m });
         }
     }
