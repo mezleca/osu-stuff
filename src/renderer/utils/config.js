@@ -1,7 +1,7 @@
 import { osu_login } from "./other/fetch.js";
 import { all_tabs, blink } from "../tabs.js";
 import { fs, path } from "./global.js";
-import { create_custom_popup, create_alert, message_types } from "../popup/popup.js";
+import { create_custom_popup, create_alert, popup_type, create_checkbox_box } from "../popup/popup.js";
 import { initialize, lazer_mode, core } from "../manager/manager.js";
 import { indexed } from "./other/indexed_db.js";
 import { create_dialog, get_og_path, get_osu_base_path } from "./other/process.js";
@@ -277,19 +277,12 @@ export const initialize_config = async () => {
         const is_file = option.type == "file";
         const is_checkbox = option.type == "checkbox";
 
-        const label_element = create_element(`
-            <label for="${option.text}">
-                ${text}
-                ${tooltips_text[option.text] ? `<div class="tooltip" id="${option.text}">(?)</div>` : ""}
-            </label>
-        `);
-
-        const input_element = create_element(`
+        const input_element = is_checkbox ? create_checkbox_box(crypto.randomUUID(), text, value) : create_element(`
             <input 
                 class="${is_file ? "config_input" : "file_input"}" 
                 type="${is_file ? "text" : option.type}" 
                 name="${option.text}" id="${option.text}" 
-                ${is_checkbox && value ? `checked` : `value=${value}`} 
+                value=${value}
             >
         `);
 
@@ -299,8 +292,13 @@ export const initialize_config = async () => {
 
         if (is_checkbox) {
             option_container.appendChild(input_element);
-            option_container.appendChild(label_element);
         } else {
+            const label_element = create_element(`
+                <label for="${option.text}">
+                    ${text}
+                    ${tooltips_text[option.text] ? `<div class="tooltip" id="${option.text}">(?)</div>` : ""}
+                </label>
+            `);
             option_container.appendChild(label_element);
             option_container.appendChild(input_element);
         }
@@ -373,7 +371,8 @@ export const initialize_config = async () => {
         }
 
         const prompt = await create_custom_popup({
-            type: message_types.CUSTOM_MENU,
+            type: popup_type.CUSTOM_MENU,
+            submit: "add mirror",
             title: "mirror info",
             elements: [
                 { key: "name", element: { input: { label: "mirror name" } } },

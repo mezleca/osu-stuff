@@ -1,6 +1,6 @@
 import { core } from "../manager/manager.js";
 import { downloader } from "../utils/downloader/client.js";
-import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
+import { create_alert, create_custom_popup, popup_type, quick_confirm } from "../popup/popup.js";
 import { add_collection_manager, get_selected_collection } from "../manager/manager.js";
 
 export const url_is_valid = (url, hostname) => {
@@ -246,7 +246,7 @@ export const download_from_players = async (options) => {
     }
 
     const download_options = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
+        type: popup_type.CUSTOM_MENU,
         title: "options",
         elements: [
             {

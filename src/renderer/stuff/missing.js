@@ -1,5 +1,5 @@
 import { core } from "../manager/manager.js";
-import { create_alert, create_custom_popup, message_types } from "../popup/popup.js";
+import { create_alert, create_custom_popup, popup_type } from "../popup/popup.js";
 import { downloader } from "../utils/downloader/client.js";
 
 export const get_missing_beatmaps = (id) => {
@@ -61,8 +61,9 @@ export const show_missing_beatmaps = async () => {
     }
 
     const selected = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
+        type: popup_type.CUSTOM_MENU,
         title: "collections to download",
+        submit: "download",
         elements: [
             { 
                 key: "collections",

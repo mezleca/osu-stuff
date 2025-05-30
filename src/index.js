@@ -12,7 +12,6 @@ const dev_mode = process.env.STUFF_ENV == "dev";
 
 const w = 1120, h = 840;
 const min_w = 968, min_h = 720;
-const max_w = 1366, max_h = 1024;
 
 /** @type {BrowserWindow} */
 let main_window = null;
@@ -102,14 +101,11 @@ const create_window = () => {
         height: h,
         minWidth: min_w,
         minHeight: min_h,
-        maxWidth: max_w,
-        maxHeight: max_h,
         titleBarStyle: 'hidden',
-        frame: true,
-        fullscreenable: false,
         icon: get_icon_path(),
         backgroundColor: "#202020",
         center: true,
+        titleBarOverlay: false,
         webPreferences: {
             devTools: true,
             nodeIntegration: true,
@@ -119,32 +115,27 @@ const create_window = () => {
             preload: path.resolve(__dirname, "dist", "preload.bundle.js"),
             sandbox: false,
         },
-        titleBarOverlay: false,
     });
 
+    // pretty sure this only works on linux
+    globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" }) });
     globalShortcut.register('CommandOrControl+R', () => { main_window.reload() });
-    globalShortcut.register('F12', () => { main_window.webContents.openDevTools({ mode: "detach" }); });
 
     main_window.loadFile(path.join(__dirname, "./renderer/gui/index.html"));
     main_window.setMenuBarVisibility(false);
 
     // window controls
-    // @TODO: maximized version looks ugly as hell, need to finish css for that
-    ipcMain.handle('maximize', () => { }); 
+    ipcMain.handle('maximize', () => main_window.isMaximized() ? main_window.unmaximize() : main_window.maximize()); 
     ipcMain.handle('minimize', () => main_window.minimize());
     ipcMain.handle('close'   , () => app.quit());
 
     ipcMain.handle('create-dialog', async (_, options) => await create_dialog(options));
     ipcMain.handle('select-file', async (_, options) => {
-        
         const file = await create_dialog(options);
-
         if (file.canceled) {
             return;
         }
-
-        const file_path = file.filePaths[0];
-        return { name: path.basename(file_path), buffer: fs.readFileSync(file_path) };
+        return { name: path.basename(file.filePaths[0]), buffer: fs.readFileSync(file.filePaths[0]) };
     });
 
     ipcMain.handle('dev_mode', () => dev_mode);

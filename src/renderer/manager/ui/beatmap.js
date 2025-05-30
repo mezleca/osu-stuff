@@ -182,6 +182,7 @@ const create_extra_information = (container, beatmap) => {
 
     if (color) {
         extra.style.border = `1px solid ${color}`;
+        load_preview.style.backgroundColor = color;
     }
 
     extra_info_title.textContent = `${beatmap.title} [${beatmap.difficulty}]`;

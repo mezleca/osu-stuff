@@ -232,13 +232,6 @@ body::-webkit-scrollbar {
     width: 100%;
 }
 
-.config-option > input[type="checkbox"] {
-    width: 1.3em;
-    height: 1.3em;
-    margin-left: 0px;
-    margin-right: 5px;
-}
-
 .config-option.row {
     margin-top: 10px;
 }
@@ -267,17 +260,15 @@ body::-webkit-scrollbar {
 }
 
 input[type="text"], input[type="password"], input[type="search"], select {
-    padding: 10px;
+    padding: 12px;
     border-radius: 4px;
     font-size: 0.95em;
-    transition: border-color var(--transition-delay);
-    font-family: "Torus Bold";
-    transition: var(--transition-delay) all;
+    transition: all var(--transition-delay);
 }
 
 input[type="text"], input[type="password"] {
     background-color: var(--manager-sel-color);
-    border: 1px solid #333;
+    border: 1px solid #3f3f3f;
     color: white;
 }
 
@@ -565,39 +556,54 @@ label {
 }
 
 .checkbox-container {
-    display: flex;
     align-items: center;
+    background-color: #212121;
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    padding: 10px;
+    transition: all .2s ease;
     width: 100%;
-    margin-bottom: 10px;
+}
+
+.checkbox-container:hover {
+    border-color: var(--accent-color);
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-left: 0px;
+    margin-right: 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all var(--transition-delay);
+    border: 1px solid var(--accent-color)
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--accent-color);
+}
+
+.checkbox-container:has(input:checked) {
+    border-color: var(--accent-color);
+}
+
+.checkbox-label {
+    font-size: 14px;
+    user-select: none;
+    cursor: pointer;
 }
 
 .checkbox-container > label {
-    margin: 0;
-}
-
-.checkbox-container input[type="checkbox"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    padding: 8px;
-    width: 0.4em;
-    height: 0.4em;
-    background-color: #ffffff;
-    border: 1px solid #ffffff;
-    border-radius: 2px;
+    display: flex;
+    align-items: center;
     cursor: pointer;
+    width: 100%;
     margin: 0;
-    margin-right: 5px;
-    align-self: center;
-}
-
-.checkbox-container input[type="checkbox"]:checked {
-    background-color: #3264fe;
-    border: 1px solid #3264fe;
-}
-
-.checkbox-container label {
-    font-size: 14px;
+    font-size: none;
 }
 
 .tooltip {
@@ -987,7 +993,7 @@ button {
     background-color: var(--manager-sel-color);
     padding: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border: 1px solid #333;
+    border: 1px solid #3f3f3f;
     border-radius: 4px;
     justify-content: space-between;
     align-self: center;

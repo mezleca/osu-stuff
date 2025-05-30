@@ -1,9 +1,9 @@
 import { load_osu_files, save_config, is_lazer_mode } from "../utils/config.js";
 import { create_element } from "../utils/global.js";
 import { setup_collector } from "../stuff/collector.js";
-import { create_alert, create_custom_popup, message_types, quick_confirm } from "../popup/popup.js";
+import { create_alert, create_custom_popup, popup_type, quick_confirm } from "../popup/popup.js";
 import { downloader } from "../utils/downloader/client.js";
-import { delete_beatmaps } from "../stuff/remove_maps.js";
+import { remove_beatmaps } from "../stuff/remove_maps.js";
 import { download_from_players } from "../stuff/download_from_players.js";
 import { show_missing_beatmaps } from "../stuff/missing.js";
 import { fetch_osustats } from "../utils/other/fetch.js";
@@ -173,8 +173,9 @@ const get_from_player = async () => {
     }
 
     const method = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
-        title: "search option",
+        type: popup_type.CUSTOM_MENU,
+        title: "search options",
+        submit: "search",
         elements: [
             {
                 key: "players",
@@ -221,7 +222,7 @@ const get_from_player = async () => {
 const add_new_collection = async () => {
 
     const prompt = await create_custom_popup({     
-        type: message_types.INPUT, 
+        type: popup_type.INPUT, 
         label: "add new collection (from url)<br>valid websites: osu!collector, osustats.ppy.sh",
         html: true
     });
@@ -305,7 +306,7 @@ const add_new_collection = async () => {
     downloader.create_download({ id: crypto.randomUUID(), name: c_name, maps: yep_maps });
 };
 
-const delete_beatmaps_manager = async () => {
+const remove_beatmaps_manager = async () => {
     
     const { id, name } = get_selected_collection();
 
@@ -319,17 +320,31 @@ const delete_beatmaps_manager = async () => {
     const beatmaps = core.filtered_beatmaps;
     
     if (beatmaps.size == 0) {
-        core.progress.update("no beatmaps to delete");
+        core.progress.update("0 beatmaps to delete");
         return;
     }
 
-    const remove_from_collection = await quick_confirm(`delete ${beatmaps.length == all_beatmaps.size ? "all" : beatmaps.length } beatmap${beatmaps.size > 1 ? "s" : ""} from ${name}?`);
-    
-    if (remove_from_collection == null) {
+    const result = await create_custom_popup({
+        type: popup_type.CUSTOM_MENU,
+        title: "remove options",
+        submit: "remove",
+        elements: [
+            {
+                key: "remove from collection",
+                element : { checkbox: { label: "remove from collection" } }
+            },
+            {
+                key: "remove from osu",
+                element : { checkbox: { label: "remove from osu" } }
+            }
+        ]
+    });
+
+    if (!result) {
         return;
     }
 
-    if (remove_from_collection) {
+    if (result.remove_from_collection) {
 
         for (const md5 of beatmaps) {
             remove_beatmap(md5, false);
@@ -343,24 +358,105 @@ const delete_beatmaps_manager = async () => {
         show_update_button();
     });
 
-    const remove_from_folder = await quick_confirm(`remove from osu folder?`);
+    if (result.remove_from_osu) {
 
-    if (remove_from_folder) {
-        await delete_beatmaps(Array.from(beatmaps.values()));
+        const remove_from_folder = await quick_confirm(`remove from osu folder?`);
+
+        if (remove_from_folder) {
+            await remove_beatmaps(Array.from(beatmaps.values()));
+        }
     }
 };
 
 const create_empty_collection = async (name) => {
+
+    const collection_name = await create_custom_popup({     
+        type: popup_type.INPUT, 
+        label: "collection name" 
+    });
+    
+    if (!collection_name) {
+        return;
+    }
+
+    if (core.reader.collections.beatmaps.has(collection_name)) {
+        return create_alert("this collection already exists");
+    }
+
     core.reader.collections.beatmaps.set(name, { maps: [] });
+
     setup_manager();
     show_update_button();
+};
+
+const create_from_file = async () => {
+
+    const data = await select_file({
+        title: "select the file",
+        properties: ["openFile"],
+        filters: [
+            { name: "collection files", extensions: ["osdb", "db"] }
+        ]
+    });
+
+    if (!data) {
+        return;
+    }
+
+    const { name, buffer } = data;
+    const reader = new Reader();
+    
+    const collections = path.extname(name) == ".osdb" 
+        ? { b: await reader.get_osdb_data(buffer) } 
+        : await reader.get_collections_data(buffer);
+    
+    if (path.extname(name) == ".osdb") {
+
+        collections.beatmaps = new Map();
+
+        for (let i = 0; i < collections.b.collections.length; i++) {
+            const data = collections.b.collections[i];
+            const beatmaps = data.hash_only_beatmaps.length == 0 
+                ? data.beatmaps.map((b) => b.md5) 
+                : data.hash_only_beatmaps;
+            collections.beatmaps.set(data.name, { maps: new Set(beatmaps) });
+        } 
+    }
+
+    const select = await create_custom_popup({
+        type: popup_type.CUSTOM_MENU,
+        title: "collections to import",
+        submit: "import",
+        elements: [{
+            key: "collections",
+            element: { 
+                cards: Array.from(collections.beatmaps).map(([k, c]) => {
+                    const is_selectable = core.reader.collections.beatmaps.has(k);
+                    return {
+                        selectable: !is_selectable,
+                        name: k,
+                        count: c.maps.size
+                    }
+                })
+            }
+        }]
+    });
+
+    if (!select || select?.collections.length == 0) {
+        return;
+    }
+
+    for (const name of select.collections) {
+        add_collection_manager(Array.from(collections.beatmaps.get(name).maps), name);
+    }
 };
 
 const create_new_collection = async () => {
 
     const method = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
+        type: popup_type.CUSTOM_MENU,
         title: "method",
+        submit: "create collection",
         elements: [{
             key: "name",
             element: { list: ["empty", "from url", "from file", "from player"] }
@@ -372,95 +468,15 @@ const create_new_collection = async () => {
     }
 
     switch (method.name) {
-
-        case "empty": {
-
-            const collection_name = await create_custom_popup({     
-                type: message_types.INPUT, 
-                label: "collection name" 
-            });
-            
-            if (!collection_name) {
-                return;
-            }
-    
-            if (core.reader.collections.beatmaps.has(collection_name)) {
-                return create_alert("this collection already exists");
-            }
-    
+        case "empty": 
             create_empty_collection(collection_name);
             break;
-        }
+        case "from file": 
+            create_from_file();
+            break;
         case "from url": 
             add_new_collection();
             break;
-        case "from file": {
-
-            const data = await select_file({
-                title: "select the file",
-                properties: ["openFile"],
-                filters: [
-                    { name: "collection files", extensions: ["osdb", "db"], }
-                ]
-            });
-
-            // cancelled
-            if (!data) {
-                return;
-            }
-
-            const { name, buffer } = data;
-            const reader = new Reader();
-
-            const collections = path.extname(name) == ".osdb" ? { b: await reader.get_osdb_data(buffer) } : await reader.get_collections_data(buffer);
-            
-            // lazy ass solution
-            if (path.extname(name) == ".osdb") {
-
-                collections.beatmaps = new Map();
-
-                for (let i = 0; i < collections.b.collections.length; i++) {
-
-                    const data = collections.b.collections[i];
-                    const beatmaps = data.hash_only_beatmaps.length == 0 ? data.beatmaps.map((b) => b.md5) : data.hash_only_beatmaps;
-
-                    collections.beatmaps.set(data.name, { maps: new Set(beatmaps) });
-                } 
-            }
-
-            const select = await create_custom_popup({
-                type: message_types.CUSTOM_MENU,
-                title: "collections to import",
-                elements: [
-                    { 
-                        key: "collections",
-                        element: { 
-                            cards: Array.from(collections.beatmaps).map(([k, c]) => {
-                                // dont make existing collections selectable 
-                                const is_selectable = core.reader.collections.beatmaps.has(k);
-                                return {
-                                    selectable: !is_selectable,
-                                    name: k,
-                                    count: c.maps.size
-                                }
-                            })
-                        }
-                    }
-                ]
-            });
-
-            // cancelled
-            if (!select || select?.collections.length == 0) {
-                return;
-            }
-
-            // add collections to manager
-            for (const name of select.collections) {
-                add_collection_manager(Array.from(collections.beatmaps.get(name).maps), name);
-            }
-
-            break;
-        }
         default:
             get_from_player();
             break;
@@ -491,7 +507,7 @@ ctxmenu.attach(more_options, [
     { isDivider: true },
     { text: "create new collection", action: () => create_new_collection() },
     { text: "get missing beatmaps", action: () => show_missing_beatmaps() },
-    { text: "delete beatmaps", action: () => delete_beatmaps_manager() }
+    { text: "remove beatmaps", action: () => remove_beatmaps_manager() }
 ], { onClick: true, Fixed: { left: "calc(100vw - 220px)", top: `${more_options.getBoundingClientRect().bottom - 5}px` }});
 
 export const update_beatmaps = async (extra) => {

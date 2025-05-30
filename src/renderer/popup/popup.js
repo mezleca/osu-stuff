@@ -7,19 +7,19 @@ import { create_collection_item } from "../manager/ui/draggable.js";
 
 const alerts = new Map();
 
+export const popup_type = {
+    MENU: 'menu',
+    CUSTOM_MENU: 'custom_menu',
+    INPUT: "input",
+    CONFIRMATION: "confirmation"
+};
+
 const DEFAULT_ALERT_OBJECT = {
     type: "default",
     html: true,
     seconds: 3,
     text: ""
 }
-
-const MESSAGE_TYPES = {
-    MENU: 'menu',
-    CUSTOM_MENU: 'custom_menu',
-    INPUT: "input",
-    CONFIRMATION: "confirmation"
-};
 
 const ALERT_STYLES = {
     error: { class: "alert-error" },
@@ -37,13 +37,13 @@ export const create_custom_popup = async (config) => {
     }
 
     switch (type) {
-        case MESSAGE_TYPES.MENU:
+        case popup_type.MENU:
             return create_menu(options);
-        case MESSAGE_TYPES.CUSTOM_MENU:
+        case popup_type.CUSTOM_MENU:
             return create_custom_menu(options);
-        case MESSAGE_TYPES.INPUT:
+        case popup_type.INPUT:
             return create_input(options);
-        case MESSAGE_TYPES.CONFIRMATION:
+        case popup_type.CONFIRMATION:
             return create_confirmation(options);
         default:
             return null;
@@ -112,13 +112,12 @@ const create_input = async (options) => {
     const value = safe_text(options?.value) || "";
     const input_id = crypto.randomUUID();
 
-    // @TODO: move css stuff later
     const content = create_element(`
         <div class="popup-container" id="${input_id}">
             <div class="popup-content input-only" style="display: flex; flex-direction: column;">
                 <label style="margin-bottom: 10px;"></label>
                 <input style="flex-grow: 1;" type="${input_type}" id="input_field" value="${value}">
-                <button style="align-self: center; font-size: 1.1em; width: 25%; padding: 10px;" id="input_submit">submit</button>
+                <button style="align-self: center; font-size: 1.1em; width: 25%; padding: 10px;" id="input_submit">${options?.submit || "submit"}</button>
             </div>
         </div>
     `);
@@ -196,7 +195,7 @@ const create_confirmation = async (options) => {
     const { title = 'are you sure?', values } = options;
 
     const confirmation_id = crypto.randomUUID();
-    const confirm_values = Array.isArray(values) && values.length ? values : ['Yes', 'No'];
+    const confirm_values = Array.isArray(values) && values.length ? values : ['yes', 'no'];
 
     const content = create_element(`
         <div class="popup-container" id="${confirmation_id}">
@@ -231,12 +230,29 @@ const create_confirmation = async (options) => {
     });
 };
 
+export const create_checkbox_box = (id, label, checked) => {
+
+    const checkbox_el = create_element(`
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="${id}" ${checked ? "checked" : ""}>
+                <div class="text-content">
+                    <div class="checkbox-label"></div>
+                </div>
+            </label>
+        </div>
+    `);
+
+    checkbox_el.querySelector(".checkbox-label").textContent = label;
+    return checkbox_el;
+};
+
 export const quick_confirm = async (title) => {
-    const confirm = await create_custom_popup({ type: message_types.CONFIRMATION, title: title });
+    const confirm = await create_custom_popup({ type: popup_type.CONFIRMATION, title: title });
     if (confirm == null) {
         return null;
     }
-    return confirm == "Yes";
+    return confirm == "yes";
 };
 
 const create_custom_menu = async (options) => {
@@ -251,17 +267,20 @@ const create_custom_menu = async (options) => {
             <div class="popup-content-flex">
                 <h1></h1>
                 <div id="elements_container"></div>
-                <button id="custom_menu_submit">submit</button>
+                <button id="custom_menu_submit">${options?.submit || "submit"}</button>
             </div>
         </div>
     `);
     
     const popup_title = content_wrapper.querySelector("h1");
     const elements_container = content_wrapper.querySelector("#elements_container");
+    const submit_btn = content_wrapper.querySelector("#custom_menu_submit");
 
     popup_title.textContent = title;
     
-    elements.forEach(({ key, element }) => {
+    for (let i = 0; i < elements.length; i++) {
+
+        const { key, element } = elements[i];
 
         const type = Object.keys(element)[0];
         const props = element[type]?.options ? element[type].options : element[type];
@@ -269,71 +288,93 @@ const create_custom_menu = async (options) => {
         const safe_key = safe_id(key.replace(/\s+/g, '_'));
 
         switch (type) {
-            case 'list':
+            case 'list': {
                 const is_multiple = element[type]?.multiple == true;     
                 if (is_multiple) {
-                    const dropdown = create_dropdown({ id: `${safe_key}_dropdown`, name: label, values: props});
+                    const dropdown = create_dropdown({ 
+                        id: `${safe_key}_dropdown`, 
+                        name: label, 
+                        values: props
+                    });
                     filters[safe_key] = dropdown;
                     elements_container.appendChild(dropdown.element);
                 } else {
+                    let options_html = "";
+                    for (let j = 0; j < props.length; j++) {
+                        options_html += `<option value="${safe_text(props[j])}">${safe_text(props[j])}</option>`;
+                    }
+                    
                     const select_el = create_element(`
                         <div class="select-container">
                             <label></label>
                             <select id="${safe_key}">
-                                ${props.map(opt => `<option value="${safe_text(opt)}">${safe_text(opt)}</option>`).join('')}
+                                ${options_html}
                             </select>
                         </div>
                     `);
                     select_el.querySelector("label").textContent = label;
                     elements_container.appendChild(select_el);
                 }
-                break;             
-            case 'range':
+                break;
+            }
+            case 'range': {
                 const iden = props.identifier || "";
                 const fix = props.decimal_places || 2;
                 const initial = props.max || 100;
-                const range = create_range({id: `${safe_key}_range`, text: label, iden: iden, fix: fix, initial: initial});
+                const range = create_range({
+                    id: `${safe_key}_range`, 
+                    text: label, 
+                    iden: iden, 
+                    fix: fix, 
+                    initial: initial
+                });
                 filters[safe_key] = range;
                 elements_container.appendChild(range.element);
                 break;
-            case 'tag':
+            }
+            case 'tag': {
                 const tag = create_tag({ 
                     id: `${safe_key}_tag`, 
                     name: safe_key, 
                     placeholder: props.placeholder || "name", 
-                    add_button: props.show_add || false, limit: props.limit || 4 
+                    add_button: props.show_add || false, 
+                    limit: props.limit || 4 
                 });
                 filters[safe_key] = tag;
                 elements_container.appendChild(tag.element);
                 break;
-            case 'cards':
+            }
+            case 'cards': {
                 const cards = new Set();
-                const container = create_element('<div class="cards-container"></div>');
-                for (const card of props) {
+                const container_cards = create_element('<div class="cards-container"></div>');
+                
+                for (let j = 0; j < props.length; j++) {
+                    const card = props[j];
                     const card_data = create_collection_item(crypto.randomUUID(), card.name);
+                    
                     if (card.selectable) {
-                        card_data.draggable_item.addEventListener("click", () => card_data.draggable_item.classList.toggle("selected"));
+                        card_data.draggable_item.addEventListener("click", () => {
+                            card_data.draggable_item.classList.toggle("selected");
+                        });
                     } else {
                         card_data.name_element.textContent += " (already imported)";
                     }
-                    card_data.count_element.textContent = card.count || 0 + " maps";
+                    
+                    card_data.count_element.textContent = (card.count || 0) + " maps";
                     cards.add(card_data);
-                    container.appendChild(card_data.draggable_item);
+                    container_cards.appendChild(card_data.draggable_item);
                 }
-                filters[safe_key] = { container: container, cards: cards };
-                elements_container.appendChild(container);
-                break;               
-            case 'checkbox':
-                const checkbox_el = create_element(`
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="${safe_key}">
-                        <label for="${safe_key}"></label>
-                    </div>
-                `);
-                checkbox_el.querySelector("label").textContent = label;
-                elements_container.appendChild(checkbox_el);
+                
+                filters[safe_key] = { container: container_cards, cards: cards };
+                elements_container.appendChild(container_cards);
                 break;
-            case 'input':
+            }
+            case 'checkbox': {
+                const checkbox = create_checkbox_box(safe_key, label); 
+                elements_container.appendChild(checkbox);
+                break;
+            }
+            case 'input': {
                 const input_el = create_element(`
                     <div class="input-container">
                         <input type="text" id="${safe_key}"/>
@@ -344,8 +385,9 @@ const create_custom_menu = async (options) => {
                 elements_container.appendChild(label_el);
                 input_el.children[0].value = props?.value || "";
                 elements_container.appendChild(input_el);
-                break;             
-            default:
+                break;
+            }
+            default: {
                 const default_el = create_element(`
                     <div class="input-container">
                         <label></label>
@@ -356,19 +398,21 @@ const create_custom_menu = async (options) => {
                 default_el.children[1].textContent = props.text || "";
                 elements_container.appendChild(default_el);
                 break;
+            }
         }
-    });
+    }
     
     container.appendChild(content_wrapper);
     
     return new Promise((resolve) => {
 
-        const submit_btn = content_wrapper.querySelector("#custom_menu_submit");
         submit_btn.addEventListener("click", () => {
 
             const result = {};
             
-            elements.forEach(({ key, element }) => {
+            for (let i = 0; i < elements.length; i++) {
+
+                const { key, element } = elements[i];
 
                 const type = Object.keys(element)[0];
                 const safe_key = safe_id(key.replace(/\s+/g, '_'));
@@ -410,15 +454,20 @@ const create_custom_menu = async (options) => {
                 } else if (type == 'cards') {
                     const data = filters[safe_key];
                     if (data) {
-                        const filtered_cards = Array.from(data.cards).filter((c) => c.draggable_item.classList.contains("selected"));
-                        result[safe_key] = filtered_cards.map((c) => c.name_element.textContent);
+                        const filtered_cards = [];
+                        for (const card of data.cards) {
+                            if (card.draggable_item.classList.contains("selected")) {
+                                filtered_cards.push(card.name_element.textContent);
+                            }
+                        }
+                        result[safe_key] = filtered_cards;
                     }
                 } else {
                     if (content) {
                         result[safe_key] = content.textContent;
                     }
                 }
-            });
+            }
             
             container.removeChild(content_wrapper);
             resolve(result);
@@ -432,5 +481,3 @@ const create_custom_menu = async (options) => {
         });
     });
 };
-
-export const message_types = MESSAGE_TYPES;

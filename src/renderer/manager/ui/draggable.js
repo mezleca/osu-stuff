@@ -3,7 +3,7 @@ import { core } from "../manager.js";
 import { cursor, DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
 import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
 import { create_element } from "../../utils/global.js";
-import { create_alert, create_custom_popup, message_types, quick_confirm } from "../../popup/popup.js";
+import { create_alert, create_custom_popup, popup_type, quick_confirm } from "../../popup/popup.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { ctxmenu } from "./context.js";
 
@@ -176,7 +176,7 @@ const can_merge = (id) => {
 const merge_context = async (cl1_id, cl2_id, default_name) => {
 
     const new_name = await create_custom_popup({
-        type: message_types.INPUT,
+        type: popup_type.INPUT,
         title: "collection name",
         label: "new collection name",
         input_type: "text",
@@ -214,7 +214,7 @@ const merge_context = async (cl1_id, cl2_id, default_name) => {
 export const change_collection_name = async (id, element) => {
 
     const new_name = await create_custom_popup({
-        type: message_types.INPUT,
+        type: popup_type.INPUT,
         title: "new collection name",
         label: "new collection name",
         value: element.textContent,
@@ -339,6 +339,8 @@ export const export_all_beatmaps = async (id) => {
     const collection = core.reader.collections.beatmaps.get(id);
     const exported = new Set();
 
+    console.log(id, collection);
+
     if (collection.maps.size == 0) {
         create_alert("no maps to export :c");
         return;
@@ -371,8 +373,9 @@ export const export_collection = async (id) => {
     }
 
     const method = await create_custom_popup({
-        type: message_types.CUSTOM_MENU,
+        type: popup_type.CUSTOM_MENU,
         title: "export option",
+        submit: "export collection",
         elements: [
             {
                 key: "export as",
@@ -496,7 +499,7 @@ const create_context = (draggable) => {
         },
         { text: "rename collection", action: () => change_collection_name(draggable.id, name) },
         { text: "export collection", action: () => export_collection(draggable.collection_id) },
-        { text: "export beatmaps", action: () => export_all_beatmaps(draggable.id) },
+        { text: "export beatmaps", action: () => export_all_beatmaps(draggable.collection_id) },
         { text: "delete", action: () => delete_draggable(draggable.collection_id, draggable.id, draggable.target) }
     ]);
 };
