@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
 	"name": "osu-stuff",
 	"productName": "osu-stuff",
 	"version": "1.8.1",
@@ -12,20 +11,6 @@
 	},
 	"scripts": {
 		"start": "webpack && env-cmd -f ./env/.production electron .",
-=======
-    "name": "osu-stuff",
-    "productName": "osu-stuff",
-    "version": "1.8.1",
-    "description": "yet another collection manager",
-    "main": "src/index.js",
-    "type": "module",
-    "license": "MIT",
-    "repository": {
-        "url": "https://github.com/mezleca/osu-stuff"
-    },
-    "scripts": {
-        "start": "webpack && env-cmd -f ./env/.production electron .",
->>>>>>> origin
         "dev": "webpack && concurrently \"npm run webpack:watch\" \"env-cmd -f ./env/.development electron .\"",
         "webpack:watch": "webpack --watch",
         "build": "webpack && env-cmd -f ./env/.production electron-builder build",
