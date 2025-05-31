@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>osu-stuff</title>
+    </head>
+    <body>
+        <div class="header" style="--wails-draggable:drag">
+            <div class="header-left">
+                <div class="app-title">osu-stuff</div>
+                <div class="tabs">
+                    <button class="tab active" data-tab="manager">manager</button>
+                    <button class="tab" data-tab="browse">browse</button>
+                    <button class="tab" data-tab="discover">discover</button>
+                    <button class="tab" data-tab="config">config</button>
+                    <button class="tab" data-tab="status">status</button>
+                </div>
+            </div>
+            
+            <div class="window-controls">
+                <button class="control-btn minimize">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg> 
+                </button>
+                <button class="control-btn maximize">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="5" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>  
+                </button>
+                <button class="control-btn close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="main-container">
+            <div class="content tab-content active" id="manager-content">
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" class="search-input" placeholder="search collections...">
+                        </div>
+                    </div>
+                    
+                    <div class="collections">
+                        
+                        <div class="collection-item">
+                            <div class="collection-info">
+                                <svg class="music-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18V5l12-2v13"></path>
+                                    <circle cx="6" cy="18" r="3"></circle>
+                                    <circle cx="18" cy="16" r="3"></circle>
+                                </svg>
+                                <span class="collection-name">fc</span>
+                            </div>
+                            <span class="collection-count">100 maps</span>
+                        </div>
+                        
+                        <div class="collection-item active">
+                            <div class="collection-info">
+                                <svg class="music-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18V5l12-2v13"></path>
+                                    <circle cx="6" cy="18" r="3"></circle>
+                                    <circle cx="18" cy="16" r="3"></circle>
+                                </svg>
+                                <span class="collection-name">mzle</span>
+                            </div>
+                            <span class="collection-count">1384 maps</span>
+                        </div>
+                        
+                        <div class="collection-item">
+                            <div class="collection-info">
+                                <svg class="music-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18V5l12-2v13"></path>
+                                    <circle cx="6" cy="18" r="3"></circle>
+                                    <circle cx="18" cy="16" r="3"></circle>
+                                </svg>
+                                <span class="collection-name">pass</span>
+                            </div>
+                            <span class="collection-count">4 maps</span>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <div class="manager-content">
+                    <div class="content-header">
+                        <div class="search-container">
+                            <svg class="search-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" class="search-input" placeholder="search beatmaps...">
+                        </div>
+                        
+                        <div class="search-expand">
+                            <button class="expand-btn" id="expandBtn">⋯</button>
+                        </div>
+                        
+                        <div class="search-expanded" id="searchExpanded">
+                            <div class="browse-filters">
+                                <div class="filter-group">
+                                    <div class="filter-label">Status</div>
+                                    <select class="filter-select">
+                                        <option>All</option>
+                                        <option>Ranked</option>
+                                        <option>Qualified</option>
+                                        <option>Pending</option>
+                                        <option>Loved</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="filter-label">Star Rating</div>
+                                    <select class="filter-select">
+                                        <option>Any</option>
+                                        <option>0-2★</option>
+                                        <option>2-4★</option>
+                                        <option>4-6★</option>
+                                        <option>6-8★</option>
+                                        <option>8★+</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="filter-label">Genre</div>
+                                    <select class="filter-select">
+                                        <option>Any</option>
+                                        <option>Electronic</option>
+                                        <option>Rock</option>
+                                        <option>Pop</option>
+                                        <option>Anime</option>
+                                        <option>Classical</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="filter-label">Language</div>
+                                    <select class="filter-select">
+                                        <option>Any</option>
+                                        <option>English</option>
+                                        <option>Japanese</option>
+                                        <option>Korean</option>
+                                        <option>Chinese</option>
+                                        <option>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="beatmaps-container">
+
+                            <button class="add-btn">
+                                <svg id="add-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="16" height="16" stroke="currentColor" fill="none">
+                                    <line x1="5" y1="2" x2="5" y2="8" stroke-width="1"/>
+                                    <line x1="2" y1="5" x2="8" y2="5" stroke-width="1"/>
+                                </svg>
+                            </button>
+
+                        <div class="beatmaps-header">
+                            <div class="results-count">1384 matches</div>
+                        </div>
+                        
+                        <div class="beatmaps-grid">
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Last Words</div>
+                                    <div class="beatmap-subtitle">werf's Extra</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge ranked">RANKED</span>
+                                        <span class="star-rating">★ 6.16</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Last Words</div>
+                                    <div class="beatmap-subtitle">Shiraya Sayuki's Extra</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge ranked">RANKED</span>
+                                        <span class="star-rating">★ 5.63</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Baby Got Back</div>
+                                    <div class="beatmap-subtitle">rev03's FOUR BOOTYMENSIONS</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge ranked">RANKED</span>
+                                        <span class="star-rating">★ 6.88</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Baby Got Back</div>
+                                    <div class="beatmap-subtitle">CORROSIVE's extra meat on them bones</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge ranked">RANKED</span>
+                                        <span class="star-rating">★ 5.75</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Hisui</div>
+                                    <div class="beatmap-subtitle">Yokes' Expert</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge ranked">RANKED</span>
+                                        <span class="star-rating">★ 5.74</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="beatmap-card">
+                                <div class="beatmap-bg"></div>
+                                <div class="beatmap-controls">
+                                    <button class="control-icon">▶</button>
+                                    <button class="control-icon">×</button>
+                                </div>
+                                <div class="beatmap-info">
+                                    <div class="beatmap-title">Hyakuukakoi to Shirotokkuri</div>
+                                    <div class="beatmap-subtitle">117's Another</div>
+                                    <div class="beatmap-stats">
+                                        <span class="stat-badge pending">PENDING</span>
+                                        <span class="star-rating">★ 5.47</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content tab-content" id="browse-content">
+                <div class="content-header">
+                    <div class="search-container">
+                        <svg class="search-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" class="search-input" placeholder="search beatmaps...">
+                    </div>
+                    
+                    <div class="search-expand">
+                        <button class="expand-btn">⋯</button>
+                    </div>
+                    
+                    <div class="search-expanded">
+                        <div class="browse-filters">
+                            <div class="filter-group">
+                                <div class="filter-label">Status</div>
+                                <select class="filter-select">
+                                    <option>All</option>
+                                    <option>Ranked</option>
+                                    <option>Qualified</option>
+                                    <option>Pending</option>
+                                    <option>Loved</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Star Rating</div>
+                                <select class="filter-select">
+                                    <option>Any</option>
+                                    <option>0-2★</option>
+                                    <option>2-4★</option>
+                                    <option>4-6★</option>
+                                    <option>6-8★</option>
+                                    <option>8★+</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Genre</div>
+                                <select class="filter-select">
+                                    <option>Any</option>
+                                    <option>Electronic</option>
+                                    <option>Rock</option>
+                                    <option>Pop</option>
+                                    <option>Anime</option>
+                                    <option>Classical</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Language</div>
+                                <select class="filter-select">
+                                    <option>Any</option>
+                                    <option>English</option>
+                                    <option>Japanese</option>
+                                    <option>Korean</option>
+                                    <option>Chinese</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="beatmaps-container">
+                    <div class="beatmaps-header">
+                        <div class="results-count">214 matches</div>
+                    </div>
+                    
+                    <div class="beatmaps-grid">
+                        <div class="beatmap-card">
+                            <div class="beatmap-bg"></div>
+                            <div class="beatmap-controls">
+                                <button class="control-icon">▶</button>
+                                <button class="control-icon">×</button>
+                            </div>
+                            <div class="beatmap-info">
+                                <div class="beatmap-title">Kimi no Shiranai Monogatari</div>
+                                <div class="beatmap-subtitle">Monstrata's Insane</div>
+                                <div class="beatmap-stats">
+                                    <span class="stat-badge ranked">RANKED</span>
+                                    <span class="star-rating">★ 4.85</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="beatmap-card">
+                            <div class="beatmap-bg"></div>
+                            <div class="beatmap-controls">
+                                <button class="control-icon">▶</button>
+                                <button class="control-icon">×</button>
+                            </div>
+                            <div class="beatmap-info">
+                                <div class="beatmap-title">Tsukinami</div>
+                                <div class="beatmap-subtitle">Reform's Expert</div>
+                                <div class="beatmap-stats">
+                                    <span class="stat-badge ranked">RANKED</span>
+                                    <span class="star-rating">★ 5.88</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content tab-content" id="discover-content">
+                <div class="content-header">
+                    <div class="search-container">
+                        <svg class="search-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" class="search-input" placeholder="search new beatmaps...">
+                    </div>
+                    
+                    <div class="search-expand">
+                        <button class="expand-btn">⋯</button>
+                    </div>
+                    
+                    <div class="search-expanded">
+                        <div class="browse-filters">
+                            <div class="filter-group">
+                                <div class="filter-label">Status</div>
+                                <select class="filter-select">
+                                    <option>All</option>
+                                    <option>Ranked</option>
+                                    <option>Qualified</option>
+                                    <option>Pending</option>
+                                    <option>Loved</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Star Rating</div>
+                                <select class="filter-select">
+                                    <option>Any</option>
+                                    <option>0-2★</option>
+                                    <option>2-4★</option>
+                                    <option>4-6★</option>
+                                    <option>6-8★</option>
+                                    <option>8★+</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Genre</div>
+                                <select class="filter-select">
+                                    <option>Any</option>
+                                    <option>Electronic</option>
+                                    <option>Rock</option>
+                                    <option>Pop</option>
+                                    <option>Anime</option>
+                                    <option>Classical</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-label">Source</div>
+                                <select class="filter-select">
+                                    <option>All</option>
+                                    <option>Local</option>
+                                    <option>osu! API</option>
+                                    <option>Recommended</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="beatmaps-container">
+                    <div class="beatmaps-header">
+                        <div class="results-count">42 new beatmaps found</div>
+                    </div>
+                    
+                    <div class="beatmaps-grid">
+                        <div class="beatmap-card new">
+                            <div class="beatmap-bg"></div>
+                            <div class="beatmap-controls">
+                                <button class="control-icon">▶</button>
+                                <button class="control-icon">+</button>
+                            </div>
+                            <div class="beatmap-info">
+                                <div class="beatmap-title">Yoru ni Kakeru</div>
+                                <div class="beatmap-subtitle">Ryuusei Aika's Expert</div>
+                                <div class="beatmap-stats">
+                                    <span class="stat-badge ranked">RANKED</span>
+                                    <span class="star-rating">★ 5.93</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="beatmap-card new">
+                            <div class="beatmap-bg"></div>
+                            <div class="beatmap-controls">
+                                <button class="control-icon">▶</button>
+                                <button class="control-icon">+</button>
+                            </div>
+                            <div class="beatmap-info">
+                                <div class="beatmap-title">Gurenge</div>
+                                <div class="beatmap-subtitle">Monstrata's Extreme</div>
+                                <div class="beatmap-stats">
+                                    <span class="stat-badge ranked">RANKED</span>
+                                    <span class="star-rating">★ 6.54</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="beatmap-card new">
+                            <div class="beatmap-bg"></div>
+                            <div class="beatmap-controls">
+                                <button class="control-icon">▶</button>
+                                <button class="control-icon">+</button>
+                            </div>
+                            <div class="beatmap-info">
+                                <div class="beatmap-title">Inferno</div>
+                                <div class="beatmap-subtitle">Sotarks' Extreme</div>
+                                <div class="beatmap-stats">
+                                    <span class="stat-badge ranked">RANKED</span>
+                                    <span class="star-rating">★ 7.12</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="./src/main.ts" type="module"></script>
+    </body>
+</html>

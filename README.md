@@ -1,83 +1,19 @@
-<div align="center">
-    <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">yet another collection manager</p>
-</div>
+# README
 
-<p align="center">
-  <img src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
-</p>
+## About
 
-## wtf is osu-stuff
-a simple and useful app that gives you freedom to:
-- manage your lazer/stable collections
-- import collections from files/websites (osu!collector, osustats)
-- export collections to legacy db files or osdb files (minimal)
-- create collections from player's best performance, favorites maps, first place, etc.
-- merge collections
-- get missing beatmaps from collections
-- delete beatmaps from collections
-- delete beatmaps from your osu folder (still experimental)
-- etc...
+This is the official Wails Vanilla-TS template.
 
-## found bugs or crashes?
-- hit `F12` to open devtools and grab the logs
-- if issues with osu-stuff downloader, logs are in the osu-stuff folder (one folder before exports)
-- send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or create an issue on this repo
+You can configure the project by editing `wails.json`. More information about the project settings can be found
+here: https://wails.io/docs/reference/project-config
 
-> [!NOTE]  
-> for now, all beatmaps downloaded using (lazer mode) will be placed in the exports folder
+## Live Development
 
-## download
-- **latest version (v1.7.x)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
+server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
+and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
+to this in your browser, and you can call your Go code from devtools.
 
-## custom mirrors
-| name         | url                                                      |
-| ------------ | -------------------------------------------------------- |
-| `beatconnect` | [https://beatconnect.io/d/](https://beatconnect.io/d/)   |
-| `catboy`      | [https://catboy.best/d/](https://catboy.best/d/)         |
-| `sayobot`     | [https://dl.sayobot.cn/beatmaps/download/](https://dl.sayobot.cn/beatmaps/download/) |
+## Building
 
-## linux dependencies
-
-### debian/ubuntu
-```bash
-sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
-```
-
-### arch
-```bash
-sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
-```
-
-## build it yourself
-
-### prerequisites
-- [node.js](https://nodejs.org/)  
-- [git](https://git-scm.com/downloads)  
-
-### steps
-```bash
-# clone repo
-git clone https://github.com/mezleca/osu-stuff.git
-
-# install dependencies
-cd osu-stuff
-npm install
-
-# build for your platform
-npm run build
-
-# or build for specific platform
-npm run build:win    # windows
-npm run build:linux  # linux
-
-# binaries location: /dist/...
-
-# to run instead of building:
-npm start
-```
-
-## credits
-- [CollectionManager](https://github.com/Piotrekol/CollectionManager) - osdb
-- [ctxmenu](https://github.com/nkappler/ctxmenu) - custom context menu
-- [osu-cad](https://github.com/minetoblend/osu-cad) - used for beatmap preview
+To build a redistributable, production mode package, use `wails build`.
