@@ -1,108 +1,108 @@
 {
-	"name": "osu-stuff",
-	"productName": "osu-stuff",
-	"version": "1.8.0",
-	"description": "yet another collection manager",
-	"main": "src/index.js",
-	"type": "module",
-	"license": "MIT",
-	"repository": {
-		"url": "https://github.com/mezleca/osu-stuff"
-	},
-	"scripts": {
-		"start": "webpack && env-cmd -f ./env/.production electron .",
+    "name": "osu-stuff",
+    "productName": "osu-stuff",
+    "version": "1.8.1",
+    "description": "yet another collection manager",
+    "main": "src/index.js",
+    "type": "module",
+    "license": "MIT",
+    "repository": {
+        "url": "https://github.com/mezleca/osu-stuff"
+    },
+    "scripts": {
+        "start": "webpack && env-cmd -f ./env/.production electron .",
         "dev": "webpack && concurrently \"npm run webpack:watch\" \"env-cmd -f ./env/.development electron .\"",
         "webpack:watch": "webpack --watch",
-		"build": "webpack && env-cmd -f ./env/.production electron-builder build",
-		"build:win": "webpack && env-cmd -f ./env/.production electron-builder build --win",
-		"build:linux": "webpack && env-cmd -f ./env/.production electron-builder build --linux",
-		"build:preload": "webpack --config preload.config.js"
-	},
-	"author": {
-		"name": "rel",
-		"email": "92015390+mezleca@users.noreply.github.com"
-	},
-	"devDependencies": {
-		"@babel/core": "^7.27.1",
-		"babel-loader": "^10.0.0",
-		"concurrently": "^9.1.2",
-		"css-loader": "^7.1.2",
-		"css-minimizer-webpack-plugin": "^7.0.2",
-		"electron": "36.3.2",
-		"electron-builder": "26.0.12",
-		"env-cmd": "^10.1.0",
-		"mini-css-extract-plugin": "^2.9.2",
-		"terser-webpack-plugin": "^5.3.14",
-		"webpack": "^5.99.8",
-		"webpack-cli": "^6.0.1",
-		"webpack-node-externals": "^3.0.0"
-	},
-	"dependencies": {
-		"jszip": "^3.10.1",
-		"realm": "^12.14.2"
-	},
-	"build": {
-		"appId": "com.osustuff.app",
-		"productName": "osu-stuff",
-		"executableName": "osu-stuff",
-		"asar": true,
-		"publish": false,
-		"electronLanguages": [
-			"en-US"
-		],
-		"compression": "store",
-		"files": [
-			"src/dist/**",
-			"src/*.js",
-			"src/renderer/gui/index.html",
-			"package.json",
-			"node_modules/**/*",
-			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-			"!node_modules/realm/prebuilds/android*/**",
-			"!node_modules/realm/prebuilds/apple*/**"
-		],
-		"directories": {
-			"buildResources": "build",
-			"output": "dist"
-		},
-		"extraResources": [
-			{
-				"from": "build/icons",
-				"to": "icons"
-			}
-		],
-		"nsis": {
-			"oneClick": true,
-			"perMachine": true,
-			"installerIcon": "build/icons/win/icon.ico",
-			"uninstallerIcon": "build/icons/win/icon.ico",
-			"artifactName": "osu-stuff-${version}.exe"
-		},
-		"win": {
-			"icon": "build/icons/win/icon.ico",
-			"target": [
-				{
-					"target": "nsis",
-					"arch": [
-						"x64"
-					]
-				}
-			]
-		},
-		"mac": {
-			"icon": "build/icons/mac",
-			"target": [
-				"zip",
-				"dmg"
-			]
-		},
-		"linux": {
-			"icon": "build/icons/png",
-			"target": [
-				"deb",
-				"AppImage"
-			],
-			"category": "Utility"
-		}
-	}
+        "build": "webpack && env-cmd -f ./env/.production electron-builder build",
+        "build:win": "webpack && env-cmd -f ./env/.production electron-builder build --win",
+        "build:linux": "webpack && env-cmd -f ./env/.production electron-builder build --linux",
+        "build:preload": "webpack --config preload.config.js"
+    },
+    "author": {
+        "name": "rel",
+        "email": "92015390+mezleca@users.noreply.github.com"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.27.1",
+        "babel-loader": "^10.0.0",
+        "concurrently": "^9.1.2",
+        "css-loader": "^7.1.2",
+        "css-minimizer-webpack-plugin": "^7.0.2",
+        "electron": "36.3.2",
+        "electron-builder": "26.0.12",
+        "env-cmd": "^10.1.0",
+        "mini-css-extract-plugin": "^2.9.2",
+        "terser-webpack-plugin": "^5.3.14",
+        "webpack": "^5.99.8",
+        "webpack-cli": "^6.0.1",
+        "webpack-node-externals": "^3.0.0"
+    },
+    "dependencies": {
+        "jszip": "^3.10.1",
+        "realm": "^12.14.2"
+    },
+    "build": {
+        "appId": "com.osustuff.app",
+        "productName": "osu-stuff",
+        "executableName": "osu-stuff",
+        "asar": true,
+        "publish": false,
+        "electronLanguages": [
+            "en-US"
+        ],
+        "compression": "store",
+        "files": [
+            "src/dist/**",
+            "src/*.js",
+            "src/renderer/gui/index.html",
+            "package.json",
+            "node_modules/**/*",
+            "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
+            "!node_modules/realm/prebuilds/android*/**",
+            "!node_modules/realm/prebuilds/apple*/**"
+        ],
+        "directories": {
+            "buildResources": "build",
+            "output": "dist"
+        },
+        "extraResources": [
+            {
+                "from": "build/icons",
+                "to": "icons"
+            }
+        ],
+        "nsis": {
+            "oneClick": true,
+            "perMachine": true,
+            "installerIcon": "build/icons/win/icon.ico",
+            "uninstallerIcon": "build/icons/win/icon.ico",
+            "artifactName": "osu-stuff-${version}.exe"
+        },
+        "win": {
+            "icon": "build/icons/win/icon.ico",
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ]
+        },
+        "mac": {
+            "icon": "build/icons/mac",
+            "target": [
+                "zip",
+                "dmg"
+            ]
+        },
+        "linux": {
+            "icon": "build/icons/png",
+            "target": [
+                "deb",
+                "AppImage"
+            ],
+            "category": "Utility"
+        }
+    }
 }
