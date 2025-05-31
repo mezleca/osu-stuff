@@ -12,11 +12,12 @@
 	"scripts": {
 		"start": "webpack && env-cmd -f ./env/.production electron .",
         "dev": "webpack && concurrently \"npm run webpack:watch\" \"env-cmd -f ./env/.development electron .\"",
+        "dev:electron":  "electron .",
         "webpack:watch": "webpack --watch",
         "build": "webpack && env-cmd -f ./env/.production electron-builder build",
         "build:win": "webpack && env-cmd -f ./env/.production electron-builder build --win",
         "build:linux": "webpack && env-cmd -f ./env/.production electron-builder build --linux",
-        "build:preload": "webpack --config preload.config.js"
+        "build:preload": "webpack --config ./config/preload.config.js"
     },
     "author": {
         "name": "rel",

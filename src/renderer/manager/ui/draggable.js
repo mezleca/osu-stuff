@@ -352,11 +352,7 @@ search_input.addEventListener("input", () => {
 
 export const export_all_beatmaps = async (id) => {
     const collection = core.reader.collections.beatmaps.get(id);
-<<<<<<< HEAD
     const exported = new Set()
-=======
-    const exported = new Set();
->>>>>>> origin
 
     if (collection.maps.size == 0) {
         create_alert("no maps to export :c");

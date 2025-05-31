@@ -71,12 +71,12 @@ export const get_linux_path = async () => {
     const custom_path = path.join(os.homedir(), ".local/share/osuconfig/osupath");
 
     if (fs.existsSync(default_path)) {
-        return "";
+        return default_path;
     }
 
     const result = await new Promise((resolve, reject) => {
 
-        exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1" || echo "0"`, (err, stdout, stderr) => {
+        exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1"`, (err, stdout, stderr) => {
 
             if (err) {
                 return resolve("");
