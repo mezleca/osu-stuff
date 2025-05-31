@@ -76,17 +76,21 @@ export const get_linux_path = async () => {
 
     const result = await new Promise((resolve, reject) => {
 
-        exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1"`, (err, stdout, stderr) => {
-            
+        exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1" || echo "0"`, (err, stdout, stderr) => {
+
             if (err) {
-                return reject("");
+                return resolve("");
             }
+
             if (stderr) {
-                return reject("");
+                return resolve("");
             }
-            if (stdout == 1) {
+
+            if (stdout.trim() == "1" && fs.existsSync(custom_path)) {
                 return resolve(fs.readFileSync(custom_path, "utf-8").split("\n")[0]);
             }
+            
+            return resolve("");
         });
     });
 

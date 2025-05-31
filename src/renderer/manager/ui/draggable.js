@@ -337,9 +337,7 @@ search_input.addEventListener("input", () => {
 export const export_all_beatmaps = async (id) => {
     
     const collection = core.reader.collections.beatmaps.get(id);
-    const exported = new Set();
-
-    console.log(id, collection);
+    const exported = new Set()
 
     if (collection.maps.size == 0) {
         create_alert("no maps to export :c");
