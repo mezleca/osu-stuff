@@ -1,9 +1,23 @@
-
 import { core } from "../manager.js";
-import { cursor, DRAG_ACTIVATION_THRESHOLD_MS, fs } from "../../utils/global.js";
-import { setup_manager, render_page, merge_collections, show_update_button, get_selected_collection } from "../manager.js";
+import {
+    cursor,
+    DRAG_ACTIVATION_THRESHOLD_MS,
+    fs,
+} from "../../utils/global.js";
+import {
+    setup_manager,
+    render_page,
+    merge_collections,
+    show_update_button,
+    get_selected_collection,
+} from "../manager.js";
 import { create_element } from "../../utils/global.js";
-import { create_alert, create_custom_popup, popup_type, quick_confirm } from "../../popup/popup.js";
+import {
+    create_alert,
+    create_custom_popup,
+    popup_type,
+    quick_confirm,
+} from "../../popup/popup.js";
 import { Reader } from "../../utils/reader/reader.js";
 import { ctxmenu } from "./context.js";
 
@@ -17,14 +31,13 @@ const list_container = document.querySelector(".list_container");
 
 // yeah i could do this with css but i dont give a shit
 const update_draggable_item_pos = (draggable_item, id) => {
-
     const draggable_item_obj = draggable_items_map.get(id);
 
     if (draggable_item_obj.stop) {
         draggable_item.style.transform = "";
         return;
     }
- 
+
     if (draggable_item.y == null) {
         draggable_item.y = cursor.y;
     }
@@ -41,7 +54,6 @@ const update_draggable_item_pos = (draggable_item, id) => {
 };
 
 const reset_preview_pos = (id) => {
-
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
@@ -49,7 +61,7 @@ const reset_preview_pos = (id) => {
     }
 
     // remove merge style from all elements
-    for (let [k, v] of draggable_items_map) {    
+    for (let [k, v] of draggable_items_map) {
         if (v.target.classList.contains("merge")) {
             v.target.classList.remove("merge");
         }
@@ -70,11 +82,9 @@ const reset_preview_pos = (id) => {
 };
 
 export const remove_all_selected = () => {
-
     const draggable_items = [...document.querySelectorAll(".draggable_item")];
 
     for (let i = 0; i < draggable_items.length; i++) {
-
         if (draggable_items[i].classList.contains("selected")) {
             draggable_items[i].classList.remove("selected");
         }
@@ -82,7 +92,6 @@ export const remove_all_selected = () => {
 };
 
 const detect_collision = (el1, el2, center) => {
-
     const rect1 = el1.getBoundingClientRect();
     const rect2 = el2.getBoundingClientRect();
 
@@ -95,9 +104,9 @@ const detect_collision = (el1, el2, center) => {
             rect1.top > rect2.bottom ||
             rect1.right < rect2.left ||
             rect1.left > rect2.right
-          );
+        );
     }
-  
+
     return (
         centerX >= rect2.left &&
         centerX <= rect2.right &&
@@ -106,11 +115,14 @@ const detect_collision = (el1, el2, center) => {
     );
 };
 
-draggable_item_bin.addEventListener("mouseover", () => draggable_item_bin.classList.add("hover"));
-draggable_item_bin.addEventListener("mouseout", () => draggable_item_bin.classList.remove("hover"));
+draggable_item_bin.addEventListener("mouseover", () =>
+    draggable_item_bin.classList.add("hover"),
+);
+draggable_item_bin.addEventListener("mouseout", () =>
+    draggable_item_bin.classList.remove("hover"),
+);
 
 const drag_callback = (id, placeholder_draggable_item) => {
-    
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
@@ -133,7 +145,9 @@ const drag_callback = (id, placeholder_draggable_item) => {
 
     // give 500ms to enable drag mode
     if (draggable_item.hold_time * 60 < DRAG_ACTIVATION_THRESHOLD_MS) {
-        return requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
+        return requestAnimationFrame(() =>
+            drag_callback(id, placeholder_draggable_item),
+        );
     }
 
     // append the placeholder element
@@ -148,7 +162,6 @@ const drag_callback = (id, placeholder_draggable_item) => {
 };
 
 const can_merge = (id) => {
-
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
@@ -156,7 +169,7 @@ const can_merge = (id) => {
         return false;
     }
 
-    const merge_draggable = document.querySelector('.merge:not(.placeholder)');
+    const merge_draggable = document.querySelector(".merge:not(.placeholder)");
 
     if (!merge_draggable) {
         return false;
@@ -166,7 +179,11 @@ const can_merge = (id) => {
     const cl2_id = draggable_items_map.get(id)?.collection_id;
 
     if (!cl1_id || !cl2_id) {
-        console.log("[merge] failed to get collection id", id, merge_draggable.id);
+        console.log(
+            "[merge] failed to get collection id",
+            id,
+            merge_draggable.id,
+        );
         return false;
     }
 
@@ -174,13 +191,12 @@ const can_merge = (id) => {
 };
 
 const merge_context = async (cl1_id, cl2_id, default_name) => {
-
     const new_name = await create_custom_popup({
         type: popup_type.INPUT,
         title: "collection name",
         label: "new collection name",
         input_type: "text",
-        value: default_name
+        value: default_name,
     });
 
     if (!new_name) {
@@ -201,7 +217,7 @@ const merge_context = async (cl1_id, cl2_id, default_name) => {
     }
 
     core.reader.collections.beatmaps.set(new_name, {
-        maps: merge_collections(maps1, maps2)
+        maps: merge_collections(maps1, maps2),
     });
 
     core.reader.update_collections();
@@ -212,7 +228,6 @@ const merge_context = async (cl1_id, cl2_id, default_name) => {
 };
 
 export const change_collection_name = async (id, element) => {
-
     const new_name = await create_custom_popup({
         type: popup_type.INPUT,
         title: "new collection name",
@@ -234,10 +249,15 @@ export const change_collection_name = async (id, element) => {
     element.textContent = new_name;
 
     const old_draggable_item = draggable_items_map.get(id);
-    const old_collection = core.reader.collections.beatmaps.get(old_draggable_item.collection_id);
+    const old_collection = core.reader.collections.beatmaps.get(
+        old_draggable_item.collection_id,
+    );
 
     if (!old_collection) {
-        console.log("[manager ui] failed to get old collection", old_draggable_item);
+        console.log(
+            "[manager ui] failed to get old collection",
+            old_draggable_item,
+        );
         return;
     }
 
@@ -261,7 +281,6 @@ export const change_collection_name = async (id, element) => {
 
     // update the rest of the context menus
     for (const [k, v] of Array.from(draggable_items_map)) {
-
         // ignore the current one
         if (k == id) {
             continue;
@@ -274,7 +293,6 @@ export const change_collection_name = async (id, element) => {
 };
 
 export const delete_draggable = (collection_id, id, target) => {
-
     core.reader.delete_collection(collection_id);
     draggable_items_map.delete(id);
 
@@ -282,13 +300,12 @@ export const delete_draggable = (collection_id, id, target) => {
 
     reset_preview_pos();
     list.removeChild(target);
-    
+
     core.progress.update(`deleted ${collection_id}`);
-    show_update_button();     
+    show_update_button();
 };
 
 export const check_delete_thing = async (id, placeholder_draggable_item) => {
-
     const draggable_item = draggable_items_map.get(id);
 
     if (!draggable_item) {
@@ -297,15 +314,16 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
 
     // check if is colliding with the bin
     if (detect_collision(placeholder_draggable_item, draggable_item_bin)) {
-    
         const will_delete = await quick_confirm("are you sure?");
 
         if (will_delete) {
-
             const collection_id = draggable_items_map.get(id)?.collection_id;
 
             if (!collection_id) {
-                console.log("[manager ui] failed to get collection id on delete", id);
+                console.log(
+                    "[manager ui] failed to get collection id on delete",
+                    id,
+                );
                 return false;
             }
 
@@ -318,26 +336,27 @@ export const check_delete_thing = async (id, placeholder_draggable_item) => {
 };
 
 search_input.addEventListener("input", () => {
-
     const value = search_input.value;
 
     for (const [k, v] of draggable_items_map) {
-        
         const target = v.target;
         const name = target.querySelector(".collection-name");
-        
+
         if (name.textContent.toLowerCase().includes(value.toLowerCase())) {
             target.classList.remove("hidden");
         } else {
             target.classList.add("hidden");
         }
-    }    
+    }
 });
 
 export const export_all_beatmaps = async (id) => {
-    
     const collection = core.reader.collections.beatmaps.get(id);
+<<<<<<< HEAD
     const exported = new Set()
+=======
+    const exported = new Set();
+>>>>>>> origin
 
     if (collection.maps.size == 0) {
         create_alert("no maps to export :c");
@@ -345,7 +364,6 @@ export const export_all_beatmaps = async (id) => {
     }
 
     for (const hash of collection.maps) {
-
         const beatmap = core.reader.osu.beatmaps.get(hash);
 
         if (!beatmap || exported.has(beatmap.beatmapset_id)) {
@@ -353,7 +371,10 @@ export const export_all_beatmaps = async (id) => {
         }
 
         await core.reader.export_beatmap(beatmap);
-        core.progress.update(`exported ${beatmap.beatmapset_id} to`, { type: "folder", url: core.config.get("export_path") });
+        core.progress.update(`exported ${beatmap.beatmapset_id} to`, {
+            type: "folder",
+            url: core.config.get("export_path"),
+        });
         exported.add(beatmap.beatmapset_id);
     }
 
@@ -361,7 +382,6 @@ export const export_all_beatmaps = async (id) => {
 };
 
 export const export_collection = async (id) => {
-
     // get the collcetion by id and create a new collection.db with the exported one
     const collection = core.reader.collections.beatmaps.get(id);
 
@@ -377,9 +397,9 @@ export const export_collection = async (id) => {
         elements: [
             {
                 key: "export as",
-                element: { list: { options: ["stable collection", "osdb"] }}
+                element: { list: { options: ["stable collection", "osdb"] } },
             },
-        ]
+        ],
     });
 
     if (!method) {
@@ -389,14 +409,13 @@ export const export_collection = async (id) => {
     const reader = new Reader();
 
     if (method.export_as != "osdb") {
-
         // set data
         reader.collections = {
             length: 1,
             version: core.reader.collections.version,
-            beatmaps: new Map([[id, collection]])
-        }
-    
+            beatmaps: new Map([[id, collection]]),
+        };
+
         const buffer = reader.write_stable_collection();
 
         if (!core.config.get("export_path")) {
@@ -405,29 +424,31 @@ export const export_collection = async (id) => {
         }
 
         await fs.save_exported(`${id}.db`, buffer);
-
     } else {
-
         const beatmaps = Array.from(collection.maps);
-        const buffer = await reader.write_osdb_data({
-            save_date: new Date(),
-            last_editor: "", // no ideia what this is
-            collections: [{ 
-                name: id,
-                online_id: 0, // maybe something related to osu!stats
-                hash_only_beatmaps: beatmaps,
-                beatmaps: beatmaps.map((md5) => {
-                    const beatmap = core.reader.osu.beatmaps.get(md5);
-                    return { 
-                        md5: md5, 
-                        map_id: beatmap?.beatmapset_id || 0, // maybe its fine to return 0?
-                        map_set_id: beatmap?.beatmapset_id || 0, // maybe its fIne to return 0?
-                        user_comment: "",
-                    }
-                }),
-                
-            }]
-        }, "o!dm7min"); // minimal cuz we might have missing beatmaps
+        const buffer = await reader.write_osdb_data(
+            {
+                save_date: new Date(),
+                last_editor: "", // no ideia what this is
+                collections: [
+                    {
+                        name: id,
+                        online_id: 0, // maybe something related to osu!stats
+                        hash_only_beatmaps: beatmaps,
+                        beatmaps: beatmaps.map((md5) => {
+                            const beatmap = core.reader.osu.beatmaps.get(md5);
+                            return {
+                                md5: md5,
+                                map_id: beatmap?.beatmapset_id || 0, // maybe its fine to return 0?
+                                map_set_id: beatmap?.beatmapset_id || 0, // maybe its fIne to return 0?
+                                user_comment: "",
+                            };
+                        }),
+                    },
+                ],
+            },
+            "o!dm7min",
+        ); // minimal cuz we might have missing beatmaps
 
         if (!core.config.get("export_path")) {
             create_alert("uhhh, can you please set you export path again? :3");
@@ -436,12 +457,14 @@ export const export_collection = async (id) => {
 
         fs.save_exported(`${id}.osdb`, buffer);
     }
-    
-    core.progress.update(`exported ${id} to`, { type: "folder", url: core.config.get("export_path") });
+
+    core.progress.update(`exported ${id} to`, {
+        type: "folder",
+        url: core.config.get("export_path"),
+    });
 };
 
 export const create_collection_item = (id, name) => {
-
     const element = create_element(`
         <div class="draggable_item">
             <div class="collection-info">
@@ -460,18 +483,23 @@ export const create_collection_item = (id, name) => {
     name_element.textContent = name;
     element.id = id;
 
-    return { draggable_item: element, name_element: name_element, count_element: count_element };
+    return {
+        draggable_item: element,
+        name_element: name_element,
+        count_element: count_element,
+    };
 };
 
 export const update_collections_count = () => {
-
     for (let [k, v] of draggable_items_map) {
-
         const item = v.target;
         const collection = v.collection;
         const count = item.querySelector(".beatmap-count");
 
-        count.textContent = collection.maps.size == 1 ? "1 map" : `${collection.maps.size} maps`;
+        count.textContent =
+            collection.maps.size == 1
+                ? "1 map"
+                : `${collection.maps.size} maps`;
     }
 };
 
@@ -479,37 +507,61 @@ export const update_collection_count = (id, cid) => {
     const item = document.getElementById(id);
     const collection = core.reader.collections.beatmaps.get(cid);
     const count = item.querySelector(".beatmap-count");
-    count.textContent = collection.maps.size == 1 ? "1 map" : `${collection.maps.size} maps`;
+    count.textContent =
+        collection.maps.size == 1 ? "1 map" : `${collection.maps.size} maps`;
 };
 
 const create_context = (draggable) => {
     const name = draggable.target.querySelector(".collection-name");
     ctxmenu.attach(`#${draggable.id}`, [
-        { 
-            text: "merge with", 
-            subMenu: Array.from(core.reader.collections.beatmaps.keys()).filter((e) => e != draggable.collection_id)
+        {
+            text: "merge with",
+            subMenu: Array.from(core.reader.collections.beatmaps.keys())
+                .filter((e) => e != draggable.collection_id)
                 .map((e) => {
-                    return { text: e, action: (e) => { 
-                        const name = `${draggable.collection_id} + ${e.target.textContent}`;
-                        merge_context(draggable.collection_id, e.target.textContent, name); 
-                    }
-                }}) 
+                    return {
+                        text: e,
+                        action: (e) => {
+                            const name = `${draggable.collection_id} + ${e.target.textContent}`;
+                            merge_context(
+                                draggable.collection_id,
+                                e.target.textContent,
+                                name,
+                            );
+                        },
+                    };
+                }),
         },
-        { text: "rename collection", action: () => change_collection_name(draggable.id, name) },
-        { text: "export collection", action: () => export_collection(draggable.collection_id) },
-        { text: "export beatmaps", action: () => export_all_beatmaps(draggable.collection_id) },
-        { text: "delete", action: () => delete_draggable(draggable.collection_id, draggable.id, draggable.target) }
+        {
+            text: "rename collection",
+            action: () => change_collection_name(draggable.id, name),
+        },
+        {
+            text: "export collection",
+            action: () => export_collection(draggable.collection_id),
+        },
+        {
+            text: "export beatmaps",
+            action: () => export_all_beatmaps(draggable.collection_id),
+        },
+        {
+            text: "delete",
+            action: () =>
+                delete_draggable(
+                    draggable.collection_id,
+                    draggable.id,
+                    draggable.target,
+                ),
+        },
     ]);
 };
 
 export const setup_draggables = () => {
-
     if (!core.reader.osu?.beatmaps) {
         return;
     }
 
     for (let [k, v] of core.reader.collections.beatmaps) {
-
         // create the new elements and append to draggable_items map
         const id = "db_" + crypto.randomUUID();
         const { draggable_item, count_element } = create_collection_item(id, k);
@@ -519,51 +571,65 @@ export const setup_draggables = () => {
         }
 
         list.appendChild(draggable_item);
-        count_element.textContent = v.maps.size == 1 ? "1 map" : `${v.maps?.size || 0} maps`;
+        count_element.textContent =
+            v.maps.size == 1 ? "1 map" : `${v.maps?.size || 0} maps`;
 
-        draggable_item.addEventListener("mouseover", () => draggable_item.classList.add("merge"));
-        draggable_item.addEventListener("mouseout", () => draggable_item.classList.remove("merge"));
-        
+        draggable_item.addEventListener("mouseover", () =>
+            draggable_item.classList.add("merge"),
+        );
+        draggable_item.addEventListener("mouseout", () =>
+            draggable_item.classList.remove("merge"),
+        );
+
         draggable_item.addEventListener("mousedown", (event) => {
-
             const draggable_item = draggable_items_map.get(id);
 
             // ignore other mouse buttons
             if (event.button != 0) {
                 return;
             }
-    
-            const placeholder_draggable_item = draggable_item.target.cloneNode(true);
+
+            const placeholder_draggable_item =
+                draggable_item.target.cloneNode(true);
             placeholder_draggable_item.classList.add("placeholder");
 
             const handle_up = async () => {
-
                 // if the holdtime is less than 500ms, then render the beatmaps page
-                if (draggable_item.hold_time * 60 < DRAG_ACTIVATION_THRESHOLD_MS) {
-
+                if (
+                    draggable_item.hold_time * 60 <
+                    DRAG_ACTIVATION_THRESHOLD_MS
+                ) {
                     // check if this page is already rendered
                     if (collection_container.dataset.id != k) {
-
                         const { id: selected_id } = get_selected_collection();
 
                         // save the offset of the previous selected collection
-                        if (selected_id && collection_container.children.length > 16) {
-
-                            const c_rect = collection_container.getBoundingClientRect();
-                            const visible = Array.from(collection_container.children).find((element) => {
+                        if (
+                            selected_id &&
+                            collection_container.children.length > 16
+                        ) {
+                            const c_rect =
+                                collection_container.getBoundingClientRect();
+                            const visible = Array.from(
+                                collection_container.children,
+                            ).find((element) => {
                                 const rect = element.getBoundingClientRect();
-                                return rect.bottom > c_rect.top && rect.top < c_rect.bottom;
+                                return (
+                                    rect.bottom > c_rect.top &&
+                                    rect.top < c_rect.bottom
+                                );
                             });
 
-                            draggable_items_map.get(selected_id).offset = visible.dataset.id;
+                            draggable_items_map.get(selected_id).offset =
+                                visible.dataset.id;
                         }
-  
+
                         // remove selected from all divs
                         remove_all_selected();
 
                         draggable_item.target.classList.add("selected");
                         draggable_item.selected = true;
-                        
+
                         render_page(id, true, true);
                     }
                 } else {
@@ -583,7 +649,7 @@ export const setup_draggables = () => {
 
                 document.removeEventListener("mouseup", handle_up);
             };
-    
+
             document.addEventListener("mouseup", handle_up);
 
             draggable_item.dragging = true;
@@ -601,23 +667,25 @@ export const setup_draggables = () => {
             placeholder_draggable_item.style.zIndex = "999";
 
             // run the drag_callback
-            requestAnimationFrame(() => drag_callback(id, placeholder_draggable_item));
+            requestAnimationFrame(() =>
+                drag_callback(id, placeholder_draggable_item),
+            );
         });
 
-        const new_draggable = { 
+        const new_draggable = {
             id: id,
             y: null,
             x: null,
             target: draggable_item,
             collection: v,
             collection_id: k,
-            dragging: false, 
-            selected: false 
+            dragging: false,
+            selected: false,
         };
 
         // setup draggable context menu
         create_context(new_draggable);
 
-        draggable_items_map.set(id, new_draggable); 
+        draggable_items_map.set(id, new_draggable);
     }
 };
