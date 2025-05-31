@@ -110,11 +110,7 @@ export const lazer_mode = async (target, name) => {
     core.reader.update_collections();
     hide_list();
 
-    if (target.checked) {
-        create_alert("switched to lazer mode!");
-    } else {
-        create_alert("switched to stable mode!");
-    }
+    create_alert(target.checked ? "switched to lazer mode!" : "switched to stable mode!");
 };
 
 search_input.addEventListener("input", debounce(() => {
@@ -368,7 +364,7 @@ const remove_beatmaps_manager = async () => {
     }
 };
 
-const create_empty_collection = async (name) => {
+const create_empty_collection = async () => {
 
     const collection_name = await create_custom_popup({     
         type: popup_type.INPUT, 
@@ -383,7 +379,7 @@ const create_empty_collection = async (name) => {
         return create_alert("this collection already exists");
     }
 
-    core.reader.collections.beatmaps.set(name, { maps: [] });
+    core.reader.collections.beatmaps.set(collection_name, { maps: [] });
 
     setup_manager();
     show_update_button();
@@ -469,7 +465,7 @@ const create_new_collection = async () => {
 
     switch (method.name) {
         case "empty": 
-            create_empty_collection(collection_name);
+            create_empty_collection();
             break;
         case "from file": 
             create_from_file();
