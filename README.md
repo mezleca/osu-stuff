@@ -21,7 +21,7 @@ a simple and useful app that gives you freedom to:
 
 ## found bugs or crashes?
 - hit `F12` to open devtools and grab the logs
-- if issues with osu-stuff downloader, logs are in the osu-stuff folder (one folder before exports)
+- if the issue is download related, the logs are in the osu-stuff folder (%APPDATA on windows / .local/share on linux)
 - send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or create an issue on this repo
 
 > [!NOTE]  
