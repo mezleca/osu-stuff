@@ -28,7 +28,7 @@ a simple and useful app that gives you freedom to:
 > for now, all beatmaps downloaded using (lazer mode) will be placed in the exports folder
 
 ## download
-- **latest version (v1.7.x)**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **latest version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 ## custom mirrors
 | name         | url                                                      |
