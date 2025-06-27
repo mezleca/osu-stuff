@@ -9,23 +9,17 @@
 
 ## wtf is osu-stuff
 a simple and useful app that gives you freedom to:
-- manage your lazer/stable collections
-- import collections from files/websites (osu!collector, osustats)
-- export collections to legacy db files or osdb files (minimal)
-- create collections from player's best performance, favorites maps, first place, etc.
-- merge collections
-- get missing beatmaps from collections
-- delete beatmaps from collections
-- delete beatmaps from your osu folder (still experimental)
-- etc...
+- manage your lazer/stable collections (import, export, merge, etc...)
+- download beatmaps (missing beatmaps from collections, from players, etc...)
+- listen to songs from your osu! folder (filtered from collections or idk, your query?) 
+- a lot more
 
-## found bugs or crashes?
-- hit `F12` to open devtools and grab the logs
-- if the issue is download related, the logs are in the osu-stuff folder (%APPDATA on windows / .local/share on linux)
-- send them to my [osu! profile](https://osu.ppy.sh/users/mzle) or create an issue on this repo
+## wanna help osu-manager development?
+- bugs report and merge requests are always welcome 
+- just make sure to include what you're adding or the issue you're reporting.
 
 > [!NOTE]  
-> for now, all beatmaps downloaded using (lazer mode) will be placed in the exports folder
+> beatmaps download with lazer mode will be placed in the exports folder
 
 ## download
 - **latest version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
@@ -53,7 +47,8 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
 
 ### prerequisites
 - [node.js](https://nodejs.org/)  
-- [git](https://git-scm.com/downloads)  
+- [git](https://git-scm.com/downloads)
+- [bun](https://bun.sh)
 
 ### steps
 ```bash
@@ -62,22 +57,14 @@ git clone https://github.com/mezleca/osu-stuff.git
 
 # install dependencies
 cd osu-stuff
-npm install
+bun install
 
-# build for your platform
-npm run build
+# start without building
+bun run dev
 
-# or build for specific platform
-npm run build:win    # windows
-npm run build:linux  # linux
-
-# binaries location: /dist/...
-
-# to run instead of building:
-npm start
+# build for your platform (win / linux)
+bun run build && bun run build:the_platform
 ```
 
 ## credits
-- [CollectionManager](https://github.com/Piotrekol/CollectionManager) - osdb
-- [ctxmenu](https://github.com/nkappler/ctxmenu) - custom context menu
-- [osu-cad](https://github.com/minetoblend/osu-cad) - used for beatmap preview
+- [CollectionManager](https://github.com/Piotrekol/CollectionManager) osdb files
