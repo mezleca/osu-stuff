@@ -25,7 +25,8 @@
 		try {
 			await get_collections();
 		} catch (err) {
-			show_notification(`failed to initialize\n${err}`);
+			console.log(err);
+			show_notification({ type: "error", timeout: 500, text: `failed to initialize\n${err}` });
 		}
 
 		initialized = true;

@@ -1,5 +1,5 @@
 <script>
-	import { current_search } from "../../store";
+	import { collection_beatmaps_search } from "../../store";
 	import Add from "../utils/add.svelte";
 	import Search from "../utils/search.svelte";
 </script>
@@ -7,7 +7,7 @@
 <div class="content tab-content">
 	<div class="manager-content">
 		<div class="content-header">
-			<Search bind:value={$current_search} placeholder="search beatmaps" />
+			<Search bind:value={$collection_beatmaps_search} placeholder="search beatmaps" />
 			<div class="search-expand">
 				<button class="expand-btn" id="expandBtn">⋯</button>
 			</div>

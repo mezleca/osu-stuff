@@ -28,7 +28,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 		}
 
 		const timing_points = [];
-		const sr = [];
+		const star_rating = [];
 
 		const modes = {
 			0: "osu!",
@@ -38,9 +38,9 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 		};
 
 		for (let i = 0; i < 4; i++) {
-			sr.push({
+			star_rating.push({
 				mode: modes[i],
-				sr: [[0, beatmap.StarRating]]
+				pair: [[0, beatmap.StarRating]]
 			});
 		}
 
@@ -68,7 +68,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			hp: beatmap.Difficulty?.DrainRate || 0,
 			od: beatmap.Difficulty?.OverallDifficulty || 0,
 			slider_velocity: beatmap.Difficulty?.SliderMultiplier || 0,
-			sr: sr,
+			star_rating: star_rating,
 			star: beatmap.StarRating || 0,
 			drain_time: beatmap.Length || 0,
 			length: beatmap.Length || 0,

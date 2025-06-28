@@ -37,15 +37,9 @@ export const beatmaps_schema = {
 	hp: Number,
 	od: Number,
 	slider_velocity: Number,
-	sr: [
+	star_rating: [
 		{
-			mode: String,
-			sr: [
-				{
-					mod: Number,
-					diff: Number
-				}
-			]
+			pair: []
 		}
 	],
 	timing_points: [

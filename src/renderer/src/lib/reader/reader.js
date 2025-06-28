@@ -1,5 +1,5 @@
 import { osdb_versions, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
-import { get_beatmap_sr, get_common_bpm } from "../tools/beatmap.js";
+import { gamemodes, get_beatmap_sr, get_common_bpm } from "../beatmaps.js";
 import { get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 import { BinaryReader } from "./binary.js";
 import { config } from "../../store.js";
@@ -182,7 +182,7 @@ export class Reader extends BinaryReader {
 				continue;
 			}
 
-			const sr = map?.star || Number(get_beatmap_sr(map));
+			const star_rating = map?.star || Number(get_beatmap_sr(map));
 			const bpm = map?.bpm || Number(get_common_bpm(map));
 
 			// save to make sure
@@ -191,10 +191,10 @@ export class Reader extends BinaryReader {
 			}
 
 			if (!map?.star) {
-				map.star = sr;
+				map.star = star_rating;
 			}
 
-			if (sr > collection.sr_max) collection.sr_max = sr;
+			if (star_rating > collection.sr_max) collection.sr_max = star_rating;
 			if (bpm > collection.bpm_max) collection.bpm_max = bpm;
 		}
 
@@ -513,23 +513,24 @@ export class Reader extends BinaryReader {
 		data.od = is_old_version ? this.byte() : this.single();
 		data.slider_velocity = this.double();
 
-		data.sr = [];
+		data.star_rating = [];
 		const is_new_version = version >= 20250107;
 
 		for (let i = 0; i < 4; i++) {
 			const length = this.int();
 
-			if (length > 0) {
-				this.byte(); // skip
-				const mod = this.int();
-				this.byte(); // skip
-				const diff = is_new_version ? this.single() : this.double();
-				data.sr[0] = [mod, diff];
-
-				// skip remaining bytes
-				const skip_bytes = is_new_version ? 10 : 14;
-				this.offset += skip_bytes * (length - 1);
-			}
+			this.byte(); // skip
+			const mod = this.int();
+			this.byte(); // skip
+			const diff = is_new_version ? this.single() : this.double();
+			// update gamemode srp air
+			data.star_rating[i] = {
+				nm: Number(diff).toFixed(2),
+				pair: [mod, diff]
+			};
+			// skip remaining bytes
+			const skip_bytes = is_new_version ? 10 : 14;
+			this.offset += skip_bytes * (length - 1);
 		}
 
 		data.drain_time = this.int();
@@ -548,6 +549,8 @@ export class Reader extends BinaryReader {
 				inherited: this.bool()
 			};
 		}
+
+		data.bpm = get_common_bpm(data);
 
 		// read rest of the metadata
 		data.difficulty_id = this.int();
@@ -617,7 +620,7 @@ export class Reader extends BinaryReader {
 					const collection = data[i];
 					this.collections_data.beatmaps.set(collection.Name, {
 						uuid: collection.ID,
-						maps: new Set(collection.BeatmapMD5Hashes)
+						maps: collection.BeatmapMD5Hashes
 					});
 				}
 
@@ -652,7 +655,7 @@ export class Reader extends BinaryReader {
 
 			collections.set(name, {
 				name: name,
-				maps: new Set(md5)
+				maps: md5
 			});
 		}
 

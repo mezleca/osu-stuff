@@ -18,11 +18,10 @@ export const get_collections = async () => {
 	const collection_data = await reader.get_collections_data(null ? files.cl : files.cl);
 	collections.set(Array.from(collection_data.collections.values()));
 
-	console.log(collections.get("mzle"));
-
 	// let collections load on collections tab
 	await sleep(5);
-
+	console.time("osu");
 	const osu_data = await reader.get_osu_data(lazer_mode ? null : files.db);
-	osu_beatmaps.update(() => osu_data.beatmaps);
+	console.timeEnd("osu");
+	osu_beatmaps.set(osu_data.beatmaps);
 };

@@ -3,7 +3,12 @@
 	import Search from "../icon/search-icon.svelte";
 
 	export let value = "",
-		placeholder = "";
+		placeholder = "",
+		callback = () => {};
+
+	$: if (value || value == "") {
+		callback();
+	}
 </script>
 
 <div class="search-container">

@@ -13,6 +13,8 @@
 		local = false,
 		right = () => {};
 
+	$: actual_url = url;
+
 	const get_audio = async (url) => {
 		if (url == "") {
 			return;
@@ -86,8 +88,8 @@
 
 <div class="controls">
 	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<button class="control-icon" onclick={() => handle_audio(url)}>
-		{#if $audio_data?.playing && $audio_data?.id == url}
+	<button class="control-icon" onclick={() => handle_audio(actual_url)}>
+		{#if $audio_data?.playing && $audio_data?.id == actual_url}
 			<Pause />
 		{:else}
 			<Play />

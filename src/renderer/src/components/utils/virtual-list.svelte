@@ -1,11 +1,12 @@
 <script>
 	import { onMount } from "svelte";
 
-	export let items = [];
+	export let count = 0;
 	export let item_height = 100;
 	export let buffer = 5;
 	export let height = "100%";
-	export let mimic_osu = false;
+	export let carrousel = false;
+	export let key = "";
 
 	let container;
 	let scroll_top = 0;
@@ -14,18 +15,17 @@
 	let selection_focus_offset = 0;
 	let selected_item = -1;
 
-	$: items_array = Array.isArray(items) ? items : Array.from(items);
-	$: total_height = items_array.length * item_height;
+	$: total_height = count * item_height;
 	$: start_index = Math.max(0, Math.floor(scroll_top / item_height) - buffer);
 	$: visible_count = Math.ceil(container_height / item_height) + buffer * 2;
-	$: end_index = Math.min(start_index + visible_count, items_array.length);
-	$: visible_items = items_array.slice(start_index, end_index);
+	$: end_index = Math.min(start_index + visible_count, count);
+	$: visible_items = end_index - start_index;
 	$: offset_y = start_index * item_height;
 
 	const lerp = (start, end, factor) => start + (end - start) * factor;
 
-	const update_osu_effect = () => {
-		if (!mimic_osu || !container) {
+	const update_carrousel_effect = () => {
+		if (!carrousel || !container) {
 			return;
 		}
 
@@ -81,41 +81,47 @@
 
 	const handle_scroll = (e) => {
 		scroll_top = e.target.scrollTop;
-		if (mimic_osu) {
-			requestAnimationFrame(update_osu_effect);
+		if (carrousel) {
+			requestAnimationFrame(update_carrousel_effect);
 		}
 	};
 
 	const handle_mouse_enter = (index) => {
 		hovered_item = index;
-		if (mimic_osu) {
-			requestAnimationFrame(update_osu_effect);
+		if (carrousel) {
+			requestAnimationFrame(update_carrousel_effect);
 		}
 	};
 
 	const handle_mouse_leave = () => {
 		hovered_item = -1;
-		if (mimic_osu) {
-			requestAnimationFrame(update_osu_effect);
+		if (carrousel) {
+			requestAnimationFrame(update_carrousel_effect);
 		}
 	};
 
 	const update_height = () => {
 		if (container) {
 			container_height = container.clientHeight;
-			if (mimic_osu) {
-				requestAnimationFrame(update_osu_effect);
+			if (carrousel) {
+				requestAnimationFrame(update_carrousel_effect);
 			}
 		}
 	};
 
 	// update when visible items change
-	$: if (visible_items.length > 0 && mimic_osu) {
-		requestAnimationFrame(update_osu_effect);
+	$: if (visible_items > 0 && carrousel) {
+		requestAnimationFrame(update_carrousel_effect);
+	}
+
+	// update
+	$: if (container && (count == 0 || key)) {
+		hovered_item = -1;
+		selected_item = -1;
 	}
 
 	export const scroll_to_item = (index) => {
-		if (container && index >= 0 && index < items_array.length) {
+		if (container && index >= 0 && index < count) {
 			const target_scroll = index * item_height - container_height / 2 + item_height / 2;
 			container.scrollTo({
 				top: Math.max(0, target_scroll),
@@ -140,28 +146,30 @@
 <div
 	bind:this={container}
 	class="virtual-list"
-	class:osu-mode={mimic_osu}
+	class:osu-mode={carrousel}
 	style="height: {height};"
 	on:scroll={handle_scroll}
 	bind:clientHeight={container_height}
 >
 	<div class="spacer" style="height: {total_height}px;"></div>
 	<div class="viewport" style="transform: translateY({offset_y}px);">
-		{#each visible_items as item, i (item)}
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<div
-				class="item"
-				class:osu-effect={mimic_osu}
-				class:selected={selected_item === start_index + i}
-				style="height: {item_height}px;"
-				on:mouseenter={() => handle_mouse_enter(start_index + i)}
-				on:mouseleave={handle_mouse_leave}
-				role="button"
-				tabindex="0"
-			>
-				<slot {item} index={start_index + i} />
-			</div>
-		{/each}
+		{#key key}
+			{#each { length: visible_items } as _, i (start_index + i)}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<div
+					class="item"
+					class:osu-effect={carrousel}
+					class:selected={selected_item === start_index + i}
+					style="height: {item_height}px;"
+					on:mouseenter={() => handle_mouse_enter(start_index + i)}
+					on:mouseleave={handle_mouse_leave}
+					role="button"
+					tabindex="0"
+				>
+					<slot index={start_index + i} />
+				</div>
+			{/each}
+		{/key}
 	</div>
 </div>
 
