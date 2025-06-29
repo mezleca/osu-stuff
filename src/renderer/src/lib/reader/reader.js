@@ -2,7 +2,7 @@ import { osdb_versions, beatmap_status_reversed, lazer_status_reversed, beatmap_
 import { gamemodes, get_beatmap_sr, get_common_bpm } from "../beatmaps.js";
 import { get_realm_instance, lazer_to_osu_db } from "./lazer.js";
 import { BinaryReader } from "./binary.js";
-import { config } from "../../store.js";
+import { config, show_notification } from "../../store.js";
 import { collections_db, osu_db } from "./models/stable.js";
 
 // placeholder
@@ -696,33 +696,11 @@ export class Reader extends BinaryReader {
 		}
 	};
 
-	get_beatmap_location = (beatmap) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
-			if (!beatmap?.beatmapset || !beatmap?.folder_name) {
-				return "";
-			}
-
-			const file_data = beatmap.beatmapset.Files.find((f) => f.Filename.split(".")[1] == "osu");
-
-			if (!file_data) {
-				return "";
-			}
-
-			const file_hash = file_data.File.Hash;
-			return window.path.resolve(config.get("lazer_path"), "files", file_hash.substring(0, 1), file_hash.substring(0, 2), file_hash);
-		} else {
-			const folder = window.path.resolve(config.get("stable_songs_path"), beatmap.folder_name);
-			return window.path.resolve(folder, beatmap.file);
-		}
-	};
-
-	search_image = async (beatmap) => {
+	get_beatmap_section = async (beatmap, section_name) => {
 		try {
-			const file_location = this.get_beatmap_location(beatmap);
+			const file_location = this.get_file_location(beatmap);
 
-			if (!file_location) {
+			if (!file_location || file_location == "") {
 				return null;
 			}
 
@@ -732,44 +710,146 @@ export class Reader extends BinaryReader {
 				return null;
 			}
 
-			const events_start = content.indexOf("[Events]");
-
-			if (!events_start) {
-				return null;
-			}
-
-			const events_end = content.indexOf("[", events_start + 1);
-			const events_section = content.substring(events_start, events_end != -1 ? events_end : undefined);
-			const image_matches = events_section.matchAll(/0,0,"([^"]+)"/g);
-			const valid = ["avi", "mp4", "mov"];
-
-			for (let i = 0; i < image_matches.length; i++) {
-				const match = image_matches[i];
-				const image_name = match[1];
-
-				if (!image_name || !image_name.includes(".")) {
-					continue;
-				}
-
-				const ext = image_name.split(".").pop().toLowerCase();
-
-				if (valid.includes(ext)) {
-					continue;
-				}
-
-				return image_name;
-			}
+			return this.parse_osu_section(content, section_name);
 		} catch (err) {
-			console.log("[reader] search image error:", err);
+			console.log(`[reader] get_beatmap_section error for ${section_name}:`, err);
 			return null;
 		}
 	};
 
-	/**
-	 * @param {beatmaps_schema} beatmap
-	 * @returns { Promise<{ path: String }> }
-	 *
-	 */
+	parse_osu_section = (content, section_name) => {
+		const section_start = content.indexOf(`[${section_name}]`);
+
+		if (section_start == -1) {
+			return null;
+		}
+
+		const content_start = section_start + section_name.length + 2;
+		const next_section = content.indexOf("[", content_start);
+		const section_content = content.substring(content_start, next_section != -1 ? next_section : undefined);
+
+		if (this.is_key_value_section(section_name)) {
+			return this.parse_key_value_section(section_content);
+		}
+
+		return this.parse_list_section(section_content);
+	};
+
+	is_key_value_section = (section_name) => {
+		const KEY_VALUE_SECTIONS = ["General", "Editor", "Metadata", "Difficulty"];
+		return KEY_VALUE_SECTIONS.includes(section_name);
+	};
+
+	parse_key_value_section = (section_content) => {
+		const result = {};
+		const lines = section_content.split("\n");
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const trimmed = line.trim();
+
+			if (!trimmed || trimmed.startsWith("//")) {
+				continue;
+			}
+
+			const colon_index = trimmed.indexOf(":");
+
+			if (colon_index == -1) {
+				continue;
+			}
+
+			const key = trimmed.substring(0, colon_index).trim();
+			const value = trimmed.substring(colon_index + 1).trim();
+			result[key] = value;
+		}
+
+		return result;
+	};
+
+	parse_section = (section_content) => {
+		const lines = section_content.split("\n");
+		const result = [];
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const trimmed = line.trim();
+
+			if (!trimmed || trimmed.startsWith("//")) {
+				continue;
+			}
+
+			result.push(trimmed);
+		}
+
+		return result;
+	};
+
+	extract_background_image = (data) => {
+		const INVALID_EXTENSIONS = ["avi", "mp4", "mov"];
+
+		for (let i = 0; i < data.length; i++) {
+			const event = data[i];
+			const bg_match = event.match(/^0,0,"([^"]+)"/);
+
+			if (!bg_match) {
+				continue;
+			}
+
+			const image_name = bg_match[1];
+
+			if (!image_name || !image_name.includes(".")) {
+				continue;
+			}
+
+			const extension = image_name.split(".").pop().toLowerCase();
+
+			if (INVALID_EXTENSIONS.includes(extension)) {
+				continue;
+			}
+
+			return image_name;
+		}
+
+		return null;
+	};
+
+	get_file_location = (beatmap, filename) => {
+		const lazer_mode = config.get("lazer_mode");
+
+		if (lazer_mode) {
+			// make sure we have the file
+			if (!beatmap.beatmapset?.Files) {
+				return null;
+			}
+
+			// @TODO: get file location from beatmap data if filename is empty
+			const file_data = beatmap.beatmapset.Files.find((f) => f.Filename == filename);
+
+			if (!file_data?.File?.Hash) {
+				return null;
+			}
+
+			const hash = file_data.File.Hash;
+			return window.path.resolve(config.get("lazer_path"), "files", hash.substring(0, 1), hash.substring(0, 2), hash);
+		} else {
+			if (!beatmap.folder_name) {
+				return null;
+			}
+
+			// check if we have stable songs path configured
+			const songs_path = config.get("stable_songs_path");
+
+			if (!songs_path || songs_path == "") {
+				show_notification({ type: "error", timeout: 5000, text: "missing osu stable songs path" });
+				return "";
+			}
+
+			// console.log(songs_path, beatmap);
+
+			return window.path.resolve(songs_path, beatmap.folder_name, filename ?? beatmap.file);
+		}
+	};
+
 	get_beatmap_image = async (beatmap) => {
 		if (!beatmap?.beatmapset_id) {
 			return null;
@@ -780,45 +860,33 @@ export class Reader extends BinaryReader {
 		}
 
 		try {
-			const image_name = await this.search_image(beatmap);
+			const events_data = await this.get_beatmap_section(beatmap, "Events");
+
+			if (!events_data || !Array.isArray(events_data)) {
+				return null;
+			}
+
+			const image_name = this.extract_background_image(events_data);
 
 			if (!image_name) {
 				return null;
 			}
 
-			const lazer_mode = config.get("lazer_mode");
-			let result = null;
+			const image_path = this.get_file_location(beatmap, image_name);
 
-			if (lazer_mode) {
-				if (!beatmap.beatmapset?.Files) {
-					return null;
-				}
-
-				const thing = beatmap.beatmapset.Files.find((f) => f.Filename == image_name);
-
-				if (!thing?.File?.Hash) {
-					return null;
-				}
-
-				const hash = thing.File.Hash;
-				result = window.path.resolve(config.get("lazer_path"), "files", hash.substring(0, 1), hash.substring(0, 2), hash);
-			} else {
-				if (!beatmap.folder_name) {
-					return null;
-				}
-
-				result = window.path.resolve(config.get("stable_songs_path"), beatmap.folder_name, image_name);
+			if (image_path) {
+				this.image_cache.set(beatmap.beatmapset_id, image_path);
 			}
 
-			if (result) {
-				this.image_cache.set(beatmap.beatmapset_id, result);
-			}
-
-			return result;
+			return image_path;
 		} catch (error) {
 			console.log("[reader] get_beatmap_image error:", error);
 			return null;
 		}
+	};
+
+	get_section_data = async (beatmap, section) => {
+		return await this.get_beatmap_section(beatmap, section);
 	};
 
 	zip_file = async (files) => {

@@ -4,14 +4,16 @@
 	import { debounce } from "./lib/utils";
 	import { get_collections } from "./lib/collections";
 
-	// tab components
+	// tabs
 	import Collections from "./components/tabs/collections.svelte";
 	import Discover from "./components/tabs/discover.svelte";
 	import Browse from "./components/tabs/browse.svelte";
-
-	import Index from "./components/tabs/index.svelte";
-	import Header from "./components/header.svelte";
+	import Radio from "./components/tabs/radio.svelte";
 	import Config from "./components/tabs/config.svelte";
+	import Index from "./components/tabs/index.svelte";
+
+	// extra
+	import Header from "./components/header.svelte";
 	import Notifications from "./components/utils/notifications.svelte";
 
 	$: initialized = false;
@@ -58,7 +60,7 @@
 		{:else if $active_tab == "discover"}
 			<Discover />
 		{:else if $active_tab == "radio"}
-			<button>radio</button>
+			<Radio />
 		{:else if $active_tab == "config"}
 			<Config />
 		{:else if $active_tab == "status"}

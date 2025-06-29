@@ -91,7 +91,14 @@ export const show_notification = (data) => {
 		timeout: 999
 	};
 
-	const notification = { ...defaults, ...data };
+	const notification = { ...defaults };
+
+	// use default object for text only data
+	if (typeof data == "string") {
+		defaults.text = data;
+	} else {
+		Object.assign(notification, data);
+	}
 
 	// add to the store
 	notifications_store.update((all) => [notification, ...all]);

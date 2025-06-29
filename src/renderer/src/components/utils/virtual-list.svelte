@@ -1,12 +1,14 @@
 <script>
 	import { onMount } from "svelte";
 
+	// props
 	export let count = 0;
 	export let item_height = 100;
 	export let buffer = 5;
 	export let height = "100%";
 	export let carrousel = false;
 	export let key = "";
+	export let direction = "right";
 
 	let container;
 	let scroll_top = 0;
@@ -157,10 +159,10 @@
 			{#each { length: visible_items } as _, i (start_index + i)}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div
-					class="item"
+					class="item {direction}"
 					class:osu-effect={carrousel}
 					class:selected={selected_item === start_index + i}
-					style="height: {item_height}px;"
+					style="height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
 					on:mouseenter={() => handle_mouse_enter(start_index + i)}
 					on:mouseleave={handle_mouse_leave}
 					role="button"
@@ -195,18 +197,15 @@
 		left: auto;
 		right: 0;
 		will-change: transform;
-		width: 95%;
+		width: 100%;
 	}
 
 	.item {
-		width: 95%;
+		width: 80%;
 		cursor: pointer;
-		justify-self: end;
-		margin-right: 10px;
 	}
 
 	.osu-effect {
-		transform-origin: right center;
 		transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0));
 		backface-visibility: hidden;
 		outline: 1px solid transparent;

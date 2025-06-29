@@ -178,8 +178,9 @@ export const get_beatmap_data = (md5, query) => {
 
 	const beatmap = osu_beatmaps.get(md5);
 
-	if (!beatmap) {
-		return { filtered: false, result: null };
+	// ignore unknown maps if we dont have a query yet
+	if (!beatmap && query == "") {
+		return { filtered: true, result: { md5 } };
 	}
 
 	if (query && query != "") {

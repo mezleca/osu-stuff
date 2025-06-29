@@ -4,6 +4,10 @@
 	import Pause from "../icon/pause.svelte";
 	import X from "../icon/x.svelte";
 	import Cross from "../icon/cross.svelte";
+	import RandomIcon from "../icon/random-icon.svelte";
+	import RepeatIcon from "../icon/repeat-icon.svelte";
+	import NextIcon from "../icon/next-icon.svelte";
+	import PreviousIcon from "../icon/previous-icon.svelte";
 
 	// global global audio object :)
 	import { audio_data } from "../../store";
@@ -11,9 +15,13 @@
 	// props
 	export let url = "",
 		local = false,
+		small = true,
 		right = () => {};
 
 	$: actual_url = url;
+	$: current_time = "0:00";
+	$: song_length = "0:00";
+	$: progress_bar_width = 0;
 
 	const get_audio = async (url) => {
 		if (url == "") {
@@ -86,21 +94,135 @@
 	};
 </script>
 
-<div class="controls">
-	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<button class="control-icon" onclick={() => handle_audio(actual_url)}>
-		{#if $audio_data?.playing && $audio_data?.id == actual_url}
-			<Pause />
-		{:else}
-			<Play />
-		{/if}
-	</button>
-	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<button class="control-icon" onclick={() => right(local ? "remove" : "add")}>
-		{#if local}
-			<X />
-		{:else}
-			<Cross />
-		{/if}
-	</button>
-</div>
+{#if (small)} 
+	<div class="small-control">
+		<!-- svelte-ignore a11y_consider_explicit_label -->
+		<button class="small-control-icon" onclick={() => handle_audio(actual_url)}>
+			{#if $audio_data?.playing && $audio_data?.id == actual_url}
+				<Pause />
+			{:else}
+				<Play />
+			{/if}
+		</button>
+		<!-- svelte-ignore a11y_consider_explicit_label -->
+		<button class="small-control-icon" onclick={() => right(local ? "remove" : "add")}>
+			{#if local}
+				<X />
+			{:else}
+				<Cross />
+			{/if}
+		</button>
+	</div>
+	{:else}
+	<div class="big-control">
+		<div class="progress-container">
+			<div class="progress-bar">
+				<div class="progress-fill" style="width: {progress_bar_width}%;"></div>
+			</div>
+			<div class="time-display">
+				<span style="font-size: 12px">{current_time}</span>
+				<span style="font-size: 12px">{song_length}</span>
+			</div>
+			<div class="controls">
+				<div class="random">
+					<RandomIcon />
+				</div>
+				<div class="main-audio-control">
+					<div class="previous">
+						<PreviousIcon />
+					</div>
+					{#if $audio_data?.playing && $audio_data?.id == actual_url}
+						<Pause />
+					{:else}
+						<Play />
+					{/if}
+					<div class="next">
+						<NextIcon />
+					</div>
+				</div>
+				<div class="repeat">
+					<RepeatIcon />
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	.small-control {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		display: flex;
+		gap: 6px;
+		opacity: 1;
+		transition: all 0.3s ease;
+	}
+
+	.small-control-icon {
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+		color: white;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+		background: var(--bg-tertiary);
+		z-index: 3;
+		opacity: 0;
+		padding: 6px;
+	}
+
+	.small-control-icon:hover {
+		transform: scale(1.05);
+	}
+
+	.big-control {
+		display: grid;
+		grid-template-rows: repeat(1fr, 2);
+	}
+
+	.progress-bar {
+		width: 100%;
+		height: 6px;
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 3px;
+		position: relative;
+		cursor: pointer;
+		margin-bottom: 12px;
+		transition: height 0.1s ease;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: linear-gradient(90deg, var(--accent-color-half), var(--accent-color));
+		border-radius: 3px;
+		width: 0%;
+		position: relative;
+		transition: width 0.3s ease;
+	}
+
+	.time-display {
+		display: flex;
+		justify-content: space-between;
+		color: rgba(255, 255, 255, 0.6);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.big-control .controls {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 15px;
+	}
+
+	.main-audio-control {
+		display: flex;
+		flex-direction: row;
+		gap: 24px;
+	}
+</style>

@@ -131,4 +131,8 @@
 		position: absolute;
 		right: 15px;
 	}
+
+	.small-card:hover :global(.small-control-icon) {
+		opacity: 1;
+	}
 </style>

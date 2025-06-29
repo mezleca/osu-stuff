@@ -5,19 +5,17 @@
 		collection_beatmaps,
 		collections,
 		show_notification,
-		collection_search
+		collection_search,
+		selected_collection_name
 	} from "../../store";
 	import { get_beatmap_data } from "../../lib/beatmaps";
 	import { onMount } from "svelte";
-
-	// for beatmap list
-	import VirtualList from "../utils/virtual-list.svelte";
 
 	// components
 	import Add from "../utils/add.svelte";
 	import Search from "../utils/search.svelte";
 	import CollectionCard from "../cards/collection-card.svelte";
-	import BeatmapCard from "../cards/beatmap-card.svelte";
+	import Beatmaps from "../beatmaps.svelte";
 	import Popup from "../utils/popup.svelte";
 
 	$: all_collections = collections.all || [];
@@ -35,13 +33,12 @@
 		}
 	};
 
-	// update matching_count on collection change
-	$: matching_count = (() => {
+	const update_filtered_beatmaps = () => {
+
 		if (!$selected_collection || !current_collection_beatmaps.length) {
 			return 0;
 		}
 
-		let matching = 0;
 		let filtered = [];
 
 		// loop through each md5 of our collection
@@ -50,28 +47,25 @@
 
 			if (data.filtered) {
 				filtered.push(data.result);
-				matching++;
 			}
 		}
 
 		// update filtered list
 		filtered_maps = filtered;
-		return matching;
-	})();
+	};
+
+	$: if ($selected_collection_name || $collection_beatmaps_search) {
+		update_filtered_beatmaps();
+	}
 
 	const select_collection = (collection) => {
 		collections.select(collection.name);
 	};
 
-	const remove_beatmap = (beatmap_id) => {
-		// remove beatmap from array
-		if ($selected_collection?.name) {
-			collections.remove_beatmap($selected_collection.name, beatmap_id);
-		}
-
-		// to update collection count
+	const remove_callback = () => {
 		filter_collection();
-	};
+		update_filtered_beatmaps();
+	}
 
 	onMount(() => {
 		filter_collection();
@@ -106,6 +100,7 @@
 		</div>
 	</div>
 	<div class="manager-content">
+		<Add callback={() => (is_popup_enabled = true)} />
 		<div class="content-header">
 			<!-- current beatmap search -->
 			<Search bind:value={$collection_beatmaps_search} placeholder="search beatmaps" />
@@ -116,36 +111,8 @@
 				<div class="browse-filters"></div>
 			</div>
 		</div>
-		<div class="beatmaps-container">
-			<!-- svelte-ignore a11y_consider_explicit_label -->
-			<Add callback={() => (is_popup_enabled = true)} />
-			<div class="beatmaps-header">
-				<div class="results-count">{matching_count} matches</div>
-			</div>
-			<VirtualList
-				count={matching_count}
-				width="100%"
-				height="100%"
-				item_height={100}
-				carrousel={true}
-				let:index
-				key={$selected_collection?.name}
-			>
-				<!-- get beatmap metadata from md5 hash -->
-				{@const beatmap = filtered_maps[index] ?? null}
-				<!-- @TODO: sr is hardcoded to stable gamemode -->
-				<BeatmapCard
-					title={beatmap?.title ?? "unknown"}
-					artist={beatmap?.artist ?? "unknown"}
-					beatmapset_id={beatmap?.beatmapset_id ?? 0}
-					star_rating={beatmap?.star_rating[0].nm ?? 0}
-					bpm={beatmap?.bpm ?? 0}
-					id={beatmap.md5}
-					local={beatmap?.local ?? false}
-					control={() => remove_beatmap(beatmap.md5)}
-				/>
-			</VirtualList>
-		</div>
+		<!-- render beatmap list -->
+		<Beatmaps carrousel={true} key={$selected_collection_name} all_beatmaps={filtered_maps} {remove_callback} direction={"right"}/>
 	</div>
 </div>
 
