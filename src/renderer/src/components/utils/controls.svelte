@@ -10,7 +10,7 @@
 	import PreviousIcon from "../icon/previous-icon.svelte";
 
 	// global global audio object :)
-	import { audio_data } from "../../store";
+	import { audio_data, radio_data, radio_mode, radio_repeat, radio_random } from "../../store";
 
 	// props
 	export let url = "",
@@ -94,10 +94,10 @@
 	};
 </script>
 
-{#if (small)} 
+{#if small}
 	<div class="small-control">
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" onclick={() => handle_audio(actual_url)}>
+		<button class="small-control-icon" on:click={() => handle_audio(actual_url)}>
 			{#if $audio_data?.playing && $audio_data?.id == actual_url}
 				<Pause />
 			{:else}
@@ -105,7 +105,7 @@
 			{/if}
 		</button>
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" onclick={() => right(local ? "remove" : "add")}>
+		<button class="small-control-icon" on:click={() => right(local ? "remove" : "add")}>
 			{#if local}
 				<X />
 			{:else}
@@ -113,7 +113,7 @@
 			{/if}
 		</button>
 	</div>
-	{:else}
+{:else}
 	<div class="big-control">
 		<div class="progress-container">
 			<div class="progress-bar">
@@ -124,7 +124,9 @@
 				<span style="font-size: 12px">{song_length}</span>
 			</div>
 			<div class="controls">
-				<div class="random">
+				<!-- svelte-ignore a11y_interactive_supports_focus -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<div role="button" class="random" class:active={$radio_random} on:click={() => ($radio_random = !$radio_random)}>
 					<RandomIcon />
 				</div>
 				<div class="main-audio-control">
@@ -140,7 +142,9 @@
 						<NextIcon />
 					</div>
 				</div>
-				<div class="repeat">
+				<!-- svelte-ignore a11y_interactive_supports_focus -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<div role="button" class="repeat" class:active={$radio_repeat} on:click={() => ($radio_repeat = !$radio_repeat)}>
 					<RepeatIcon />
 				</div>
 			</div>
@@ -224,5 +228,16 @@
 		display: flex;
 		flex-direction: row;
 		gap: 24px;
+		will-change: transform;
+		transition: all 0.1s;
+	}
+
+	.controls *:hover {
+		transform: scale(1.05);
+	}
+
+	.controls .random.active,
+	.controls .repeat.active {
+		color: var(--accent-color);
 	}
 </style>

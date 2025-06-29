@@ -7,6 +7,7 @@
 	export let buffer = 5;
 	export let height = "100%";
 	export let carrousel = false;
+	export let max_width = false;
 	export let key = "";
 	export let direction = "right";
 
@@ -161,8 +162,12 @@
 				<div
 					class="item {direction}"
 					class:osu-effect={carrousel}
-					class:selected={selected_item === start_index + i}
-					style="height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
+					class:selected={selected_item == start_index + i}
+					style="width: {max_width
+						? carrousel
+							? '98'
+							: '100'
+						: '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
 					on:mouseenter={() => handle_mouse_enter(start_index + i)}
 					on:mouseleave={handle_mouse_leave}
 					role="button"
@@ -201,7 +206,6 @@
 	}
 
 	.item {
-		width: 80%;
 		cursor: pointer;
 	}
 

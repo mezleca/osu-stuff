@@ -122,6 +122,9 @@ main {
 }
 
 .sidebar-header {
+	flex-direction: column;
+	gap: 10px;
+	display: flex;
 	padding: 15px 20px;
 	flex-shrink: 0;
 }
@@ -149,6 +152,7 @@ main {
 .beatmaps-container {
 	flex: 1;
 	padding: 20px;
+	padding-top: 10px;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;

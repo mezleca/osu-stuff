@@ -1,24 +1,42 @@
 <script>
-	import Search from "../utils/search.svelte";
-	import PlaceholderImg from "../../assets/placeholder.png";
-	import Controls from "../utils/controls.svelte";
+	import { get_filtered_beatmaps } from "../../lib/beatmaps";
+	import { collections, radio_mode, radio_search } from "../../store";
 
+	// components
+	import Search from "../utils/search.svelte";
+	import Controls from "../utils/controls.svelte";
+	import Beatmaps from "../beatmaps.svelte";
+
+	// misc
+	import PlaceholderImg from "../../assets/placeholder.png";
+	import Dropdown from "../utils/dropdown.svelte";
+
+	// props
 	export let background;
 
+	$: all_collections = collections.all || [];
+	$: options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
 	$: bg = background ?? PlaceholderImg;
+	$: filtered_maps = [];
 
-	let value = "";
+	const update_beatmaps = () => {
+		filtered_maps =
+			$radio_mode == "all beatmaps" ? get_filtered_beatmaps(null, $radio_search) : get_filtered_beatmaps($radio_mode, $radio_search);
+	};
+
+	$: if ($radio_mode != "" || $radio_search) {
+		update_beatmaps();
+	}
 </script>
 
 <div class="content tab-content">
 	<div class="radio-container" style="--radio-bg: url({bg});">
-		<div class="sidebar">
+		<div class="sidebar" style="min-width: 400px;">
 			<div class="sidebar-header">
-				<Search value={value} placeholder="mhm"/>
+				<Search bind:value={$radio_search} placeholder="search beatmaps" />
+				<Dropdown bind:selected_value={$radio_mode} {options} />
 			</div>
-			<div class="radio-items">
-				<h1>hello bro</h1>
-			</div>
+			<Beatmaps carrousel={true} key={""} all_beatmaps={filtered_maps} show_bpm={false} max_width={true} direction={"left"} />
 		</div>
 		<div class="radio-data">
 			<div class="radio-beatmap">
@@ -58,7 +76,7 @@
 				</div>
 				<div class="radio-controls">
 					<div class="controls">
-						<Controls small={false}/>
+						<Controls small={false} />
 					</div>
 				</div>
 			</div>
@@ -220,6 +238,5 @@
 	}
 
 	.radio-controls .controls {
-
 	}
 </style>

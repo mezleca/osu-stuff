@@ -1,4 +1,4 @@
-import { osu_beatmaps } from "../store";
+import { collections, osu_beatmaps, show_notification } from "../store";
 
 export const gamemodes = {
 	"osu!": 0,
@@ -171,12 +171,26 @@ export const filter_beatmap = (beatmap, query) => {
 	return search_filter(beatmap, query, search_filters);
 };
 
-export const get_beatmap_data = (md5, query) => {
+export const get_beatmap_data = (data, query) => {
+	let md5 = "";
+	let beatmap = null;
+
+	if (typeof data == "object") {
+		md5 = data.md5;
+		beatmap = data;
+	} else {
+		md5 = data;
+	}
+
+	// check if the md5 is present
 	if (!md5 || md5 == "") {
 		return { filtered: false, result: null };
 	}
 
-	const beatmap = osu_beatmaps.get(md5);
+	// get beatmap using the hash
+	if (!beatmap) {
+		beatmap = osu_beatmaps.get(md5);
+	}
 
 	// ignore unknown maps if we dont have a query yet
 	if (!beatmap && query == "") {
@@ -189,4 +203,27 @@ export const get_beatmap_data = (md5, query) => {
 	}
 
 	return { filtered: true, result: beatmap };
+};
+
+export const get_filtered_beatmaps = (name, query) => {
+	let filtered = [];
+	const all_beatmaps = name ? collections.get(name).maps : osu_beatmaps.all();
+
+	if (!all_beatmaps) {
+		show_notification({ type: "error", text: "failed to get current collection beatmaps..." });
+		if (name) console.log("current collection:", collections.get(name));
+		return;
+	}
+
+	// loop through each md5 of our collection
+	for (const hash of all_beatmaps) {
+		const data = get_beatmap_data(hash, query ?? "");
+
+		if (data.filtered) {
+			filtered.push(data.result);
+		}
+	}
+
+	// update filtered list
+	return filtered;
 };

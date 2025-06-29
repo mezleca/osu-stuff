@@ -32,7 +32,9 @@
 		<div class="stats">
 			<span class="stat">{status ?? "unknown"}</span>
 			<div class="right-stats" style="justify-self: end;">
-				<span class="stars">{bpm ?? "unknown"} bpm</span>
+				{#if bpm}
+					<span class="stars">{Math.round(bpm) ?? "unknown"} bpm</span>
+				{/if}
 				<span class="stars">★ {star_rating ?? "0.0"}</span>
 			</div>
 		</div>

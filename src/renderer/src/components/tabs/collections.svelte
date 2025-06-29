@@ -8,7 +8,7 @@
 		collection_search,
 		selected_collection_name
 	} from "../../store";
-	import { get_beatmap_data } from "../../lib/beatmaps";
+	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { onMount } from "svelte";
 
 	// components
@@ -20,7 +20,6 @@
 
 	$: all_collections = collections.all || [];
 	$: filtered_maps = [];
-	$: current_collection_beatmaps = $collection_beatmaps || [];
 	$: is_popup_enabled = false;
 
 	let filtered_collections = $all_collections;
@@ -33,29 +32,8 @@
 		}
 	};
 
-	const update_filtered_beatmaps = () => {
-
-		if (!$selected_collection || !current_collection_beatmaps.length) {
-			return 0;
-		}
-
-		let filtered = [];
-
-		// loop through each md5 of our collection
-		for (const hash of current_collection_beatmaps) {
-			const data = get_beatmap_data(hash, $collection_beatmaps_search);
-
-			if (data.filtered) {
-				filtered.push(data.result);
-			}
-		}
-
-		// update filtered list
-		filtered_maps = filtered;
-	};
-
 	$: if ($selected_collection_name || $collection_beatmaps_search) {
-		update_filtered_beatmaps();
+		filtered_maps = get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
 	}
 
 	const select_collection = (collection) => {
@@ -64,8 +42,10 @@
 
 	const remove_callback = () => {
 		filter_collection();
-		update_filtered_beatmaps();
-	}
+		if ($selected_collection_name) {
+			filtered_maps = get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
+		}
+	};
 
 	onMount(() => {
 		filter_collection();
@@ -112,7 +92,7 @@
 			</div>
 		</div>
 		<!-- render beatmap list -->
-		<Beatmaps carrousel={true} key={$selected_collection_name} all_beatmaps={filtered_maps} {remove_callback} direction={"right"}/>
+		<Beatmaps carrousel={true} key={$selected_collection_name} all_beatmaps={filtered_maps} {remove_callback} direction={"right"} />
 	</div>
 </div>
 

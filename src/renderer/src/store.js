@@ -67,6 +67,10 @@ export const audio_data = writable({});
 
 // radio shit
 export const radio_data = writable({});
+export const radio_search = writable("");
+export const radio_mode = writable("all beatmaps");
+export const radio_random = writable(false);
+export const radio_repeat = writable(true);
 
 // token used for osu! api
 export const access_token = writable("");
@@ -78,7 +82,7 @@ export const config = create_persistent_config();
 export const collections_store = writable([]);
 export const selected_collection_name = writable(null);
 
-// beamtps
+// beamaps
 export const osu_beatmaps_store = writable(new Map());
 
 // notifications
@@ -148,6 +152,13 @@ export const osu_beatmaps = {
 	},
 	clear: () => {
 		osu_beatmaps_store.set(new Map());
+	},
+	all: () => {
+		let all_beatmaps = [];
+		osu_beatmaps_store.subscribe((map) => {
+			all_beatmaps = Array.from(map.values());
+		})();
+		return all_beatmaps;
 	}
 };
 
