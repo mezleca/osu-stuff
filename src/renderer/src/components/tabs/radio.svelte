@@ -10,23 +10,31 @@
 	// misc
 	import PlaceholderImg from "../../assets/placeholder.png";
 	import Dropdown from "../utils/dropdown.svelte";
+	import { onMount } from "svelte";
 
 	// props
-	export let background;
+	let { background } = $props();
 
-	$: all_collections = collections.all || [];
-	$: options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
-	$: bg = background ?? PlaceholderImg;
-	$: filtered_maps = [];
+	let bg = $state(background ?? PlaceholderImg);
+	let filtered_maps = $state([]);
+	let all_collections = $derived(collections.all || []);
+	let options = $derived(["all beatmaps", ...$all_collections.map((c) => c.name)]);
 
 	const update_beatmaps = () => {
-		filtered_maps =
-			$radio_mode == "all beatmaps" ? get_filtered_beatmaps(null, $radio_search) : get_filtered_beatmaps($radio_mode, $radio_search);
+		filtered_maps = $radio_mode == "all beatmaps"
+			? get_filtered_beatmaps(null, $radio_search, true)
+			: get_filtered_beatmaps($radio_mode, $radio_search, false);
 	};
 
-	$: if ($radio_mode != "" || $radio_search) {
-		update_beatmaps();
-	}
+	$effect(() => {
+		if ($radio_search || $radio_search == "") {
+			update_beatmaps();
+		}
+	});
+
+	onMount(() => {
+		if (!$radio_mode) $radio_mode = "all betmaps";
+	});
 </script>
 
 <div class="content tab-content">
@@ -36,7 +44,7 @@
 				<Search bind:value={$radio_search} placeholder="search beatmaps" />
 				<Dropdown bind:selected_value={$radio_mode} {options} />
 			</div>
-			<Beatmaps carrousel={true} key={""} all_beatmaps={filtered_maps} show_bpm={false} max_width={true} direction={"left"} />
+			<Beatmaps carrousel={true} key={$radio_mode} all_beatmaps={filtered_maps} show_bpm={false} max_width={true} direction={"left"} />
 		</div>
 		<div class="radio-data">
 			<div class="radio-beatmap">
@@ -97,11 +105,6 @@
 		max-width: 40%;
 		z-index: 1;
 		background-color: rgb(18, 18, 18, 0.95);
-	}
-
-	.radio-items {
-		flex-grow: 1;
-		width: 100%;
 	}
 
 	.radio-data {
@@ -177,6 +180,9 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 24px;
+		padding: 16px;
+		background: rgb(19, 19, 19, 0.8);
+		border-radius: 4px;
 	}
 
 	.radio-beatmap .stat {

@@ -1,10 +1,12 @@
 <!-- Dropdown.svelte -->
 <script>
-	export let options = [];
-	export let selected_value = "";
-	export let placeholder = "select an option";
+	let { 
+		options = [],
+		selected_value = $bindable(""),
+		placeholder = "select an option" 
+	} = $props();
 
-	let is_open = false;
+	let is_open = $state(false);
 	let dropdown_ref;
 
 	const toggle_dropdown = () => {
@@ -28,13 +30,17 @@
 		}
 	};
 
-	$: display_text = selected_value || placeholder;
+	let display_text = $state(selected_value ?? placeholder);
+
+	$effect(() => {
+		display_text = selected_value;
+	});
 </script>
 
-<svelte:window on:click={handle_click_outside} on:keydown={handle_keydown} />
+<svelte:window onclick={handle_click_outside} onkeydown={handle_keydown} />
 
 <div class="dropdown_container" bind:this={dropdown_ref}>
-	<button class="dropdown_trigger" class:active={is_open} on:click={toggle_dropdown} type="button">
+	<button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
 		<span class="dropdown_text">{display_text}</span>
 		<div class="dropdown_arrow" class:active={is_open}></div>
 	</button>
@@ -42,7 +48,7 @@
 	{#if is_open}
 		<div class="dropdown_menu">
 			{#each options as option}
-				<button class="dropdown_item" on:click={() => select_option(option)} type="button">
+				<button class="dropdown_item" onclick={() => select_option(option)} type="button">
 					{option.label || option}
 				</button>
 			{/each}

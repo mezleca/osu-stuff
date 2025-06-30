@@ -9,19 +9,21 @@
 	import NextIcon from "../icon/next-icon.svelte";
 	import PreviousIcon from "../icon/previous-icon.svelte";
 
-	// global global audio object :)
-	import { audio_data, radio_data, radio_mode, radio_repeat, radio_random } from "../../store";
+	// global audio object :)
+	import { audio_data, radio_repeat, radio_random } from "../../store";
 
 	// props
-	export let url = "",
+	let { 
+		url = "",
 		local = false,
 		small = true,
-		right = () => {};
+		right = () => {}
+	} = $props();
 
-	$: actual_url = url;
-	$: current_time = "0:00";
-	$: song_length = "0:00";
-	$: progress_bar_width = 0;
+	let actual_url = $state(url);
+	let current_time = $state("0:00");
+	let song_length = $state("0:00");
+	let progress_bar_width = $state(0);
 
 	const get_audio = async (url) => {
 		if (url == "") {
@@ -97,7 +99,7 @@
 {#if small}
 	<div class="small-control">
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" on:click={() => handle_audio(actual_url)}>
+		<button class="small-control-icon" onclick={() => handle_audio(actual_url)}>
 			{#if $audio_data?.playing && $audio_data?.id == actual_url}
 				<Pause />
 			{:else}
@@ -105,7 +107,7 @@
 			{/if}
 		</button>
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" on:click={() => right(local ? "remove" : "add")}>
+		<button class="small-control-icon" onclick={() => right(local ? "remove" : "add")}>
 			{#if local}
 				<X />
 			{:else}
@@ -126,7 +128,7 @@
 			<div class="controls">
 				<!-- svelte-ignore a11y_interactive_supports_focus -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<div role="button" class="random" class:active={$radio_random} on:click={() => ($radio_random = !$radio_random)}>
+				<div role="button" class="random" class:active={$radio_random} onclick={() => ($radio_random = !$radio_random)}>
 					<RandomIcon />
 				</div>
 				<div class="main-audio-control">
@@ -144,7 +146,7 @@
 				</div>
 				<!-- svelte-ignore a11y_interactive_supports_focus -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<div role="button" class="repeat" class:active={$radio_repeat} on:click={() => ($radio_repeat = !$radio_repeat)}>
+				<div role="button" class="repeat" class:active={$radio_repeat} onclick={() => ($radio_repeat = !$radio_repeat)}>
 					<RepeatIcon />
 				</div>
 			</div>

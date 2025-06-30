@@ -2,12 +2,11 @@
 	import {
 		collection_beatmaps_search,
 		selected_collection,
-		collection_beatmaps,
 		collections,
-		show_notification,
 		collection_search,
 		selected_collection_name
 	} from "../../store";
+
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { onMount } from "svelte";
 
@@ -18,11 +17,10 @@
 	import Beatmaps from "../beatmaps.svelte";
 	import Popup from "../utils/popup.svelte";
 
-	$: all_collections = collections.all || [];
-	$: filtered_maps = [];
-	$: is_popup_enabled = false;
-
-	let filtered_collections = $all_collections;
+	let all_collections = $derived(collections.all);
+	let filtered_maps = $state([]);
+	let filtered_collections = $state([]);
+	let is_popup_enabled = $state(false);
 
 	const filter_collection = () => {
 		if ($collection_search == "") {
@@ -32,9 +30,9 @@
 		}
 	};
 
-	$: if ($selected_collection_name || $collection_beatmaps_search) {
+	const filter_beatmaps = () => {
 		filtered_maps = get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
-	}
+	};
 
 	const select_collection = (collection) => {
 		collections.select(collection.name);
@@ -43,9 +41,18 @@
 	const remove_callback = () => {
 		filter_collection();
 		if ($selected_collection_name) {
-			filtered_maps = get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
+			filter_beatmaps();
 		}
 	};
+
+	$effect(() => {
+		if ($collection_search) {
+			filter_collection();
+		}
+		if ($selected_collection_name || $collection_beatmaps_search) {
+			filter_beatmaps();
+		}
+	});
 
 	onMount(() => {
 		filter_collection();
@@ -53,7 +60,6 @@
 </script>
 
 <!-- @TODO: move css from app.cs to here -->
-<!-- @TODO: create a component to do all of the beatmaps list bullshit -->
 <div class="content tab-content">
 	<!-- collection more options -->
 	<Popup bind:active={is_popup_enabled}>
@@ -66,7 +72,7 @@
 		<div class="collections">
 			<!-- show collections -->
 			{#if filtered_collections.length == 0}
-				<p>${$filtered_collections.length} results</p>
+				<p>{filtered_collections.length} results</p>
 			{:else}
 				{#each filtered_collections as collection}
 					<CollectionCard

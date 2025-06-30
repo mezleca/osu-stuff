@@ -16,7 +16,7 @@
 	import Header from "./components/header.svelte";
 	import Notifications from "./components/utils/notifications.svelte";
 
-	$: initialized = false;
+	let initialized = $state(false);
 
 	const toggle_maximized = async () => {
 		const result = await window.extra.is_maximized();

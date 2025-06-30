@@ -3,7 +3,8 @@
 	import Controls from "../utils/controls.svelte";
 
 	// props
-	export let title,
+	let { 
+		title,
 		artist,
 		id = 0,
 		status,
@@ -13,20 +14,25 @@
 		local,
 		background,
 		control = () => {},
-		extra = () => {};
+		extra = () => {}
+	} = $props();
 
-	$: audio_url = beatmapset_id ? `https://b.ppy.sh/preview/${beatmapset_id}.mp3` : "";
-	$: bg = background ? background : `https://assets.ppy.sh/beatmaps/${beatmapset_id}/covers/cover.jpg`;
+	let audio_url = $state(beatmapset_id ? `https://b.ppy.sh/preview/${beatmapset_id}.mp3` : "");
+	let bg = $state(background ? background : `https://assets.ppy.sh/beatmaps/${beatmapset_id}/covers/cover.jpg`);
+	let control_key = $state(`${id}-${beatmapset_id}`);
 
-	$: control_key = `${id}-${beatmapset_id}`;
+	$effect(() => {
+		audio_url = `https://b.ppy.sh/preview/${beatmapset_id}.mp3`;
+		bg = `https://assets.ppy.sh/beatmaps/${beatmapset_id}/covers/cover.jpg`;
+		control_key = `${id}-${beatmapset_id}`;
+	});
 </script>
 
 <div class="small-card" style="--card-bg: url({bg});">
 	<Controls {local} right={control} url={beatmapset_id ? audio_url : ""} key={control_key} />
-
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="info" on:click={extra}>
+	<div class="info" onclick={extra}>
 		<div class="title">{title ?? "unknown"}</div>
 		<div class="subtitle">{artist ?? "unknown"}</div>
 		<div class="stats">

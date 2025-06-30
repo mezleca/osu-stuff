@@ -11,10 +11,6 @@ export const get_beatmap_sr = (beatmap, gamemode = 0) => {
 	try {
 		const star_rating = beatmap?.star_rating;
 
-		if (!star_rating) {
-			return Number(0).toFixed(2);
-		}
-
 		if (!star_rating || star_rating?.length == 0) {
 			return Number(0).toFixed(2);
 		}
@@ -205,25 +201,37 @@ export const get_beatmap_data = (data, query) => {
 	return { filtered: true, result: beatmap };
 };
 
-export const get_filtered_beatmaps = (name, query) => {
+export const get_filtered_beatmaps = (name, query, unique) => {
 	let filtered = [];
-	const all_beatmaps = name ? collections.get(name).maps : osu_beatmaps.all();
+	let beatmaps = name ? collections.get(name).maps : osu_beatmaps.all();
 
-	if (!all_beatmaps) {
+	if (!beatmaps) {
 		show_notification({ type: "error", text: "failed to get current collection beatmaps..." });
 		if (name) console.log("current collection:", collections.get(name));
 		return;
 	}
 
-	// loop through each md5 of our collection
-	for (const hash of all_beatmaps) {
-		const data = get_beatmap_data(hash, query ?? "");
+	// @TOFIX:
+	// unique will return only 1 diff per set
+	// so sets like (jump pack) where theres different songs per diff will be removed
+	if (!name && beatmaps.length > 0 && unique) {
+		let ids = new Set();
+		beatmaps = beatmaps.filter((b) => {
+			const result = !ids.has(b.beatmapset_id);
+			ids.add(b.beatmapset_id);
+			return result;
+		});
+	}
 
+	// loop through each md5 of our collection
+	for (let i = 0; i < beatmaps.length; i++) {
+		const hash = beatmaps[i];
+		const data = get_beatmap_data(hash, query ?? "");
 		if (data.filtered) {
 			filtered.push(data.result);
 		}
 	}
 
-	// update filtered list
+	// return filtered list
 	return filtered;
 };

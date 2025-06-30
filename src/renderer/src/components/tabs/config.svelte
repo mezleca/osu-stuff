@@ -4,17 +4,37 @@
 
 	import Add from "../utils/add.svelte";
 	import InputDialog from "../utils/input-dialog.svelte";
+	import { onMount } from "svelte";
 
-	let osu_id = "";
-	let osu_secret = "";
-	let stable_path = "";
-	let lazer_path = "";
-	let stable_songs_path = "";
-	let lazer_mode = false;
-	let local_images = false;
-	let initialized = false;
+	let osu_id = $state();
+	let osu_secret = $state("");
+	let stable_path = $state("");
+	let lazer_path = $state("");
+	let stable_songs_path = $state("");
+	let lazer_mode = $state(false);
+	let local_images = $state(false);
+	let initialized = $state(false);
 
-	if (!initialized) {
+	const save_config = (key, value) => {
+		if (initialized && value != $config[key]) {
+			console.log("saving", value);
+			config.set(key, value);
+		}
+	};
+
+	// update database on config change
+	$effect(() => {
+		if (osu_id) save_config("osu_id", osu_id);
+		if (osu_secret) save_config("osu_secret", osu_secret);
+		if (stable_path) save_config("stable_path", stable_path);
+		if (lazer_path) save_config("lazer_path", lazer_path);
+		if (stable_songs_path) save_config("stable_songs_path", stable_songs_path);
+		if (lazer_mode) save_config("lazer_mode", lazer_mode);
+		if (local_images) save_config("local_images", local_images);
+	});
+		
+	// update values on start
+	onMount(() => {
 		osu_id = $config.osu_id || "";
 		osu_secret = $config.osu_secret || "";
 		stable_path = $config.stable_path || "";
@@ -23,21 +43,7 @@
 		lazer_mode = $config.lazer_mode === true || $config.lazer_mode === "true";
 		local_images = $config.local_images === true || $config.local_images === "true";
 		initialized = true;
-	}
-
-	const save_config = (key, value) => {
-		if (initialized && value !== $config[key]) {
-			config.set(key, value);
-		}
-	};
-
-	$: save_config("osu_id", osu_id);
-	$: save_config("osu_secret", osu_secret);
-	$: save_config("stable_path", stable_path);
-	$: save_config("lazer_path", lazer_path);
-	$: save_config("stable_songs_path", stable_songs_path);
-	$: save_config("lazer_mode", lazer_mode);
-	$: save_config("local_images", local_images);
+	});
 
 	// @TODO: confirm popup if we're about to discard changes
 	const load_files = async () => {
