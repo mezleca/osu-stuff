@@ -1,4 +1,4 @@
-<script>	
+<script>
 	// control icons
 	import Play from "../icon/play.svelte";
 	import Pause from "../icon/pause.svelte";
@@ -25,22 +25,20 @@
 	let current_id = beatmap.md5;
 
 	const get_audio = async (url) => {
-
 		if (!small) {
-
 			const audio_name = await reader.get_beatmap_audio(beatmap);
-			
+
 			if (!audio_name) {
 				console.log("failed beatmap:", beatmap);
-				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location"});
+				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location" });
 				return;
 			}
 
 			const data = await fetch("media://" + encodeURIComponent(audio_name));
-			
+
 			if (data.status != 200) {
 				console.log("failed audio:", audio_name, beatmap);
-				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio"});
+				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio" });
 				return;
 			}
 
@@ -70,7 +68,6 @@
 	};
 
 	const handle_audio = async () => {
-
 		// if same audio is playing, pause it
 		if (playing && audio_id == current_id) {
 			if (audio != null) {
@@ -102,7 +99,7 @@
 		const new_audio = new Audio(window.URL.createObjectURL(buffer));
 		// @TODO: volume slider
 		new_audio.volume = 0.5;
-		
+
 		control.setup(current_id, new_audio);
 
 		// play new song
@@ -113,7 +110,7 @@
 		if (audio == null) {
 			return;
 		}
-		
+
 		const rect = e.currentTarget.getBoundingClientRect();
 		const percent = (e.clientX - rect.left) / rect.width;
 		const new_time = percent * audio.duration;
@@ -152,14 +149,10 @@
 				<span>{duration}</span>
 			</div>
 			<div class="controls">
-				<button 
-					class="control-btn random" 
-					class:active={$radio_random} 
-					on:click={() => ($radio_random = !$radio_random)}
-				>
+				<button class="control-btn random" class:active={$radio_random} on:click={() => ($radio_random = !$radio_random)}>
 					<RandomIcon />
 				</button>
-				
+
 				<div class="main-audio-control">
 					<button class="control-btn previous">
 						<PreviousIcon />
@@ -175,12 +168,8 @@
 						<NextIcon />
 					</button>
 				</div>
-				
-				<button 
-					class="control-btn repeat" 
-					class:active={$radio_repeat} 
-					on:click={() => ($radio_repeat = !$radio_repeat)}
-				>
+
+				<button class="control-btn repeat" class:active={$radio_repeat} on:click={() => ($radio_repeat = !$radio_repeat)}>
 					<RepeatIcon />
 				</button>
 			</div>

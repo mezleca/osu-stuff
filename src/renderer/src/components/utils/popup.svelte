@@ -1,5 +1,5 @@
 <script>
-	let { active = $bindable(false) } = $props();
+	export let active = false;
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->

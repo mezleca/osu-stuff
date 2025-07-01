@@ -3,7 +3,13 @@
 	import Controls from "../utils/controls.svelte";
 
 	// props
-	export let selected = false, beatmap = {}, show_bpm = true, show_star_rating = true, click = () => {}, control = () => {}, extra = () => {};
+	export let selected = false,
+		beatmap = {},
+		show_bpm = true,
+		show_star_rating = true,
+		click = () => {},
+		control = () => {},
+		extra = () => {};
 
 	$: audio_url = beatmap?.beatmapset_id ? `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3` : "";
 	$: bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : "";

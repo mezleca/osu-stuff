@@ -1,7 +1,7 @@
 <script>
 	// search svg
 	import Search from "../icon/search-icon.svelte";
-	
+
 	export let value = "";
 	export let placeholder = "";
 	export let callback = () => {};

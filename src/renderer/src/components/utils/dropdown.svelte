@@ -3,7 +3,7 @@
 	export let options = [];
 	export let selected_value = "";
 	export let placeholder = "select an option";
-	
+
 	let is_open = false;
 	let dropdown_ref;
 
@@ -38,7 +38,7 @@
 		<span class="dropdown_text">{display_text}</span>
 		<div class="dropdown_arrow" class:active={is_open}></div>
 	</button>
-	
+
 	{#if is_open}
 		<div class="dropdown_menu">
 			{#each options as option}

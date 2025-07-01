@@ -1,6 +1,9 @@
 <script>
 	import Music from "../icon/music.svelte";
-	let { name, count, selected, callback = () => {} } = $props();
+	export let name,
+		count,
+		selected,
+		callback = () => {};
 </script>
 
 <button class="collection-item" onclick={callback} class:active={selected == true}>

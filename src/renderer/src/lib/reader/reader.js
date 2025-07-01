@@ -913,7 +913,7 @@ export class Reader extends BinaryReader {
 			}
 
 			return audio_path;
-		} catch(error) {
+		} catch (error) {
 			console.log("[reader] get_beatmap_audio error:", error);
 			return null;
 		}

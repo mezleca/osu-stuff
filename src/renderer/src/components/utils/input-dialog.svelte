@@ -1,5 +1,6 @@
 <script>
-	let { location = "", type = "" } = $props();
+	export let location = "",
+		type = "";
 
 	const show_dialog = async () => {
 		const dialog = await window.extra.dialog({

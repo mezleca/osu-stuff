@@ -1,5 +1,5 @@
 <script>
-	let { callback = () => {} } = $props();
+	export let callback = () => {};
 </script>
 
 <!-- svelte-ignore a11y_consider_explicit_label -->

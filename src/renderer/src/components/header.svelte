@@ -5,7 +5,7 @@
 	import X from "./icon/x.svelte";
 
 	// props
-	let { active = false } = $props();
+	export let active = false;
 
 	const set_active_tab = (tab) => {
 		// prob will only happen if are still on the loading screen

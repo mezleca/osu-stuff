@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { collections, radio_mode, radio_search, radio_sort, radio_selected } from "../../store";
-	import { format_time } from "../../lib/utils"
+	import { format_time } from "../../lib/utils";
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -16,10 +16,10 @@
 
 	// constantes
 	const SORT_OPTIONS = ["artist", "title", "difficulty"];
-	
+
 	$: all_collections = collections.all || [];
-	$: beatmap_options = ["all beatmaps", ...$all_collections.map(c => c.name)];
-	
+	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
+
 	// current beatmap data
 	$: beatmap = $radio_selected?.beatmap ?? {};
 	$: control_key = beatmap.md5 ?? crypto.randomUUID();
@@ -36,10 +36,9 @@
 			});
 		}
 	};
-	
-	$: filtered_maps = $radio_mode == "all beatmaps" 
-		? get_filtered_beatmaps(null, $radio_search, true)
-		: get_filtered_beatmaps($radio_mode, $radio_search, false);
+
+	$: filtered_maps =
+		$radio_mode == "all beatmaps" ? get_filtered_beatmaps(null, $radio_search, true) : get_filtered_beatmaps($radio_mode, $radio_search, false);
 
 	// update on change
 	$: if ($radio_selected) {
@@ -66,7 +65,7 @@
 					<Dropdown bind:selected_value={$radio_sort} options={SORT_OPTIONS} />
 				</div>
 			</div>
-			
+
 			<Beatmaps
 				bind:selected={$radio_selected}
 				carrousel={true}
@@ -77,19 +76,19 @@
 				direction="left"
 			/>
 		</div>
-		
+
 		<div class="radio-data">
 			<div class="radio-beatmap">
 				<div class="radio-beatmap-header">
 					<div class="status">playing</div>
 					<div class="status">★ {beatmap.star_rating?.[beatmap.mode]?.nm ?? "0.0"}</div>
 				</div>
-				
+
 				<div class="song-info">
 					<div class="title">{beatmap.title || "No song selected"}</div>
 					<div class="artist">{beatmap.artist || ""}</div>
 				</div>
-				
+
 				<div class="stats">
 					<div class="stat">
 						<div class="stat-label">BPM</div>
@@ -104,15 +103,10 @@
 						<div class="stat-value">{beatmap.mapper || "---"}</div>
 					</div>
 				</div>
-				
+
 				<div class="radio-controls">
 					{#key control_key}
-						<Controls 
-							beatmap={beatmap}
-							small={false}
-							key={control_key}
-							persistent={true}
-						/>
+						<Controls {beatmap} small={false} key={control_key} persistent={true} />
 					{/key}
 				</div>
 			</div>

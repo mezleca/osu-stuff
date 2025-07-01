@@ -14,15 +14,17 @@ const additionalArguments = [
 ];
 
 // protocol to get images / stuff from osu!
-protocol.registerSchemesAsPrivileged([{
-    scheme: 'media',
-    privileges: {
-        secure: true,
-        stream: true,
-        supportFetchAPI: true,
-        bypassCSP: true
-    } 
-}]);
+protocol.registerSchemesAsPrivileged([
+	{
+		scheme: "media",
+		privileges: {
+			secure: true,
+			stream: true,
+			supportFetchAPI: true,
+			bypassCSP: true
+		}
+	}
+]);
 
 // fuck
 ipcMain.handle("http-request", async (event, options) => {
@@ -122,14 +124,14 @@ app.whenReady().then(() => {
 
 	// dont remember why i use this but it seems to cause some problems without it
 	session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-        callback({ requestHeaders: { ...details.requestHeaders } });
-    });
+		callback({ requestHeaders: { ...details.requestHeaders } });
+	});
 
-    // image protocol so electron dont freak out
-    protocol.handle("media", (req) => { 
-        const path_to_media = decodeURIComponent(req.url.replace("media://", ""));
-        return net.fetch(`file://${path_to_media}`);
-    });
+	// image protocol so electron dont freak out
+	protocol.handle("media", (req) => {
+		const path_to_media = decodeURIComponent(req.url.replace("media://", ""));
+		return net.fetch(`file://${path_to_media}`);
+	});
 
 	createWindow();
 

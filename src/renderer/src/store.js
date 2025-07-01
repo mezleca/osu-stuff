@@ -73,15 +73,14 @@ export const radio_repeat = writable(true);
 export const radio_selected = writable({}); // selected beatmap
 
 const create_audio_store = () => {
-
-    const { subscribe, update } = writable({
-        audio: null,
-        id: null,
+	const { subscribe, update } = writable({
+		audio: null,
+		id: null,
 		playing: false,
-        progress: "0:00",
-        duration: "0:00",
-        progress_bar_width: 0
-    });
+		progress: "0:00",
+		duration: "0:00",
+		progress_bar_width: 0
+	});
 
 	const on_canplay = (event) => {
 		update((obj) => ({
@@ -110,8 +109,7 @@ const create_audio_store = () => {
 
 	/** @param {AudioContext} audio */
 	const setup = (id, audio) => {
-
-		// add listeners to get audio duration / update progress 
+		// add listeners to get audio duration / update progress
 		audio.addEventListener("canplay", on_canplay);
 		audio.addEventListener("timeupdate", on_timeupdate);
 		audio.addEventListener("ended", on_end);
@@ -125,7 +123,7 @@ const create_audio_store = () => {
 		// update audio obj
 		update((obj) => ({
 			...obj,
-			playing: true,
+			playing: true
 		}));
 
 		audio.play();
@@ -136,7 +134,7 @@ const create_audio_store = () => {
 		// update audio obj
 		update((obj) => ({
 			...obj,
-			playing: false,
+			playing: false
 		}));
 
 		audio.pause();
@@ -144,7 +142,6 @@ const create_audio_store = () => {
 
 	/** @param {HTMLAudioElement} audio */
 	const remove = (audio) => {
-
 		audio.pause();
 
 		// update audio obj
@@ -152,7 +149,7 @@ const create_audio_store = () => {
 			...obj,
 			playing: false,
 			id: null,
-			audio: null,
+			audio: null
 		}));
 
 		// remove old listeners to prevent trolling
@@ -170,14 +167,14 @@ const create_audio_store = () => {
 		}));
 	};
 
-    return {
-        subscribe,
-        setup,
-        play,
+	return {
+		subscribe,
+		setup,
+		play,
 		pause,
 		seek,
 		remove
-    };
+	};
 };
 
 export const radio_store = create_audio_store();
