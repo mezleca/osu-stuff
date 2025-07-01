@@ -1,12 +1,10 @@
 <!-- Dropdown.svelte -->
 <script>
-	let { 
-		options = [],
-		selected_value = $bindable(""),
-		placeholder = "select an option" 
-	} = $props();
-
-	let is_open = $state(false);
+	export let options = [];
+	export let selected_value = "";
+	export let placeholder = "select an option";
+	
+	let is_open = false;
 	let dropdown_ref;
 
 	const toggle_dropdown = () => {
@@ -30,25 +28,21 @@
 		}
 	};
 
-	let display_text = $state(selected_value ?? placeholder);
-
-	$effect(() => {
-		display_text = selected_value;
-	});
+	$: display_text = selected_value || placeholder;
 </script>
 
-<svelte:window onclick={handle_click_outside} onkeydown={handle_keydown} />
+<svelte:window on:click={handle_click_outside} on:keydown={handle_keydown} />
 
 <div class="dropdown_container" bind:this={dropdown_ref}>
-	<button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
+	<button class="dropdown_trigger" class:active={is_open} on:click={toggle_dropdown} type="button">
 		<span class="dropdown_text">{display_text}</span>
 		<div class="dropdown_arrow" class:active={is_open}></div>
 	</button>
-
+	
 	{#if is_open}
 		<div class="dropdown_menu">
 			{#each options as option}
-				<button class="dropdown_item" onclick={() => select_option(option)} type="button">
+				<button class="dropdown_item" on:click={() => select_option(option)} type="button">
 					{option.label || option}
 				</button>
 			{/each}
@@ -60,23 +54,21 @@
 	.dropdown_container {
 		position: relative;
 		display: inline-block;
-		min-width: 200px;
+		width: fit-content;
+		flex: 1;
 	}
 
 	.dropdown_trigger {
 		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 4px;
-		padding: 12px 16px;
+		padding: 8px 12px;
 		width: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition: all 0.15s ease;
 		font-size: 14px;
-		color: #e5e5e5;
-		font-family: inherit;
+		color: var(--text-secondary);
 	}
 
 	.dropdown_trigger:hover {
@@ -122,16 +114,15 @@
 	}
 
 	.dropdown_item {
-		padding: 12px 16px;
+		padding: 8px 12px;
 		cursor: pointer;
 		transition: background 0.1s ease;
 		font-size: 14px;
 		border: none;
 		background: transparent;
-		color: #e5e5e5;
+		color: var(--text-secondary);
 		width: 100%;
 		text-align: left;
-		font-family: inherit;
 		border-bottom: 1px solid #2a2a2a;
 	}
 

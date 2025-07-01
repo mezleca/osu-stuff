@@ -54,7 +54,7 @@ export class BinaryReader {
 			const byte = this.uint8View[this.offset++];
 			result |= (byte & 0x7f) << shift;
 
-			if ((byte & 0x80) === 0) {
+			if ((byte & 0x80) == 0) {
 				break;
 			}
 			shift += 7;

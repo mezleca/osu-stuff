@@ -1,4 +1,4 @@
-<script>
+<script>	
 	// control icons
 	import Play from "../icon/play.svelte";
 	import Pause from "../icon/pause.svelte";
@@ -9,23 +9,45 @@
 	import NextIcon from "../icon/next-icon.svelte";
 	import PreviousIcon from "../icon/previous-icon.svelte";
 
-	// global audio object :)
-	import { audio_data, radio_repeat, radio_random } from "../../store";
+	// stores
+	import { radio_repeat, radio_random, show_notification, preview_store, radio_store } from "../../store";
+	import { reader } from "../../lib/reader/reader";
 
 	// props
-	let { 
-		url = "",
-		local = false,
-		small = true,
-		right = () => {}
-	} = $props();
+	export let beatmap = {};
+	export let small = true;
+	export let right = () => {};
 
-	let actual_url = $state(url);
-	let current_time = $state("0:00");
-	let song_length = $state("0:00");
-	let progress_bar_width = $state(0);
+	$: control = small ? preview_store : radio_store;
+	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = $control);
+
+	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
+	let current_id = beatmap.md5;
 
 	const get_audio = async (url) => {
+
+		if (!small) {
+
+			const audio_name = await reader.get_beatmap_audio(beatmap);
+			
+			if (!audio_name) {
+				console.log("failed beatmap:", beatmap);
+				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location"});
+				return;
+			}
+
+			const data = await fetch("media://" + encodeURIComponent(audio_name));
+			
+			if (data.status != 200) {
+				console.log("failed audio:", audio_name, beatmap);
+				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio"});
+				return;
+			}
+
+			const buffer = await data.arrayBuffer();
+			return new Blob([new Uint8Array(buffer)], { type: "audio/ogg" });
+		}
+
 		if (url == "") {
 			return;
 		}
@@ -39,76 +61,78 @@
 			}
 		});
 
-		// check if got the audio
 		if (data.status != 200) {
 			console.log("failed to get audio:", data.error);
 			return;
 		}
 
-		const audio_source = new Blob([data.data], { type: "audio/ogg " });
-		return audio_source;
+		return new Blob([data.data], { type: "audio/ogg" });
 	};
 
-	const handle_audio = async (url) => {
-		// check if we're handling another one
-		if ($audio_data.id && $audio_data.id != url) {
-			$audio_data.id = null;
-			$audio_data.obj.pause();
-			$audio_data.playing = false;
-		}
+	const handle_audio = async () => {
 
-		// pause but dot reset the currentTime (i prefer this way)
-		if ($audio_data.playing && $audio_data.id != null) {
-			$audio_data.obj.pause();
-			$audio_data.playing = false;
+		// if same audio is playing, pause it
+		if (playing && audio_id == current_id) {
+			if (audio != null) {
+				control.pause(audio);
+			}
 			return;
 		}
 
-		// if we're paused but already have a audio object just play again
-		if (!$audio_data.playing && $audio_data.id != null) {
-			$audio_data.obj.play();
-			$audio_data.playing = true;
+		// resume
+		if (!playing && audio_id == current_id) {
+			control.play(audio);
 			return;
 		}
 
-		// otherwise just download the preview
-		const buffer = await get_audio(url);
+		// remove old audio to process new one
+		if (audio != null) {
+			control.remove(audio);
+		}
+
+		// load new audio
+		const buffer = await get_audio(actual_url);
 
 		if (!buffer) {
+			console.log("failed to get buffer");
 			return;
 		}
 
-		// update the old audio object with the new one
-		$audio_data.obj = new Audio(window.URL.createObjectURL(buffer));
-		$audio_data.obj.volume = 0.5;
+		// create new audio object
+		const new_audio = new Audio(window.URL.createObjectURL(buffer));
+		// @TODO: volume slider
+		new_audio.volume = 0.5;
+		
+		control.setup(current_id, new_audio);
 
-		// reset
-		$audio_data.obj.addEventListener("ended", () => {
-			$audio_data.obj.pause();
-			$audio_data.obj.currentTime = 0;
-			$audio_data.playing = false;
-		});
+		// play new song
+		control.play(new_audio);
+	};
 
-		$audio_data.obj.play();
-		$audio_data.id = url;
+	const seek_audio = (e) => {
+		if (audio == null) {
+			return;
+		}
+		
+		const rect = e.currentTarget.getBoundingClientRect();
+		const percent = (e.clientX - rect.left) / rect.width;
+		const new_time = percent * audio.duration;
 
-		$audio_data.playing = true;
+		control.seek(audio, percent, new_time);
 	};
 </script>
 
 {#if small}
 	<div class="small-control">
-		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" onclick={() => handle_audio(actual_url)}>
-			{#if $audio_data?.playing && $audio_data?.id == actual_url}
+		<button class="small-control-icon" on:click={() => handle_audio()}>
+			{#if playing && audio_id == current_id}
 				<Pause />
 			{:else}
 				<Play />
 			{/if}
 		</button>
-		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="small-control-icon" onclick={() => right(local ? "remove" : "add")}>
-			{#if local}
+		<button class="small-control-icon" on:click={() => right(beatmap?.local ? "remove" : "add")}>
+			{#if beatmap?.local}
 				<X />
 			{:else}
 				<Cross />
@@ -118,37 +142,47 @@
 {:else}
 	<div class="big-control">
 		<div class="progress-container">
-			<div class="progress-bar">
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="progress-bar" on:click={seek_audio}>
 				<div class="progress-fill" style="width: {progress_bar_width}%;"></div>
 			</div>
 			<div class="time-display">
-				<span style="font-size: 12px">{current_time}</span>
-				<span style="font-size: 12px">{song_length}</span>
+				<span>{progress}</span>
+				<span>{duration}</span>
 			</div>
 			<div class="controls">
-				<!-- svelte-ignore a11y_interactive_supports_focus -->
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<div role="button" class="random" class:active={$radio_random} onclick={() => ($radio_random = !$radio_random)}>
+				<button 
+					class="control-btn random" 
+					class:active={$radio_random} 
+					on:click={() => ($radio_random = !$radio_random)}
+				>
 					<RandomIcon />
-				</div>
+				</button>
+				
 				<div class="main-audio-control">
-					<div class="previous">
+					<button class="control-btn previous">
 						<PreviousIcon />
-					</div>
-					{#if $audio_data?.playing && $audio_data?.id == actual_url}
-						<Pause />
-					{:else}
-						<Play />
-					{/if}
-					<div class="next">
+					</button>
+					<button class="control-btn play-pause" on:click={() => handle_audio()}>
+						{#if playing && audio_id == current_id}
+							<Pause />
+						{:else}
+							<Play />
+						{/if}
+					</button>
+					<button class="control-btn next">
 						<NextIcon />
-					</div>
+					</button>
 				</div>
-				<!-- svelte-ignore a11y_interactive_supports_focus -->
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<div role="button" class="repeat" class:active={$radio_repeat} onclick={() => ($radio_repeat = !$radio_repeat)}>
+				
+				<button 
+					class="control-btn repeat" 
+					class:active={$radio_repeat} 
+					on:click={() => ($radio_repeat = !$radio_repeat)}
+				>
 					<RepeatIcon />
-				</div>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -175,7 +209,6 @@
 		align-items: center;
 		justify-content: center;
 		transition: all 0.2s ease;
-		background: var(--bg-tertiary);
 		z-index: 3;
 		opacity: 0;
 		padding: 6px;
@@ -183,11 +216,15 @@
 
 	.small-control-icon:hover {
 		transform: scale(1.05);
+		background-color: var(--bg-tertiary);
 	}
 
 	.big-control {
-		display: grid;
-		grid-template-rows: repeat(1fr, 2);
+		width: 100%;
+	}
+
+	.progress-container {
+		width: 100%;
 	}
 
 	.progress-bar {
@@ -201,45 +238,72 @@
 		transition: height 0.1s ease;
 	}
 
+	.progress-bar:hover {
+		height: 8px;
+	}
+
 	.progress-fill {
 		height: 100%;
 		background: linear-gradient(90deg, var(--accent-color-half), var(--accent-color));
 		border-radius: 3px;
 		width: 0%;
 		position: relative;
-		transition: width 0.3s ease;
+		transition: width 0.1s ease;
+		pointer-events: none;
 	}
 
 	.time-display {
 		display: flex;
 		justify-content: space-between;
 		color: rgba(255, 255, 255, 0.6);
-		font-size: 13px;
-		font-weight: 500;
+		font-size: 12px;
+		margin-bottom: 16px;
 	}
 
-	.big-control .controls {
+	.controls {
 		display: flex;
-		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-		margin-top: 15px;
+		width: 100%;
+	}
+
+	.control-btn {
+		background: transparent;
+		border: none;
+		color: rgba(255, 255, 255, 0.7);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px;
+		border-radius: 4px;
+		transition: all 0.2s ease;
+	}
+
+	.control-btn:hover {
+		transform: scale(1.05);
+		color: white;
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.control-btn.active {
+		color: var(--accent-color);
 	}
 
 	.main-audio-control {
 		display: flex;
-		flex-direction: row;
-		gap: 24px;
-		will-change: transform;
-		transition: all 0.1s;
+		align-items: center;
+		gap: 16px;
 	}
 
-	.controls *:hover {
-		transform: scale(1.05);
+	.play-pause {
+		padding: 12px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 50%;
 	}
 
-	.controls .random.active,
-	.controls .repeat.active {
-		color: var(--accent-color);
+	.play-pause:hover {
+		background: rgba(255, 255, 255, 0.2);
+		transform: scale(1.1);
 	}
 </style>

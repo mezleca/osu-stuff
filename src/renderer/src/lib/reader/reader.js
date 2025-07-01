@@ -15,6 +15,8 @@ export class Reader extends BinaryReader {
 	osu;
 	/** @type {Map} */
 	image_cache;
+	/** @type {Map} */
+	audio_cache;
 	/* */
 	instance;
 
@@ -24,6 +26,7 @@ export class Reader extends BinaryReader {
 		this.pending_deletion = new Set();
 		this.offset = 0;
 		this.image_cache = new Map();
+		this.audio_cache = new Map();
 		this.beatmap_offset_start = 0;
 	}
 
@@ -732,7 +735,7 @@ export class Reader extends BinaryReader {
 			return this.parse_key_value_section(section_content);
 		}
 
-		return this.parse_list_section(section_content);
+		return this.parse_section(section_content);
 	};
 
 	is_key_value_section = (section_name) => {
@@ -881,6 +884,37 @@ export class Reader extends BinaryReader {
 			return image_path;
 		} catch (error) {
 			console.log("[reader] get_beatmap_image error:", error);
+			return null;
+		}
+	};
+
+	get_beatmap_audio = async (beatmap) => {
+		if (!beatmap?.md5) {
+			return null;
+		}
+
+		if (this.audio_cache.has(beatmap.md5)) {
+			return this.audio_cache.get(beatmap.md5);
+		}
+
+		try {
+			const events_data = await this.get_beatmap_section(beatmap, "General");
+			const audio_name = events_data?.AudioFilename ?? null;
+
+			if (!audio_name) {
+				console.log("failed to get audio_name from", events_data, beatmap);
+				return null;
+			}
+
+			const audio_path = this.get_file_location(beatmap, audio_name);
+
+			if (audio_path) {
+				this.audio_cache.set(beatmap.md5, audio_path);
+			}
+
+			return audio_path;
+		} catch(error) {
+			console.log("[reader] get_beatmap_audio error:", error);
 			return null;
 		}
 	};

@@ -1,23 +1,23 @@
 <script>
 	import { collections, selected_collection, show_notification } from "../store";
-
 	// components
 	import VirtualList from "./utils/virtual-list.svelte";
 	import BeatmapCard from "./cards/beatmap-card.svelte";
 
 	// props
-	let {
-		all_beatmaps = [],
-		key = crypto.randomUUID(),
-		carrousel,
-		show_bpm,
-		max_width,
-		height = 100,
-		direction,
-		remove_callback = () => {}
-	} = $props();
+	// @TODO: theres too much props
+	export let selected = {};
+	export let all_beatmaps = [];
+	export let key = crypto.randomUUID();
+	export let carrousel;
+	export let show_bpm;
+	export let show_star_rating;
+	export let max_width;
+	export let height = 100;
+	export let direction;
+	export let remove_callback = () => {};
 
-	let beatmaps = $state(all_beatmaps);
+	$: beatmaps = all_beatmaps;
 
 	const handle_control = (type, beatmap) => {
 		if (type == "add") {
@@ -28,41 +28,50 @@
 	};
 
 	const remove_beatmap = (hash) => {
-		// remove beatmap from array
 		if ($selected_collection?.name) {
 			collections.remove_beatmap($selected_collection.name, hash);
 		}
 		remove_callback();
 	};
+	
+	const update_selected = (index, beatmap) => {
+		if (beatmap?.md5 != selected?.beatmap?.md5) {
+			selected = { index, beatmap };
+		}
+	};
 
-	$effect(() => {
+	$: if (all_beatmaps) {
 		beatmaps = all_beatmaps;
-	})
+	}
 </script>
 
 <div class="beatmaps-container">
-	<!-- svelte-ignore a11y_consider_explicit_label -->
 	<div class="beatmaps-header">
 		<div class="results-count">{beatmaps?.length ?? 0} matches</div>
 	</div>
-	<VirtualList count={beatmaps?.length ?? 0} width="100%" height="100%" item_height={height} {max_width} {carrousel} {key} {direction} let:index>
-		{#snippet children({index})}
-			<!-- get beatmap metadata from md5 hash -->
-			{@const beatmap = beatmaps[index] ?? null}
-			<!-- @TODO: sr is hardcoded to stable gamemode -->
-			<BeatmapCard
-				title={beatmap?.title ?? "unknown"}
-				artist={beatmap?.artist ?? "unknown"}
-				beatmapset_id={beatmap?.beatmapset_id ?? 0}
-				star_rating={beatmap?.star_rating?.[0].nm ?? 0}
-				bpm={show_bpm ? (beatmap?.bpm ?? 0) : 0}
-				id={beatmap?.md5 ?? crypto.randomUUID()}
-				local={beatmap?.local ?? false}
-				control={(type) => handle_control(type, beatmap)}
+
+	<VirtualList
+		count={beatmaps?.length ?? 0}
+		width="100%"
+		height="100%"
+		item_height={height}
+		{max_width}
+		{carrousel}
+		{key}
+		{direction}
+		let:index
+	>
+		{@const beatmap = beatmaps[index] ?? null}
+        {@const selected_index = selected?.index ?? -1}
+        {@const is_selected = beatmaps[selected_index]?.md5 === beatmap?.md5}
+
+		<BeatmapCard 
+			{beatmap} 
+			{show_bpm} 
+			{show_star_rating} 
+			selected={is_selected} 
+			control={(type) => handle_control(type, beatmap)}
+			click={() => update_selected(index, beatmap)} 
 			/>
-		{/snippet}
 	</VirtualList>
 </div>
-
-<style>
-</style>

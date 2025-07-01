@@ -3,45 +3,44 @@
 	import Controls from "../utils/controls.svelte";
 
 	// props
-	let { 
-		title,
-		artist,
-		id = 0,
-		status,
-		star_rating = 0,
-		bpm = 0,
-		beatmapset_id,
-		local,
-		background,
-		control = () => {},
-		extra = () => {}
-	} = $props();
+	export let selected = false, beatmap = {}, show_bpm = true, show_star_rating = true, click = () => {}, control = () => {}, extra = () => {};
 
-	let audio_url = $state(beatmapset_id ? `https://b.ppy.sh/preview/${beatmapset_id}.mp3` : "");
-	let bg = $state(background ? background : `https://assets.ppy.sh/beatmaps/${beatmapset_id}/covers/cover.jpg`);
-	let control_key = $state(`${id}-${beatmapset_id}`);
+	$: audio_url = beatmap?.beatmapset_id ? `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3` : "";
+	$: bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : "";
+	$: control_key = Date.now();
 
-	$effect(() => {
-		audio_url = `https://b.ppy.sh/preview/${beatmapset_id}.mp3`;
-		bg = `https://assets.ppy.sh/beatmaps/${beatmapset_id}/covers/cover.jpg`;
-		control_key = `${id}-${beatmapset_id}`;
-	});
+	// update more info we changed anything
+	$: if (beatmap?.beatmapset_id) {
+		audio_url = beatmap?.beatmapset_id ? `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3` : "";
+		bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : "";
+	}
+
+	// update key if we changed the beatmap
+	$: if (beatmap?.md5) {
+		control_key = beatmap?.md5;
+	}
 </script>
 
-<div class="small-card" style="--card-bg: url({bg});">
-	<Controls {local} right={control} url={beatmapset_id ? audio_url : ""} key={control_key} />
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="small-card" class:selected style="--card-bg: url({bg});" onclick={click}>
+	{#key control_key}
+		<Controls {beatmap} right={control} key={control_key} />
+	{/key}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="info" onclick={extra}>
-		<div class="title">{title ?? "unknown"}</div>
-		<div class="subtitle">{artist ?? "unknown"}</div>
+		<div class="title">{beatmap?.title ?? "unknown"}</div>
+		<div class="subtitle">{beatmap?.artist ?? "unknown"}</div>
 		<div class="stats">
-			<span class="stat">{status ?? "unknown"}</span>
+			<span class="stat">{beatmap?.status_text ?? "unknown"}</span>
 			<div class="right-stats" style="justify-self: end;">
-				{#if bpm}
-					<span class="stars">{Math.round(bpm) ?? "unknown"} bpm</span>
+				{#if show_bpm}
+					<span class="stars">{Math.round(beatmap.bpm) ?? "unknown"} bpm</span>
 				{/if}
-				<span class="stars">★ {star_rating ?? "0.0"}</span>
+				{#if show_star_rating}
+					<span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? "0.0"}</span>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -53,7 +52,7 @@
 		display: flex;
 		overflow: hidden;
 		cursor: pointer;
-		border: 2px solid rgb(68, 68, 68);
+		border: 2px solid transparent;
 		border-radius: 6px;
 		height: 90px;
 		transition:
@@ -63,7 +62,8 @@
 		transform: translateZ(0);
 	}
 
-	.small-card:hover {
+	.small-card:hover,
+	.selected {
 		border-color: var(--accent-color);
 	}
 
@@ -113,11 +113,14 @@
 
 	.small-card .stars,
 	.small-card .stat {
-		background: var(--bg-tertiary);
 		color: var(--text-secondary);
-		border-radius: 8px;
+		border-radius: 6px;
 		font-size: 11px;
 		padding: 4px 6px;
+	}
+
+	.small-card .stat {
+		background: rgb(23, 23, 23, 0.65);
 	}
 
 	.small-card .stats {

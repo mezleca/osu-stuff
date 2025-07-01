@@ -1,33 +1,30 @@
 <script>
-	import { onMount } from "svelte";
+	import { onMount, createEventDispatcher } from "svelte";
 
 	// props
-	let {
-		count = 0,
-		item_height = 100,
-		buffer = 5,
-		height = "100%",
-		carrousel = false,
-		max_width = false,
-		key = crypto.randomUUID(),
-		direction = "right",
-		children,
-		get_key = () => crypto.randomUUID()
-	} = $props();
+	export let count = 0;
+	export let item_height = 100;
+	export let buffer = 5;
+	export let height = "100%";
+	export let carrousel = false;
+	export let max_width = false;
+	export let key = crypto.randomUUID();
+	export let direction = "right";
+	export let get_key = () => crypto.randomUUID();
 
 	let container;
 	let hovered_item = -1;
 	let selection_focus_offset = 0;
 
-	let container_height = $state(0);
-	let selected_item = $state(-1);
-	let scroll_top = $state(0);
-	let total_height = $derived(count * item_height);
-	let start_index = $derived(Math.max(0, Math.floor(scroll_top / item_height) - buffer));
-	let visible_count = $derived(Math.ceil(container_height / item_height) + buffer * 2);
-	let end_index = $derived(Math.min(start_index + visible_count, count));
-	let visible_items = $derived(end_index - start_index);
-	let offset_y = $derived(start_index * item_height);
+	let container_height = 0;
+	let scroll_top = 0;
+
+	$: total_height = count * item_height;
+	$: start_index = Math.max(0, Math.floor(scroll_top / item_height) - buffer);
+	$: visible_count = Math.ceil(container_height / item_height) + buffer * 2;
+	$: end_index = Math.min(start_index + visible_count, count);
+	$: visible_items = end_index - start_index;
+	$: offset_y = start_index * item_height;
 
 	const lerp = (start, end, factor) => start + (end - start) * factor;
 
@@ -40,8 +37,7 @@
 		const elements = [...container.querySelectorAll(".item")];
 
 		// update selection focus offset (moves non selected items to right)
-		const target_offset = selected_item >= 0 ? 60 : 0;
-		selection_focus_offset = lerp(selection_focus_offset, target_offset, 0.1);
+		selection_focus_offset = lerp(selection_focus_offset, 0, 0.1);
 
 		for (let i = 0; i < elements.length; i++) {
 			const element = elements[i];
@@ -52,7 +48,9 @@
 			const normalized_distance = distance_from_center / item_height;
 			const is_hovered = hovered_item == item_index;
 
-			let scale = 1, x_offset = 0, margin = 0;
+			let scale = 1,
+				x_offset = 0,
+				margin = 0;
 
 			if (normalized_distance <= 0.5) {
 				scale = 1;
@@ -114,15 +112,13 @@
 		}
 	};
 
-	$effect(() => {
-		if (visible_items > 0 && carrousel) {
-			requestAnimationFrame(update_carrousel_effect);
-		}
-		if (container && (count == 0 || key)) {
-			hovered_item = -1;
-			selected_item = -1;
-		}
-	});
+	$: if (visible_items > 0 && carrousel) {
+		requestAnimationFrame(update_carrousel_effect);
+	}
+
+	$: if (container && (count == 0 || key)) {
+		hovered_item = -1;
+	}
 
 	export const scroll_to_item = (index) => {
 		if (container && index >= 0 && index < count) {
@@ -152,7 +148,7 @@
 	class="virtual-list"
 	class:osu-mode={carrousel}
 	style="height: {height};"
-	onscroll={handle_scroll}
+	on:scroll={handle_scroll}
 	bind:clientHeight={container_height}
 >
 	<div class="spacer" style="height: {total_height}px;"></div>
@@ -163,18 +159,17 @@
 					id={get_key(i)}
 					class="item {direction}"
 					class:osu-effect={carrousel}
-					class:selected={selected_item == start_index + i}
 					style="width: {max_width
 						? carrousel
 							? '98'
 							: '100'
 						: '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
-					onmouseenter={() => handle_mouse_enter(start_index + i)}
-					onmouseleave={handle_mouse_leave}
+					on:mouseenter={() => handle_mouse_enter(start_index + i)}
+					on:mouseleave={handle_mouse_leave}
 					role="button"
 					tabindex="0"
 				>
-					{@render children({ index: start_index + i })}
+					<slot index={start_index + i} />
 				</div>
 			{/each}
 		{/key}
@@ -224,10 +219,6 @@
 
 	.osu-mode {
 		transform: translateZ(0);
-	}
-
-	.selected {
-		z-index: 10;
 	}
 
 	@media (max-width: 768px) {

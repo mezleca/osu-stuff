@@ -1,6 +1,5 @@
 <script>
-	export let location = "",
-		type = "";
+	let { location = "", type = "" } = $props();
 
 	const show_dialog = async () => {
 		const dialog = await window.extra.dialog({
@@ -17,7 +16,7 @@
 </script>
 
 <div class="file-input-wrapper">
-	<input type="custom-file" class="file-input" on:click={show_dialog} />
+	<input type="custom-file" class="file-input" onclick={show_dialog} />
 	<div class="file-input-display">
 		<div class="text">{location == "" ? "click to select" : location}</div>
 	</div>

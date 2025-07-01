@@ -1,19 +1,14 @@
 <script>
 	// search svg
 	import Search from "../icon/search-icon.svelte";
+	
+	export let value = "";
+	export let placeholder = "";
+	export let callback = () => {};
 
-	let {
-		value = $bindable(""),
-		placeholder = "",
-		callback = () => {}
-	} = $props();
-
-	$effect(() => {
-		console.log("updating search value", value);
-		if (value || value == "") {
-			callback();
-		}
-	}); 
+	$: if (value != undefined) {
+		callback();
+	}
 </script>
 
 <div class="search-container">

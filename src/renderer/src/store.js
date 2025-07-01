@@ -1,4 +1,5 @@
 import { derived, writable } from "svelte/store";
+import { format_time } from "./lib/utils";
 import { indexed } from "./lib/indexed";
 
 const default_config_fields = {
@@ -62,15 +63,125 @@ export const discover_beatmaps_search = writable("");
 export const collection_beatmaps_search = writable("");
 export const collection_search = writable("");
 
-// collecions / discover audio object
-export const audio_data = writable({});
-
 // radio shit
-export const radio_data = writable({});
 export const radio_search = writable("");
 export const radio_mode = writable("all beatmaps");
+export const radio_sort = writable("artist");
 export const radio_random = writable(false);
 export const radio_repeat = writable(true);
+
+export const radio_selected = writable({}); // selected beatmap
+
+const create_audio_store = () => {
+
+    const { subscribe, update } = writable({
+        audio: null,
+        id: null,
+		playing: false,
+        progress: "0:00",
+        duration: "0:00",
+        progress_bar_width: 0
+    });
+
+	const on_canplay = (event) => {
+		update((obj) => ({
+			...obj,
+			duration: format_time(event.target.duration ?? 0),
+			playing: obj.playing
+		}));
+	};
+
+	const on_timeupdate = (event) => {
+		update((obj) => ({
+			...obj,
+			progress: format_time(event.target.currentTime ?? 0),
+			progress_bar_width: (event.target.currentTime / event.target.duration) * 100
+		}));
+	};
+
+	const on_end = (event) => {
+		update((obj) => ({
+			...obj,
+			progress: format_time(event.target.currentTime ?? 0),
+			progress_bar_width: 100,
+			playing: false
+		}));
+	};
+
+	/** @param {AudioContext} audio */
+	const setup = (id, audio) => {
+
+		// add listeners to get audio duration / update progress 
+		audio.addEventListener("canplay", on_canplay);
+		audio.addEventListener("timeupdate", on_timeupdate);
+		audio.addEventListener("ended", on_end);
+
+		// update current obj
+		update((obj) => ({ ...obj, audio, id }));
+	};
+
+	/** @param {HTMLAudioElement} audio */
+	const play = (audio) => {
+		// update audio obj
+		update((obj) => ({
+			...obj,
+			playing: true,
+		}));
+
+		audio.play();
+	};
+
+	/** @param {HTMLAudioElement} audio */
+	const pause = (audio) => {
+		// update audio obj
+		update((obj) => ({
+			...obj,
+			playing: false,
+		}));
+
+		audio.pause();
+	};
+
+	/** @param {HTMLAudioElement} audio */
+	const remove = (audio) => {
+
+		audio.pause();
+
+		// update audio obj
+		update((obj) => ({
+			...obj,
+			playing: false,
+			id: null,
+			audio: null,
+		}));
+
+		// remove old listeners to prevent trolling
+		audio.removeEventListener("canplay", on_canplay);
+		audio.removeEventListener("timeupdate", on_timeupdate);
+		audio.removeEventListener("ended", on_end);
+	};
+
+	const seek = (audio, percent, time) => {
+		audio.currentTime = time;
+		update((obj) => ({
+			...obj,
+			progress_bar_width: percent * 100,
+			progress: format_time(time)
+		}));
+	};
+
+    return {
+        subscribe,
+        setup,
+        play,
+		pause,
+		seek,
+		remove
+    };
+};
+
+export const radio_store = create_audio_store();
+export const preview_store = create_audio_store();
 
 // token used for osu! api
 export const access_token = writable("");

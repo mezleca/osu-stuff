@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 
@@ -12,6 +12,17 @@ const additionalArguments = [
 	"--disable-features=TranslateUI",
 	"--disable-ipc-flooding-protection"
 ];
+
+// protocol to get images / stuff from osu!
+protocol.registerSchemesAsPrivileged([{
+    scheme: 'media',
+    privileges: {
+        secure: true,
+        stream: true,
+        supportFetchAPI: true,
+        bypassCSP: true
+    } 
+}]);
 
 // fuck
 ipcMain.handle("http-request", async (event, options) => {
@@ -50,7 +61,7 @@ function createWindow() {
 		show: false,
 		frame: false,
 		autoHideMenuBar: true,
-		...(process.platform === "linux" ? { icon } : {}),
+		...(process.platform == "linux" ? { icon } : {}),
 		webPreferences: {
 			additionalArguments,
 			preload: join(__dirname, "../preload/index.js"),
@@ -108,6 +119,17 @@ app.whenReady().then(() => {
 	app.on("browser-window-created", (_, window) => {
 		optimizer.watchWindowShortcuts(window);
 	});
+
+	// dont remember why i use this but it seems to cause some problems without it
+	session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+        callback({ requestHeaders: { ...details.requestHeaders } });
+    });
+
+    // image protocol so electron dont freak out
+    protocol.handle("media", (req) => { 
+        const path_to_media = decodeURIComponent(req.url.replace("media://", ""));
+        return net.fetch(`file://${path_to_media}`);
+    });
 
 	createWindow();
 

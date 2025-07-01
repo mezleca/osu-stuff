@@ -42,4 +42,10 @@ export const debounce = (func, timeout = 100) => {
 	};
 };
 
+export const format_time = (secs) => {
+	const minutes = Math.floor(secs / 60);
+	const seconds = Math.floor(secs % 60);
+	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

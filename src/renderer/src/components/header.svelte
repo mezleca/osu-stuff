@@ -5,7 +5,7 @@
 	import X from "./icon/x.svelte";
 
 	// props
-	export let active = false;
+	let { active = false } = $props();
 
 	const set_active_tab = (tab) => {
 		// prob will only happen if are still on the loading screen
@@ -21,10 +21,10 @@
 
 <div class="header">
 	<div class="header-left">
-		<button class="app-title" on:click={() => set_active_tab("")}>osu-stuff</button>
+		<button class="app-title" onclick={() => set_active_tab("")}>osu-stuff</button>
 		<div class="tabs">
 			{#each tabs as tab}
-				<button class="tab" on:click={() => set_active_tab(tab)} class:active={$active_tab == tab}>
+				<button class="tab" onclick={() => set_active_tab(tab)} class:active={$active_tab == tab}>
 					{tab}
 				</button>
 			{/each}
@@ -32,15 +32,15 @@
 	</div>
 	<div class="window-controls">
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="control-btn minimize" on:click={() => window.extra.minimize()}>
+		<button class="control-btn minimize" onclick={() => window.extra.minimize()}>
 			<Line />
 		</button>
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="control-btn maximize" on:click={() => window.extra.maximize()}>
+		<button class="control-btn maximize" onclick={() => window.extra.maximize()}>
 			<Square />
 		</button>
 		<!-- svelte-ignore a11y_consider_explicit_label -->
-		<button class="control-btn close" on:click={() => window.extra.close()}>
+		<button class="control-btn close" onclick={() => window.extra.close()}>
 			<X />
 		</button>
 	</div>
