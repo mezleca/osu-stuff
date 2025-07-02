@@ -25,6 +25,24 @@ export const safe_id = (id) => {
 	return String(id).replace(/[^\w-]/g, "");
 };
 
+// @TODO: cache
+export const get_from_media = async (file) => {
+	const encoded = btoa(file);
+	const url = "media://" + encoded;
+	const data = await fetch(url);
+
+	return data;
+};
+
+// @TODO: cache
+export const get_image_url = async (file) => {
+	const image = await get_from_media(file);
+	const buffer = await image.arrayBuffer();
+	const blob = new Blob([buffer], { type: "image/png" });
+
+	return URL.createObjectURL(blob);
+}
+
 export const star_ranges = [
 	[0, 2.99, "sr1"],
 	[3, 4.99, "sr2"],

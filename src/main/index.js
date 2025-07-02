@@ -127,10 +127,10 @@ app.whenReady().then(() => {
 		callback({ requestHeaders: { ...details.requestHeaders } });
 	});
 
-	// image protocol so electron dont freak out
 	protocol.handle("media", (req) => {
-		const path_to_media = decodeURIComponent(req.url.replace("media://", ""));
-		return net.fetch(`file://${path_to_media}`);
+		const b64 = req.url.replace("media://", "");
+		const file_path = Buffer.from(b64, "base64").toString();
+		return net.fetch(`file://${file_path}`);
 	});
 
 	createWindow();

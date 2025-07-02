@@ -34,9 +34,9 @@
 		remove_callback();
 	};
 
-	const update_selected = (index, beatmap) => {
+	const update_selected = (index, list, beatmap) => {
 		if (beatmap?.md5 != selected?.beatmap?.md5) {
-			selected = { index, beatmap };
+			selected = { index, list, beatmap };
 		}
 	};
 
@@ -53,7 +53,7 @@
 	<VirtualList count={beatmaps?.length ?? 0} width="100%" height="100%" item_height={height} {max_width} {carrousel} {key} {direction} let:index>
 		{@const beatmap = beatmaps[index] ?? null}
 		{@const selected_index = selected?.index ?? -1}
-		{@const is_selected = beatmaps[selected_index]?.md5 === beatmap?.md5}
+		{@const is_selected = beatmaps[selected_index]?.md5 == beatmap?.md5}
 
 		<BeatmapCard
 			{beatmap}
@@ -61,7 +61,7 @@
 			{show_star_rating}
 			selected={is_selected}
 			control={(type) => handle_control(type, beatmap)}
-			click={() => update_selected(index, beatmap)}
+			click={() => update_selected(index, beatmaps, beatmap)}
 		/>
 	</VirtualList>
 </div>

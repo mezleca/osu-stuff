@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { collections, radio_mode, radio_search, radio_sort, radio_selected } from "../../store";
-	import { format_time } from "../../lib/utils";
+	import { format_time, get_from_media, get_image_url } from "../../lib/utils";
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -14,8 +14,8 @@
 	import PlaceholderImg from "../../assets/placeholder.png";
 	import { reader } from "../../lib/reader/reader";
 
-	// constantes
-	const SORT_OPTIONS = ["artist", "title", "difficulty"];
+	// sort
+	const SORT_OPTIONS = ["artist", "title", "difficulty", "length"];
 
 	$: all_collections = collections.all || [];
 	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
@@ -27,11 +27,10 @@
 
 	const update_background_image = () => {
 		if ($radio_selected.beatmap) {
-			reader.get_beatmap_image(beatmap).then((data) => {
+			reader.get_beatmap_image(beatmap).then(async (data) => {
 				if (data) {
-					// add our shitty protocol
-					const full_url = "media://" + data;
-					bg = full_url;
+					const result = await get_image_url(data);
+					bg = result;
 				}
 			});
 		}

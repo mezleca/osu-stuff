@@ -10,8 +10,9 @@
 	import PreviousIcon from "../icon/previous-icon.svelte";
 
 	// stores
-	import { radio_repeat, radio_random, show_notification, preview_store, radio_store } from "../../store";
+	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected } from "../../store";
 	import { reader } from "../../lib/reader/reader";
+	import { get_from_media } from "../../lib/utils";
 
 	// props
 	export let beatmap = {};
@@ -24,17 +25,16 @@
 	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 	let current_id = beatmap.md5;
 
-	const get_audio = async (url) => {
+	const get_audio = async (beatmap, url) => {
 		if (!small) {
 			const audio_name = await reader.get_beatmap_audio(beatmap);
 
 			if (!audio_name) {
-				console.log("failed beatmap:", beatmap);
 				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location" });
 				return;
 			}
-
-			const data = await fetch("media://" + encodeURIComponent(audio_name));
+			
+			const data = await get_from_media(audio_name);
 
 			if (data.status != 200) {
 				console.log("failed audio:", audio_name, beatmap);
@@ -46,6 +46,7 @@
 			return new Blob([new Uint8Array(buffer)], { type: "audio/ogg" });
 		}
 
+		// make sure the preview url is present
 		if (url == "") {
 			return;
 		}
@@ -67,7 +68,106 @@
 		return new Blob([data.data], { type: "audio/ogg" });
 	};
 
+	const setup_audio = async (beatmap, url) => {
+		console.log("gettign new audio from", url);
+		// load new audio
+		const buffer = await get_audio(beatmap, url);
+
+		if (!buffer) {
+			console.log("failed to get buffer from", url);
+			return;
+		}
+
+		// create new audio object
+		const new_audio = new Audio(window.URL.createObjectURL(buffer));
+		// @TODO: volume slider
+		new_audio.volume = 0.5;
+
+		return new_audio;
+	};
+
+	const play_audio = (audio) => {
+		// temp pause radio song if we're previewing something
+		if (small && $radio_store.playing) {
+			// @TODO: if we change tab without waiting the preview to finish or pausing the pause_until will not work
+			radio_store.pause_until($radio_store.audio, () => !$preview_store.playing);
+		}
+		// set next song if possible
+		control.set_next(get_next_song);
+		control.play(audio);
+	};
+
+	// @TODO: messy
+	const get_next_song = async (custom) => {
+		if (small || $radio_selected.list.length == 0) {
+			return null;
+		}
+
+		let next_idx = 0;
+
+		// next song via button
+		if (custom == 1) {
+			next_idx = $radio_selected.index + 1;
+		}
+		// previous song via button
+		else if (custom == -1) {
+			next_idx = $radio_selected.index - 1;
+		} else {
+			// repeat one time
+			if ($radio_repeat) {
+				next_idx = $radio_selected.index;
+				$radio_repeat = false;
+			}
+			// get random index
+			else if ($radio_random) {
+				next_idx = Math.floor(Math.random() * $radio_selected.list.length);
+			}
+			// next index
+			else {
+				next_idx = $radio_selected.index + 1;
+			}
+		}
+
+		// wrap around list
+		if (next_idx >= $radio_selected.list.length) {
+			next_idx = 0;
+		} else if (next_idx < 0) {
+			next_idx = $radio_selected.list.length - 1;
+		}
+
+		// update selected beatmap
+		const new_beatmap = $radio_selected.list[next_idx];
+
+		// check if the beatmap is valid
+		if (!new_beatmap?.downloaded) {
+			console.log("failed to get next song (invalid beatmap)", new_beatmap);
+			return null;
+		}
+
+		$radio_selected = { list: $radio_selected.list, beatmap: new_beatmap, index: next_idx };
+
+		const new_audio = await setup_audio(new_beatmap, `https://b.ppy.sh/preview/${new_beatmap?.beatmapset_id}.mp3`);
+		return { audio: new_audio, id: new_beatmap.md5 };
+	};
+
+	const set_next_song = async (code) => {
+		const data = await get_next_song(code);
+
+		if (!data) {
+			console.log(`failed to get ${code == 1 ? "next" : "previous"} song`);
+			return;
+		}
+
+		await control.setup(data.id, data.audio);
+		play_audio(data.audio);
+	};
+
 	const handle_audio = async () => {
+		if (!current_id) {
+			console.log("not playing cuz invalid index", current_id);
+			return;
+		}
+
 		// if same audio is playing, pause it
 		if (playing && audio_id == current_id) {
 			if (audio != null) {
@@ -78,7 +178,7 @@
 
 		// resume
 		if (!playing && audio_id == current_id) {
-			control.play(audio);
+			play_audio(audio);
 			return;
 		}
 
@@ -87,23 +187,17 @@
 			control.remove(audio);
 		}
 
-		// load new audio
-		const buffer = await get_audio(actual_url);
+		const new_audio = await setup_audio(beatmap, actual_url);
 
-		if (!buffer) {
-			console.log("failed to get buffer");
+		if (!new_audio) {
+			console.log("failed to setup audio for", new_audio, beatmap);
 			return;
 		}
-
-		// create new audio object
-		const new_audio = new Audio(window.URL.createObjectURL(buffer));
-		// @TODO: volume slider
-		new_audio.volume = 0.5;
 
 		control.setup(current_id, new_audio);
 
 		// play new song
-		control.play(new_audio);
+		play_audio(new_audio);
 	};
 
 	const seek_audio = (e) => {
@@ -121,7 +215,7 @@
 
 {#if small}
 	<div class="small-control">
-		<button class="small-control-icon" on:click={() => handle_audio()}>
+		<button class="small-control-icon" on:click={handle_audio}>
 			{#if playing && audio_id == current_id}
 				<Pause />
 			{:else}
@@ -154,17 +248,17 @@
 				</button>
 
 				<div class="main-audio-control">
-					<button class="control-btn previous">
+					<button class="control-btn previous" on:click={() => set_next_song(-1)}>
 						<PreviousIcon />
 					</button>
-					<button class="control-btn play-pause" on:click={() => handle_audio()}>
+					<button class="control-btn play-pause" on:click={handle_audio}>
 						{#if playing && audio_id == current_id}
 							<Pause />
 						{:else}
 							<Play />
 						{/if}
 					</button>
-					<button class="control-btn next">
+					<button class="control-btn next" on:click={() => set_next_song(1)}>
 						<NextIcon />
 					</button>
 				</div>
@@ -276,7 +370,7 @@
 	}
 
 	.control-btn.active {
-		color: var(--accent-color);
+		background-color: var(--bg-tertiary);
 	}
 
 	.main-audio-control {

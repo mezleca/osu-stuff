@@ -1,5 +1,5 @@
 <script>
-	import { onMount, createEventDispatcher } from "svelte";
+	import { onMount } from "svelte";
 
 	// props
 	export let count = 0;

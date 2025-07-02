@@ -888,6 +888,7 @@ export class Reader extends BinaryReader {
 		}
 	};
 
+	// @TODO: lazer
 	get_beatmap_audio = async (beatmap) => {
 		if (!beatmap?.md5) {
 			return null;
