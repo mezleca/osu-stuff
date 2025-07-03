@@ -1,18 +1,29 @@
-import { osdb_versions, beatmap_status_reversed, lazer_status_reversed, beatmap_status, lazer_status } from "./models/stable.js";
-import { gamemodes, get_beatmap_sr, get_common_bpm } from "../beatmaps.js";
-import { get_realm_instance, lazer_to_osu_db } from "./lazer.js";
+
+import { osdb_versions } from "./models/stable.js";
+import { get_common_bpm } from "../beatmaps/beatmaps.js";
+import { get_realm_instance, lazer_to_osu_db } from "./realm.js";
 import { BinaryReader } from "./binary.js";
-import { config, show_notification } from "../../store.js";
-import { collections_db, osu_db } from "./models/stable.js";
+import { config } from "../database/config.js";
+
+import path from "path";
+import fs from "fs";
+import zlib from "zlib";
 
 // placeholder
 const create_alert = () => {};
 
+const DOTNET_EPOCH_OFFSET = 621355968000000000n;
+const TICKS_PER_MS = 10000n;
+
+const ticks_to_timestamp = (ticks) => {
+  	return Number((BigInt(ticks) - DOTNET_EPOCH_OFFSET) / TICKS_PER_MS);
+};
+
+const timestamp_to_ticks = (timestamp) => {
+  	return (BigInt(timestamp) * TICKS_PER_MS) + DOTNET_EPOCH_OFFSET;
+};
+
 export class Reader extends BinaryReader {
-	/** @type {collections_db} */
-	collections_data;
-	/** @type {osu_db} */
-	osu;
 	/** @type {Map} */
 	image_cache;
 	/** @type {Map} */
@@ -22,195 +33,18 @@ export class Reader extends BinaryReader {
 
 	constructor() {
 		super();
-		this.osu = new Map();
-		this.pending_deletion = new Set();
 		this.offset = 0;
+		this.pending_deletion = new Set();
 		this.image_cache = new Map();
 		this.audio_cache = new Map();
 		this.beatmap_offset_start = 0;
 	}
 
-	create_instance = async (path, schemas) => {
-		if (this.instance) {
-			return;
-		}
-		this.instance = await get_realm_instance(path, schemas);
+	get_instance = async (path, schemas) => {
+		if (this.instance) return;
+		this.instance = get_realm_instance(path, schemas);
 	};
 
-	write_osu_data = async (maps) => {
-		// ensure we have a buffer
-		if (this.buffer?.byteLength == 0) {
-			console.error("invalid buffer. call set_buffer before write_osu_data.");
-			return false;
-		}
-
-		const buffer = [];
-
-		buffer.push(this.writeInt(this.osu.version));
-		buffer.push(this.writeInt(this.osu.folders));
-		buffer.push(this.writeBool(this.osu.account_unlocked));
-		buffer.push(this.writeLong(this.osu.last_unlocked_time));
-		buffer.push(this.writeString(this.osu.player_name));
-		buffer.push(this.writeInt(this.osu.beatmaps_count));
-
-		let last_index = this.beatmap_offset_start;
-
-		// sort to make end as last_index
-		maps = maps.sort((a, b) => a.beatmap_start - b.beatmap_start);
-
-		for (let i = 0; i < maps.length; i++) {
-			// if the map object is invalid ignore it
-			if (!maps[i].beatmap_start || !maps[i].beatmap_end) {
-				create_alert("failed to recreate osu!.db", {
-					type: "error"
-				});
-				return;
-			}
-
-			if (last_index < maps[i].beatmap_start) {
-				const bf = new Uint8Array(this.buffer.slice(last_index, maps[i].beatmap_start));
-				buffer.push(bf);
-			}
-
-			last_index = maps[i].beatmap_end;
-		}
-
-		if (last_index < this.buffer.byteLength) {
-			buffer.push(new Uint8Array(this.buffer.slice(last_index)));
-		}
-
-		window.fs.save_osu_file(this.join_buffer(buffer));
-		return true;
-	};
-
-	write_stable_collection = () => {
-		if (!this.collections_data) {
-			console.log("[reader] no collections found");
-			return;
-		}
-
-		const buffer = [];
-
-		buffer.push(this.writeInt(this.collections_data.version));
-		buffer.push(this.writeInt(this.collections_data.beatmaps.size));
-
-		for (const [name, collection] of this.collections_data.beatmaps) {
-			buffer.push(this.writeString(name));
-			buffer.push(this.writeInt(collection.maps.size));
-
-			for (const map of collection.maps) {
-				if (!map) {
-					console.log("[reader] failed to get beatmap from collection!");
-					return;
-				}
-
-				buffer.push(this.writeString(map));
-			}
-		}
-
-		return this.join_buffer(buffer);
-	};
-
-	write_collections_data = async (_path) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
-			if (!this.instance) {
-				console.log("[reader] failed to get instance (cant write collection)", this.instance);
-				return;
-			}
-
-			try {
-				// delete pending collections
-				for (const pending of this.pending_deletion) {
-					await window.realmjs.delete_collection(this.instance, pending.uuid);
-					this.pending_deletion.delete(pending);
-				}
-
-				// update/create the rest
-				// @NOTE: sometimes for some reason this fail saying the subject is null
-				// it only gave that error 1 time i cant seem to reproduce...
-				for (const [name, data] of Array.from(this.collections_data.beatmaps)) {
-					const result = await window.realmjs.update_collection(this.instance, data.uuid, name, data.maps);
-
-					// true == new one
-					if (result.new) {
-						this.collections_data.beatmaps.get(name).uuid = result.id;
-					}
-				}
-
-				return true;
-			} catch (err) {
-				create_alert("failed to save collection, check logs for more info", {
-					type: "error"
-				});
-				console.log("[reader] error while saving", err);
-				return false;
-			}
-		}
-
-		const buffer = this.write_stable_collection();
-		window.fs.save_collection_file(buffer, _path);
-
-		return true;
-	};
-
-	// update collections with extra information like bpm, etc...
-	update_collections = () => {
-		if (this.collections_data.beatmaps.size == 0) {
-			console.log("[reader] cant update collection cuz no beatmaps found");
-			return;
-		}
-
-		for (const [name] of this.collections_data.beatmaps) {
-			this.update_collection(name);
-		}
-	};
-
-	update_collection = (name) => {
-		if (!this.collections_data.beatmaps.has(name)) {
-			console.log("[reader] collection not found");
-			return;
-		}
-
-		const collection = this.collections_data.beatmaps.get(name);
-
-		collection.bpm_max = 0;
-		collection.sr_max = 0;
-
-		for (const md5 of collection.maps) {
-			const map = this.osu.beatmaps.get(md5);
-
-			if (!map) {
-				continue;
-			}
-
-			const star_rating = map?.star || Number(get_beatmap_sr(map));
-			const bpm = map?.bpm || Number(get_common_bpm(map));
-
-			// save to make sure
-			if (!map?.bpm) {
-				map.bpm = bpm;
-			}
-
-			if (!map?.star) {
-				map.star = star_rating;
-			}
-
-			if (star_rating > collection.sr_max) collection.sr_max = star_rating;
-			if (bpm > collection.bpm_max) collection.bpm_max = bpm;
-		}
-
-		// update the collection with extra info
-		this.collections_data.beatmaps.set(name, collection);
-	};
-
-	/**
-	 *
-	 * @returns { Promise<osdb_schema> }
-	 * @link https://github.com/Piotrekol/CollectionManager/blob/master/CollectionManagerDll/Modules/FileIO/FileCollections/OsdbCollectionHandler.cs
-	 *
-	 */
 	get_osdb_data = async (buffer) => {
 		// set buffer to use it later
 		if (buffer) {
@@ -236,7 +70,7 @@ export class Reader extends BinaryReader {
 
 			if (version >= 7) {
 				const compressed_data = this.buffer.buffer.slice(this.offset);
-				const decompressed_data = window.zlib.gunzipSync(compressed_data);
+				const decompressed_data = zlib.gunzipSync(compressed_data);
 
 				this.set_buffer(decompressed_data);
 				this.offset = 0;
@@ -401,7 +235,7 @@ export class Reader extends BinaryReader {
 			const content_buffer = this.join_buffer(buffer);
 
 			if (version >= 7) {
-				buffers.push(new Uint8Array(window.zlib.gzipSync(content_buffer)));
+				buffers.push(new Uint8Array(zlib.gzipSync(content_buffer)));
 			} else {
 				buffers.push(content_buffer);
 			}
@@ -414,39 +248,26 @@ export class Reader extends BinaryReader {
 		}
 	};
 
-	/**
-	 *
-	 * @returns { Promise<osu_db> }
-	 *
-	 */
-	get_osu_data = async (buffer) => {
-		// check if we already have the osu! file object
-		if (this.osu.beatmaps?.size) {
-			return this.osu;
-		}
+	get_osu_data = async (location) => {
+		if (config.lazer_mode) {
 
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
 			console.log("[reader] reading lazer data...");
 
 			try {
-				// get instance
-				await this.create_instance(window.path.resolve(config.get("lazer_path"), "client.realm"), ["All"]);
-
-				// convert lazer data to match current osu! stable obj
-				this.osu = lazer_to_osu_db(this.instance);
-
-				return {};
+				// get instance and convert lazer data to match current osu! stable obj
+				await this.get_instance(location, ["All"]);
+				return lazer_to_osu_db(this.instance);
 			} catch (err) {
 				this.instance = null;
 				create_alert("[reader] failed to read lazer db file\ncheck logs for more info", {
 					type: "error"
 				});
 				console.log(err);
-				return {};
+				return null;
 			}
 		}
+
+		const buffer = fs.readFileSync(location);
 
 		this.set_buffer(buffer);
 		this.offset = 0;
@@ -458,7 +279,7 @@ export class Reader extends BinaryReader {
 		const folders = this.int();
 		const account_unlocked = this.bool();
 
-		const last_unlocked_time = this.long();
+		const last_unlocked_time = new Date(ticks_to_timestamp(this.long()));
 
 		const player_name = this.string();
 		const beatmaps_count = this.int();
@@ -474,7 +295,8 @@ export class Reader extends BinaryReader {
 		const permission_id = this.int();
 
 		this.offset = 0;
-		this.osu = {
+
+		const osu = {
 			version,
 			folders,
 			account_unlocked,
@@ -486,7 +308,7 @@ export class Reader extends BinaryReader {
 			permission_id
 		};
 
-		return this.osu;
+		return osu;
 	};
 
 	read_beatmap = (version) => {
@@ -507,7 +329,7 @@ export class Reader extends BinaryReader {
 		data.hitcircle = this.short();
 		data.sliders = this.short();
 		data.spinners = this.short();
-		data.last_modification = this.long();
+		data.last_modification = new Date(ticks_to_timestamp(this.long()));
 
 		const is_old_version = version < 20140609;
 		data.ar = is_old_version ? this.byte() : this.single();
@@ -594,40 +416,27 @@ export class Reader extends BinaryReader {
 		return data;
 	};
 
-	/**
-	 *
-	 * @returns { Promise<collections_db> }
-	 *
-	 */
-	get_collections_data = async (buffer) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		// return store collection on stable mode
-		if (this.collections_data?.length && !lazer_mode) {
-			return this.collections_data;
-		}
-
-		if (lazer_mode && !buffer) {
+	get_collections_data = async (location) => {
+		if (config.lazer_mode) {
+			
 			try {
-				// get instance
-				await this.create_instance(window.path.resolve(config.get("lazer_path"), "client.realm"), ["All"]);
+
+				this.get_instance(location, ["All"]);
 
 				// get collections data
-				const data = await window.realmjs.objects(this.instance, "BeatmapCollection");
-				this.collections_data = {
-					length: data.length,
-					beatmaps: new Map()
-				};
+				const lazer_data = this.instance.objects("BeatmapCollection");
+				const data = { collections: new Map() };
 
-				for (let i = 0; i < data.length; i++) {
+				for (let i = 0; i < lazer_data.length; i++) {
 					const collection = data[i];
-					this.collections_data.beatmaps.set(collection.Name, {
+
+					data.collections.set(collection.Name, {
 						uuid: collection.ID,
 						maps: collection.BeatmapMD5Hashes
 					});
 				}
 
-				return true;
+				return data;
 			} catch (e) {
 				this.instance = null;
 				create_alert("error getting lazer collections<br>check logs for more info", {
@@ -635,9 +444,11 @@ export class Reader extends BinaryReader {
 					html: true
 				});
 				console.error(e);
-				return false;
+				return null;
 			}
 		}
+
+		const buffer = fs.readFileSync(location);
 
 		this.set_buffer(buffer);
 		this.offset = 0;
@@ -663,51 +474,20 @@ export class Reader extends BinaryReader {
 		}
 
 		this.offset = 0;
-		this.collections_data = { version, length: count, collections };
 
-		return this.collections_data;
-	};
-
-	delete_collection = (id) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
-			try {
-				if (!this.instance) {
-					create_alert("failed to delete collection (no instance)");
-					return;
-				}
-
-				const collection = this.collections_data.beatmaps.get(id);
-
-				if (!collection?.uuid) {
-					this.collections_data.beatmaps.delete(id);
-				} else {
-					// @TODO: need to implement this to stable collections so i can create a "undo" feature
-					this.pending_deletion.add(collection);
-					this.collections_data.beatmaps.delete(id);
-				}
-			} catch (err) {
-				create_alert("failed to delete collection<br>check logs for more info", {
-					type: "error",
-					html: true
-				});
-				console.log("[reader]", err);
-			}
-		} else {
-			this.collections_data.beatmaps.delete(id);
-		}
+		return { version, length: count, collections };
 	};
 
 	get_beatmap_section = async (beatmap, section_name) => {
 		try {
+
 			const file_location = this.get_file_location(beatmap);
 
 			if (!file_location || file_location == "") {
 				return null;
 			}
 
-			const content = await window.fs.get_osu_file(file_location);
+			const content = await fs.get_osu_file(file_location);
 
 			if (!content) {
 				return null;
@@ -817,9 +597,7 @@ export class Reader extends BinaryReader {
 	};
 
 	get_file_location = (beatmap, filename) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
+		if (config.lazer_mode) {
 			// make sure we have the file
 			if (!beatmap.beatmapset?.Files) {
 				return null;
@@ -833,23 +611,23 @@ export class Reader extends BinaryReader {
 			}
 
 			const hash = file_data.File.Hash;
-			return window.path.resolve(config.get("lazer_path"), "files", hash.substring(0, 1), hash.substring(0, 2), hash);
+			return path.resolve(config.lazer_path, "files", hash.substring(0, 1), hash.substring(0, 2), hash);
 		} else {
 			if (!beatmap.folder_name) {
 				return null;
 			}
 
 			// check if we have stable songs path configured
-			const songs_path = config.get("stable_songs_path");
+			const songs_path = config.stable_songs_path;
 
 			if (!songs_path || songs_path == "") {
-				show_notification({ type: "error", timeout: 5000, text: "missing osu stable songs path" });
+				// show_notification({ type: "error", timeout: 5000, text: "missing osu stable songs path" });
 				return "";
 			}
 
 			// console.log(songs_path, beatmap);
 
-			return window.path.resolve(songs_path, beatmap.folder_name, filename ?? beatmap.file);
+			return path.resolve(songs_path, beatmap.folder_name, filename ?? beatmap.file);
 		}
 	};
 
@@ -888,125 +666,22 @@ export class Reader extends BinaryReader {
 		}
 	};
 
-	// @TODO: lazer
 	get_beatmap_audio = async (beatmap) => {
 		if (!beatmap?.md5) {
 			return null;
 		}
 
-		if (this.audio_cache.has(beatmap.md5)) {
-			return this.audio_cache.get(beatmap.md5);
+		const audio_name = beatmap?.audio_file_name;
+
+		if (!audio_name) {
+			return "";
 		}
 
-		try {
-			const events_data = await this.get_beatmap_section(beatmap, "General");
-			const audio_name = events_data?.AudioFilename ?? null;
-
-			if (!audio_name) {
-				console.log("failed to get audio_name from", events_data, beatmap);
-				return null;
-			}
-
-			const audio_path = this.get_file_location(beatmap, audio_name);
-
-			if (audio_path) {
-				this.audio_cache.set(beatmap.md5, audio_path);
-			}
-
-			return audio_path;
-		} catch (error) {
-			console.log("[reader] get_beatmap_audio error:", error);
-			return null;
-		}
+		return path.resolve(this.get_file_location(beatmap, audio_name));
 	};
 
 	get_section_data = async (beatmap, section) => {
 		return await this.get_beatmap_section(beatmap, section);
-	};
-
-	zip_file = async (files) => {
-		const result = await window.JSZip.zip_file(files);
-		return result;
-	};
-
-	export_beatmap = async (beatmap) => {
-		const lazer_mode = config.get("lazer_mode");
-		const osu_path = lazer_mode ? config.get("lazer_path") : window.path.resolve(config.get("stable_path"), config.get("stable_songs_path"));
-		const export_path = config.get("export_path");
-
-		let buffer = "";
-
-		if (export_path == "") {
-			create_alert("please update your export path before using this feature");
-			return false;
-		}
-
-		if (lazer_mode) {
-			const files = beatmap.beatmapset.Files.map((f) => {
-				const hash = f.File.Hash;
-				const location = window.path.resolve(osu_path, "files", hash.substring(0, 1), hash.substring(0, 2), hash);
-
-				return {
-					name: f.Filename,
-					location: location
-				};
-			});
-
-			buffer = await this.zip_file(files);
-		} else {
-			const folder_path = window.path.resolve(osu_path, beatmap.folder_name);
-			const files = window.fs.readdirSync(folder_path).map((f) => {
-				return {
-					name: f,
-					location: window.path.resolve(folder_path, f)
-				};
-			});
-
-			buffer = await this.zip_file(files);
-		}
-
-		if (!config.get("export_path")) {
-			create_alert("export path not found");
-			return false;
-		}
-
-		window.fs.save_exported(`${beatmap.beatmapset_id}.osz`, buffer);
-		return true;
-	};
-
-	static get_beatmap_status = (code) => {
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
-			return lazer_status_reversed[code];
-		}
-
-		return beatmap_status_reversed[code];
-	};
-
-	static get_beatmap_status_code = (status) => {
-		if (!status) {
-			return 0;
-		}
-
-		const lazer_mode = config.get("lazer_mode");
-
-		if (lazer_mode) {
-			const key = Object.keys(lazer_status).find((k) => k.toLowerCase() == status.toLowerCase());
-			return lazer_status[key];
-		}
-
-		return beatmap_status[status];
-	};
-
-	static get_status_object = () => {
-		const lazer_mode = config.get("lazer_mode");
-		return lazer_mode ? lazer_status : beatmap_status;
-	};
-
-	static get_status_object_reversed = () => {
-		const lazer_mode = config.get("lazer_mode");
-		return lazer_mode ? lazer_status_reversed : beatmap_status_reversed;
 	};
 }
 

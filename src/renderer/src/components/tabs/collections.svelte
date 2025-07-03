@@ -24,8 +24,8 @@
 		}
 	};
 
-	const filter_beatmaps = () => {
-		filtered_maps = get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
+	const filter_beatmaps = async () => {
+		filtered_maps = await get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
 	};
 
 	const select_collection = (collection) => {

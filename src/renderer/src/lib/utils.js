@@ -41,7 +41,7 @@ export const get_image_url = async (file) => {
 	const blob = new Blob([buffer], { type: "image/png" });
 
 	return URL.createObjectURL(blob);
-}
+};
 
 export const star_ranges = [
 	[0, 2.99, "sr1"],

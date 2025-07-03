@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { collections, radio_mode, radio_search, radio_sort, radio_selected } from "../../store";
-	import { format_time, get_from_media, get_image_url } from "../../lib/utils";
+	import { format_time, get_image_url } from "../../lib/utils";
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -12,10 +12,9 @@
 
 	// misc
 	import PlaceholderImg from "../../assets/placeholder.png";
-	import { reader } from "../../lib/reader/reader";
 
 	// sort
-	const SORT_OPTIONS = ["artist", "title", "difficulty", "length"];
+	const SORT_OPTIONS = ["artist", "title", "length"];
 
 	$: all_collections = collections.all || [];
 	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
@@ -24,20 +23,46 @@
 	$: beatmap = $radio_selected?.beatmap ?? {};
 	$: control_key = beatmap.md5 ?? crypto.randomUUID();
 	$: bg = PlaceholderImg;
+	$: filtered_maps = [];
 
 	const update_background_image = () => {
 		if ($radio_selected.beatmap) {
-			reader.get_beatmap_image(beatmap).then(async (data) => {
-				if (data) {
-					const result = await get_image_url(data);
-					bg = result;
-				}
-			});
+			// reader.get_beatmap_image(beatmap).then(async (data) => {
+			// 	if (data) {
+			// 		const result = await get_image_url(data);
+			// 		bg = result;
+			// 	}
+			// });
 		}
 	};
 
-	$: filtered_maps =
-		$radio_mode == "all beatmaps" ? get_filtered_beatmaps(null, $radio_search, true) : get_filtered_beatmaps($radio_mode, $radio_search, false);
+	const update_filtered_maps = async () => {
+		filtered_maps = $radio_mode == "all beatmaps" ? 
+			await get_filtered_beatmaps(null, $radio_search, true) : 
+			await get_filtered_beatmaps($radio_mode, $radio_search, false);
+	};
+
+	$: if ($radio_mode || $radio_search) {
+		update_filtered_maps();
+	}
+
+	// sort on changes
+	$: if (filtered_maps) {
+		if ($radio_sort == "artist" || $radio_sort == "title") {
+			const key = $radio_sort + "_unicode";
+			filtered_maps = filtered_maps.sort((a, b) => {
+				const a_val = a[key] || "";
+				const b_val = b[key] || "";
+				return a_val.localeCompare(b_val);
+			});
+		} else {
+			filtered_maps = filtered_maps.sort((a, b) => {
+				const a_val = a[$radio_sort] || 0;
+				const b_val = b[$radio_sort] || 0;
+				return a_val - b_val;
+			});
+		}
+	}
 
 	// update on change
 	$: if ($radio_selected) {

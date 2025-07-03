@@ -1,11 +1,12 @@
 <script>
 	import { collections, selected_collection, show_notification } from "../store";
+	import { get_beatmap_data } from "../lib/beatmaps";
+
 	// components
 	import VirtualList from "./utils/virtual-list.svelte";
 	import BeatmapCard from "./cards/beatmap-card.svelte";
 
 	// props
-	// @TODO: theres too much props
 	export let selected = {};
 	export let all_beatmaps = [];
 	export let key = crypto.randomUUID();
@@ -51,17 +52,20 @@
 	</div>
 
 	<VirtualList count={beatmaps?.length ?? 0} width="100%" height="100%" item_height={height} {max_width} {carrousel} {key} {direction} let:index>
-		{@const beatmap = beatmaps[index] ?? null}
-		{@const selected_index = selected?.index ?? -1}
-		{@const is_selected = beatmaps[selected_index]?.md5 == beatmap?.md5}
-
-		<BeatmapCard
-			{beatmap}
-			{show_bpm}
-			{show_star_rating}
-			selected={is_selected}
-			control={(type) => handle_control(type, beatmap)}
-			click={() => update_selected(index, beatmaps, beatmap)}
-		/>
+		{@const hash = beatmaps[index]}
+		
+		{#await get_beatmap_data(hash) then beatmap}
+			{@const selected_index = selected?.index ?? -1}
+			{@const is_selected = beatmaps[selected_index]?.md5 == beatmap?.md5}
+			<BeatmapCard
+				{beatmap}
+				{show_bpm}
+				{show_star_rating}
+				selected={is_selected}
+				control={(type) => handle_control(type, beatmap)}
+				click={() => update_selected(index, beatmaps, beatmap)}
+			/>
+		{/await}
+		
 	</VirtualList>
 </div>

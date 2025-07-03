@@ -10,10 +10,9 @@ let download_progress = new Map();
 
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
-const DELAY_MS = 100;
 
 // to process multiple beatmaps
-const parallel_map = async (array, mapper, concurrency) => {
+export const parallel_map = async (array, mapper, concurrency) => {
 	const results = [];
 
 	let index = 0;
@@ -48,6 +47,7 @@ const parallel_map = async (array, mapper, concurrency) => {
 			.fill()
 			.map(() => run())
 	);
+
 	return results;
 };
 
@@ -129,7 +129,6 @@ const process_download = async (download) => {
 	await parallel_map(
 		beatmaps_to_process,
 		async (beatmap, index) => {
-			//
 			if (!processing || !downloads.includes(download)) {
 				return { stop: true };
 			}

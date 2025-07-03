@@ -18,7 +18,9 @@
 	"dependencies": {
 		"@electron-toolkit/preload": "^3.0.1",
 		"@electron-toolkit/utils": "^4.0.0",
+		"better-sqlite3": "^12.2.0",
 		"jszip": "^3.10.1",
+		"music-metadata": "^11.6.0",
 		"realm": "^12.14.2"
 	},
 	"devDependencies": {

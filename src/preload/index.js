@@ -1,19 +1,26 @@
 const os = require("os");
 const path = require("path");
-const zlib = require("zlib");
 
 const { contextBridge, ipcRenderer, shell } = require("electron");
 
 import { check_folder_permissions, get_linux_path } from "./utils/validator.js";
 import { database } from "./database/indexed.js";
-import { realm } from "./database/realm.js";
 import { stuff_fs } from "./filesystem/index.js";
-import { zip } from "./zip/index.js";
 
 contextBridge.exposeInMainWorld("database", database);
-contextBridge.exposeInMainWorld("realmj", realm);
 contextBridge.exposeInMainWorld("fs", stuff_fs);
-contextBridge.exposeInMainWorld("JSZip", zip);
+
+contextBridge.exposeInMainWorld("config", {
+	get: () => ipcRenderer.invoke("get-config"),
+	update: (values) => ipcRenderer.invoke("update-config", values)
+});
+
+contextBridge.exposeInMainWorld("osu", {
+	get_beatmaps: () => ipcRenderer.invoke("get-beatmaps"),
+	get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
+	get_collections: () => ipcRenderer.invoke("get-collections"),
+	filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args)
+});
 
 contextBridge.exposeInMainWorld("downloader", {
 	add: (obj) => ipcRenderer.invoke("add-download", obj),
@@ -57,14 +64,6 @@ contextBridge.exposeInMainWorld("path", {
 	relative: (from, to) => path.relative(from, to),
 	resolve: (...paths) => path.resolve(...paths),
 	get_linux_path: () => get_linux_path()
-});
-
-contextBridge.exposeInMainWorld("zlib", {
-	deflateSync: (buffer, options) => zlib.deflateSync(buffer, options),
-	inflateSync: (buffer, options) => zlib.inflateSync(buffer, options),
-	gzipSync: (buffer, options) => zlib.gzipSync(buffer, options),
-	gunzipSync: (buffer, options) => zlib.gunzipSync(buffer, options),
-	constants: zlib.constants
 });
 
 contextBridge.exposeInMainWorld("shell", {

@@ -1,4 +1,4 @@
-const Realm = require("realm");
+import Realm from "realm";
 
 export class BeatmapDifficulty extends Realm.Object {
 	static schema = {
@@ -156,61 +156,15 @@ export class Beatmap extends Realm.Object {
 	};
 }
 
-export const get_schema = (names) => {
-	let schemas = [];
-
-	for (let i = 0; i < names.length; i++) {
-		const name = names[i];
-
-		switch (name) {
-			case "All":
-				schemas = [
-					Beatmap,
-					BeatmapCollection,
-					BeatmapDifficulty,
-					BeatmapMetadata,
-					BeatmapSet,
-					BeatmapUserSettings,
-					File,
-					RealmNamedFileUsage,
-					RealmUser,
-					Ruleset
-				];
-				break;
-			case "BeatmapDifficulty":
-				schemas.push(BeatmapDifficulty);
-				break;
-			case "BeatmapMetadata":
-				schemas.push(BeatmapMetadata);
-				break;
-			case "BeatmapUserSettings":
-				schemas.push(BeatmapUserSettings);
-				break;
-			case "RealmUser":
-				schemas.push(RealmUser);
-				break;
-			case "RuleSet":
-				schemas.push(Ruleset);
-				break;
-			case "File":
-				schemas.push(File);
-				break;
-			case "RealmNamedFileUsage":
-				schemas.push(RealmNamedFileUsage);
-				break;
-			case "BeatmapCollection":
-				schemas.push(BeatmapCollection);
-				break;
-			case "BeatmapSet":
-				schemas.push(BeatmapSet);
-				break;
-			case "Beatmap":
-				schemas.push(Beatmap);
-				break;
-			default:
-				break;
-		}
-	}
-
-	return schemas;
-};
+export const ALL_SCHEMAS = [
+	BeatmapDifficulty,
+	BeatmapMetadata,
+	BeatmapUserSettings,
+	BeatmapCollection,
+	BeatmapSet,
+	Beatmap,
+	RealmUser,
+	Ruleset,
+	File,
+	RealmNamedFileUsage
+];

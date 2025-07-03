@@ -11,7 +11,6 @@
 
 	// stores
 	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected } from "../../store";
-	import { reader } from "../../lib/reader/reader";
 	import { get_from_media } from "../../lib/utils";
 
 	// props
@@ -27,13 +26,14 @@
 
 	const get_audio = async (beatmap, url) => {
 		if (!small) {
-			const audio_name = await reader.get_beatmap_audio(beatmap);
+			// const audio_name = await reader.get_beatmap_audio(beatmap);
+			const audio_name = "";
 
 			if (!audio_name) {
 				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location" });
 				return;
 			}
-			
+
 			const data = await get_from_media(audio_name);
 
 			if (data.status != 200) {

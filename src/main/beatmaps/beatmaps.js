@@ -1,0 +1,268 @@
+import { config } from "../database/config";
+import { reader } from "../reader/reader";
+
+import fs from "fs";
+import path from "path";
+
+export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
+
+let osu_data = null;
+
+// get nm star rating based on gamemode
+export const get_beatmap_sr = (beatmap, gamemode = 0) => {
+	try {
+		const star_rating = beatmap?.star_rating;
+
+		if (!star_rating || star_rating?.length == 0) {
+			return Number(0).toFixed(2);
+		}
+
+		const result = star_rating[gamemode].pair[1] ?? 0;
+		return Number(result).toFixed(2);
+	} catch (err) {
+		console.log(err);
+		return Number(0).toFixed(2);
+	}
+};
+
+// https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
+export const get_common_bpm = (beatmap) => {
+	if (!beatmap?.timing_points || beatmap?.timing_points.length == 0) {
+		return 0;
+	}
+
+	const beat_length_map = new Map();
+
+	const timing_points = beatmap.timing_points;
+	const last_time = beatmap.length > 0 ? beatmap.length : timing_points[timing_points.length - 1].offset;
+
+	for (let i = 0; i < timing_points.length; i++) {
+		const point = timing_points[i];
+
+		if (point.offset > last_time) {
+			continue;
+		}
+
+		const bpm = Math.round((60000 / point.beat_length) * 1000) / 1000;
+		const current_time = i == 0 ? 0 : point.offset;
+		const next_time = i == timing_points.length - 1 ? last_time : timing_points[i + 1].offset;
+		const duration = next_time - current_time;
+
+		beat_length_map.set(bpm, (beat_length_map.get(bpm) || 0) + duration);
+	}
+
+	return [...beat_length_map.entries()].reduce((max, [bpm, duration]) => (duration > max.duration ? { bpm, duration } : max), {
+		bpm: 0,
+		duration: 0
+	}).bpm;
+};
+
+const to_type = (v) => {
+	if (typeof v == "string" && v.startsWith('"') && v.endsWith('"')) {
+		v = v.slice(1, -1);
+	}
+
+	const value = Number(v);
+	return isNaN(value) ? v : value;
+};
+
+// @TODO: better naming
+const renamed_list = new Map([["star", "star_rating"]]);
+
+const get_key = (key) => {
+	if (renamed_list.has(key)) {
+		return renamed_list.get(key);
+	}
+	return key;
+};
+
+const validate_filter = (key, op, value) => {
+	if (!key == null) {
+		return false;
+	}
+
+	switch (op) {
+		case "=":
+			return key == value;
+		case "!=":
+			return key != value;
+		case ">":
+			return key > value;
+		case ">=":
+			return key >= value;
+		case "<":
+			return key < value;
+		case "<=":
+			return key <= value;
+		default:
+			return true;
+	}
+};
+
+export const search_filter = (beatmap, query, search_filters) => {
+	let valid = true;
+
+	// filter by basic keywords
+	const artist = beatmap?.artist || "unknown";
+	const title = beatmap?.title || "unknown";
+	const difficulty = beatmap?.difficulty || "unknown";
+	const creator = beatmap?.mapper || "unknown";
+	const tags = beatmap?.tags || "";
+
+	const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
+
+	// clean query by removing filter expressions
+	let clean_query = query;
+
+	for (const filter of search_filters) {
+		clean_query = clean_query.replace(filter.text, "");
+	}
+
+	clean_query = clean_query.trim();
+
+	// check text match if theres remaining query
+	const text_included = clean_query == "" || searchable_text.includes(clean_query.toLowerCase());
+
+	if (search_filters.length == 0) {
+		return text_included;
+	}
+
+	for (const filter of search_filters) {
+		const thing = to_type(filter.v);
+
+		// ignore invalid filters
+		if (!thing || thing == "") {
+			continue;
+		}
+
+		const key = get_key(filter.k);
+
+		// hack
+		// also need global gamemode variable
+		if (key == "star_rating") {
+			if (!validate_filter(beatmap?.[key][0]?.nm, filter.o, thing)) {
+				valid = false;
+				break;
+			}
+		} else {
+			if (!validate_filter(beatmap?.[key], filter.o, thing)) {
+				valid = false;
+				break;
+			}
+		}
+	}
+
+	return valid && text_included;
+};
+
+export const filter_beatmap = (beatmap, query) => {
+	const search_filters = [];
+	const regex = /\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
+
+	for (const match of query.matchAll(regex)) {
+		const [text, k, o, v] = match;
+		search_filters.push({ text, k, o, v });
+	}
+
+	// filter by search
+	return search_filter(beatmap, query, search_filters);
+};
+
+export const get_beatmap_data = (data, query) => {
+	let md5 = "";
+	let beatmap = null;
+
+	if (data && typeof data == "object") {
+		md5 = data.md5;
+		beatmap = data;
+	} else {
+		md5 = data;
+	}
+
+	// check if the md5 is present
+	if (!md5 || md5 == "") {
+		return { filtered: false, result: null };
+	}
+
+	// get beatmap using the hash
+	if (!beatmap) {
+		beatmap = osu_data?.beatmaps?.get(md5);
+	}
+
+	// ignore unknown maps if we dont have a query yet
+	if (!beatmap && query == "") {
+		return { filtered: true, result: { md5 } };
+	}
+
+	if (query && query != "") {
+		const passes_filter = filter_beatmap(beatmap, query);
+		return { filtered: passes_filter, result: beatmap };
+	}
+
+	return { filtered: true, result: beatmap };
+};
+
+export const filter_beatmaps = (list, query, unique) => {
+	console.time("filter");
+	const hashes = list ? list : Array.from(osu_data.beatmaps.keys());
+
+	if (!hashes) {
+		console.log(hashes, query, unique);
+		return;
+	}
+
+	let filtered = [];
+	let keys = new Set();
+
+	for (let i = 0; i < hashes.length; i++) {
+
+		// filter the beatmap by query
+		const hash = hashes[i];
+		const data = get_beatmap_data(hash, query ?? "");
+		const key = data.result?.beatmapset_id ? 
+			`${data.result?.beatmapset_id}_${data.result?.audio_file_name}` : hash;
+
+		// ignore 
+		if (unique && keys.has(key)) {
+			continue;
+		}
+
+		// check if its filtered (matches the query)
+		if (!data.filtered) {
+			continue;
+		}
+
+		filtered.push(hash);
+		keys.add(key);
+	}
+
+	console.timeEnd("filter");
+	return filtered;
+};
+
+export const get_beatmaps_from_database = async () => {
+	console.time("osu");
+	if (!osu_data) {
+
+		const file_location = config.lazer_mode ?
+			path.resolve(config.lazer_path, "client.realm") :
+			path.resolve(config.stable_path, "osu!.db");
+		
+		if (!fs.existsSync(file_location)) {
+			console.log("failed to get osu.db file in", file_location);
+			return false;
+		}
+
+		const result = await reader.get_osu_data(file_location);
+
+		if (result == null) {
+			console.log("failed to read osu file");
+			return false;
+		}
+
+		osu_data = result;
+	}
+
+	console.timeEnd("osu");
+	return true;
+};

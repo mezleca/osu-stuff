@@ -1,6 +1,5 @@
 import { derived, writable, get } from "svelte/store";
 import { format_time } from "./lib/utils";
-import { indexed } from "./lib/indexed";
 
 const default_config_fields = {
 	osu_id: "",
@@ -17,7 +16,7 @@ const create_persistent_config = () => {
 
 	// load saved config
 	const load = async () => {
-		const config = await indexed.all("config");
+		const config = await window.config.get();
 		const config_obj = { ...default_config_fields };
 
 		for (const [k, v] of Object.entries(config)) {
@@ -32,16 +31,8 @@ const create_persistent_config = () => {
 	return {
 		subscribe,
 		set: async (key, value) => {
-			indexed.save("config", key, value);
+			window.config.update({ [key]: value });
 			update((config) => ({ ...config, [key]: value }));
-		},
-		delete: async (key) => {
-			await indexed.delete("config", key);
-			update((config) => {
-				// @ts-ignore
-				const { [key]: removed, ...rest } = config;
-				return rest;
-			});
 		},
 		get: (key) => {
 			let current_config;
@@ -222,7 +213,7 @@ const create_audio_store = () => {
 			}
 
 			const { id, audio } = result;
-			
+
 			await setup(id, audio);
 			await play(audio);
 		} catch (error) {

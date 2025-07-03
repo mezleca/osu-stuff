@@ -1,6 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { initialize_config, config, update_config_database } from "./database/config";
+import { initialize_indexer } from "./database/indexer";
+import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database } from "./beatmaps/beatmaps";
+import { get_collections_from_database } from "./beatmaps/collections";
 
 import icon from "../../resources/icon.png?asset";
 
@@ -81,6 +85,16 @@ function createWindow() {
 	ipcMain.handle("minimize", () => mainWindow.minimize());
 	ipcMain.handle("close", () => app.quit());
 
+	// config related stuff
+	ipcMain.handle("get-config", () => config);
+	ipcMain.handle("update-config", (_, values) => update_config_database(values));
+
+	// osu related stuff
+	ipcMain.handle("get-beatmaps", () => get_beatmaps_from_database());
+	ipcMain.handle("get-collections", () => get_collections_from_database());
+	ipcMain.handle("filter-beatmaps", (_, hashes, query, unique) => filter_beatmaps(hashes, query, unique));
+	ipcMain.handle("get-beatmap", (_, data, query) => get_beatmap_data(data, query) )
+
 	// file dialog
 	ipcMain.handle("dialog", async (_, options = {}) => {
 		try {
@@ -111,9 +125,9 @@ function createWindow() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 	// Set app user model id for windows
-	electronApp.setAppUserModelId("com.electron");
+	electronApp.setAppUserModelId("com.osu-stuff");
 
 	// Default open or close DevTools by F12 in development
 	// and ignore CommandOrControl + R in production.
@@ -133,13 +147,10 @@ app.whenReady().then(() => {
 		return net.fetch(`file://${file_path}`);
 	});
 
-	createWindow();
+	await initialize_config();
+	initialize_indexer();
 
-	app.on("activate", function () {
-		// On macOS it's common to re-create a window in the app when the
-		// dock icon is clicked and there are no other windows open.
-		if (BrowserWindow.getAllWindows().length == 0) createWindow();
-	});
+	createWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

@@ -1,27 +1,30 @@
-import { collections, config } from "../store";
-import { reader } from "./reader/reader";
-import { osu_beatmaps } from "../store";
+import { collections } from "../store";
 import { sleep } from "./utils";
 
 // update current collection object
 export const get_collections = async () => {
-	const lazer_mode = config.get("lazer_mode");
-	const files = await window.fs.get_osu_files();
 
-	// check if we received the files
-	if (!lazer_mode && files?.error) {
-		console.error(files?.error);
+	// update collection store
+	const collection_data = await window.osu.get_collections();
+
+	if (!collection_data) {
+		console.log("uhh", collection_data);
 		return;
 	}
 
-	// update collection store
-	const collection_data = await reader.get_collections_data(null ? files.cl : files.cl);
+	console.log(collection_data);
 	collections.set(Array.from(collection_data.collections.values()));
 
 	// let collections load on collections tab
 	await sleep(5);
+
+	// get beatmap
 	console.time("osu");
-	const osu_data = await reader.get_osu_data(lazer_mode ? null : files.db);
+	const beatmaps_data = await window.osu.get_beatmaps();
 	console.timeEnd("osu");
-	osu_beatmaps.set(osu_data.beatmaps);
+
+	if (!beatmaps_data) {
+		console.log("failed to initialize");
+		return;
+	}
 };
