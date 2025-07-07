@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-  <img src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
+  <img src="https://github.com/mezleca/osu-stuff/blob/main/resources/preview.png">
 </p>
 
 ## wtf is osu-stuff
@@ -68,6 +68,9 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 ```bash
 # make sure you have everything listed here -> https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows
 
+# install libsndfile
+vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
+
 # clone repo
 git clone https://github.com/mezleca/osu-stuff.git
 
@@ -76,7 +79,7 @@ cd osu-stuff
 bun install
 
 # build custom modules (npm install should do this automatically but if not)
-npm install -g node-gyp
+bun install -g node-gyp
 node-gyp configure && node-gyp build
 
 # start without building
