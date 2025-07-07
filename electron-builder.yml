@@ -3,8 +3,9 @@ productName: osu-stuff
 electronLanguages:
     - "en-US"
 directories:
-    buildResources: build
+    buildResources: resources
 files:
+    - "out/**"
     - "!**/.vscode/*"
     - "!src/*"
     - "!electron.vite.config.{js,ts,mjs,cjs}"
@@ -13,8 +14,10 @@ files:
     - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
     - "!node_modules/realm/prebuilds/android*/**"
     - "!node_modules/realm/prebuilds/apple*/**"
+    - "build/Release/**"
 asarUnpack:
     - resources/**
+    - "build/Release/**"
 win:
     executableName: stuff
 nsis:

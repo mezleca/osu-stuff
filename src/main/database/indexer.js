@@ -1,36 +1,47 @@
-import { parseFile } from "music-metadata";
-import { parallel_map } from "../beatmaps/downloader.js";
 import { get_app_path } from "./utils.js";
+import { reader } from "../reader/reader.js";
+import { BrowserWindow } from "electron";
+import { sleep } from "../beatmaps/downloader.js";
 
+import Processor from "../../../build/Release/processor.node";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
+import { filter_beatmaps } from "../beatmaps/beatmaps.js";
 
 const PROCESSOR_PATH = get_app_path();
 
 console.log("processor path", PROCESSOR_PATH);
 
+export let is_processing = false;
+
+/** @type {BrowserWindow}*/
+let window = null;
 let database = null;
+
+// database stuff
 let add_beatmap = null;
 let get_beatmap = null;
 let get_beatmaps = null;
 let insert_beatmaps = null;
+let check_beatmaps = null;
 
 const create_extra_table = () => {
 	database.exec(`
 		CREATE TABLE IF NOT EXISTS extra (
-			md5 TEXT PRIMARY KEY,
-			background TEXT,
+			unique_id TEXT PRIMARY KEY,
+			audio_path TEXT,
+			image_path TEXT,
 			duration INTEGER,
 			last_modified INTEGER
 		);
 	`);
 };
 
-export const initialize_indexer = () => {
-
+/** @param {BrowserWindow} mainWindow */
+export const initialize_indexer = async (mainWindow) => {
 	// initialize database
-	const file_path = path.resolve(PROCESSOR_PATH, "processor.db");
+	const file_path = path.resolve(PROCESSOR_PATH, "indexer.db");
 
 	if (!fs.existsSync(file_path)) {
 		fs.writeFileSync(file_path, "");
@@ -42,12 +53,12 @@ export const initialize_indexer = () => {
 	// initialize statements
 	add_beatmap = database.prepare(`
 		INSERT or REPLACE INTO extra
-		(md5, background, duration, last_modified)
-		VALUES (?, ?, ?, ?)
+		(unique_id, audio_path, image_path, duration, last_modified)
+		VALUES (?, ?, ?, ?, ?)
 	`);
 
 	get_beatmap = database.prepare(`
-		SELECT 1 FROM extra WHERE md5 = ?
+		SELECT 1 FROM extra WHERE unique_id = ?
 	`);
 
 	get_beatmaps = database.prepare(`
@@ -56,67 +67,86 @@ export const initialize_indexer = () => {
 
 	insert_beatmaps = database.transaction((beatmaps) => {
 		for (const beatmap of beatmaps) {
-			add_beatmap.run(beatmap.md5, beatmap.background, beatmap.duration, beatmap.last_modified);
+			add_beatmap.run(beatmap.unique_id, beatmap.background, beatmap.duration, beatmap.last_modified);
 		}
 	});
+
+	check_beatmaps = database.transaction((beatmaps) => {
+		const saved_beatmaps = new Map();
+		const BATCH_SIZE = 999;
+
+		for (let i = 0; i < beatmaps.length; i += BATCH_SIZE) {
+			const values = beatmaps.slice(i, i + BATCH_SIZE).map((b) => b.unique_id);
+			const placeholder = new Array(values.length).fill("?").join(",");
+
+			const query = database.prepare(`
+				SELECT unique_id, last_modified from extra
+				WHERE unique_id IN (${placeholder})	
+			`);
+
+			const result = query.all(...values);
+
+			for (let j = 0; j < result.length; j++) {
+				saved_beatmaps.set(result[j].unique_id, result[j].last_modified);
+			}
+		}
+
+		// only return beatmaps that are not saved or have a different last_modified
+		return beatmaps.filter((b) => {
+			const saved_last_modified = saved_beatmaps.get(b.unique_id);
+			return saved_last_modified === undefined || saved_last_modified !== b.last_modified;
+		});
+	});
+
+	window = mainWindow;
+};
+
+export const check_saved_beatmaps = (beatmaps) => {
+	return check_beatmaps(beatmaps);
 };
 
 export const get_data = (md5) => {
 	return get_beatmap(md5);
 };
 
-const get_audio_duration = async (location) => {
-	try { 
-		const result = await parseFile(location);
-		return result.format.duration;
-	} catch(err) {
-		console.log(err);
-		return null;
-	}
-};
-
-// @TODO: everything
-const get_beatmap_image = (b) => {
-	return b.image_location;
-};
-
-// @TODO: test lol
-export const process = async (b) => {
-
-	// make sure we have a beatmap folder
-	if (!b.audio_folder) {
-		return;
-	}
-
-	const duration = await get_audio_duration(b.audio_folder);
-
-	Object.assign(b, {
-		duration: duration
-	});
-
-	return b;
-};
-
 // get extra information like: song duration, background location, etc...
 // @TODO: not even sure that this parallel function works
-export const process_beatmaps = async (beatmaps) => {
-	
-	const saved = new Set(get_beatmaps.all().map((b) => [b.md5, b]));
-	const missing = [];
+// @TODO: show on frontend that we are processing something
+export const process_beatmaps = async (list) => {
 
-	await parallel_map(beatmaps, async (b) => {
+	// uhh
+    if (is_processing) {
+        console.error("[indexer] already processing");
+        return;
+    }
 
-		const uhh = saved.get(b.md5); 
+    is_processing = true;
+    let beatmaps = check_beatmaps(list);
 
-		if (uhh) return;
-		if (uhh.last_modified > b.last_modified) return;
+    if (beatmaps.length == 0) {
+        is_processing = false;
+        return;
+    }
 
-		const result = await process(b);
-		missing.push(result);
-	}, 10);
+    window.webContents.send("process", { show: true });
 
-	console.log(result);
+    const first_pass = filter_beatmaps(beatmaps, "", true).map((b) => ({
+        id: b.unique_id,
+        file_path: reader.get_file_location(b),
+        last_modified: b.last_modified
+    }));
 
-	// process the rest of the beatmaps
-	//insert_beatmaps(missing);
+	const processed_result = await Processor.process_beatmaps(first_pass, (i) => {
+		window.webContents.send("process-update", { 
+			status: "processing beatmaps",
+			index: i,
+			length: first_pass.length,
+			small: "this might take a while" // @TODO: persist process values on frontend so i dont have to send everything every time
+		});
+	});
+
+	fs.writeFileSync("./result.json", JSON.stringify(processed_result));
+
+    window.webContents.send("process", { show: false });
+    is_processing = false;
 };

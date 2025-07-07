@@ -37,9 +37,10 @@
 	};
 
 	const update_filtered_maps = async () => {
-		filtered_maps = $radio_mode == "all beatmaps" ? 
-			await get_filtered_beatmaps(null, $radio_search, true) : 
-			await get_filtered_beatmaps($radio_mode, $radio_search, false);
+		filtered_maps =
+			$radio_mode == "all beatmaps"
+				? await get_filtered_beatmaps(null, $radio_search, true)
+				: await get_filtered_beatmaps($radio_mode, $radio_search, false);
 	};
 
 	$: if ($radio_mode || $radio_search) {

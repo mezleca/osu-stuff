@@ -93,7 +93,14 @@ function createWindow() {
 	ipcMain.handle("get-beatmaps", () => get_beatmaps_from_database());
 	ipcMain.handle("get-collections", () => get_collections_from_database());
 	ipcMain.handle("filter-beatmaps", (_, hashes, query, unique) => filter_beatmaps(hashes, query, unique));
-	ipcMain.handle("get-beatmap", (_, data, query) => get_beatmap_data(data, query) )
+	ipcMain.handle("get-beatmap", (_, data, query) => get_beatmap_data(data, query));
+
+	// get config values from sqlite database
+	initialize_config();
+
+	// indexer will be used to process extra beatmap information and save into a sqlite database
+	// beatmap location because yes and song duration since osu! only returns beatmap length (unless im stupid)
+	initialize_indexer(mainWindow);
 
 	// file dialog
 	ipcMain.handle("dialog", async (_, options = {}) => {
@@ -147,9 +154,7 @@ app.whenReady().then(async () => {
 		return net.fetch(`file://${file_path}`);
 	});
 
-	await initialize_config();
-	initialize_indexer();
-
+	// initialize electron window
 	createWindow();
 });
 

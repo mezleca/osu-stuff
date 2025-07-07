@@ -10,7 +10,16 @@ const config_keys = ["osu_id", "osu_secret", "stable_path", "stable_songs_path",
 let database = null;
 let get_config = null;
 
-export let config = { osu_id: null, osu_secret: null, stable_path: null, stable_songs_path: null, lazer_path: null, export_path: null, local_images: false, lazer_mode: false };
+export let config = {
+	osu_id: null,
+	osu_secret: null,
+	stable_path: null,
+	stable_songs_path: null,
+	lazer_path: null,
+	export_path: null,
+	local_images: false,
+	lazer_mode: false
+};
 
 console.log("config path", CONFIG_LOCATION);
 
@@ -39,68 +48,72 @@ const update_config = (values) => {
 	}
 
 	const clause = keys.map((k) => `${k} = EXCLUDED.${k}`).join(", ");
-    const statement = database.prepare(`
-        INSERT INTO config (id, ${keys.join(', ')}) 
-        VALUES (1, ${keys.map(() => '?').join(', ')})
-        ON CONFLICT(id) DO UPDATE SET ${clause}
-    `);
-    
+	const statement = database.prepare(`
+		INSERT INTO config (id, ${keys.join(", ")}) 
+		VALUES (1, ${keys.map(() => "?").join(", ")})
+		ON CONFLICT(id) DO UPDATE SET ${clause}
+	`);
+
 	const params = keys.map((k) => {
 		const value = typeof values[k] == "boolean" ? Number(values[k]) : values[k];
 		config[k] = values[k];
 		return value;
 	});
 
-	statement.run(...params);	
+	statement.run(...params);
 };
 
 export const initialize_config = async () => {
-
 	const file_path = path.resolve(CONFIG_LOCATION, "config.db");
-
-	if (!fs.existsSync(file_path)) {
-		fs.writeFileSync(file_path, "");
-	}
 
 	database = new Database(file_path);
 	create_config_table();
 
-	get_config = database.prepare(`
-		SELECT * FROM config
-	`);
+	// Ensure at least one row exists in the config table
+	const rowCount = database.prepare("SELECT COUNT(*) as count FROM config").get().count;
+	if (rowCount === 0) {
+		database.prepare("INSERT INTO config (id) VALUES (1)").run();
+	}
 
-	const config_obj = get_config.get();
+	get_config = database.prepare(`SELECT * FROM config WHERE id = 1`);
+	let config_obj = get_config.get();
+
+	if (!config_obj) {
+		return;
+	}
 
 	// update config_obj values on start
 	for (const [k, v] of Object.entries(config_obj)) {
-		if (k == "local_images" || k == "lazer_mode") {
-			config[k] == Boolean(v);
+		if (k === "local_images" || k === "lazer_mode") {
+			config[k] = Boolean(v);
 			continue;
 		}
 		config[k] = v;
 	}
 
-	if (config_obj?.stable_path != undefined && config_obj?.stable_path != "") {
+	if (config_obj.stable_path !== undefined && config_obj.stable_path !== "") {
 		return;
 	}
-
 	// populate config with the default value (if possible)
-	const { path: osu_path, lazer } = await get_osu_path();
-	const stable_songs_path = path.resolve(osu_path, "Songs");
+	const osu_path_result = await get_osu_path();
+	const osu_path = osu_path_result?.path;
+	const lazer_mode = osu_path_result?.lazer;
 
-	// update config on start if empty
-	if (fs.existsSync(osu_path)) {
-		update_config({ stable_path: osu_path, lazer_mode: lazer });
+	if (osu_path && fs.existsSync(osu_path)) {
+		update_config({ stable_path: osu_path, lazer_mode });
 	}
 
-	// lazer doenst have a "Songs folder"
-	if (lazer) {
+	// lazer doesn't have a "Songs" folder
+	if (lazer_mode) {
 		console.log("lazer so ignoring songs path");
 		return;
 	}
 
-	if (fs.existsSync(stable_songs_path)) {
-		update_config({ stable_songs_path });
+	if (osu_path) {
+		const stable_songs_path = path.resolve(osu_path, "Songs");
+		if (fs.existsSync(stable_songs_path)) {
+			update_config({ stable_songs_path });
+		}
 	}
 };
 

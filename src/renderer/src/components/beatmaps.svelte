@@ -53,7 +53,7 @@
 
 	<VirtualList count={beatmaps?.length ?? 0} width="100%" height="100%" item_height={height} {max_width} {carrousel} {key} {direction} let:index>
 		{@const hash = beatmaps[index]}
-		
+
 		{#await get_beatmap_data(hash) then beatmap}
 			{@const selected_index = selected?.index ?? -1}
 			{@const is_selected = beatmaps[selected_index]?.md5 == beatmap?.md5}
@@ -66,6 +66,5 @@
 				click={() => update_selected(index, beatmaps, beatmap)}
 			/>
 		{/await}
-		
 	</VirtualList>
 </div>

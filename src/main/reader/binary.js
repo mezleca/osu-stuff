@@ -12,9 +12,7 @@ export class BinaryReader {
 	};
 
 	byte(signed = false) {
-		const value = signed ? this.buffer.readInt8(this.offset) : this.buffer.readUInt8(this.offset);
-		this.offset += 1;
-		return value;
+		return signed ? this.buffer.readInt8(this.offset++) : this.buffer.readUInt8(this.offset++);
 	}
 
 	short(signed = false) {

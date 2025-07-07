@@ -38,30 +38,10 @@ const create_persistent_config = () => {
 			let current_config;
 			subscribe((config) => (current_config = config))();
 			// @ts-ignore
-			return current_config[key];
+			return current_config[key] ?? null;
 		}
 	};
 };
-
-// window related stuff
-export const is_maximized = writable(false);
-
-// tab related stuff
-export const active_tab = writable("");
-
-// global shit
-export const discover_beatmaps_search = writable("");
-export const collection_beatmaps_search = writable("");
-export const collection_search = writable("");
-
-// radio shit
-export const radio_search = writable("");
-export const radio_mode = writable("all beatmaps");
-export const radio_sort = writable("artist");
-export const radio_random = writable(false);
-export const radio_repeat = writable(false);
-
-export const radio_selected = writable({}); // selected beatmap
 
 const create_audio_store = () => {
 	const { subscribe, update } = writable({
@@ -234,22 +214,6 @@ const create_audio_store = () => {
 	};
 };
 
-export const radio_store = create_audio_store();
-export const preview_store = create_audio_store();
-
-// token used for osu! api
-export const access_token = writable("");
-
-// global config
-export const config = create_persistent_config();
-
-// mhm collections
-export const collections_store = writable([]);
-export const selected_collection_name = writable(null);
-
-// beamaps
-export const osu_beatmaps_store = writable(new Map());
-
 // notifications
 export const notifications_store = writable([]);
 
@@ -257,7 +221,7 @@ export const show_notification = (data) => {
 	const defaults = {
 		id: crypto.randomUUID(),
 		type: "info",
-		timeout: 999
+		timeout: 5000
 	};
 
 	const notification = { ...defaults };
@@ -280,6 +244,10 @@ export const remove_notification = (id) => {
 	notifications_store.update((all) => all.filter((n) => n.id != id));
 };
 
+// mhm collections
+export const collections_store = writable([]);
+export const selected_collection_name = writable(null);
+
 export const selected_collection = derived([collections_store, selected_collection_name], ([$collections, $selected_name]) => {
 	if (!$selected_name) return null;
 	return $collections.find((c) => c.name == $selected_name) || null;
@@ -289,6 +257,46 @@ export const collection_beatmaps = derived(selected_collection, ($selected) => {
 	if (!$selected?.maps) return [];
 	return $selected.maps;
 });
+
+// window related stuff
+export const is_maximized = writable(false);
+
+// tab related stuff
+export const active_tab = writable("");
+
+// global shit
+export const discover_beatmaps_search = writable("");
+export const collection_beatmaps_search = writable("");
+export const collection_search = writable("");
+
+// radio shit
+export const radio_search = writable("");
+export const radio_mode = writable("all beatmaps");
+export const radio_sort = writable("artist");
+export const radio_random = writable(false);
+export const radio_repeat = writable(false);
+export const radio_selected = writable({});
+export const radio_store = create_audio_store();
+export const preview_store = create_audio_store();
+
+// indexer shit
+export const indexing = writable(false);
+export const indexing_data = writable({});
+
+window.indexer.on_process((data) => indexing.update(() => data.show));
+window.indexer.on_process_update((data) => {
+	indexing.update(() => true);
+	indexing_data.update((old) => ({ old, ...data }));
+});
+
+// token used for osu! api
+export const access_token = writable("");
+
+// global config
+export const config = create_persistent_config();
+
+// beamaps
+export const osu_beatmaps_store = writable(new Map());
 
 export const osu_beatmaps = {
 	add: (hash, beatmap) => {

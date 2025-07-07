@@ -1,4 +1,3 @@
-
 import { osdb_versions } from "./models/stable.js";
 import { get_common_bpm } from "../beatmaps/beatmaps.js";
 import { get_realm_instance, lazer_to_osu_db } from "./realm.js";
@@ -16,21 +15,14 @@ const DOTNET_EPOCH_OFFSET = 621355968000000000n;
 const TICKS_PER_MS = 10000n;
 
 const ticks_to_timestamp = (ticks) => {
-  	return Number((BigInt(ticks) - DOTNET_EPOCH_OFFSET) / TICKS_PER_MS);
+	return Number((BigInt(ticks) - DOTNET_EPOCH_OFFSET) / TICKS_PER_MS);
 };
 
 const timestamp_to_ticks = (timestamp) => {
-  	return (BigInt(timestamp) * TICKS_PER_MS) + DOTNET_EPOCH_OFFSET;
+	return BigInt(timestamp) * TICKS_PER_MS + DOTNET_EPOCH_OFFSET;
 };
 
 export class Reader extends BinaryReader {
-	/** @type {Map} */
-	image_cache;
-	/** @type {Map} */
-	audio_cache;
-	/* */
-	instance;
-
 	constructor() {
 		super();
 		this.offset = 0;
@@ -38,6 +30,7 @@ export class Reader extends BinaryReader {
 		this.image_cache = new Map();
 		this.audio_cache = new Map();
 		this.beatmap_offset_start = 0;
+		this.instance = null;
 	}
 
 	get_instance = async (path, schemas) => {
@@ -46,12 +39,10 @@ export class Reader extends BinaryReader {
 	};
 
 	get_osdb_data = async (buffer) => {
-		// set buffer to use it later
 		if (buffer) {
 			this.set_buffer(buffer);
 		}
 
-		// ensure we have a valid buffer
 		if (this.buffer.byteLength == 0) {
 			console.log("invalid buffer");
 			return false;
@@ -81,7 +72,6 @@ export class Reader extends BinaryReader {
 			data.save_date = this.long();
 			data.last_editor = this.string2();
 			data.collections_count = this.int();
-
 			data.collections = [];
 
 			for (let i = 0; i < data.collections_count; i++) {
@@ -142,7 +132,7 @@ export class Reader extends BinaryReader {
 				throw new Error("invalid file footer, this collection might be corrupted.");
 			}
 
-			return true;
+			return data;
 		} catch (error) {
 			console.log(error);
 			return false;
@@ -151,7 +141,6 @@ export class Reader extends BinaryReader {
 
 	write_osdb_data = async (data, version_string) => {
 		try {
-			// ensure we have valid collections
 			if (!data || !data.collections) {
 				console.log("[osdb] invalid data structure");
 				return null;
@@ -165,7 +154,6 @@ export class Reader extends BinaryReader {
 			}
 
 			const is_minimal = version_string.endsWith("min");
-
 			const buffers = [];
 			const buffer = [];
 
@@ -248,14 +236,12 @@ export class Reader extends BinaryReader {
 		}
 	};
 
-	get_osu_data = async (location) => {
+	get_osu_data = async (file_path) => {
 		if (config.lazer_mode) {
-
 			console.log("[reader] reading lazer data...");
 
 			try {
-				// get instance and convert lazer data to match current osu! stable obj
-				await this.get_instance(location, ["All"]);
+				await this.get_instance(file_path, ["All"]);
 				return lazer_to_osu_db(this.instance);
 			} catch (err) {
 				this.instance = null;
@@ -267,8 +253,12 @@ export class Reader extends BinaryReader {
 			}
 		}
 
-		const buffer = fs.readFileSync(location);
+		if (!fs.existsSync(file_path)) {
+			console.log(`[reader] file not found: ${file_path}`);
+			return null;
+		}
 
+		const buffer = fs.readFileSync(file_path);
 		this.set_buffer(buffer);
 		this.offset = 0;
 
@@ -278,9 +268,7 @@ export class Reader extends BinaryReader {
 		const version = this.int();
 		const folders = this.int();
 		const account_unlocked = this.bool();
-
 		const last_unlocked_time = new Date(ticks_to_timestamp(this.long()));
-
 		const player_name = this.string();
 		const beatmaps_count = this.int();
 
@@ -293,10 +281,9 @@ export class Reader extends BinaryReader {
 
 		const extra_start = this.offset;
 		const permission_id = this.int();
-
 		this.offset = 0;
 
-		const osu = {
+		return {
 			version,
 			folders,
 			account_unlocked,
@@ -305,13 +292,12 @@ export class Reader extends BinaryReader {
 			beatmaps_count,
 			beatmaps,
 			extra_start,
-			permission_id
+			permission_id,
+			file_path
 		};
-
-		return osu;
 	};
 
-	read_beatmap = (version) => {
+read_beatmap = (version) => {
 		const data = {};
 
 		data.beatmap_start = this.offset;
@@ -413,23 +399,21 @@ export class Reader extends BinaryReader {
 		data.local = true;
 		data.downloaded = true;
 
+		data.file_path = `${data.folder_name}/${data.file}`;
+
 		return data;
 	};
 
-	get_collections_data = async (location) => {
+	get_collections_data = async (file_path) => {
 		if (config.lazer_mode) {
-			
 			try {
 
-				this.get_instance(location, ["All"]);
-
-				// get collections data
+				await this.get_instance(file_path, ["All"]);
 				const lazer_data = this.instance.objects("BeatmapCollection");
 				const data = { collections: new Map() };
 
 				for (let i = 0; i < lazer_data.length; i++) {
-					const collection = data[i];
-
+					const collection = lazer_data[i];
 					data.collections.set(collection.Name, {
 						uuid: collection.ID,
 						maps: collection.BeatmapMD5Hashes
@@ -448,7 +432,12 @@ export class Reader extends BinaryReader {
 			}
 		}
 
-		const buffer = fs.readFileSync(location);
+		if (!fs.existsSync(file_path)) {
+			console.log(`[reader] collections file not found: ${file_path}`);
+			return null;
+		}
+
+		const buffer = fs.readFileSync(file_path);
 
 		this.set_buffer(buffer);
 		this.offset = 0;
@@ -462,9 +451,8 @@ export class Reader extends BinaryReader {
 			const bm_count = this.int();
 			const md5 = [];
 
-			for (let i = 0; i < bm_count; i++) {
-				const map = this.string();
-				md5.push(map);
+			for (let j = 0; j < bm_count; j++) {
+				md5.push(this.string());
 			}
 
 			collections.set(name, {
@@ -474,21 +462,19 @@ export class Reader extends BinaryReader {
 		}
 
 		this.offset = 0;
-
 		return { version, length: count, collections };
 	};
 
-	get_beatmap_section = async (beatmap, section_name) => {
+	get_beatmap_section = (beatmap, section_name) => {
 		try {
+			const file_path = this.get_file_location(beatmap);
 
-			const file_location = this.get_file_location(beatmap);
-
-			if (!file_location || file_location == "") {
+			if (!file_path || !fs.existsSync(file_path)) {
 				return null;
 			}
 
-			const content = await fs.get_osu_file(file_location);
-
+			const content = fs.readFileSync(file_path, "utf-8");
+			
 			if (!content) {
 				return null;
 			}
@@ -502,7 +488,6 @@ export class Reader extends BinaryReader {
 
 	parse_osu_section = (content, section_name) => {
 		const section_start = content.indexOf(`[${section_name}]`);
-
 		if (section_start == -1) {
 			return null;
 		}
@@ -536,7 +521,6 @@ export class Reader extends BinaryReader {
 			}
 
 			const colon_index = trimmed.indexOf(":");
-
 			if (colon_index == -1) {
 				continue;
 			}
@@ -567,121 +551,13 @@ export class Reader extends BinaryReader {
 		return result;
 	};
 
-	extract_background_image = (data) => {
-		const INVALID_EXTENSIONS = ["avi", "mp4", "mov"];
-
-		for (let i = 0; i < data.length; i++) {
-			const event = data[i];
-			const bg_match = event.match(/^0,0,"([^"]+)"/);
-
-			if (!bg_match) {
-				continue;
-			}
-
-			const image_name = bg_match[1];
-
-			if (!image_name || !image_name.includes(".")) {
-				continue;
-			}
-
-			const extension = image_name.split(".").pop().toLowerCase();
-
-			if (INVALID_EXTENSIONS.includes(extension)) {
-				continue;
-			}
-
-			return image_name;
-		}
-
-		return null;
+	get_file_location = (beatmap) => {
+		const songs_path = config.lazer_mode ? path.resolve(config.lazer_path, "files") : config.stable_songs_path;
+		return path.resolve(songs_path, beatmap.file_path);
 	};
 
-	get_file_location = (beatmap, filename) => {
-		if (config.lazer_mode) {
-			// make sure we have the file
-			if (!beatmap.beatmapset?.Files) {
-				return null;
-			}
-
-			// @TODO: get file location from beatmap data if filename is empty
-			const file_data = beatmap.beatmapset.Files.find((f) => f.Filename == filename);
-
-			if (!file_data?.File?.Hash) {
-				return null;
-			}
-
-			const hash = file_data.File.Hash;
-			return path.resolve(config.lazer_path, "files", hash.substring(0, 1), hash.substring(0, 2), hash);
-		} else {
-			if (!beatmap.folder_name) {
-				return null;
-			}
-
-			// check if we have stable songs path configured
-			const songs_path = config.stable_songs_path;
-
-			if (!songs_path || songs_path == "") {
-				// show_notification({ type: "error", timeout: 5000, text: "missing osu stable songs path" });
-				return "";
-			}
-
-			// console.log(songs_path, beatmap);
-
-			return path.resolve(songs_path, beatmap.folder_name, filename ?? beatmap.file);
-		}
-	};
-
-	get_beatmap_image = async (beatmap) => {
-		if (!beatmap?.beatmapset_id) {
-			return null;
-		}
-
-		if (this.image_cache.has(beatmap.beatmapset_id)) {
-			return this.image_cache.get(beatmap.beatmapset_id);
-		}
-
-		try {
-			const events_data = await this.get_beatmap_section(beatmap, "Events");
-
-			if (!events_data || !Array.isArray(events_data)) {
-				return null;
-			}
-
-			const image_name = this.extract_background_image(events_data);
-
-			if (!image_name) {
-				return null;
-			}
-
-			const image_path = this.get_file_location(beatmap, image_name);
-
-			if (image_path) {
-				this.image_cache.set(beatmap.beatmapset_id, image_path);
-			}
-
-			return image_path;
-		} catch (error) {
-			console.log("[reader] get_beatmap_image error:", error);
-			return null;
-		}
-	};
-
-	get_beatmap_audio = async (beatmap) => {
-		if (!beatmap?.md5) {
-			return null;
-		}
-
-		const audio_name = beatmap?.audio_file_name;
-
-		if (!audio_name) {
-			return "";
-		}
-
-		return path.resolve(this.get_file_location(beatmap, audio_name));
-	};
-
-	get_section_data = async (beatmap, section) => {
-		return await this.get_beatmap_section(beatmap, section);
+	get_section_data = (beatmap, section) => {
+		return this.get_beatmap_section(beatmap, section);
 	};
 }
 

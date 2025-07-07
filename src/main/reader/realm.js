@@ -1,5 +1,7 @@
 import { GAMEMODES } from "../beatmaps/beatmaps";
+
 import Realm from "realm";
+import path from "path";
 
 const LAZER_SCHEMA_VERSION = 48;
 
@@ -45,6 +47,9 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 
 		const last_update_time = last_update?.getTime() || 0;
 		const last_played_time = last_played?.getTime() || 0;
+
+		const file_data = beatmap.beatmapset.Files.find((f) => f.Filename == filename);
+		const hash = file_data.File.Hash;
 
 		const converted_beatmap = {
 			beatmap_start: 0,
@@ -95,6 +100,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			last_played: last_played_time,
 			is_osz2: false,
 			folder_name: "",
+			file_path: path.resolve(hash.substring(0, 1), hash.substring(0, 2), hash),
 			last_checked: 0,
 			ignore_sounds: false,
 			ignore_skin: false,
@@ -130,13 +136,9 @@ export const lazer_to_osu_db = (instance) => {
 	};
 };
 
-export const update_collection = (instance, collection) => {
+export const update_collection = (instance, collection) => {};
 
-};
-
-export const delete_collection = (instance, collection) => {
-
-};
+export const delete_collection = (instance, collection) => {};
 
 /*
 update_collection: (realm, _uuid, name, maps) => {

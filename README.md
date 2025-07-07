@@ -18,7 +18,7 @@ a simple and useful app that gives you freedom to:
 
 ## wanna help osu-manager development?
 
-- bugs report and merge requests are always welcome
+- bug reports and merge requests are always welcome :)
 - just make sure to include what you're adding or the issue you're reporting.
 
 > [!NOTE]  
@@ -38,29 +38,34 @@ a simple and useful app that gives you freedom to:
 
 ## linux dependencies
 
-### debian/ubuntu
+### debian/ubuntu (TODO)
 
 ```bash
-sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2
+sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2 libsdnfile libsndfile1-dev
 ```
 
-### arch
+### arch (TODO)
 
 ```bash
-sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
+sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 ```
 
 ## build it yourself
 
 ### prerequisites
-
 - [node.js](https://nodejs.org/)
 - [git](https://git-scm.com/downloads)
 - [bun](https://bun.sh)
 
-### steps
+## windows specific prerequisites
+- [build tools](https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows)
+- [vcpkg](https://vcpkg.io/en/) 
+
+### steps (windows)
 
 ```bash
+# make sure you have everything listed here -> https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows
+
 # clone repo
 git clone https://github.com/mezleca/osu-stuff.git
 
@@ -68,12 +73,19 @@ git clone https://github.com/mezleca/osu-stuff.git
 cd osu-stuff
 bun install
 
+# build custom modules (npm install should do this automatically but if not)
+npm install -g node-gyp
+node-gyp configure && node-gyp build
+
 # start without building
 bun run dev
 
-# build for your platform (win / linux)
-bun run build && bun run build:the_platform
+# or if you want a installer
+bun run build:win
 ```
+
+### steps (linux)
+TODO
 
 ## credits
 

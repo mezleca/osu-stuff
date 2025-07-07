@@ -30,7 +30,7 @@
 			const audio_name = "";
 
 			if (!audio_name) {
-				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio location" });
+				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio location" });
 				return;
 			}
 
@@ -38,7 +38,7 @@
 
 			if (data.status != 200) {
 				console.log("failed audio:", audio_name, beatmap);
-				show_notification({ type: "error", timeout: 2000, text: "failed to get beatmap audio" });
+				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio" });
 				return;
 			}
 

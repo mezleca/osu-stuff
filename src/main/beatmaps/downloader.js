@@ -19,7 +19,6 @@ export const parallel_map = async (array, mapper, concurrency) => {
 	let should_stop = false;
 
 	const run = async () => {
-		//
 		if (index >= array.length || should_stop) {
 			return;
 		}
@@ -268,7 +267,7 @@ const save_file = async (buffer, file_path) => {
 	}
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const add_download = (download) => {
 	downloads.push(download);

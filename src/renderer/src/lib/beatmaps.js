@@ -1,10 +1,8 @@
 import { collections, osu_beatmaps, show_notification } from "../store";
-import { get } from "svelte/store";
 
 export const get_beatmap_data = async (md5) => {
-
 	const cached = osu_beatmaps.get(md5);
-	
+
 	if (cached) {
 		return cached;
 	}
@@ -30,7 +28,7 @@ export const get_filtered_beatmaps = async (name, query, unique) => {
 	const result = await window.osu.filter_beatmaps(beatmaps, query, unique);
 
 	if (!result) {
-		show_notification("failed to filter beatmaps");
+		show_notification({ type: "error", text: "failed to filter beatmaps" });
 		console.log(result);
 		return;
 	}

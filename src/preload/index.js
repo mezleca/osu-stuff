@@ -1,9 +1,6 @@
-const os = require("os");
-const path = require("path");
-
 const { contextBridge, ipcRenderer, shell } = require("electron");
 
-import { check_folder_permissions, get_linux_path } from "./utils/validator.js";
+import { check_folder_permissions } from "./utils/validator.js";
 import { database } from "./database/indexed.js";
 import { stuff_fs } from "./filesystem/index.js";
 
@@ -22,6 +19,15 @@ contextBridge.exposeInMainWorld("osu", {
 	filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args)
 });
 
+contextBridge.exposeInMainWorld("indexer", {
+	on_process: (callback) => {
+		ipcRenderer.on("process", (_, data) => callback(data));
+	},
+	on_process_update: (callback) => {
+		ipcRenderer.on("process-update", (_, data) => callback(data))
+	}
+});
+
 contextBridge.exposeInMainWorld("downloader", {
 	add: (obj) => ipcRenderer.invoke("add-download", obj),
 	add_mirror: (obj) => ipcRenderer.invoke("add-mirror", obj),
@@ -32,19 +38,13 @@ contextBridge.exposeInMainWorld("downloader", {
 	remove: (name) => ipcRenderer.invoke("remove-download", name),
 	remove_mirror: (name) => ipcRenderer.invoke("remove-mirror", name),
 	on_token_update: (callback) => {
-		ipcRenderer.on("token-update", (_, data) => {
-			callback(data);
-		});
+		ipcRenderer.on("token-update", (_, data) => callback(data));
 	},
 	on_path_update: (callback) => {
-		ipcRenderer.on("path-update", (_, data) => {
-			callback(data);
-		});
+		ipcRenderer.on("path-update", (_, data) => callback(data));
 	},
 	on_download_progress: (callback) => {
-		ipcRenderer.on("download-progress", (_, data) => {
-			callback(data);
-		});
+		ipcRenderer.on("download-progress", (_, data) => callback(data));
 	}
 });
 
@@ -52,27 +52,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	open_folder: (url) => shell.openPath(url)
 });
 
-contextBridge.exposeInMainWorld("path", {
-	basename: (_path, ext) => path.basename(_path, ext),
-	dirname: (_path) => path.dirname(_path),
-	extname: (_path) => path.extname(_path),
-	format: (pathObject) => path.format(pathObject),
-	isAbsolute: (_path) => path.isAbsolute(_path),
-	join: (...paths) => path.join(...paths),
-	normalize: (_path) => path.normalize(_path),
-	parse: (_path) => path.parse(_path),
-	relative: (from, to) => path.relative(from, to),
-	resolve: (...paths) => path.resolve(...paths),
-	get_linux_path: () => get_linux_path()
-});
-
 contextBridge.exposeInMainWorld("shell", {
 	openExternal: (url, options) => shell.openExternal(url, options)
-});
-
-contextBridge.exposeInMainWorld("process", {
-	platform: process.platform,
-	env: process.env
 });
 
 contextBridge.exposeInMainWorld("extra", {
@@ -86,5 +67,4 @@ contextBridge.exposeInMainWorld("extra", {
 	close: () => ipcRenderer.invoke("close"),
 	check_folder_permissions: (folder) => check_folder_permissions(folder),
 	fetch: (options) => ipcRenderer.invoke("http-request", options),
-	homedir: os.homedir()
 });

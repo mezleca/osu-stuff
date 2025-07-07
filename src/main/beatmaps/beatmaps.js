@@ -1,4 +1,5 @@
 import { config } from "../database/config";
+import { check_saved_beatmaps, process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
 import fs from "fs";
@@ -203,26 +204,26 @@ export const get_beatmap_data = (data, query) => {
 };
 
 export const filter_beatmaps = (list, query, unique) => {
-	console.time("filter");
+	if (!osu_data) {
+		return;
+	}
+
 	const hashes = list ? list : Array.from(osu_data.beatmaps.keys());
 
 	if (!hashes) {
-		console.log(hashes, query, unique);
 		return;
 	}
 
 	let filtered = [];
 	let keys = new Set();
-
+	
 	for (let i = 0; i < hashes.length; i++) {
-
 		// filter the beatmap by query
 		const hash = hashes[i];
 		const data = get_beatmap_data(hash, query ?? "");
-		const key = data.result?.beatmapset_id ? 
-			`${data.result?.beatmapset_id}_${data.result?.audio_file_name}` : hash;
+		const key = data.result?.beatmapset_id ? `${data.result?.beatmapset_id}_${data.result?.audio_file_name}` : hash;
 
-		// ignore 
+		// ignore
 		if (unique && keys.has(key)) {
 			continue;
 		}
@@ -232,37 +233,49 @@ export const filter_beatmaps = (list, query, unique) => {
 			continue;
 		}
 
-		filtered.push(hash);
+		if (typeof hash == "object") {
+			filtered.push({ ...hash, unique_id: key });
+		} else {
+			filtered.push(hash);
+		}
+		
 		keys.add(key);
 	}
 
-	console.timeEnd("filter");
 	return filtered;
 };
 
 export const get_beatmaps_from_database = async () => {
-	console.time("osu");
+
 	if (!osu_data) {
 
-		const file_location = config.lazer_mode ?
-			path.resolve(config.lazer_path, "client.realm") :
-			path.resolve(config.stable_path, "osu!.db");
-		
-		if (!fs.existsSync(file_location)) {
-			console.log("failed to get osu.db file in", file_location);
+		const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
+
+		if (!osu_folder) {
+			console.error("[get beatmaps] failed to get osu! folder");
+			return;
+		}
+
+		const file_path = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "osu!.db");
+
+		if (!fs.existsSync(file_path)) {
+			console.error("[get beatmaps] failed to get osu.db file in", file_path);
 			return false;
 		}
 
-		const result = await reader.get_osu_data(file_location);
+		const result = await reader.get_osu_data(file_path);
 
 		if (result == null) {
-			console.log("failed to read osu file");
+			console.error("[get beatmaps] failed to read osu file");
 			return false;
 		}
 
 		osu_data = result;
 	}
 
-	console.timeEnd("osu");
+	if (osu_data) {
+		process_beatmaps(Array.from(osu_data.beatmaps.values()));
+	}
+
 	return true;
 };
