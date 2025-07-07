@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld("indexer", {
 		ipcRenderer.on("process", (_, data) => callback(data));
 	},
 	on_process_update: (callback) => {
-		ipcRenderer.on("process-update", (_, data) => callback(data))
+		ipcRenderer.on("process-update", (_, data) => callback(data));
 	}
 });
 
@@ -66,5 +66,5 @@ contextBridge.exposeInMainWorld("extra", {
 	minimize: () => ipcRenderer.invoke("minimize"),
 	close: () => ipcRenderer.invoke("close"),
 	check_folder_permissions: (folder) => check_folder_permissions(folder),
-	fetch: (options) => ipcRenderer.invoke("http-request", options),
+	fetch: (options) => ipcRenderer.invoke("http-request", options)
 });

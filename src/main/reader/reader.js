@@ -297,7 +297,7 @@ export class Reader extends BinaryReader {
 		};
 	};
 
-read_beatmap = (version) => {
+	read_beatmap = (version) => {
 		const data = {};
 
 		data.beatmap_start = this.offset;
@@ -407,7 +407,6 @@ read_beatmap = (version) => {
 	get_collections_data = async (file_path) => {
 		if (config.lazer_mode) {
 			try {
-
 				await this.get_instance(file_path, ["All"]);
 				const lazer_data = this.instance.objects("BeatmapCollection");
 				const data = { collections: new Map() };
@@ -474,7 +473,7 @@ read_beatmap = (version) => {
 			}
 
 			const content = fs.readFileSync(file_path, "utf-8");
-			
+
 			if (!content) {
 				return null;
 			}

@@ -113,31 +113,30 @@ export const get_data = (md5) => {
 // @TODO: not even sure that this parallel function works
 // @TODO: show on frontend that we are processing something
 export const process_beatmaps = async (list) => {
-
 	// uhh
-    if (is_processing) {
-        console.error("[indexer] already processing");
-        return;
-    }
+	if (is_processing) {
+		console.error("[indexer] already processing");
+		return;
+	}
 
-    is_processing = true;
-    let beatmaps = check_beatmaps(list);
+	is_processing = true;
+	let beatmaps = check_beatmaps(list);
 
-    if (beatmaps.length == 0) {
-        is_processing = false;
-        return;
-    }
+	if (beatmaps.length == 0) {
+		is_processing = false;
+		return;
+	}
 
-    window.webContents.send("process", { show: true });
+	window.webContents.send("process", { show: true });
 
-    const first_pass = filter_beatmaps(beatmaps, "", true).map((b) => ({
-        id: b.unique_id,
-        file_path: reader.get_file_location(b),
-        last_modified: b.last_modified
-    }));
+	const first_pass = filter_beatmaps(beatmaps, "", true).map((b) => ({
+		id: b.unique_id,
+		file_path: reader.get_file_location(b),
+		last_modified: b.last_modified
+	}));
 
 	const processed_result = await Processor.process_beatmaps(first_pass, (i) => {
-		window.webContents.send("process-update", { 
+		window.webContents.send("process-update", {
 			status: "processing beatmaps",
 			index: i,
 			length: first_pass.length,
@@ -147,6 +146,6 @@ export const process_beatmaps = async (list) => {
 
 	fs.writeFileSync("./result.json", JSON.stringify(processed_result));
 
-    window.webContents.send("process", { show: false });
-    is_processing = false;
+	window.webContents.send("process", { show: false });
+	is_processing = false;
 };

@@ -47,11 +47,11 @@ jobs:
             - name: nodejs setup
               uses: actions/setup-node@v4
               with:
-                  node-version: 'lts'
+                  node-version: "lts"
             - name: setup env
               # TODO: setup vcpkg and install shit
               run: |
-                  
+
             - name: install dependencies
               run: npm install
             - name: rebuild native module

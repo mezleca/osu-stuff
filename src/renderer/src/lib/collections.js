@@ -2,7 +2,6 @@ import { collections, config } from "../store";
 import { sleep } from "./utils";
 
 export const get_collections = async () => {
-
 	// update collection store
 	const collection_data = await window.osu.get_collections();
 

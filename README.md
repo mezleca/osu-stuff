@@ -53,13 +53,15 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 ## build it yourself
 
 ### prerequisites
+
 - [node.js](https://nodejs.org/)
 - [git](https://git-scm.com/downloads)
 - [bun](https://bun.sh)
 
 ## windows specific prerequisites
+
 - [build tools](https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows)
-- [vcpkg](https://vcpkg.io/en/) 
+- [vcpkg](https://vcpkg.io/en/)
 
 ### steps (windows)
 
@@ -85,6 +87,7 @@ bun run build:win
 ```
 
 ### steps (linux)
+
 TODO
 
 ## credits

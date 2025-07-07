@@ -216,7 +216,7 @@ export const filter_beatmaps = (list, query, unique) => {
 
 	let filtered = [];
 	let keys = new Set();
-	
+
 	for (let i = 0; i < hashes.length; i++) {
 		// filter the beatmap by query
 		const hash = hashes[i];
@@ -238,7 +238,7 @@ export const filter_beatmaps = (list, query, unique) => {
 		} else {
 			filtered.push(hash);
 		}
-		
+
 		keys.add(key);
 	}
 
@@ -246,9 +246,7 @@ export const filter_beatmaps = (list, query, unique) => {
 };
 
 export const get_beatmaps_from_database = async () => {
-
 	if (!osu_data) {
-
 		const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
 
 		if (!osu_folder) {

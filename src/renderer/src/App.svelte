@@ -22,7 +22,7 @@
 	$: indexing_width = $indexing_data?.length ? ($indexing_data.index / $indexing_data.length) * 100 : 0;
 	$: indexing_progress = $indexing_data?.text ?? "";
 	$: indexing_small = $indexing_data?.small ?? "";
-	
+
 	const toggle_maximized = async () => {
 		const result = await window.extra.is_maximized();
 		$is_maximized = result;
@@ -30,7 +30,7 @@
 
 	onMount(async () => {
 		get_collections()
-			.then(() => initialized = true)
+			.then(() => (initialized = true))
 			.catch((err) => {
 				console.log(err);
 				show_notification({ type: "error", timeout: 5000, text: `failed to initialize\n${err}` });
@@ -71,7 +71,7 @@
 			{/if}
 		</div>
 	{/if}
-	
+
 	<!-- show tabs header -->
 	<Header active={initialized && !$indexing} />
 
@@ -96,60 +96,60 @@
 </main>
 
 <style>
-.indexing-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100vw;
-	height: 100vh;
-	background: rgba(20, 20, 20, 0.95);
-	z-index: 1001;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-}
-.indexing-center {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	flex: 1;
-}
-.indexing-title {
-	color: #fff;
-	font-size: 2rem;
-	margin-bottom: 2rem;
-	text-align: center;
-}
-.indexing-bar-container {
-	width: 320px;
-	height: 18px;
-	background: #333;
-	border-radius: 9px;
-	overflow: hidden;
-	margin-bottom: 1rem;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.indexing-bar {
-	height: 100%;
-	background: var(--accent-color);
-	transition: width 0.1s;
-}
-.indexing-text {
-	color: #fff;
-	font-size: 1.1rem;
-	margin-bottom: 2rem;
-	text-align: center;
-}
-.indexing-bottom-text {
-	color: #aaa;
-	font-size: 0.95rem;
-	position: absolute;
-	bottom: 32px;
-	left: 0;
-	width: 100vw;
-	text-align: center;
-	letter-spacing: 0.02em;
-}
+	.indexing-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(20, 20, 20, 0.95);
+		z-index: 1001;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+	}
+	.indexing-center {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+	}
+	.indexing-title {
+		color: #fff;
+		font-size: 2rem;
+		margin-bottom: 2rem;
+		text-align: center;
+	}
+	.indexing-bar-container {
+		width: 320px;
+		height: 18px;
+		background: #333;
+		border-radius: 9px;
+		overflow: hidden;
+		margin-bottom: 1rem;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	}
+	.indexing-bar {
+		height: 100%;
+		background: var(--accent-color);
+		transition: width 0.1s;
+	}
+	.indexing-text {
+		color: #fff;
+		font-size: 1.1rem;
+		margin-bottom: 2rem;
+		text-align: center;
+	}
+	.indexing-bottom-text {
+		color: #aaa;
+		font-size: 0.95rem;
+		position: absolute;
+		bottom: 32px;
+		left: 0;
+		width: 100vw;
+		text-align: center;
+		letter-spacing: 0.02em;
+	}
 </style>

@@ -5,7 +5,6 @@ import path from "path";
 import fs from "fs";
 
 export const get_collections_from_database = async () => {
-	
 	const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
 
 	if (!osu_folder) {
