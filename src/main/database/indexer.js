@@ -110,8 +110,6 @@ export const get_data = (md5) => {
 };
 
 // get extra information like: song duration, background location, etc...
-// @TODO: not even sure that this parallel function works
-// @TODO: show on frontend that we are processing something
 export const process_beatmaps = async (list) => {
 	// uhh
 	if (is_processing) {
