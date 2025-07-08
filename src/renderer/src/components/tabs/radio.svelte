@@ -14,7 +14,7 @@
 	import PlaceholderImg from "../../assets/placeholder.png";
 
 	// sort
-	const SORT_OPTIONS = ["artist", "title", "length"];
+	const SORT_OPTIONS = ["artist", "title", "duration"];
 
 	$: all_collections = collections.all || [];
 	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
@@ -25,44 +25,25 @@
 	$: bg = PlaceholderImg;
 	$: filtered_maps = [];
 
+	// @TOFIX: ALMOST EVERYTHING HERE IS BROEKN
+
 	const update_background_image = () => {
-		if ($radio_selected.beatmap) {
-			// reader.get_beatmap_image(beatmap).then(async (data) => {
-			// 	if (data) {
-			// 		const result = await get_image_url(data);
-			// 		bg = result;
-			// 	}
-			// });
+		if ($radio_selected?.beatmap && $radio_selected?.beatmap?.image_path) {
+			get_image_url($radio_selected.beatmap.image_path).then((url) => (bg = url));
+		} else {
+			bg = PlaceholderImg;
 		}
 	};
 
 	const update_filtered_maps = async () => {
 		filtered_maps =
 			$radio_mode == "all beatmaps"
-				? await get_filtered_beatmaps(null, $radio_search, true)
-				: await get_filtered_beatmaps($radio_mode, $radio_search, false);
+				? await get_filtered_beatmaps(null, $radio_search, { unique: true, sort: $radio_sort })
+				: await get_filtered_beatmaps($radio_mode, $radio_search, { unique: false, $radio_sort });
 	};
 
-	$: if ($radio_mode || $radio_search) {
+	$: if ($radio_mode || $radio_search || $radio_sort) {
 		update_filtered_maps();
-	}
-
-	// sort on changes
-	$: if (filtered_maps) {
-		if ($radio_sort == "artist" || $radio_sort == "title") {
-			const key = $radio_sort + "_unicode";
-			filtered_maps = filtered_maps.sort((a, b) => {
-				const a_val = a[key] || "";
-				const b_val = b[key] || "";
-				return a_val.localeCompare(b_val);
-			});
-		} else {
-			filtered_maps = filtered_maps.sort((a, b) => {
-				const a_val = a[$radio_sort] || 0;
-				const b_val = b[$radio_sort] || 0;
-				return a_val - b_val;
-			});
-		}
 	}
 
 	// update on change
@@ -121,7 +102,7 @@
 					</div>
 					<div class="stat">
 						<div class="stat-label">LENGTH</div>
-						<div class="stat-value">{beatmap.length ? format_time(beatmap.length / 1000) : "---"}</div>
+						<div class="stat-value">{beatmap.duration ? format_time(beatmap.duration) : "---"}</div>
 					</div>
 					<div class="stat">
 						<div class="stat-label">MAPPED BY</div>

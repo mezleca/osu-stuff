@@ -1,5 +1,4 @@
-import { collections, config } from "../store";
-import { sleep } from "./utils";
+import { collections } from "../store";
 
 export const get_collections = async () => {
 	// update collection store
@@ -10,13 +9,9 @@ export const get_collections = async () => {
 		return;
 	}
 
-	console.log(collection_data);
 	collections.set(Array.from(collection_data.collections.values()));
 
-	// get beatmap
-	console.time("osu");
 	const beatmaps_data = await window.osu.get_beatmaps();
-	console.timeEnd("osu");
 
 	if (!beatmaps_data) {
 		console.log("failed to initialize");

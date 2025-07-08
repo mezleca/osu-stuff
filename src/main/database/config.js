@@ -71,7 +71,8 @@ export const initialize_config = async () => {
 
 	// Ensure at least one row exists in the config table
 	const rowCount = database.prepare("SELECT COUNT(*) as count FROM config").get().count;
-	if (rowCount === 0) {
+
+	if (rowCount == 0) {
 		database.prepare("INSERT INTO config (id) VALUES (1)").run();
 	}
 
@@ -84,36 +85,36 @@ export const initialize_config = async () => {
 
 	// update config_obj values on start
 	for (const [k, v] of Object.entries(config_obj)) {
-		if (k === "local_images" || k === "lazer_mode") {
+		if (k == "local_images" || k == "lazer_mode") {
 			config[k] = Boolean(v);
 			continue;
 		}
 		config[k] = v;
 	}
 
-	if (config_obj.stable_path !== undefined && config_obj.stable_path !== "") {
+	if (config_obj.stable_path != undefined && config_obj.stable_path != "") {
 		return;
 	}
+
 	// populate config with the default value (if possible)
 	const osu_path_result = await get_osu_path();
-	const osu_path = osu_path_result?.path;
-	const lazer_mode = osu_path_result?.lazer;
 
-	if (osu_path && fs.existsSync(osu_path)) {
-		update_config({ stable_path: osu_path, lazer_mode });
-	}
+	const osu_path = osu_path_result?.stable_path;
+	const lazer_path = osu_path_result?.lazer_path;
 
-	// lazer doesn't have a "Songs" folder
-	if (lazer_mode) {
-		console.log("lazer so ignoring songs path");
-		return;
-	}
+	if (osu_path != "") {
+		update_config({ stable_path: osu_path, lazer_mode: config.lazer_mode ?? false });
 
-	if (osu_path) {
 		const stable_songs_path = path.resolve(osu_path, "Songs");
+
+		// maybe the user have a different songs path?
 		if (fs.existsSync(stable_songs_path)) {
 			update_config({ stable_songs_path });
 		}
+	}
+
+	if (lazer_path) {
+		update_config({ lazer_path, lazer_mode: config.lazer_mode ?? false });
 	}
 };
 

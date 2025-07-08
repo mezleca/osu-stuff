@@ -15,6 +15,7 @@
 	let is_popup_enabled = false;
 
 	$: all_collections = collections.all;
+	$: collections_sort = "";
 
 	const filter_collection = () => {
 		if ($collection_search == "") {
@@ -25,11 +26,10 @@
 	};
 
 	const filter_beatmaps = async () => {
-		filtered_maps = await get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search);
-	};
-
-	const select_collection = (collection) => {
-		collections.select(collection.name);
+		filtered_maps = await get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search, {
+			unique: false,
+			sort: collections_sort != "" ? collections_sort : null
+		});
 	};
 
 	const remove_callback = () => {
@@ -73,7 +73,7 @@
 						name={collection.name}
 						count={collection.maps.length ?? 0}
 						selected={$selected_collection?.name == collection.name}
-						callback={() => select_collection(collection)}
+						callback={() => collections.select(collection.name)}
 					/>
 				{/each}
 			{/if}

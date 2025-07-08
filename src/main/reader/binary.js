@@ -42,7 +42,7 @@ export class BinaryReader {
 			const byte = this.buffer.readUInt8(this.offset++);
 			result |= (byte & 0x7f) << shift;
 
-			if ((byte & 0x80) === 0) {
+			if ((byte & 0x80) == 0) {
 				break;
 			}
 			shift += 7;
@@ -64,7 +64,7 @@ export class BinaryReader {
 	}
 
 	bool() {
-		return this.buffer.readUInt8(this.offset++) !== 0x00;
+		return this.buffer.readUInt8(this.offset++) != 0x00;
 	}
 
 	string() {
@@ -126,12 +126,12 @@ export class BinaryReader {
 			let byte = value & 0x7f;
 			value >>>= 7;
 
-			if (value !== 0) {
+			if (value != 0) {
 				byte |= 0x80;
 			}
 
 			bytes.push(byte);
-		} while (value !== 0);
+		} while (value != 0);
 
 		return Buffer.from(bytes);
 	}

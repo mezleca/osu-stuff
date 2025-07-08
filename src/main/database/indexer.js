@@ -1,46 +1,37 @@
 import { get_app_path } from "./utils.js";
 import { reader } from "../reader/reader.js";
 import { BrowserWindow } from "electron";
-import { sleep } from "../beatmaps/downloader.js";
 
 import Processor from "../../../build/Release/processor.node";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
-import { filter_beatmaps } from "../beatmaps/beatmaps.js";
 
 const PROCESSOR_PATH = get_app_path();
-
-console.log("processor path", PROCESSOR_PATH);
+const BATCH_SIZE = 999;
 
 export let is_processing = false;
 
-/** @type {BrowserWindow}*/
+/** @type {BrowserWindow} */
 let window = null;
 let database = null;
 
-// database stuff
-let add_beatmap = null;
-let get_beatmap = null;
-let get_beatmaps = null;
+let add_beatmaps = null;
 let insert_beatmaps = null;
-let check_beatmaps = null;
 
 const create_extra_table = () => {
 	database.exec(`
-		CREATE TABLE IF NOT EXISTS extra (
-			unique_id TEXT PRIMARY KEY,
-			audio_path TEXT,
-			image_path TEXT,
-			duration INTEGER,
-			last_modified INTEGER
-		);
-	`);
+        CREATE TABLE IF NOT EXISTS extra (
+            md5 TEXT PRIMARY KEY,
+            unique_id TEXT,
+            audio_path TEXT,
+            image_path TEXT,
+            duration INTEGER
+        );
+    `);
 };
 
-/** @param {BrowserWindow} mainWindow */
 export const initialize_indexer = async (mainWindow) => {
-	// initialize database
 	const file_path = path.resolve(PROCESSOR_PATH, "indexer.db");
 
 	if (!fs.existsSync(file_path)) {
@@ -50,100 +41,156 @@ export const initialize_indexer = async (mainWindow) => {
 	database = new Database(file_path);
 	create_extra_table();
 
-	// initialize statements
-	add_beatmap = database.prepare(`
-		INSERT or REPLACE INTO extra
-		(unique_id, audio_path, image_path, duration, last_modified)
-		VALUES (?, ?, ?, ?, ?)
-	`);
-
-	get_beatmap = database.prepare(`
-		SELECT 1 FROM extra WHERE unique_id = ?
-	`);
-
-	get_beatmaps = database.prepare(`
-		SELECT * FROM extra
-	`);
+	add_beatmaps = database.prepare(`
+        INSERT OR REPLACE INTO extra
+        (md5, unique_id, audio_path, image_path, duration)
+        VALUES (?, ?, ?, ?, ?)
+    `);
 
 	insert_beatmaps = database.transaction((beatmaps) => {
 		for (const beatmap of beatmaps) {
-			add_beatmap.run(beatmap.unique_id, beatmap.background, beatmap.duration, beatmap.last_modified);
+			add_beatmaps.run(beatmap.md5, beatmap.unique_id, beatmap.audio_path, beatmap.image_path, beatmap.duration);
 		}
-	});
-
-	check_beatmaps = database.transaction((beatmaps) => {
-		const saved_beatmaps = new Map();
-		const BATCH_SIZE = 999;
-
-		for (let i = 0; i < beatmaps.length; i += BATCH_SIZE) {
-			const values = beatmaps.slice(i, i + BATCH_SIZE).map((b) => b.unique_id);
-			const placeholder = new Array(values.length).fill("?").join(",");
-
-			const query = database.prepare(`
-				SELECT unique_id, last_modified from extra
-				WHERE unique_id IN (${placeholder})	
-			`);
-
-			const result = query.all(...values);
-
-			for (let j = 0; j < result.length; j++) {
-				saved_beatmaps.set(result[j].unique_id, result[j].last_modified);
-			}
-		}
-
-		// only return beatmaps that are not saved or have a different last_modified
-		return beatmaps.filter((b) => {
-			const saved_last_modified = saved_beatmaps.get(b.unique_id);
-			return saved_last_modified === undefined || saved_last_modified !== b.last_modified;
-		});
 	});
 
 	window = mainWindow;
 };
 
-export const check_saved_beatmaps = (beatmaps) => {
-	return check_beatmaps(beatmaps);
+export const filter_unique_beatmaps = (beatmaps_array) => {
+	const seen_unique_ids = new Set();
+	const unique_beatmaps = [];
+
+	for (const beatmap of beatmaps_array) {
+		if (!beatmap.unique_id) {
+			continue;
+		}
+
+		if (!seen_unique_ids.has(beatmap.unique_id)) {
+			seen_unique_ids.add(beatmap.unique_id);
+			unique_beatmaps.push(beatmap);
+		}
+	}
+
+	return unique_beatmaps;
 };
 
-export const get_data = (md5) => {
-	return get_beatmap(md5);
-};
-
-// get extra information like: song duration, background location, etc...
-export const process_beatmaps = async (list) => {
-	// uhh
+export const process_beatmaps = async (beatmaps_array) => {
 	if (is_processing) {
 		console.error("[indexer] already processing");
-		return;
+		return null;
+	}
+
+	if (!beatmaps_array || beatmaps_array.length == 0) {
+		return new Map();
 	}
 
 	is_processing = true;
-	let beatmaps = check_beatmaps(list);
+	window?.webContents.send("process", { show: true });
 
-	if (beatmaps.length == 0) {
-		is_processing = false;
-		return;
+	const md5_list = beatmaps_array.map((b) => b.md5);
+	const existing_info = get_multiple_data(md5_list);
+
+	// get non saved beatmaps
+	const to_process = beatmaps_array.filter((b) => !existing_info.has(b.md5));
+
+	let processed_beatmaps = [];
+
+	if (to_process.length > 0) {
+		console.log(`[indexer] processing ${to_process.length} new beatmaps`);
+
+		const processor_input = to_process.map((beatmap) => ({
+			md5: beatmap.md5,
+			unique_id: beatmap.unique_id,
+			file_path: reader.get_file_location(beatmap)
+		}));
+
+		processed_beatmaps = await Processor.process_beatmaps(processor_input, (index) => {
+			window?.webContents.send("process-update", {
+				status: "processing beatmaps",
+				text: `processing ${processor_input[index].file_path}`,
+				index,
+				length: processor_input.length,
+				small: "this might take a while"
+			});
+		});
+
+		if (!processed_beatmaps) {
+			console.error("[indexer] failed to get processed beatmaps");
+			is_processing = false;
+			window?.webContents.send("process", { show: false });
+			return new Map();
+		}
+
+		const successful_beatmaps = processed_beatmaps.filter((beatmap) => beatmap.success);
+		const failed_beatmaps = processed_beatmaps.filter((beatmap) => !beatmap.success);
+
+		if (failed_beatmaps.length > 0) {
+			console.warn(`[indexer] failed to process ${failed_beatmaps.length} beatmaps:`);
+		}
+
+		if (successful_beatmaps.length > 0) {
+			insert_beatmaps(successful_beatmaps);
+		}
+	} else {
+		console.log("[indexer] all beatmaps are already processed");
 	}
 
-	window.webContents.send("process", { show: true });
-
-	const first_pass = filter_beatmaps(beatmaps, "", true).map((b) => ({
-		id: b.unique_id,
-		file_path: reader.get_file_location(b),
-		last_modified: b.last_modified
-	}));
-
-	const processed_result = await Processor.process_beatmaps(first_pass, (i) => {
-		window.webContents.send("process-update", {
-			status: "processing beatmaps",
-			index: i,
-			length: first_pass.length,
-			small: "this might take a while" // @TODO: persist process values on frontend so i dont have to send everything every time
-		});
-	});
-
-	fs.writeFileSync("./result.json", JSON.stringify(processed_result));
-
-	window.webContents.send("process", { show: false });
 	is_processing = false;
+	window?.webContents.send("process", { show: false });
+
+	const extra_info_map = new Map(existing_info);
+
+	for (const processed of processed_beatmaps) {
+		if (processed.success) {
+			extra_info_map.set(processed.md5, {
+				audio_path: processed.audio_path,
+				image_path: processed.image_path,
+				duration: processed.duration
+			});
+		}
+	}
+
+	return extra_info_map;
+};
+
+export const get_data = (md5) => {
+	const query = database.prepare(`
+        SELECT * FROM extra WHERE md5 = ?
+    `);
+
+	return query.get(md5);
+};
+
+export const get_multiple_data = (md5_array) => {
+	if (!md5_array || md5_array.length == 0) {
+		return new Map();
+	}
+
+	const extra_info_map = new Map();
+
+	for (let i = 0; i < md5_array.length; i += BATCH_SIZE) {
+		const batch = md5_array.slice(i, i + BATCH_SIZE);
+		const placeholders = batch.map(() => "?").join(",");
+
+		const query = database.prepare(`
+            SELECT * FROM extra WHERE md5 IN (${placeholders})
+        `);
+
+		const results = query.all(...batch);
+
+		for (const result of results) {
+			extra_info_map.set(result.md5, {
+				audio_path: result.audio_path,
+				image_path: result.image_path,
+				duration: result.duration
+			});
+		}
+	}
+
+	return extra_info_map;
+};
+
+export const check_saved_beatmaps = (beatmaps) => {
+	const md5_array = beatmaps.map((b) => b.md5);
+	return get_multiple_data(md5_array);
 };

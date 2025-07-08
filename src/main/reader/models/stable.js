@@ -77,7 +77,7 @@ export const beatmaps_schema = {
 	disable_video: Boolean,
 	visual_override: Boolean,
 	unknown: Number,
-	last_modified: Number,
+	last_modification: Number,
 	mania_scroll_speed: Number,
 	beatmap_end: Number
 };

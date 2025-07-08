@@ -109,6 +109,7 @@
 		justify-content: center;
 		align-items: center;
 	}
+
 	.indexing-center {
 		display: flex;
 		flex-direction: column;
@@ -116,40 +117,46 @@
 		justify-content: center;
 		flex: 1;
 	}
+
 	.indexing-title {
 		color: #fff;
-		font-size: 2rem;
-		margin-bottom: 2rem;
+		font-size: 1.5em;
+		margin-bottom: 1.4em;
 		text-align: center;
 	}
+
 	.indexing-bar-container {
 		width: 320px;
-		height: 18px;
+		height: 14px;
 		background: #333;
-		border-radius: 9px;
+		border-radius: 4px;
 		overflow: hidden;
-		margin-bottom: 1rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		margin-bottom: 1em;
 	}
+
 	.indexing-bar {
 		height: 100%;
 		background: var(--accent-color);
 		transition: width 0.1s;
 	}
+
 	.indexing-text {
 		color: #fff;
-		font-size: 1.1rem;
-		margin-bottom: 2rem;
+		font-size: 1em;
 		text-align: center;
+		text-overflow: ellipsis;
+		width: 400px;
+		white-space: nowrap;
+		overflow: hidden;
 	}
+
 	.indexing-bottom-text {
 		color: #aaa;
-		font-size: 0.95rem;
+		font-size: 1.1em;
 		position: absolute;
 		bottom: 32px;
 		left: 0;
 		width: 100vw;
 		text-align: center;
-		letter-spacing: 0.02em;
 	}
 </style>

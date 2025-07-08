@@ -12,6 +12,7 @@
 	// stores
 	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected } from "../../store";
 	import { get_from_media } from "../../lib/utils";
+	import { get_beatmap_data } from "../../lib/beatmaps";
 
 	// props
 	export let beatmap = {};
@@ -24,20 +25,21 @@
 	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 	let current_id = beatmap.md5;
 
+	// @TOFIX: ALMOST EVERYTHING HERE IS BROEKN
+
 	const get_audio = async (beatmap, url) => {
 		if (!small) {
-			// const audio_name = await reader.get_beatmap_audio(beatmap);
-			const audio_name = "";
+			const audio_url = beatmap?.audio_path;
 
-			if (!audio_name) {
+			if (!audio_url) {
 				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio location" });
 				return;
 			}
 
-			const data = await get_from_media(audio_name);
+			const data = await get_from_media(audio_url);
 
 			if (data.status != 200) {
-				console.log("failed audio:", audio_name, beatmap);
+				console.log("failed audio:", audio_url, beatmap);
 				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio" });
 				return;
 			}
@@ -69,7 +71,6 @@
 	};
 
 	const setup_audio = async (beatmap, url) => {
-		console.log("gettign new audio from", url);
 		// load new audio
 		const buffer = await get_audio(beatmap, url);
 
@@ -136,10 +137,10 @@
 		}
 
 		// update selected beatmap
-		const new_beatmap = $radio_selected.list[next_idx];
+		const new_beatmap = await get_beatmap_data($radio_selected.list[next_idx]);
 
 		// check if the beatmap is valid
-		if (!new_beatmap?.downloaded) {
+		if (!new_beatmap?.audio_path) {
 			console.log("failed to get next song (invalid beatmap)", new_beatmap);
 			return null;
 		}

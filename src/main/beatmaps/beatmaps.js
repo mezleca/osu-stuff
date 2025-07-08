@@ -1,5 +1,5 @@
 import { config } from "../database/config";
-import { check_saved_beatmaps, process_beatmaps } from "../database/indexer";
+import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
 import fs from "fs";
@@ -14,7 +14,7 @@ export const get_beatmap_sr = (beatmap, gamemode = 0) => {
 	try {
 		const star_rating = beatmap?.star_rating;
 
-		if (!star_rating || star_rating?.length == 0) {
+		if (!star_rating || star_rating.length == 0) {
 			return Number(0).toFixed(2);
 		}
 
@@ -67,18 +67,11 @@ const to_type = (v) => {
 	return isNaN(value) ? v : value;
 };
 
-// @TODO: better naming
 const renamed_list = new Map([["star", "star_rating"]]);
-
-const get_key = (key) => {
-	if (renamed_list.has(key)) {
-		return renamed_list.get(key);
-	}
-	return key;
-};
+const get_key = (key) => renamed_list.get(key) || key;
 
 const validate_filter = (key, op, value) => {
-	if (!key == null) {
+	if (key == null) {
 		return false;
 	}
 
@@ -100,16 +93,15 @@ const validate_filter = (key, op, value) => {
 	}
 };
 
+// filter beatmap based on query and search filters
 export const search_filter = (beatmap, query, search_filters) => {
 	let valid = true;
 
-	// filter by basic keywords
 	const artist = beatmap?.artist || "unknown";
 	const title = beatmap?.title || "unknown";
 	const difficulty = beatmap?.difficulty || "unknown";
 	const creator = beatmap?.mapper || "unknown";
 	const tags = beatmap?.tags || "";
-
 	const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
 
 	// clean query by removing filter expressions
@@ -169,111 +161,148 @@ export const filter_beatmap = (beatmap, query) => {
 	return search_filter(beatmap, query, search_filters);
 };
 
+// reteurn beatmap data based on input and query
 export const get_beatmap_data = (data, query) => {
+	const result = { filtered: false, beatmap: null };
 	let md5 = "";
-	let beatmap = null;
 
 	if (data && typeof data == "object") {
 		md5 = data.md5;
-		beatmap = data;
+		result.beatmap = data;
 	} else {
 		md5 = data;
 	}
 
-	// check if the md5 is present
+	// ignore unknown maps if we dont have a query yet
 	if (!md5 || md5 == "") {
-		return { filtered: false, result: null };
+		result.filtered = true;
+		return result;
 	}
 
-	// get beatmap using the hash
-	if (!beatmap) {
-		beatmap = osu_data?.beatmaps?.get(md5);
+	if (!result.beatmap) {
+		result.beatmap = osu_data.beatmaps.get(md5);
 	}
 
 	// ignore unknown maps if we dont have a query yet
-	if (!beatmap && query == "") {
-		return { filtered: true, result: { md5 } };
+	if (!result.beatmap && query == "") {
+		result.beatmap = { md5 };
+		return result;
 	}
 
 	if (query && query != "") {
-		const passes_filter = filter_beatmap(beatmap, query);
-		return { filtered: passes_filter, result: beatmap };
+		const passes_filter = filter_beatmap(result.beatmap, query);
+		result.filtered = !passes_filter;
+		return result;
 	}
 
-	return { filtered: true, result: beatmap };
+	return result;
 };
 
-export const filter_beatmaps = (list, query, unique) => {
+export const sort_beatmaps = (beatmaps, type) => {
+	if (type == "artist" || type == "title") {
+		const key = type + "_unicode";
+		return beatmaps
+			.sort((a, b) => {
+				const a_val = a[key] || "";
+				const b_val = b[key] || "";
+				return a_val.localeCompare(b_val);
+			})
+			.map((b) => b.md5);
+	} else {
+		return beatmaps
+			.sort((a, b) => {
+				const a_val = a[type] || 0;
+				const b_val = b[type] || 0;
+				return b_val - a_val;
+			})
+			.map((b) => b.md5);
+	}
+};
+
+// @TODO: if unique == true only return valid beatmaps (that are not repated AND has a valid audio_path)
+export const filter_beatmaps = (list, query, extra = { unique: false, sort: null }) => {
 	if (!osu_data) {
-		return;
+		return [];
 	}
 
-	const hashes = list ? list : Array.from(osu_data.beatmaps.keys());
+	const beatmaps = list ? list : Array.from(osu_data.beatmaps.values());
 
-	if (!hashes) {
-		return;
+	if (!beatmaps) {
+		return [];
 	}
 
-	let filtered = [];
-	let keys = new Set();
+	const filtered_beatmaps = [];
+	const keys = new Set();
 
-	for (let i = 0; i < hashes.length; i++) {
-		// filter the beatmap by query
-		const hash = hashes[i];
-		const data = get_beatmap_data(hash, query ?? "");
-		const key = data.result?.beatmapset_id ? `${data.result?.beatmapset_id}_${data.result?.audio_file_name}` : hash;
+	for (let i = 0; i < beatmaps.length; i++) {
+		const list_beatmap = beatmaps[i];
+		const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "");
 
-		// ignore
-		if (unique && keys.has(key)) {
+		if (filtered) {
 			continue;
 		}
 
-		// check if its filtered (matches the query)
-		if (!data.filtered) {
+		const key = extra.unique ? beatmap.unique_id : beatmap.md5;
+
+		if (extra.unique && keys.has(key)) {
 			continue;
 		}
 
-		if (typeof hash == "object") {
-			filtered.push({ ...hash, unique_id: key });
-		} else {
-			filtered.push(hash);
-		}
-
+		filtered_beatmaps.push(extra.sort ? beatmap : beatmap.md5);
 		keys.add(key);
 	}
 
-	return filtered;
+	if (extra.sort != null) {
+		return sort_beatmaps(filtered_beatmaps, extra.sort);
+	}
+
+	return filtered_beatmaps;
 };
 
-export const get_beatmaps_from_database = async () => {
-	if (!osu_data) {
-		const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
+export const get_extra_information = async (beatmaps) => {
+	const beatmaps_array = Array.from(beatmaps.values());
+	const processed_data = await process_beatmaps(beatmaps_array);
 
-		if (!osu_folder) {
-			console.error("[get beatmaps] failed to get osu! folder");
-			return;
+	if (processed_data) {
+		for (const [md5, extra_info] of processed_data) {
+			const existing_beatmap = beatmaps.get(md5);
+			if (existing_beatmap) {
+				beatmaps.set(md5, { ...existing_beatmap, ...extra_info });
+			}
 		}
-
-		const file_path = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "osu!.db");
-
-		if (!fs.existsSync(file_path)) {
-			console.error("[get beatmaps] failed to get osu.db file in", file_path);
-			return false;
-		}
-
-		const result = await reader.get_osu_data(file_path);
-
-		if (result == null) {
-			console.error("[get beatmaps] failed to read osu file");
-			return false;
-		}
-
-		osu_data = result;
 	}
 
-	if (osu_data) {
-		process_beatmaps(Array.from(osu_data.beatmaps.values()));
+	return beatmaps;
+};
+
+export const get_beatmaps_from_database = async (force) => {
+	if (osu_data && !force) {
+		return false;
 	}
+
+	const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
+
+	if (!osu_folder) {
+		console.error("[get beatmaps] failed to get osu! folder");
+		return false;
+	}
+
+	const file_path = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "osu!.db");
+
+	if (!fs.existsSync(file_path)) {
+		console.error("[get beatmaps] failed to get osu.db file in", file_path);
+		return false;
+	}
+
+	const result = await reader.get_osu_data(file_path);
+
+	if (result == null) {
+		console.error("[get beatmaps] failed to read osu file");
+		return false;
+	}
+
+	osu_data = result;
+	osu_data.beatmaps = await get_extra_information(osu_data.beatmaps);
 
 	return true;
 };

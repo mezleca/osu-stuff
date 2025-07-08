@@ -5,215 +5,222 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
-#include <condition_variable>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
 #include <sndfile.h>
+#include <unordered_map>
+#include <set>
 
 using namespace std;
 
-// main struct
+const set<string> VIDEO_EXTENSIONS = { ".avi", ".mov", ".mp4", ".flv" };
+const size_t PROGRESS_UPDATE_INTERVAL = 100;
+
+string trim(const string& s) {
+	size_t start = s.find_first_not_of(" \t\r\n");
+
+	if (start == string::npos) {
+		return "";
+	}
+
+	size_t end = s.find_last_not_of(" \t\r\n");
+	return s.substr(start, end - start + 1);
+}
+
+vector<string> split(const string& s, char delim) {
+	vector<string> result;
+	stringstream ss(s);
+	string item;
+
+	while (getline(ss, item, delim)) {
+		result.push_back(item);
+	}
+
+	return result;
+}
+
+struct AudioInfo {
+	bool success = false;
+	string audio_path;
+	double duration = 0.0;
+};
+
 struct BeatmapObject {
-	string id;
+	string md5;
+	string unique_id;
 	string file_path;
-	int32_t last_modified;
 };
 
 // @TODO: process more data
 struct BeatmapInfo {
-	bool success;
-	string id;
-	string format; // TODO
+	bool success = false;
+	string md5;
+	string unique_id;
 	string reason;
 	string audio_path;
 	string image_path;
-	int64_t duration;
-	int64_t last_modified;
+	double duration = 0.0;
 };
-// small .osu parser
-// @TODO: create a global function to get any attribute like "SkinPreference from Gereral, etc..."
-string get_audio_filename(const string& osu_file_path) {
 
+struct OsuFileInfo {
+	string audio_filename;
+	string image_filename;
+};
+
+class AudioCache {
+private:
+	unordered_map<string, AudioInfo> cache;
+	mutable mutex cache_mutex;
+public:
+	bool find(const string& key, AudioInfo& info) const {
+		lock_guard<mutex> lock(cache_mutex);
+		auto it = cache.find(key);
+		if (it != cache.end()) {
+			info = it->second;
+			return true;
+		}
+		return false;
+	}
+
+	void insert(const string& key, const AudioInfo& info) {
+		lock_guard<mutex> lock(cache_mutex);
+		cache[key] = info;
+	}
+
+	void clear() {
+		lock_guard<mutex> lock(cache_mutex);
+		cache.clear();
+	}
+};
+
+AudioCache audio_cache;
+
+OsuFileInfo parse_osu_file(const string& osu_file_path) {
+	OsuFileInfo info;
 	ifstream file(osu_file_path);
 
 	if (!file.is_open()) {
-		return "";
+		return info;
 	}
 
-	stringstream buffer;
-	buffer << file.rdbuf();
-	string content = buffer.str();
+	string line;
 
-	size_t section_start = content.find("[General]");
+	bool in_general = false;
+	bool in_events = false;
 
-	if (section_start == string::npos) {
-		return "";
-	}
-
-	size_t audio_attr = content.find("AudioFilename:", section_start);
-
-	if (audio_attr == string::npos) {
-		return "";
-	}
-
-	// start after "AudioFilename: "
-	size_t filename_start = audio_attr + 14;
-
-	// skip spaces
-	while (filename_start < content.length() && content[filename_start] == ' ') {
-		filename_start++;
-	}
-
-	size_t line_end = content.find('\n', filename_start);
-
-	if (line_end == string::npos) {
-		line_end = content.length();
-	}
-
-	string filename = content.substr(filename_start, line_end - filename_start);
-
-	// remove whitespace and carriage returns
-	while (!filename.empty() && (filename.back() == '\r' || filename.back() == ' ')) {
-		filename.pop_back();
-	}
-
-	return filename;
-}
-
-string get_image_filename(const string& osu_file_path) {
-	ifstream file(osu_file_path);
-
-	if (!file.is_open()) {
-		return "";
-	}
-
-	stringstream buffer;
-	buffer << file.rdbuf();
-	string content = buffer.str();
-
-	size_t section_start = content.find("[Events]");
-	if (section_start == string::npos) {
-		return "";
-	}
-
-	size_t content_start = section_start + 8;
-
-	// skip line break
-	if (content_start < content.length() && content[content_start] == '\n') {
-		content_start++;
-	}
-
-	while (content_start < content.length()) {
-		if (content[content_start] == '\n') {
-			content_start++;
+	while (getline(file, line)) {
+		line = trim(line);
+		if (line.empty() || line[0] == '/') continue;
+		if (line[0] == '[') {
+			in_general = (line == "[General]");
+			in_events = (line == "[Events]");
 			continue;
 		}
-
-		size_t line_end = content.find('\n', content_start);
-		if (line_end == string::npos) {
-			line_end = content.length();
-		}
-
-		// skip comments
-		if (content[content_start] == '/') {
-			content_start = line_end + 1;
-			continue;
-		}
-
-		// find quotes for image filename
-		size_t first_quote = content.find('"', content_start);
-		if (first_quote == string::npos || first_quote >= line_end) {
-			content_start = line_end + 1;
-			continue;
-		}
-
-		size_t second_quote = content.find('"', first_quote + 1);
-		if (second_quote == string::npos || second_quote >= line_end) {
-			content_start = line_end + 1;
-			continue;
-		}
-
-		string result = content.substr(first_quote + 1, second_quote - first_quote - 1);
-
-		size_t dot = result.find_last_of(".");
-		if (dot != string::npos) {
-			string ext = result.substr(dot);
-
-			// exclude video files
-			if (ext == ".avi" || ext == ".mov" || ext == ".mp4" || ext == ".flv") {
-				content_start = line_end + 1;
-				continue;
+		if (in_general) {
+			size_t pos = line.find(':');
+			if (pos != string::npos) {
+				string key = trim(line.substr(0, pos));
+				if (key == "AudioFilename") {
+					info.audio_filename = trim(line.substr(pos + 1));
+				}
 			}
 		}
+		else if (in_events) {
+			vector<string> parts = split(line, ',');
+			// lol
+			if (parts.size() >= 3 && parts[0] == "0" && parts[1] == "0") {
+				string filename = parts[2];
 
-		return result;
+				if (filename[0] == '"' && filename.back() == '"') {
+					filename = filename.substr(1, filename.length() - 2);
+				}
+
+				string ext = filename.substr(filename.find_last_of("."));
+
+				if (VIDEO_EXTENSIONS.find(ext) == VIDEO_EXTENSIONS.end()) {
+					info.image_filename = filename;
+					break;
+				}
+			}
+		}
 	}
 
-	return "";
+	return info;
 }
 
-string build_audio_path(const string& osu_file_path) {
-	string audio_filename = get_audio_filename(osu_file_path);
+AudioInfo get_audio_information(const string& audio_id, const string& path) {
+	AudioInfo audio_info;
 
-	if (audio_filename.empty()) {
-		return "";
+	if (audio_cache.find(audio_id, audio_info)) {
+		return audio_info;
 	}
 
-	filesystem::path osu_path(osu_file_path);
-	filesystem::path audio_path = osu_path.parent_path() / audio_filename;
-
-	return audio_path.string();
-}
-
-string build_image_path(const string& osu_file_path) {
-	string image_filename = get_image_filename(osu_file_path);
-
-	if (image_filename.empty()) {
-		return "";
+	if (!filesystem::exists(path)) {
+		return audio_info;
 	}
 
-	filesystem::path osu_path(osu_file_path);
-	filesystem::path image_path = osu_path.parent_path() / image_filename;
-
-	return image_path.string();
-}
-
-BeatmapInfo get_beatmap_info(const BeatmapObject& beatmap) {
-	BeatmapInfo info = {};
-
-	info.id = beatmap.id;
-	info.last_modified = beatmap.last_modified;
-	info.success = false;
-	info.duration = 0;
-
-	SF_INFO sfinfo;
-	memset(&sfinfo, 0, sizeof(sfinfo));
-
-	string audio_path = build_audio_path(beatmap.file_path);
-
-	// check if audio file exists
-	if (audio_path.empty()) {
-		info.reason = "audio not found on .osu";
-		return info;
-	}
-
-	info.audio_path = audio_path;
-	SNDFILE* file = sf_open(audio_path.c_str(), SFM_READ, &sfinfo);
+	SF_INFO sfinfo{};
+	SNDFILE* file = sf_open(path.c_str(), SFM_READ, &sfinfo);
 
 	if (!file) {
-		info.reason = sf_strerror(file);
+		return audio_info;
+	}
+
+	audio_info.duration = static_cast<double>(sfinfo.frames) / sfinfo.samplerate;
+	audio_info.audio_path = path;
+	audio_info.success = true;
+
+	sf_close(file);
+	audio_cache.insert(audio_id, audio_info);
+	return audio_info;
+}
+
+// Process a single beatmap
+BeatmapInfo get_beatmap_info(const BeatmapObject& beatmap) {
+	BeatmapInfo info;
+
+	if (beatmap.file_path.empty() || !filesystem::exists(beatmap.file_path)) {
+		info.reason = "beatmap file not found";
 		return info;
 	}
 
-	// get image path
-	info.duration = (double)sfinfo.frames / sfinfo.samplerate;
-	info.image_path = build_image_path(beatmap.file_path);
+	info.md5 = beatmap.md5;
+	info.unique_id = beatmap.unique_id;
 
-	// clean
-	sf_close(file);
+	OsuFileInfo osu_info = parse_osu_file(beatmap.file_path);
 
-	info.success = true;
+	if (osu_info.audio_filename.empty()) {
+		info.reason = "audio filename not found";
+		return info;
+	}
+
+	filesystem::path osu_path(beatmap.file_path);
+	filesystem::path audio_path = osu_path.parent_path() / osu_info.audio_filename;
+	
+	if (!filesystem::exists(audio_path)) {
+		info.reason = "audio file not found";
+		return info;
+	}
+
+	info.audio_path = audio_path.string();
+
+	if (!osu_info.image_filename.empty()) {
+		filesystem::path image_path = osu_path.parent_path() / osu_info.image_filename;
+		if (filesystem::exists(image_path)) {
+			info.image_path = image_path.string();
+		}
+	}
+
+	AudioInfo audio_info = get_audio_information(info.unique_id, info.audio_path);
+	info.success = audio_info.success;
+
+	if (!info.success) {
+		info.reason = "failed to get audio data";
+		return info;
+	}
+
+	info.duration = audio_info.duration;
 	return info;
 }
 
@@ -221,75 +228,78 @@ class AudioProcessor : public Napi::AsyncWorker {
 public:
 	AudioProcessor(Napi::Env env, const vector<BeatmapObject>& files, Napi::Function progress_cb)
 		: Napi::AsyncWorker(env),
-		beatmap_files(files),
 		has_callback(false),
+		beatmap_files(files),
 		promise_deferred(Napi::Promise::Deferred::New(env)),
-		current_index(0),
-		processed_count(0) {
-		// only create a callback if we passed one in js
+		processed_count(0),
+		shutdown_requested(false) {
 		if (!progress_cb.IsEmpty() && progress_cb.IsFunction()) {
-			progress_callback = Napi::ThreadSafeFunction::New(env, progress_cb, "ProgressCallback", 0, 1);
+			progress_callback = Napi::ThreadSafeFunction::New(
+				env, progress_cb, "ProgressCallback", 0, 1,
+				[this](Napi::Env) { this->shutdown_requested = true; }
+			);
 			has_callback = true;
 		}
 	}
 
 	void Execute() override {
-		const size_t THREAD_COUNT = 2;
+		size_t thread_count = min(4u, thread::hardware_concurrency());
 
-		vector<thread> threads;
-		mutex index_mutex;
-
-		audio_results.resize(beatmap_files.size());
-
-		auto worker = [&]() {
-			while (true) {
-				size_t index;
-				{
-					lock_guard<mutex> lock(index_mutex);
-					if (current_index >= beatmap_files.size()) {
-						break;
-					}
-					index = current_index++;
-				}
-
-				audio_results[index] = get_beatmap_info(beatmap_files[index]);
-				processed_count++;
-
-				// to prevent huge ass lag (prob only lags on my shitty as pc)
-				if (has_callback && (processed_count % 5 == 0 || processed_count == beatmap_files.size())) {
-					int current = processed_count.load();
-					progress_callback.NonBlockingCall([current](Napi::Env env, Napi::Function callback) {
-						if (!env.IsExceptionPending()) {
-							callback.Call({ Napi::Number::New(env, current) });
-						}
-						});
-				}
-			}
-			};
-
-		for (size_t i = 0; i < THREAD_COUNT; ++i) {
-			threads.emplace_back(worker);
+		if (thread_count == 0) {
+			thread_count = 1;
 		}
 
-		for (auto& thread : threads) {
-			thread.join();
+		size_t total_beatmaps = beatmap_files.size();
+		audio_results.resize(total_beatmaps);
+		vector<thread> threads;
+		size_t chunk_size = total_beatmaps / thread_count + (total_beatmaps % thread_count ? 1 : 0);
+
+		auto worker = [&](size_t start, size_t end) {
+			for (size_t i = start; i < end && !shutdown_requested; ++i) {
+				audio_results[i] = get_beatmap_info(beatmap_files[i]);
+				size_t current = ++processed_count;
+				// send 100 otherwise shit will lag
+				if (has_callback && (current % PROGRESS_UPDATE_INTERVAL == 0 || current == total_beatmaps)) {
+					progress_callback.NonBlockingCall(
+						[current](Napi::Env env, Napi::Function cb) {
+							cb.Call({ Napi::Number::New(env, current) });
+						}
+					);
+				}
+			}
+		};
+
+		for (size_t t = 0; t < thread_count; ++t) {
+			size_t start = t * chunk_size;
+			size_t end = min(start + chunk_size, total_beatmaps);
+
+			if (start < total_beatmaps) {
+				threads.emplace_back(worker, start, end);
+			}
+		}
+
+		for (auto& t : threads) {
+			t.join();
 		}
 	}
 
 	void OnOK() override {
+		if (shutdown_requested) {
+			return;
+		}
+
 		Napi::Array result = Napi::Array::New(Env(), audio_results.size());
 
 		for (size_t i = 0; i < audio_results.size(); ++i) {
-			auto obj = Napi::Object::New(Env());
+			Napi::Object obj = Napi::Object::New(Env());
 			const auto& data = audio_results[i];
 
-			// return a new object
-			obj.Set("id", data.id);
+			obj.Set("md5", data.md5);
+			obj.Set("unique_id", data.unique_id);
 			obj.Set("audio_path", data.audio_path);
 			obj.Set("image_path", data.image_path);
 			obj.Set("success", data.success);
 			obj.Set("duration", data.duration);
-			obj.Set("last_modified", data.last_modified);
 
 			if (!data.success) {
 				obj.Set("reason", data.reason);
@@ -298,40 +308,39 @@ public:
 			result.Set(i, obj);
 		}
 
-		if (has_callback) {
-			progress_callback.Release();
-		}
-
+		cleanup_callback();
 		promise_deferred.Resolve(result);
 	}
 
 	void OnError(const Napi::Error& error) override {
-		if (has_callback) {
-			progress_callback.Release();
-		}
+		cleanup_callback();
 		promise_deferred.Reject(error.Value());
 	}
 
-	Napi::Promise GetPromise() {
-		return promise_deferred.Promise();
-	}
+	Napi::Promise GetPromise() { return promise_deferred.Promise(); }
 
 private:
+	void cleanup_callback() {
+		if (has_callback) {
+			progress_callback.Release();
+			has_callback = false;
+		}
+	}
+
 	bool has_callback;
 	vector<BeatmapObject> beatmap_files;
 	vector<BeatmapInfo> audio_results;
 	Napi::ThreadSafeFunction progress_callback;
 	Napi::Promise::Deferred promise_deferred;
-	atomic<size_t> current_index;
 	atomic<size_t> processed_count;
+	atomic<bool> shutdown_requested;
 };
 
 Napi::Value process_beatmaps(const Napi::CallbackInfo& info) {
 	Napi::Env env = info.Env();
 
-	//
 	if (info.Length() < 1 || !info[0].IsArray()) {
-		cout << "what are you doing bro wheres the args" << "\n";
+		cerr << "error: invalid function arguments" << endl;
 		return env.Null();
 	}
 
@@ -339,51 +348,25 @@ Napi::Value process_beatmaps(const Napi::CallbackInfo& info) {
 	vector<BeatmapObject> beatmaps;
 
 	for (uint32_t i = 0; i < beatmap_list.Length(); ++i) {
-		Napi::Value beatmap_val = beatmap_list.Get(i);
+		Napi::Object current_beatmap = beatmap_list.Get(i).As<Napi::Object>();
 
-		if (!beatmap_val.IsObject()) {
-			cout << "not an object" << "\n";
+		if (!current_beatmap.Has("unique_id") || !current_beatmap.Has("file_path") || !current_beatmap.Has("md5")) {
+			cerr << "error: missing required fields at index: " << i << endl;
 			return env.Null();
 		}
 
-		Napi::Object current_beatmap = beatmap_val.As<Napi::Object>();
+		string unique_id = current_beatmap.Get("unique_id").As<Napi::String>().Utf8Value();
+		string file_path = current_beatmap.Get("file_path").As<Napi::String>().Utf8Value();
+		string md5 = current_beatmap.Get("md5").As<Napi::String>().Utf8Value();
 
-		// well id is not "needed" but
-		if (!current_beatmap.Has("id") || !current_beatmap.Has("file_path")) {
-			cout << "missing something idk" << "\n";
-			return env.Null();
-		}
-
-		Napi::Value id_val = current_beatmap.Get("id");
-		Napi::Value file_path_val = current_beatmap.Get("file_path");
-		Napi::Value last_modified_val = current_beatmap.Get("last_modified");
-
-		if (!last_modified_val.IsNumber()) {
-			cout << "last_modified is not a number LUL" << "\n";
-			return env.Null();
-		}
-
-		if (!id_val.IsString() || !file_path_val.IsString()) {
-			cout << "not a string lil bro | " << id_val.IsString() << " | " << file_path_val.IsString() << "\n";
-			return env.Null();
-		}
-
-		string id = id_val.As<Napi::String>().Utf8Value();
-		string file_path = file_path_val.As<Napi::String>().Utf8Value();
-		int32_t last_modified = last_modified_val.As<Napi::Number>().Int32Value();
-
-		beatmaps.push_back({ id, file_path, last_modified });
+		beatmaps.push_back({ md5, unique_id, file_path });
 	}
 
-	Napi::Function progress_cb = Napi::Function();
-	if (info.Length() > 1 && info[1].IsFunction()) {
-		progress_cb = info[1].As<Napi::Function>();
-	}
-
+	Napi::Function progress_cb = info.Length() > 1 && info[1].IsFunction() ? info[1].As<Napi::Function>() : Napi::Function();
 	AudioProcessor* worker = new AudioProcessor(env, beatmaps, progress_cb);
 	Napi::Promise promise = worker->GetPromise();
-	worker->Queue();
 
+	worker->Queue();
 	return promise;
 }
 
@@ -391,13 +374,17 @@ Napi::Value test(const Napi::CallbackInfo& info) {
 	return Napi::String::New(info.Env(), "Hello from C++");
 }
 
+Napi::Value clear_cache(const Napi::CallbackInfo& info) {
+	audio_cache.clear();
+	return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Object initialize(Napi::Env env, Napi::Object exports) {
-
-	std::cout << "using libsnd " << sf_version_string() << "\n";
-
-	// @TODO: create individual functions to get beatmap_image, etc
+	cout << "using libsnd " << sf_version_string() << endl;
+	
 	exports.Set("process_beatmaps", Napi::Function::New(env, process_beatmaps));
 	exports.Set("test", Napi::Function::New(env, test));
+	exports.Set("clear_cache", Napi::Function::New(env, clear_cache));
 	return exports;
 }
 

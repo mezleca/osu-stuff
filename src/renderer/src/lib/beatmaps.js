@@ -7,17 +7,17 @@ export const get_beatmap_data = async (md5) => {
 		return cached;
 	}
 
-	const beatmap = await window.osu.get_beatmap(md5);
+	const result = await window.osu.get_beatmap(md5);
 
-	if (!beatmap) {
+	if (!result) {
 		return {};
 	}
 
-	osu_beatmaps.add(md5, beatmap.result);
-	return beatmap.result;
+	osu_beatmaps.add(md5, result.beatmap);
+	return result.beatmap;
 };
 
-export const get_filtered_beatmaps = async (name, query, unique) => {
+export const get_filtered_beatmaps = async (name, query, extra) => {
 	const beatmaps = name ? collections.get(name).maps : null;
 
 	if (name && !beatmaps) {
@@ -25,7 +25,7 @@ export const get_filtered_beatmaps = async (name, query, unique) => {
 		return;
 	}
 
-	const result = await window.osu.filter_beatmaps(beatmaps, query, unique);
+	const result = await window.osu.filter_beatmaps(beatmaps, query, extra);
 
 	if (!result) {
 		show_notification({ type: "error", text: "failed to filter beatmaps" });

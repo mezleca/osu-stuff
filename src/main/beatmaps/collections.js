@@ -12,11 +12,7 @@ export const get_collections_from_database = async () => {
 		return;
 	}
 
-	console.log(osu_folder);
-
 	const location = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "collection.db");
-
-	console.log(location);
 
 	if (!fs.existsSync(location)) {
 		console.log("failed to get collection file in", location);

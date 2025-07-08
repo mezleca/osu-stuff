@@ -103,6 +103,7 @@
 		"hash_map": "cpp",
 		"hash_set": "cpp",
 		"stack": "cpp",
-		"cfenv": "cpp"
+		"cfenv": "cpp",
+		"complex": "cpp"
 	}
 }

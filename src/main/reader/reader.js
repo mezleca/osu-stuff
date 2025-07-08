@@ -11,17 +11,6 @@ import zlib from "zlib";
 // placeholder
 const create_alert = () => {};
 
-const DOTNET_EPOCH_OFFSET = 621355968000000000n;
-const TICKS_PER_MS = 10000n;
-
-const ticks_to_timestamp = (ticks) => {
-	return Number((BigInt(ticks) - DOTNET_EPOCH_OFFSET) / TICKS_PER_MS);
-};
-
-const timestamp_to_ticks = (timestamp) => {
-	return BigInt(timestamp) * TICKS_PER_MS + DOTNET_EPOCH_OFFSET;
-};
-
 export class Reader extends BinaryReader {
 	constructor() {
 		super();
@@ -253,6 +242,8 @@ export class Reader extends BinaryReader {
 			}
 		}
 
+		this.offset = 0;
+
 		if (!fs.existsSync(file_path)) {
 			console.log(`[reader] file not found: ${file_path}`);
 			return null;
@@ -260,15 +251,15 @@ export class Reader extends BinaryReader {
 
 		const buffer = fs.readFileSync(file_path);
 		this.set_buffer(buffer);
-		this.offset = 0;
 
 		console.log("[reader] reading osu! stable data...");
 
 		const beatmaps = new Map();
+
 		const version = this.int();
 		const folders = this.int();
 		const account_unlocked = this.bool();
-		const last_unlocked_time = new Date(ticks_to_timestamp(this.long()));
+		const last_unlocked_time = this.long();
 		const player_name = this.string();
 		const beatmaps_count = this.int();
 
@@ -276,11 +267,14 @@ export class Reader extends BinaryReader {
 
 		for (let i = 0; i < beatmaps_count; i++) {
 			const beatmap = this.read_beatmap(version);
-			beatmaps.set(beatmap.md5, beatmap);
+			if (beatmap.md5) {
+				beatmaps.set(beatmap.md5, beatmap);
+			}
 		}
 
 		const extra_start = this.offset;
 		const permission_id = this.int();
+
 		this.offset = 0;
 
 		return {
@@ -298,7 +292,8 @@ export class Reader extends BinaryReader {
 	};
 
 	read_beatmap = (version) => {
-		const data = {};
+		const data = { star_rating: [] };
+		const is_old_version = version < 20140609;
 
 		data.beatmap_start = this.offset;
 		data.entry = version < 20191106 ? this.int() : 0;
@@ -315,16 +310,15 @@ export class Reader extends BinaryReader {
 		data.hitcircle = this.short();
 		data.sliders = this.short();
 		data.spinners = this.short();
-		data.last_modification = new Date(ticks_to_timestamp(this.long()));
+		data.last_modification = this.long();
 
-		const is_old_version = version < 20140609;
 		data.ar = is_old_version ? this.byte() : this.single();
 		data.cs = is_old_version ? this.byte() : this.single();
 		data.hp = is_old_version ? this.byte() : this.single();
 		data.od = is_old_version ? this.byte() : this.single();
+
 		data.slider_velocity = this.double();
 
-		data.star_rating = [];
 		const is_new_version = version >= 20250107;
 
 		for (let i = 0; i < 4; i++) {
@@ -393,13 +387,20 @@ export class Reader extends BinaryReader {
 			data.unknown = this.short();
 		}
 
-		data.last_modified = this.int();
+		// no idea what this last_modification is
+		this.skip(4);
+
 		data.mania_scroll_speed = this.byte();
 		data.beatmap_end = this.offset;
 		data.local = true;
 		data.downloaded = true;
 
+		// unique audio id
+		data.unique_id = `${data.beatmapset_id}_${data.audio_file_name}`;
 		data.file_path = `${data.folder_name}/${data.file}`;
+		data.duration = 0;
+		data.image_path = "";
+		data.audio_path = "";
 
 		return data;
 	};
@@ -408,6 +409,7 @@ export class Reader extends BinaryReader {
 		if (config.lazer_mode) {
 			try {
 				await this.get_instance(file_path, ["All"]);
+
 				const lazer_data = this.instance.objects("BeatmapCollection");
 				const data = { collections: new Map() };
 
