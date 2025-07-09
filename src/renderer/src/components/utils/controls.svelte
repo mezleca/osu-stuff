@@ -8,9 +8,11 @@
 	import RepeatIcon from "../icon/repeat-icon.svelte";
 	import NextIcon from "../icon/next-icon.svelte";
 	import PreviousIcon from "../icon/previous-icon.svelte";
+	import Volume from "../icon/volume.svelte";
+	import VolumeMuted from "../icon/volume-muted.svelte";
 
 	// stores
-	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected } from "../../store";
+	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected, config } from "../../store";
 	import { get_from_media } from "../../lib/utils";
 	import { get_beatmap_data } from "../../lib/beatmaps";
 
@@ -20,12 +22,15 @@
 	export let right = () => {};
 
 	$: control = small ? preview_store : radio_store;
+	$: radio_volume = config.get("radio_volume") ?? 50;
 	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = $control);
+
+	$: if (radio_volume) {
+		config.set("radio_volume", 50);
+	}
 
 	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 	let current_id = beatmap.md5;
-
-	// @TOFIX: ALMOST EVERYTHING HERE IS BROEKN
 
 	const get_audio = async (beatmap, url) => {
 		if (!small) {
@@ -81,8 +86,7 @@
 
 		// create new audio object
 		const new_audio = new Audio(window.URL.createObjectURL(buffer));
-		// @TODO: volume slider
-		new_audio.volume = 0.5;
+		new_audio.volume = radio_volume / 100;
 
 		return new_audio;
 	};
@@ -98,7 +102,7 @@
 		control.play(audio);
 	};
 
-	// @TODO: messy
+	// @TODO: if a songle fails eveything goes BOOOM
 	const get_next_song = async (custom) => {
 		if (small || $radio_selected.list.length == 0) {
 			return null;
@@ -159,7 +163,7 @@
 			return;
 		}
 
-		await control.setup(data.id, data.audio);
+		await control.setup(data.id, data.audio, radio_volume);
 		play_audio(data.audio);
 	};
 
@@ -195,10 +199,16 @@
 			return;
 		}
 
-		control.setup(current_id, new_audio);
+		control.setup(current_id, new_audio, radio_volume);
 
 		// play new song
 		play_audio(new_audio);
+	};
+
+	const get_perc = (e, max) => {
+		const rect = e.currentTarget.getBoundingClientRect();
+		const percent = (e.clientX - rect.left) / rect.width;
+		return { percent, current: percent * max };
 	};
 
 	const seek_audio = (e) => {
@@ -206,11 +216,23 @@
 			return;
 		}
 
-		const rect = e.currentTarget.getBoundingClientRect();
-		const percent = (e.clientX - rect.left) / rect.width;
-		const new_time = percent * audio.duration;
+		const { percent, current } = get_perc(e, audio.duration);
+		control.seek(audio, percent, current);
+	};
 
-		control.seek(audio, percent, new_time);
+	const update_volume = (e) => {
+		const { current } = get_perc(e, 100);
+		radio_volume = Math.round(current);
+
+		if (audio) {
+			control.set_volume(audio, radio_volume);
+		}
+	};
+
+	const toggle_mute = () => {
+		// @TODO: use old value instead of hardcoded 50
+		radio_volume = radio_volume > 0 ? 0 : 50;
+		control.set_volume(audio, radio_volume);
 	};
 </script>
 
@@ -233,6 +255,22 @@
 	</div>
 {:else}
 	<div class="big-control">
+		<div class="volume-container">
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="volume-icon" on:click={toggle_mute}>
+				{#if radio_volume != 0}
+					<Volume />
+				{:else}
+					<VolumeMuted />
+				{/if}
+			</div>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="volume-bar" on:click={update_volume}>
+				<div class="volume-fill" style="width: {radio_volume}%;"></div>
+			</div>
+		</div>
 		<div class="progress-container">
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -309,6 +347,44 @@
 
 	.progress-container {
 		width: 100%;
+		padding: 24px;
+		background: rgba(19, 19, 19, 0.8);
+		border-radius: 4px;
+	}
+
+	.volume-container {
+		position: relative;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px;
+		background-color: rgba(19, 19, 19, 0.8);
+		border-radius: 6px;
+		width: fit-content;
+		margin-bottom: 10px;
+	}
+
+	.volume-bar {
+		width: 0;
+		overflow: hidden;
+		transition: width 0.3s ease;
+		background-color: #444;
+		height: 6px;
+		border-radius: 3px;
+	}
+
+	.volume-container:hover .volume-bar {
+		width: 120px;
+	}
+
+	.volume-icon {
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-muted);
 	}
 
 	.progress-bar {
@@ -326,7 +402,8 @@
 		height: 8px;
 	}
 
-	.progress-fill {
+	.progress-fill,
+	.volume-fill {
 		height: 100%;
 		background: linear-gradient(90deg, var(--accent-color-half), var(--accent-color));
 		border-radius: 3px;

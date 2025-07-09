@@ -56,15 +56,21 @@ export const initialize_indexer = async (mainWindow) => {
 	window = mainWindow;
 };
 
+// unique_id = song id btw
+// yeah, i cant name stuff
 export const filter_unique_beatmaps = (beatmaps_array) => {
 	const seen_unique_ids = new Set();
 	const unique_beatmaps = [];
 
-	for (const beatmap of beatmaps_array) {
+	for (let i = 0; i < beatmaps_array.length; i++) {
+		const beatmap = beatmaps_array[i];
+
+		// idk if this is normal on stable but my db has like 500/30000 beatmaps without any trace of audio file lol
 		if (!beatmap.unique_id) {
 			continue;
 		}
 
+		// check if we already added this unique id
 		if (!seen_unique_ids.has(beatmap.unique_id)) {
 			seen_unique_ids.add(beatmap.unique_id);
 			unique_beatmaps.push(beatmap);
@@ -114,6 +120,7 @@ export const process_beatmaps = async (beatmaps_array) => {
 			});
 		});
 
+		// shouldn't happen (unless we have a invalid beatmap object)
 		if (!processed_beatmaps) {
 			console.error("[indexer] failed to get processed beatmaps");
 			is_processing = false;
@@ -122,33 +129,33 @@ export const process_beatmaps = async (beatmaps_array) => {
 		}
 
 		const successful_beatmaps = processed_beatmaps.filter((beatmap) => beatmap.success);
-		const failed_beatmaps = processed_beatmaps.filter((beatmap) => !beatmap.success);
-
-		if (failed_beatmaps.length > 0) {
-			console.warn(`[indexer] failed to process ${failed_beatmaps.length} beatmaps:`);
-		}
 
 		if (successful_beatmaps.length > 0) {
 			insert_beatmaps(successful_beatmaps);
 		}
-	} else {
-		console.log("[indexer] all beatmaps are already processed");
 	}
 
-	is_processing = false;
 	window?.webContents.send("process", { show: false });
 
 	const extra_info_map = new Map(existing_info);
 
-	for (const processed of processed_beatmaps) {
-		if (processed.success) {
-			extra_info_map.set(processed.md5, {
-				audio_path: processed.audio_path,
-				image_path: processed.image_path,
-				duration: processed.duration
-			});
+	// create a new map object so we can append this data to the main beatmap array
+	for (let i = 0; i < processed_beatmaps.length; i++) {
+		const processed = processed_beatmaps[i];
+
+		if (!processed.success) {
+			continue;
 		}
+
+		extra_info_map.set(processed.md5, {
+			audio_path: processed.audio_path,
+			image_path: processed.image_path,
+			duration: processed.duration
+		});
 	}
+
+	// @TODO: this needs to be on the Processor module
+	is_processing = false;
 
 	return extra_info_map;
 };

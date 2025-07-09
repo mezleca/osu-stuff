@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from "svelte";
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
-	import { collections, radio_mode, radio_search, radio_sort, radio_selected } from "../../store";
+	import { collections, radio_mode, radio_search, radio_sort, radio_selected, config } from "../../store";
 	import { format_time, get_image_url } from "../../lib/utils";
 
 	// components
@@ -24,8 +24,6 @@
 	$: control_key = beatmap.md5 ?? crypto.randomUUID();
 	$: bg = PlaceholderImg;
 	$: filtered_maps = [];
-
-	// @TOFIX: ALMOST EVERYTHING HERE IS BROEKN
 
 	const update_background_image = () => {
 		if ($radio_selected?.beatmap && $radio_selected?.beatmap?.image_path) {
@@ -101,7 +99,7 @@
 						<div class="stat-value">{beatmap.bpm || "---"}</div>
 					</div>
 					<div class="stat">
-						<div class="stat-label">LENGTH</div>
+						<div class="stat-label">DURATION</div>
 						<div class="stat-value">{beatmap.duration ? format_time(beatmap.duration) : "---"}</div>
 					</div>
 					<div class="stat">
@@ -112,7 +110,7 @@
 
 				<div class="radio-controls">
 					{#key control_key}
-						<Controls {beatmap} small={false} key={control_key} persistent={true} />
+						<Controls {beatmap} small={false} key={control_key} />
 					{/key}
 				</div>
 			</div>
@@ -236,9 +234,6 @@
 	}
 
 	.radio-controls {
-		padding: 24px;
-		background: rgba(19, 19, 19, 0.8);
-		border-radius: 4px;
 		align-self: end;
 	}
 </style>

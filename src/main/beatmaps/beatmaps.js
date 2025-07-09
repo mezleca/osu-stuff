@@ -1,5 +1,5 @@
 import { config } from "../database/config";
-import { process_beatmaps } from "../database/indexer";
+import { filter_unique_beatmaps, process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
 import fs from "fs";
@@ -198,42 +198,48 @@ export const get_beatmap_data = (data, query) => {
 	return result;
 };
 
-export const sort_beatmaps = (beatmaps, type) => {
-	if (type == "artist" || type == "title") {
-		const key = type + "_unicode";
-		return beatmaps
-			.sort((a, b) => {
-				const a_val = a[key] || "";
-				const b_val = b[key] || "";
-				return a_val.localeCompare(b_val);
-			})
-			.map((b) => b.md5);
-	} else {
-		return beatmaps
-			.sort((a, b) => {
-				const a_val = a[type] || 0;
-				const b_val = b[type] || 0;
-				return b_val - a_val;
-			})
-			.map((b) => b.md5);
-	}
+const TEXT_SORT_KEYS = ["title", "artist"];
+const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
+const TEXT_SORT_OPTIONS = {
+	sensitivity: "base"
 };
 
-// @TODO: if unique == true only return valid beatmaps (that are not repated AND has a valid audio_path)
+// sort beatmaps by type (descending)
+export const sort_beatmaps = (beatmaps, type) => {
+	// mhm
+	if (!TEXT_SORT_KEYS.includes(type) && !NUMBER_SORT_KEYS.includes(type)) {
+		return beatmaps;
+	}
+
+	// use unicode on title/artist :+1:
+	const is_text_sort = TEXT_SORT_KEYS.includes(type);
+	const sort_type = type === "artist" || type === "title" ? type + "_unicode" : type;
+
+	const result = beatmaps.sort((a, b) => {
+		const a_val = a[sort_type] || (is_text_sort ? "" : 0);
+		const b_val = b[sort_type] || (is_text_sort ? "" : 0);
+		return is_text_sort ? a_val.localeCompare(b_val, "en", TEXT_SORT_OPTIONS) : b_val - a_val;
+	});
+
+	return result;
+};
+
+// @TODO: if unique == true only return valid beatmaps (that are not repeated AND has a valid audio_path)
 export const filter_beatmaps = (list, query, extra = { unique: false, sort: null }) => {
 	if (!osu_data) {
 		return [];
 	}
 
 	const beatmaps = list ? list : Array.from(osu_data.beatmaps.values());
+	const seen_unique_ids = new Set();
 
 	if (!beatmaps) {
 		return [];
 	}
 
-	const filtered_beatmaps = [];
-	const keys = new Set();
+	let filtered_beatmaps = [];
 
+	// filter beatmaps based on query and stuff
 	for (let i = 0; i < beatmaps.length; i++) {
 		const list_beatmap = beatmaps[i];
 		const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "");
@@ -242,21 +248,25 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
 			continue;
 		}
 
-		const key = extra.unique ? beatmap.unique_id : beatmap.md5;
-
-		if (extra.unique && keys.has(key)) {
+		// check if we already added this unique id
+		if (extra.unique && beatmap?.unique_id && seen_unique_ids.has(beatmap?.unique_id)) {
 			continue;
 		}
 
-		filtered_beatmaps.push(extra.sort ? beatmap : beatmap.md5);
-		keys.add(key);
+		filtered_beatmaps.push(beatmap);
+
+		if (extra.unique && beatmap?.unique_id) {
+			seen_unique_ids.add(beatmap.unique_id);
+		}
 	}
 
+	// sort pass
 	if (extra.sort != null) {
-		return sort_beatmaps(filtered_beatmaps, extra.sort);
+		filtered_beatmaps = sort_beatmaps(filtered_beatmaps, extra.sort);
 	}
 
-	return filtered_beatmaps;
+	// return only hashes
+	return filtered_beatmaps.map((b) => (typeof b == "string" ? b : b?.md5));
 };
 
 export const get_extra_information = async (beatmaps) => {

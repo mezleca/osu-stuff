@@ -5,7 +5,17 @@ import path from "path";
 import fs from "fs";
 
 export const CONFIG_LOCATION = get_app_path();
-const config_keys = ["osu_id", "osu_secret", "stable_path", "stable_songs_path", "lazer_path", "export_path", "local_images", "lazer_mode"];
+const config_keys = [
+	"osu_id",
+	"osu_secret",
+	"stable_path",
+	"stable_songs_path",
+	"lazer_path",
+	"export_path",
+	"local_images",
+	"lazer_mode",
+	"radio_volume"
+];
 
 let database = null;
 let get_config = null;
@@ -18,7 +28,8 @@ export let config = {
 	lazer_path: null,
 	export_path: null,
 	local_images: false,
-	lazer_mode: false
+	lazer_mode: false,
+	radio_volume: null
 };
 
 console.log("config path", CONFIG_LOCATION);
@@ -34,7 +45,8 @@ const create_config_table = () => {
 			lazer_path TEXT,
 			export_path TEXT,
 			local_images INTEGER,
-			lazer_mode INTEGER
+			lazer_mode INTEGER,
+			radio_volume INTEGER
 		);
 	`);
 };

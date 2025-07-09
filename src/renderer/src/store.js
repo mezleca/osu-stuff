@@ -49,6 +49,7 @@ const create_audio_store = () => {
 		id: null,
 		playing: false,
 		ended: false,
+		volume: 50, // %
 		progress: "0:00",
 		duration: "0:00",
 		progress_bar_width: 0,
@@ -176,6 +177,14 @@ const create_audio_store = () => {
 		}));
 	};
 
+	const set_volume = (audio, volume) => {
+		audio.volume = volume / 100;
+		update((obj) => ({
+			...obj,
+			volume
+		}));
+	};
+
 	const get_next = async () => {
 		if (!next_callback || get({ subscribe }).is_fetching) {
 			return;
@@ -209,6 +218,7 @@ const create_audio_store = () => {
 		pause_until,
 		pause,
 		seek,
+		set_volume,
 		set_next: (callback) => (next_callback = callback),
 		remove
 	};
