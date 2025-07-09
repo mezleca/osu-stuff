@@ -14,7 +14,9 @@ const additionalArguments = [
 	"--enable-zero-copy",
 	"--enable-gpu-rasterization",
 	"--disable-features=TranslateUI",
-	"--disable-ipc-flooding-protection"
+	"--disable-ipc-flooding-protection",
+	"--no-sandbox",
+	"--disable-background-timer-throttling"
 ];
 
 // protocol to get images / stuff from osu!
@@ -148,10 +150,10 @@ app.whenReady().then(async () => {
 		callback({ requestHeaders: { ...details.requestHeaders } });
 	});
 
+	// @TODO: this is dangerous asf LOL i can literally get any file that i using ts
 	protocol.handle("media", (req) => {
-		const b64 = req.url.replace("media://", "");
-		const file_path = Buffer.from(b64, "base64").toString();
-		return net.fetch(`file://${file_path}`);
+		const location = decodeURI(req.url.replace("media://", ""));
+		return net.fetch(`file://${location}`);
 	});
 
 	// initialize electron window

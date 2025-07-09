@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
 
 	// props
 	export let count = 0;
@@ -11,11 +11,11 @@
 	export let key = crypto.randomUUID();
 	export let direction = "right";
 	export let get_key = () => crypto.randomUUID();
+	export let selected = -1;
 
 	let container;
+	let mounted = false;
 	let hovered_item = -1;
-	let selection_focus_offset = 0;
-
 	let container_height = 0;
 	let scroll_top = 0;
 
@@ -35,9 +35,6 @@
 
 		const center_y = scroll_top + container_height / 2;
 		const elements = [...container.querySelectorAll(".item")];
-
-		// update selection focus offset (moves non selected items to right)
-		selection_focus_offset = lerp(selection_focus_offset, 0, 0.1);
 
 		for (let i = 0; i < elements.length; i++) {
 			const element = elements[i];
@@ -59,11 +56,6 @@
 				scale = lerp(1, 0.95, fade_factor);
 			} else {
 				scale = 0.95;
-			}
-
-			// selection focus effect (move non-selected items right)
-			if (selection_focus_offset > 0) {
-				x_offset = selection_focus_offset;
 			}
 
 			// hover effect
@@ -91,25 +83,20 @@
 
 	const handle_mouse_enter = (index) => {
 		hovered_item = index;
-		if (carrousel) {
-			requestAnimationFrame(update_carrousel_effect);
-		}
+		if (carrousel) requestAnimationFrame(update_carrousel_effect);
 	};
 
 	const handle_mouse_leave = () => {
 		hovered_item = -1;
-		if (carrousel) {
-			requestAnimationFrame(update_carrousel_effect);
-		}
+		if (carrousel) requestAnimationFrame(update_carrousel_effect);
 	};
 
 	const update_height = () => {
 		if (container) {
 			container_height = container.clientHeight;
-			if (carrousel) {
-				requestAnimationFrame(update_carrousel_effect);
-			}
 		}
+
+		if (carrousel) requestAnimationFrame(update_carrousel_effect);
 	};
 
 	$: if (visible_items > 0 && carrousel) {
@@ -120,24 +107,61 @@
 		hovered_item = -1;
 	}
 
-	export const scroll_to_item = (index) => {
-		if (container && index >= 0 && index < count) {
-			const target_scroll = index * item_height - container_height / 2 + item_height / 2;
-			container.scrollTo({
-				top: Math.max(0, target_scroll),
-				behavior: "smooth"
-			});
+	export const scroll_to_item = async (index) => {
+		if (!mounted || index < 0) {
+			return;
 		}
+		
+		await tick();
+		
+		// what
+		if (!container) {
+			console.log("container 404");
+			return;
+		}
+		
+		const target_scroll = index * item_height - container_height / 2 + item_height / 2;
+
+		// hack cuz i have no ideia how to fix this shit
+		await new Promise((r) => setTimeout(r, 50));
+
+		container.scrollTo({
+			top: Math.max(0, target_scroll),
+			behavior: "smooth"
+		});
 	};
 
 	export const get_center_item_index = () => {
 		return Math.round((scroll_top + container_height / 2) / item_height);
 	};
 
+	// automatic scroll on change
+	$: if (mounted && selected !==-1 && container) {
+		scroll_to_item(selected);
+	}
+
+	$: if (visible_items > 0 && carrousel && container) {
+		requestAnimationFrame(update_carrousel_effect);
+	}
+
+	$: if (container && (count == 0 || key)) {
+		hovered_item = -1;
+	}
+
 	onMount(() => {
-		if (container) container.scrollTop = 0;
-		scroll_top = 0;
+		mounted = true;
 		update_height();
+		
+		if (selected != -1) {
+			scroll_top = 0;
+
+			if (container) {
+				container.scrollTop = 0;
+				tick().then(() => {
+					scroll_to_item(selected);
+				});
+			}
+		}
 	});
 </script>
 

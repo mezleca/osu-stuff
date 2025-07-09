@@ -25,60 +25,61 @@
 	$: radio_volume = config.get("radio_volume") ?? 50;
 	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = $control);
 
-	$: if (radio_volume) {
-		config.set("radio_volume", 50);
-	}
-
 	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 	let current_id = beatmap.md5;
 
 	const get_audio = async (beatmap, url) => {
-		if (!small) {
-			const audio_url = beatmap?.audio_path;
+		try {
+			if (!small) {
+				const audio_url = beatmap?.audio_path;
 
-			if (!audio_url) {
-				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio location" });
+				if (!audio_url) {
+					show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio location" });
+					return;
+				}
+
+				const data = await get_from_media(audio_url);
+
+				if (data.status != 200) {
+					console.log("failed audio:", audio_url, beatmap);
+					show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio" });
+					return;
+				}
+
+				const buffer = await data.arrayBuffer();
+				return new Blob([new Uint8Array(buffer)], { type: "audio/ogg" });
+			}
+
+			// make sure the preview url is present
+			if (url == "") {
 				return;
 			}
 
-			const data = await get_from_media(audio_url);
+			const data = await window.extra.fetch({
+				url,
+				headers: {
+					Accept: "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
+					"Sec-GPC": "1",
+					"Sec-Fetch-Dest": "audio"
+				}
+			});
 
 			if (data.status != 200) {
-				console.log("failed audio:", audio_url, beatmap);
-				show_notification({ type: "error", timeout: 5000, text: "failed to get beatmap audio" });
+				console.log("failed to get audio:", data.error);
 				return;
 			}
 
-			const buffer = await data.arrayBuffer();
-			return new Blob([new Uint8Array(buffer)], { type: "audio/ogg" });
+			return new Blob([data.data], { type: "audio/ogg" });
+		} catch(err) {
+			console.log("error on get audio:", err);
 		}
-
-		// make sure the preview url is present
-		if (url == "") {
-			return;
-		}
-
-		const data = await window.extra.fetch({
-			url,
-			headers: {
-				Accept: "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
-				"Sec-GPC": "1",
-				"Sec-Fetch-Dest": "audio"
-			}
-		});
-
-		if (data.status != 200) {
-			console.log("failed to get audio:", data.error);
-			return;
-		}
-
-		return new Blob([data.data], { type: "audio/ogg" });
 	};
 
 	const setup_audio = async (beatmap, url) => {
 		// load new audio
 		const buffer = await get_audio(beatmap, url);
 
+		// @TODO: 
 		if (!buffer) {
 			console.log("failed to get buffer from", url);
 			return;
@@ -87,6 +88,8 @@
 		// create new audio object
 		const new_audio = new Audio(window.URL.createObjectURL(buffer));
 		new_audio.volume = radio_volume / 100;
+
+		new_audio.preload = "auto";
 
 		return new_audio;
 	};
@@ -195,7 +198,9 @@
 		const new_audio = await setup_audio(beatmap, actual_url);
 
 		if (!new_audio) {
-			console.log("failed to setup audio for", new_audio, beatmap);
+			console.log("failed to setup audio for", beatmap);
+			// play the next one (if possible)
+			set_next_song(1);
 			return;
 		}
 
@@ -227,12 +232,15 @@
 		if (audio) {
 			control.set_volume(audio, radio_volume);
 		}
+
+		config.set("radio_volume", radio_volume);
 	};
 
+	// @TODO: use old value instead of hardcoded 50
 	const toggle_mute = () => {
-		// @TODO: use old value instead of hardcoded 50
 		radio_volume = radio_volume > 0 ? 0 : 50;
 		control.set_volume(audio, radio_volume);
+		config.set("radio_volume", radio_volume);
 	};
 </script>
 

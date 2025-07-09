@@ -1,5 +1,5 @@
 import { config } from "../database/config";
-import { filter_unique_beatmaps, process_beatmaps } from "../database/indexer";
+import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
 import fs from "fs";
@@ -97,8 +97,8 @@ const validate_filter = (key, op, value) => {
 export const search_filter = (beatmap, query, search_filters) => {
 	let valid = true;
 
-	const artist = beatmap?.artist || "unknown";
-	const title = beatmap?.title || "unknown";
+	const artist = (beatmap?.artist_unicode ? beatmap.artist_unicode : beatmap.artist) || "unknown";
+	const title = (beatmap?.title_unicode ? beatmap.title_unicode : beatmap.title) || "unknown";
 	const difficulty = beatmap?.difficulty || "unknown";
 	const creator = beatmap?.mapper || "unknown";
 	const tags = beatmap?.tags || "";
@@ -200,8 +200,13 @@ export const get_beatmap_data = (data, query) => {
 
 const TEXT_SORT_KEYS = ["title", "artist"];
 const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
-const TEXT_SORT_OPTIONS = {
-	sensitivity: "base"
+
+const normalize_text = (text) => {
+    if (!text) {
+		return "";
+	}
+
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
 // sort beatmaps by type (descending)
@@ -211,14 +216,16 @@ export const sort_beatmaps = (beatmaps, type) => {
 		return beatmaps;
 	}
 
-	// use unicode on title/artist :+1:
-	const is_text_sort = TEXT_SORT_KEYS.includes(type);
-	const sort_type = type === "artist" || type === "title" ? type + "_unicode" : type;
-
 	const result = beatmaps.sort((a, b) => {
-		const a_val = a[sort_type] || (is_text_sort ? "" : 0);
-		const b_val = b[sort_type] || (is_text_sort ? "" : 0);
-		return is_text_sort ? a_val.localeCompare(b_val, "en", TEXT_SORT_OPTIONS) : b_val - a_val;
+		if (TEXT_SORT_KEYS.includes(type)) {
+			const a_val = normalize_text(a[type]);
+			const b_val = normalize_text(b[type]);
+			return a_val.localeCompare(b_val)
+		} else {
+			const a_val = a[type] || 0;
+			const b_val = b[type] || 0;
+			return b_val - a_val;
+		}
 	});
 
 	return result;
@@ -287,7 +294,7 @@ export const get_extra_information = async (beatmaps) => {
 
 export const get_beatmaps_from_database = async (force) => {
 	if (osu_data && !force) {
-		return false;
+		return true;
 	}
 
 	const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;

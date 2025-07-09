@@ -27,10 +27,8 @@ export const safe_id = (id) => {
 
 // @TODO: cache
 export const get_from_media = async (file) => {
-	const encoded = btoa(file);
-	const url = "media://" + encoded;
+	const url = "media://" + encodeURI(file);
 	const data = await fetch(url);
-
 	return data;
 };
 
