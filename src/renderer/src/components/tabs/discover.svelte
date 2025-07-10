@@ -1,6 +1,7 @@
 <script>
 	import { collection_beatmaps_search } from "../../store";
 	import Add from "../utils/add.svelte";
+	import ExpandableMenu from "../utils/expandable-menu.svelte";
 	import Search from "../utils/search.svelte";
 </script>
 
@@ -8,12 +9,7 @@
 	<div class="manager-content">
 		<div class="content-header">
 			<Search bind:value={$collection_beatmaps_search} placeholder="search beatmaps" />
-			<div class="search-expand">
-				<button class="expand-btn" id="expandBtn">⋯</button>
-			</div>
-			<div class="search-expanded" id="searchExpanded">
-				<div class="browse-filters"></div>
-			</div>
+			<ExpandableMenu></ExpandableMenu>
 		</div>
 		<div class="beatmaps-container">
 			<!-- svelte-ignore a11y_consider_explicit_label -->

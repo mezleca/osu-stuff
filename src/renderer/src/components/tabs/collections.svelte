@@ -1,5 +1,14 @@
 <script>
-	import { collection_beatmaps_search, selected_collection, collections, collection_search, selected_collection_name } from "../../store";
+	import {
+		collection_beatmaps_search,
+		selected_collection,
+		collections,
+		collection_search,
+		selected_collection_name,
+		DEFAULT_SORT_OPTIONS,
+		DEFAULT_STATUS_TYPES
+	} from "../../store";
+
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
 	import { onMount } from "svelte";
 
@@ -9,10 +18,16 @@
 	import CollectionCard from "../cards/collection-card.svelte";
 	import Beatmaps from "../beatmaps.svelte";
 	import Popup from "../utils/popup.svelte";
+	import Dropdown from "../utils/dropdown.svelte";
+	import ExpandableMenu from "../utils/expandable-menu.svelte";
+	import RangeSlider from "../utils/range-slider.svelte";
 
 	let filtered_maps = [];
 	let filtered_collections = [];
 	let is_popup_enabled = false;
+
+	const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
+	const STATUS_TYPES = DEFAULT_STATUS_TYPES;
 
 	$: all_collections = collections.all;
 	$: collections_sort = "";
@@ -33,10 +48,10 @@
 	};
 
 	const remove_callback = () => {
-		filter_collection();
 		if ($selected_collection_name) {
 			filter_beatmaps();
 		}
+		filter_collection();
 	};
 
 	$: if ($collection_search != undefined) {
@@ -85,12 +100,11 @@
 		<div class="content-header">
 			<!-- current beatmap search -->
 			<Search bind:value={$collection_beatmaps_search} placeholder="search beatmaps" />
-			<div class="search-expand">
-				<button class="expand-btn" id="expandBtn">⋯</button>
-			</div>
-			<div class="search-expanded" id="searchExpanded">
-				<div class="browse-filters"></div>
-			</div>
+			<ExpandableMenu>
+				<Dropdown placeholder={"sort by"} options={FILTER_TYPES} />
+				<Dropdown placeholder={"status"} options={STATUS_TYPES} />
+				<RangeSlider min={0} max={10} />
+			</ExpandableMenu>
 		</div>
 		<!-- render beatmap list -->
 		<Beatmaps carrousel={true} key={$selected_collection_name} all_beatmaps={filtered_maps} {remove_callback} direction={"right"} />

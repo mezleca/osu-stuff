@@ -70,7 +70,7 @@
 			}
 
 			return new Blob([data.data], { type: "audio/ogg" });
-		} catch(err) {
+		} catch (err) {
 			console.log("error on get audio:", err);
 		}
 	};
@@ -79,7 +79,7 @@
 		// load new audio
 		const buffer = await get_audio(beatmap, url);
 
-		// @TODO: 
+		// @TODO:
 		if (!buffer) {
 			console.log("failed to get buffer from", url);
 			return;

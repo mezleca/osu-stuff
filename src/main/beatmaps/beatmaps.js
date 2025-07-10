@@ -202,11 +202,14 @@ const TEXT_SORT_KEYS = ["title", "artist"];
 const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
 
 const normalize_text = (text) => {
-    if (!text) {
+	if (!text) {
 		return "";
 	}
 
-    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+	return text
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
 };
 
 // sort beatmaps by type (descending)
@@ -220,7 +223,7 @@ export const sort_beatmaps = (beatmaps, type) => {
 		if (TEXT_SORT_KEYS.includes(type)) {
 			const a_val = normalize_text(a[type]);
 			const b_val = normalize_text(b[type]);
-			return a_val.localeCompare(b_val)
+			return a_val.localeCompare(b_val);
 		} else {
 			const a_val = a[type] || 0;
 			const b_val = b[type] || 0;

@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from "svelte";
 	import { get_filtered_beatmaps } from "../../lib/beatmaps";
-	import { collections, radio_mode, radio_search, radio_sort, radio_selected, config } from "../../store";
+	import { collections, radio_mode, radio_search, radio_sort, radio_selected, DEFAULT_SORT_OPTIONS } from "../../store";
 	import { format_time, get_image_url } from "../../lib/utils";
 
 	// components
@@ -12,9 +12,6 @@
 
 	// misc
 	import PlaceholderImg from "../../assets/placeholder.png";
-
-	// sort
-	const SORT_OPTIONS = ["artist", "title", "duration"];
 
 	$: all_collections = collections.all || [];
 	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
@@ -66,7 +63,7 @@
 				<Search bind:value={$radio_search} placeholder="search beatmaps" />
 				<div class="filter-container">
 					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options} />
-					<Dropdown bind:selected_value={$radio_sort} options={SORT_OPTIONS} />
+					<Dropdown bind:selected_value={$radio_sort} options={DEFAULT_SORT_OPTIONS} />
 				</div>
 			</div>
 

@@ -374,30 +374,6 @@ main {
 	height: 18px;
 }
 
-.search-expand {
-	position: absolute;
-	bottom: -18px;
-	left: 50%;
-	transform: translateX(-50%);
-	z-index: 10;
-}
-
-.expand-btn {
-	background: var(--header-bg-color);
-	border: 2px solid var(--header-border-color);
-	border-radius: 50%;
-	color: var(--text-secondary);
-	cursor: pointer;
-	width: 36px;
-	height: 36px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 16px;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
 .add-btn {
 	position: absolute;
 	bottom: 30px;
@@ -418,33 +394,6 @@ main {
 .add-btn:hover {
 	background: #ff2424;
 	transform: scale(1.05);
-}
-
-.expand-btn:hover {
-	background: #353535;
-	color: #fff;
-	transform: scale(1.05);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-.expand-btn.active {
-	background: var(--accent-color);
-	color: white;
-	border-color: var(--accent-color);
-}
-
-.search-expanded {
-	background: var(--tab-bg-color2);
-	border: 1px solid var(--header-border-color);
-	border-radius: 8px;
-	padding: 20px;
-	margin-top: 20px;
-	display: none;
-	animation: slide_down 0.3s ease;
-}
-
-.search-expanded.active {
-	display: block;
 }
 
 .results-count {

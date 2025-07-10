@@ -38,7 +38,6 @@
 		<span class="dropdown_text">{display_text}</span>
 		<div class="dropdown_arrow" class:active={is_open}></div>
 	</button>
-
 	{#if is_open}
 		<div class="dropdown_menu">
 			{#each options as option}

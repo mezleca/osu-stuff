@@ -289,6 +289,10 @@ export const radio_selected = writable({});
 export const radio_store = create_audio_store();
 export const preview_store = create_audio_store();
 
+// used on beatmap filter
+export const DEFAULT_SORT_OPTIONS = ["artist", "title", "duration"];
+export const DEFAULT_STATUS_TYPES = ["graveyard", "pending", "ranked", "qualified", "loved"];
+
 // indexer shit
 export const indexing = writable(false);
 export const indexing_data = writable({});

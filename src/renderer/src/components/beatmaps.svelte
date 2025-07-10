@@ -50,8 +50,18 @@
 	<div class="beatmaps-header">
 		<div class="results-count">{beatmaps?.length ?? 0} matches</div>
 	</div>
-
-	<VirtualList count={beatmaps?.length ?? 0} width="100%" height="100%" item_height={height} selected={selected?.index} {max_width} {carrousel} {key} {direction} let:index>
+	<VirtualList
+		count={beatmaps?.length ?? 0}
+		width="100%"
+		height="100%"
+		item_height={height}
+		selected={selected?.index}
+		{max_width}
+		{carrousel}
+		{key}
+		{direction}
+		let:index
+	>
 		{@const hash = beatmaps[index]}
 		{#await get_beatmap_data(hash) then beatmap}
 			{@const is_selected = selected?.index ? beatmaps[selected.index] == beatmap?.md5 : false}

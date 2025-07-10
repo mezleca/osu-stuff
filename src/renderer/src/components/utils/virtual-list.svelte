@@ -111,15 +111,15 @@
 		if (!mounted || index < 0) {
 			return;
 		}
-		
+
 		await tick();
-		
+
 		// what
 		if (!container) {
 			console.log("container 404");
 			return;
 		}
-		
+
 		const target_scroll = index * item_height - container_height / 2 + item_height / 2;
 
 		// hack cuz i have no ideia how to fix this shit
@@ -136,7 +136,7 @@
 	};
 
 	// automatic scroll on change
-	$: if (mounted && selected !==-1 && container) {
+	$: if (mounted && selected !== -1 && container) {
 		scroll_to_item(selected);
 	}
 
@@ -151,7 +151,7 @@
 	onMount(() => {
 		mounted = true;
 		update_height();
-		
+
 		if (selected != -1) {
 			scroll_top = 0;
 
