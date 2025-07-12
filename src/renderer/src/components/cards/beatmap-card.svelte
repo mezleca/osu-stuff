@@ -1,8 +1,9 @@
 <script>
-	// audio preview and remove / add
+	import { onMount } from "svelte";
+	
 	import Controls from "../utils/controls.svelte";
+	import PlaceholderImg from "../../assets/placeholder.png";
 
-	// props
 	export let selected = false,
 		beatmap = {},
 		show_bpm = true,
@@ -11,28 +12,53 @@
 		control = () => {},
 		extra = () => {};
 
-	$: audio_url = beatmap?.beatmapset_id ? `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3` : "";
-	$: bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : "";
-	$: control_key = Date.now();
+	let card_element;
+	let is_visible = false;
+	let bg_loaded = false;
 
-	// update more info we changed anything
-	$: if (beatmap?.beatmapset_id) {
-		audio_url = beatmap?.beatmapset_id ? `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3` : "";
-		bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : "";
-	}
+	// lazy load background
+	$: bg = is_visible && beatmap?.image_path ? `media://${encodeURI(beatmap.image_path)}` : PlaceholderImg;
+	$: web_bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : PlaceholderImg;
 
-	// update key if we changed the beatmap
-	$: if (beatmap?.md5) {
-		control_key = beatmap?.md5;
+	// use lazy loading for the background image
+	onMount(() => {
+		const observer = new IntersectionObserver((entries) => {
+			for (let i = 0 ; i < entries.length; i++) {
+				const entry = entries[i];
+				if (entry.isIntersecting) {
+					is_visible = true;
+					observer.unobserve(entry.target);
+				}
+			}
+		}, { threshold: 0.1, rootMargin: "50px"});
+
+		if (card_element) {
+			observer.observe(card_element);
+		}
+
+		return () => {
+			if (card_element) {
+				observer.unobserve(card_element);
+			}
+		};
+	});
+
+	// preload the image
+	$: if (is_visible) {
+		const img = new Image();
+		img.onload = () => bg_loaded = true;
+		if (web_bg == PlaceholderImg && bg == PlaceholderImg) {
+			img.src = PlaceholderImg;
+		} else {
+			img.src = bg == PlaceholderImg ? web_bg : bg;
+		}
 	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="small-card" class:selected style="--card-bg: url({bg});" onclick={click}>
-	{#key control_key}
-		<Controls {beatmap} right={control} key={control_key} />
-	{/key}
+<div class="small-card" class:selected class:bg-loaded={bg_loaded} style="--card-bg: url({bg});" onclick={click} bind:this={card_element}>
+	<Controls {beatmap} right={control} key={crypto.randomUUID()} />
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="info" onclick={extra}>
@@ -40,7 +66,7 @@
 		<div class="subtitle">{beatmap?.artist ?? "unknown"}</div>
 		<div class="stats">
 			<span class="stat">{beatmap?.status_text ?? "unknown"}</span>
-			<div class="right-stats" style="justify-self: end;">
+			<div class="right-stats">
 				{#if show_bpm}
 					<span class="stars">{Math.round(beatmap.bpm) ?? "unknown"} bpm</span>
 				{/if}
@@ -66,6 +92,7 @@
 			box-shadow 0.2s ease;
 		will-change: transform, filter;
 		transform: translateZ(0);
+		contain: layout style paint;
 	}
 
 	.small-card:hover,
@@ -83,6 +110,11 @@
 		background-size: cover;
 		background-position: center;
 		background-repeat: no-repeat;
+		opacity: 0;
+		transition: opacity 0.3s ease;
+	}
+
+	.small-card.bg-loaded::before {
 		opacity: 1;
 	}
 

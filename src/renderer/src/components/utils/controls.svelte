@@ -23,6 +23,16 @@
 	export let small = true;
 	export let right = () => {};
 
+	const on_left = (event, callback) => {
+		event.stopPropagation();
+		if (callback) callback();
+	};
+
+	const on_right = (event) => {
+		event.stopPropagation();
+		if (right) right();
+	}
+
 	$: control = small ? preview_store : radio_store;
 	$: radio_volume = config.get("radio_volume") ?? 50;
 	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = $control);
@@ -252,14 +262,14 @@
 
 {#if small}
 	<div class="small-control">
-		<button class="small-control-icon" on:click={handle_audio}>
+		<button class="small-control-icon" on:click={(event) => on_left(event, handle_audio)}>
 			{#if playing && audio_id == current_id}
 				<Pause />
 			{:else}
 				<Play />
 			{/if}
 		</button>
-		<button class="small-control-icon" on:click={() => right(beatmap?.local ? "remove" : "add")}>
+		<button class="small-control-icon" on:click={(event) => on_right(event, beatmap?.local ? "remove" : "add")}>
 			{#if beatmap?.local}
 				<X />
 			{:else}
