@@ -12,9 +12,11 @@
 	import VolumeMuted from "../icon/volume-muted.svelte";
 
 	// stores
-	import { radio_repeat, radio_random, show_notification, preview_store, radio_store, radio_selected, config } from "../../store";
-	import { get_from_media } from "../../lib/utils";
-	import { get_beatmap_data } from "../../lib/beatmaps";
+	import { radio_repeat, radio_random, preview_store, radio_store } from "../../lib/store/audio";
+	import { get_beatmap_list } from "../../lib/store/beatmaps";
+	import { config } from "../../lib/store/config";
+	import { get_from_media } from "../../lib/utils/utils";
+	import { get_beatmap_data } from "../../lib/utils/beatmaps";
 
 	// props
 	export let beatmap = {};
@@ -27,6 +29,10 @@
 
 	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 	let current_id = beatmap.md5;
+
+	// @TODO: better name, prob gonna refactor all of this later
+	const radio_list = get_beatmap_list("radio");
+	const { beatmaps, index } = get_beatmap_list("radio");
 
 	const get_audio = async (beatmap, url) => {
 		try {
@@ -79,7 +85,6 @@
 		// load new audio
 		const buffer = await get_audio(beatmap, url);
 
-		// @TODO:
 		if (!buffer) {
 			console.log("failed to get buffer from", url);
 			return;
@@ -87,8 +92,8 @@
 
 		// create new audio object
 		const new_audio = new Audio(window.URL.createObjectURL(buffer));
-		new_audio.volume = radio_volume / 100;
 
+		new_audio.volume = radio_volume / 100;
 		new_audio.preload = "auto";
 
 		return new_audio;
@@ -105,9 +110,9 @@
 		control.play(audio);
 	};
 
-	// @TODO: if a songle fails eveything goes BOOOM
 	const get_next_song = async (custom) => {
-		if (small || $radio_selected.list.length == 0) {
+		if (small || $beatmaps.length == 0) {
+			console.log("[controls] buffer.length == 0");
 			return null;
 		}
 
@@ -115,36 +120,36 @@
 
 		// next song via button
 		if (custom == 1) {
-			next_idx = $radio_selected.index + 1;
+			next_idx = $index + 1;
 		}
 		// previous song via button
 		else if (custom == -1) {
-			next_idx = $radio_selected.index - 1;
+			next_idx = $index - 1;
 		} else {
 			// repeat one time
 			if ($radio_repeat) {
-				next_idx = $radio_selected.index;
+				next_idx = $index;
 				$radio_repeat = false;
 			}
 			// get random index
 			else if ($radio_random) {
-				next_idx = Math.floor(Math.random() * $radio_selected.list.length);
+				next_idx = Math.floor(Math.random() * $beatmaps.length);
 			}
 			// next index
 			else {
-				next_idx = $radio_selected.index + 1;
+				next_idx = index + 1;
 			}
 		}
 
 		// wrap around list
-		if (next_idx >= $radio_selected.list.length) {
+		if (next_idx >= $beatmaps.length) {
 			next_idx = 0;
 		} else if (next_idx < 0) {
-			next_idx = $radio_selected.list.length - 1;
+			next_idx = $beatmaps.list.length - 1;
 		}
 
 		// update selected beatmap
-		const new_beatmap = await get_beatmap_data($radio_selected.list[next_idx]);
+		const new_beatmap = await get_beatmap_data($beatmaps[next_idx]);
 
 		// check if the beatmap is valid
 		if (!new_beatmap?.audio_path) {
@@ -152,7 +157,8 @@
 			return null;
 		}
 
-		$radio_selected = { list: $radio_selected.list, beatmap: new_beatmap, index: next_idx };
+		// update radio list manager
+		radio_list.select_beatmap(new_beatmap, next_idx);
 
 		const new_audio = await setup_audio(new_beatmap, `https://b.ppy.sh/preview/${new_beatmap?.beatmapset_id}.mp3`);
 		return { audio: new_audio, id: new_beatmap.md5 };

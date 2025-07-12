@@ -1,5 +1,7 @@
 <script>
-	import { active_tab } from "../store";
+	import { active_tab } from "../lib/store/other";
+
+	// icons
 	import Line from "./icon/line.svelte";
 	import Square from "./icon/square.svelte";
 	import X from "./icon/x.svelte";
@@ -8,11 +10,7 @@
 	export let active = false;
 
 	const set_active_tab = (tab) => {
-		// prob will only happen if are still on the loading screen
-		if (!active) {
-			return;
-		}
-
+		if (!active) return;
 		$active_tab = tab;
 	};
 

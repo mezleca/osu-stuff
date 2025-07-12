@@ -1,4 +1,4 @@
-import { collections } from "../store";
+import { collections } from "../store/collections";
 
 export const get_collections = async () => {
 	// update collection store

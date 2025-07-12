@@ -133,7 +133,8 @@
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 	}
 
-	.min-thumb, .max-thumb {
+	.min-thumb,
+	.max-thumb {
 		position: absolute;
 		top: 0;
 		width: 32px;

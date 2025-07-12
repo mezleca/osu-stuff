@@ -1,8 +1,10 @@
 <script>
 	import { onMount } from "svelte";
-	import { active_tab, is_maximized, show_notification, indexing, indexing_data } from "./store";
-	import { debounce } from "./lib/utils";
-	import { get_collections } from "./lib/collections";
+	import { active_tab, is_maximized } from "./lib/store/other";
+	import { show_notification } from "./lib/store/notifications";
+	import { indexing, indexing_data } from "./lib/store/indexer";
+	import { debounce } from "./lib/utils/utils";
+	import { get_collections } from "./lib/utils/collections";
 
 	// tabs
 	import Collections from "./components/tabs/collections.svelte";

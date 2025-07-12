@@ -97,8 +97,12 @@ const validate_filter = (key, op, value) => {
 export const search_filter = (beatmap, query, search_filters) => {
 	let valid = true;
 
-	const artist = (beatmap?.artist_unicode ? beatmap.artist_unicode : beatmap.artist) || "unknown";
-	const title = (beatmap?.title_unicode ? beatmap.title_unicode : beatmap.title) || "unknown";
+	if (beatmap == null) {
+		return false;
+	}
+
+	const artist = beatmap.artist || "unknown";
+	const title = beatmap.title || "unknown";
 	const difficulty = beatmap?.difficulty || "unknown";
 	const creator = beatmap?.mapper || "unknown";
 	const tags = beatmap?.tags || "";
@@ -161,31 +165,35 @@ export const filter_beatmap = (beatmap, query) => {
 	return search_filter(beatmap, query, search_filters);
 };
 
-// reteurn beatmap data based on input and query
-export const get_beatmap_data = (data, query) => {
-	const result = { filtered: false, beatmap: null };
-	let md5 = "";
+export const get_beatmap_by_md5 = (md5) => {
+	return osu_data.beatmaps.get(md5);
+};
 
-	if (data && typeof data == "object") {
-		md5 = data.md5;
-		result.beatmap = data;
-	} else {
-		md5 = data;
+// @NOTE: a "little" too expensive
+export const get_beatmaps_by_id = (id) => {
+	const beatmaps = [];
+	for (const [_, beatmap] of osu_data.beatmaps) {
+		if (beatmap.unique_id == id) {
+			beatmaps.push(beatmap);
+		}
 	}
+	return beatmaps;
+};
+
+export const get_beatmap_data = (id, query, is_unique_id) => {
+	const result = { filtered: false, beatmap: null };
 
 	// ignore unknown maps if we dont have a query yet
-	if (!md5 || md5 == "") {
+	if (!id || id == "") {
 		result.filtered = true;
 		return result;
 	}
 
-	if (!result.beatmap) {
-		result.beatmap = osu_data.beatmaps.get(md5);
-	}
+	result.beatmap = is_unique_id ? get_beatmap_by_id(id) : get_beatmap_by_md5(id);
 
 	// ignore unknown maps if we dont have a query yet
 	if (!result.beatmap && query == "") {
-		result.beatmap = { md5 };
+		result.beatmap = { [is_unique_id ? "id" : "md5"]: id };
 		return result;
 	}
 
@@ -234,13 +242,12 @@ export const sort_beatmaps = (beatmaps, type) => {
 	return result;
 };
 
-// @TODO: if unique == true only return valid beatmaps (that are not repeated AND has a valid audio_path)
 export const filter_beatmaps = (list, query, extra = { unique: false, sort: null }) => {
 	if (!osu_data) {
 		return [];
 	}
 
-	const beatmaps = list ? list : Array.from(osu_data.beatmaps.values());
+	const beatmaps = list ? list : Array.from(osu_data.beatmaps.keys());
 	const seen_unique_ids = new Set();
 
 	if (!beatmaps) {
@@ -252,7 +259,7 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
 	// filter beatmaps based on query and stuff
 	for (let i = 0; i < beatmaps.length; i++) {
 		const list_beatmap = beatmaps[i];
-		const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "");
+		const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "", false);
 
 		if (filtered) {
 			continue;

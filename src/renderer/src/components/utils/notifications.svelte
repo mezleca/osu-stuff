@@ -3,7 +3,7 @@
 
 	// icons
 	import X from "../icon/x.svelte";
-	import { notifications_store, remove_notification } from "../../store";
+	import { notifications_store, remove_notification } from "../../lib/store/notifications";
 </script>
 
 <div class="notification-container">

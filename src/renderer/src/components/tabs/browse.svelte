@@ -1,6 +1,4 @@
 <script>
-	import { collection_beatmaps_search } from "../../store";
-
 	// components
 	import ExpandableMenu from "../utils/expandable-menu.svelte";
 	import Search from "../utils/search.svelte";
@@ -16,7 +14,7 @@
 <div class="content tab-content">
 	<div class="manager-content">
 		<div class="content-header">
-			<Search bind:value={$collection_beatmaps_search} placeholder="search local beatmaps" />
+			<Search placeholder="search local beatmaps" />
 			<ExpandableMenu></ExpandableMenu>
 		</div>
 		<div class="beatmaps-container">

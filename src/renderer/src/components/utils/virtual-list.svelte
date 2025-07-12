@@ -1,12 +1,12 @@
 <script>
-	import { onMount, tick } from "svelte";
+	import { onMount, tick, onDestroy } from "svelte";
 
 	// props
 	export let count = 0;
 	export let item_height = 100;
 	export let buffer = 5;
 	export let height = "100%";
-	export let carrousel = false;
+	export let carousel = false;
 	export let max_width = false;
 	export let key = crypto.randomUUID();
 	export let direction = "right";
@@ -14,10 +14,12 @@
 	export let selected = -1;
 
 	let container;
-	let mounted = false;
 	let hovered_item = -1;
 	let container_height = 0;
 	let scroll_top = 0;
+	let animation_frame_id = null;
+	let last_scroll_top = -1;
+	let last_hovered_item = -1;
 
 	$: total_height = count * item_height;
 	$: start_index = Math.max(0, Math.floor(scroll_top / item_height) - buffer);
@@ -28,8 +30,26 @@
 
 	const lerp = (start, end, factor) => start + (end - start) * factor;
 
-	const update_carrousel_effect = () => {
-		if (!carrousel || !container) {
+	const CAROUSEL_CONFIG = {
+		SCALE_THRESHOLD_NEAR: 0.5,
+		SCALE_THRESHOLD_FAR: 2.0,
+		FADE_RANGE: 1.5,
+		SCALE_FULL: 1.0,
+		SCALE_MINIMUM: 0.95,
+		HOVER_SCALE_MULTIPLIER: 1.01,
+		HOVER_SCALE_MAX: 1.05,
+		HOVER_MARGIN: 8
+	};
+
+	const update_carousel_effect = () => {
+		if (!carousel || !container) {
+			return;
+		}
+
+		const scroll_changed = scroll_top != last_scroll_top;
+		const hover_changed = hovered_item != last_hovered_item;
+
+		if (!scroll_changed && !hover_changed) {
 			return;
 		}
 
@@ -45,70 +65,75 @@
 			const normalized_distance = distance_from_center / item_height;
 			const is_hovered = hovered_item == item_index;
 
-			let scale = 1,
-				x_offset = 0,
-				margin = 0;
+			let scale = CAROUSEL_CONFIG.SCALE_FULL;
+			let margin = 0;
 
-			if (normalized_distance <= 0.5) {
-				scale = 1;
-			} else if (normalized_distance <= 2.0) {
-				const fade_factor = (normalized_distance - 0.5) / 1.5;
-				scale = lerp(1, 0.95, fade_factor);
+			if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_NEAR) {
+				scale = CAROUSEL_CONFIG.SCALE_FULL;
+			} else if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_FAR) {
+				const fade_factor = (normalized_distance - CAROUSEL_CONFIG.SCALE_THRESHOLD_NEAR) / CAROUSEL_CONFIG.FADE_RANGE;
+				scale = lerp(CAROUSEL_CONFIG.SCALE_FULL, CAROUSEL_CONFIG.SCALE_MINIMUM, fade_factor);
 			} else {
-				scale = 0.95;
+				scale = CAROUSEL_CONFIG.SCALE_MINIMUM;
 			}
 
 			// hover effect
 			if (is_hovered) {
-				scale = Math.min(scale * 1.01, 1.05);
-				margin = Math.min(2, 8);
+				scale = Math.min(scale * CAROUSEL_CONFIG.HOVER_SCALE_MULTIPLIER, CAROUSEL_CONFIG.HOVER_SCALE_MAX);
+				margin = CAROUSEL_CONFIG.HOVER_MARGIN;
 			}
 
 			const height_px = Math.round(item_height * scale);
-			element.style.height = height_px + "px";
+			if (element.style.height !== height_px + "px") {
+				element.style.height = height_px + "px";
+			}
 
 			// apply transforms
 			element.style.setProperty("--scale-x", scale);
-			element.style.setProperty("--x-offset", `${x_offset}px`);
+			element.style.setProperty("--x-offset", `0px`);
 			element.style.setProperty("--margin", `${margin}px`);
 		}
+
+		last_scroll_top = scroll_top;
+		last_hovered_item = hovered_item;
+	};
+
+	const carousel_update = () => {
+		// wait
+		if (animation_frame_id) {
+			return;
+		}
+
+		animation_frame_id = requestAnimationFrame(() => {
+			update_carousel_effect();
+			animation_frame_id = null;
+		});
 	};
 
 	const handle_scroll = (e) => {
 		scroll_top = e.target.scrollTop;
-		if (carrousel) {
-			requestAnimationFrame(update_carrousel_effect);
-		}
+		if (carousel) carousel_update();
 	};
 
 	const handle_mouse_enter = (index) => {
+		if (hovered_item == index) return;
 		hovered_item = index;
-		if (carrousel) requestAnimationFrame(update_carrousel_effect);
+		if (carousel) carousel_update();
 	};
 
 	const handle_mouse_leave = () => {
+		if (hovered_item == -1) return;
 		hovered_item = -1;
-		if (carrousel) requestAnimationFrame(update_carrousel_effect);
+		if (carousel) carousel_update();
 	};
 
 	const update_height = () => {
-		if (container) {
-			container_height = container.clientHeight;
-		}
-
-		if (carrousel) requestAnimationFrame(update_carrousel_effect);
+		if (container) container_height = container.clientHeight;
+		if (carousel) carousel_update();
 	};
 
-	$: if (visible_items > 0 && carrousel) {
-		requestAnimationFrame(update_carrousel_effect);
-	}
-
-	$: if (container && (count == 0 || key)) {
-		hovered_item = -1;
-	}
-
 	export const scroll_to_item = async (index) => {
-		if (!mounted || index < 0) {
+		if (index < 0) {
 			return;
 		}
 
@@ -121,13 +146,11 @@
 		}
 
 		const target_scroll = index * item_height - container_height / 2 + item_height / 2;
-
-		// hack cuz i have no ideia how to fix this shit
-		await new Promise((r) => setTimeout(r, 50));
+		const distance = Math.abs(scroll_top - target_scroll);
 
 		container.scrollTo({
 			top: Math.max(0, target_scroll),
-			behavior: "smooth"
+			behavior: distance > 2000 ? "instant" : "smooth"
 		});
 	};
 
@@ -136,31 +159,40 @@
 	};
 
 	// automatic scroll on change
-	$: if (mounted && selected !== -1 && container) {
+	$: if (selected != -1 && container) {
 		scroll_to_item(selected);
 	}
 
-	$: if (visible_items > 0 && carrousel && container) {
-		requestAnimationFrame(update_carrousel_effect);
+	// updata carousel effect when needed
+	$: if (carousel && container && (visible_items > 0 || count == 0)) {
+		carousel_update();
 	}
 
+	// reset hovered if we have nothing t
 	$: if (container && (count == 0 || key)) {
 		hovered_item = -1;
 	}
 
 	onMount(() => {
-		mounted = true;
 		update_height();
 
 		if (selected != -1) {
+			// reset scroll
 			scroll_top = 0;
 
+			// reset container scroll and if we have a selected item, scroll to them
 			if (container) {
 				container.scrollTop = 0;
 				tick().then(() => {
 					scroll_to_item(selected);
 				});
 			}
+		}
+	});
+
+	onDestroy(() => {
+		if (animation_frame_id) {
+			cancelAnimationFrame(animation_frame_id);
 		}
 	});
 </script>
@@ -170,7 +202,7 @@
 <div
 	bind:this={container}
 	class="virtual-list"
-	class:osu-mode={carrousel}
+	class:osu-mode={carousel}
 	style="height: {height};"
 	on:scroll={handle_scroll}
 	bind:clientHeight={container_height}
@@ -182,9 +214,9 @@
 				<div
 					id={get_key(i)}
 					class="item {direction}"
-					class:osu-effect={carrousel}
+					class:osu-effect={carousel}
 					style="width: {max_width
-						? carrousel
+						? carousel
 							? '98'
 							: '100'
 						: '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"

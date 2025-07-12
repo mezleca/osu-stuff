@@ -8,8 +8,6 @@
 			properties: [type == "folder" ? "openDirectory" : "openFile"]
 		});
 
-		console.log(dialog);
-
 		if (dialog.canceled) {
 			return;
 		}

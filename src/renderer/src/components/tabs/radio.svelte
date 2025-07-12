@@ -1,8 +1,10 @@
 <script>
 	import { onMount } from "svelte";
-	import { get_filtered_beatmaps } from "../../lib/beatmaps";
-	import { collections, radio_mode, radio_search, radio_sort, radio_selected, DEFAULT_SORT_OPTIONS } from "../../store";
-	import { format_time, get_image_url } from "../../lib/utils";
+	import { get_filtered_beatmaps } from "../../lib/utils/beatmaps";
+	import { collections } from "../../lib/store/collections";
+	import { DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
+	import { radio_mode, radio_search, radio_sort } from "../../lib/store/audio";
+	import { format_time, get_image_url } from "../../lib/utils/utils";
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -17,32 +19,35 @@
 	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
 
 	// current beatmap data
-	$: beatmap = $radio_selected?.beatmap ?? {};
-	$: control_key = beatmap.md5 ?? crypto.randomUUID();
+	$: beatmap = null;
+	$: control_key = beatmap?.md5 ?? crypto.randomUUID();
 	$: bg = PlaceholderImg;
 	$: filtered_maps = [];
 
 	const update_background_image = () => {
-		if ($radio_selected?.beatmap && $radio_selected?.beatmap?.image_path) {
-			get_image_url($radio_selected.beatmap.image_path).then((url) => (bg = url));
+		if (beatmap && beatmap?.image_path) {
+			get_image_url(beatmap.image_path).then((url) => (bg = url));
 		} else {
 			bg = PlaceholderImg;
 		}
 	};
 
 	const update_filtered_maps = async () => {
-		filtered_maps =
+		// @TODO: debulshitify
+		const beatmaps =
 			$radio_mode == "all beatmaps"
 				? await get_filtered_beatmaps(null, $radio_search, { unique: true, sort: $radio_sort })
-				: await get_filtered_beatmaps($radio_mode, $radio_search, { unique: false, $radio_sort });
+				: await get_filtered_beatmaps($radio_mode, $radio_search, { unique: true, $radio_sort });
+		filtered_maps = beatmaps;
 	};
 
-	$: if ($radio_mode || $radio_search || $radio_sort) {
+	// get new beatmaps
+	$: if ($radio_mode || $radio_search) {
 		update_filtered_maps();
 	}
 
-	// update on change
-	$: if ($radio_selected) {
+	// update image on change
+	$: if (beatmap) {
 		update_background_image();
 	}
 
@@ -66,14 +71,14 @@
 					<Dropdown bind:selected_value={$radio_sort} options={DEFAULT_SORT_OPTIONS} />
 				</div>
 			</div>
-
 			<Beatmaps
-				bind:selected={$radio_selected}
-				carrousel={true}
+				tab_id={"radio"}
+				carousel={true}
 				key={$radio_mode}
 				all_beatmaps={filtered_maps}
 				show_bpm={false}
 				max_width={true}
+				bind:selected_beatmap={beatmap}
 				direction="left"
 			/>
 		</div>
@@ -82,33 +87,33 @@
 			<div class="radio-beatmap">
 				<div class="radio-beatmap-header">
 					<div class="status">playing</div>
-					<div class="status">★ {beatmap.star_rating?.[beatmap.mode]?.nm ?? "0.0"}</div>
+					<div class="status">★ {beatmap?.star_rating?.[beatmap.mode]?.nm ?? "0.0"}</div>
 				</div>
 
 				<div class="song-info">
-					<div class="title">{beatmap.title || "No song selected"}</div>
-					<div class="artist">{beatmap.artist || ""}</div>
+					<div class="title">{beatmap?.title || "No song selected"}</div>
+					<div class="artist">{beatmap?.artist || ""}</div>
 				</div>
 
 				<div class="stats">
 					<div class="stat">
 						<div class="stat-label">BPM</div>
-						<div class="stat-value">{beatmap.bpm || "---"}</div>
+						<div class="stat-value">{beatmap?.bpm || "---"}</div>
 					</div>
 					<div class="stat">
 						<div class="stat-label">DURATION</div>
-						<div class="stat-value">{beatmap.duration ? format_time(beatmap.duration) : "---"}</div>
+						<div class="stat-value">{beatmap?.duration ? format_time(beatmap?.duration) : "---"}</div>
 					</div>
 					<div class="stat">
 						<div class="stat-label">MAPPED BY</div>
-						<div class="stat-value">{beatmap.mapper || "---"}</div>
+						<div class="stat-value">{beatmap?.mapper || "---"}</div>
 					</div>
 				</div>
 
 				<div class="radio-controls">
-					{#key control_key}
+					{#if beatmap?.md5}
 						<Controls {beatmap} small={false} key={control_key} />
-					{/key}
+					{/if}
 				</div>
 			</div>
 		</div>

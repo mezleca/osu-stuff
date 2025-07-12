@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from "svelte";
-	import { config } from "../../store";
-	import { get_collections } from "../../lib/collections";
+	import { config } from "../../lib/store/config";
+	import { get_collections } from "../../lib/utils/collections";
 
 	// components
 	import Add from "../utils/add.svelte";

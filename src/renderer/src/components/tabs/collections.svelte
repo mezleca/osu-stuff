@@ -1,15 +1,14 @@
 <script>
 	import {
-		collection_beatmaps_search,
-		selected_collection,
 		collections,
 		collection_search,
-		selected_collection_name,
-		DEFAULT_SORT_OPTIONS,
-		DEFAULT_STATUS_TYPES
-	} from "../../store";
+		collection_beatmaps_search,
+		selected_collection,
+		selected_collection_name
+	} from "../../lib/store/collections";
+	import { DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
 
-	import { get_filtered_beatmaps } from "../../lib/beatmaps";
+	import { get_filtered_beatmaps } from "../../lib/utils/beatmaps";
 	import { onMount } from "svelte";
 
 	// components
@@ -107,7 +106,7 @@
 			</ExpandableMenu>
 		</div>
 		<!-- render beatmap list -->
-		<Beatmaps carrousel={true} key={$selected_collection_name} all_beatmaps={filtered_maps} {remove_callback} direction={"right"} />
+		<Beatmaps carousel={true} tab_id={"collections"} all_beatmaps={filtered_maps} {remove_callback} direction={"right"} />
 	</div>
 </div>
 

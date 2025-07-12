@@ -1,24 +1,38 @@
 <script>
-	import { collections, selected_collection, show_notification } from "../store";
-	import { get_beatmap_data } from "../lib/beatmaps";
+	import { collections, selected_collection } from "../lib/store/collections";
+	import { get_beatmap_list } from "../lib/store/beatmaps";
+	import { show_notification } from "../lib/store/notifications";
+	import { get_beatmap_data } from "../lib/utils/beatmaps";
 
 	// components
 	import VirtualList from "./utils/virtual-list.svelte";
 	import BeatmapCard from "./cards/beatmap-card.svelte";
 
 	// props
-	export let selected = {};
 	export let all_beatmaps = [];
-	export let key = crypto.randomUUID();
-	export let carrousel;
+	export let tab_id;
+	export let carousel;
 	export let show_bpm;
 	export let show_star_rating;
+	export let unique;
+	export let selected_beatmap;
 	export let max_width;
 	export let height = 100;
 	export let direction;
 	export let remove_callback = () => {};
 
-	$: beatmaps = all_beatmaps;
+	const list = get_beatmap_list(tab_id);
+	const { beatmaps, selected } = list;
+
+	$: if (all_beatmaps) {
+		list.set_beatmaps(all_beatmaps, tab_id, unique);
+	}
+
+	$: if ($selected) {
+		selected_beatmap = $selected;
+	}
+
+	$: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
 	const handle_control = (type, beatmap) => {
 		if (type == "add") {
@@ -35,43 +49,36 @@
 		remove_callback();
 	};
 
-	const update_selected = (index, list, beatmap) => {
-		if (beatmap?.md5 != selected?.beatmap?.md5) {
-			selected = { index, list, beatmap };
-		}
+	const handle_click = (beatmap, index) => {
+		list.select_beatmap(beatmap, index);
 	};
-
-	$: if (all_beatmaps) {
-		beatmaps = all_beatmaps;
-	}
 </script>
 
 <div class="beatmaps-container">
 	<div class="beatmaps-header">
-		<div class="results-count">{beatmaps?.length ?? 0} matches</div>
+		<div class="results-count">{$beatmaps?.length ?? 0} matches</div>
 	</div>
 	<VirtualList
-		count={beatmaps?.length ?? 0}
+		count={$beatmaps?.length ?? 0}
 		width="100%"
 		height="100%"
 		item_height={height}
-		selected={selected?.index}
+		selected={selected_index}
 		{max_width}
-		{carrousel}
-		{key}
+		{carousel}
+		{tab_id}
 		{direction}
 		let:index
 	>
-		{@const hash = beatmaps[index]}
+		{@const hash = $beatmaps[index]}
 		{#await get_beatmap_data(hash) then beatmap}
-			{@const is_selected = selected?.index ? beatmaps[selected.index] == beatmap?.md5 : false}
 			<BeatmapCard
 				{beatmap}
 				{show_bpm}
 				{show_star_rating}
-				selected={is_selected}
+				selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
 				control={(type) => handle_control(type, beatmap)}
-				click={() => update_selected(index, beatmaps, beatmap)}
+				click={() => handle_click(beatmap, index)}
 			/>
 		{/await}
 	</VirtualList>
