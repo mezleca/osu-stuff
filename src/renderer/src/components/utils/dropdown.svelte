@@ -1,18 +1,21 @@
-<!-- Dropdown.svelte -->
 <script>
+	import { convert_keys } from "../../lib/store/other";
+
 	export let options = [];
-	export let selected_value = "";
+	export let selected_value;
 	export let placeholder = "select an option";
 
 	let is_open = false;
 	let dropdown_ref;
 
-	const toggle_dropdown = () => {
-		is_open = !is_open;
-	};
+	// convert_keys will convert shit from "@stuff:__something__" to "original name idk" 
+	$: display_text = convert_keys(selected_value) || placeholder;
+
+	const toggle_dropdown = () => is_open = !is_open;
 
 	const select_option = (option) => {
 		selected_value = option.value || option;
+		display_text = option.label || option;
 		is_open = false;
 	};
 
@@ -27,8 +30,6 @@
 			is_open = false;
 		}
 	};
-
-	$: display_text = selected_value || placeholder;
 </script>
 
 <svelte:window on:click={handle_click_outside} on:keydown={handle_keydown} />

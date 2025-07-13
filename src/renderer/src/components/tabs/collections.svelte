@@ -7,8 +7,7 @@
 		selected_collection_name
 	} from "../../lib/store/collections";
 	import { DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
-
-	import { get_filtered_beatmaps } from "../../lib/utils/beatmaps";
+	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { onMount } from "svelte";
 
 	// components
@@ -21,15 +20,15 @@
 	import ExpandableMenu from "../utils/expandable-menu.svelte";
 	import RangeSlider from "../utils/range-slider.svelte";
 
-	let filtered_maps = [];
 	let filtered_collections = [];
 	let is_popup_enabled = false;
 
 	const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
 	const STATUS_TYPES = DEFAULT_STATUS_TYPES;
 
+	const list = get_beatmap_list("collections");
+
 	$: all_collections = collections.all;
-	$: collections_sort = "";
 
 	const filter_collection = () => {
 		if ($collection_search == "") {
@@ -39,26 +38,30 @@
 		}
 	};
 
-	const filter_beatmaps = async () => {
-		filtered_maps = await get_filtered_beatmaps($selected_collection_name, $collection_beatmaps_search, {
-			unique: false,
-			sort: collections_sort != "" ? collections_sort : null
-		});
+	const filter_beatmaps = async (extra) => {
+		const result = await list.get_beatmaps($selected_collection_name, $collection_beatmaps_search, extra);
+		list.set_beatmaps(result, $collection_beatmaps_search, false);
+	};
+
+	const on_sr_range_update = async (data) => {
+		list.update_range(data);
+		// force update
+		filter_beatmaps({ unique: false, all: false });
 	};
 
 	const remove_callback = () => {
 		if ($selected_collection_name) {
-			filter_beatmaps();
+			filter_beatmaps({ unique: false, all: false });
 		}
 		filter_collection();
 	};
 
-	$: if ($collection_search != undefined) {
+	$: if ($collection_search) {
 		filter_collection();
 	}
 
 	$: if ($selected_collection_name || $collection_beatmaps_search) {
-		filter_beatmaps();
+		filter_beatmaps({ unique: false, all: false });
 	}
 
 	onMount(() => {
@@ -68,11 +71,10 @@
 
 <!-- @TODO: move css from app.cs to here -->
 <div class="content tab-content">
-	<!-- collection more options -->
+	<!-- more options -->
 	<Popup bind:active={is_popup_enabled}>
 		<h1>hello bro</h1>
 	</Popup>
-
 	<div class="sidebar">
 		<div class="sidebar-header">
 			<Search bind:value={$collection_search} placeholder="search collections" callback={filter_collection} />
@@ -93,7 +95,6 @@
 			{/if}
 		</div>
 	</div>
-
 	<div class="manager-content">
 		<Add callback={() => (is_popup_enabled = true)} />
 		<div class="content-header">
@@ -102,11 +103,11 @@
 			<ExpandableMenu>
 				<Dropdown placeholder={"sort by"} options={FILTER_TYPES} />
 				<Dropdown placeholder={"status"} options={STATUS_TYPES} />
-				<RangeSlider min={0} max={10} />
+				<RangeSlider {on_sr_range_update}/>
 			</ExpandableMenu>
 		</div>
 		<!-- render beatmap list -->
-		<Beatmaps carousel={true} tab_id={"collections"} all_beatmaps={filtered_maps} {remove_callback} direction={"right"} />
+		<Beatmaps carousel={true} tab_id={"collections"} {remove_callback} direction={"right"} />
 	</div>
 </div>
 

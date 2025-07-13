@@ -23,6 +23,8 @@
 	export let small = true;
 	export let right = () => {};
 
+	// @TODO: move at least half of the code into its own .js file
+
 	const on_left = (event, callback) => {
 		event.stopPropagation();
 		if (callback) callback();
@@ -42,7 +44,17 @@
 
 	// @TODO: better name, prob gonna refactor all of this later
 	const radio_list = get_beatmap_list("radio");
-	const { beatmaps, index } = get_beatmap_list("radio");
+	const { beatmaps, index, selected } = get_beatmap_list("radio");
+
+	$: if (!small) {
+		const selected_beatmap = $selected;
+
+		if (selected_beatmap && selected_beatmap.md5 != current_id) {
+			beatmap = selected_beatmap;
+			current_id = beatmap.md5;
+			actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
+		}
+	}
 
 	const get_audio = async (beatmap, url) => {
 		try {
@@ -92,6 +104,9 @@
 	};
 
 	const setup_audio = async (beatmap, url) => {
+
+		console.log("setup_audio", beatmap, url);
+
 		// load new audio
 		const buffer = await get_audio(beatmap, url);
 
@@ -106,10 +121,12 @@
 		new_audio.volume = radio_volume / 100;
 		new_audio.preload = "auto";
 
+		await control.setup(current_id, new_audio);
+
 		return new_audio;
 	};
 
-	const play_audio = (audio) => {
+	const play_audio = async (audio) => {
 		// temp pause radio song if we're previewing something
 		if (small && $radio_store.playing) {
 			// @TODO: if we change tab without waiting the preview to finish or pausing the pause_until will not work
@@ -117,7 +134,7 @@
 		}
 		// set next song if possible
 		control.set_next(get_next_song);
-		control.play(audio);
+		await control.play(audio);
 	};
 
 	const get_next_song = async (custom) => {
@@ -126,19 +143,20 @@
 			return null;
 		}
 
+		const current_index = $index;
 		let next_idx = 0;
 
 		// next song via button
 		if (custom == 1) {
-			next_idx = $index + 1;
+			next_idx = current_index + 1;
 		}
 		// previous song via button
 		else if (custom == -1) {
-			next_idx = $index - 1;
+			next_idx = current_index - 1;
 		} else {
 			// repeat one time
 			if ($radio_repeat) {
-				next_idx = $index;
+				next_idx = current_index;
 				$radio_repeat = false;
 			}
 			// get random index
@@ -147,7 +165,7 @@
 			}
 			// next index
 			else {
-				next_idx = index + 1;
+				next_idx = current_index + 1;
 			}
 		}
 
@@ -155,7 +173,7 @@
 		if (next_idx >= $beatmaps.length) {
 			next_idx = 0;
 		} else if (next_idx < 0) {
-			next_idx = $beatmaps.list.length - 1;
+			next_idx = $beatmaps.length - 1;
 		}
 
 		// update selected beatmap
@@ -168,13 +186,18 @@
 		}
 
 		// update radio list manager
-		radio_list.select_beatmap(new_beatmap, next_idx);
+		if (next_idx != current_index) {
+			radio_list.select_beatmap(new_beatmap, next_idx);
+		} else {
+			control.restart(audio);
+		}
 
 		const new_audio = await setup_audio(new_beatmap, `https://b.ppy.sh/preview/${new_beatmap?.beatmapset_id}.mp3`);
 		return { audio: new_audio, id: new_beatmap.md5 };
 	};
 
 	const set_next_song = async (code) => {
+		console.log("set_next_song");
 		const data = await get_next_song(code);
 
 		if (!data) {
@@ -183,10 +206,13 @@
 		}
 
 		await control.setup(data.id, data.audio, radio_volume);
-		play_audio(data.audio);
+		await play_audio(data.audio);
 	};
 
 	const handle_audio = async () => {
+
+		console.log("handle_audio");
+
 		if (!current_id) {
 			console.log("not playing cuz invalid index", current_id);
 			return;
@@ -201,8 +227,8 @@
 		}
 
 		// resume
-		if (!playing && audio_id == current_id) {
-			play_audio(audio);
+		if (!playing && audio_id == current_id && audio != null) {
+			await play_audio(audio);
 			return;
 		}
 
@@ -213,17 +239,15 @@
 
 		const new_audio = await setup_audio(beatmap, actual_url);
 
+		// play the next one (if possible)
 		if (!new_audio) {
 			console.log("failed to setup audio for", beatmap);
-			// play the next one (if possible)
-			set_next_song(1);
+			if (!small) set_next_song(1);
 			return;
 		}
-
-		control.setup(current_id, new_audio, radio_volume);
-
+		
 		// play new song
-		play_audio(new_audio);
+		await play_audio(new_audio);
 	};
 
 	const get_perc = (e, max) => {
@@ -420,10 +444,6 @@
 		cursor: pointer;
 		margin-bottom: 12px;
 		transition: height 0.1s ease;
-	}
-
-	.progress-bar:hover {
-		height: 8px;
 	}
 
 	.progress-fill,

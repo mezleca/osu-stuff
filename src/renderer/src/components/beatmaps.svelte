@@ -9,24 +9,19 @@
 	import BeatmapCard from "./cards/beatmap-card.svelte";
 
 	// props
-	export let all_beatmaps = [];
 	export let tab_id;
 	export let carousel;
 	export let show_bpm;
 	export let show_star_rating;
-	export let unique;
 	export let selected_beatmap;
 	export let max_width;
+	export let show_invalid;
 	export let height = 100;
 	export let direction;
 	export let remove_callback = () => {};
 
 	const list = get_beatmap_list(tab_id);
 	const { beatmaps, selected } = list;
-
-	$: if (all_beatmaps) {
-		list.set_beatmaps(all_beatmaps, tab_id, unique);
-	}
 
 	$: if ($selected) {
 		selected_beatmap = $selected;

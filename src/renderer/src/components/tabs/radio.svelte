@@ -1,10 +1,13 @@
 <script>
 	import { onMount } from "svelte";
-	import { get_filtered_beatmaps } from "../../lib/utils/beatmaps";
 	import { collections } from "../../lib/store/collections";
-	import { DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
+	import { ALL_BEATMAPS_KEY, DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
 	import { radio_mode, radio_search, radio_sort } from "../../lib/store/audio";
 	import { format_time, get_image_url } from "../../lib/utils/utils";
+	import { get_beatmap_list } from "../../lib/store/beatmaps";
+
+	const list = get_beatmap_list("radio");
+	const { selected } = list;
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -15,14 +18,15 @@
 	// misc
 	import PlaceholderImg from "../../assets/placeholder.png";
 
-	$: all_collections = collections.all || [];
-	$: beatmap_options = ["all beatmaps", ...$all_collections.map((c) => c.name)];
-
-	// current beatmap data
-	$: beatmap = null;
+	$: all_collections = collections.all;
+	$: beatmap = $selected;
 	$: control_key = beatmap?.md5 ?? crypto.randomUUID();
 	$: bg = PlaceholderImg;
-	$: filtered_maps = [];
+
+	$: beatmap_options = [
+		{ label: "all beatmaps", value: ALL_BEATMAPS_KEY },
+		...$all_collections.map(c => ({ label: c.name, value: c.name }))
+	];
 
 	const update_background_image = () => {
 		if (beatmap && beatmap?.image_path) {
@@ -32,31 +36,22 @@
 		}
 	};
 
-	const update_filtered_maps = async () => {
-		// @TODO: debulshitify
-		const beatmaps =
-			$radio_mode == "all beatmaps"
-				? await get_filtered_beatmaps(null, $radio_search, { unique: true, sort: $radio_sort })
-				: await get_filtered_beatmaps($radio_mode, $radio_search, { unique: true, $radio_sort });
-		filtered_maps = beatmaps;
+	const update_beatmaps = async () => {
+		const beatmaps = await list.get_beatmaps($radio_mode, $radio_search, { unique: true, sort: $radio_sort });
+		list.set_beatmaps(beatmaps, $radio_mode, true);
 	};
-
-	// get new beatmaps
-	$: if ($radio_mode || $radio_search) {
-		update_filtered_maps();
-	}
 
 	// update image on change
 	$: if (beatmap) {
 		update_background_image();
 	}
 
-	onMount(() => {
-		if (!$radio_mode) {
-			$radio_mode = "all beatmaps";
-		}
+	$: if ($radio_mode || $radio_search || $radio_sort) {
+		update_beatmaps();
+	}
 
-		// update background on mount
+	onMount(() => {
+		if ($radio_mode == "") $radio_mode = ALL_BEATMAPS_KEY;
 		update_background_image();
 	});
 </script>
@@ -67,15 +62,15 @@
 			<div class="sidebar-header">
 				<Search bind:value={$radio_search} placeholder="search beatmaps" />
 				<div class="filter-container">
-					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options} />
+					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options}/>
 					<Dropdown bind:selected_value={$radio_sort} options={DEFAULT_SORT_OPTIONS} />
 				</div>
 			</div>
 			<Beatmaps
 				tab_id={"radio"}
 				carousel={true}
+				show_invalid={false}
 				key={$radio_mode}
-				all_beatmaps={filtered_maps}
 				show_bpm={false}
 				max_width={true}
 				bind:selected_beatmap={beatmap}

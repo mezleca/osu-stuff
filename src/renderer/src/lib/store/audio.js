@@ -87,11 +87,11 @@ const create_audio_store = () => {
 	};
 
 	const pause = (audio) => {
+		audio.pause();
 		update((obj) => ({
 			...obj,
 			playing: false
 		}));
-		audio.pause();
 	};
 
 	const pause_until = (audio, exp) => {
@@ -101,17 +101,19 @@ const create_audio_store = () => {
 
 		pause(audio);
 
-		pause_interval = setInterval(() => {
+		pause_interval = setInterval(async () => {
 			const result = exp();
 			if (result) {
-				play(audio);
+				await play(audio);
 				clearInterval(pause_interval);
 			}
-		}, 20);
+		}, 10);
 	};
 
 	const remove = (audio) => {
-		audio.pause();
+		if (!audio.paused) {
+			audio.pause();
+		}
 
 		audio.removeEventListener("canplay", on_canplay);
 		audio.removeEventListener("timeupdate", on_timeupdate);
@@ -132,6 +134,15 @@ const create_audio_store = () => {
 			...obj,
 			progress_bar_width: percent * 100,
 			progress: format_time(time)
+		}));
+	};
+
+	const restart = (audio) => {
+		audio.currentTime = 0;
+		update((obj) => ({
+			...obj,
+			progress_bar_width: 0,
+			progress: format_time(0)
 		}));
 	};
 
@@ -175,6 +186,7 @@ const create_audio_store = () => {
 		play,
 		pause_until,
 		pause,
+		restart,
 		seek,
 		set_volume,
 		set_next: (callback) => (next_callback = callback),
@@ -183,7 +195,7 @@ const create_audio_store = () => {
 };
 
 export const radio_search = writable("");
-export const radio_mode = writable("all beatmaps");
+export const radio_mode = writable("");
 export const radio_sort = writable("artist");
 export const radio_random = writable(false);
 export const radio_repeat = writable(false);

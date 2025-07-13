@@ -189,7 +189,7 @@ export const get_beatmap_data = (id, query, is_unique_id) => {
 		return result;
 	}
 
-	result.beatmap = is_unique_id ? get_beatmap_by_id(id) : get_beatmap_by_md5(id);
+	result.beatmap = is_unique_id ? get_beatmaps_by_id(id) : get_beatmap_by_md5(id);
 
 	// ignore unknown maps if we dont have a query yet
 	if (!result.beatmap && query == "") {
@@ -242,7 +242,32 @@ export const sort_beatmaps = (beatmaps, type) => {
 	return result;
 };
 
-export const filter_beatmaps = (list, query, extra = { unique: false, sort: null }) => {
+export const filter_by_sr = (beatmap, min, max) => {
+	// ignore unknown beatmaps
+	if (!beatmap || typeof beatmap == "string") {
+		return true;
+	}
+
+	// again
+	if (!beatmap?.star_rating || beatmap.star_rating?.length == 0 || isNaN(beatmap.mode)) {
+		return true;
+	}
+	
+	// my logic sucks so lets do that
+	if (min == 0 && max == 0) {
+		return true;
+	}
+
+	const star_rating = beatmap.star_rating[beatmap.mode]?.nm;
+
+	if (star_rating && (star_rating >= min && star_rating <= max)) {
+        return true;
+    }
+
+	return false;
+};
+
+export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null }) => {
 	if (!osu_data) {
 		return [];
 	}
@@ -268,6 +293,14 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
 		// check if we already added this unique id
 		if (extra.unique && beatmap?.unique_id && seen_unique_ids.has(beatmap?.unique_id)) {
 			continue;
+		}
+
+		// filter by sr
+		if (beatmap && extra.sr) {
+			const result = filter_by_sr(beatmap, extra.sr.min, extra.sr.max);
+			if (!result) {
+				continue;
+			}
 		}
 
 		filtered_beatmaps.push(beatmap);

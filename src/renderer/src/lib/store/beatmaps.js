@@ -1,5 +1,8 @@
 import { writable, get } from "svelte/store";
-import { get_beatmap_data } from "../utils/beatmaps";
+import { get_beatmap_data, get_by_unique_id } from "../utils/beatmaps";
+import { collections } from "./collections";
+import { show_notification } from "./notifications";
+import { ALL_BEATMAPS_KEY } from "./other";
 
 class BeatmapList {
 	constructor(list_id) {
@@ -7,6 +10,7 @@ class BeatmapList {
 		this.index = writable(-1);
 		this.beatmaps = writable([]);
 		this.selected = writable(null);
+		this.sr_range = writable({});
 		this.current_key = null;
 		this.is_unique = false;
 	}
@@ -21,6 +25,51 @@ class BeatmapList {
 
 		this.current_key = key;
 		this.is_unique = unique;
+	}
+
+	update_range(data) {
+		this.sr_range.set(data);
+	}
+
+	async get_beatmaps(name, search_query, extra_options = {}) {
+		// get all beatmaps if no collection_name is provided
+		const is_all_beatmaps = name == ALL_BEATMAPS_KEY;
+		const beatmaps = is_all_beatmaps ? null : collections.get(name)?.maps;
+		const options = { ...extra_options };
+
+		// prevent bullshitting
+		if (!name && !is_all_beatmaps) {
+			return null;
+		}
+
+		if (!is_all_beatmaps && !beatmaps) {
+			show_notification({ type: "error", text: "failed to get beatmaps from " + name });
+			return null;
+		}
+
+		// to return all of the beatmaps
+		if (is_all_beatmaps) {
+			options.all = true;
+		}
+
+		// star range filter
+		const min = this.min_sr();
+		const max = this.max_sr();
+
+		if (min != 0 && max != 0) {
+			options.sr = { min, max };
+		}
+		
+		// console.log("requesting", name, options);
+
+		const result = await window.osu.filter_beatmaps(beatmaps, search_query, options);
+
+		if (!result) {
+			show_notification({ type: "error", text: "failed to filter beatmaps" });
+			return null;
+		}
+
+		return result;
 	}
 
 	async handle_context_change(new_beatmaps, unique) {
@@ -70,7 +119,7 @@ class BeatmapList {
 			if (beatmap.md5 == old_beatmap.md5) {
 				const hash = beatmaps.find((h) => h == beatmap.md5);
 				if (hash) {
-					return await get_beat(hash);
+					return await get_beatmap_data(hash);
 				}
 			}
 		}
@@ -94,6 +143,16 @@ class BeatmapList {
 	get_selected() {
 		return get(this.selected);
 	}
+
+	min_sr() {
+		const sr_data = get(this.sr_range);
+		return sr_data?.min ? sr_data.min : 0;
+	}
+
+	max_sr() {
+		const sr_data = get(this.sr_range);
+		return sr_data?.max ? sr_data.max : 0;
+	} 
 
 	is_selected(beatmap) {
 		const current = get(this.selected);

@@ -3,6 +3,7 @@
 
 	export let min = 2;
 	export let max = 8;
+	export let on_sr_range_update = () => {};
 
 	let container;
 
@@ -20,21 +21,13 @@
 		const fill = container.querySelector(".fill");
 		const min_thumb = container.querySelector(".min-thumb");
 		const max_thumb = container.querySelector(".max-thumb");
+		const safe_min = Math.max(thumb_percent_offset, min_percent);
+		const safe_max = Math.min(100 - thumb_percent_offset, max_percent);
 
-		if (fill) {
-			fill.style.left = `${min_percent}%`;
-			fill.style.width = `${max_percent - min_percent}%`;
-		}
-
-		if (min_thumb) {
-			const safe_min = Math.max(thumb_percent_offset, min_percent);
-			min_thumb.style.left = `calc(${safe_min}% - 16px)`;
-		}
-
-		if (max_thumb) {
-			const safe_max = Math.min(100 - thumb_percent_offset, max_percent);
-			max_thumb.style.left = `calc(${safe_max}% - 16px)`;
-		}
+		fill.style.left = `${min_percent}%`;
+		fill.style.width = `${max_percent - min_percent}%`;
+		min_thumb.style.left = `calc(${safe_min}% - 16px)`;
+		max_thumb.style.left = `calc(${safe_max}% - 16px)`;
 	};
 
 	const handle_min = (e) => {
@@ -52,6 +45,7 @@
 	};
 
 	$: if (min || max) {
+		on_sr_range_update({ min, max });
 		update_fill();
 	}
 
