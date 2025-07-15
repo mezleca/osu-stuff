@@ -43,7 +43,7 @@
 		<div class="dropdown_menu">
 			{#each options as option}
 				<button class="dropdown_item" on:click={() => select_option(option)} type="button">
-					{option.label || option}
+					{option.label || convert_keys(option)}
 				</button>
 			{/each}
 		</div>

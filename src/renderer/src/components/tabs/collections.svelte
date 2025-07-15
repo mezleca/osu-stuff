@@ -1,6 +1,6 @@
 <script>
 	import { collections, collection_search, selected_collection, selected_collection_name } from "../../lib/store/collections";
-	import { DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
+	import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { onMount } from "svelte";
 
@@ -18,10 +18,10 @@
 	let is_popup_enabled = false;
 
 	const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
-	const STATUS_TYPES = DEFAULT_STATUS_TYPES;
+	const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
 
 	const list = get_beatmap_list("collections");
-	const { sort, query } = list;
+	const { sort, query, status } = list;
 
 	$: all_collections = collections.all;
 
@@ -55,7 +55,7 @@
 		filter_collection();
 	}
 
-	$: if ($selected_collection_name || $query || $sort) {
+	$: if ($selected_collection_name || $query || $sort || $status) {
 		filter_beatmaps();
 	}
 
@@ -97,8 +97,8 @@
 			<!-- current beatmap search -->
 			<Search bind:value={$query} placeholder="search beatmaps" />
 			<ExpandableMenu>
-				<Dropdown bind:selected_value={$sort} options={FILTER_TYPES} />
-				<Dropdown placeholder={"status"} options={STATUS_TYPES} />
+				<Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+				<Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
 				<RangeSlider on_update={update_sr} />
 			</ExpandableMenu>
 		</div>

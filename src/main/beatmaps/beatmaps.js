@@ -267,7 +267,11 @@ export const filter_by_sr = (beatmap, min, max) => {
 	return false;
 };
 
-export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null }) => {
+export const get_beatmap_status = () => {
+
+};
+
+export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null, status: null }) => {
 	console.log("filtered options", extra);
 
 	if (!osu_data) {
@@ -297,6 +301,16 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
 		// ignore invalid beatmaps
 		if (!beatmap?.downloaded) {
 			continue;
+		}
+
+		// filter by status
+		if (extra.status) {
+			// oh yeah, more hacks
+			if (!config.lazer_mode && (extra.status == "graveyard" || extra.status == "wip")) {
+				extra.status = "pending";
+			}
+
+			if (beatmap.status_text != extra.status) continue;
 		}
 
 		// check if we already added this unique id

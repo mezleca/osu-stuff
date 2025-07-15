@@ -3,14 +3,26 @@ import { get_common_bpm } from "../beatmaps/beatmaps.js";
 import { get_realm_instance, lazer_to_osu_db } from "./realm.js";
 import { BinaryReader } from "./binary.js";
 import { config } from "../database/config.js";
+import { ALL_SCHEMAS } from "./models/lazer.js";
 
 import path from "path";
 import fs from "fs";
 import zlib from "zlib";
-import { ALL_SCHEMAS } from "./models/lazer.js";
 
 // placeholder
 const create_alert = () => {};
+
+export const stable_beatmap_status = {
+    [-1]: "all",
+    [0]: "unknown",
+    [1]: "unsubmitted",
+    [2]: "pending",
+    [3]: "unused",
+    [4]: "ranked",
+    [5]: "approved",
+    [6]: "qualified",
+    [7]: "loved"
+};
 
 export class Reader extends BinaryReader {
 	constructor() {
@@ -292,6 +304,10 @@ export class Reader extends BinaryReader {
 		};
 	};
 
+	get_beatmap_status = () => {
+
+	};
+
 	read_beatmap = (version) => {
 		const data = { star_rating: [] };
 		const is_old_version = version < 20140609;
@@ -308,6 +324,7 @@ export class Reader extends BinaryReader {
 		data.md5 = this.string();
 		data.file = this.string();
 		data.status = this.byte();
+		data.status_text = stable_beatmap_status[data.status];
 		data.hitcircle = this.short();
 		data.sliders = this.short();
 		data.spinners = this.short();

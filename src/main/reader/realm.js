@@ -3,9 +3,20 @@ import { config } from "../database/config";
 
 import Realm from "realm";
 import path from "path";
-import fs from "fs";
 
 const LAZER_SCHEMA_VERSION = 49;
+
+export const lazer_beatmap_status = {
+	"-4": "LocacllyModified",
+	"-3": "Unsubmitted",
+	"-2": "graveyard",
+	"-1": "wip",
+    "0": "pending",
+    "1": "ranked",
+    "2": "approved",
+    "3": "qualified",
+    "4": "loved",
+};
 
 export const get_realm_instance = (path, schemas) => {
 	const instance = new Realm({
@@ -21,8 +32,8 @@ export const get_lazer_beatmaps = (instance) => {
 };
 
 const create_mode_star_rating = (star_rating) => ({
-	nm: star_rating,
-	pair: [[0, star_rating]]
+	nm: Math.round(star_rating * 100) / 100,
+	pair: [[0, Math.round(star_rating * 100) / 100]]
 });
 
 // @TODO: NO
@@ -77,6 +88,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			md5: beatmap.MD5Hash,
 			file: beatmap.Hash || "",
 			status: beatmap.Status || 0,
+			status_text: lazer_beatmap_status[beatmap.Status],
 			beatmapset: beatmapset,
 			hitcircle: beatmap.TotalObjectCount || 0,
 			bpm: beatmap.BPM || 0,

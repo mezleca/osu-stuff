@@ -2,7 +2,7 @@ import { writable, get } from "svelte/store";
 import { get_beatmap_data, get_by_unique_id } from "../utils/beatmaps";
 import { collections } from "./collections";
 import { show_notification } from "./notifications";
-import { ALL_BEATMAPS_KEY } from "./other";
+import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
 
 class BeatmapList {
 	constructor(list_id) {
@@ -13,7 +13,7 @@ class BeatmapList {
 		this.sr_range = writable({ min: 0, max: 10 });
 		this.sort = writable("");
 		this.query = writable("");
-		this.status = writable(0); // @TODO: idk
+		this.status = writable("");
 		this.current_key = null;
 		this.is_unique = false;
 	}
@@ -66,13 +66,19 @@ class BeatmapList {
 
 		const query = this.get_query();
 		const sort = this.get_sort();
+		const status = this.get_status();
 
 		// add sort to extra filter options
 		if (sort != "") {
 			options.sort = sort;
 		}
 
-		if (extra_options) console.log(extra_options);
+		// add status to extra filter options (ignore all key)
+		if (status != "" && status != ALL_STATUS_KEY) {
+			options.status = status;
+		}
+
+		if (extra_options) console.log("requesting beatmaps with", extra_options);
 
 		const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 
@@ -85,7 +91,7 @@ class BeatmapList {
 	}
 
 	// will be used to try getting the old selected beatmap on the beatmap list
-	// (so you dont lost selected context on like "collection -> all beatmaps")
+	// (so you dont lost selected context on like "specific collection -> all beatmaps")
 	async handle_context_change(new_beatmaps, unique) {
 		const current_selected = this.get_selected();
 
@@ -171,6 +177,7 @@ class BeatmapList {
 	get_query = () => get(this.query);
 	get_status = () => get(this.status);
 	get_sort = () => get(this.sort);
+	get_status = () => get(this.status);
 
 	is_selected(beatmap) {
 		const current = get(this.selected);
@@ -190,6 +197,7 @@ class BeatmapList {
 
 const managers = new Map();
 
+/** @returns {BeatmapList} */
 export const get_beatmap_list = (tab_id) => {
 	if (!managers.has(tab_id)) {
 		managers.set(tab_id, new BeatmapList(tab_id));

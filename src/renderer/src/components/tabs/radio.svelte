@@ -59,8 +59,8 @@
 			<div class="sidebar-header">
 				<Search bind:value={$query} placeholder="search beatmaps" />
 				<div class="filter-container">
-					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options} />
-					<Dropdown bind:selected_value={$sort} options={DEFAULT_SORT_OPTIONS} />
+					<Dropdown placeholder={"mode"} bind:selected_value={$radio_mode} options={beatmap_options} />
+					<Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={DEFAULT_SORT_OPTIONS} />
 				</div>
 			</div>
 			<Beatmaps
