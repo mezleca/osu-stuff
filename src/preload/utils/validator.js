@@ -4,35 +4,6 @@ const os = require("os");
 
 const { exec } = require("child_process");
 
-import { database } from "../database/indexed.js";
-
-const is_subpath = (parent, child) => {
-	const relative = path.relative(parent, child);
-	return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
-};
-
-export const validate_path = async (target_path, allowed_base, db_name = "config", key_name = "stable_path") => {
-	if (!target_path) {
-		return false;
-	}
-
-	if (allowed_base) {
-		return is_subpath(allowed_base, target_path);
-	}
-
-	try {
-		const base_path = await database.get(db_name, key_name);
-
-		if (!base_path) {
-			return false;
-		}
-
-		return is_subpath(base_path, target_path);
-	} catch (err) {
-		return false;
-	}
-};
-
 export const check_folder_permissions = async (folder) => {
 	try {
 		const test_file = path.join(folder, `test-${Date.now()}.tmp`);

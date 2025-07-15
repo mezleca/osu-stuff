@@ -22,7 +22,7 @@
 	export let beatmap = {};
 	export let small = true;
 	export let right = () => {};
-	
+
 	// @TODO: (URGENT) move at least 90% of the audio logic to normal js
 
 	const on_left = (event, callback) => {

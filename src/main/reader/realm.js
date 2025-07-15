@@ -132,7 +132,7 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 
 		beatmaps.set(converted_beatmap.md5, converted_beatmap);
 	}
-	
+
 	return beatmaps;
 };
 

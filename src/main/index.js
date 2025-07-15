@@ -95,7 +95,7 @@ function createWindow() {
 	ipcMain.handle("update-config", (_, values) => update_config_database(values));
 
 	// osu related stuff
-	ipcMain.handle("get-beatmaps", (force) => get_beatmaps_from_database(force));
+	ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
 	ipcMain.handle("get-collections", () => get_collections_from_database());
 	ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
 	ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));

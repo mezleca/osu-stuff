@@ -1,11 +1,5 @@
 const { contextBridge, ipcRenderer, shell } = require("electron");
-
 import { check_folder_permissions } from "./utils/validator.js";
-import { database } from "./database/indexed.js";
-import { stuff_fs } from "./filesystem/index.js";
-
-contextBridge.exposeInMainWorld("database", database);
-contextBridge.exposeInMainWorld("fs", stuff_fs);
 
 contextBridge.exposeInMainWorld("config", {
 	get: () => ipcRenderer.invoke("get-config"),
@@ -60,7 +54,6 @@ contextBridge.exposeInMainWorld("extra", {
 	fetch_stats: (url, cookies) => ipcRenderer.invoke("fetch-stats", url, cookies),
 	create_auth: (url, end) => ipcRenderer.invoke("create-auth", url, end),
 	dialog: (options) => ipcRenderer.invoke("dialog", options),
-	select_file: (options) => ipcRenderer.invoke("select-file", options),
 	is_maximized: () => ipcRenderer.invoke("is_maximized"),
 	maximize: () => ipcRenderer.invoke("maximize"),
 	minimize: () => ipcRenderer.invoke("minimize"),

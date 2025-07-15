@@ -202,7 +202,7 @@ export const get_beatmap_data = (id, query, is_unique_id) => {
 		result.filtered = !passes_filter;
 		return result;
 	}
-	
+
 	return result;
 };
 
@@ -268,7 +268,7 @@ export const filter_by_sr = (beatmap, min, max) => {
 };
 
 export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null }) => {
-	console.log("filtered options", extra);	
+	console.log("filtered options", extra);
 
 	if (!osu_data) {
 		console.log("osu_data is null");
@@ -377,6 +377,6 @@ export const get_beatmaps_from_database = async (force) => {
 
 	osu_data = result;
 	osu_data.beatmaps = await get_extra_information(osu_data.beatmaps);
-	
+
 	return true;
 };
