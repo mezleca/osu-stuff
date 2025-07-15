@@ -2,7 +2,6 @@ import { writable, derived } from "svelte/store";
 
 // mhm collections
 export const collections_store = writable([]);
-export const collection_beatmaps_search = writable("");
 export const selected_collection_name = writable(null);
 export const collection_search = writable("");
 

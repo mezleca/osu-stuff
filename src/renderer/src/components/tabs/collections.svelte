@@ -1,11 +1,5 @@
 <script>
-	import {
-		collections,
-		collection_search,
-		collection_beatmaps_search,
-		selected_collection,
-		selected_collection_name
-	} from "../../lib/store/collections";
+	import { collections, collection_search, selected_collection, selected_collection_name } from "../../lib/store/collections";
 	import { DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { onMount } from "svelte";
@@ -27,6 +21,7 @@
 	const STATUS_TYPES = DEFAULT_STATUS_TYPES;
 
 	const list = get_beatmap_list("collections");
+	const { sort, query } = list;
 
 	$: all_collections = collections.all;
 
@@ -39,19 +34,19 @@
 	};
 
 	const filter_beatmaps = async (extra) => {
-		const result = await list.get_beatmaps($selected_collection_name, $collection_beatmaps_search, extra);
-		list.set_beatmaps(result, $collection_beatmaps_search, false);
+		const result = await list.get_beatmaps($selected_collection_name, $query, extra);
+		list.set_beatmaps(result, $query, false);
 	};
 
-	const on_sr_range_update = async (data) => {
+	// force list update
+	const update_sr = async (data) => {
 		list.update_range(data);
-		// force update
-		filter_beatmaps({ unique: false, all: false });
+		filter_beatmaps();
 	};
 
 	const remove_callback = () => {
 		if ($selected_collection_name) {
-			filter_beatmaps({ unique: false, all: false });
+			filter_beatmaps();
 		}
 		filter_collection();
 	};
@@ -60,11 +55,12 @@
 		filter_collection();
 	}
 
-	$: if ($selected_collection_name || $collection_beatmaps_search) {
-		filter_beatmaps({ unique: false, all: false });
+	$: if ($selected_collection_name || $query || $sort) {
+		filter_beatmaps();
 	}
 
 	onMount(() => {
+		if ($sort == "") $sort = "artist";
 		filter_collection();
 	});
 </script>
@@ -99,11 +95,11 @@
 		<Add callback={() => (is_popup_enabled = true)} />
 		<div class="content-header">
 			<!-- current beatmap search -->
-			<Search bind:value={$collection_beatmaps_search} placeholder="search beatmaps" />
+			<Search bind:value={$query} placeholder="search beatmaps" />
 			<ExpandableMenu>
-				<Dropdown placeholder={"sort by"} options={FILTER_TYPES} />
+				<Dropdown bind:selected_value={$sort} options={FILTER_TYPES} />
 				<Dropdown placeholder={"status"} options={STATUS_TYPES} />
-				<RangeSlider {on_sr_range_update}/>
+				<RangeSlider on_update={update_sr} />
 			</ExpandableMenu>
 		</div>
 		<!-- render beatmap list -->

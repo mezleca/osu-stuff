@@ -194,9 +194,7 @@ const create_audio_store = () => {
 	};
 };
 
-export const radio_search = writable("");
 export const radio_mode = writable("");
-export const radio_sort = writable("artist");
 export const radio_random = writable(false);
 export const radio_repeat = writable(false);
 export const radio_store = create_audio_store();

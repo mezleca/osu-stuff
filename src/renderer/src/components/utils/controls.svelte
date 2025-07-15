@@ -33,7 +33,7 @@
 	const on_right = (event) => {
 		event.stopPropagation();
 		if (right) right();
-	}
+	};
 
 	$: control = small ? preview_store : radio_store;
 	$: radio_volume = config.get("radio_volume") ?? 50;
@@ -80,6 +80,7 @@
 
 			// make sure the preview url is present
 			if (url == "") {
+				console.log("no url on preview");
 				return;
 			}
 
@@ -104,7 +105,6 @@
 	};
 
 	const setup_audio = async (beatmap, url) => {
-
 		console.log("setup_audio", beatmap, url);
 
 		// load new audio
@@ -133,7 +133,9 @@
 			radio_store.pause_until($radio_store.audio, () => !$preview_store.playing);
 		}
 		// set next song if possible
-		control.set_next(get_next_song);
+		if (!small) {
+			control.set_next(get_next_song);
+		}
 		await control.play(audio);
 	};
 
@@ -210,7 +212,6 @@
 	};
 
 	const handle_audio = async () => {
-
 		console.log("handle_audio");
 
 		if (!current_id) {
@@ -245,7 +246,7 @@
 			if (!small) set_next_song(1);
 			return;
 		}
-		
+
 		// play new song
 		await play_audio(new_audio);
 	};

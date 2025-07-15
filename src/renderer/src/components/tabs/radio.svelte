@@ -2,12 +2,12 @@
 	import { onMount } from "svelte";
 	import { collections } from "../../lib/store/collections";
 	import { ALL_BEATMAPS_KEY, DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
-	import { radio_mode, radio_search, radio_sort } from "../../lib/store/audio";
+	import { radio_mode } from "../../lib/store/audio";
 	import { format_time, get_image_url } from "../../lib/utils/utils";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 
 	const list = get_beatmap_list("radio");
-	const { selected } = list;
+	const { selected, query, sort } = list;
 
 	// components
 	import Search from "../utils/search.svelte";
@@ -23,10 +23,7 @@
 	$: control_key = beatmap?.md5 ?? crypto.randomUUID();
 	$: bg = PlaceholderImg;
 
-	$: beatmap_options = [
-		{ label: "all beatmaps", value: ALL_BEATMAPS_KEY },
-		...$all_collections.map(c => ({ label: c.name, value: c.name }))
-	];
+	$: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
 
 	const update_background_image = () => {
 		if (beatmap && beatmap?.image_path) {
@@ -37,7 +34,7 @@
 	};
 
 	const update_beatmaps = async () => {
-		const beatmaps = await list.get_beatmaps($radio_mode, $radio_search, { unique: true, sort: $radio_sort });
+		const beatmaps = await list.get_beatmaps($radio_mode, $query, { unique: true, sort: $sort });
 		list.set_beatmaps(beatmaps, $radio_mode, true);
 	};
 
@@ -46,7 +43,7 @@
 		update_background_image();
 	}
 
-	$: if ($radio_mode || $radio_search || $radio_sort) {
+	$: if ($radio_mode || $query || $sort) {
 		update_beatmaps();
 	}
 
@@ -60,10 +57,10 @@
 	<div class="radio-container" style="--radio-bg: url({bg});">
 		<div class="sidebar">
 			<div class="sidebar-header">
-				<Search bind:value={$radio_search} placeholder="search beatmaps" />
+				<Search bind:value={$query} placeholder="search beatmaps" />
 				<div class="filter-container">
-					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options}/>
-					<Dropdown bind:selected_value={$radio_sort} options={DEFAULT_SORT_OPTIONS} />
+					<Dropdown bind:selected_value={$radio_mode} options={beatmap_options} />
+					<Dropdown bind:selected_value={$sort} options={DEFAULT_SORT_OPTIONS} />
 				</div>
 			</div>
 			<Beatmaps

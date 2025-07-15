@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from "svelte";
-	
+
 	import Controls from "../utils/controls.svelte";
 	import PlaceholderImg from "../../assets/placeholder.png";
 
@@ -22,15 +22,18 @@
 
 	// use lazy loading for the background image
 	onMount(() => {
-		const observer = new IntersectionObserver((entries) => {
-			for (let i = 0 ; i < entries.length; i++) {
-				const entry = entries[i];
-				if (entry.isIntersecting) {
-					is_visible = true;
-					observer.unobserve(entry.target);
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (let i = 0; i < entries.length; i++) {
+					const entry = entries[i];
+					if (entry.isIntersecting) {
+						is_visible = true;
+						observer.unobserve(entry.target);
+					}
 				}
-			}
-		}, { threshold: 0.1, rootMargin: "50px"});
+			},
+			{ threshold: 0.1, rootMargin: "50px" }
+		);
 
 		if (card_element) {
 			observer.observe(card_element);
@@ -46,7 +49,7 @@
 	// preload the image
 	$: if (is_visible) {
 		const img = new Image();
-		img.onload = () => bg_loaded = true;
+		img.onload = () => (bg_loaded = true);
 		if (web_bg == PlaceholderImg && bg == PlaceholderImg) {
 			img.src = PlaceholderImg;
 		} else {
@@ -62,6 +65,9 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="info" onclick={extra}>
+		{#if !beatmap?.title}
+			{console.log(beatmap)}
+		{/if}
 		<div class="title">{beatmap?.title ?? "unknown"}</div>
 		<div class="subtitle">{beatmap?.artist ?? "unknown"}</div>
 		<div class="stats">

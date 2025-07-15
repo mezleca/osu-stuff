@@ -8,10 +8,10 @@
 	let is_open = false;
 	let dropdown_ref;
 
-	// convert_keys will convert shit from "@stuff:__something__" to "original name idk" 
+	// convert_keys will convert shit from "@stuff:__something__" to "original name idk"
 	$: display_text = convert_keys(selected_value) || placeholder;
 
-	const toggle_dropdown = () => is_open = !is_open;
+	const toggle_dropdown = () => (is_open = !is_open);
 
 	const select_option = (option) => {
 		selected_value = option.value || option;

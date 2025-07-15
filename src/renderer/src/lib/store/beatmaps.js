@@ -10,7 +10,10 @@ class BeatmapList {
 		this.index = writable(-1);
 		this.beatmaps = writable([]);
 		this.selected = writable(null);
-		this.sr_range = writable({});
+		this.sr_range = writable({ min: 0, max: 10 });
+		this.sort = writable("");
+		this.query = writable("");
+		this.status = writable(0); // @TODO: idk
 		this.current_key = null;
 		this.is_unique = false;
 	}
@@ -31,7 +34,7 @@ class BeatmapList {
 		this.sr_range.set(data);
 	}
 
-	async get_beatmaps(name, search_query, extra_options = {}) {
+	async get_beatmaps(name, extra_options = {}) {
 		// get all beatmaps if no collection_name is provided
 		const is_all_beatmaps = name == ALL_BEATMAPS_KEY;
 		const beatmaps = is_all_beatmaps ? null : collections.get(name)?.maps;
@@ -39,6 +42,7 @@ class BeatmapList {
 
 		// prevent bullshitting
 		if (!name && !is_all_beatmaps) {
+			console.log("not updating due to bullshit");
 			return null;
 		}
 
@@ -52,17 +56,23 @@ class BeatmapList {
 			options.all = true;
 		}
 
-		// star range filter
-		const min = this.min_sr();
-		const max = this.max_sr();
+		// add star range to extra filter options
+		const min = this.get_min_sr();
+		const max = this.get_max_sr();
 
-		if (min != 0 && max != 0) {
+		if (!isNaN(min) && !isNaN(max)) {
 			options.sr = { min, max };
 		}
-		
-		// console.log("requesting", name, options);
 
-		const result = await window.osu.filter_beatmaps(beatmaps, search_query, options);
+		const query = this.get_query();
+		const sort = this.get_sort();
+
+		// add sort to extra filter options
+		if (sort != "") {
+			options.sort = sort;
+		}
+
+		const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 
 		if (!result) {
 			show_notification({ type: "error", text: "failed to filter beatmaps" });
@@ -72,6 +82,8 @@ class BeatmapList {
 		return result;
 	}
 
+	// will be used to try getting the old selected beatmap on the beatmap list
+	// (so you dont lost selected context on like "collection -> all beatmaps")
 	async handle_context_change(new_beatmaps, unique) {
 		const current_selected = this.get_selected();
 
@@ -144,15 +156,19 @@ class BeatmapList {
 		return get(this.selected);
 	}
 
-	min_sr() {
+	get_min_sr() {
 		const sr_data = get(this.sr_range);
 		return sr_data?.min ? sr_data.min : 0;
 	}
 
-	max_sr() {
+	get_max_sr() {
 		const sr_data = get(this.sr_range);
 		return sr_data?.max ? sr_data.max : 0;
-	} 
+	}
+
+	get_query = () => get(this.query);
+	get_status = () => get(this.status);
+	get_sort = () => get(this.sort);
 
 	is_selected(beatmap) {
 		const current = get(this.selected);
@@ -181,7 +197,6 @@ export const get_beatmap_list = (tab_id) => {
 };
 
 export const discover_beatmaps_search = writable("");
-export const collection_beatmaps_search = writable("");
 export const collection_search = writable("");
 export const osu_beatmaps_store = writable(new Map());
 

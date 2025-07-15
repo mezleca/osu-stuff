@@ -252,7 +252,7 @@ export const filter_by_sr = (beatmap, min, max) => {
 	if (!beatmap?.star_rating || beatmap.star_rating?.length == 0 || isNaN(beatmap.mode)) {
 		return true;
 	}
-	
+
 	// my logic sucks so lets do that
 	if (min == 0 && max == 0) {
 		return true;
@@ -260,9 +260,9 @@ export const filter_by_sr = (beatmap, min, max) => {
 
 	const star_rating = beatmap.star_rating[beatmap.mode]?.nm;
 
-	if (star_rating && (star_rating >= min && star_rating <= max)) {
-        return true;
-    }
+	if (star_rating && star_rating >= min && star_rating <= max) {
+		return true;
+	}
 
 	return false;
 };
@@ -287,6 +287,11 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
 		const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "", false);
 
 		if (filtered) {
+			continue;
+		}
+
+		// ignore invalid beatmaps
+		if (!beatmap?.downloaded) {
 			continue;
 		}
 

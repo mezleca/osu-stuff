@@ -35,6 +35,8 @@ protocol.registerSchemesAsPrivileged([
 // fuck
 ipcMain.handle("http-request", async (event, options) => {
 	try {
+		console.log(options);
+
 		const response = await fetch(options.url, {
 			method: options.method || "GET",
 			headers: options.headers || {},
@@ -55,6 +57,7 @@ ipcMain.handle("http-request", async (event, options) => {
 
 		return { ok: true, status: response.status, data };
 	} catch (err) {
+		console.log(err.errors);
 		return { ok: false, error: err.message };
 	}
 });
@@ -150,10 +153,14 @@ app.whenReady().then(async () => {
 		callback({ requestHeaders: { ...details.requestHeaders } });
 	});
 
-	// @TODO: this is dangerous asf LOL i can literally get any file that i using ts
+	// @TODO: this is dangerous asf LOL i can literally get any file using ts
 	protocol.handle("media", (req) => {
-		const location = decodeURI(req.url.replace("media://", ""));
-		return net.fetch(`file://${location}`);
+		try {
+			const location = decodeURI(req.url.replace("media://", ""));
+			return net.fetch(`file://${location}`);
+		} catch (err) {
+			// ignore
+		}
 	});
 
 	// initialize electron window
