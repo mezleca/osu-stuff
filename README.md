@@ -80,7 +80,7 @@ bun install
 
 # build custom modules (npm install should do this automatically but if not)
 bun install -g node-gyp
-node-gyp configure && node-gyp build
+node-gyp configure && node-gyp build && bun run rebuild
 
 # start without building
 bun run dev
