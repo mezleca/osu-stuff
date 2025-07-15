@@ -11,11 +11,11 @@
 		"dev": "electron-vite dev",
 		"test": "node-gyp clean && node-gyp configure && node-gyp-build",
 		"build": "electron-vite build",
-		"rebuild": "npx electron-rebuild",
+		"rebuild": "bun x electron-rebuild",
 		"postinstall": "electron-builder install-app-deps",
-		"build:unpack": "npm run build && electron-builder --dir",
-		"build:win": "npm run build && electron-builder --win",
-		"build:linux": "npm run build && electron-builder --linux"
+		"build:unpack": "bun run build && electron-builder --dir",
+		"build:win": "bun run build && electron-builder --win",
+		"build:linux": "bun run build && electron-builder --linux"
 	},
 	"dependencies": {
 		"@electron-toolkit/preload": "^3.0.2",
