@@ -12,55 +12,40 @@
 	import VolumeMuted from "../icon/volume-muted.svelte";
 
 	// stores
-	import { radio_repeat, radio_random, preview_store, radio_store } from "../../lib/store/audio";
+	import { radio_repeat, radio_random, get_audio_manager } from "../../lib/store/audio";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { config } from "../../lib/store/config";
 	import { get_from_media } from "../../lib/utils/utils";
 	import { get_beatmap_data } from "../../lib/utils/beatmaps";
 
 	// props
-	export let beatmap = {};
 	export let small = true;
 	export let right = () => {};
 
-	// @TODO: (URGENT) move at least 90% of the audio logic to normal js
+	const manager_id = small ? "preview" : "radio";
+	const audio_manager = get_audio_manager(manager_id);
+	const radio_list = get_beatmap_list("radio");
 
+	const { beatmaps, index, selected } = get_beatmap_list("radio");
+
+	$: current_id = $selected?.md5;
+	$: actual_url = `https://b.ppy.sh/preview/${$selected?.beatmapset_id}.mp3`;
+	$: state = $audio_manager;
+	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = state);
+
+	let radio_volume = config.get("radio_volume") ?? 50;
+
+	// preview
 	const on_left = (event, callback) => {
 		event.stopPropagation();
 		if (callback) callback();
 	};
 
+	// remove / add
 	const on_right = (event) => {
 		event.stopPropagation();
 		if (right) right();
 	};
-
-	$: control = small ? preview_store : radio_store;
-	$: radio_volume = config.get("radio_volume") ?? 50;
-	$: ({ audio, playing, id: audio_id, progress, duration, progress_bar_width } = $control);
-
-	let actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
-	let current_id = beatmap.md5;
-
-	// @TODO: better name, prob gonna refactor all of this later
-	const radio_list = get_beatmap_list("radio");
-	const { beatmaps, index, selected } = get_beatmap_list("radio");
-
-	$: if (!small) {
-		const selected_beatmap = $selected;
-
-		if (selected_beatmap && selected_beatmap.md5 != current_id) {
-			beatmap = selected_beatmap;
-			current_id = beatmap.md5;
-			actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
-		}
-	}
-
-	// @TODO: update audio to new select beatmap
-	// cant to this rn cuz this system is horrible and i dont wanna hack a way to do this
-	// $: if (!small && $selected && audio_id != current_id) {
-	// 	handle_audio();
-	// }
 
 	const get_audio = async (beatmap, url) => {
 		try {
@@ -84,7 +69,6 @@
 				return new Blob([new Uint8Array(buffer)], { type: "audio/ogg" });
 			}
 
-			// make sure the preview url is present
 			if (url == "") {
 				console.log("no url on preview");
 				return;
@@ -111,9 +95,7 @@
 	};
 
 	const setup_audio = async (beatmap, url) => {
-		console.log("setup_audio", beatmap, url);
-
-		// load new audio
+		console.log("setup_audio", beatmap);
 		const buffer = await get_audio(beatmap, url);
 
 		if (!buffer) {
@@ -121,28 +103,27 @@
 			return;
 		}
 
-		// create new audio object
 		const new_audio = new Audio(window.URL.createObjectURL(buffer));
-
 		new_audio.volume = radio_volume / 100;
 		new_audio.preload = "auto";
 
-		await control.setup(current_id, new_audio);
-
+		await audio_manager.setup(beatmap.md5, new_audio);
 		return new_audio;
 	};
 
 	const play_audio = async (audio) => {
-		// temp pause radio song if we're previewing something
-		if (small && $radio_store.playing) {
-			// @TOFIX: if we change tab without waiting the preview to finish or pausing the pause_until will not work
-			radio_store.pause_until($radio_store.audio, () => !$preview_store.playing);
+		if (small && get_audio_manager("radio").get_state().playing) {
+			get_audio_manager("radio").pause_until(
+				get_audio_manager("radio").get_state().audio, // pause current radio state
+				() => !get_audio_manager("preview").get_state().playing // until our preview state finishes playing
+			);
 		}
-		// set next song if possible
+
 		if (!small) {
-			control.set_next(get_next_song);
+			audio_manager.set_next(get_next_song);
 		}
-		await control.play(audio);
+
+		await audio_manager.play(audio);
 	};
 
 	const get_next_song = async (custom) => {
@@ -154,26 +135,18 @@
 		const current_index = $index;
 		let next_idx = 0;
 
-		// next song via button
 		if (custom == 1) {
-			next_idx = current_index + 1;
-		}
-		// previous song via button
-		else if (custom == -1) {
-			next_idx = current_index - 1;
+			next_idx = current_index + 1; // next
+		} else if (custom == -1) {
+			next_idx = current_index - 1; // previous
 		} else {
-			// repeat one time
 			if ($radio_repeat) {
-				next_idx = current_index;
+				next_idx = current_index; // same index and remove repeat toggle
 				$radio_repeat = false;
-			}
-			// get random index
-			else if ($radio_random) {
+			} else if ($radio_random) {
 				next_idx = Math.floor(Math.random() * $beatmaps.length);
-			}
-			// next index
-			else {
-				next_idx = current_index + 1;
+			} else {
+				next_idx = current_index + 1; // defaults to next
 			}
 		}
 
@@ -184,7 +157,6 @@
 			next_idx = $beatmaps.length - 1;
 		}
 
-		// update selected beatmap
 		const new_beatmap = await get_beatmap_data($beatmaps[next_idx]);
 
 		// check if the beatmap is valid
@@ -197,7 +169,8 @@
 		if (next_idx != current_index) {
 			radio_list.select_beatmap(new_beatmap, next_idx);
 		} else {
-			control.restart(audio);
+			await play_audio(audio);
+			return;
 		}
 
 		const new_audio = await setup_audio(new_beatmap, `https://b.ppy.sh/preview/${new_beatmap?.beatmapset_id}.mp3`);
@@ -205,7 +178,6 @@
 	};
 
 	const set_next_song = async (code) => {
-		console.log("set_next_song");
 		const data = await get_next_song(code);
 
 		if (!data) {
@@ -213,47 +185,41 @@
 			return;
 		}
 
-		await control.setup(data.id, data.audio, radio_volume);
 		await play_audio(data.audio);
 	};
 
 	const handle_audio = async () => {
-		console.log("handle_audio");
-
 		if (!current_id) {
 			console.log("not playing cuz invalid index", current_id);
 			return;
 		}
 
-		// if same audio is playing, pause it
+		console.log("handle_audio:", "current_id=", current_id);
+
+		// if its playing, pause
 		if (playing && audio_id == current_id) {
-			if (audio != null) {
-				control.pause(audio);
-			}
+			if (audio != null) audio_manager.pause(audio);
 			return;
 		}
 
-		// resume
+		// if its paused, play
 		if (!playing && audio_id == current_id && audio != null) {
 			await play_audio(audio);
 			return;
 		}
 
-		// remove old audio to process new one
 		if (audio != null) {
-			control.remove(audio);
+			audio_manager.remove(audio);
 		}
 
-		const new_audio = await setup_audio(beatmap, actual_url);
+		const new_audio = await setup_audio($selected, actual_url);
 
-		// play the next one (if possible)
 		if (!new_audio) {
-			console.log("failed to setup audio for", beatmap);
+			console.log("failed to setup audio for", $selected);
 			if (!small) set_next_song(1);
 			return;
 		}
 
-		// play new song
 		await play_audio(new_audio);
 	};
 
@@ -264,12 +230,9 @@
 	};
 
 	const seek_audio = (e) => {
-		if (audio == null) {
-			return;
-		}
-
+		if (audio == null) return;
 		const { percent, current } = get_perc(e, audio.duration);
-		control.seek(audio, percent, current);
+		audio_manager.seek(audio, percent, current);
 	};
 
 	const update_volume = (e) => {
@@ -277,7 +240,7 @@
 		radio_volume = Math.round(current);
 
 		if (audio) {
-			control.set_volume(audio, radio_volume);
+			audio_manager.set_volume(audio, radio_volume);
 		}
 
 		config.set("radio_volume", radio_volume);
@@ -286,7 +249,7 @@
 	// @TODO: use old value instead of hardcoded 50
 	const toggle_mute = () => {
 		radio_volume = radio_volume > 0 ? 0 : 50;
-		control.set_volume(audio, radio_volume);
+		audio_manager.set_volume(audio, radio_volume);
 		config.set("radio_volume", radio_volume);
 	};
 </script>
@@ -300,8 +263,8 @@
 				<Play />
 			{/if}
 		</button>
-		<button class="small-control-icon" on:click={(event) => on_right(event, beatmap?.local ? "remove" : "add")}>
-			{#if beatmap?.local}
+		<button class="small-control-icon" on:click={(event) => on_right(event, $selected?.local ? "remove" : "add")}>
+			{#if $selected?.local}
 				<X />
 			{:else}
 				<Cross />

@@ -35,8 +35,6 @@ protocol.registerSchemesAsPrivileged([
 // fuck
 ipcMain.handle("http-request", async (event, options) => {
 	try {
-		console.log(options);
-
 		const response = await fetch(options.url, {
 			method: options.method || "GET",
 			headers: options.headers || {},

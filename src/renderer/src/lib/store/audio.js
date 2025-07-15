@@ -1,24 +1,40 @@
 import { writable, get } from "svelte/store";
 import { format_time } from "../utils/utils.js";
 
-const create_audio_store = () => {
-	const { subscribe, update } = writable({
-		audio: null,
-		id: null,
-		playing: false,
-		ended: false,
-		volume: 50, // %
-		progress: "0:00",
-		duration: "0:00",
-		progress_bar_width: 0,
-		is_fetching: false
-	});
+class AudioManager {
+	constructor(id) {
+		this.id = id;
+		this.store = writable({
+			audio: null,
+			id: null,
+			playing: false,
+			ended: false,
+			volume: 50,
+			progress: "0:00",
+			duration: "0:00",
+			progress_bar_width: 0,
+			is_fetching: false
+		});
+		this.next_callback = null;
+		this.pause_interval = null;
+		this.current_audio = null;
+	}
 
-	let next_callback = null;
-	let pause_interval = null;
+	subscribe = (run, invalidate) => this.store.subscribe(run, invalidate);
+	get_state = () => this.store;
 
-	const on_canplay = (event) => {
-		update((obj) => ({
+	on_canplay = (event) => {
+		const state = get(this.get_state());
+
+		if (state.audio != event.target) {
+			console.log("ignoring old can play");
+			return;
+		}
+
+		// remove this listener to prevent problems later
+		state.audio.removeEventListener("canplaythrough", this.on_canplay);
+
+		this.store.update((obj) => ({
 			...obj,
 			ended: false,
 			duration: format_time(event.target.duration ?? 0),
@@ -26,8 +42,14 @@ const create_audio_store = () => {
 		}));
 	};
 
-	const on_timeupdate = (event) => {
-		update((obj) => ({
+	on_timeupdate = (event) => {
+		const state = get(this.get_state());
+
+		if (state.audio != event.target) {
+			return;
+		}
+
+		this.store.update((obj) => ({
 			...obj,
 			ended: false,
 			progress: format_time(event.target.currentTime ?? 0),
@@ -35,8 +57,14 @@ const create_audio_store = () => {
 		}));
 	};
 
-	const on_end = async (event) => {
-		update((obj) => ({
+	on_end = async (event) => {
+		const state = get(this.get_state());
+
+		if (state.audio != event.target) {
+			return;
+		}
+
+		this.store.update((obj) => ({
 			...obj,
 			progress: format_time(event.target.currentTime ?? 0),
 			progress_bar_width: 100,
@@ -44,32 +72,48 @@ const create_audio_store = () => {
 			playing: false
 		}));
 
-		if (next_callback) {
-			await get_next();
+		if (this.next_callback) {
+			await this.get_next();
 		}
 	};
 
-	const setup = async (id, audio) => {
-		const old = get({ subscribe });
+	async setup(id, audio) {
+		const current_state = get(this.get_state());
 
-		if (old.audio) {
-			remove(old.audio);
+		// @TODO: figure out why we're receiving double calls on setup
+		// check if the old state has the same id
+		if (current_state.id == id) {
+			console.log("ignored same id", id);
+			return;
 		}
 
-		audio.addEventListener("canplay", on_canplay);
-		audio.addEventListener("timeupdate", on_timeupdate);
-		audio.addEventListener("ended", on_end);
+		// remove old state
+		this.remove(current_state.audio);
 
-		update((obj) => ({ ...obj, audio, id, ended: false, is_fetching: false }));
-		return true;
-	};
+		this.store.update((obj) => ({
+			...obj,
+			id,
+			audio,
+			playing: false,
+			is_fetching: false
+		}));
 
-	const play = async (audio) => {
-		if (pause_interval) {
-			clearInterval(pause_interval);
+		// setup listeners
+		audio.addEventListener("canplaythrough", this.on_canplay);
+		audio.addEventListener("timeupdate", this.on_timeupdate);
+		audio.addEventListener("ended", this.on_end);
+
+		console.log("audio setup completed for:", id);
+	}
+
+	play = async (audio) => {
+		console.log("playing audio", audio.src);
+
+		if (this.pause_interval) {
+			clearInterval(this.pause_interval);
 		}
 
-		update((obj) => ({
+		this.store.update((obj) => ({
 			...obj,
 			playing: true,
 			ended: false
@@ -79,123 +123,136 @@ const create_audio_store = () => {
 			await audio.play();
 		} catch (error) {
 			console.log("play error:", error);
-			update((obj) => ({
+			this.store.update((obj) => ({
 				...obj,
 				playing: false
 			}));
 		}
 	};
 
-	const pause = (audio) => {
+	pause(audio) {
+		console.log("pausing audio", audio.src);
 		audio.pause();
-		update((obj) => ({
-			...obj,
-			playing: false
-		}));
-	};
+		this.store.update((obj) => ({ ...obj, playing: false }));
+	}
 
-	const pause_until = (audio, exp) => {
-		if (pause_interval) {
-			clearInterval(pause_interval);
+	pause_until = (audio, exp) => {
+		console.log("pausing until", audio.src);
+
+		if (this.pause_interval) {
+			clearInterval(this.pause_interval);
 		}
 
-		pause(audio);
-
-		pause_interval = setInterval(async () => {
+		this.pause(audio);
+		this.pause_interval = setInterval(async () => {
 			const result = exp();
 			if (result) {
-				await play(audio);
-				clearInterval(pause_interval);
+				console.log("until exp is finally true", audio.src);
+				await this.play(audio);
+				clearInterval(this.pause_interval);
 			}
 		}, 10);
 	};
 
-	const remove = (audio) => {
-		if (!audio.paused) {
-			audio.pause();
+	remove(audio) {
+		// ignore invalid audio objects
+		if (!audio?.src) {
+			return;
 		}
 
-		audio.removeEventListener("canplay", on_canplay);
-		audio.removeEventListener("timeupdate", on_timeupdate);
-		audio.removeEventListener("ended", on_end);
+		// remove audio from memory
+		const url = audio.src;
+		audio.src = "";
+		window.URL.revokeObjectURL(url);
 
-		update((obj) => ({
+		// force it so stop
+		audio.pause();
+		audio.currentTime = 0;
+
+		// remove old listeners
+		audio.removeEventListener("canplaythrough", this.on_canplay);
+		audio.removeEventListener("timeupdate", this.on_timeupdate);
+		audio.removeEventListener("ended", this.on_end);
+
+		// clean store object
+		this.store.update((obj) => ({
 			...obj,
 			playing: false,
 			id: null,
 			audio: null,
 			is_fetching: false
 		}));
-	};
 
-	const seek = (audio, percent, time) => {
-		audio.currentTime = time;
-		update((obj) => ({
-			...obj,
-			progress_bar_width: percent * 100,
-			progress: format_time(time)
-		}));
-	};
+		console.log("audio successfully removed");
+	}
 
-	const restart = (audio) => {
+	seek(audio, percent, current) {
+		console.log("seeking audio to:", current, "seconds (", percent * 100, "%)");
+		if (audio) {
+			audio.currentTime = current;
+			console.log("finished seeking:", audio.currentTime);
+		} else {
+			console.log("no audio available to seek");
+		}
+	}
+
+	restart = (audio) => {
 		audio.currentTime = 0;
-		update((obj) => ({
+		this.store.update((obj) => ({
 			...obj,
 			progress_bar_width: 0,
 			progress: format_time(0)
 		}));
 	};
 
-	const set_volume = (audio, volume) => {
+	set_volume = (audio, volume) => {
 		audio.volume = volume / 100;
-		update((obj) => ({
+		this.store.update((obj) => ({
 			...obj,
 			volume
 		}));
 	};
 
-	const get_next = async () => {
-		if (!next_callback || get({ subscribe }).is_fetching) {
+	get_next = async () => {
+		if (!this.next_callback || this.get_state().is_fetching) {
 			return;
 		}
 
-		update((obj) => ({ ...obj, is_fetching: true }));
+		this.store.update((obj) => ({ ...obj, is_fetching: true }));
 
 		try {
-			const result = await next_callback();
+			const result = await this.next_callback();
 
 			if (!result || !result.id || !result.audio) {
 				console.log("failed to get next audio from callback", result);
-				update((obj) => ({ ...obj, is_fetching: false }));
+				this.store.update((obj) => ({ ...obj, is_fetching: false }));
 				return;
 			}
 
 			const { id, audio } = result;
-
-			await setup(id, audio);
-			await play(audio);
+			await this.setup(id, audio);
+			await this.play(audio);
 		} catch (error) {
 			console.log("error getting next song:", error);
-			update((obj) => ({ ...obj, is_fetching: false }));
+			this.store.update((obj) => ({ ...obj, is_fetching: false }));
 		}
 	};
 
-	return {
-		subscribe,
-		setup,
-		play,
-		pause_until,
-		pause,
-		restart,
-		seek,
-		set_volume,
-		set_next: (callback) => (next_callback = callback),
-		remove
+	set_next = (callback) => {
+		this.next_callback = callback;
 	};
+}
+
+const audio_managers = new Map();
+
+/** @returns {AudioManager} */
+export const get_audio_manager = (id) => {
+	if (!audio_managers.has(id)) {
+		audio_managers.set(id, new AudioManager(id));
+	}
+	return audio_managers.get(id);
 };
 
 export const radio_mode = writable("");
 export const radio_random = writable(false);
 export const radio_repeat = writable(false);
-export const radio_store = create_audio_store();
-export const preview_store = create_audio_store();
