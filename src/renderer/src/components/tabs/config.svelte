@@ -44,7 +44,7 @@
 
 	// @TODO: confirm popup if we're about to discard changes
 	const load_files = async () => {
-		await get_collections();
+		await get_collections(true);
 	};
 </script>
 
@@ -119,7 +119,7 @@
 				<div class="field-description">useful if you have no internet</div>
 			</div>
 
-			<button type="button" on:click={load_files}>reload files</button>
+			<button type="button" on:click={() => load_files(true)}>reload files</button>
 		</div>
 
 		<div class="info-box">

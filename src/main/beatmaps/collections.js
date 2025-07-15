@@ -12,6 +12,8 @@ export const get_collections_from_database = async () => {
 		return;
 	}
 
+	console.log("getting from osu! data from", osu_folder);
+
 	const location = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "collection.db");
 
 	if (!fs.existsSync(location)) {

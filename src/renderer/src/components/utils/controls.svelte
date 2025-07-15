@@ -22,8 +22,8 @@
 	export let beatmap = {};
 	export let small = true;
 	export let right = () => {};
-
-	// @TODO: move at least half of the code into its own .js file
+	
+	// @TODO: (URGENT) move at least 90% of the audio logic to normal js
 
 	const on_left = (event, callback) => {
 		event.stopPropagation();
@@ -55,6 +55,12 @@
 			actual_url = `https://b.ppy.sh/preview/${beatmap?.beatmapset_id}.mp3`;
 		}
 	}
+
+	// @TODO: update audio to new select beatmap
+	// cant to this rn cuz this system is horrible and i dont wanna hack a way to do this
+	// $: if (!small && $selected && audio_id != current_id) {
+	// 	handle_audio();
+	// }
 
 	const get_audio = async (beatmap, url) => {
 		try {
@@ -129,7 +135,7 @@
 	const play_audio = async (audio) => {
 		// temp pause radio song if we're previewing something
 		if (small && $radio_store.playing) {
-			// @TODO: if we change tab without waiting the preview to finish or pausing the pause_until will not work
+			// @TOFIX: if we change tab without waiting the preview to finish or pausing the pause_until will not work
 			radio_store.pause_until($radio_store.audio, () => !$preview_store.playing);
 		}
 		// set next song if possible

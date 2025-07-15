@@ -74,10 +74,10 @@
 			<span class="stat">{beatmap?.status_text ?? "unknown"}</span>
 			<div class="right-stats">
 				{#if show_bpm}
-					<span class="stars">{Math.round(beatmap.bpm) ?? "unknown"} bpm</span>
+					<span class="stars">{Math.round(beatmap.bpm) ?? "0"} bpm</span>
 				{/if}
 				{#if show_star_rating}
-					<span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? "0.0"}</span>
+					<span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? 0}</span>
 				{/if}
 			</div>
 		</div>

@@ -7,6 +7,7 @@ import { config } from "../database/config.js";
 import path from "path";
 import fs from "fs";
 import zlib from "zlib";
+import { ALL_SCHEMAS } from "./models/lazer.js";
 
 // placeholder
 const create_alert = () => {};
@@ -230,7 +231,7 @@ export class Reader extends BinaryReader {
 			console.log("[reader] reading lazer data...");
 
 			try {
-				await this.get_instance(file_path, ["All"]);
+				await this.get_instance(file_path, ALL_SCHEMAS);
 				return lazer_to_osu_db(this.instance);
 			} catch (err) {
 				this.instance = null;
@@ -408,7 +409,7 @@ export class Reader extends BinaryReader {
 	get_collections_data = async (file_path) => {
 		if (config.lazer_mode) {
 			try {
-				await this.get_instance(file_path, ["All"]);
+				await this.get_instance(file_path, ALL_SCHEMAS);
 
 				const lazer_data = this.instance.objects("BeatmapCollection");
 				const data = { collections: new Map() };
@@ -417,7 +418,8 @@ export class Reader extends BinaryReader {
 					const collection = lazer_data[i];
 					data.collections.set(collection.Name, {
 						uuid: collection.ID,
-						maps: collection.BeatmapMD5Hashes
+						name: collection.Name,
+						maps: Array.from(collection.BeatmapMD5Hashes)
 					});
 				}
 

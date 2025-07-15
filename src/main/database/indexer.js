@@ -6,6 +6,8 @@ import Processor from "../../../build/Release/processor.node";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
+import { sleep } from "../../renderer/src/lib/utils/utils.js";
+import { config } from "./config.js";
 
 const PROCESSOR_PATH = get_app_path();
 const BATCH_SIZE = 999;
@@ -104,16 +106,32 @@ export const process_beatmaps = async (beatmaps_array) => {
 	if (to_process.length > 0) {
 		console.log(`[indexer] processing ${to_process.length} new beatmaps`);
 
-		const processor_input = to_process.map((beatmap) => ({
-			md5: beatmap.md5,
-			unique_id: beatmap.unique_id,
-			file_path: reader.get_file_location(beatmap)
-		}));
+		const processor_input = [];
+
+		for (let i = 0; i < to_process.length; i++) {
+			const beatmap = to_process[i];
+			const result = {};
+
+			result.md5 = beatmap.md5;
+			result.unique_id = beatmap.unique_id;
+
+			if (config.lazer_mode) {
+				result.file_path = beatmap.file_path;
+				result.audio_path = beatmap.audio_path;
+				result.image_path = beatmap.image_path;
+			} else {
+				result.file_path = reader.get_file_location(beatmap);
+			}
+
+			processor_input.push(result);
+		}
 
 		processed_beatmaps = await Processor.process_beatmaps(processor_input, (index) => {
+			const file_name = processor_input[index].file_path;
+			const split = file_name.split("/");
 			window?.webContents.send("process-update", {
 				status: "processing beatmaps",
-				text: `processing ${processor_input[index].file_path}`,
+				text: `processing ${split[split.length - 1]}`,
 				index,
 				length: processor_input.length,
 				small: "this might take a while"
@@ -133,7 +151,16 @@ export const process_beatmaps = async (beatmaps_array) => {
 		if (successful_beatmaps.length > 0) {
 			insert_beatmaps(successful_beatmaps);
 		}
+
+		const failed_beatmaps = processed_beatmaps.length - successful_beatmaps.length;
+
+		if (failed_beatmaps > 0) {
+			console.log("failed to proccess", failed_beatmaps, "beamtaps");
+		}
 	}
+
+	// without that renderer dont update (prob race condition)
+	await sleep(100);
 
 	window?.webContents.send("process", { show: false });
 

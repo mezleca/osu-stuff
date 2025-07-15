@@ -42,7 +42,6 @@ class BeatmapList {
 
 		// prevent bullshitting
 		if (!name && !is_all_beatmaps) {
-			console.log("not updating due to bullshit");
 			return null;
 		}
 
@@ -54,6 +53,7 @@ class BeatmapList {
 		// to return all of the beatmaps
 		if (is_all_beatmaps) {
 			options.all = true;
+			options.unique = true;
 		}
 
 		// add star range to extra filter options
@@ -71,6 +71,8 @@ class BeatmapList {
 		if (sort != "") {
 			options.sort = sort;
 		}
+
+		if (extra_options) console.log(extra_options);
 
 		const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 

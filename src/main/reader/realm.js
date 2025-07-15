@@ -1,9 +1,11 @@
 import { GAMEMODES } from "../beatmaps/beatmaps";
+import { config } from "../database/config";
 
 import Realm from "realm";
 import path from "path";
+import fs from "fs";
 
-const LAZER_SCHEMA_VERSION = 48;
+const LAZER_SCHEMA_VERSION = 49;
 
 export const get_realm_instance = (path, schemas) => {
 	const instance = new Realm({
@@ -18,23 +20,29 @@ export const get_lazer_beatmaps = (instance) => {
 	return instance.objects("Beatmap");
 };
 
-const create_mode_star_rating = (star_rating, mode) => ({
-	mode: GAMEMODES[mode],
+const create_mode_star_rating = (star_rating) => ({
+	nm: star_rating,
 	pair: [[0, star_rating]]
 });
 
+// @TODO: NO
 const create_star_rating = (rating) => {
-	return GAMEMODES.map((_, i) => create_mode_star_rating(rating, i));
+	return GAMEMODES.map(() => create_mode_star_rating(rating));
+};
+
+export const get_lazer_file_location = (name) => {
+	const lazer_files_path = path.resolve(config.lazer_path, "files");
+	return path.resolve(lazer_files_path, `${name.substring(0, 1)}/${name.substring(0, 2)}/${name}`);
 };
 
 export const convert_lazer_to_stable = (lazer_beatmaps) => {
 	const beatmaps = new Map();
-	const length = lazer_beatmaps.length;
 
-	for (let i = 0; i < length; i++) {
+	for (let i = 0; i < lazer_beatmaps.length; i++) {
 		const beatmap = lazer_beatmaps[i];
 
-		if (!beatmap?.MD5Hash) {
+		// ignore unknwon beatmaps
+		if (!beatmap?.MD5Hash || !beatmap?.BeatmapSet) {
 			continue;
 		}
 
@@ -43,38 +51,43 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 		const user_settings = beatmap.UserSettings;
 		const last_update = beatmap.LastLocalUpdate;
 		const last_played = beatmap.LastPlayed;
-		const beatmapset = beatmap.BeatmapSet;
-
+		const beatmapset = beatmap.BeatmapSet.toJSON();
 		const last_update_time = last_update?.getTime() || 0;
 		const last_played_time = last_played?.getTime() || 0;
+		const hash = beatmap.Hash;
 
-		const file_data = beatmap.beatmapset.Files.find((f) => f.Filename == filename);
-		const hash = file_data.File.Hash;
+		delete beatmapset.Beatmaps;
+
+		// get audio file location
+		const audio_file_data = beatmapset.Files.find((f) => f.Filename == metadata.AudioFile);
+		const background_file_data = beatmapset.Files.find((f) => f.Filename == metadata.BackgroundFile);
+		const audio_file = audio_file_data ? get_lazer_file_location(audio_file_data.File.Hash) : "";
+		const background_file = background_file_data ? get_lazer_file_location(background_file_data.File.Hash) : "";
 
 		const converted_beatmap = {
 			beatmap_start: 0,
 			entry: 0,
-			artist: metadata?.Artist || "",
-			artist_unicode: metadata?.ArtistUnicode || "",
-			title: metadata?.Title || "",
-			title_unicode: metadata?.TitleUnicode || "",
-			mapper: metadata?.Author?.Username || "",
+			artist: metadata.Artist || "",
+			artist_unicode: metadata.ArtistUnicode || "",
+			title: metadata.Title || "",
+			title_unicode: metadata.TitleUnicode || "",
+			mapper: metadata.Author.Username || "",
 			difficulty: beatmap.DifficultyName || "",
-			audio_file_name: metadata?.AudioFile || "",
+			audio_file_name: audio_file || "",
 			md5: beatmap.MD5Hash,
 			file: beatmap.Hash || "",
 			status: beatmap.Status || 0,
-			beatmapset,
+			beatmapset: beatmapset,
 			hitcircle: beatmap.TotalObjectCount || 0,
 			bpm: beatmap.BPM || 0,
 			sliders: 0,
 			spinners: 0,
 			last_modification: last_update_time,
-			ar: difficulty?.ApproachRate || 0,
-			cs: difficulty?.CircleSize || 0,
-			hp: difficulty?.DrainRate || 0,
-			od: difficulty?.OverallDifficulty || 0,
-			slider_velocity: difficulty?.SliderMultiplier || 0,
+			ar: difficulty.ApproachRate || 0,
+			cs: difficulty.CircleSize || 0,
+			hp: difficulty.DrainRate || 0,
+			od: difficulty.OverallDifficulty || 0,
+			slider_velocity: difficulty.SliderMultiplier || 0,
 			star_rating: create_star_rating(beatmap.StarRating || 0),
 			star: beatmap.StarRating || 0,
 			drain_time: beatmap.Length || 0,
@@ -82,8 +95,8 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			audio_preview: metadata?.PreviewTime || 0,
 			timing_points_length: 0,
 			timing_points: [],
-			difficulty_id: beatmap.OnlineID || -1,
-			beatmapset_id: beatmapset?.OnlineID || -1,
+			difficulty_id: beatmap.OnlineID,
+			beatmapset_id: beatmapset.OnlineID,
 			thread_id: -1,
 			grade_standard: 0,
 			grade_taiko: 0,
@@ -100,8 +113,8 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			last_played: last_played_time,
 			is_osz2: false,
 			folder_name: "",
-			file_path: path.resolve(hash.substring(0, 1), hash.substring(0, 2), hash),
-			unique_id: beatmapset?.OnlineID ? `${beatmapset.OnlineID}_${hash}` : hash,
+			file_path: get_lazer_file_location(hash),
+			unique_id: beatmapset.OnlineID ? `${beatmapset.OnlineID}_${metadata.AudioFile}` : beatmap.MD5Hash,
 			last_checked: 0,
 			ignore_sounds: false,
 			ignore_skin: false,
@@ -111,12 +124,15 @@ export const convert_lazer_to_stable = (lazer_beatmaps) => {
 			last_modification: last_update_time ? Math.floor(last_update_time / 1000) : 0,
 			mania_scroll_speed: 0,
 			beatmap_end: 0,
-			downloaded: true
+			downloaded: true,
+			local: true,
+			audio_path: audio_file,
+			image_path: background_file
 		};
 
 		beatmaps.set(converted_beatmap.md5, converted_beatmap);
 	}
-
+	
 	return beatmaps;
 };
 

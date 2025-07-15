@@ -47,19 +47,23 @@ struct AudioInfo {
 };
 
 struct BeatmapObject {
-	string md5;
-	string unique_id;
-	string file_path;
+	string md5 = "";
+	string unique_id = "";
+	string file_path = "";
+
+	// lazer will provide that
+	string audio_path = "";
+	string image_path = "";
 };
 
 // @TODO: process more data
 struct BeatmapInfo {
 	bool success = false;
-	string md5;
-	string unique_id;
-	string reason;
-	string audio_path;
-	string image_path;
+	string md5 = "";
+	string unique_id = "";
+	string reason = "";
+	string audio_path = "";
+	string image_path = "";
 	double duration = 0.0;
 };
 
@@ -176,51 +180,57 @@ AudioInfo get_audio_information(const string& audio_id, const string& path) {
 	return audio_info;
 }
 
-// Process a single beatmap
 BeatmapInfo get_beatmap_info(const BeatmapObject& beatmap) {
 	BeatmapInfo info;
+	info.md5 = beatmap.md5;
+	info.unique_id = beatmap.unique_id;
 
 	if (beatmap.file_path.empty() || !filesystem::exists(beatmap.file_path)) {
 		info.reason = "beatmap file not found";
 		return info;
 	}
 
-	info.md5 = beatmap.md5;
-	info.unique_id = beatmap.unique_id;
+	if (beatmap.audio_path.empty() || beatmap.image_path.empty()) {
+		// parse osu sections
+		OsuFileInfo osu_info = parse_osu_file(beatmap.file_path);
 
-	OsuFileInfo osu_info = parse_osu_file(beatmap.file_path);
-
-	if (osu_info.audio_filename.empty()) {
-		info.reason = "audio filename not found";
-		return info;
-	}
-
-	filesystem::path osu_path(beatmap.file_path);
-	filesystem::path audio_path = osu_path.parent_path() / osu_info.audio_filename;
-	
-	if (!filesystem::exists(audio_path)) {
-		info.reason = "audio file not found";
-		return info;
-	}
-
-	info.audio_path = audio_path.string();
-
-	if (!osu_info.image_filename.empty()) {
-		filesystem::path image_path = osu_path.parent_path() / osu_info.image_filename;
-		if (filesystem::exists(image_path)) {
-			info.image_path = image_path.string();
+		if (osu_info.audio_filename.empty()) {
+			info.reason = "audio filename not found";
+			return info;
 		}
+
+		filesystem::path base_path = filesystem::path(beatmap.file_path).parent_path();
+		filesystem::path audio_path = base_path / osu_info.audio_filename;
+
+		if (!filesystem::exists(audio_path)) {
+			info.reason = "audio file not found";
+			return info;
+		}
+
+		info.audio_path = audio_path.string();
+
+		if (!osu_info.image_filename.empty()) {
+			filesystem::path image_path = base_path / osu_info.image_filename;
+			if (filesystem::exists(image_path)) {
+				info.image_path = image_path.string();
+			}
+		}
+	}
+	else {
+		// lazer mode
+		info.audio_path = beatmap.audio_path;
+		info.image_path = beatmap.image_path;
 	}
 
 	AudioInfo audio_info = get_audio_information(info.unique_id, info.audio_path);
+
 	info.success = audio_info.success;
+	info.duration = audio_info.duration;
 
 	if (!info.success) {
 		info.reason = "failed to get audio data";
-		return info;
 	}
 
-	info.duration = audio_info.duration;
 	return info;
 }
 
@@ -267,7 +277,7 @@ public:
 					);
 				}
 			}
-		};
+			};
 
 		for (size_t t = 0; t < thread_count; ++t) {
 			size_t start = t * chunk_size;
@@ -358,8 +368,20 @@ Napi::Value process_beatmaps(const Napi::CallbackInfo& info) {
 		string unique_id = current_beatmap.Get("unique_id").As<Napi::String>().Utf8Value();
 		string file_path = current_beatmap.Get("file_path").As<Napi::String>().Utf8Value();
 		string md5 = current_beatmap.Get("md5").As<Napi::String>().Utf8Value();
+		string audio_path = "";
+		string image_path = "";
 
-		beatmaps.push_back({ md5, unique_id, file_path });
+		// lazer mode
+		if (current_beatmap.Has("audio_path")) {
+			audio_path = current_beatmap.Get("audio_path").As<Napi::String>().Utf8Value();
+		}
+
+		// lazer mode
+		if (current_beatmap.Has("image_path")) {
+			image_path = current_beatmap.Get("image_path").As<Napi::String>().Utf8Value();
+		}
+		
+		beatmaps.push_back({ md5, unique_id, file_path, audio_path, image_path });
 	}
 
 	Napi::Function progress_cb = info.Length() > 1 && info[1].IsFunction() ? info[1].As<Napi::Function>() : Napi::Function();
@@ -381,7 +403,7 @@ Napi::Value clear_cache(const Napi::CallbackInfo& info) {
 
 Napi::Object initialize(Napi::Env env, Napi::Object exports) {
 	cout << "using libsnd " << sf_version_string() << endl;
-	
+
 	exports.Set("process_beatmaps", Napi::Function::New(env, process_beatmaps));
 	exports.Set("test", Napi::Function::New(env, test));
 	exports.Set("clear_cache", Napi::Function::New(env, clear_cache));

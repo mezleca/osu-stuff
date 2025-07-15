@@ -15,7 +15,6 @@
 	export let show_star_rating;
 	export let selected_beatmap;
 	export let max_width;
-	export let show_invalid;
 	export let height = 100;
 	export let direction;
 	export let remove_callback = () => {};
