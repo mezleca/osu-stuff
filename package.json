@@ -1,7 +1,7 @@
 {
 	"name": "osu-stuff",
 	"productName": "osu-stuff",
-	"version": "1.8.1",
+	"version": "1.8.2",
 	"description": "yet another collection manager",
 	"main": "src/index.js",
 	"type": "module",
