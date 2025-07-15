@@ -1,7 +1,7 @@
 import { fs } from "../global.js";
 
 // @TODO: update collections in real time (collections added on lazer (while osu-stuff is open) are not automatically added here)
-const LAZER_SCHEMA_VERSION = 48;
+const LAZER_SCHEMA_VERSION = 49;
 
 export const get_realm_instance = (path, schemas) => {
 
