@@ -393,7 +393,7 @@
 
 	.small-control-icon:hover {
 		transform: scale(1.05);
-		background-color: var(--bg-tertiary);
+		background-color: var(--header-bg-color);
 	}
 
 	.big-control {

@@ -61,7 +61,6 @@
 
 	onMount(() => {
 		if ($sort == "") $sort = "artist";
-		filter_collection();
 	});
 </script>
 

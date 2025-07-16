@@ -13,6 +13,7 @@
 	import Radio from "./components/tabs/radio.svelte";
 	import Config from "./components/tabs/config.svelte";
 	import Index from "./components/tabs/index.svelte";
+	import Status from "./components/tabs/status.svelte";
 
 	// extra
 	import Header from "./components/header.svelte";
@@ -90,7 +91,7 @@
 		{:else if $active_tab == "config"}
 			<Config />
 		{:else if $active_tab == "status"}
-			<button>status</button>
+			<Status />
 		{:else}
 			<Index />
 		{/if}
