@@ -3,6 +3,7 @@ import { writable } from "svelte/store";
 // notifications
 export const notifications_store = writable([]);
 
+/** @param {{ id: string, type: string, timeout: number, text: string}} data */
 export const show_notification = (data) => {
 	const defaults = {
 		id: crypto.randomUUID(),

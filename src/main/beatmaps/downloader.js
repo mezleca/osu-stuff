@@ -1,15 +1,27 @@
+import { config } from "../database/config";
+
 import fs from "fs";
 import path from "path";
+import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
 
-let downloads = [];
-let mirrors = [];
-let beatmap_cache = new Map();
 let token = "";
 let processing = false;
-let download_progress = new Map();
+let main_window = null;
 
+const downloads = new Map(); 
+const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
+
+export const send_download_progress = (data) => {
+	main_window.webContents.send("download-progress", {
+		name: data.name,
+		index: data.progress.index,
+		length: data.progress.length,
+		failed: data.progress.failed,
+		finished: data.finished
+	});
+};
 
 // to process multiple beatmaps
 export const parallel_map = async (array, mapper, concurrency) => {
@@ -50,7 +62,7 @@ export const parallel_map = async (array, mapper, concurrency) => {
 	return results;
 };
 
-const main = (ipc_main, main_window) => {
+const main = (ipc_main, w) => {
 	// setup handlers
 	ipc_main.handle("add-download", (_, download) => add_download(download));
 	ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
@@ -61,16 +73,7 @@ const main = (ipc_main, main_window) => {
 	ipc_main.handle("remove-download", (_, name) => remove_download(name));
 	ipc_main.handle("remove-mirror", (_, name) => remove_mirror(name));
 
-	// send progress to the frontend
-	const send_progress = (name, current, total) => {
-		main_window.webContents.send("download-progress", {
-			name,
-			current,
-			total
-		});
-	};
-
-	return { send_progress };
+	main_window = w;
 };
 
 const start_processing = async (name) => {
@@ -80,31 +83,22 @@ const start_processing = async (name) => {
 
 	processing = true;
 
-	while (processing && downloads.length > 0) {
+	while (processing && downloads.size > 0) {
 		// make sure we have a token
 		if (!token) {
 			break;
 		}
 
-		// finished?
-		if (mirrors.length == 0) {
+		if (config.mirrors.length == 0) {
 			// @TODO: tell something to the frontend
 			break;
 		}
 
-		// get the index of the old download
-		const download_index = name && name != "" ? downloads.findIndex((d) => d.name == name) : 0;
-
-		// ensure we dont have a negative index
-		const current_download = downloads[download_index < 0 ? 0 : download_index];
-
-		// process current download
-		await process_download(current_download);
+		await process_download(downloads.get(name));
 
 		// go to the next one
 		if (processing) {
-			downloads.shift();
-			download_progress.delete(current_download.name);
+			downloads.delete(name);
 		}
 	}
 
@@ -118,26 +112,25 @@ const stop_processing = () => {
 const process_download = async (download) => {
 	// ensure we have the beatmaps to download
 	if (!download.beatmaps || download.beatmaps.length == 0) {
-		console.log("failed to get beatmaps", download);
+		console.log("failed to get beatmaps for", download);
 		return;
 	}
 
-	const start_index = download_progress.get(download.name) || 0;
-	const beatmaps_to_process = download.beatmaps.slice(start_index);
-
 	await parallel_map(
-		beatmaps_to_process,
-		async (beatmap, index) => {
-			if (!processing || !downloads.includes(download)) {
+		download.beatmaps,
+		async (beatmap) => {
+			if (!processing || !downloads.has(download.name)) {
 				return { stop: true };
 			}
 
-			const actual_index = start_index + index;
 			const success = await process_beatmap(download, beatmap);
 
-			if (success) {
-				download_progress.set(download.name, actual_index + 1);
+			if (!success) {
+				download.progress.failed++;
 			}
+
+			download.progress.index++;
+			send_download_progress(download);
 
 			return success;
 		},
@@ -147,10 +140,12 @@ const process_download = async (download) => {
 
 const process_beatmap = async (download, beatmap) => {
 	// check if we're still downloading
-	if (!processing || !downloads.includes(download)) {
-		console.log("downlaod not found", download);
+	if (!processing || !downloads.has(download.name)) {
+		console.log("download not found", download);
 		return { stop: true };
 	}
+
+
 
 	/* 
     const beatmap_data = await get_beatmap_info(beatmap.md5);
@@ -217,8 +212,8 @@ const get_beatmap_info = async (hash) => {
 };
 
 const get_osz = async (beatmap_id) => {
-	for (let i = 0; i < mirrors.length; i++) {
-		const mirror = mirrors[i];
+	for (let i = 0; i < config.mirrors.length; i++) {
+		const mirror = config.mirrors[i];
 
 		// ignore if mirror is in a cooldown (rate limited)
 		if (mirror.cooldown && mirror.cooldown > Date.now()) {
@@ -270,25 +265,27 @@ const save_file = async (buffer, file_path) => {
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const add_download = (download) => {
-	downloads.push(download);
-};
-
-const add_mirror = (mirror) => {
-	mirrors.push(mirror);
+	downloads.set(download.name, download);
 };
 
 const remove_download = (name) => {
-	const index = downloads.findIndex((d) => d.name == name);
-	if (index != -1) {
-		downloads.splice(index, 1);
+	downloads.delete(name);
+};
+
+const add_mirror = (mirror) => {
+	console.log("add_mirror:", mirror);
+	if (!mirror.name || !mirror.url) {
+		console.log("add_mirror: missing name/url");
+		return;
 	}
+	insert_mirror.run(mirror.name, mirror.url);
+	update_mirrors();
 };
 
 const remove_mirror = (name) => {
-	const index = mirrors.findIndex((m) => m.name == name);
-	if (index != -1) {
-		mirrors.splice(index, 1);
-	}
+	console.log("remove_mirror:", name);
+	delete_mirror.run(name);
+	update_mirrors();
 };
 
 const set_token = (new_token) => {

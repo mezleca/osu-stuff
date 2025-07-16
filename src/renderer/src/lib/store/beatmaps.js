@@ -178,6 +178,7 @@ class BeatmapList {
 	get_status = () => get(this.status);
 	get_sort = () => get(this.sort);
 	get_status = () => get(this.status);
+	is_empty = () => get(this.beatmaps)?.length == 0;
 
 	is_selected(beatmap) {
 		const current = get(this.selected);

@@ -29,7 +29,8 @@ export let config = {
 	export_path: null,
 	local_images: false,
 	lazer_mode: false,
-	radio_volume: null
+	radio_volume: null,
+	mirrors: []
 };
 
 console.log("config path", CONFIG_LOCATION);

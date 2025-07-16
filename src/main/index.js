@@ -3,10 +3,12 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
+import { initialize_mirrors } from "./database/mirrors";
 import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database } from "./beatmaps/beatmaps";
 import { get_collections_from_database } from "./beatmaps/collections";
 
 import icon from "../../resources/icon.png?asset";
+import { downloader } from "./beatmaps/downloader";
 
 // testing
 const additionalArguments = [
@@ -60,7 +62,7 @@ ipcMain.handle("http-request", async (event, options) => {
 	}
 });
 
-function createWindow() {
+async function createWindow() {
 	// create the browser window.
 	const mainWindow = new BrowserWindow({
 		width: 1100,
@@ -98,8 +100,10 @@ function createWindow() {
 	ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
 	ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
 
-	// get config values from sqlite database
-	initialize_config();
+	await initialize_config();
+	initialize_mirrors();
+
+	downloader.main(ipcMain, mainWindow);
 
 	// indexer will be used to process extra beatmap information and save into a sqlite database
 	// beatmap location because yes and song duration since osu! only returns beatmap length (unless im stupid)

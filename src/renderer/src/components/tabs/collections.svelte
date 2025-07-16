@@ -55,6 +55,8 @@
 		filter_collection();
 	}
 
+	// @TODO: this makes us request the collections every time we go into this tab
+	// in collections theres no difference since the collections are usually small but on radio we can notice a small delay
 	$: if ($selected_collection_name || $query || $sort || $status) {
 		filter_beatmaps();
 	}

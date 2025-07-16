@@ -2,19 +2,26 @@
 	import { onMount } from "svelte";
 	import { config } from "../../lib/store/config";
 	import { get_collections } from "../../lib/utils/collections";
+	import { show_notification } from "../../lib/store/notifications";
 
 	// components
 	import Add from "../utils/add.svelte";
 	import InputDialog from "../utils/input-dialog.svelte";
+	import Popup from "../utils/popup.svelte";
 
 	let osu_id;
 	let osu_secret = "";
 	let stable_path = "";
 	let lazer_path = "";
 	let stable_songs_path = "";
+	let mirrors = [];
 	let lazer_mode = false;
 	let local_images = false;
 	let initialized = false;
+
+	$: show_mirror_popup = false;
+	$: new_mirror_name = "";
+	$: new_mirror_url = "";
 
 	const save_config = (key, value) => {
 		if (initialized && value != $config[key]) {
@@ -39,17 +46,55 @@
 		stable_songs_path = $config.stable_songs_path || "";
 		lazer_mode = $config.lazer_mode == true || $config.lazer_mode == "true";
 		local_images = $config.local_images == true || $config.local_images == "true";
+		mirrors = $config.mirrors;
 		initialized = true;
 	});
 
-	// @TODO: confirm popup if we're about to discard changes
+	// @TODO: confirmation
 	const load_files = async () => {
 		await get_collections(true);
+	};
+
+	const add_mirror = async () => {
+		if (!new_mirror_name || !new_mirror_url) {
+			show_notification({
+				text: "missing mirror name / url",
+				timeout: 5000,
+				type: "error"
+			});
+			return;
+		}
+
+		await window.downloader.add_mirror({ name: new_mirror_name, url: new_mirror_url });
+
+		new_mirror_name = "";
+		new_mirror_url = "";
+		show_mirror_popup = false;
+
+		// force update
+		await config.reload();
+		mirrors = $config.mirrors;
+	};
+
+	// @TODO: confirmation
+	const remove_mirror = async (name) => {
+		await window.downloader.remove_mirror(name);
+		await config.reload();
+		mirrors = $config.mirrors;
 	};
 </script>
 
 <div class="content tab-content">
-	<Add />
+	<Add callback={() => show_mirror_popup = !show_mirror_popup}/>
+	<Popup bind:active={show_mirror_popup}>
+		<div class="popup-content" style="display: flex; flex-direction: column; gap: 10px; width: 50%;">
+			<label for="name">name</label>
+			<input class="text-input" type="text" name="name" placeholder="ex: beatconnect" bind:value={new_mirror_name}>
+			<label for="url">url</label>
+			<input class="text-input" type="text" name="url" placeholder="ex: https://beatconnect.io/d/" bind:value={new_mirror_url}>
+			<button onclick={add_mirror}>add</button>
+		</div>
+	</Popup>
 	<div class="config-content">
 		<div class="config-fields">
 			<div class="field-group" id="osu_id">
@@ -119,23 +164,22 @@
 				<div class="field-description">useful if you have no internet</div>
 			</div>
 
-			<button type="button" on:click={() => load_files(true)}>reload files</button>
+			<button type="button" onclick={() => load_files(true)}>reload files</button>
 		</div>
-
 		<div class="info-box">
 			<div class="info-box-header">
-				<div class="info-box-title">custom mirrors</div>
-				<div class="info-box-subtitle">TODO</div>
+				<div class="info-box-title">beatmap mirrors</div>
+				<div class="info-box-subtitle"></div>
 			</div>
 			<div class="info-box-stats">
-				<div class="stat-item">
-					<div class="stat-value">TODO</div>
-					<div class="stat-label">TODO</div>
-				</div>
-				<div class="stat-item">
-					<div class="stat-value">TODO</div>
-					<div class="stat-label">TODO</div>
-				</div>
+				{#each mirrors as mirror}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="stat-item" onclick={() => remove_mirror(mirror.name)}>
+						<div class="stat-value">{mirror.name}</div>
+						<div class="stat-label">{mirror.url}</div>
+					</div>
+				{/each}
 			</div>
 		</div>
 	</div>

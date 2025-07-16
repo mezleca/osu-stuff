@@ -14,7 +14,8 @@
 	const toggle_dropdown = () => (is_open = !is_open);
 
 	const select_option = (option) => {
-		selected_value = option.value || option;
+		const result = option.value || option;
+		if (result != selected_value) selected_value = value;
 		display_text = option.label || option;
 		is_open = false;
 	};

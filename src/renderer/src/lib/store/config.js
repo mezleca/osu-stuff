@@ -38,7 +38,8 @@ const create_persistent_config = () => {
 			subscribe((config) => (current_config = config))();
 			// @ts-ignore
 			return current_config[key] ?? null;
-		}
+		},
+		reload: load
 	};
 };
 
