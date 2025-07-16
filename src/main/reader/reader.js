@@ -13,15 +13,15 @@ import zlib from "zlib";
 const create_alert = () => {};
 
 export const stable_beatmap_status = {
-    [-1]: "all",
-    [0]: "unknown",
-    [1]: "unsubmitted",
-    [2]: "pending",
-    [3]: "unused",
-    [4]: "ranked",
-    [5]: "approved",
-    [6]: "qualified",
-    [7]: "loved"
+	[-1]: "all",
+	[0]: "unknown",
+	[1]: "unsubmitted",
+	[2]: "pending",
+	[3]: "unused",
+	[4]: "ranked",
+	[5]: "approved",
+	[6]: "qualified",
+	[7]: "loved"
 };
 
 export class Reader extends BinaryReader {
@@ -304,9 +304,7 @@ export class Reader extends BinaryReader {
 		};
 	};
 
-	get_beatmap_status = () => {
-
-	};
+	get_beatmap_status = () => {};
 
 	read_beatmap = (version) => {
 		const data = { star_rating: [] };

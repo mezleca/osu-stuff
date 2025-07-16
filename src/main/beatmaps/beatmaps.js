@@ -267,9 +267,7 @@ export const filter_by_sr = (beatmap, min, max) => {
 	return false;
 };
 
-export const get_beatmap_status = () => {
-
-};
+export const get_beatmap_status = () => {};
 
 export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null, status: null }) => {
 	console.log("filtered options", extra);

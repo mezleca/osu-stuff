@@ -34,7 +34,7 @@
 	};
 
 	const update_beatmaps = async () => {
-		const beatmaps = await list.get_beatmaps($radio_mode, $query, { unique: true, sort: $sort });
+		const beatmaps = await list.get_beatmaps($radio_mode, { unique: true, sort: $sort });
 		list.set_beatmaps(beatmaps, $radio_mode, true);
 	};
 

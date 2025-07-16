@@ -16,6 +16,7 @@ class BeatmapList {
 		this.status = writable("");
 		this.current_key = null;
 		this.is_unique = false;
+		this.invalid_selected = writable(false);
 	}
 
 	set_beatmaps(beatmaps, key, unique = false) {
@@ -93,25 +94,24 @@ class BeatmapList {
 	// will be used to try getting the old selected beatmap on the beatmap list
 	// (so you dont lost selected context on like "specific collection -> all beatmaps")
 	async handle_context_change(new_beatmaps, unique) {
-		const current_selected = this.get_selected();
-
-		if (!current_selected) {
-			return;
-		}
-
 		try {
-			let beatmap = null;
+			const current_selected = this.get_selected();
 
-			if (!unique) {
-				beatmap = await this.find_by_md5(new_beatmaps, current_selected.md5);
-			} else {
-				beatmap = await this.find_by_unique_id(new_beatmaps, current_selected);
+			if (!current_selected) {
+				return;
 			}
 
+			// get new beatmap using (song_name + md5) or just the md5 if we dont want unique shit
+			const beatmap = unique
+				? await this.find_by_unique_id(new_beatmaps, current_selected)
+				: await this.find_by_md5(new_beatmaps, current_selected.md5);
+
+			// if we found a beatmap that matches, update it.
 			if (beatmap) {
 				this.selected.set(beatmap);
 			} else {
-				this.selected.set(null);
+				// this will be used on control (reset index if the context is invalid)
+				this.invalid_selected.set(true);
 			}
 		} catch (error) {
 			console.log(error);

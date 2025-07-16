@@ -11,11 +11,11 @@ export const lazer_beatmap_status = {
 	"-3": "Unsubmitted",
 	"-2": "graveyard",
 	"-1": "wip",
-    "0": "pending",
-    "1": "ranked",
-    "2": "approved",
-    "3": "qualified",
-    "4": "loved",
+	0: "pending",
+	1: "ranked",
+	2: "approved",
+	3: "qualified",
+	4: "loved"
 };
 
 export const get_realm_instance = (path, schemas) => {
