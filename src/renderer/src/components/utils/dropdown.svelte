@@ -15,7 +15,7 @@
 
 	const select_option = (option) => {
 		const result = option.value || option;
-		if (result != selected_value) selected_value = value;
+		if (result != selected_value) selected_value = result;
 		display_text = option.label || option;
 		is_open = false;
 	};
