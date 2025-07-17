@@ -14,6 +14,12 @@
 	--accent-hover: #f06292;
 	--accent-bright: #f8bbd9;
 
+	/* CONTEXT MENU SHIT */
+	--wx-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.25);
+	--wx-border-radius: 6px;
+	--wx-background: #202020;
+	--wx-font-size: 14px;
+
 	--bg-color: #121212;
 	--bg-primary: #1e1e1e;
 	--bg-secondary: #2a2a2a;

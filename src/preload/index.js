@@ -47,7 +47,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 });
 
 contextBridge.exposeInMainWorld("shell", {
-	openExternal: (url, options) => shell.openExternal(url, options)
+	open: (url, options) => shell.openExternal(url, options)
 });
 
 contextBridge.exposeInMainWorld("extra", {

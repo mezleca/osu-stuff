@@ -3,6 +3,7 @@
 	import { get_beatmap_list } from "../lib/store/beatmaps";
 	import { show_notification } from "../lib/store/notifications";
 	import { get_beatmap_data } from "../lib/utils/beatmaps";
+	import { ContextMenu } from "wx-svelte-menu";
 
 	// components
 	import VirtualList from "./utils/virtual-list.svelte";
@@ -46,6 +47,37 @@
 	const handle_click = (beatmap, index) => {
 		list.select_beatmap(beatmap, index);
 	};
+
+	const open_on_browser = (beatmap) => {
+		if (!beatmap?.beatmapset_id) {
+			return;
+		}
+		window.shell.open(`https://osu.ppy.sh/beatmapsets/${beatmap.beatmapset_id}`);
+	};
+
+	const handle_context_menu = (event, beatmap) => {
+		const type = event.action?.id;
+
+		switch (type) {
+			case "browser":
+				open_on_browser(beatmap);
+				break;
+			case "download":
+				break;
+			case "export":
+				break;
+			case "delete":
+				remove_beatmap(beatmap.md5);
+				break;
+		}
+	};
+
+	const options = [
+		{ id: "browser", text: "open in browser" },
+		{ id: "download", text: "download beatmap" },
+		{ id: "export", text: "export beatmap" },
+		{ id: "delete", text: "delete beatmap" },
+	];
 </script>
 
 <div class="beatmaps-container">
@@ -66,14 +98,16 @@
 	>
 		{@const hash = $beatmaps[index]}
 		{#await get_beatmap_data(hash) then beatmap}
-			<BeatmapCard
-				{beatmap}
-				{show_bpm}
-				{show_star_rating}
-				selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
-				control={(type) => handle_control(type, beatmap)}
-				click={() => handle_click(beatmap, index)}
-			/>
+			<ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={options} at="point">
+				<BeatmapCard
+					{beatmap}
+					{show_bpm}
+					{show_star_rating}
+					selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
+					control={(type) => handle_control(type, beatmap)}
+					click={() => handle_click(beatmap, index)}
+				/>
+			</ContextMenu>
 		{/await}
 	</VirtualList>
 </div>
