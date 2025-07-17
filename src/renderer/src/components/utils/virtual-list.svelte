@@ -4,7 +4,7 @@
 	// props
 	export let count = 0;
 	export let item_height = 100;
-	export let buffer = 5;
+	export let buffer = 6;
 	export let height = "100%";
 	export let carousel = false;
 	export let max_width = false;
@@ -78,7 +78,7 @@
 			}
 
 			// hover effect
-			if (is_hovered) {
+			if (is_hovered && item_index != selected) {
 				scale = Math.min(scale * CAROUSEL_CONFIG.HOVER_SCALE_MULTIPLIER, CAROUSEL_CONFIG.HOVER_SCALE_MAX);
 				margin = CAROUSEL_CONFIG.HOVER_MARGIN;
 			}

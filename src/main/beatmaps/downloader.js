@@ -14,6 +14,7 @@ const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
 
 export const send_download_progress = (data) => {
+	console.log("sending progress", data.name, data.progress.index);
 	main_window.webContents.send("download-progress", {
 		name: data.name,
 		index: data.progress.index,
@@ -63,7 +64,8 @@ export const parallel_map = async (array, mapper, concurrency) => {
 };
 
 const main = (ipc_main, w) => {
-	// setup handlers
+	console.log("initializing downloader handlers");
+
 	ipc_main.handle("add-download", (_, download) => add_download(download));
 	ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
 	ipc_main.handle("set-token", (_, new_token) => set_token(new_token));
@@ -90,6 +92,7 @@ const start_processing = async (name) => {
 		}
 
 		if (config.mirrors.length == 0) {
+			console.log("mirrors is equal to 0");
 			// @TODO: tell something to the frontend
 			break;
 		}
@@ -100,6 +103,8 @@ const start_processing = async (name) => {
 		if (processing) {
 			downloads.delete(name);
 		}
+
+		console.log("processing new download");
 	}
 
 	processing = false;
@@ -145,20 +150,17 @@ const process_beatmap = async (download, beatmap) => {
 		return { stop: true };
 	}
 
-
-
-	/* 
     const beatmap_data = await get_beatmap_info(beatmap.md5);
 
     if (!beatmap_data) {
-        console.log(`Failed to get beatmap info for ${beatmap.md5}`);
+        console.log(`failed to get beatmap info for ${beatmap.md5}`);
         return false;
     }
 
     const osz_stream = await get_osz(beatmap_data.id);
 
     if (!osz_stream) {
-        console.log(`Failed to download beatmap ${beatmap_data.id}`);
+        console.log(`failed to download beatmap ${beatmap_data.id}`);
         return false;
     }
 
@@ -173,12 +175,6 @@ const process_beatmap = async (download, beatmap) => {
     const full_path = path.join(save_path, filename);
     
     await save_file(osz_stream, full_path);
-    
-	*/
-
-	beatmap;
-
-	await sleep(1000);
 
 	return true;
 };
@@ -295,7 +291,7 @@ const set_token = (new_token) => {
 const get_downloads = () => downloads;
 
 const get_save_path = () => {
-	return "./";
+	return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
 export const downloader = {

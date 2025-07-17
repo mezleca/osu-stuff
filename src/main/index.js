@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
 import { initialize_mirrors } from "./database/mirrors";
-import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database } from "./beatmaps/beatmaps";
+import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database, get_missing_beatmaps } from "./beatmaps/beatmaps";
 import { get_collections_from_database } from "./beatmaps/collections";
 
 import icon from "../../resources/icon.png?asset";
@@ -99,6 +99,7 @@ async function createWindow() {
 	ipcMain.handle("get-collections", () => get_collections_from_database());
 	ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
 	ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
+	ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
 
 	await initialize_config();
 	initialize_mirrors();

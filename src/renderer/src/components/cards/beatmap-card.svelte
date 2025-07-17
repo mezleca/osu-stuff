@@ -98,7 +98,6 @@
 		contain: layout style paint;
 	}
 
-	.small-card:hover,
 	.selected {
 		border-color: var(--accent-color);
 	}
@@ -130,6 +129,7 @@
 		flex-direction: column;
 		justify-content: center;
 		background: rgba(17, 20, 31, 0.6);
+		transition: 0.15s background;
 	}
 
 	.small-card .title {
@@ -186,5 +186,9 @@
 
 	.small-card:hover :global(.small-control-icon) {
 		opacity: 1;
+	}
+
+	.small-card .info:hover {
+		background: rgba(17, 20, 31, 0.4);
 	}
 </style>

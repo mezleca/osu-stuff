@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("config", {
 contextBridge.exposeInMainWorld("osu", {
 	get_beatmaps: (force) => ipcRenderer.invoke("get-beatmaps", force),
 	get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
+	missing_beatmaps: (beatmaps) => ipcRenderer.invoke("missing-beatmaps", beatmaps),
 	get_collections: () => ipcRenderer.invoke("get-collections"),
 	filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args)
 });

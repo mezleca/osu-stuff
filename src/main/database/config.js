@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 
 export const CONFIG_LOCATION = get_app_path();
+
 const config_keys = [
 	"osu_id",
 	"osu_secret",
@@ -82,10 +83,10 @@ export const initialize_config = async () => {
 	database = new Database(file_path);
 	create_config_table();
 
-	// Ensure at least one row exists in the config table
-	const rowCount = database.prepare("SELECT COUNT(*) as count FROM config").get().count;
+	// ensure at least one row exists in the config table
+	const row_count = database.prepare("SELECT COUNT(*) as count FROM config").get().count;
 
-	if (rowCount == 0) {
+	if (row_count == 0) {
 		database.prepare("INSERT INTO config (id) VALUES (1)").run();
 	}
 
@@ -105,7 +106,13 @@ export const initialize_config = async () => {
 		config[k] = v;
 	}
 
-	if (config_obj.stable_path != undefined && config_obj.stable_path != "") {
+	// always force the creation of export_path (if its empty)
+	if (!config.export_path || config.export_path == "") {
+		update_config({ export_path: path.resolve(CONFIG_LOCATION, "exports") });
+	}
+
+	// we already have the default stable path so lets just early return
+	if (config_obj.stable_path && config_obj.stable_path != "") {
 		return;
 	}
 
@@ -117,7 +124,6 @@ export const initialize_config = async () => {
 
 	if (osu_path != "") {
 		update_config({ stable_path: osu_path, lazer_mode: config.lazer_mode ?? false });
-
 		const stable_songs_path = path.resolve(osu_path, "Songs");
 
 		// maybe the user have a different songs path?

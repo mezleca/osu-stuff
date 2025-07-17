@@ -72,12 +72,27 @@
 		}
 	};
 
-	const options = [
-		{ id: "browser", text: "open in browser" },
-		{ id: "download", text: "download beatmap" },
-		{ id: "export", text: "export beatmap" },
-		{ id: "delete", text: "delete beatmap" },
-	];
+	const get_context_options = (beatmap) => {
+		if (beatmap?.downloaded) {
+			return [
+				{ id: "browser", text: "open in browser" },
+				{ id: "download", text: "download beatmap" },
+				{ id: "export", text: "export beatmap" },
+				{ id: "delete", text: "delete beatmap" },
+			]
+		} else if (!beatmap?.downloaded && beatmap?.beatmapset_id) {
+			return [
+				{ id: "browser", text: "open in browser" },
+				{ id: "download", text: "download beatmap" },
+				{ id: "delete", text: "delete beatmap" },
+			]
+		} else {
+			return [
+				{ id: "download", text: "download beatmap" },
+				{ id: "delete", text: "delete beatmap" },
+			] 
+		}
+	};
 </script>
 
 <div class="beatmaps-container">
@@ -98,7 +113,7 @@
 	>
 		{@const hash = $beatmaps[index]}
 		{#await get_beatmap_data(hash) then beatmap}
-			<ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={options} at="point">
+			<ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
 				<BeatmapCard
 					{beatmap}
 					{show_bpm}

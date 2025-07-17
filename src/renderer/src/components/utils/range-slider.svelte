@@ -33,7 +33,7 @@
 	const handle_min = (e) => {
 		const new_min = parseFloat(e.target.value);
 		min = clamp(new_min, 0, max - 0.5);
-		update_fill("");
+		update_fill();
 	};
 
 	const handle_max = (e) => {
@@ -50,7 +50,7 @@
 		tick().then(() => {
 			update();
 			// dont use callback on resize events
-			if (!event instanceof UIEvent) on_update_debounce();
+			if (!event) on_update_debounce();
 		});
 	};
 

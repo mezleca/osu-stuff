@@ -3,6 +3,7 @@
 	import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { onMount } from "svelte";
+	import { ContextMenu } from "wx-svelte-menu";
 
 	// components
 	import Add from "../utils/add.svelte";
@@ -29,7 +30,7 @@
 		if ($collection_search == "") {
 			filtered_collections = $all_collections;
 		} else {
-			filtered_collections = $all_collections.filter((obj) => obj.name.toLowerCase().includes($collection_search.toLowerCase()));
+			filtered_collections = $all_collections.filter((obj) => obj.name.toLowerCase()?.includes($collection_search.toLowerCase()));
 		}
 	};
 
@@ -49,6 +50,51 @@
 			filter_beatmaps();
 		}
 		filter_collection();
+	};
+
+	const get_context_options = (collection) => {
+		const current_name = collection.name;
+		const to_merge = $all_collections.filter((c) => c.name != current_name && c.maps.length > 0)
+			.map((c) => ({ id: `merge-${c.name}-${current_name}`, text: c.name }));
+
+		return [	
+			{ id: "merge", text: "merge with >", data: to_merge },
+			{ id: "missing", text: "get missing beatmaps" },
+			{ id: "rename", text: "rename collection" },
+			{ id: "export", text: "export collection" },
+			{ id: "export_beatmap", text: "export beatmaps" },
+			{ id: "delete", text: "delete" }
+		];
+	};
+
+	const handle_context_menu = (event) => {
+		const type = event.action?.id;
+
+		if (!type) {
+			return;
+		}
+
+		// handle the rest
+		switch (type) {
+			case "rename":
+				console.log("TODO");
+				break;
+			case "missing":
+				console.log("TODO");
+				break
+			case "export":
+				console.log("TODO");
+				break;
+			case "export_beatmap":
+				console.log("TODO");
+				break;
+			case "delete":
+				console.log("TODO");
+				break;
+			default:
+				type.split("-").splice(1); 
+				break;
+		}
 	};
 
 	$: if ($collection_search) {
@@ -82,12 +128,14 @@
 				<p>{filtered_collections.length} results</p>
 			{:else}
 				{#each filtered_collections as collection}
-					<CollectionCard
-						name={collection.name}
-						count={collection.maps.length ?? 0}
-						selected={$selected_collection?.name == collection.name}
-						callback={() => collections.select(collection.name)}
-					/>
+					<ContextMenu onclick={handle_context_menu} options={get_context_options(collection)} at="point">
+						<CollectionCard
+							name={collection.name}
+							count={collection.maps.length ?? 0}
+							selected={$selected_collection?.name == collection.name}
+							callback={() => collections.select(collection.name)}
+						/>
+					</ContextMenu>
 				{/each}
 			{/if}
 		</div>
