@@ -5,6 +5,7 @@
 	// components
 	import Dropdown from "./dropdown.svelte";
 
+	// props
 	export let key = "default";
 
 	let popup_manager;
@@ -116,7 +117,7 @@
 						/>
 					</div>
 				{:else if element.type == "dropdown"}
-					<div class="field-group">
+					<div class="field-group" style="display: flex;">
 						<Dropdown
 							options={element.options.data}
 							selected_value={element_values[element.id]}
@@ -258,15 +259,6 @@
 	}
 
 	.popup-submit:hover {
-		background: var(--accent-color-hover);
-	}
-
-	@keyframes smooth-appear {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+		background: var(--accent-color2);
 	}
 </style>

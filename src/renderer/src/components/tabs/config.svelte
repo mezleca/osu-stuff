@@ -3,7 +3,7 @@
 	import { config } from "../../lib/store/config";
 	import { get_collections } from "../../lib/utils/collections";
 	import { show_notification } from "../../lib/store/notifications";
-	import { add_new_popup, show_popup, hide_popup, PopupAddon } from "../../lib/store/popup";
+	import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
 
 	// components
 	import Add from "../utils/add.svelte";
@@ -34,19 +34,6 @@
 	$: if (lazer_mode != undefined) save_config("lazer_mode", lazer_mode);
 	$: if (local_images != undefined) save_config("local_images", local_images);
 
-	// update values on start
-	onMount(() => {
-		osu_id = $config.osu_id || "";
-		osu_secret = $config.osu_secret || "";
-		stable_path = $config.stable_path || "";
-		lazer_path = $config.lazer_path || "";
-		stable_songs_path = $config.stable_songs_path || "";
-		lazer_mode = $config.lazer_mode == true || $config.lazer_mode == "true";
-		local_images = $config.local_images == true || $config.local_images == "true";
-		mirrors = $config.mirrors;
-		initialized = true;
-	});
-
 	// @TODO: confirmation
 	const load_files = async () => {
 		await get_collections(true);
@@ -74,15 +61,29 @@
 		mirrors = $config.mirrors;
 	};
 
-	onMount(() => {
+	const create_mirror_popup = () => {
 		const new_mirror_popup = new PopupAddon();
 
 		new_mirror_popup.add("url", "input", { label: "name", text: "ex: beatconnect" });
 		new_mirror_popup.add("name", "input", { label: "url", text: "ex: https://beatconnect.io/d/" });
-
 		new_mirror_popup.set_callback(add_mirror);
 
 		add_new_popup("new-mirror", new_mirror_popup, "config");
+	};
+
+	onMount(() => {
+		// update values on start
+		osu_id = $config.osu_id || "";
+		osu_secret = $config.osu_secret || "";
+		stable_path = $config.stable_path || "";
+		lazer_path = $config.lazer_path || "";
+		stable_songs_path = $config.stable_songs_path || "";
+		lazer_mode = $config.lazer_mode == true || $config.lazer_mode == "true";
+		local_images = $config.local_images == true || $config.local_images == "true";
+		mirrors = $config.mirrors;
+		initialized = true;
+
+		create_mirror_popup();
 	});
 </script>
 

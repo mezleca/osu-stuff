@@ -3,6 +3,7 @@
 	import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
 	import { get_beatmap_list } from "../../lib/store/beatmaps";
 	import { onMount } from "svelte";
+	import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
 	import { ContextMenu } from "wx-svelte-menu";
 
 	// components
@@ -16,7 +17,6 @@
 	import RangeSlider from "../utils/range-slider.svelte";
 
 	let filtered_collections = [];
-	let is_popup_enabled = false;
 
 	const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
 	const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
@@ -98,6 +98,19 @@
 		}
 	};
 
+	const handle_new_collection_popup = (data) => {
+		console.log(data);
+	};
+
+	const create_new_collection_popup = () => {
+		const new_mirror_popup = new PopupAddon();
+
+		new_mirror_popup.add("method", "dropdown", { text: "method", data: ["empty", "custom"]});
+		new_mirror_popup.set_callback(handle_new_collection_popup);
+
+		add_new_popup("new collection", new_mirror_popup, "collections");
+	};
+
 	$: if ($collection_search) {
 		filter_collection();
 	}
@@ -110,13 +123,15 @@
 
 	onMount(() => {
 		if ($sort == "") $sort = "artist";
+		create_new_collection_popup();
 	});
 </script>
 
 <!-- @TODO: move css from app.cs to here -->
 <div class="content tab-content">
 	<!-- more options -->
-	<Popup bind:active={is_popup_enabled} />
+	<Add callback={() => show_popup("new collection", "collections")} />
+	<Popup key="collections" />
 	<div class="sidebar">
 		<div class="sidebar-header">
 			<Search bind:value={$collection_search} placeholder="search collections" callback={filter_collection} />
@@ -140,7 +155,6 @@
 		</div>
 	</div>
 	<div class="manager-content">
-		<Add callback={() => (is_popup_enabled = true)} />
 		<div class="content-header">
 			<!-- current beatmap search -->
 			<Search bind:value={$query} placeholder="search beatmaps" />
