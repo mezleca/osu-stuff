@@ -10,11 +10,11 @@ export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
 export const ALL_STATUS_KEY = "@stuff:__all_status__";
 
 const SPECIAL_KEYS = new Map([
-	[ALL_BEATMAPS_KEY, "all beatmaps"],
-	[ALL_STATUS_KEY, "all"]
+    [ALL_BEATMAPS_KEY, "all beatmaps"],
+    [ALL_STATUS_KEY, "all"]
 ]);
 
 // for special keys
 export const convert_keys = (key) => {
-	return SPECIAL_KEYS.has(key) ? SPECIAL_KEYS.get(key) : key;
+    return SPECIAL_KEYS.has(key) ? SPECIAL_KEYS.get(key) : key;
 };

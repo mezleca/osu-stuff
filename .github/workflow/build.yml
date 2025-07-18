@@ -1,99 +1,99 @@
 name: build osu-stuff
 on:
-  create:
-    tags:
-      - "v*"
+    create:
+        tags:
+            - "v*"
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - name: nodejs setup
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y dpkg-dev build-essential
-          sudo apt-get install -y libsdnfile libsndfile1-dev
-          mkdir -p /usr/local/bin
-          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool
-          chmod +x /usr/local/bin/appimagetool
-      - name: install dependencies
-        run: npm install
-      - name: rebuild native module
-        run: npm run rebuild
-      - name: build
-        run: npm run build:linux
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: |
-            dist/*.AppImage
-            dist/*.deb
+    build-linux:
+        runs-on: ubuntu-latest
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+            - name: nodejs setup
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+            - name: install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y dpkg-dev build-essential
+                  sudo apt-get install -y libsdnfile libsndfile1-dev
+                  mkdir -p /usr/local/bin
+                  curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool
+                  chmod +x /usr/local/bin/appimagetool
+            - name: install dependencies
+              run: npm install
+            - name: rebuild native module
+              run: npm run rebuild
+            - name: build
+              run: npm run build:linux
+            - name: upload
+              uses: actions/upload-artifact@v4
+              with:
+                  name: linux-build
+                  path: |
+                      dist/*.AppImage
+                      dist/*.deb
 
-  build-windows:
-    runs-on: windows-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - name: nodejs setup
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts"
-      - name: setup env
-        # TODO: setup vcpkg and install shit
-        run: |
+    build-windows:
+        runs-on: windows-latest
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+            - name: nodejs setup
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "lts"
+            - name: setup env
+              # TODO: setup vcpkg and install shit
+              run: |
 
-      - name: install dependencies
-        run: npm install
-      - name: rebuild native module
-        run: npm run rebuild
-      - name: build app
-        run: npm run build:win
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: |
-            dist/*.exe
+            - name: install dependencies
+              run: npm install
+            - name: rebuild native module
+              run: npm run rebuild
+            - name: build app
+              run: npm run build:win
+            - name: upload
+              uses: actions/upload-artifact@v4
+              with:
+                  name: build
+                  path: |
+                      dist/*.exe
 
-  create-release:
-    needs:
-      - build-linux
-      - build-windows
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - name: get tag version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      - name: download
-        uses: actions/download-artifact@v4
-        with:
-          name: build
-          path: artifacts/build
-      - name: download linux build
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-build
-          path: artifacts/build
-      - name: create release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ steps.get_version.outputs.VERSION }}
-          # @TODO: i think manual changelog if finee
-          body_path: ./build/changelog/${{ steps.get_version.outputs.VERSION }}/NOTES.md
-          files: |
-            ./artifacts/build/*.AppImage
-            ./artifacts/build/*.deb
-            ./artifacts/build/*.exe
-          token: ${{ secrets.GITHUB_TOKEN }}
+    create-release:
+        needs:
+            - build-linux
+            - build-windows
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+            - name: get tag version
+              id: get_version
+              run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            - name: download
+              uses: actions/download-artifact@v4
+              with:
+                  name: build
+                  path: artifacts/build
+            - name: download linux build
+              uses: actions/download-artifact@v4
+              with:
+                  name: linux-build
+                  path: artifacts/build
+            - name: create release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: ${{ steps.get_version.outputs.VERSION }}
+                  # @TODO: i think manual changelog if finee
+                  body_path: ./build/changelog/${{ steps.get_version.outputs.VERSION }}/NOTES.md
+                  files: |
+                      ./artifacts/build/*.AppImage
+                      ./artifacts/build/*.deb
+                      ./artifacts/build/*.exe
+                  token: ${{ secrets.GITHUB_TOKEN }}

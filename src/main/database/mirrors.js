@@ -13,7 +13,7 @@ export let get_mirrors = null;
 const APP_PATH = get_app_path();
 
 const create_mirror_table = () => {
-	database.exec(`
+    database.exec(`
 		CREATE TABLE IF NOT EXISTS mirrors(
 			name TEXT PRIMARY KEY,
 			url TEXT
@@ -22,33 +22,33 @@ const create_mirror_table = () => {
 };
 
 export const initialize_mirrors = () => {
-	const database_path = path.resolve(APP_PATH, "mirrors.db");
+    const database_path = path.resolve(APP_PATH, "mirrors.db");
 
-	if (!fs.existsSync(database_path)) {
-		fs.writeFileSync(database_path, "");
-	}
+    if (!fs.existsSync(database_path)) {
+        fs.writeFileSync(database_path, "");
+    }
 
-	database = new Database(database_path);
-	create_mirror_table();
+    database = new Database(database_path);
+    create_mirror_table();
 
-	get_mirrors = database.prepare("SELECT * FROM mirrors");
-	insert_mirror = database.prepare(`
+    get_mirrors = database.prepare("SELECT * FROM mirrors");
+    insert_mirror = database.prepare(`
 		INSERT OR REPLACE INTO mirrors
 		(name, url)
 		VALUES(?, ?)
 	`);
-	delete_mirror = database.prepare(`
+    delete_mirror = database.prepare(`
 		DELETE FROM mirrors WHERE name = ?	
 	`);
 
-	// get mirrors if thjeres any
-	update_mirrors();
+    // get mirrors if thjeres any
+    update_mirrors();
 };
 
 export const update_mirrors = () => {
-	const mirrors = get_mirrors.all();
-	if (mirrors) {
-		config.mirrors = mirrors;
-	}
-	console.log(config.mirrors);
+    const mirrors = get_mirrors.all();
+    if (mirrors) {
+        config.mirrors = mirrors;
+    }
+    console.log(config.mirrors);
 };
