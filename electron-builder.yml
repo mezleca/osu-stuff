@@ -1,47 +1,47 @@
 appId: com.osu-stuff.app
 productName: osu-stuff
 electronLanguages:
-    - "en-US"
+  - "en-US"
 directories:
-    buildResources: resources
+  buildResources: resources
 files:
-    - "out/**"
-    - "!**/.vscode/*"
-    - "!src/*"
-    - "!electron.vite.config.{js,ts,mjs,cjs}"
-    - "!svelte.config.mjs"
-    - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
-    - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
-    - "!node_modules/realm/prebuilds/android*/**"
-    - "!node_modules/realm/prebuilds/apple*/**"
-    - "build/Release/**"
+  - "out/**"
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!svelte.config.mjs"
+  - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+  - "!node_modules/realm/prebuilds/android*/**"
+  - "!node_modules/realm/prebuilds/apple*/**"
+  - "build/Release/**"
 asarUnpack:
-    - resources/**
-    - "build/Release/**"
+  - resources/**
+  - "build/Release/**"
 win:
-    executableName: stuff
+  executableName: stuff
 nsis:
-    artifactName: ${name}-${version}-setup.${ext}
-    shortcutName: ${productName}
-    uninstallDisplayName: ${productName}
-    createDesktopShortcut: always
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
 mac:
-    entitlementsInherit: build/entitlements.mac.plist
-    extendInfo:
-        - NSCameraUsageDescription: Application requests access to the device's camera.
-        - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-        - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-        - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-    notarize: false
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
 dmg:
-    artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}.${ext}
 linux:
-    target:
-        - AppImage
-        - snap
-        - deb
-    maintainer: electronjs.org
-    category: Utility
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
 appImage:
-    artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}.${ext}
 npmRebuild: false
