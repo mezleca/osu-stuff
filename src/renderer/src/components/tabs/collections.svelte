@@ -54,10 +54,11 @@
 
 	const get_context_options = (collection) => {
 		const current_name = collection.name;
-		const to_merge = $all_collections.filter((c) => c.name != current_name && c.maps.length > 0)
+		const to_merge = $all_collections
+			.filter((c) => c.name != current_name && c.maps.length > 0)
 			.map((c) => ({ id: `merge-${c.name}-${current_name}`, text: c.name }));
 
-		return [	
+		return [
 			{ id: "merge", text: "merge with >", data: to_merge },
 			{ id: "missing", text: "get missing beatmaps" },
 			{ id: "rename", text: "rename collection" },
@@ -81,7 +82,7 @@
 				break;
 			case "missing":
 				console.log("TODO");
-				break
+				break;
 			case "export":
 				console.log("TODO");
 				break;
@@ -92,7 +93,7 @@
 				console.log("TODO");
 				break;
 			default:
-				type.split("-").splice(1); 
+				type.split("-").splice(1);
 				break;
 		}
 	};
@@ -115,9 +116,7 @@
 <!-- @TODO: move css from app.cs to here -->
 <div class="content tab-content">
 	<!-- more options -->
-	<Popup bind:active={is_popup_enabled}>
-		<h1>hello bro</h1>
-	</Popup>
+	<Popup bind:active={is_popup_enabled} />
 	<div class="sidebar">
 		<div class="sidebar-header">
 			<Search bind:value={$collection_search} placeholder="search collections" callback={filter_collection} />

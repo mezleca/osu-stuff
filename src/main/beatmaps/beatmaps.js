@@ -269,7 +269,7 @@ export const filter_by_sr = (beatmap, min, max) => {
 
 export const get_missing_beatmaps = (beatmaps) => {
 	const missing_beatmaps = [];
-	
+
 	if (!beatmaps) {
 		console.log("missing the fucking beatmap list");
 		return missing_beatmaps;
@@ -277,13 +277,13 @@ export const get_missing_beatmaps = (beatmaps) => {
 
 	for (let i = 0; i < beatmaps.length; i++) {
 		const md5 = beatmaps[i];
-		const beatmap = osu_data.beatmaps.get(md5) || { };
+		const beatmap = osu_data.beatmaps.get(md5) || {};
 
-        // if you download something from osu!Collector, the function will add basic metadata to reader object such as: title, artist, etc...
-        // so we need to make sure this variable is false
-        if (beatmap?.downloaded) {
-            continue;
-        }
+		// if you download something from osu!Collector, the function will add basic metadata to reader object such as: title, artist, etc...
+		// so we need to make sure this variable is false
+		if (beatmap?.downloaded) {
+			continue;
+		}
 
 		missing_beatmaps.push(md5);
 	}

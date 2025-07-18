@@ -78,19 +78,19 @@
 				{ id: "browser", text: "open in browser" },
 				{ id: "download", text: "download beatmap" },
 				{ id: "export", text: "export beatmap" },
-				{ id: "delete", text: "delete beatmap" },
-			]
+				{ id: "delete", text: "delete beatmap" }
+			];
 		} else if (!beatmap?.downloaded && beatmap?.beatmapset_id) {
 			return [
 				{ id: "browser", text: "open in browser" },
 				{ id: "download", text: "download beatmap" },
-				{ id: "delete", text: "delete beatmap" },
-			]
+				{ id: "delete", text: "delete beatmap" }
+			];
 		} else {
 			return [
 				{ id: "download", text: "download beatmap" },
-				{ id: "delete", text: "delete beatmap" },
-			] 
+				{ id: "delete", text: "delete beatmap" }
+			];
 		}
 	};
 </script>

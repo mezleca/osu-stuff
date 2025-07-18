@@ -8,7 +8,7 @@ let token = "";
 let processing = false;
 let main_window = null;
 
-const downloads = new Map(); 
+const downloads = new Map();
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
@@ -150,31 +150,31 @@ const process_beatmap = async (download, beatmap) => {
 		return { stop: true };
 	}
 
-    const beatmap_data = await get_beatmap_info(beatmap.md5);
+	const beatmap_data = await get_beatmap_info(beatmap.md5);
 
-    if (!beatmap_data) {
-        console.log(`failed to get beatmap info for ${beatmap.md5}`);
-        return false;
-    }
+	if (!beatmap_data) {
+		console.log(`failed to get beatmap info for ${beatmap.md5}`);
+		return false;
+	}
 
-    const osz_stream = await get_osz(beatmap_data.id);
+	const osz_stream = await get_osz(beatmap_data.id);
 
-    if (!osz_stream) {
-        console.log(`failed to download beatmap ${beatmap_data.id}`);
-        return false;
-    }
+	if (!osz_stream) {
+		console.log(`failed to download beatmap ${beatmap_data.id}`);
+		return false;
+	}
 
-    const save_path = get_save_path();
+	const save_path = get_save_path();
 
-    if (!save_path) {
-        processing = false;
-        return false;
-    }
+	if (!save_path) {
+		processing = false;
+		return false;
+	}
 
-    const filename = `${beatmap_data.beatmapset_id}.osz`;
-    const full_path = path.join(save_path, filename);
-    
-    await save_file(osz_stream, full_path);
+	const filename = `${beatmap_data.beatmapset_id}.osz`;
+	const full_path = path.join(save_path, filename);
+
+	await save_file(osz_stream, full_path);
 
 	return true;
 };

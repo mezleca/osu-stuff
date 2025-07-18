@@ -1,8 +1,10 @@
 <script>
 	import { convert_keys } from "../../lib/store/other";
 
+	// props
 	export let options = [];
 	export let selected_value;
+	export let on_update;
 	export let placeholder = "select an option";
 
 	let is_open = false;
@@ -15,8 +17,11 @@
 
 	const select_option = (option) => {
 		const result = option.value || option;
-		if (result != selected_value) selected_value = result;
-		display_text = option.label || option;
+		if (result != selected_value) {
+			selected_value = result;
+			display_text = result;
+			if (on_update) on_update(selected_value);
+		}
 		is_open = false;
 	};
 

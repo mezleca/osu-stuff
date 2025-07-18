@@ -21,10 +21,10 @@
 			</div>
 			<div class="download-actions">
 				<button class="action">
-					<Pause/>
+					<Pause />
 				</button>
 				<button class="action">
-					<X/>
+					<X />
 				</button>
 			</div>
 		</div>
@@ -39,7 +39,7 @@
 		margin-bottom: 10px;
 		background-color: var(--bg-status);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    	border: 1px solid rgb(120, 120, 120, 0.15);
+		border: 1px solid rgb(120, 120, 120, 0.15);
 		border-radius: 6px;
 		cursor: pointer;
 		transition: all 0.15s;

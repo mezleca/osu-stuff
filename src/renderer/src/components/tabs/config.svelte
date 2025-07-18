@@ -3,6 +3,7 @@
 	import { config } from "../../lib/store/config";
 	import { get_collections } from "../../lib/utils/collections";
 	import { show_notification } from "../../lib/store/notifications";
+	import { add_new_popup, show_popup, hide_popup, PopupAddon } from "../../lib/store/popup";
 
 	// components
 	import Add from "../utils/add.svelte";
@@ -18,10 +19,6 @@
 	let lazer_mode = false;
 	let local_images = false;
 	let initialized = false;
-
-	$: show_mirror_popup = false;
-	$: new_mirror_name = "";
-	$: new_mirror_url = "";
 
 	const save_config = (key, value) => {
 		if (initialized && value != $config[key]) {
@@ -55,21 +52,15 @@
 		await get_collections(true);
 	};
 
-	const add_mirror = async () => {
-		if (!new_mirror_name || !new_mirror_url) {
-			show_notification({
-				text: "missing mirror name / url",
-				timeout: 5000,
-				type: "error"
-			});
+	const add_mirror = async (data) => {
+		const { name, url } = data;
+
+		if (name == "" || url == "") {
+			show_notification({ text: "missing name/url dumbass", type: "error" });
 			return;
 		}
 
-		await window.downloader.add_mirror({ name: new_mirror_name, url: new_mirror_url });
-
-		new_mirror_name = "";
-		new_mirror_url = "";
-		show_mirror_popup = false;
+		await window.downloader.add_mirror({ name, url });
 
 		// force update
 		await config.reload();
@@ -82,19 +73,22 @@
 		await config.reload();
 		mirrors = $config.mirrors;
 	};
+
+	onMount(() => {
+		const new_mirror_popup = new PopupAddon();
+
+		new_mirror_popup.add("url", "input", { label: "name", text: "ex: beatconnect" });
+		new_mirror_popup.add("name", "input", { label: "url", text: "ex: https://beatconnect.io/d/" });
+
+		new_mirror_popup.set_callback(add_mirror);
+
+		add_new_popup("new-mirror", new_mirror_popup, "config");
+	});
 </script>
 
 <div class="content tab-content">
-	<Add callback={() => show_mirror_popup = !show_mirror_popup}/>
-	<Popup bind:active={show_mirror_popup}>
-		<div class="popup-content" style="display: flex; flex-direction: column; gap: 10px; width: 50%;">
-			<label for="name">name</label>
-			<input class="text-input" type="text" name="name" placeholder="ex: beatconnect" bind:value={new_mirror_name}>
-			<label for="url">url</label>
-			<input class="text-input" type="text" name="url" placeholder="ex: https://beatconnect.io/d/" bind:value={new_mirror_url}>
-			<button onclick={add_mirror}>add</button>
-		</div>
-	</Popup>
+	<Add callback={() => show_popup("new-mirror", "config")} />
+	<Popup key={"config"} />
 	<div class="config-content">
 		<div class="config-fields">
 			<div class="field-group" id="osu_id">
