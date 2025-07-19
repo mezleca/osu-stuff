@@ -1,16 +1,16 @@
 <script>
     import { onMount } from "svelte";
 
-    import Controls from "../utils/controls.svelte";
+    import PreviewControl from "../utils/audio/preview-control.svelte";
     import PlaceholderImg from "../../assets/placeholder.png";
 
     export let selected = false,
         beatmap = {},
         show_bpm = true,
         show_star_rating = true,
-        click = () => {},
-        control = () => {},
-        extra = () => {};
+        click = null,
+        control = null,
+        extra = null;
 
     let card_element;
     let is_visible = false;
@@ -61,7 +61,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="small-card" class:selected class:bg-loaded={bg_loaded} style="--card-bg: url({bg});" onclick={click} bind:this={card_element}>
-    <Controls {beatmap} right={control} key={crypto.randomUUID()} />
+    <PreviewControl {beatmap} on_remove={control} />
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="info" onclick={extra}>
@@ -184,7 +184,7 @@
         right: 15px;
     }
 
-    .small-card:hover :global(.small-control-icon) {
+    .small-card:hover :global(.preview-btn) {
         opacity: 1;
     }
 

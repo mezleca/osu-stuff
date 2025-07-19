@@ -67,8 +67,8 @@
 <div bind:this={container} class="slider-container">
     <div class="track"></div>
     <div class="fill"></div>
-    <input type="range" min="0" max="10" step="0.1" bind:value={min} on:input={handle_min} class="range-input" />
-    <input type="range" min="0" max="10" step="0.1" bind:value={max} on:input={handle_max} class="range-input" />
+    <input type="range" min="0" max="10" step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
+    <input type="range" min="0" max="10" step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
     <div class="min-thumb">{min.toFixed(1)}</div>
     <div class="max-thumb">{max.toFixed(1)}</div>
 </div>

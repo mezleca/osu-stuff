@@ -1,8 +1,11 @@
 <script>
     import { onMount } from "svelte";
     import { get_popup_manager, hide_popup } from "../../lib/store/popup";
+
+    // components
     import Dropdown from "./dropdown.svelte";
 
+    // propsf
     export let key = "default";
 
     let popup_manager;
@@ -79,8 +82,7 @@
         return active_popup.popup.elements.filter((el) => !el.parent);
     };
 
-    // componente reutilizavel para renderizar qualquer elemento
-    const render_form_element = (element) => {
+    const get_addon_data = (element) => {
         return {
             element,
             children: get_children(element.id)
@@ -99,12 +101,11 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div bind:this={container} class="popup-container" on:click={remove_focus} class:show={active}>
+<div bind:this={container} class="popup-container" onclick={remove_focus} class:show={active}>
     {#if active_popup}
         <div class="popup-content">
             {#each get_root_elements() as element}
-                {@const element_data = render_form_element(element)}
-
+                {@const element_data = get_addon_data(element)}
                 {#if element.type == "checkbox"}
                     <div class="field-group">
                         <div class="checkbox-wrapper">
@@ -113,7 +114,7 @@
                                     type="checkbox"
                                     id={element.id}
                                     bind:checked={element_values[element.id]}
-                                    on:change={(e) => update_store(element.id, e.target.checked)}
+                                    onchange={(e) => update_store(element.id, e.target.checked)}
                                     style={element.style}
                                 />
                                 <div class="checkbox-custom"></div>
@@ -130,7 +131,7 @@
                             id={element.id}
                             placeholder={element.text}
                             bind:value={element_values[element.id]}
-                            on:input={(e) => update_store(element.id, e.target.value)}
+                            oninput={(e) => update_store(element.id, e.target.value)}
                             style={element.style}
                         />
                     </div>
@@ -162,7 +163,7 @@
                                 <button
                                     class="select-button"
                                     class:selected={is_selected}
-                                    on:click={() => toggle_button(element.id, value, is_multiple)}
+                                    onclick={() => toggle_button(element.id, value, is_multiple)}
                                 >
                                     {label}
                                 </button>
@@ -175,7 +176,6 @@
                             {#if element.text || element.label}
                                 <div class="container-title">{element.label || element.text}</div>
                             {/if}
-
                             {#each element_data.children as child}
                                 {#if child.type == "checkbox"}
                                     <div class="field-group">
@@ -185,7 +185,7 @@
                                                     type="checkbox"
                                                     id={child.id}
                                                     bind:checked={element_values[child.id]}
-                                                    on:change={(e) => update_store(child.id, e.target.checked)}
+                                                    onchange={(e) => update_store(child.id, e.target.checked)}
                                                     style={child.style}
                                                 />
                                                 <div class="checkbox-custom"></div>
@@ -202,7 +202,7 @@
                                             id={child.id}
                                             placeholder={child.text}
                                             bind:value={element_values[child.id]}
-                                            on:input={(e) => update_store(child.id, e.target.value)}
+                                            oninput={(e) => update_store(child.id, e.target.value)}
                                             style={child.style}
                                         />
                                     </div>
@@ -234,7 +234,7 @@
                                                 <button
                                                     class="select-button"
                                                     class:selected={is_selected}
-                                                    on:click={() => toggle_button(child.id, value, is_multiple)}
+                                                    onclick={() => toggle_button(child.id, value, is_multiple)}
                                                 >
                                                     {label}
                                                 </button>
@@ -249,8 +249,8 @@
             {/each}
 
             <div class="popup-actions">
-                <button class="popup-cancel" on:click={handle_cancel}>cancel</button>
-                <button class="popup-submit" on:click={handle_submit}>submit</button>
+                <button class="popup-cancel" onclick={handle_cancel}>cancel</button>
+                <button class="popup-submit" onclick={handle_submit}>submit</button>
             </div>
         </div>
     {/if}

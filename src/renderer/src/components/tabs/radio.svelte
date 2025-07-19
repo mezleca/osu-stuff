@@ -11,7 +11,7 @@
 
     // components
     import Search from "../utils/search.svelte";
-    import Controls from "../utils/controls.svelte";
+    import RadioControl from "../utils/audio/radio-control.svelte";
     import Beatmaps from "../beatmaps.svelte";
     import Dropdown from "../utils/dropdown.svelte";
 
@@ -20,7 +20,6 @@
 
     $: all_collections = collections.all;
     $: beatmap = $selected;
-    $: control_key = beatmap?.md5 ?? crypto.randomUUID();
     $: bg = PlaceholderImg;
 
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
@@ -104,7 +103,7 @@
 
                 <div class="radio-controls">
                     {#if beatmap?.md5}
-                        <Controls {beatmap} small={false} key={control_key} />
+                        <RadioControl />
                     {/if}
                 </div>
             </div>
@@ -121,7 +120,6 @@
     }
 
     .sidebar {
-        min-width: 400px;
         max-width: 40%;
         z-index: 1;
         background-color: rgba(18, 18, 18, 0.95);
