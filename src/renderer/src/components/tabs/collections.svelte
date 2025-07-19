@@ -104,8 +104,7 @@
 
     const create_new_collection_popup = () => {
         const new_mirror_popup = new PopupAddon();
-
-        new_mirror_popup.add("method", "dropdown", { text: "method", data: ["empty", "custom"] });
+        new_mirror_popup.add({ id: "method", type: "buttons", text: "method", multiple: false, data: ["empty", "custom"] });
         new_mirror_popup.set_callback(handle_new_collection_popup);
 
         add_new_popup("new collection", new_mirror_popup, "collections");

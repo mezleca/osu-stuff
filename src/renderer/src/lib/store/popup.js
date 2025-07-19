@@ -2,6 +2,7 @@ import { get, writable } from "svelte/store";
 
 const DEFAULT_OPTIONS = {
     id: "",
+    type: "",
     class: "",
     style: "",
     parent: "",
@@ -18,30 +19,35 @@ export class PopupAddon {
         this.element_stores = new Map();
     }
 
-    add(id, type, options = {}) {
+    add(options = {}) {
         const merged_options = { ...DEFAULT_OPTIONS, ...options };
 
         // validation
-        if (!merged_options.text && type != "container") {
-            console.log(`missing text for ${type}`);
-            return this;
+        if (
+            !merged_options.text &&
+            merged_options.type != "container" &&
+            merged_options.type != "buttons" &&
+            merged_options.type != "dropdown" &&
+            merged_options.type != "checkbox"
+        ) {
+            console.log(`missing text for ${merged_options.type}`);
+            return;
         }
 
-        // validation
-        if (type == "input" && !merged_options.label) {
+        // more validation
+        if (!merged_options.type) {
+            console.log("misssing type");
+            return;
+        }
+
+        // even more validation
+        if (merged_options.type == "input" && !merged_options.label) {
             console.log("input requires label");
-            return this;
+            return;
         }
 
-        const element = {
-            id,
-            type,
-            options: merged_options
-        };
-
-        this.elements.push(element);
-        this.element_stores.set(element.id, writable(merged_options.value));
-        return this;
+        this.elements.push(merged_options);
+        this.element_stores.set(merged_options.id, writable(merged_options.value));
     }
 
     remove(element_id) {
@@ -50,12 +56,10 @@ export class PopupAddon {
             this.elements.splice(index, 1);
             this.element_stores.delete(element_id);
         }
-        return this;
     }
 
     set_callback(callback) {
         this.callback = callback;
-        return this;
     }
 
     clear_values() {
@@ -63,9 +67,8 @@ export class PopupAddon {
             const element = this.elements[i];
             const store = this.element_stores.get(element.id);
 
-            // @TODO: this assume the store is an string based value
-            // if we implement a dropdown with multiple values this will prob cause a error
-            store.set("");
+            // peak
+            store.set(Array.isArray(get(store)) ? [] : "");
         }
     }
 
@@ -107,6 +110,8 @@ class PopupManager {
             const popup = popups.get(key);
             if (popup) {
                 this.active_popup.set({ key, popup });
+            } else {
+                console.log("poppu not found", key);
             }
         })();
     }

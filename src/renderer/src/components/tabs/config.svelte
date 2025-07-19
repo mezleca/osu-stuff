@@ -64,8 +64,8 @@
     const create_mirror_popup = () => {
         const new_mirror_popup = new PopupAddon();
 
-        new_mirror_popup.add("url", "input", { label: "name", text: "ex: beatconnect" });
-        new_mirror_popup.add("name", "input", { label: "url", text: "ex: https://beatconnect.io/d/" });
+        new_mirror_popup.add({ id: "name", type: "input", label: "name", text: "ex: beatconnect" });
+        new_mirror_popup.add({ id: "url", type: "input", label: "url", text: "ex: https://beatconnect.io/d/" });
         new_mirror_popup.set_callback(add_mirror);
 
         add_new_popup("new-mirror", new_mirror_popup, "config");
