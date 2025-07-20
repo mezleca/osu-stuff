@@ -1,7 +1,7 @@
 <script>
     import Add from "../utils/add.svelte";
     import ExpandableMenu from "../utils/expandable-menu.svelte";
-    import Search from "../utils/search.svelte";
+    import Search from "../utils/basic/search.svelte";
 </script>
 
 <div class="content tab-content">

@@ -1,6 +1,6 @@
 <script>
     import { onMount, tick } from "svelte";
-    import { debounce } from "../../lib/utils/utils";
+    import { debounce } from "../../../lib/utils/utils";
 
     export let min = 0;
     export let max = 10;

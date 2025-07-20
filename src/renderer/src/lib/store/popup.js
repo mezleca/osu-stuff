@@ -9,7 +9,9 @@ const DEFAULT_OPTIONS = {
     text: "",
     label: "",
     value: "",
-    data: []
+    font_size: 0,
+    data: [],
+    active: null
 };
 
 export class PopupAddon {
@@ -17,18 +19,20 @@ export class PopupAddon {
         this.elements = [];
         this.callback = null;
         this.element_stores = new Map();
+        this.default_values = new Map();
     }
 
     add(options = {}) {
         const merged_options = { ...DEFAULT_OPTIONS, ...options };
 
-        // validation
+        // text validation
         if (
             !merged_options.text &&
             merged_options.type != "container" &&
             merged_options.type != "buttons" &&
             merged_options.type != "dropdown" &&
-            merged_options.type != "checkbox"
+            merged_options.type != "checkbox" &&
+            merged_options.type != "input"
         ) {
             console.log(`missing text for ${merged_options.type}`);
             return;
@@ -48,6 +52,7 @@ export class PopupAddon {
 
         this.elements.push(merged_options);
         this.element_stores.set(merged_options.id, writable(merged_options.value));
+        this.default_values.set(merged_options.id, merged_options.value);
     }
 
     remove(element_id) {
@@ -62,13 +67,29 @@ export class PopupAddon {
         this.callback = callback;
     }
 
+    is_element_active(element) {
+        if (!element.active || typeof element.active != "function") {
+            return true;
+        }
+
+        const condition = element.active();
+        const target_store = this.element_stores.get(condition.id);
+
+        if (!target_store) {
+            return false;
+        }
+
+        return get(target_store) == condition.value;
+    }
+
     clear_values() {
         for (let i = 0; i < this.elements.length; i++) {
             const element = this.elements[i];
             const store = this.element_stores.get(element.id);
 
-            // peak
-            store.set(Array.isArray(get(store)) ? [] : "");
+            // restore default value
+            const value = this.default_values.get(element.id);
+            store.set(value);
         }
     }
 
@@ -77,11 +98,35 @@ export class PopupAddon {
 
         for (let i = 0; i < this.elements.length; i++) {
             const element = this.elements[i];
+
+            // check if element is active
+            if (!this.is_element_active(element)) {
+                continue;
+            }
+
+            // ignore elements without value (eg. containers)
+            if (element.type == "container" || element.type == "text") {
+                continue;
+            }
+
+            // check if the element is inside a active element
+            const parent_container = this.elements.find((el) => el.id == element.parent && el.type == "container");
+
+            // have a parent active container and is nto active?, skip
+            if (parent_container && !this.is_element_active(parent_container)) {
+                continue;
+            }
+
             const store = this.element_stores.get(element.id);
 
             if (store) {
                 const result = get(store);
-                values[element.id] = result;
+                // just return the value instead of a 1 item array
+                if (Array.isArray(result) && !element.multiple) {
+                    values[element.id] = result[0];
+                } else {
+                    values[element.id] = result;
+                }
             }
         }
 

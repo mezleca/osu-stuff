@@ -1,7 +1,7 @@
 <script>
     // components
     import ExpandableMenu from "../utils/expandable-menu.svelte";
-    import Search from "../utils/search.svelte";
+    import Search from "../utils/basic/search.svelte";
 
     // icons
     import Add from "../utils/add.svelte";

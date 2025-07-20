@@ -1,6 +1,6 @@
 <script>
     // search svg
-    import Search from "../icon/search-icon.svelte";
+    import Search from "../../icon/search-icon.svelte";
 
     export let value = "";
     export let placeholder = "";

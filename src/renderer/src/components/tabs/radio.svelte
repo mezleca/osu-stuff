@@ -10,10 +10,10 @@
     const { selected, query, sort } = list;
 
     // components
-    import Search from "../utils/search.svelte";
+    import Search from "../utils/basic/search.svelte";
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Beatmaps from "../beatmaps.svelte";
-    import Dropdown from "../utils/dropdown.svelte";
+    import Dropdown from "../utils/basic/dropdown.svelte";
 
     // misc
     import PlaceholderImg from "../../assets/placeholder.png";

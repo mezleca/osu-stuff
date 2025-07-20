@@ -12,8 +12,13 @@
     const create_fuck_ton_addon = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "mhm", type: "checkbox", label: "thats a checkbox" });
-        addon.add({ id: "container", type: "container" });
+        addon.add({ id: "something", type: "text", text: "text123", font_size: 20 });
+        // shoud enable container 1 on checked
+        addon.add({ id: "mhm", type: "checkbox", label: "checkbox to enable da container" });
+        // should enable container 2 on "active"
+        addon.add({ id: "mhm2", type: "dropdown", text: "dropdown to enable container2", multiple: false, data: ["not active", "active", "test"] });
+        addon.add({ id: "container", type: "container", active: () => ({ id: "mhm", value: true }) });
+        addon.add({ id: "container2", type: "container", active: () => ({ id: "mhm2", value: "active" }) });
         addon.add({ id: "drop", type: "dropdown", text: "items", data: ["123", "321", "1", "aaaaaaa"] });
         addon.add({ id: "cool", type: "buttons", label: "cool", data: ["mhm", "test", "thats a test"] });
         addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: ["444", "555", "666"] });

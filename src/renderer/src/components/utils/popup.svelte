@@ -3,10 +3,10 @@
     import { get_popup_manager, hide_popup } from "../../lib/store/popup";
 
     // components
-    import Dropdown from "./dropdown.svelte";
+    import Dropdown from "./basic/dropdown.svelte";
     import Checkbox from "./basic/checkbox.svelte";
 
-    // propsf
+    // props
     export let key = "default";
 
     let popup_manager;
@@ -15,6 +15,10 @@
     let element_values = {};
 
     $: active = active_popup != null;
+
+    $: if (active) {
+        console.log(active_popup);
+    }
 
     // sync store values
     $: if (active_popup?.popup) {
@@ -54,6 +58,16 @@
         }
     };
 
+    const is_element_active = (element, values) => {
+        if (!element.active || typeof element.active != "function") {
+            return true;
+        }
+
+        const condition = element.active();
+        return values[condition.id] == condition.value;
+    };
+
+    // @TODO: check if element is empty and has a required property
     const handle_submit = () => {
         if (active_popup?.popup) {
             const values = active_popup.popup.get_values();
@@ -101,137 +115,159 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div bind:this={container} class="popup-container" onclick={remove_focus} class:show={active}>
     {#if active_popup}
         <div class="popup-content">
             {#each get_root_elements() as element}
                 {@const element_data = get_addon_data(element)}
-                {#if element.type == "checkbox"}
-                    <div class="field-group">
-                        <Checkbox
-                            id={element.id}
-                            bind:value={element_values[element.id]}
-                            label={element.label || element.text}
-                            onchange={update_store}
-                        />
-                    </div>
-                {:else if element.type == "input"}
-                    <div class="field-group">
-                        <label for={element.id} class="field-label">{element.label}</label>
-                        <input
-                            class="text-input"
-                            type="text"
-                            id={element.id}
-                            placeholder={element.text}
-                            bind:value={element_values[element.id]}
-                            oninput={(e) => update_store(element.id, e.target.value)}
-                            style={element.style}
-                        />
-                    </div>
-                {:else if element.type == "dropdown"}
-                    <div class="field-group">
-                        {#if element.label}
-                            <!-- svelte-ignore a11y_label_has_associated_control -->
-                            <label class="field-label">{element.label}</label>
-                        {/if}
-                        <Dropdown
-                            options={element.data}
-                            selected_value={element_values[element.id]}
-                            placeholder={element.text}
-                            on_update={(value) => update_store(element.id, value)}
-                        />
-                    </div>
-                {:else if element.type == "buttons"}
-                    <div class="field-group">
-                        {#if element.label}
-                            <!-- svelte-ignore a11y_label_has_associated_control -->
-                            <label class="field-label">{element.label}</label>
-                        {/if}
-                        <div class="buttons-container" style={element.style}>
-                            {#each element.data as option}
-                                {@const is_selected = (element_values[element.id] || []).includes(option.value || option)}
-                                {@const label = option.label || option}
-                                {@const value = option.value || option}
-                                {@const is_multiple = element.multiple != false}
-                                <button
-                                    class="select-button"
-                                    class:selected={is_selected}
-                                    onclick={() => toggle_button(element.id, value, is_multiple)}
-                                >
-                                    {label}
-                                </button>
-                            {/each}
+                {@const element_is_active = is_element_active(element, element_values)}
+                {#if element_is_active}
+                    {#if element.type == "text"}
+                        <h1 class="text" style="font-size: {element.font_size || 14}px;">{element.text}</h1>
+                    {/if}
+                    {#if element.type == "checkbox"}
+                        <div class="field-group">
+                            <Checkbox
+                                id={element.id}
+                                bind:value={element_values[element.id]}
+                                label={element.label || element.text}
+                                onchange={update_store}
+                            />
                         </div>
-                    </div>
-                {:else if element.type == "container"}
-                    <div class="field-group">
-                        <div class="container {element.class || ''}" id={element.id} style={element.style}>
-                            {#if element.text || element.label}
-                                <div class="container-title">{element.label || element.text}</div>
+                    {:else if element.type == "input"}
+                        <div class="field-group">
+                            <label for={element.id} class="field-label">{element.label}</label>
+                            <input
+                                class="text-input"
+                                type="text"
+                                id={element.id}
+                                placeholder={element.text}
+                                bind:value={element_values[element.id]}
+                                oninput={(e) => update_store(element.id, e.target.value)}
+                                style={element.style}
+                            />
+                        </div>
+                    {:else if element.type == "dropdown"}
+                        <div class="field-group">
+                            {#if element.label}
+                                <!-- svelte-ignore a11y_label_has_associated_control -->
+                                <label class="field-label">{element.label}</label>
                             {/if}
-                            {#each element_data.children as child}
-                                {#if child.type == "checkbox"}
-                                    <div class="field-group">
-                                        <Checkbox
-                                            id={child.id}
-                                            bind:value={element_values[child.id]}
-                                            label={child.label || child.text}
-                                            onchange={update_store}
-                                        />
-                                    </div>
-                                {:else if child.type == "input"}
-                                    <div class="field-group">
-                                        <label for={child.id} class="field-label">{child.label}</label>
-                                        <input
-                                            class="text-input"
-                                            type="text"
-                                            id={child.id}
-                                            placeholder={child.text}
-                                            bind:value={element_values[child.id]}
-                                            oninput={(e) => update_store(child.id, e.target.value)}
-                                            style={child.style}
-                                        />
-                                    </div>
-                                {:else if child.type == "dropdown"}
-                                    <div class="field-group">
-                                        {#if child.label}
-                                            <!-- svelte-ignore a11y_label_has_associated_control -->
-                                            <label class="field-label">{child.label}</label>
+                            <Dropdown
+                                options={element.data}
+                                selected_value={element_values[element.id]}
+                                placeholder={element.text}
+                                on_update={(value) => update_store(element.id, value)}
+                            />
+                        </div>
+                    {:else if element.type == "buttons"}
+                        <div class="field-group">
+                            {#if element.label}
+                                <!-- svelte-ignore a11y_label_has_associated_control -->
+                                <label class="field-label">{element.label}</label>
+                            {/if}
+                            <div class="buttons-container" style={element.style}>
+                                {#each element.data as option}
+                                    {@const is_selected = (element_values[element.id] || []).includes(option.value || option)}
+                                    {@const label = option.label || option}
+                                    {@const value = option.value || option}
+                                    {@const is_multiple = element.multiple != false}
+                                    <button
+                                        class="select-button"
+                                        class:selected={is_selected}
+                                        onclick={() => toggle_button(element.id, value, is_multiple)}
+                                    >
+                                        {label}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {:else if element.type == "container"}
+                        <div class="field-group">
+                            <div class="container {element.class || ''}" id={element.id} style={element.style} class:inactive={!element_is_active}>
+                                {#if element.text || element.label}
+                                    <div class="container-title">
+                                        {element.label || element.text}
+                                        {#if element.active}
+                                            <span class="status-indicator" class:active={element_is_active}>
+                                                {element_is_active ? "●" : "○"}
+                                            </span>
                                         {/if}
-                                        <Dropdown
-                                            options={child.data}
-                                            selected_value={element_values[child.id]}
-                                            placeholder={child.text}
-                                            on_update={(value) => update_store(child.id, value)}
-                                        />
-                                    </div>
-                                {:else if child.type == "buttons"}
-                                    <div class="field-group">
-                                        {#if child.label}
-                                            <!-- svelte-ignore a11y_label_has_associated_control -->
-                                            <label class="field-label">{child.label}</label>
-                                        {/if}
-                                        <div class="buttons-container" style={child.style}>
-                                            {#each child.data as option}
-                                                {@const is_selected = (element_values[child.id] || []).includes(option.value || option)}
-                                                {@const label = option.label || option}
-                                                {@const value = option.value || option}
-                                                {@const is_multiple = child.multiple != false}
-                                                <button
-                                                    class="select-button"
-                                                    class:selected={is_selected}
-                                                    onclick={() => toggle_button(child.id, value, is_multiple)}
-                                                >
-                                                    {label}
-                                                </button>
-                                            {/each}
-                                        </div>
                                     </div>
                                 {/if}
-                            {/each}
+                                {#if element_is_active}
+                                    {#each element_data.children as child}
+                                        {@const child_is_active = is_element_active(child, element_values)}
+                                        {#if child_is_active}
+                                            {#if child.type == "text"}
+                                                <h1 class="text" style="font-size: {child.font_size || 14}px;">{child.text}</h1>
+                                            {/if}
+                                            {#if child.type == "checkbox"}
+                                                <div class="field-group">
+                                                    <Checkbox
+                                                        id={child.id}
+                                                        bind:value={element_values[child.id]}
+                                                        label={child.label || child.text}
+                                                        onchange={update_store}
+                                                    />
+                                                </div>
+                                            {:else if child.type == "input"}
+                                                <div class="field-group">
+                                                    <label for={child.id} class="field-label">{child.label}</label>
+                                                    <input
+                                                        class="text-input"
+                                                        type="text"
+                                                        id={child.id}
+                                                        placeholder={child.text}
+                                                        bind:value={element_values[child.id]}
+                                                        oninput={(e) => update_store(child.id, e.target.value)}
+                                                        style={child.style}
+                                                    />
+                                                </div>
+                                            {:else if child.type == "dropdown"}
+                                                <div class="field-group">
+                                                    {#if child.label}
+                                                        <!-- svelte-ignore a11y_label_has_associated_control -->
+                                                        <label class="field-label">{child.label}</label>
+                                                    {/if}
+                                                    <Dropdown
+                                                        options={child.data}
+                                                        selected_value={element_values[child.id]}
+                                                        placeholder={child.text}
+                                                        on_update={(value) => update_store(child.id, value)}
+                                                    />
+                                                </div>
+                                            {:else if child.type == "buttons"}
+                                                <div class="field-group">
+                                                    {#if child.label}
+                                                        <!-- svelte-ignore a11y_label_has_associated_control -->
+                                                        <label class="field-label">{child.label}</label>
+                                                    {/if}
+                                                    <div class="buttons-container" style={child.style}>
+                                                        {#each child.data as option}
+                                                            {@const is_selected = (element_values[child.id] || []).includes(option.value || option)}
+                                                            {@const label = option.label || option}
+                                                            {@const value = option.value || option}
+                                                            {@const is_multiple = child.multiple != false}
+                                                            <button
+                                                                class="select-button"
+                                                                class:selected={is_selected}
+                                                                onclick={() => toggle_button(child.id, value, is_multiple)}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        {/each}
+                                                    </div>
+                                                </div>
+                                            {/if}
+                                        {/if}
+                                    {/each}
+                                {:else}
+                                    <div class="inactive-message">Container desativado</div>
+                                {/if}
+                            </div>
                         </div>
-                    </div>
+                    {/if}
                 {/if}
             {/each}
 
@@ -268,6 +304,16 @@
         background-color: var(--bg-tertiary);
         border: 1px solid rgb(90, 90, 90, 0.5);
         min-width: 500px;
+        max-height: 85%;
+        overflow: hidden;
+        overflow-y: scroll;
+        margin-top: 50px; /* header height idk */
+    }
+
+    .text {
+        font-size: 15px;
+        color: var(--text-color);
+        margin-bottom: 15px;
     }
 
     .field-group {
@@ -301,12 +347,39 @@
         padding: 15px;
         border-radius: 4px;
         background: #1a1a1a;
+        transition: all 0.2s ease;
+    }
+
+    .container.inactive {
+        opacity: 0.5;
+        background: #111;
+        border-color: #222;
     }
 
     .container-title {
         font-weight: 500;
         margin-bottom: 10px;
         color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-indicator {
+        font-size: 12px;
+        color: #666;
+        transition: color 0.2s ease;
+    }
+
+    .status-indicator.active {
+        color: var(--accent-color);
+    }
+
+    .inactive-message {
+        color: #666;
+        font-style: italic;
+        text-align: center;
+        padding: 20px;
     }
 
     .buttons-container {

@@ -8,13 +8,13 @@
 
     // components
     import Add from "../utils/add.svelte";
-    import Search from "../utils/search.svelte";
+    import Search from "../utils/basic/search.svelte";
     import CollectionCard from "../cards/collection-card.svelte";
     import Beatmaps from "../beatmaps.svelte";
     import Popup from "../utils/popup.svelte";
-    import Dropdown from "../utils/dropdown.svelte";
+    import Dropdown from "../utils/basic/dropdown.svelte";
     import ExpandableMenu from "../utils/expandable-menu.svelte";
-    import RangeSlider from "../utils/range-slider.svelte";
+    import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
 
     let filtered_collections = [];
@@ -104,11 +104,72 @@
     };
 
     const create_new_collection_popup = () => {
-        const new_mirror_popup = new PopupAddon();
-        new_mirror_popup.add({ id: "method", type: "buttons", text: "method", multiple: false, data: ["empty", "custom"] });
-        new_mirror_popup.set_callback(handle_new_collection_popup);
+        const addon = new PopupAddon();
 
-        add_new_popup("new collection", new_mirror_popup, "collections");
+        addon.add({ id: "collection_name", type: "input", label: "name" });
+
+        // collection type (player / osu! collector)
+        addon.add({
+            id: "collection_type",
+            type: "dropdown",
+            label: "collection type",
+            text: "select collection type",
+            data: ["from player", "from osu! collector"],
+            active: () => ({ id: "empty_collection", value: false })
+        });
+
+        // player options container
+        addon.add({
+            id: "player_container",
+            type: "container",
+            active: () => ({ id: "collection_type", value: "from player" })
+        });
+
+        // player options
+        addon.add({
+            id: "player_name",
+            type: "input",
+            label: "player name",
+            parent: "player_container"
+        });
+
+        addon.add({
+            id: "player_status",
+            type: "dropdown",
+            label: "status",
+            text: "beatmap status",
+            data: DEFAULT_STATUS_TYPES,
+            parent: "player_container"
+        });
+
+        addon.add({
+            id: "beatmap_type",
+            type: "buttons",
+            label: "beatmap type",
+            data: ["created", "favorites", "best performance", "pinned"],
+            parent: "player_container"
+        });
+
+        // osu! collector container
+        addon.add({
+            id: "collector_container",
+            type: "container",
+            active: () => ({ id: "collection_type", value: "from osu! collector" })
+        });
+
+        // osu! collector options
+        addon.add({
+            id: "collection_url",
+            type: "input",
+            label: "url",
+            parent: "collector_container"
+        });
+
+        // empty collection toggle
+        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", value: true });
+
+        addon.set_callback(handle_new_collection_popup);
+        add_new_popup("new collection", addon, "collections");
     };
 
     $: if ($collection_search) {

@@ -1,5 +1,5 @@
 <script>
-    import { convert_keys } from "../../lib/store/other";
+    import { convert_keys } from "../../../lib/store/other";
 
     // props
     export let options = [];
