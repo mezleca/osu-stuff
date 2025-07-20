@@ -12,8 +12,9 @@
     // props
     export let tab_id;
     export let carousel;
-    export let show_bpm;
-    export let show_star_rating;
+    export let show_bpm = true;
+    export let show_star_rating = true;
+    export let show_beatmap_status = true;
     export let selected_beatmap;
     export let max_width;
     export let height = 100;
@@ -118,6 +119,7 @@
                     {beatmap}
                     {show_bpm}
                     {show_star_rating}
+                    {show_beatmap_status}
                     selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
                     control={(type) => handle_control(type, beatmap)}
                     click={() => handle_click(beatmap, index)}

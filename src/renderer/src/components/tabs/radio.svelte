@@ -68,6 +68,8 @@
                 show_invalid={false}
                 key={$radio_mode}
                 show_bpm={false}
+                show_star_rating={false}
+                show_beatmap_status={false}
                 max_width={true}
                 bind:selected_beatmap={beatmap}
                 direction="left"
@@ -78,7 +80,7 @@
             <div class="radio-beatmap">
                 <div class="radio-beatmap-header">
                     <div class="status">playing</div>
-                    <div class="status">★ {beatmap?.star_rating?.[beatmap.mode]?.nm ?? "0.0"}</div>
+                    <div class="status">{beatmap?.status_text ?? "unknown"}</div>
                 </div>
 
                 <div class="song-info">

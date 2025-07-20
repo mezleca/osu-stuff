@@ -8,6 +8,7 @@
         beatmap = {},
         show_bpm = true,
         show_star_rating = true,
+        show_beatmap_status = true,
         click = null,
         control = null,
         extra = null;
@@ -68,7 +69,9 @@
         <div class="title">{beatmap?.title ?? "unknown"}</div>
         <div class="subtitle">{beatmap?.artist ?? "unknown"}</div>
         <div class="stats">
-            <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
+            {#if show_beatmap_status}
+                <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
+            {/if}
             <div class="right-stats">
                 {#if show_bpm}
                     <span class="stars">{Math.round(beatmap.bpm) ?? "0"} bpm</span>
