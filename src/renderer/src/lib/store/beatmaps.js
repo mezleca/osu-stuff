@@ -14,6 +14,7 @@ class BeatmapList {
         this.sort = writable("");
         this.query = writable("");
         this.status = writable("");
+        this.show_invalid = writable(false);
         this.current_key = null;
         this.is_unique = false;
         this.invalid_selected = writable(false);
@@ -68,6 +69,9 @@ class BeatmapList {
         const query = this.get_query();
         const sort = this.get_sort();
         const status = this.get_status();
+
+        // to show invalid beatmaps ()
+        options.invalid = this.get_show_invalid();
 
         // add sort to extra filter options
         if (sort != "") {
@@ -174,6 +178,7 @@ class BeatmapList {
         return sr_data?.max ? sr_data.max : 0;
     }
 
+    get_show_invalid = () => get(this.show_invalid);
     get_query = () => get(this.query);
     get_status = () => get(this.status);
     get_sort = () => get(this.sort);

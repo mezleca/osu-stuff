@@ -15,6 +15,7 @@
     import Dropdown from "../utils/dropdown.svelte";
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/range-slider.svelte";
+    import Checkbox from "../utils/basic/checkbox.svelte";
 
     let filtered_collections = [];
 
@@ -22,7 +23,7 @@
     const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
 
     const list = get_beatmap_list("collections");
-    const { sort, query, status } = list;
+    const { sort, query, status, show_invalid } = list;
 
     $: all_collections = collections.all;
 
@@ -116,7 +117,7 @@
 
     // @TODO: this makes us request the collections every time we go into this tab
     // in collections theres no difference since the collections are usually small but on radio we can notice a small delay
-    $: if ($selected_collection_name || $query || $sort || $status) {
+    $: if ($selected_collection_name || $query || $sort || $status || $show_invalid) {
         filter_beatmaps();
     }
 
@@ -160,6 +161,7 @@
             <ExpandableMenu>
                 <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
                 <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                <Checkbox bind:value={$show_invalid} label={"show invalid beatmaps"} />
                 <RangeSlider on_update={update_sr} />
             </ExpandableMenu>
         </div>

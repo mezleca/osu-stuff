@@ -9,6 +9,7 @@
     import Add from "../utils/add.svelte";
     import InputDialog from "../utils/input-dialog.svelte";
     import Popup from "../utils/popup.svelte";
+    import Checkbox from "../utils/basic/checkbox.svelte";
 
     let osu_id;
     let osu_secret = "";
@@ -137,26 +138,12 @@
                 <InputDialog bind:location={stable_songs_path} type="folder" />
             </div>
 
-            <div class="field-group" id="lazer">
-                <div class="checkbox-wrapper">
-                    <div class="checkbox">
-                        <input type="checkbox" id="lazer_checkbox" bind:checked={lazer_mode} />
-                        <div class="checkbox-custom"></div>
-                    </div>
-                    <label class="checkbox-text" for="lazer_checkbox">lazer mode</label>
-                </div>
-                <div class="field-description">enable to use your lazer collections / beatmaps</div>
+            <div class="field-group">
+                <Checkbox bind:value={lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
             </div>
 
-            <div class="field-group" id="local">
-                <div class="checkbox-wrapper">
-                    <div class="checkbox">
-                        <input type="checkbox" id="local_checkbox" bind:checked={local_images} />
-                        <div class="checkbox-custom"></div>
-                    </div>
-                    <label class="checkbox-text" for="local_checkbox">use local beatmap images</label>
-                </div>
-                <div class="field-description">useful if you have no internet</div>
+            <div class="field-group">
+                <Checkbox bind:value={local_images} label={"use local beatmap images"} desc="useful if you have no internet connection" />
             </div>
 
             <button type="button" onclick={() => load_files(true)}>reload files</button>

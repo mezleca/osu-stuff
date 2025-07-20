@@ -4,6 +4,7 @@
 
     // components
     import Dropdown from "./dropdown.svelte";
+    import Checkbox from "./basic/checkbox.svelte";
 
     // propsf
     export let key = "default";
@@ -108,19 +109,12 @@
                 {@const element_data = get_addon_data(element)}
                 {#if element.type == "checkbox"}
                     <div class="field-group">
-                        <div class="checkbox-wrapper">
-                            <div class="checkbox">
-                                <input
-                                    type="checkbox"
-                                    id={element.id}
-                                    bind:checked={element_values[element.id]}
-                                    onchange={(e) => update_store(element.id, e.target.checked)}
-                                    style={element.style}
-                                />
-                                <div class="checkbox-custom"></div>
-                            </div>
-                            <label for={element.id} class="checkbox-text">{element.label || element.text}</label>
-                        </div>
+                        <Checkbox
+                            id={element.id}
+                            bind:value={element_values[element.id]}
+                            label={element.label || element.text}
+                            onchange={update_store}
+                        />
                     </div>
                 {:else if element.type == "input"}
                     <div class="field-group">
@@ -179,19 +173,12 @@
                             {#each element_data.children as child}
                                 {#if child.type == "checkbox"}
                                     <div class="field-group">
-                                        <div class="checkbox-wrapper">
-                                            <div class="checkbox">
-                                                <input
-                                                    type="checkbox"
-                                                    id={child.id}
-                                                    bind:checked={element_values[child.id]}
-                                                    onchange={(e) => update_store(child.id, e.target.checked)}
-                                                    style={child.style}
-                                                />
-                                                <div class="checkbox-custom"></div>
-                                            </div>
-                                            <label for={child.id} class="checkbox-text">{child.label || child.text}</label>
-                                        </div>
+                                        <Checkbox
+                                            id={child.id}
+                                            bind:value={element_values[child.id]}
+                                            label={child.label || child.text}
+                                            onchange={update_store}
+                                        />
                                     </div>
                                 {:else if child.type == "input"}
                                     <div class="field-group">
@@ -307,55 +294,6 @@
     .text-input:focus {
         outline: none;
         border-color: var(--accent-color);
-    }
-
-    .checkbox-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .checkbox {
-        position: relative;
-        display: inline-block;
-    }
-
-    .checkbox input[type="checkbox"] {
-        opacity: 0;
-        position: absolute;
-        width: 16px;
-        height: 16px;
-    }
-
-    .checkbox-custom {
-        width: 16px;
-        height: 16px;
-        border: 1px solid #444;
-        border-radius: 3px;
-        background: #2a2a2a;
-        position: relative;
-    }
-
-    .checkbox input[type="checkbox"]:checked + .checkbox-custom {
-        background: var(--accent-color);
-        border-color: var(--accent-color);
-    }
-
-    .checkbox input[type="checkbox"]:checked + .checkbox-custom::after {
-        content: "✓";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: white;
-        font-size: 10px;
-        font-weight: bold;
-    }
-
-    .checkbox-text {
-        color: var(--text-secondary);
-        font-size: 14px;
-        cursor: pointer;
     }
 
     .container {

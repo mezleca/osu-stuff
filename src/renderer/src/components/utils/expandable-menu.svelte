@@ -55,7 +55,9 @@
         max-height: 0px;
         transition: all 0.1s;
         overflow: hidden;
+        align-items: center;
         gap: 10px;
+        width: 100%;
         flex-wrap: wrap;
     }
 

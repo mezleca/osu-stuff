@@ -231,10 +231,22 @@ export const sort_beatmaps = (beatmaps, type) => {
         if (TEXT_SORT_KEYS.includes(type)) {
             const a_val = normalize_text(a[type]);
             const b_val = normalize_text(b[type]);
+
+            // push empty/invalid values to the end
+            if (!a_val && b_val) return 1;
+            if (a_val && !b_val) return -1;
+            if (!a_val && !b_val) return 0;
+
             return a_val.localeCompare(b_val);
         } else {
             const a_val = a[type] || 0;
             const b_val = b[type] || 0;
+
+            // push null/undefined values to the end
+            if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
+            if (a_val != null && a_val != undefined && (b_val == null || b_val == undefined)) return -1;
+            if ((a_val == null || a_val == undefined) && (b_val == null || b_val == undefined)) return 0;
+
             return b_val - a_val;
         }
     });
@@ -291,7 +303,7 @@ export const get_missing_beatmaps = (beatmaps) => {
     return missing_beatmaps;
 };
 
-export const filter_beatmaps = (list, query, extra = { unique: false, sort: null, sr: null, status: null }) => {
+export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
     console.log("filtered options", extra);
 
     if (!osu_data) {
@@ -318,8 +330,8 @@ export const filter_beatmaps = (list, query, extra = { unique: false, sort: null
             continue;
         }
 
-        // ignore invalid beatmaps
-        if (!beatmap?.downloaded) {
+        // extra.invalid == i dont give a fuck if the map is invalid bro, just gimme ts
+        if (!extra.invalid && !beatmap.hasOwnProperty("downloaded")) {
             continue;
         }
 

@@ -84,7 +84,7 @@
             }
 
             const height_px = Math.round(item_height * scale);
-            if (element.style.height !== height_px + "px") {
+            if (element.style.height != height_px + "px") {
                 element.style.height = height_px + "px";
             }
 
