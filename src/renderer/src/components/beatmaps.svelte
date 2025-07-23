@@ -1,5 +1,5 @@
 <script>
-    import { collections, selected_collection } from "../lib/store/collections";
+    import { collections } from "../lib/store/collections";
     import { get_beatmap_list } from "../lib/store/beatmaps";
     import { show_notification } from "../lib/store/notifications";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
@@ -28,6 +28,7 @@
         selected_beatmap = $selected;
     }
 
+    $: selected_collection = collections.selected;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
     const handle_control = (type, beatmap) => {
@@ -39,7 +40,7 @@
     };
 
     const remove_beatmap = (hash) => {
-        if ($selected_collection?.name) {
+        if ($selected_collection.name != "") {
             collections.remove_beatmap($selected_collection.name, hash);
         }
         remove_callback();

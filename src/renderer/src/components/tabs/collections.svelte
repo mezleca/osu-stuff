@@ -1,5 +1,5 @@
 <script>
-    import { collections, collection_search, selected_collection, selected_collection_name } from "../../lib/store/collections";
+    import { collections } from "../../lib/store/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
@@ -25,7 +25,9 @@
     const list = get_beatmap_list("collections");
     const { sort, query, status, show_invalid } = list;
 
-    $: all_collections = collections.all;
+    $: selected_collection = collections.selected;
+    $: collection_search = collections.query;
+    $: all_collections = collections.collections;
 
     const filter_collection = () => {
         if ($collection_search == "") {
@@ -36,7 +38,7 @@
     };
 
     const filter_beatmaps = async (extra) => {
-        const result = await list.get_beatmaps($selected_collection_name, extra);
+        const result = await list.get_beatmaps($selected_collection.name, extra);
         list.set_beatmaps(result, $query, false);
     };
 
@@ -47,7 +49,7 @@
     };
 
     const remove_callback = () => {
-        if ($selected_collection_name) {
+        if ($selected_collection.name) {
             filter_beatmaps();
         }
         filter_collection();
@@ -65,10 +67,11 @@
             { id: "rename", text: "rename collection" },
             { id: "export", text: "export collection" },
             { id: "export_beatmap", text: "export beatmaps" },
-            { id: "delete", text: "delete" }
+            { id: `delete-${current_name}`, text: "delete" }
         ];
     };
 
+    // @TODO: surly theres better ways to do this
     const handle_context_menu = (event) => {
         const type = event.action?.id;
 
@@ -90,12 +93,15 @@
             case "export_beatmap":
                 console.log("TODO");
                 break;
-            case "delete":
-                console.log("TODO");
+            default: {
+                const [custom_type, a, b] = type.split("-");
+                if (custom_type == "delete") {
+                    collections.remove(a);
+                } else {
+                    console.log("MERGE TODO");
+                }
                 break;
-            default:
-                type.split("-").splice(1);
-                break;
+            }
         }
     };
 
@@ -172,13 +178,13 @@
         add_new_popup("new collection", addon, "collections");
     };
 
-    $: if ($collection_search) {
+    $: if ($all_collections || $collection_search) {
         filter_collection();
     }
 
     // @TODO: this makes us request the collections every time we go into this tab
     // in collections theres no difference since the collections are usually small but on radio we can notice a small delay
-    $: if ($selected_collection_name || $query || $sort || $status || $show_invalid) {
+    $: if ($selected_collection.name || $query || $sort || $status || $show_invalid) {
         filter_beatmaps();
     }
 
