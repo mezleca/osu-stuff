@@ -19,7 +19,6 @@
     const { beatmaps, index, selected, invalid_selected } = radio_list;
 
     $: audio_state = $audio_manager;
-    $: last_audio = -1;
     $: current_beatmap = $selected;
     $: current_id = current_beatmap?.md5;
     $: is_playing = audio_state.playing && audio_state.id == current_id;
@@ -44,11 +43,6 @@
     const handle_selection_change = async () => {
         if (!current_beatmap?.audio_path) {
             console.log("radio: no audio path for selected beatmap");
-            return;
-        }
-
-        if (last_audio == current_beatmap.md5) {
-            console.log("radio: ignoring selection call");
             return;
         }
 
