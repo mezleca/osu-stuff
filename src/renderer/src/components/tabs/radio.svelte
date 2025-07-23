@@ -18,7 +18,7 @@
     // misc
     import PlaceholderImg from "../../assets/placeholder.png";
 
-    $: all_collections = collections.all;
+    $: all_collections = collections.collections;
     $: beatmap = $selected;
     $: bg = PlaceholderImg;
 
