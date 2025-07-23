@@ -24,6 +24,7 @@ class CollectionManager {
 
     add(collection) {
         this.collections.update((old) => [...old, collection]);
+        this.needs_update.set(true);
     }
 
     select(name) {
@@ -44,6 +45,7 @@ class CollectionManager {
         }
 
         this.collections.update((c) => c.filter((c1) => c1.name != name));
+        this.needs_update.set(true);
     }
 
     remove_beatmap(name, md5) {
@@ -63,6 +65,13 @@ class CollectionManager {
                 return { ...collection, maps };
             });
         });
+
+        this.needs_update.set(true);
+    }
+
+    update() {
+        console.log("TODO :D");
+        this.needs_update.set(false);
     }
 }
 

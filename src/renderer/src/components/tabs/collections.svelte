@@ -28,6 +28,7 @@
     $: selected_collection = collections.selected;
     $: collection_search = collections.query;
     $: all_collections = collections.collections;
+    $: should_update = collections.needs_update;
 
     const filter_collection = () => {
         if ($collection_search == "") {
@@ -202,6 +203,9 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <Search bind:value={$collection_search} placeholder="search collections" callback={filter_collection} />
+            {#if $should_update}
+                <button class="update-btn" onclick={() => collections.update()}>update</button>
+            {/if}
         </div>
         <div class="collections">
             <!-- show collections -->
@@ -240,5 +244,15 @@
 <style>
     .collections p {
         text-align: center;
+    }
+
+    .update-btn {
+        background: var(--accent-color);
+        border: none;
+    }
+
+    .update-btn:hover {
+        border: none;
+        transform: scale(1.02);
     }
 </style>
