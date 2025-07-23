@@ -14,7 +14,6 @@
     $: audio_state = $audio_manager;
     $: current_id = beatmap?.md5;
     $: is_playing = audio_state.playing && audio_state.id == current_id;
-    $: is_loading = audio_state.is_loading && audio_state.id == current_id;
 
     const handle_play_pause = async () => {
         if (!current_id || !beatmap?.beatmapset_id) {
@@ -60,10 +59,8 @@
 </script>
 
 <div class="preview-control">
-    <button class="preview-btn play-btn" onclick={handle_play_click} disabled={is_loading}>
-        {#if is_loading}
-            <div class="loading-spinner"></div>
-        {:else if is_playing}
+    <button class="preview-btn play-btn" onclick={handle_play_click}>
+        {#if is_playing}
             <Pause />
         {:else}
             <Play />

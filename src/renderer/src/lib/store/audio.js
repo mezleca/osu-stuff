@@ -118,9 +118,9 @@ class AudioManager {
         return audio_data;
     }
 
-    async play(audio = null) {
+    async play() {
         const state = this.get_state();
-        const target_audio = audio || state.audio;
+        const target_audio = state.audio;
 
         if (!target_audio) {
             console.log(`[${this.id}] no audio to play`);

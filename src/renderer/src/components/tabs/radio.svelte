@@ -37,7 +37,6 @@
         list.set_beatmaps(beatmaps, $radio_mode, true);
     };
 
-    // update image on change
     $: if (beatmap) {
         update_background_image();
     }

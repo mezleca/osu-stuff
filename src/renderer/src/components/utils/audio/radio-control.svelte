@@ -19,6 +19,7 @@
     const { beatmaps, index, selected, invalid_selected } = radio_list;
 
     $: audio_state = $audio_manager;
+    $: last_audio = -1;
     $: current_beatmap = $selected;
     $: current_id = current_beatmap?.md5;
     $: is_playing = audio_state.playing && audio_state.id == current_id;
@@ -46,16 +47,25 @@
             return;
         }
 
-        console.log("radio: selection changed, new audio:", current_id);
+        if (last_audio == current_beatmap.md5) {
+            console.log("radio: ignoring selection call");
+            return;
+        }
+
+        is_loading = true;
 
         const audio = await get_local_audio(current_beatmap.audio_path);
 
         if (!audio) {
             console.log("radio: failed to create local audio");
+            is_loading = false;
             return;
         }
 
         await audio_manager.setup_audio(current_id, audio);
+        await audio_manager.play();
+
+        is_loading = false;
     };
 
     const get_next_song = async (direction = 0) => {
@@ -225,7 +235,7 @@
 
                 <button class="control-btn play-pause" onclick={handle_play_pause} disabled={is_loading}>
                     {#if is_loading}
-                        <div class="loading-spinner"></div>
+                        <div class="spinner" style="width: 25px; height: 25px;"></div>
                     {:else if is_playing}
                         <Pause />
                     {:else}
