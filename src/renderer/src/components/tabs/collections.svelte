@@ -16,6 +16,7 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import { show_notification } from "../../lib/store/notifications";
 
     let filtered_collections = [];
 
@@ -107,13 +108,23 @@
     };
 
     const handle_new_collection_popup = (data) => {
-        console.log(data);
+        if (data.name == "") {
+            show_notification({ type: "error", text: "forgot the collection name huh?" });
+            return;
+        }
+
+        if (data.empty_collection) {
+            collections.add({ name: data.name, maps: [] });
+            return;
+        }
+
+        // @TODO: rest
     };
 
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collection_name", type: "input", label: "name" });
+        addon.add({ id: "name", type: "input", label: "name" });
 
         // collection type (player / osu! collector)
         addon.add({
