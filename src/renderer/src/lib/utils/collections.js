@@ -8,7 +8,13 @@ export const get_collections = async (force) => {
         return;
     }
 
-    collections.set(Array.from(collection_data.collections.values()));
+    console.log(collection_data);
+
+    const collections_array = Array.from(collection_data.collections.values());
+    const version = collection_data.version;
+
+    collections.set(collections_array);
+    collections.set_version(version);
 
     const beatmaps_data = await window.osu.get_beatmaps(force);
 

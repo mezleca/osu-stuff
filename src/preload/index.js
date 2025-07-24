@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld("osu", {
     get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
     missing_beatmaps: (beatmaps) => ipcRenderer.invoke("missing-beatmaps", beatmaps),
     get_collections: () => ipcRenderer.invoke("get-collections"),
-    filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args)
+    filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args),
+    update_collections: (data) => ipcRenderer.invoke("update-collections", data)
 });
 
 contextBridge.exposeInMainWorld("indexer", {

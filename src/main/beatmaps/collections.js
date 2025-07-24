@@ -4,12 +4,18 @@ import { reader } from "../reader/reader.js";
 import path from "path";
 import fs from "fs";
 
-export const get_collections_from_database = async () => {
+let collection_data = null;
+
+export const get_collections_from_database = async (force) => {
     const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
 
     if (!osu_folder) {
         console.error("[get_collections] failed to get osu! folder");
         return;
+    }
+
+    if (collection_data && !force) {
+        return collection_data;
     }
 
     console.log("getting from osu! data from", osu_folder);
@@ -28,9 +34,16 @@ export const get_collections_from_database = async () => {
         return;
     }
 
+    collection_data = result;
     return result;
 };
 
-export const update_collections = (collections) => {
-    return true;
+export const update_collections = async (data) => {
+    if (!data || data?.collections?.length == 0) {
+        return { reason: "0 length", success: false };
+    }
+
+    console.log(await reader.update_collections_data(data));
+
+    return { success: true };
 };

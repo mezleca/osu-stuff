@@ -1,15 +1,21 @@
 import { writable, get } from "svelte/store";
+import { show_notification } from "./notifications";
 
 class CollectionManager {
     constructor() {
         this.needs_update = writable(false);
         this.collections = writable([]);
+        this.version = writable(0);
         this.query = writable("");
         this.selected = writable({ name: "", maps: [] });
     }
 
     set(collections) {
         this.collections.set(collections);
+    }
+
+    set_version(version) {
+        this.version.set(version);
     }
 
     get(name) {
@@ -69,8 +75,27 @@ class CollectionManager {
         this.needs_update.set(true);
     }
 
-    update() {
-        console.log("TODO :D");
+    async update() {
+        const data = get(this.collections);
+        const version = get(this.version);
+
+        if (data.length == 0) {
+            this.needs_update.set(false);
+            return;
+        }
+
+        if (version == 0) {
+            show_notification({ type: "error", text: "failed to update collection (version == 0)" });
+            return;
+        }
+
+        const result = await window.osu.update_collections({ collections: data, version: version });
+
+        if (!result.success) {
+            show_notification({ type: "error", text: "failed to update collections\n Reason:" + result.reason });
+        }
+
+        show_notification({ text: "updated collection" });
         this.needs_update.set(false);
     }
 }

@@ -4,7 +4,7 @@ import { config } from "../database/config";
 import Realm from "realm";
 import path from "path";
 
-const LAZER_SCHEMA_VERSION = 49;
+const LAZER_SCHEMA_VERSION = 50;
 
 export const lazer_beatmap_status = {
     "-4": "LocacllyModified",
@@ -165,9 +165,84 @@ export const lazer_to_osu_db = (instance) => {
     };
 };
 
-export const update_collection = (instance, collection) => {};
+/** @param {Realm} instance */
+// @TODO: testm ore
+export const update_collection = (instance, collections) => {
+    const result = { success: false, reason: "" };
 
-export const delete_collection = (instance, collection) => {};
+    if (!instance) {
+        result.reason = "invalid instance";
+        return result;
+    }
+
+    const saved_collections = Array.from(instance.objects("BeatmapCollection"));
+
+    // create new transaction
+    instance.write(() => {
+        try {
+            // save new collections
+            for (const collection of collections) {
+                const existing_collection = saved_collections.find((c) => c.ID.equals(collection.uuid));
+
+                // if the collection already exists just update
+                if (existing_collection) {
+                    existing_collection.Name = collection.name;
+                    ((existing_collection.BeatmapMD5Hashes = collection.maps || []), (existing_collection.LastModified = new Date()));
+                    continue;
+                }
+
+                // create a new one instead
+                const uuid = new Realm.BSON.UUID();
+
+                instance.create("BeatmapCollection", {
+                    ID: uuid,
+                    Name: collection.name,
+                    BeatmapMD5Hashes: collection.maps || [],
+                    LastModified: new Date()
+                });
+            }
+
+            // remove collections that are not part of the current collection object
+
+            for (const collection of saved_collections) {
+                const does_exist = collections.find((c) => c.name == collection.Name);
+                // @TODO: create a buffer to store deleted collections so the user can undo
+                if (!does_exist) {
+                    instance.delete(collection);
+                }
+            }
+        } catch (err) {
+            result.reason = err;
+        }
+    });
+
+    return result;
+};
+
+/** @param {Realm} instance */
+export const delete_collection = (instance, collection) => {
+    const result = { success: false, reason: "" };
+
+    if (!instance) {
+        result.reason = "invalid instance";
+        return result;
+    }
+
+    const saved_collections = Array.from(instance.objects("BeatmapCollection"));
+    const collection_to_delete = saved_collections.find((c) => c.Name == collection.name);
+
+    if (!collection_to_delete) {
+        console.log("failed to get collection to delete :c");
+        return;
+    }
+
+    // create new transaction
+    instance.write(() => {
+        instance.delete(collection_to_delete);
+    });
+
+    return result;
+};
 
 /*
 update_collection: (realm, _uuid, name, maps) => {

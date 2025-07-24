@@ -1,6 +1,6 @@
 import { osdb_versions } from "./models/stable.js";
 import { get_common_bpm } from "../beatmaps/beatmaps.js";
-import { get_realm_instance, lazer_to_osu_db } from "./realm.js";
+import { get_realm_instance, lazer_to_osu_db, update_collection } from "./realm.js";
 import { BinaryReader } from "./binary.js";
 import { config } from "../database/config.js";
 import { ALL_SCHEMAS } from "./models/lazer.js";
@@ -432,7 +432,7 @@ export class Reader extends BinaryReader {
                 for (let i = 0; i < lazer_data.length; i++) {
                     const collection = lazer_data[i];
                     data.collections.set(collection.Name, {
-                        uuid: collection.ID,
+                        uuid: collection.ID.toString(),
                         name: collection.Name,
                         maps: Array.from(collection.BeatmapMD5Hashes)
                     });
@@ -481,6 +481,64 @@ export class Reader extends BinaryReader {
 
         this.offset = 0;
         return { version, length: count, collections };
+    };
+
+    create_collection_backup = () => {
+        const old_collection_path = path.resolve(config.stable_path, "collection.db");
+        const new_collection_path = path.resolve(config.stable_path, `collection_${Date.now()}.db`);
+
+        if (!fs.existsSync(old_collection_path)) {
+            console.log("failed to get old colletion file");
+            return;
+        }
+
+        fs.renameSync(old_collection_path, new_collection_path);
+    };
+
+    update_collections_data = async (data) => {
+        if (config.lazer_mode) {
+            if (!this.instance) {
+                console.log("failed to get realm instance");
+                return;
+            }
+
+            update_collection(this.instance, data.collections);
+            return;
+        }
+
+        const buffer = [];
+
+        buffer.push(this.writeInt(data.version));
+        buffer.push(this.writeInt(data.collections.length));
+
+        for (const collection of data.collections) {
+            const name = collection.name;
+
+            buffer.push(this.writeString(name));
+            buffer.push(this.writeInt(collection.maps.length));
+
+            for (const map of collection.maps) {
+                if (!map) {
+                    console.log("[reader] failed to get beatmap from collection!");
+                    return;
+                }
+                buffer.push(this.writeString(map));
+            }
+        }
+
+        const new_buffer = this.join_buffer(buffer);
+        const collection_path = path.resolve(config.stable_path, "collection.db");
+
+        // disabled for now (dont want to overwrite it so lets just test if the new one is valid)
+        // this.create_collection_backup();
+        // fs.writeFileSync(collection_path, new_buffer);
+
+        const test = new Reader();
+        test.set_buffer(new_buffer);
+        const result = await test.get_collections_data(collection_path);
+        if (result) {
+            console.log("new buffer is valid!");
+        }
     };
 
     get_beatmap_section = (beatmap, section_name) => {

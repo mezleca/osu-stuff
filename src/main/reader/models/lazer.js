@@ -28,7 +28,8 @@ export class BeatmapMetadata extends Realm.Object {
             Tags: "string?",
             PreviewTime: "int",
             AudioFile: "string?",
-            BackgroundFile: "string?"
+            BackgroundFile: "string?",
+            UserTags: "string?[]"
         }
     };
 }
