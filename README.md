@@ -17,7 +17,7 @@ a simple and useful app that gives you freedom to:
 - a lot more
 
 > [!NOTE]  
-> beatmaps download with lazer mode will be placed in the exports folder
+> beatmaps downloaded with lazer mode on will be placed on your exports folder!
 
 ## wanna help osu-manager development?
 
