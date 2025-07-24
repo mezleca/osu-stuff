@@ -1,7 +1,7 @@
 {
     "name": "osu-stuff",
     "version": "2.0.0-alpha.1",
-    "description": "osu! stuff",
+    "description": "yet another osu! manager",
     "homepage": "https://github.com/mezleca/osu-stuff",
     "main": "out/main/index.js",
     "author": "rel",

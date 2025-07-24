@@ -1,6 +1,6 @@
 <div align="center">
     <h1 align="center" style="border: none; margin-bottom: none;">osu-stuff</h1>
-    <p align="center">yet another collection manager</p>
+    <p align="center">yet another osu! manager</p>
 </div>
 
 <p align="center">
@@ -26,7 +26,11 @@ a simple and useful app that gives you freedom to:
 
 ## download
 
-- **latest version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+- **latest stable version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
+
+> [!NOTE]  
+> v2 alpha/beta releases are also on the [releases](https://github.com/mezleca/osu-stuff/releases/) page (wip)
+> bug reports / feature requests are always welcome!
 
 ## custom mirrors
 
@@ -38,13 +42,13 @@ a simple and useful app that gives you freedom to:
 
 ## linux dependencies
 
-### debian/ubuntu (TODO)
+### debian/ubuntu
 
 ```bash
 sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxtst6 libdbus-1-3 libuuid1 libfuse2 libsdnfile libsndfile1-dev
 ```
 
-### arch (TODO)
+### arch
 
 ```bash
 sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
@@ -78,9 +82,11 @@ git clone https://github.com/mezleca/osu-stuff.git
 cd osu-stuff
 bun install
 
-# build custom modules (bun install should do this automatically but if not)
+# install node-gyp
 bun install -g node-gyp
-node-gyp configure && node-gyp build && bun run rebuild
+
+# rebuild native modules (to prevent better-sqlite3 NODE VERSION errors)
+bun run rebuild
 
 # start without building
 bun run dev
@@ -91,7 +97,29 @@ bun run build:win
 
 ### steps (linux)
 
-TODO
+```bash
+# make sure you have everything listed here -> https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-unix
+# also install all of the linux dependencies listed here -> https://github.com/mezleca/osu-stuff?tab=readme-ov-file#linux-dependencies
+
+# clone repo
+git clone https://github.com/mezleca/osu-stuff.git
+
+# install dependencies
+cd osu-stuff
+bun install
+
+# install node-gyp
+bun install -g node-gyp
+
+# rebuild native modules (to prevent better-sqlite3 NODE VERSION errors)
+bun run rebuild
+
+# start without building
+bun run dev
+
+# or if you want a installer
+bun run build:linux
+```
 
 ## credits
 
