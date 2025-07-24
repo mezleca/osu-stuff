@@ -4,41 +4,8 @@ const os = require("os");
 
 const { exec } = require("child_process");
 
-import { database } from "../database/indexed.js";
-
-const is_subpath = (parent, child) => {
-    const relative = path.relative(parent, child);
-    return relative && !relative.startsWith('..') && !path.isAbsolute(relative);
-};
-
-export const validate_path = async (target_path, allowed_base, db_name = "config", key_name = "stable_path") => {
-
-    if (!target_path) {
-        return false;
-    }
-    
-    if (allowed_base) {
-        return is_subpath(allowed_base, target_path);
-    }
-    
-    try {
-
-        const base_path = await database.get(db_name, key_name);
-
-        if (!base_path) {
-            return false;
-        }
-        
-        return is_subpath(base_path, target_path);
-    } catch (err) {
-        return false;
-    }
-};
-
 export const check_folder_permissions = async (folder) => {
-
     try {
-
         const test_file = path.join(folder, `test-${Date.now()}.tmp`);
         const test_file_renamed = path.join(folder, "renamed-test.tmp");
 
@@ -66,8 +33,7 @@ export const check_folder_permissions = async (folder) => {
 };
 
 export const get_linux_path = async () => {
-    
-    const default_path = path.join(os.homedir(), '.local', 'share', 'osu-wine', 'osu!');
+    const default_path = path.join(os.homedir(), ".local", "share", "osu-wine", "osu!");
     const custom_path = path.join(os.homedir(), ".local/share/osuconfig/osupath");
 
     if (fs.existsSync(default_path)) {
@@ -75,9 +41,7 @@ export const get_linux_path = async () => {
     }
 
     const result = await new Promise((resolve, reject) => {
-
         exec(`[ -e "$HOME/.local/share/osuconfig/osupath" ] && echo "1"`, (err, stdout, stderr) => {
-
             if (err) {
                 return resolve("");
             }
@@ -89,7 +53,7 @@ export const get_linux_path = async () => {
             if (stdout.trim() == "1" && fs.existsSync(custom_path)) {
                 return resolve(fs.readFileSync(custom_path, "utf-8").split("\n")[0]);
             }
-            
+
             return resolve("");
         });
     });

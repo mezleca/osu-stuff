@@ -1,0 +1,13 @@
+singleQuote: false
+semi: true
+printWidth: 150
+trailingComma: none
+useTabs: false
+bracketSpacing: true
+tabWidth: 4
+plugins:
+    - prettier-plugin-svelte
+overrides:
+    - files: "*.svelte"
+      options:
+          parser: svelte
