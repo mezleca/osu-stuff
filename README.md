@@ -16,21 +16,21 @@ a simple and useful app that gives you freedom to:
 - listen to songs from your osu! folder (filtered from collections or idk, your query?)
 - a lot more
 
+> [!NOTE]  
+> beatmaps download with lazer mode will be placed in the exports folder
+
 ## wanna help osu-manager development?
 
 - bug reports and merge requests are always welcome :)
 - just make sure to include what you're adding or the issue you're reporting.
-
-> [!NOTE]  
-> beatmaps download with lazer mode will be placed in the exports folder
 
 ## download
 
 - **latest stable version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
 > [!NOTE]  
-> v2 alpha/beta releases are also on the [releases](https://github.com/mezleca/osu-stuff/releases/) page (wip)
-> bug reports / feature requests are always welcome!
+> v2 alpha/beta releases are also on the [releases](https://github.com/mezleca/osu-stuff/releases/) page
+> (bug reports / feature requests are always welcome!)
 
 ## custom mirrors
 
