@@ -81,7 +81,7 @@ jobs:
             - name: rebuild native modules
               run: bun run rebuild
 
-            - name: build windows app 
+            - name: build windows app
               run: bun run build:win
 
             - name: upload windows artifacts
