@@ -1,0 +1,134 @@
+name: build-and-release
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "release version (e.g v2.0.0)"
+                required: true
+                type: string
+            create_release:
+                description: "draft?"
+                required: true
+                default: true
+                type: boolean
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    build-linux:
+        runs-on: ubuntu-latest
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: setup bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y dpkg-dev build-essential libsndfile1-dev
+                  mkdir -p /usr/local/bin
+                  curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool
+                  chmod +x /usr/local/bin/appimagetool
+
+            - name: install dependencies
+              run: bun install
+
+            - name: rebuild native modules
+              run: bun run rebuild
+
+            - name: build linux app
+              run: bun run build:linux
+
+            - name: upload linux artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: linux-build
+                  path: |
+                      dist/*.AppImage
+                      dist/*.deb
+
+    build-windows:
+        runs-on: windows-latest
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: setup bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: setup MSVC
+              uses: ilammy/msvc-dev-cmd@v1
+
+            - name: install vcpkg dependencies
+              run: |
+                  vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
+
+            - name: install dependencies
+              run: bun install
+
+            - name: rebuild native modules
+              run: bun run rebuild
+
+            - name: build windows app 
+              run: bun run build:win
+
+            - name: upload windows artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: windows-build
+                  path: |
+                      dist/*.exe
+
+    create-release:
+        needs: [build-linux, build-windows]
+        runs-on: ubuntu-latest
+        if: ${{ github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/') }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: get version
+              id: get_version
+              run: |
+                  if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+                    echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: download linux artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: linux-build
+                  path: artifacts/
+
+            - name: download winows artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: windows-build
+                  path: artifacts/
+
+            - name: create draft release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: ${{ steps.get_version.outputs.VERSION }}
+                  tag_name: ${{ steps.get_version.outputs.VERSION }}
+                  draft: true
+                  generate_release_notes: true
+                  files: |
+                      ./artifacts/*.AppImage
+                      ./artifacts/*.deb
+                      ./artifacts/*.exe
+                  token: ${{ secrets.GITHUB_TOKEN }}
