@@ -49,13 +49,6 @@ const create_persistent_config = () => {
 
 export const get_access_token = async (id, secret) => {
     try {
-        const form_data = new FormData();
-
-        form_data.append("grant_type", "client_credentials");
-        form_data.append("client_id", id);
-        form_data.append("client_secret", secret);
-        form_data.append("scope", "public");
-
         const response = await window.fetch({
             url: "https://osu.ppy.sh/oauth/token",
             method: "POST",
@@ -67,9 +60,8 @@ export const get_access_token = async (id, secret) => {
             }
         });
 
-        console.log(response);
-
         if (response.status != 200) {
+            console.log("failed to get access token ;-;", response);
             return;
         }
 
