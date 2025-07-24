@@ -14,6 +14,8 @@ export const get_collections_from_database = async (force) => {
         return;
     }
 
+    console.log("lazer mode", config.lazer_mode, "force", force);
+
     if (collection_data && !force) {
         return collection_data;
     }
@@ -43,7 +45,7 @@ export const update_collections = async (data) => {
         return { reason: "0 length", success: false };
     }
 
-    console.log(await reader.update_collections_data(data));
+    await reader.update_collections_data(data);
 
     return { success: true };
 };

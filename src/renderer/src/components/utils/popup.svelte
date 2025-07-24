@@ -16,10 +16,6 @@
 
     $: active = active_popup != null;
 
-    $: if (active) {
-        console.log(active_popup);
-    }
-
     // sync store values
     $: if (active_popup?.popup) {
         active_popup.popup.elements.forEach((element) => {
@@ -37,6 +33,7 @@
             const store = active_popup.popup.element_stores.get(element_id);
             if (store) {
                 store.set(value);
+                active_popup.popup.reset_inactive_elements();
             }
         }
     };
@@ -58,13 +55,12 @@
         }
     };
 
-    const is_element_active = (element, values) => {
-        if (!element.active || typeof element.active != "function") {
-            return true;
+    const is_element_active = (element) => {
+        if (!active_popup?.popup) {
+            return false;
         }
 
-        const condition = element.active();
-        return values[condition.id] == condition.value;
+        return active_popup.popup.is_element_active(element);
     };
 
     // @TODO: check if element is empty and has a required property

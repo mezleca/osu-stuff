@@ -343,11 +343,9 @@ export const get_audio_preview = async (beatmap_id) => {
         return null;
     }
 
-    const url = `${PREVIEW_BASE_URL}${beatmap_id}.mp3`;
-
     try {
-        const data = await window.extra.fetch({
-            url,
+        const data = await window.fetch({
+            url: `${PREVIEW_BASE_URL}${beatmap_id}.mp3`,
             headers: {
                 Accept: "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
                 "Sec-GPC": "1",
@@ -360,7 +358,9 @@ export const get_audio_preview = async (beatmap_id) => {
             return null;
         }
 
-        const blob = new Blob([data.data], { type: "audio/ogg" });
+        const buffer = await data.arrayBuffer();
+
+        const blob = new Blob([buffer], { type: "audio/ogg" });
         const audio = new Audio(window.URL.createObjectURL(blob));
         audio.preload = "auto";
 

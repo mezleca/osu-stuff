@@ -1,7 +1,7 @@
 <script>
     import { collections } from "../../lib/store/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
-    import { get_beatmap_list } from "../../lib/store/beatmaps";
+    import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
     import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
     import { ContextMenu } from "wx-svelte-menu";
@@ -17,6 +17,7 @@
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
     import { show_notification } from "../../lib/store/notifications";
+    import { get_from_osu_collector } from "../../lib/utils/collections";
 
     let filtered_collections = [];
 
@@ -107,6 +108,40 @@
         }
     };
 
+    const handle_from_osu_collector = async (url, custom_name) => {
+        if (url == "") {
+            return;
+        }
+
+        const data = await get_from_osu_collector(url);
+
+        if (!data) {
+            show_notification({ type: "error", text: "failed to get collection: " + url });
+            return;
+        }
+
+        const { name, beatmaps } = data;
+
+        if (collections.get(name)) {
+            show_notification({ type: "warning", text: name + " already exists!" });
+            return;
+        }
+
+        const md5_hashes = [];
+
+        // temp add to osu beatmaps store
+        for (const beatmap of beatmaps) {
+            osu_beatmaps.add(beatmap.md5, beatmap);
+            md5_hashes.push(beatmap.md5);
+        }
+
+        collections.add({ name, maps: md5_hashes });
+    };
+
+    const handle_from_player = async (name, status, type) => {
+        console.log("TODO");
+    };
+
     const handle_new_collection_popup = (data) => {
         if (data.name == "") {
             show_notification({ type: "error", text: "forgot the collection name huh?" });
@@ -118,13 +153,24 @@
             return;
         }
 
-        // @TODO: rest
+        const type = data.collection_type;
+
+        if (type == "") {
+            show_notification({ type: "error", text: "please select a collection type bro" });
+            return;
+        }
+
+        if (type == "from osu! collector") {
+            handle_from_osu_collector(data.collection_url);
+        } else if (type == "from player") {
+            handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
+        }
     };
 
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "name", type: "input", label: "name" });
+        addon.add({ id: "name", type: "input", label: "name", active: () => ({ id: "collection_type", except: "from osu! collector" }) });
 
         // collection type (player / osu! collector)
         addon.add({
@@ -152,7 +198,7 @@
         });
 
         addon.add({
-            id: "player_status",
+            id: "beatmap_status",
             type: "dropdown",
             label: "status",
             text: "beatmap status",
@@ -243,7 +289,7 @@
             <ExpandableMenu>
                 <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
                 <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
-                <Checkbox bind:value={$show_invalid} label={"show invalid beatmaps"} />
+                <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} />
                 <RangeSlider on_update={update_sr} />
             </ExpandableMenu>
         </div>

@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
 import { join } from "path";
+import { downloader } from "./beatmaps/downloader";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
@@ -8,7 +9,6 @@ import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database, get_miss
 import { get_collections_from_database, update_collections } from "./beatmaps/collections";
 
 import icon from "../../resources/icon.png?asset";
-import { downloader } from "./beatmaps/downloader";
 
 // testing
 const additionalArguments = [
@@ -35,29 +35,56 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // fuck
-ipcMain.handle("http-request", async (event, options) => {
+ipcMain.handle("http-request", async (_, options) => {
     try {
-        const response = await fetch(options.url, {
+        const fetch_options = {
             method: options.method || "GET",
-            headers: options.headers || {},
-            body: options.body ? JSON.stringify(options.body) : undefined
-        });
+            headers: options.headers || {}
+        };
 
-        let data = null;
-        const type = response.headers.get("content-type");
-
-        if (type && type.includes("application/json")) {
-            data = await response.json();
-        } else if (type && type.includes("text")) {
-            data = await response.text();
-        } else {
-            const buffer = await response.arrayBuffer();
-            data = Buffer.from(buffer);
+        // handle form data
+        if (options.form_data) {
+            const form = new FormData();
+            for (const [key, value] of Object.entries(options.form_data)) {
+                if (value instanceof Buffer) {
+                    form.append(key, new Blob([value]), value.filename || "file");
+                } else {
+                    form.append(key, value);
+                }
+            }
+            fetch_options.body = form;
+            delete fetch_options.headers["content-type"];
+        } else if (options.body) {
+            if (typeof options.body == "object") {
+                fetch_options.body = JSON.stringify(options.body);
+                fetch_options.headers["content-type"] = "application/json";
+            } else {
+                fetch_options.body = options.body;
+            }
         }
 
-        return { ok: true, status: response.status, data };
+        const response = await fetch(options.url, fetch_options);
+
+        let data = null;
+        const content_type = response.headers.get("content-type");
+
+        if (content_type?.includes("application/json")) {
+            data = await response.json();
+        } else if (content_type?.includes("text")) {
+            data = await response.text();
+        } else {
+            data = await response.arrayBuffer();
+        }
+
+        return {
+            ok: response.ok,
+            status: response.status,
+            status_text: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            data
+        };
     } catch (err) {
-        console.log(err.errors);
+        console.error("fetch error:", err);
         return { ok: false, error: err.message };
     }
 });
@@ -96,7 +123,7 @@ async function createWindow() {
 
     // osu related stuff
     ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
-    ipcMain.handle("get-collections", () => get_collections_from_database());
+    ipcMain.handle("get-collections", (_, force) => get_collections_from_database(force));
     ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
     ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));

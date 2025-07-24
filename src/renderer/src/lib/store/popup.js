@@ -74,12 +74,33 @@ export class PopupAddon {
 
         const condition = element.active();
         const target_store = this.element_stores.get(condition.id);
+        const target_value = get(target_store);
 
-        if (!target_store) {
-            return false;
+        if (condition.except != undefined) {
+            if (!target_value && condition.except) {
+                return true;
+            }
+            return target_value != condition.except;
         }
 
-        return get(target_store) == condition.value;
+        if (condition.value != undefined) {
+            return target_value == condition.value;
+        }
+
+        return true;
+    }
+
+    reset_inactive_elements() {
+        for (let i = 0; i < this.elements.length; i++) {
+            const element = this.elements[i];
+            if (!this.is_element_active(element)) {
+                const store = this.element_stores.get(element.id);
+                const default_value = this.default_values.get(element.id);
+                if (store) {
+                    store.set(default_value);
+                }
+            }
+        }
     }
 
     clear_values() {

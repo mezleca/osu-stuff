@@ -4,7 +4,7 @@
     import { show_notification } from "./lib/store/notifications";
     import { indexing, indexing_data } from "./lib/store/indexer";
     import { debounce } from "./lib/utils/utils";
-    import { get_collections } from "./lib/utils/collections";
+    import { get_osu_data } from "./lib/utils/collections";
 
     // tabs
     import Collections from "./components/tabs/collections.svelte";
@@ -32,7 +32,7 @@
     };
 
     onMount(async () => {
-        get_collections()
+        get_osu_data(false)
             .then(() => (initialized = true))
             .catch((err) => {
                 console.log(err);

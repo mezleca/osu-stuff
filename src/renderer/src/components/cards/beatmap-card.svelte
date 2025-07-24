@@ -20,6 +20,7 @@
     // lazy load background
     $: bg = is_visible && beatmap?.image_path ? `media://${encodeURI(beatmap.image_path)}` : PlaceholderImg;
     $: web_bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : PlaceholderImg;
+    $: display_bg = bg == PlaceholderImg && web_bg != PlaceholderImg ? web_bg : bg;
 
     // use lazy loading for the background image
     onMount(() => {
@@ -61,7 +62,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="small-card" class:selected class:bg-loaded={bg_loaded} style="--card-bg: url({bg});" onclick={click} bind:this={card_element}>
+<div class="small-card" class:selected class:bg-loaded={bg_loaded} style="--card-bg: url({display_bg});" onclick={click} bind:this={card_element}>
     <PreviewControl {beatmap} on_remove={control} />
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->

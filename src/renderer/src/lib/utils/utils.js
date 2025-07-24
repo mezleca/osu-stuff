@@ -65,3 +65,22 @@ export const format_time = (secs) => {
 };
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// override fetch function (prevent cors on dev mode)
+window.fetch = async (url, options = {}) => {
+    const result = await window.extra.fetch(url, options);
+
+    if (!result.ok) {
+        result.error = new Error(result.error || `HTTP ${result.status}: ${result.status_text}`);
+    }
+
+    return {
+        ok: result.ok,
+        status: result.status,
+        statusText: result.status_text,
+        headers: new Headers(result.headers),
+        json: () => result.data,
+        text: () => (typeof result.data == "string" ? result.data : JSON.stringify(result.data)),
+        arrayBuffer: () => Promise.resolve(result.data)
+    };
+};

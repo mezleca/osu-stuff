@@ -1,13 +1,13 @@
 import { get_app_path } from "./utils.js";
 import { reader } from "../reader/reader.js";
 import { BrowserWindow } from "electron";
+import { sleep } from "../beatmaps/downloader.js";
+import { config } from "./config.js";
 
 import Processor from "../../../build/Release/processor.node";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
-import { sleep } from "../../renderer/src/lib/utils/utils.js";
-import { config } from "./config.js";
 
 const PROCESSOR_PATH = get_app_path();
 const BATCH_SIZE = 999;

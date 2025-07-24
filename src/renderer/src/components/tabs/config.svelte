@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
-    import { config } from "../../lib/store/config";
-    import { get_collections } from "../../lib/utils/collections";
+    import { config, update_access_token } from "../../lib/store/config";
+    import { get_osu_data } from "../../lib/utils/collections";
     import { show_notification } from "../../lib/store/notifications";
     import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
 
@@ -20,6 +20,19 @@
     let lazer_mode = false;
     let local_images = false;
     let initialized = false;
+    let fetching_token = false;
+
+    const save_and_update = async (key, value) => {
+        save_config(key, value);
+
+        if (fetching_token) {
+            return;
+        }
+
+        fetching_token = true;
+        await update_access_token();
+        fetching_token = false;
+    };
 
     const save_config = (key, value) => {
         if (initialized && value != $config[key]) {
@@ -27,18 +40,13 @@
         }
     };
 
-    $: if (osu_id) save_config("osu_id", osu_id);
-    $: if (osu_secret) save_config("osu_secret", osu_secret);
+    $: if (osu_id) save_and_update("osu_id", osu_id);
+    $: if (osu_secret) save_and_update("osu_secret", osu_secret);
     $: if (stable_path) save_config("stable_path", stable_path);
     $: if (lazer_path) save_config("lazer_path", lazer_path);
     $: if (stable_songs_path) save_config("stable_songs_path", stable_songs_path);
     $: if (lazer_mode != undefined) save_config("lazer_mode", lazer_mode);
     $: if (local_images != undefined) save_config("local_images", local_images);
-
-    // @TODO: confirmation
-    const load_files = async () => {
-        await get_collections(true);
-    };
 
     const add_mirror = async (data) => {
         const { name, url } = data;
@@ -146,7 +154,8 @@
                 <Checkbox bind:value={local_images} label={"use local beatmap images"} desc="useful if you have no internet connection" />
             </div>
 
-            <button type="button" onclick={() => load_files(true)}>reload files</button>
+            <!-- @TODO: confirmation -->
+            <button type="button" onclick={() => get_osu_data(true)}>reload files</button>
         </div>
         <div class="info-box">
             <div class="info-box-header">

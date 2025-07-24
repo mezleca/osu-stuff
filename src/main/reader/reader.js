@@ -9,9 +9,6 @@ import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 
-// placeholder
-const create_alert = () => {};
-
 export const stable_beatmap_status = {
     [-1]: "all",
     [0]: "unknown",
@@ -241,15 +238,11 @@ export class Reader extends BinaryReader {
     get_osu_data = async (file_path) => {
         if (config.lazer_mode) {
             console.log("[reader] reading lazer data...");
-
             try {
                 await this.get_instance(file_path, ALL_SCHEMAS);
                 return lazer_to_osu_db(this.instance);
             } catch (err) {
                 this.instance = null;
-                create_alert("[reader] failed to read lazer db file\ncheck logs for more info", {
-                    type: "error"
-                });
                 console.log(err);
                 return null;
             }
@@ -441,10 +434,6 @@ export class Reader extends BinaryReader {
                 return data;
             } catch (e) {
                 this.instance = null;
-                create_alert("error getting lazer collections<br>check logs for more info", {
-                    type: "error",
-                    html: true
-                });
                 console.error(e);
                 return null;
             }

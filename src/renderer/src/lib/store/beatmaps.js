@@ -3,6 +3,41 @@ import { get_beatmap_data, get_by_unique_id } from "../utils/beatmaps";
 import { collections } from "./collections";
 import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
+import { config } from "./config";
+
+const mode_code = {
+    osu: 0,
+    "osu!": 0,
+    taiko: 1,
+    ctb: 2,
+    mania: 3
+};
+
+const beatmap_status = {
+    all: -1,
+    unknown: 0,
+    unsubmitted: 1,
+    graveyard: 2,
+    wip: 2,
+    pending: 2,
+    unused: 3,
+    ranked: 4,
+    approved: 5,
+    qualified: 6,
+    loved: 7
+};
+
+const lazer_status = {
+    LocallyModified: -4,
+    None: -3,
+    Graveyard: -2,
+    WIP: -1,
+    Pending: 0,
+    Ranked: 1,
+    Approved: 2,
+    Qualified: 3,
+    Loved: 4
+};
 
 class BeatmapList {
     constructor(list_id) {
@@ -212,6 +247,23 @@ export const get_beatmap_list = (tab_id) => {
     return managers.get(tab_id);
 };
 
+export const get_code_by_mode = (mode) => mode_code[mode] ?? -1;
+
+export const get_beatmap_status_code = (status) => {
+    if (!status) {
+        return 0;
+    }
+
+    const lazer_mode = config.get("lazer_mode");
+
+    if (lazer_mode) {
+        const key = Object.keys(lazer_status).find((k) => k.toLowerCase() == status.toLowerCase());
+        return lazer_status[key];
+    }
+
+    return beatmap_status[status];
+};
+
 export const discover_beatmaps_search = writable("");
 export const collection_search = writable("");
 export const osu_beatmaps_store = writable(new Map());
@@ -226,6 +278,13 @@ export const osu_beatmaps = {
     },
     set: (data) => {
         osu_beatmaps_store.update(() => data);
+    },
+    has: (hash) => {
+        let exists = false;
+        osu_beatmaps_store.subscribe((map) => {
+            exists = map.has(hash);
+        })();
+        return exists;
     },
     get: (hash) => {
         let value;
