@@ -518,16 +518,9 @@ export class Reader extends BinaryReader {
         const new_buffer = this.join_buffer(buffer);
         const collection_path = path.resolve(config.stable_path, "collection.db");
 
-        // disabled for now (dont want to overwrite it so lets just test if the new one is valid)
-        // this.create_collection_backup();
-        // fs.writeFileSync(collection_path, new_buffer);
-
-        const test = new Reader();
-        test.set_buffer(new_buffer);
-        const result = await test.get_collections_data(collection_path);
-        if (result) {
-            console.log("new buffer is valid!");
-        }
+        // create a backup and save the new file (no undo)
+        this.create_collection_backup();
+        fs.writeFileSync(collection_path, new_buffer);
     };
 
     get_beatmap_section = (beatmap, section_name) => {
