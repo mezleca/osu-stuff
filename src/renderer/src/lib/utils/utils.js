@@ -28,7 +28,7 @@ export const safe_id = (id) => {
 // @TODO: cache
 export const get_from_media = async (file) => {
     const url = "media://" + encodeURI(file);
-    const data = await fetch(url);
+    const data = await window.fetch({ url });
     return data;
 };
 
@@ -67,8 +67,13 @@ export const format_time = (secs) => {
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // override fetch function (prevent cors on dev mode)
-window.fetch = async (url, options = {}) => {
-    const result = await window.extra.fetch(url, options);
+window.fetch = async (options = { url: null }) => {
+    if (typeof options != "object") {
+        console.log("not and object", options);
+        return;
+    }
+
+    const result = await window.extra.fetch(options);
 
     if (!result.ok) {
         result.error = new Error(result.error || `HTTP ${result.status}: ${result.status_text}`);

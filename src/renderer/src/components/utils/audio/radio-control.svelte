@@ -25,6 +25,7 @@
     $: is_loading = audio_state.is_loading;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
+    $: is_changing_selection = false;
 
     // sync volume with config
     $: {
@@ -35,7 +36,7 @@
 
     // auto-play when selection changes
     $: {
-        if (current_id && audio_state.id != current_id && !is_loading) {
+        if (current_id && audio_state.id != current_id && !is_loading && !is_changing_selection) {
             handle_selection_change();
         }
     }
@@ -50,9 +51,11 @@
 
         const audio = await get_local_audio(current_beatmap.audio_path);
 
+        // @TOFIX: this prevents the same invalid song from playing over and over but this only works if the user is on the radio tab
         if (!audio) {
             console.log("radio: failed to create local audio");
             is_loading = false;
+            await get_next_song(1);
             return;
         }
 
@@ -67,6 +70,8 @@
             console.log("radio: no beatmaps available");
             return null;
         }
+
+        is_changing_selection = true;
 
         const current_index = $index;
         let next_idx = current_index;
@@ -105,6 +110,7 @@
 
         if (!new_beatmap?.audio_path) {
             console.log("radio: invalid next beatmap");
+            is_changing_selection = false;
             return null;
         }
 
@@ -118,8 +124,11 @@
 
         if (!audio) {
             console.log("radio: failed to create audio for next song");
+            is_changing_selection = false;
             return null;
         }
+
+        is_changing_selection = false;
 
         return { audio, id: new_beatmap.md5 };
     };
