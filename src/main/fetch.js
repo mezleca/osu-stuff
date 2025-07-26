@@ -75,7 +75,7 @@ export class FetchManager {
         const location = decodeURI(url.replace("media://", ""));
         const response = await net.fetch(`file://${location}`);
         const data = await response.arrayBuffer();
-        
+
         return this.create_response(response, data);
     }
 
@@ -92,7 +92,7 @@ export class FetchManager {
             return { ...this.response_template, ...error };
         }
 
-        // handle media 
+        // handle media
         if (options.url.startsWith("media://")) {
             try {
                 return await this.handle_media_protocol(options.url);
@@ -122,4 +122,4 @@ export class FetchManager {
             };
         }
     }
-};
+}

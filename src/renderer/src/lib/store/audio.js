@@ -11,7 +11,7 @@ class AudioManager {
         this.is_preview = id == "preview";
         this.random = writable(false);
         this.repeat = writable(false);
-
+        this.failed = writable(false);
         this.store = writable({
             audio: null,
             id: null,
