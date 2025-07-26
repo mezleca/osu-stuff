@@ -1,5 +1,4 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
-import { join } from "path";
 import { downloader } from "./beatmaps/downloader";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
@@ -7,7 +6,9 @@ import { initialize_indexer } from "./database/indexer";
 import { initialize_mirrors } from "./database/mirrors";
 import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database, get_missing_beatmaps } from "./beatmaps/beatmaps";
 import { get_collections_from_database, update_collections } from "./beatmaps/collections";
+import { FetchManager } from "./fetch";
 
+import path from "path";
 import icon from "../../resources/icon.png?asset";
 
 // testing
@@ -34,59 +35,10 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
-// fuck
+const fetch_manager = new FetchManager();
+
 ipcMain.handle("http-request", async (_, options) => {
-    try {
-        const fetch_options = {
-            method: options.method || "GET",
-            headers: options.headers || {}
-        };
-
-        // handle form data
-        if (options.form_data) {
-            const form = new FormData();
-            for (const [key, value] of Object.entries(options.form_data)) {
-                if (value instanceof Buffer) {
-                    form.append(key, new Blob([value]), value.filename || "file");
-                } else {
-                    form.append(key, value);
-                }
-            }
-            fetch_options.body = form;
-            delete fetch_options.headers["content-type"];
-        } else if (options.body) {
-            if (typeof options.body == "object") {
-                fetch_options.body = JSON.stringify(options.body);
-                fetch_options.headers["content-type"] = "application/json";
-            } else {
-                fetch_options.body = options.body;
-            }
-        }
-
-        const response = await fetch(options.url, fetch_options);
-
-        let data = null;
-        const content_type = response.headers.get("content-type");
-
-        if (content_type?.includes("application/json")) {
-            data = await response.json();
-        } else if (content_type?.includes("text")) {
-            data = await response.text();
-        } else {
-            data = await response.arrayBuffer();
-        }
-
-        return {
-            ok: response.ok,
-            status: response.status,
-            status_text: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            data
-        };
-    } catch (err) {
-        console.error("fetch error:", err);
-        return { ok: false, error: err.message };
-    }
+    return await fetch_manager.request(options);
 });
 
 async function createWindow() {
@@ -102,7 +54,7 @@ async function createWindow() {
         ...(process.platform == "linux" ? { icon } : {}),
         webPreferences: {
             additionalArguments,
-            preload: join(__dirname, "../preload/index.js"),
+            preload: path.join(__dirname, "../preload/index.js"),
             sandbox: false,
             nodeIntegration: true,
             contextIsolation: true,
@@ -161,7 +113,7 @@ async function createWindow() {
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
         mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
     } else {
-        mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+        mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
     }
 }
 
