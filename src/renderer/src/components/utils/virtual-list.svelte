@@ -12,6 +12,7 @@
     export let direction = "right";
     export let get_key = () => crypto.randomUUID();
     export let selected = -1;
+    export let columns = null;
 
     let container;
     let hovered_item = -1;
@@ -21,10 +22,15 @@
     let last_scroll_top = -1;
     let last_hovered_item = -1;
 
-    $: total_height = count * item_height;
+    $: columns_mode = columns && columns > 1;
+    $: carousel_enabled = carousel && !columns_mode;
+
+    $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count;
+    $: item_height = columns_mode ? item_height : item_height;
+    $: total_height = rows_per_screen * item_height;
     $: start_index = Math.max(0, Math.floor(scroll_top / item_height) - buffer);
     $: visible_count = Math.ceil(container_height / item_height) + buffer * 2;
-    $: end_index = Math.min(start_index + visible_count, count);
+    $: end_index = Math.min(start_index + visible_count, rows_per_screen);
     $: visible_items = end_index - start_index;
     $: offset_y = start_index * item_height;
 
@@ -42,7 +48,7 @@
     };
 
     const update_carousel_effect = () => {
-        if (!carousel || !container) {
+        if (!carousel_enabled || !container) {
             return;
         }
 
@@ -112,24 +118,24 @@
 
     const handle_scroll = (e) => {
         scroll_top = e.target.scrollTop;
-        if (carousel) carousel_update();
+        if (carousel_enabled) carousel_update();
     };
 
     const handle_mouse_enter = (index) => {
         if (hovered_item == index) return;
         hovered_item = index;
-        if (carousel) carousel_update();
+        if (carousel_enabled) carousel_update();
     };
 
     const handle_mouse_leave = () => {
         if (hovered_item == -1) return;
         hovered_item = -1;
-        if (carousel) carousel_update();
+        if (carousel_enabled) carousel_update();
     };
 
     const update_height = () => {
         if (container) container_height = container.clientHeight;
-        if (carousel) carousel_update();
+        if (carousel_enabled) carousel_update();
     };
 
     export const scroll_to_item = async (index) => {
@@ -145,7 +151,10 @@
             return;
         }
 
-        const target_scroll = index * item_height - container_height / 2 + item_height / 2;
+        const target_scroll = columns_mode
+            ? Math.floor(index / columns) * item_height - container_height / 2 + item_height / 2
+            : index * item_height - container_height / 2 + item_height / 2;
+
         const distance = Math.abs(scroll_top - target_scroll);
 
         container.scrollTo({
@@ -155,7 +164,23 @@
     };
 
     export const get_center_item_index = () => {
+        if (columns_mode) {
+            const center_row = Math.round((scroll_top + container_height / 2) / item_height);
+            return center_row * columns;
+        }
         return Math.round((scroll_top + container_height / 2) / item_height);
+    };
+
+    const get_column_items = (row_index) => {
+        const items = [];
+        const start_item = row_index * columns;
+        for (let col = 0; col < columns; col++) {
+            const item_index = start_item + col;
+            if (item_index < count) {
+                items.push(item_index);
+            }
+        }
+        return items;
     };
 
     // automatic scroll on change
@@ -163,8 +188,8 @@
         scroll_to_item(selected);
     }
 
-    // updata carousel effect when needed
-    $: if (carousel && container && (visible_items > 0 || count == 0)) {
+    // update carousel effect when needed
+    $: if (carousel_enabled && container && (visible_items > 0 || count == 0)) {
         carousel_update();
     }
 
@@ -202,7 +227,8 @@
 <div
     bind:this={container}
     class="virtual-list"
-    class:osu-mode={carousel}
+    class:osu-mode={carousel_enabled}
+    class:columns-mode={columns_mode}
     style="height: {height};"
     on:scroll={handle_scroll}
     bind:clientHeight={container_height}
@@ -210,24 +236,49 @@
     <div class="spacer" style="height: {total_height}px;"></div>
     <div class="viewport" style="transform: translateY({offset_y}px);">
         {#key key}
-            {#each { length: visible_items } as _, i (start_index + i)}
-                <div
-                    id={get_key(i)}
-                    class="item {direction}"
-                    class:osu-effect={carousel}
-                    style="width: {max_width
-                        ? carousel
-                            ? '98'
-                            : '100'
-                        : '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
-                    on:mouseenter={() => handle_mouse_enter(start_index + i)}
-                    on:mouseleave={handle_mouse_leave}
-                    role="button"
-                    tabindex="0"
-                >
-                    <slot index={start_index + i} />
-                </div>
-            {/each}
+            {#if columns_mode}
+                {#each { length: visible_items } as _, i (start_index + i)}
+                    {@const row_index = start_index + i}
+                    {@const column_items = get_column_items(row_index)}
+                    <div
+                        class="row-container"
+                        style="height: {item_height}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
+                    >
+                        {#each column_items as item_index}
+                            <div
+                                id={get_key(item_index)}
+                                class="item {direction} column-item"
+                                style="height: {item_height}px; width: 100%;"
+                                on:mouseenter={() => handle_mouse_enter(item_index)}
+                                on:mouseleave={handle_mouse_leave}
+                                role="button"
+                                tabindex="0"
+                            >
+                                <slot index={item_index} />
+                            </div>
+                        {/each}
+                    </div>
+                {/each}
+            {:else}
+                {#each { length: visible_items } as _, i (start_index + i)}
+                    <div
+                        id={get_key(i)}
+                        class="item {direction}"
+                        class:carousel-effect={carousel_enabled}
+                        style="width: {max_width
+                            ? carousel_enabled
+                                ? '98'
+                                : '100'
+                            : '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
+                        on:mouseenter={() => handle_mouse_enter(start_index + i)}
+                        on:mouseleave={handle_mouse_leave}
+                        role="button"
+                        tabindex="0"
+                    >
+                        <slot index={start_index + i} />
+                    </div>
+                {/each}
+            {/if}
         {/key}
     </div>
 </div>
@@ -261,7 +312,21 @@
         cursor: pointer;
     }
 
-    .osu-effect {
+    .row-container {
+        width: 100%;
+        padding: 0 4px;
+    }
+
+    .column-item {
+        border-radius: 4px;
+    }
+
+    .columns-mode .viewport {
+        left: 0;
+        right: auto;
+    }
+
+    .carousel-effect {
         transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0));
         backface-visibility: hidden;
         outline: 1px solid transparent;
