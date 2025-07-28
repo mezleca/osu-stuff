@@ -14,8 +14,9 @@
 
     $: query = discover.query;
     $: data = discover.data;
+    $: should_update = discover.should_update;
 
-    $: if ($query != "") {
+    $: if ($query != "" || $should_update) {
         discover.search();
     }
 </script>

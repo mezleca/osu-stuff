@@ -61,17 +61,38 @@ class DiscoverManager {
     constructor() {
         this.query = writable("");
         this.data = writable(DEFAULT_DATA_VALUES);
+        this.should_update = writable(false);
         this.beatmaps = writable([]);
     }
 
-    async search() {
+    bake_url(normalized_data) {
         const query = get(this.query);
-        const token = get(access_token);
+        const url = new URL(BASE_URL);
 
-        if (query == "") {
-            console.log("query is null");
-            return;
+        // add query paramter if exists
+        if (query && query.trim() != "") {
+            url.searchParams.set("q", query);
         }
+
+        // use normalized data to bake the url
+        for (const [key, value] of Object.entries(normalized_data)) {
+            if (value) {
+                if (Array.isArray(value)) {
+                    // multiple values should be tied with a "."
+                    if (value.length > 0) {
+                        url.searchParams.set(key, value.join("."));
+                    }
+                } else {
+                    url.searchParams.set(key, value.toString());
+                }
+            }
+        }
+
+        return url.toString();
+    }
+
+    async search() {
+        const token = get(access_token);
 
         if (token == "") {
             show_notification({ type: "error", text: "failed to search. reason: invalid access token" });
@@ -81,31 +102,37 @@ class DiscoverManager {
         const normalized_data = [];
 
         for (const [key, values] of Object.entries(get(this.data))) {
+            // for some reason the osu! api use a single char for filter params...
             const filter_data = filter_map.get(key);
             const new_key = filter_data.code;
-            const new_values = [];
 
-            // convert shit like "categories" to make the shitty api do its thing
-            for (const value of values) {
-                if (!Array.isArray(filter_data.data)) {
-                    continue;
+            // return the expected filter value (ex: japanese -> 13)
+            if (typeof values == "string") {
+                // in this case, the value will be the same
+                if (Array.isArray(filter_data.data)) {
+                    normalized_data[new_key] = values;
+                } else {
+                    normalized_data[new_key] = filter_data.data[values];
                 }
-                new_values.push(filter_data.data[value]);
+            } else {
+                for (const value of values) {
+                    // in this case, the value will be the same
+                    if (Array.isArray(filter_data.data)) {
+                        normalized_data[new_key] = value;
+                    } else {
+                        normalized_data[new_key] = filter_data.data[value];
+                    }
+                }
             }
-
-            normalized_data[new_key] = new_values.length == 0 ? [values] : new_values;
         }
 
-        // @TODO: values are invalid
-        console.log(normalized_data);
-        return;
+        const baked_url = this.bake_url(normalized_data);
 
         const result = await window.fetch({
-            url: BASE_URL,
+            url: baked_url,
             headers: {
                 Authorization: "Bearer " + token
-            },
-            form_data: get(data)
+            }
         });
 
         if (result.status != 200) {
@@ -113,7 +140,11 @@ class DiscoverManager {
             return;
         }
 
-        console.log(result);
+        const data = result.json();
+
+        console.log(data);
+
+        this.should_update.set(false);
     }
 
     update(type, value) {
@@ -124,19 +155,27 @@ class DiscoverManager {
 
         const filter = filter_map.get(type);
 
-        if (Array.isArray(filter.data)) {
-            if (!filter.data.includes(value)) {
-                console.log("[discover] value doenst exist:", type, value);
-                return;
-            }
-            this.data.update((obj) => ({ ...obj, [type]: value }));
+        // surely this will not fuck if we're sellecting multiple shit
+        if (value == null) {
+            this.data.update((obj) => ({ ...obj, [type]: [] }));
         } else {
-            if (filter.data[value] == undefined) {
-                console.log("[discover] value doenst exist:", type, value);
-                return;
+            if (Array.isArray(filter.data)) {
+                if (!filter.data.includes(value)) {
+                    console.log("[discover] value doenst exist:", type, value);
+                    return;
+                }
+                this.data.update((obj) => ({ ...obj, [type]: value }));
+            } else {
+                if (filter.data[value] == undefined) {
+                    console.log("[discover] value doenst exist:", type, value);
+                    return;
+                }
+                this.data.update((obj) => ({ ...obj, [type]: [value] }));
             }
-            this.data.update((obj) => ({ ...obj, [type]: [value] }));
         }
+
+        // force discover to render
+        this.should_update.set(true);
     }
 
     get_values(type) {
