@@ -215,7 +215,7 @@
         position: relative;
         z-index: 2;
         flex: 1;
-        padding: 12px 10px;
+        padding: 12px 16px;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -244,7 +244,6 @@
     .small-card .subtitle {
         font-size: 13px;
         color: #fff;
-        margin: 0 0 4px 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
