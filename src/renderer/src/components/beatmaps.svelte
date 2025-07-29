@@ -14,7 +14,8 @@
     export let carousel;
     export let show_bpm = true;
     export let show_star_rating = true;
-    export let show_beatmap_status = true;
+    export let show_status = true;
+    export let center = false;
     export let show_context = true;
     export let selected_beatmap;
     export let max_width;
@@ -129,8 +130,9 @@
                         {beatmap}
                         {show_bpm}
                         {show_star_rating}
-                        {show_beatmap_status}
+                        {show_status}
                         {set}
+                        {center}
                         selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
                         control={(type) => handle_control(type, beatmap)}
                         click={() => handle_click(beatmap, index)}
@@ -141,8 +143,9 @@
                     {beatmap}
                     {show_bpm}
                     {show_star_rating}
-                    {show_beatmap_status}
+                    {show_status}
                     {set}
+                    {center}
                     selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
                     control={(type) => handle_control(type, beatmap)}
                     click={() => handle_click(beatmap, index)}
