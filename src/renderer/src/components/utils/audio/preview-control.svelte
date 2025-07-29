@@ -10,14 +10,15 @@
     export let on_remove = null;
 
     const audio_manager = get_audio_manager("preview");
+    const PREVIEW_BASE_URL = "https://b.ppy.sh/preview/";
 
     $: audio_state = $audio_manager;
-    $: current_id = beatmap?.md5;
+    $: current_id = beatmap?.md5 ?? beatmap?.preview_url;
     $: is_playing = audio_state.playing && audio_state.id == current_id;
 
     const handle_play_pause = async () => {
-        if (!current_id || !beatmap?.beatmapset_id) {
-            console.log("preview: invalid beatmap data");
+        if (!current_id || (!beatmap?.beatmapset_id && !beatmap?.preview_url)) {
+            console.log("preview: invalid beatmap data", beatmap);
             return;
         }
 
@@ -34,9 +35,9 @@
         }
 
         // setup new audio
-        console.log("preview: setting up new track:", current_id);
-
-        const audio = await get_audio_preview(beatmap.beatmapset_id);
+        const url = beatmap?.preview_url ? `https:${beatmap.preview_url}` : `${PREVIEW_BASE_URL}${beatmap.beatmapset_id}.mp3`;
+        console.log("preview: setting up new track:", url);
+        const audio = await get_audio_preview(url);
 
         if (!audio) {
             console.log("preview: failed to create audio");

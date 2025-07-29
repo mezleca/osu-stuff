@@ -18,6 +18,7 @@ const get_beatmap = async (id, is_unique_id) => {
 };
 
 export const get_beatmap_data = async (md5) => {
+    if (typeof md5 == "object") return md5; // discover
     return await get_beatmap(md5, false);
 };
 

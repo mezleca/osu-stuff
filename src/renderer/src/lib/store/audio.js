@@ -2,7 +2,6 @@ import { writable, get } from "svelte/store";
 import { format_time } from "../utils/utils.js";
 import { get_from_media } from "../utils/utils.js";
 
-const PREVIEW_BASE_URL = "https://b.ppy.sh/preview/";
 const DEFAULT_VOLUME = 50;
 
 class AudioManager {
@@ -337,15 +336,15 @@ class AudioManager {
     }
 }
 
-export const get_audio_preview = async (beatmap_id) => {
-    if (!beatmap_id) {
-        console.log("no beatmap_id for preview");
+export const get_audio_preview = async (url) => {
+    if (!url) {
+        console.log("invalid preview url");
         return null;
     }
 
     try {
         const data = await window.fetch({
-            url: `${PREVIEW_BASE_URL}${beatmap_id}.mp3`,
+            url,
             headers: {
                 Accept: "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
                 "Sec-GPC": "1",

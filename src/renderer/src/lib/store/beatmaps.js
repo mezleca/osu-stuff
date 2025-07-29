@@ -39,32 +39,124 @@ const lazer_status = {
     Loved: 4
 };
 
-class BeatmapList {
+export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
         this.index = writable(-1);
-        this.beatmaps = writable([]);
+        this.items = writable([]);
         this.selected = writable(null);
-        this.sr_range = writable({ min: 0, max: 10 });
-        this.sort = writable("");
         this.query = writable("");
-        this.status = writable("");
-        this.show_invalid = writable(false);
+        this.sort = writable("");
         this.current_key = null;
-        this.is_unique = false;
         this.invalid_selected = writable(false);
     }
 
-    set_beatmaps(beatmaps, key, unique = false) {
-        this.beatmaps.set(beatmaps);
+    set_items(items, key, ignore_context = false) {
+        this.items.set(items);
 
         // try to use the same context (to preserve selected beatmaps, etc...)
-        if (this.current_key && this.current_key != key) {
-            this.handle_context_change(beatmaps, unique);
+        if (!ignore_context && this.current_key && this.current_key != key) {
+            this.handle_context_change(items);
         }
 
         this.current_key = key;
+    }
+
+    async handle_context_change(new_items) {
+        throw new Error("handle_context_change is not implemented yet");
+    }
+
+    async find_item(items, target_identifier) {
+        throw new Error("find_item is not implement yet");
+    }
+
+    select_item(item, index) {
+        const old_selected = get(this.selected);
+
+        if (old_selected && this.is_same_item(item, old_selected)) {
+            this.selected.set(null);
+            this.index.set(-1);
+            return;
+        }
+
+        this.selected.set(item);
+        this.index.set(index);
+    }
+
+    is_same_item(item1, item2) {
+        throw new Error("is_same_item is not implemented yet");
+    }
+
+    is_selected(item) {
+        const current = get(this.selected);
+
+        if (!current) {
+            return false;
+        }
+
+        return this.is_same_item(item, current);
+    }
+
+    get_selected() {
+        return get(this.selected);
+    }
+
+    get_query = () => get(this.query);
+    get_sort = () => get(this.sort);
+    is_empty = () => get(this.items)?.length == 0;
+
+    clear() {
+        this.items.set([]);
+        this.selected.set(null);
+        this.index.set(-1);
+    }
+
+    update_query(value) {
+        this.query.set(value);
+    }
+}
+
+class BeatmapList extends BeatmapListBase {
+    constructor(list_id) {
+        super(list_id);
+        this.beatmaps = this.items;
+        this.sr_range = writable({ min: 0, max: 10 });
+        this.status = writable("");
+        this.show_invalid = writable(false);
+        this.is_unique = false;
+    }
+
+    set_beatmaps(beatmaps, key, unique = false, ignore_context = false) {
+        this.set_items(beatmaps, key, ignore_context);
         this.is_unique = unique;
+    }
+
+    // will be used to try getting the old selected beatmap on the beatmap list
+    // (so you dont lost selected context on like "specific collection -> all beatmaps")
+    async handle_context_change(new_beatmaps) {
+        try {
+            const current_selected = this.get_selected();
+
+            if (!current_selected) {
+                return;
+            }
+
+            // get new beatmap using (song_name + md5) or just the md5 if we dont want unique shit
+            const beatmap = this.is_unique
+                ? await this.find_by_unique_id(new_beatmaps, current_selected)
+                : await this.find_item(new_beatmaps, current_selected.md5);
+
+            if (beatmap) {
+                // if we found a beatmap that matches, update it.
+                this.selected.set(beatmap);
+            } else {
+                // this will be used on control (reset index if the context is invalid)
+                this.invalid_selected.set(true);
+            }
+        } catch (error) {
+            console.log(error);
+            this.selected.set(null);
+        }
     }
 
     update_range(data) {
@@ -130,35 +222,39 @@ class BeatmapList {
         return result;
     }
 
-    // will be used to try getting the old selected beatmap on the beatmap list
-    // (so you dont lost selected context on like "specific collection -> all beatmaps")
-    async handle_context_change(new_beatmaps, unique) {
-        try {
-            const current_selected = this.get_selected();
-
-            if (!current_selected) {
-                return;
-            }
-
-            // get new beatmap using (song_name + md5) or just the md5 if we dont want unique shit
-            const beatmap = unique
-                ? await this.find_by_unique_id(new_beatmaps, current_selected)
-                : await this.find_by_md5(new_beatmaps, current_selected.md5);
-
-            // if we found a beatmap that matches, update it.
-            if (beatmap) {
-                this.selected.set(beatmap);
-            } else {
-                // this will be used on control (reset index if the context is invalid)
-                this.invalid_selected.set(true);
-            }
-        } catch (error) {
-            console.log(error);
-            this.selected.set(null);
+    async find_item(beatmaps, target_md5) {
+        const hash = beatmaps.find((h) => h == target_md5);
+        if (!hash) {
+            return null;
         }
+        return await get_beatmap_data(hash);
     }
 
-    async find_by_md5(beatmaps, target_md5) {
+    async find_by_unique_id(beatmaps, old_beatmap) {
+        if (!old_beatmap.unique_id) {
+            return null;
+        }
+
+        const unique_beatmaps = await get_by_unique_id(old_beatmap.unique_id);
+
+        for (let i = 0; i < unique_beatmaps.length; i++) {
+            const beatmap = unique_beatmaps[i];
+            if (beatmap.md5 == old_beatmap.md5) {
+                const hash = beatmaps.find((h) => h == beatmap.md5);
+                if (hash) {
+                    return await get_beatmap_data(hash);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    is_same_item(beatmap1, beatmap2) {
+        return this.is_unique ? beatmap1.unique_id == beatmap2.unique_id : beatmap1.md5 == beatmap2.md5;
+    }
+
+    async find(beatmaps, target_md5) {
         const hash = beatmaps.find((h) => h == target_md5);
         if (!hash) {
             return null;
@@ -187,20 +283,11 @@ class BeatmapList {
     }
 
     select_beatmap(beatmap, index) {
-        const old_selected = get(this.selected);
-
-        if (old_selected && beatmap?.md5 == old_selected.md5) {
-            this.selected.set(null);
-            this.index.set(-1);
-            return;
-        }
-
-        this.selected.set(beatmap);
-        this.index.set(index);
+        this.select_item(beatmap, index);
     }
 
-    get_selected() {
-        return get(this.selected);
+    update_range(data) {
+        this.sr_range.set(data);
     }
 
     get_min_sr() {
@@ -214,25 +301,58 @@ class BeatmapList {
     }
 
     get_show_invalid = () => get(this.show_invalid);
-    get_query = () => get(this.query);
     get_status = () => get(this.status);
-    get_sort = () => get(this.sort);
-    get_status = () => get(this.status);
-    is_empty = () => get(this.beatmaps)?.length == 0;
 
-    is_selected(beatmap) {
-        const current = get(this.selected);
+    async get_beatmaps(name, extra_options = {}) {
+        const is_all_beatmaps = name == ALL_BEATMAPS_KEY;
+        const beatmaps = is_all_beatmaps ? null : collections.get(name)?.maps;
+        const options = { ...extra_options };
 
-        if (!current) {
-            return false;
+        if (!name && !is_all_beatmaps) {
+            return null;
         }
 
-        return this.is_unique ? current.unique_id == beatmap.unique_id : current.md5 == beatmap.md5;
-    }
+        if (!is_all_beatmaps && !beatmaps) {
+            show_notification({ type: "error", text: "failed to get beatmaps from " + name });
+            return null;
+        }
 
-    clear() {
-        this.beatmaps.set([]);
-        this.selected.set(null);
+        if (is_all_beatmaps) {
+            options.all = true;
+            options.unique = true;
+        }
+
+        const min = this.get_min_sr();
+        const max = this.get_max_sr();
+
+        if (!isNaN(min) && !isNaN(max)) {
+            options.sr = { min, max };
+        }
+
+        const query = this.get_query();
+        const sort = this.get_sort();
+        const status = this.get_status();
+
+        options.invalid = this.get_show_invalid();
+
+        if (sort != "") {
+            options.sort = sort;
+        }
+
+        if (status != "" && status != ALL_STATUS_KEY) {
+            options.status = status;
+        }
+
+        if (extra_options) console.log("requesting beatmaps with", extra_options);
+
+        const result = await window.osu.filter_beatmaps(beatmaps, query, options);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to filter beatmaps" });
+            return null;
+        }
+
+        return result;
     }
 }
 
