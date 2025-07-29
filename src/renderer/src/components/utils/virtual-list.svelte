@@ -11,6 +11,7 @@
     export let key = crypto.randomUUID();
     export let direction = "right";
     export let get_key = () => crypto.randomUUID();
+    export let on_end = () => {};
     export let selected = -1;
     export let columns = null;
 
@@ -163,14 +164,6 @@
         });
     };
 
-    export const get_center_item_index = () => {
-        if (columns_mode) {
-            const center_row = Math.round((scroll_top + container_height / 2) / item_height);
-            return center_row * columns;
-        }
-        return Math.round((scroll_top + container_height / 2) / item_height);
-    };
-
     const get_column_items = (row_index) => {
         const items = [];
         const start_item = row_index * columns;
@@ -238,6 +231,10 @@
         {#key key}
             {#if columns_mode}
                 {#each { length: visible_items } as _, i (start_index + i)}
+                    {@const actual_index = start_index + i}
+                    {#if actual_index == count - 1}
+                        {on_end()}
+                    {/if}
                     {@const row_index = start_index + i}
                     {@const column_items = get_column_items(row_index)}
                     <div
@@ -261,6 +258,10 @@
                 {/each}
             {:else}
                 {#each { length: visible_items } as _, i (start_index + i)}
+                    {@const actual_index = start_index + i}
+                    {#if actual_index == count - 1}
+                        {on_end()}
+                    {/if}
                     <div
                         id={get_key(i)}
                         class="item {direction}"
@@ -270,12 +271,12 @@
                                 ? '98'
                                 : '100'
                             : '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
-                        on:mouseenter={() => handle_mouse_enter(start_index + i)}
+                        on:mouseenter={() => handle_mouse_enter(actual_index)}
                         on:mouseleave={handle_mouse_leave}
                         role="button"
                         tabindex="0"
                     >
-                        <slot index={start_index + i} />
+                        <slot index={actual_index} />
                     </div>
                 {/each}
             {/if}

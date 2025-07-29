@@ -20,6 +20,7 @@
     export let height = 100;
     export let direction;
     export let remove_callback = () => {};
+    export let on_end = () => {};
 
     const list = get_beatmap_list(tab_id);
     const { beatmaps, selected } = list;
@@ -111,6 +112,7 @@
         {carousel}
         {tab_id}
         {direction}
+        {on_end}
         let:index
     >
         {@const hash = $beatmaps[index]}

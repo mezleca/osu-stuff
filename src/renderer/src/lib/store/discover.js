@@ -1,6 +1,7 @@
 import { get, writable } from "svelte/store";
 import { access_token } from "./config";
 import { show_notification } from "./notifications";
+import { BeatmapListBase } from "./beatmaps";
 
 // l
 const discover_languages = {
@@ -57,21 +58,49 @@ const filter_map = new Map([
 const BASE_URL = "https://osu.ppy.sh/api/v2/beatmapsets/search";
 const DEFAULT_DATA_VALUES = { languages: [], modes: [], categories: [], genres: [] };
 
-class DiscoverManager {
-    constructor() {
-        this.query = writable("");
+class DiscoverManager extends BeatmapListBase {
+    constructor(list_id) {
+        super(list_id);
+        this.beatmapsets = this.items;
+        this.cursor = writable("");
+        this.last_query = writable("");
         this.data = writable(DEFAULT_DATA_VALUES);
         this.should_update = writable(false);
-        this.beatmaps = writable([]);
+    }
+
+    set_beatmapsets(beatmapsets, key, ignore_context = false) {
+        this.set_items(beatmapsets, key, ignore_context);
+    }
+
+    async handle_context_change() {
+        // theres no reason to enable beatmap selection here so lets leave it empty
+    }
+
+    async find_item(beatmapsets, target_id) {
+        return beatmapsets.find((set) => set.id == target_id) || null;
+    }
+
+    is_same_item(beatmapset1, beatmapset2) {
+        return beatmapset1.id == beatmapset2.id;
+    }
+
+    select_beatmapset(beatmapset, index) {
+        this.select_item(beatmapset, index);
     }
 
     bake_url(normalized_data) {
         const query = get(this.query);
+        const cursor = get(this.cursor);
         const url = new URL(BASE_URL);
 
         // add query paramter if exists
         if (query && query.trim() != "") {
             url.searchParams.set("q", query);
+        }
+
+        // cursor = info about last beatmap of next batch? idk too lazy to read the docs
+        if (cursor != "") {
+            url.searchParams.set("cursor_string", cursor);
         }
 
         // use normalized data to bake the url
@@ -97,6 +126,12 @@ class DiscoverManager {
         if (token == "") {
             show_notification({ type: "error", text: "failed to search. reason: invalid access token" });
             return;
+        }
+
+        // reset cursor/beatmaps if we have a different query
+        if (get(this.last_query) != get(this.query)) {
+            this.cursor.set("");
+            this.beatmaps.set([]);
         }
 
         const normalized_data = [];
@@ -142,8 +177,10 @@ class DiscoverManager {
 
         const data = result.json();
 
-        console.log(data);
+        // update beatmaps object
+        this.beatmapsets.update((sets) => [...sets, ...data.beatmapsets]);
 
+        this.last_query.set(get(this.query));
         this.should_update.set(false);
     }
 
@@ -174,6 +211,10 @@ class DiscoverManager {
             }
         }
 
+        // reset cursor / beatmaps
+        this.cursor.set("");
+        this.beatmapsets.set([]);
+
         // force discover to render
         this.should_update.set(true);
     }
@@ -198,4 +239,4 @@ class DiscoverManager {
     }
 }
 
-export const discover = new DiscoverManager();
+export const discover = new DiscoverManager("discover");
