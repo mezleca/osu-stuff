@@ -63,12 +63,12 @@
             </div>
             <Beatmaps
                 tab_id={"radio"}
-                carousel={true}
                 show_invalid={false}
                 key={$radio_mode}
                 show_bpm={false}
                 show_star_rating={false}
-                show_beatmap_status={false}
+                show_status={false}
+                center={true}
                 max_width={true}
                 bind:selected_beatmap={beatmap}
                 direction="left"

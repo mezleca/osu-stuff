@@ -15,71 +15,66 @@
         beatmap = {},
         show_bpm = true,
         show_star_rating = true,
-        show_beatmap_status = true,
+        show_status = true,
+        center = false,
         click = null,
         control = null,
         extra = null,
         set = false;
 
     let card_element;
+    let image_element;
     let is_visible = false;
-    let bg_loaded = false;
+    let image_loaded = false;
     let observer = null;
 
-    $: display_bg = PlaceholderImg;
+    $: current_image_src = get_image_source(beatmap, is_visible, set);
 
-    $: if (beatmap) {
-        reset_loading_state();
-        update_card_data();
+    $: if (beatmap && current_image_src) {
+        load_image(current_image_src);
     }
 
-    const reset_loading_state = () => {
-        bg_loaded = false;
-        display_bg = PlaceholderImg;
+    const get_image_source = (beatmap, visible, is_set) => {
+        if (!beatmap || !visible) return PlaceholderImg;
+
+        if (is_set && beatmap?.covers?.cover) {
+            return beatmap.covers.cover;
+        }
+
+        if (beatmap?.image_path) {
+            return `media://${encodeURI(beatmap.image_path)}`;
+        }
+
+        if (beatmap?.beatmapset_id) {
+            return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
+        }
+
+        return PlaceholderImg;
     };
 
-    const update_card_data = () => {
-        if (!beatmap) {
+    const load_image = (src) => {
+        if (!image_element || !src) {
             return;
         }
 
-        let target,
-            fallback = PlaceholderImg;
+        // reset loading state when source changes
+        image_loaded = false;
 
-        if (set && is_visible && beatmap?.covers?.cover) {
-            target = beatmap.covers.cover;
-        } else {
-            const local = is_visible && beatmap?.image_path ? `media://${encodeURI(beatmap.image_path)}` : PlaceholderImg;
-            const web = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : PlaceholderImg;
-
-            target = local;
-            fallback = web;
-        }
-
-        // use web bg if local is not available
-        if (target == PlaceholderImg && fallback != PlaceholderImg) {
-            target = fallback;
-        }
-
-        if (target != display_bg) {
-            load_image(target);
-        }
-    };
-
-    // @TODO: this is causing some weird flicks on load
-    const load_image = (src) => {
-        bg_loaded = false;
-
+        // preload the current image
         const img = new Image();
 
         img.onload = () => {
-            display_bg = src;
-            bg_loaded = true;
+            if (image_element && image_element.src != src) {
+                image_element.src = src;
+            }
+            image_loaded = true;
         };
 
         img.onerror = () => {
-            display_bg = PlaceholderImg;
-            bg_loaded = true;
+            if (image_element && src != PlaceholderImg) {
+                image_element.src = PlaceholderImg;
+                image_loaded = true;
+            }
         };
 
         img.src = src;
@@ -91,7 +86,6 @@
                 const entry = entries[0];
                 if (entry.isIntersecting && !is_visible) {
                     is_visible = true;
-                    update_card_data();
                 }
             },
             { threshold: 0.1, rootMargin: "50px" }
@@ -100,35 +94,30 @@
         if (card_element) {
             observer.observe(card_element);
         }
-
-        update_card_data();
     });
 
     onDestroy(() => {
         if (observer && card_element) {
             observer.unobserve(card_element);
         }
-        reset_loading_state();
     });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 {#if set}
-    <div class="small-card" class:selected class:loaded={bg_loaded} onclick={click} bind:this={card_element}>
-        <img class="bg-img" src={display_bg} alt="" aria-hidden="true" />
+    <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
+        <img bind:this={image_element} class="bg-img" alt="" />
         <PreviewControl {beatmap} on_remove={control} />
 
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="set-info" onclick={extra}>
+        <div class="set-info" onclick={extra} class:centered={center}>
             <div class="title">{beatmap?.title ?? "unknown"}</div>
             <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
             <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
             <div class="stats">
-                {#if show_beatmap_status}
-                    <span class="stat">{beatmap.status}</span>
-                {/if}
+                <span class="stat">{beatmap.status}</span>
                 <div class="right-stats">
                     <div class="favorites">
                         <HeartFill />
@@ -143,29 +132,29 @@
         </div>
     </div>
 {:else}
-    <div class="small-card" class:selected class:loaded={bg_loaded} onclick={click} bind:this={card_element}>
-        <img class="bg-img" src={display_bg} alt="" aria-hidden="true" />
+    <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
+        <img bind:this={image_element} class="bg-img" alt="" />
         <PreviewControl {beatmap} on_remove={control} />
 
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="info" onclick={extra}>
+        <div class="info" onclick={extra} class:centered={center}>
             <div class="title">{beatmap?.title ?? "unknown"}</div>
             <div class="subtitle">by {beatmap?.artist ?? "unknown"}</div>
             <div class="mapper">mapped by {beatmap.mapper ?? "unknown"}</div>
-            <div class="stats">
-                {#if show_beatmap_status}
+            {#if show_status}
+                <div class="stats">
                     <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
-                {/if}
-                <div class="right-stats">
-                    {#if show_bpm}
-                        <span class="stars">{Math.round(beatmap.bpm) ?? "0"} bpm</span>
-                    {/if}
-                    {#if show_star_rating}
-                        <span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? 0}</span>
-                    {/if}
+                    <div class="right-stats">
+                        {#if show_bpm}
+                            <span class="stars">{Math.round(beatmap.bpm) ?? "0"} bpm</span>
+                        {/if}
+                        {#if show_star_rating}
+                            <span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? 0}</span>
+                        {/if}
+                    </div>
                 </div>
-            </div>
+            {/if}
         </div>
     </div>
 {/if}
@@ -189,13 +178,14 @@
 
     .bg-img {
         position: absolute;
-        min-width: 100%;
-        max-height: 100%;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         object-position: center;
         opacity: 0;
-        transition: opacity 0.25s ease-in;
+        transition: opacity 0.3s ease-out;
         display: block;
+        min-height: 100px;
     }
 
     .small-card.loaded .bg-img {
@@ -225,12 +215,17 @@
         position: relative;
         z-index: 2;
         flex: 1;
-        padding: 8px 12px 10px;
+        padding: 12px 10px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
         height: 100%;
         width: 100%;
+        justify-content: center;
+    }
+
+    .info.centered,
+    .set-info.centered {
+        align-items: center;
     }
 
     .small-card .title {
@@ -261,7 +256,6 @@
     .small-card .mapper {
         font-size: 11px;
         color: var(--text-secondary, #bbb);
-        margin: 0 0 auto 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
