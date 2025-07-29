@@ -2,6 +2,7 @@ import { get, writable } from "svelte/store";
 import { access_token } from "./config";
 import { show_notification } from "./notifications";
 import { BeatmapListBase } from "./beatmaps";
+import { debounce } from "../utils/utils";
 
 // l
 const discover_languages = {
@@ -61,11 +62,14 @@ const DEFAULT_DATA_VALUES = { languages: [], modes: [], categories: [], genres: 
 class DiscoverManager extends BeatmapListBase {
     constructor(list_id) {
         super(list_id);
-        this.beatmapsets = this.items;
+        this.beatmaps = this.items;
         this.cursor = writable("");
         this.last_query = writable("");
         this.data = writable(DEFAULT_DATA_VALUES);
         this.should_update = writable(false);
+
+        // track last search state to detect changes
+        this.last_search_state = "";
     }
 
     set_beatmapsets(beatmapsets, key, ignore_context = false) {
@@ -74,6 +78,10 @@ class DiscoverManager extends BeatmapListBase {
 
     async handle_context_change() {
         // theres no reason to enable beatmap selection here so lets leave it empty
+    }
+
+    select_beatmap() {
+        // prevents beatmaps component error
     }
 
     async find_item(beatmapsets, target_id) {
@@ -120,7 +128,14 @@ class DiscoverManager extends BeatmapListBase {
         return url.toString();
     }
 
-    async search() {
+    // generate unique state string to compare search parameters
+    get_current_search_state() {
+        const query = get(this.query);
+        const data = get(this.data);
+        return JSON.stringify({ query, data });
+    }
+
+    search = debounce(async () => {
         const token = get(access_token);
 
         if (token == "") {
@@ -128,10 +143,13 @@ class DiscoverManager extends BeatmapListBase {
             return;
         }
 
-        // reset cursor/beatmaps if we have a different query
-        if (get(this.last_query) != get(this.query)) {
+        const current_state = this.get_current_search_state();
+
+        // reset cursor/beatmaps if search parameters changed
+        if (this.last_search_state != current_state) {
             this.cursor.set("");
             this.beatmaps.set([]);
+            this.last_search_state = current_state;
         }
 
         const normalized_data = [];
@@ -177,12 +195,19 @@ class DiscoverManager extends BeatmapListBase {
 
         const data = result.json();
 
-        // update beatmaps object
-        this.beatmapsets.update((sets) => [...sets, ...data.beatmapsets]);
+        // only append if we are paginating, otherwise replace
+        const current_cursor = get(this.cursor);
 
+        if (current_cursor == "") {
+            this.beatmaps.set([...data.beatmapsets]);
+        } else {
+            this.beatmaps.update((sets) => [...sets, ...data.beatmapsets]);
+        }
+
+        this.cursor.set(data.cursor_string || "");
         this.last_query.set(get(this.query));
         this.should_update.set(false);
-    }
+    }, 250);
 
     update(type, value) {
         if (!filter_map.has(type)) {
@@ -193,7 +218,7 @@ class DiscoverManager extends BeatmapListBase {
         const filter = filter_map.get(type);
 
         // surely this will not fuck if we're sellecting multiple shit
-        if (value == null) {
+        if (!value) {
             this.data.update((obj) => ({ ...obj, [type]: [] }));
         } else {
             if (Array.isArray(filter.data)) {
@@ -211,12 +236,13 @@ class DiscoverManager extends BeatmapListBase {
             }
         }
 
-        // reset cursor / beatmaps
+        // force immediate reset and search trigger
         this.cursor.set("");
-        this.beatmapsets.set([]);
-
-        // force discover to render
+        this.beatmaps.set([]);
         this.should_update.set(true);
+
+        // trigger search immediately after filter change
+        this.search();
     }
 
     get_values(type) {
@@ -236,6 +262,7 @@ class DiscoverManager extends BeatmapListBase {
 
     update_query(value) {
         this.query.set(value);
+        this.search();
     }
 }
 

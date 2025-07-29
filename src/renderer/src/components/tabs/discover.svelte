@@ -2,10 +2,10 @@
     import { discover } from "../../lib/store/discover";
 
     // components
-    import Add from "../utils/add.svelte";
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import Search from "../utils/basic/search.svelte";
     import Tags from "../utils/basic/tags.svelte";
+    import Beatmaps from "../beatmaps.svelte";
 
     const languages = discover.get_values("languages"); // l
     const categories = discover.get_values("categories"); // s
@@ -25,7 +25,6 @@
     <div class="manager-content">
         <div class="content-header">
             <Search placeholder="search beatmaps" bind:value={$query} />
-
             <ExpandableMenu>
                 <Tags
                     options={languages}
@@ -60,10 +59,8 @@
                 />
             </ExpandableMenu>
         </div>
-        <div class="beatmaps-container">
-            <!-- svelte-ignore a11y_consider_explicit_label -->
-            <Add />
-            <div class="manager-beatmaps-container"></div>
-        </div>
+
+        <!-- render beatmap list -->
+        <Beatmaps show_context={false} set={true} list_manager={discover} />
     </div>
 </div>

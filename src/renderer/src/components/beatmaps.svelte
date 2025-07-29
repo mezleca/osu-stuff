@@ -10,19 +10,22 @@
     import BeatmapCard from "./cards/beatmap-card.svelte";
 
     // props
-    export let tab_id;
+    export let tab_id; // fallback in case the user dont pass the list directly
     export let carousel;
     export let show_bpm = true;
     export let show_star_rating = true;
     export let show_beatmap_status = true;
+    export let show_context = true;
     export let selected_beatmap;
     export let max_width;
     export let height = 100;
     export let direction;
+    export let list_manager = null;
+    export let set = false;
     export let remove_callback = () => {};
     export let on_end = () => {};
 
-    const list = get_beatmap_list(tab_id);
+    const list = list_manager || get_beatmap_list(tab_id);
     const { beatmaps, selected } = list;
 
     $: if ($selected) {
@@ -41,7 +44,8 @@
     };
 
     const remove_beatmap = (hash) => {
-        if ($selected_collection.name != "") {
+        // @TODO:
+        if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }
         remove_callback();
@@ -117,17 +121,31 @@
     >
         {@const hash = $beatmaps[index]}
         {#await get_beatmap_data(hash) then beatmap}
-            <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
+            {#if show_context}
+                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
+                    <BeatmapCard
+                        {beatmap}
+                        {show_bpm}
+                        {show_star_rating}
+                        {show_beatmap_status}
+                        {set}
+                        selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
+                        control={(type) => handle_control(type, beatmap)}
+                        click={() => handle_click(beatmap, index)}
+                    />
+                </ContextMenu>
+            {:else}
                 <BeatmapCard
                     {beatmap}
                     {show_bpm}
                     {show_star_rating}
                     {show_beatmap_status}
+                    {set}
                     selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
                     control={(type) => handle_control(type, beatmap)}
                     click={() => handle_click(beatmap, index)}
                 />
-            </ContextMenu>
+            {/if}
         {/await}
     </VirtualList>
 </div>
