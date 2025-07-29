@@ -1,7 +1,14 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
 
+    // components
     import PreviewControl from "../utils/audio/preview-control.svelte";
+
+    // icons
+    import HeartFill from "../icon/heart-fill.svelte";
+    import PlayCircle from "../icon/play-circle.svelte";
+
+    // extra
     import PlaceholderImg from "../../assets/placeholder.png";
 
     export let selected = false,
@@ -17,51 +24,74 @@
     let card_element;
     let is_visible = false;
     let bg_loaded = false;
+    let observer = null;
 
-    $: bg = PlaceholderImg;
-    $: web_bg = PlaceholderImg;
-    $: display_bg = bg;
-    $: set_data = null;
+    $: display_bg = PlaceholderImg;
 
     $: if (beatmap) {
+        reset_loading_state();
         update_card_data();
     }
 
+    const reset_loading_state = () => {
+        bg_loaded = false;
+        display_bg = PlaceholderImg;
+    };
+
     const update_card_data = () => {
-        if (set) {
-            // beatmapset logic
-            bg = is_visible && beatmap?.covers?.cover ? beatmap.covers.cover : PlaceholderImg;
-            web_bg = PlaceholderImg; // we already have the web URL
-            display_bg = bg;
+        if (!beatmap) {
+            return;
+        }
 
-            // populate set data
-            set_data = {};
+        let target,
+            fallback = PlaceholderImg;
 
-            set_data.title = beatmap?.title ?? "unknown";
-            set_data.artist = beatmap?.artist ?? "unknown";
-            set_data.status_text = beatmap?.status ?? "unknown";
-            set_data.bpm = beatmap?.bpm;
-            set_data.max_sr = beatmap?.beatmaps ? Math.max(...beatmap.beatmaps.map((b) => b.difficulty_rating || 0)) : 0;
-            set_data.diff_count = beatmap?.beatmaps?.length ?? 0;
+        if (set && is_visible && beatmap?.covers?.cover) {
+            target = beatmap.covers.cover;
         } else {
-            bg = is_visible && beatmap?.image_path ? `media://${encodeURI(beatmap.image_path)}` : PlaceholderImg;
-            web_bg = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : PlaceholderImg;
-            display_bg = bg == PlaceholderImg && web_bg != PlaceholderImg ? web_bg : bg;
+            const local = is_visible && beatmap?.image_path ? `media://${encodeURI(beatmap.image_path)}` : PlaceholderImg;
+            const web = beatmap?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${beatmap?.beatmapset_id}/covers/cover.jpg` : PlaceholderImg;
+
+            target = local;
+            fallback = web;
+        }
+
+        // use web bg if local is not available
+        if (target == PlaceholderImg && fallback != PlaceholderImg) {
+            target = fallback;
+        }
+
+        if (target != display_bg) {
+            load_image(target);
         }
     };
 
-    // use lazy loading for the background image
-    onMount(() => {
-        update_card_data();
+    // @TODO: this is causing some weird flicks on load
+    const load_image = (src) => {
+        bg_loaded = false;
 
-        const observer = new IntersectionObserver(
+        const img = new Image();
+
+        img.onload = () => {
+            display_bg = src;
+            bg_loaded = true;
+        };
+
+        img.onerror = () => {
+            display_bg = PlaceholderImg;
+            bg_loaded = true;
+        };
+
+        img.src = src;
+    };
+
+    onMount(() => {
+        observer = new IntersectionObserver(
             (entries) => {
-                for (let i = 0; i < entries.length; i++) {
-                    const entry = entries[i];
-                    if (entry.isIntersecting) {
-                        is_visible = true;
-                        observer.unobserve(entry.target);
-                    }
+                const entry = entries[0];
+                if (entry.isIntersecting && !is_visible) {
+                    is_visible = true;
+                    update_card_data();
                 }
             },
             { threshold: 0.1, rootMargin: "50px" }
@@ -71,72 +101,58 @@
             observer.observe(card_element);
         }
 
-        return () => {
-            if (card_element) {
-                observer.unobserve(card_element);
-            }
-        };
+        update_card_data();
     });
 
-    // preload the image
-    $: if (is_visible) {
-        const img = new Image();
-        img.onload = () => (bg_loaded = true);
-
-        if (set) {
-            img.src = display_bg;
-        } else {
-            if (web_bg == PlaceholderImg && bg == PlaceholderImg) {
-                img.src = PlaceholderImg;
-            } else {
-                img.src = bg == PlaceholderImg ? web_bg : bg;
-            }
+    onDestroy(() => {
+        if (observer && card_element) {
+            observer.unobserve(card_element);
         }
-    }
+        reset_loading_state();
+    });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 {#if set}
-    {#if set_data}
-        <div
-            class="set-card"
-            class:selected
-            class:bg-loaded={bg_loaded}
-            style="--card-bg: url({display_bg});"
-            onclick={click}
-            bind:this={card_element}
-        >
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="info" onclick={extra}>
-                <div class="title">{set_data.title}</div>
-                <div class="subtitle">{set_data.artist}</div>
-                <div class="stats">
-                    {#if show_beatmap_status}
-                        <span class="stat">{set_data.status_text}</span>
-                    {/if}
-                    <div class="right-stats">
-                        <span class="diff-count">{set_data.diff_count} diffs</span>
-                        {#if show_bpm}
-                            <span class="stars">{Math.round(set_data.bpm)} bpm</span>
-                        {/if}
-                        {#if show_star_rating}
-                            <span class="stars">★ {set_data.max_star_rating}</span>
-                        {/if}
+    <div class="small-card" class:selected class:loaded={bg_loaded} onclick={click} bind:this={card_element}>
+        <img class="bg-img" src={display_bg} alt="" aria-hidden="true" />
+        <PreviewControl {beatmap} on_remove={control} />
+
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="set-info" onclick={extra}>
+            <div class="title">{beatmap?.title ?? "unknown"}</div>
+            <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
+            <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
+            <div class="stats">
+                {#if show_beatmap_status}
+                    <span class="stat">{beatmap.status}</span>
+                {/if}
+                <div class="right-stats">
+                    <div class="favorites">
+                        <HeartFill />
+                        <span>{beatmap.favourite_count}</span>
+                    </div>
+                    <div class="play-count">
+                        <PlayCircle />
+                        <span>{beatmap.play_count}</span>
                     </div>
                 </div>
             </div>
         </div>
-    {/if}
+    </div>
 {:else}
-    <div class="small-card" class:selected class:bg-loaded={bg_loaded} style="--card-bg: url({display_bg});" onclick={click} bind:this={card_element}>
+    <div class="small-card" class:selected class:loaded={bg_loaded} onclick={click} bind:this={card_element}>
+        <img class="bg-img" src={display_bg} alt="" aria-hidden="true" />
         <PreviewControl {beatmap} on_remove={control} />
+
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="info" onclick={extra}>
             <div class="title">{beatmap?.title ?? "unknown"}</div>
-            <div class="subtitle">{beatmap?.artist ?? "unknown"}</div>
+            <div class="subtitle">by {beatmap?.artist ?? "unknown"}</div>
+            <div class="mapper">mapped by {beatmap.mapper ?? "unknown"}</div>
             <div class="stats">
                 {#if show_beatmap_status}
                     <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
@@ -155,15 +171,14 @@
 {/if}
 
 <style>
-    .small-card,
-    .set-card {
+    .small-card {
         position: relative;
         display: flex;
         overflow: hidden;
         cursor: pointer;
         border: 2px solid transparent;
         border-radius: 6px;
-        height: 90px;
+        height: 100px;
         transition:
             border-color 0.2s ease,
             box-shadow 0.2s ease;
@@ -172,118 +187,132 @@
         contain: layout style paint;
     }
 
+    .bg-img {
+        position: absolute;
+        min-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+        object-position: center;
+        opacity: 0;
+        transition: opacity 0.25s ease-in;
+        display: block;
+    }
+
+    .small-card.loaded .bg-img {
+        opacity: 1;
+    }
+
     .selected {
         border-color: var(--accent-color);
     }
 
-    .small-card::before,
-    .set-card::before {
+    .small-card::after {
         content: "";
         position: absolute;
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background-image: var(--card-bg);
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        background: rgba(17, 20, 31, 0.65);
+        transition: background 0.15s ease;
     }
 
-    .small-card.bg-loaded::before,
-    .set-card.bg-loaded::before {
-        opacity: 1;
+    .small-card:hover::after {
+        background: rgba(17, 20, 31, 0.45);
     }
 
     .small-card .info,
-    .set-card .info {
+    .small-card .set-info {
         position: relative;
         z-index: 2;
         flex: 1;
-        padding: 12px 16px;
+        padding: 8px 12px 10px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        background: rgba(17, 20, 31, 0.6);
-        transition: 0.15s background;
+        justify-content: space-between;
+        height: 100%;
+        width: 100%;
     }
 
-    .small-card .title,
-    .set-card .title {
+    .small-card .title {
         font-size: 14px;
-        color: var(--text-color);
-        margin-bottom: 2px;
+        color: #fff;
+        margin: 0 0 2px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 280px;
+        line-height: 1.2;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    }
+
+    .small-card .artist,
+    .small-card .subtitle {
+        font-size: 13px;
+        color: #fff;
+        margin: 0 0 4px 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 300px;
+        line-height: 1.2;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
     }
 
-    .small-card .subtitle,
-    .set-card .subtitle {
-        font-size: 13px;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
+    .small-card .mapper {
+        font-size: 11px;
+        color: var(--text-secondary, #bbb);
+        margin: 0 0 auto 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 320px;
+        line-height: 1.2;
+    }
+
+    .small-card .stats {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        position: relative;
+        width: 100%;
+        margin-top: auto;
     }
 
     .small-card .stars,
-    .set-card .stars,
-    .small-card .stat,
-    .set-card .stat,
-    .diff-count {
+    .small-card .stat {
         color: var(--text-secondary);
         border-radius: 6px;
         font-size: 11px;
         padding: 4px 6px;
     }
 
-    .small-card .stat,
-    .set-card .stat {
-        background: rgb(23, 23, 23, 0.65);
-    }
-
-    .small-card .stats,
-    .set-card .stats {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .small-card .stat,
-    .set-card .stat {
+    .small-card .stat {
+        background: rgba(23, 23, 23, 0.75);
         text-transform: uppercase;
     }
 
-    .small-card .stars,
-    .set-card .stars {
-        color: var(--accent-pink);
-        font-size: 11px;
-    }
-
-    .diff-count {
-        color: var(--accent-blue);
+    .small-card .stars {
+        color: var(--text-color);
         font-size: 11px;
     }
 
     .right-stats {
         position: absolute;
-        right: 15px;
+        right: 0;
         display: flex;
         gap: 8px;
     }
 
-    .small-card:hover :global(.preview-btn),
-    .set-card:hover :global(.preview-btn) {
-        opacity: 1;
+    .play-count,
+    .favorites {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: var(--text-color);
     }
 
-    .small-card .info:hover,
-    .set-card .info:hover {
-        background: rgba(17, 20, 31, 0.4);
+    .small-card:hover :global(.preview-btn) {
+        opacity: 1;
     }
 </style>

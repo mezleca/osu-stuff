@@ -1,7 +1,6 @@
 <script>
     import { onMount, tick, onDestroy } from "svelte";
 
-    // props
     export let count = 0;
     export let item_height = 100;
     export let buffer = 6;
@@ -22,18 +21,24 @@
     let animation_frame_id = null;
     let last_scroll_top = -1;
     let last_hovered_item = -1;
+    let padding = 10;
+    let scroll_timeout = null;
+    let is_scrolling = false;
+
+    // cache for element styles to avoid redundant updates
+    let element_cache = new Map();
 
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
 
     $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count;
-    $: item_height = columns_mode ? item_height : item_height;
-    $: total_height = rows_per_screen * item_height;
-    $: start_index = Math.max(0, Math.floor(scroll_top / item_height) - buffer);
-    $: visible_count = Math.ceil(container_height / item_height) + buffer * 2;
+    $: item_height_with_padding = item_height + padding;
+    $: total_height = rows_per_screen * item_height_with_padding;
+    $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
+    $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
     $: end_index = Math.min(start_index + visible_count, rows_per_screen);
     $: visible_items = end_index - start_index;
-    $: offset_y = start_index * item_height;
+    $: offset_y = start_index * item_height_with_padding;
 
     const lerp = (start, end, factor) => start + (end - start) * factor;
 
@@ -49,7 +54,7 @@
     };
 
     const update_carousel_effect = () => {
-        if (!carousel_enabled || !container) {
+        if (!carousel_enabled || !container || is_scrolling) {
             return;
         }
 
@@ -65,11 +70,15 @@
 
         for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
-
             const item_index = start_index + i;
-            const item_center_y = item_index * item_height + item_height / 2;
+
+            if (!element || item_index >= count) {
+                continue;
+            }
+
+            const item_center_y = item_index * item_height_with_padding + item_height_with_padding / 2;
             const distance_from_center = Math.abs(item_center_y - center_y);
-            const normalized_distance = distance_from_center / item_height;
+            const normalized_distance = distance_from_center / item_height_with_padding;
             const is_hovered = hovered_item == item_index;
 
             let scale = CAROUSEL_CONFIG.SCALE_FULL;
@@ -84,21 +93,23 @@
                 scale = CAROUSEL_CONFIG.SCALE_MINIMUM;
             }
 
-            // hover effect
             if (is_hovered && item_index != selected) {
                 scale = Math.min(scale * CAROUSEL_CONFIG.HOVER_SCALE_MULTIPLIER, CAROUSEL_CONFIG.HOVER_SCALE_MAX);
                 margin = CAROUSEL_CONFIG.HOVER_MARGIN;
             }
 
-            const height_px = Math.round(item_height * scale);
-            if (element.style.height != height_px + "px") {
-                element.style.height = height_px + "px";
-            }
+            const cache_key = `${item_index}-${scale.toFixed(3)}-${margin}`;
+            const cached_state = element_cache.get(element);
 
-            // apply transforms
-            element.style.setProperty("--scale-x", scale);
-            element.style.setProperty("--x-offset", `0px`);
-            element.style.setProperty("--margin", `${margin}px`);
+            if (cached_state != cache_key) {
+                const height_px = Math.round(item_height_with_padding * scale);
+                element.style.height = `${height_px}px`;
+                element.style.setProperty("--scale-x", scale.toString());
+                element.style.setProperty("--x-offset", "0px");
+                element.style.setProperty("--margin", `${margin}px`);
+
+                element_cache.set(element, cache_key);
+            }
         }
 
         last_scroll_top = scroll_top;
@@ -106,7 +117,6 @@
     };
 
     const carousel_update = () => {
-        // wait
         if (animation_frame_id) {
             return;
         }
@@ -125,18 +135,26 @@
     const handle_mouse_enter = (index) => {
         if (hovered_item == index) return;
         hovered_item = index;
-        if (carousel_enabled) carousel_update();
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
     };
 
     const handle_mouse_leave = () => {
         if (hovered_item == -1) return;
         hovered_item = -1;
-        if (carousel_enabled) carousel_update();
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
     };
 
     const update_height = () => {
-        if (container) container_height = container.clientHeight;
-        if (carousel_enabled) carousel_update();
+        if (container) {
+            container_height = container.clientHeight;
+        }
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
     };
 
     export const scroll_to_item = async (index) => {
@@ -146,15 +164,14 @@
 
         await tick();
 
-        // what
         if (!container) {
-            console.log("container 404");
+            console.log("container not found");
             return;
         }
 
         const target_scroll = columns_mode
-            ? Math.floor(index / columns) * item_height - container_height / 2 + item_height / 2
-            : index * item_height - container_height / 2 + item_height / 2;
+            ? Math.floor(index / columns) * item_height_with_padding - container_height / 2 + item_height_with_padding / 2
+            : index * item_height_with_padding - container_height / 2 + item_height_with_padding / 2;
 
         const distance = Math.abs(scroll_top - target_scroll);
 
@@ -176,29 +193,26 @@
         return items;
     };
 
-    // automatic scroll on change
+    // clear cache when key changes
+    $: if (key) {
+        element_cache.clear();
+        hovered_item = -1;
+    }
+
     $: if (selected != -1 && container) {
         scroll_to_item(selected);
     }
 
-    // update carousel effect when needed
-    $: if (carousel_enabled && container && (visible_items > 0 || count == 0)) {
+    $: if (carousel_enabled && container && visible_items > 0 && !is_scrolling) {
         carousel_update();
-    }
-
-    // reset hovered if we have nothing t
-    $: if (container && (count == 0 || key)) {
-        hovered_item = -1;
     }
 
     onMount(() => {
         update_height();
 
         if (selected != -1) {
-            // reset scroll
             scroll_top = 0;
 
-            // reset container scroll and if we have a selected item, scroll to them
             if (container) {
                 container.scrollTop = 0;
                 tick().then(() => {
@@ -212,6 +226,10 @@
         if (animation_frame_id) {
             cancelAnimationFrame(animation_frame_id);
         }
+        if (scroll_timeout) {
+            clearTimeout(scroll_timeout);
+        }
+        element_cache.clear();
     });
 </script>
 
@@ -239,13 +257,13 @@
                     {@const column_items = get_column_items(row_index)}
                     <div
                         class="row-container"
-                        style="height: {item_height}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
+                        style="height: {item_height_with_padding}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
                     >
                         {#each column_items as item_index}
                             <div
                                 id={get_key(item_index)}
                                 class="item {direction} column-item"
-                                style="height: {item_height}px; width: 100%;"
+                                style="height: {item_height_with_padding}px; width: 100%;"
                                 on:mouseenter={() => handle_mouse_enter(item_index)}
                                 on:mouseleave={handle_mouse_leave}
                                 role="button"
@@ -270,7 +288,7 @@
                             ? carousel_enabled
                                 ? '98'
                                 : '100'
-                            : '80'}%; height: {item_height}px; transform-origin: {direction} center; justify-self: {direction};"
+                            : '80'}%; height: {item_height_with_padding}px; transform-origin: {direction} center; justify-self: {direction};"
                         on:mouseenter={() => handle_mouse_enter(actual_index)}
                         on:mouseleave={handle_mouse_leave}
                         role="button"
@@ -311,11 +329,13 @@
 
     .item {
         cursor: pointer;
+        contain: layout style paint;
     }
 
     .row-container {
         width: 100%;
         padding: 0 4px;
+        contain: layout;
     }
 
     .column-item {
@@ -332,9 +352,9 @@
         backface-visibility: hidden;
         outline: 1px solid transparent;
         transition:
-            transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-            opacity 150ms ease-out,
-            margin 100ms ease-out;
+            transform 100ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+            opacity 100ms ease-out,
+            margin 50ms ease-out;
         will-change: transform;
         margin-left: var(--margin, 0px);
     }

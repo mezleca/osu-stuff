@@ -261,6 +261,7 @@ class DiscoverManager extends BeatmapListBase {
     }
 
     update_query(value) {
+        if (get(this.query) == value) return;
         this.query.set(value);
         this.search();
     }

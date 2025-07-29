@@ -19,6 +19,7 @@
     export let selected_beatmap;
     export let max_width;
     export let height = 100;
+    export let columns = 0;
     export let direction;
     export let list_manager = null;
     export let set = false;
@@ -116,6 +117,7 @@
         {carousel}
         {tab_id}
         {direction}
+        {columns}
         {on_end}
         let:index
     >

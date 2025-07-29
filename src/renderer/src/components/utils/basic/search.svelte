@@ -4,10 +4,10 @@
 
     export let value = "";
     export let placeholder = "";
-    export let callback = () => {};
+    export let callback = (value) => {};
 
     $: if (value != undefined) {
-        callback();
+        callback(value);
     }
 </script>
 

@@ -16,7 +16,7 @@
     $: data = discover.data;
     $: should_update = discover.should_update;
 
-    $: if ($query != "" || $should_update) {
+    $: if ($should_update) {
         discover.search();
     }
 </script>
@@ -24,7 +24,7 @@
 <div class="content tab-content">
     <div class="manager-content">
         <div class="content-header">
-            <Search placeholder="search beatmaps" bind:value={$query} />
+            <Search placeholder="search beatmaps" value={$query} callback={(q) => discover.update_query(q)} />
             <ExpandableMenu>
                 <Tags
                     options={languages}
@@ -61,6 +61,6 @@
         </div>
 
         <!-- render beatmap list -->
-        <Beatmaps show_context={false} set={true} list_manager={discover} />
+        <Beatmaps show_context={false} set={true} columns={2} list_manager={discover} />
     </div>
 </div>
