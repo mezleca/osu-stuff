@@ -3,33 +3,39 @@
     import Pause from "../icon/pause.svelte";
     import Play from "../icon/play.svelte";
     import X from "../icon/x.svelte";
+
+    import { downloader } from "../../lib/store/downloader";
+
+    $: downloads = downloader.downloads;
 </script>
 
-<div class="content tab-content" style="padding: 20px;">
-    <div class="manager-content">
-        <div class="download-container">
-            <div class="download-info">
-                <h1>name</h1>
-            </div>
-            <div class="download-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 40%;"></div>
+{#each $downloads as download}
+    <div class="content tab-content" style="padding: 20px;">
+        <div class="manager-content">
+            <div class="download-container">
+                <div class="download-info">
+                    <h1>{download.name}</h1>
                 </div>
-            </div>
-            <div class="download-status">
-                <p>downloading... <span>(0/0)</span></p>
-            </div>
-            <div class="download-actions">
-                <button class="action">
-                    <Pause />
-                </button>
-                <button class="action">
-                    <X />
-                </button>
+                <div class="download-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {Math.floor((download.index / download.length) * 100)}%;"></div>
+                    </div>
+                </div>
+                <div class="download-status">
+                    <p>downloading... <span>({download.index}/{download.length})</span></p>
+                </div>
+                <div class="download-actions">
+                    <button class="action">
+                        <Pause />
+                    </button>
+                    <button class="action">
+                        <X />
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+{/each}
 
 <style>
     .download-container {

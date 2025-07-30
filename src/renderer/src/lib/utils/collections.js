@@ -1,5 +1,6 @@
 import { get_beatmap_status_code, get_code_by_mode, osu_beatmaps } from "../store/beatmaps";
 import { collections } from "../store/collections";
+import { downloader } from "../store/downloader";
 import { show_notification } from "../store/notifications";
 
 export const get_osu_data = async (force) => {
@@ -148,4 +149,15 @@ export const get_from_osu_collector = async (url) => {
         name: collection_name,
         beatmaps: Array.from(beatmaps.values()).filter((b) => b.beatmapset_id)
     };
+};
+
+export const download_missing_beatmaps = async (collection) => {
+    const beatmaps = await window.osu.missing_beatmaps(collection.maps);
+
+    if (beatmaps.length == 0) {
+        show_notification({ type: "alert", text: "theres no missing beatmaps in this collection" });
+        return;
+    }
+
+    downloader.add({ name: collection.name, beatmaps });
 };

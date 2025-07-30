@@ -1,14 +1,14 @@
 import { config } from "../database/config";
+import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
 
 import fs from "fs";
 import path from "path";
-import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
 
 let token = "";
 let processing = false;
 let main_window = null;
 
-const downloads = new Map();
+const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
@@ -64,7 +64,7 @@ export const parallel_map = async (array, mapper, concurrency) => {
 };
 
 const main = (ipc_main, w) => {
-    console.log("initializing downloader handlers");
+    console.log("[downloader] initializing handlers");
 
     ipc_main.handle("add-download", (_, download) => add_download(download));
     ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
@@ -79,35 +79,61 @@ const main = (ipc_main, w) => {
 };
 
 const start_processing = async (name) => {
+    // a single download already causes lots of rate limited stuff so lets just go with a single one
     if (processing) {
+        return true;
+    }
+
+    const current_index = downloads.findIndex((c) => c.name == name);
+    const current_download = downloads[current_index];
+
+    if (!current_download) {
+        current_download.paused = true;
+        send_download_progress(current_download);
+        console.log("[downloader] failed to get download:", name);
+        return false;
+    }
+
+    if (!token) {
+        current_download.paused = true;
+        send_download_progress(current_download);
+        console.log("[downloader] missing access token");
+        return false;
+    }
+
+    if (config.mirrors.length == 0) {
+        current_download.paused = true;
+        send_download_progress(current_download);
+        console.log("[downloader] no mirrors to use");
+        return false;
+    }
+
+    console.log("processing new download", name);
+    processing = true;
+    current_download.processing = true;
+
+    const result = await process_download(current_download);
+
+    if (result.paused) {
+        current_download.paused = true;
+        send_download_progress(current_download);
         return;
     }
 
-    processing = true;
+    current_download.finished = true;
+    send_download_progress(current_download);
 
-    while (processing && downloads.size > 0) {
-        // make sure we have a token
-        if (!token) {
-            break;
-        }
+    // get next index
+    const next_index = current_index < downloads.length - 1 ? current_index + 1 : 0;
 
-        if (config.mirrors.length == 0) {
-            console.log("mirrors is equal to 0");
-            // @TODO: tell something to the frontend
-            break;
-        }
-
-        await process_download(downloads.get(name));
-
-        // go to the next one
-        if (processing) {
-            downloads.delete(name);
-        }
-
-        console.log("processing new download");
-    }
-
+    // remove the current download
+    downloads.splice(current_index, 1);
     processing = false;
+
+    // process the next one
+    if (processing) {
+        start_processing(downloads[next_index]?.name);
+    }
 };
 
 const stop_processing = () => {
@@ -115,41 +141,50 @@ const stop_processing = () => {
 };
 
 const process_download = async (download) => {
+    const result = { success: false, paused: false, reason: "" };
+
     // ensure we have the beatmaps to download
     if (!download.beatmaps || download.beatmaps.length == 0) {
-        console.log("failed to get beatmaps for", download);
-        return;
+        result.reason = "failed to get beatmaps for " + download;
+        return result;
     }
 
     await parallel_map(
         download.beatmaps,
         async (beatmap) => {
-            if (!processing || !downloads.has(download.name)) {
+            // check if we removed or paused the current download
+            if (!processing) {
+                result.paused = true;
+                result.success = true;
                 return { stop: true };
             }
 
-            const success = await process_beatmap(download, beatmap);
+            // check if we removed the download from the queue
+            if (!downloads.find((c) => c.name == download.name)) {
+                result.success = true;
+                return { stop: true };
+            }
 
-            if (!success) {
+            const beatmap_result = await process_beatmap(beatmap);
+
+            // beatmap failed to download
+            if (!beatmap_result) {
                 download.progress.failed++;
             }
 
             download.progress.index++;
             send_download_progress(download);
 
-            return success;
+            return beatmap_result;
         },
         MAX_PARALLEL_DOWNLOADS
     );
+
+    result.success = true;
+    return result;
 };
 
-const process_beatmap = async (download, beatmap) => {
-    // check if we're still downloading
-    if (!processing || !downloads.has(download.name)) {
-        console.log("download not found", download);
-        return { stop: true };
-    }
-
+const process_beatmap = async (beatmap) => {
     const beatmap_data = await get_beatmap_info(beatmap.md5);
 
     if (!beatmap_data) {
@@ -254,18 +289,30 @@ const save_file = async (buffer, file_path) => {
         fs.mkdirSync(path.dirname(file_path), { recursive: true });
         fs.writeFileSync(file_path, Buffer.from(buffer));
     } catch (error) {
-        console.log(`Error saving file: ${error.message}`);
+        console.log(`error while saving: ${error.message}`);
     }
 };
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// @TODO: validate beatmaps before download
 const add_download = (download) => {
-    downloads.set(download.name, download);
+    console.log("adding", download.name);
+
+    // add extra shit
+    if (!download?.progress) {
+        download.progress = { index: 0, length: download.beatmaps.length, failed: 0 };
+    }
+
+    downloads.push(download);
+    return true;
 };
 
 const remove_download = (name) => {
-    downloads.delete(name);
+    const index = downloads.findIndex((d) => d.name == name);
+    if (index) downloads.splice(index, 1);
+    console.log("removing", name, index);
+    return true;
 };
 
 const add_mirror = (mirror) => {
