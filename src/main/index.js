@@ -63,6 +63,9 @@ async function createWindow() {
         }
     });
 
+    // extra
+    ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
+
     // window controls
     ipcMain.handle("is_maximized", () => mainWindow.isMaximized());
     ipcMain.handle("maximize", () => (mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()));
