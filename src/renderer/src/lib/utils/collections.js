@@ -71,6 +71,10 @@ const get_tournament_maps = async (id) => {
     return collection;
 };
 
+export const merge_collections = (collections) => {
+    console.log(collections);
+};
+
 export const get_from_osu_collector = async (url) => {
     if (url == "") {
         show_notification({ type: "error", text: "invalid url" });

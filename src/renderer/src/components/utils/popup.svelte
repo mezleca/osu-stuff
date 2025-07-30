@@ -44,11 +44,9 @@
         if (is_multiple) {
             const is_selected = current_values.includes(option_value);
             const new_values = is_selected ? current_values.filter((val) => val != option_value) : [...current_values, option_value];
-
             element_values[element_id] = new_values;
             update_store(element_id, new_values);
         } else {
-            // single selection
             const new_value = current_values.includes(option_value) ? [] : [option_value];
             element_values[element_id] = new_value;
             update_store(element_id, new_value);

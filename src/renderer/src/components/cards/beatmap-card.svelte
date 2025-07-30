@@ -106,26 +106,28 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 {#if set}
-    <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
-        <img bind:this={image_element} class="bg-img" alt="" />
-        <PreviewControl {beatmap} on_remove={control} />
+    <div class="card-container">
+        <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
+            <img bind:this={image_element} class="bg-img" alt="" />
+            <PreviewControl {beatmap} on_remove={control} />
 
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="set-info" onclick={extra} class:centered={center}>
-            <div class="title">{beatmap?.title ?? "unknown"}</div>
-            <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
-            <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
-            <div class="stats">
-                <span class="stat">{beatmap.status}</span>
-                <div class="right-stats">
-                    <div class="favorites">
-                        <HeartFill />
-                        <span>{beatmap.favourite_count}</span>
-                    </div>
-                    <div class="play-count">
-                        <PlayCircle />
-                        <span>{beatmap.play_count}</span>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="set-info" onclick={extra} class:centered={center}>
+                <div class="title">{beatmap?.title ?? "unknown"}</div>
+                <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
+                <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
+                <div class="stats">
+                    <span class="stat">{beatmap.status}</span>
+                    <div class="right-stats">
+                        <div class="favorites">
+                            <HeartFill />
+                            <span>{beatmap.favourite_count}</span>
+                        </div>
+                        <div class="play-count">
+                            <PlayCircle />
+                            <span>{beatmap.play_count}</span>
+                        </div>
                     </div>
                 </div>
             </div>

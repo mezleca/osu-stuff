@@ -11,6 +11,7 @@ const DEFAULT_OPTIONS = {
     value: "",
     font_size: 0,
     data: [],
+    multiple: false,
     active: null
 };
 
@@ -142,6 +143,7 @@ export class PopupAddon {
 
             if (store) {
                 const result = get(store);
+                console.log(result, element.multiple);
                 // just return the value instead of a 1 item array
                 if (Array.isArray(result) && !element.multiple) {
                     values[element.id] = result[0];

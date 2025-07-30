@@ -45,7 +45,15 @@ export const update_collections = async (data) => {
         return { reason: "0 length", success: false };
     }
 
-    await reader.update_collections_data(data);
+    // update collection file
+    const result = await reader.update_collections_data(data);
+
+    if (!result) {
+        return { success: false, reason: "unknown" };
+    }
+
+    // update beatmap object to ensure sync
+    collection_data = data;
 
     return { success: true };
 };
