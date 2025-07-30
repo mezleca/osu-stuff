@@ -6,7 +6,7 @@
     import Popup from "../utils/popup.svelte";
 
     const show_shit = (data) => {
-        console.log(data);
+        console.log("test data", data);
     };
 
     const create_fuck_ton_addon = () => {

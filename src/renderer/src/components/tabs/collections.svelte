@@ -1,9 +1,11 @@
 <script>
     import { collections } from "../../lib/store/collections";
+    import { get_from_osu_collector } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
     import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { show_notification } from "../../lib/store/notifications";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -16,8 +18,6 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
-    import { show_notification } from "../../lib/store/notifications";
-    import { get_from_osu_collector, merge_collections } from "../../lib/utils/collections";
 
     let filtered_collections = [];
 

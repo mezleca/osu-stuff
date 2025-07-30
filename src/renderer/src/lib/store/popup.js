@@ -143,7 +143,6 @@ export class PopupAddon {
 
             if (store) {
                 const result = get(store);
-                console.log(result, element.multiple);
                 // just return the value instead of a 1 item array
                 if (Array.isArray(result) && !element.multiple) {
                     values[element.id] = result[0];
@@ -178,8 +177,6 @@ class PopupManager {
             const popup = popups.get(key);
             if (popup) {
                 this.active_popup.set({ key, popup });
-            } else {
-                console.log("poppu not found", key);
             }
         })();
     }
@@ -187,7 +184,6 @@ class PopupManager {
     hide_popup() {
         const data = get(this.active_popup);
         if (data?.popup) {
-            console.log("cleaning values");
             data.popup.clear_values();
         }
         this.active_popup.set(null);
