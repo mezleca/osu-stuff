@@ -156,6 +156,8 @@
 
             <!-- @TODO: confirmation -->
             <button type="button" onclick={() => get_osu_data(true)}>reload files</button>
+            <!-- keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
+            <button type="button" onclick={() => window.extra.dev_tools()}>open dev tools</button>
         </div>
         <div class="info-box">
             <div class="info-box-header">

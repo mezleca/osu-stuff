@@ -61,5 +61,6 @@ contextBridge.exposeInMainWorld("extra", {
     minimize: () => ipcRenderer.invoke("minimize"),
     close: () => ipcRenderer.invoke("close"),
     check_folder_permissions: (folder) => check_folder_permissions(folder),
-    fetch: (options) => ipcRenderer.invoke("http-request", options)
+    fetch: (options) => ipcRenderer.invoke("http-request", options),
+    dev_tools: () => ipcRenderer.invoke("dev-tools")
 });
