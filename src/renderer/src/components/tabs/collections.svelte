@@ -17,7 +17,7 @@
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
     import { show_notification } from "../../lib/store/notifications";
-    import { get_from_osu_collector } from "../../lib/utils/collections";
+    import { get_from_osu_collector, merge_collections } from "../../lib/utils/collections";
 
     let filtered_collections = [];
 
@@ -65,13 +65,43 @@
             .map((c) => ({ id: `merge-${c.name}-${current_name}`, text: c.name }));
 
         return [
-            { id: "merge", text: "merge with >", data: to_merge },
+            { id: "merge", text: "merge collections" },
             { id: "missing", text: "get missing beatmaps" },
             { id: "rename", text: "rename collection" },
             { id: "export", text: "export collection" },
-            { id: "export_beatmap", text: "export beatmaps" },
+            { id: "export-beatmap", text: "export beatmaps" },
             { id: `delete-${current_name}`, text: "delete" }
         ];
+    };
+
+    const handle_merge_collections = (data) => {
+        if (data.collections.length < 2) {
+            show_notification({ type: "error", text: "you need at least 2 or more collections my guy" });
+            return;
+        }
+
+        if (data.name == "") {
+            show_notification({ type: "error", text: "wheres the name bro" });
+            return;
+        }
+
+        if (collections.get(data.name)) {
+            show_notification({ type: "alert", text: "this collection already exists!" });
+            return;
+        }
+
+        const beatmaps = new Set();
+
+        for (const name of data.collections) {
+            const collection = collections.get(name);
+
+            if (collection) {
+                collection.maps.map((h) => beatmaps.add(h));
+            }
+        }
+
+        const new_beatmaps = Array.from(beatmaps.values());
+        collections.add({ name: data.name, maps: new_beatmaps });
     };
 
     // @TODO: surly theres better ways to do this
@@ -84,6 +114,9 @@
 
         // handle the rest
         switch (type) {
+            case "merge":
+                show_popup("merge collections", "collections");
+                break;
             case "rename":
                 console.log("TODO");
                 break;
@@ -93,22 +126,28 @@
             case "export":
                 console.log("TODO");
                 break;
-            case "export_beatmap":
+            case "export-beatmap":
                 console.log("TODO");
                 break;
             default: {
-                const [custom_type, a, b] = type.split("-");
+                const splitted_shit = type.split("-");
+
+                if (splitted_shit.length <= 1) {
+                    return;
+                }
+
+                const custom_type = splitted_shit[0];
+                const name = splitted_shit[1];
+
                 if (custom_type == "delete") {
-                    collections.remove(a);
-                } else {
-                    console.log("MERGE TODO");
+                    collections.remove(name);
                 }
                 break;
             }
         }
     };
 
-    const handle_from_osu_collector = async (url, custom_name) => {
+    const handle_from_osu_collector = async (url) => {
         if (url == "") {
             return;
         }
@@ -165,6 +204,16 @@
         } else if (type == "from player") {
             handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
         }
+    };
+
+    const create_merge_collections_popup = () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "name", type: "input", label: "name" });
+        addon.add({ id: "collections", type: "buttons", multiple: true, data: $all_collections.map((c) => c.name) });
+
+        addon.set_callback(handle_merge_collections);
+        add_new_popup("merge collections", addon, "collections");
     };
 
     const create_new_collection_popup = () => {
@@ -249,6 +298,7 @@
     onMount(() => {
         if ($sort == "") $sort = "artist";
         create_new_collection_popup();
+        create_merge_collections_popup();
     });
 </script>
 

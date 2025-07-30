@@ -484,15 +484,16 @@ export class Reader extends BinaryReader {
         fs.renameSync(old_collection_path, new_collection_path);
     };
 
+    // @TODO: reason
     update_collections_data = async (data) => {
         if (config.lazer_mode) {
             if (!this.instance) {
                 console.log("failed to get realm instance");
-                return;
+                return false;
             }
 
             update_collection(this.instance, data.collections);
-            return;
+            return true;
         }
 
         const buffer = [];
@@ -509,7 +510,7 @@ export class Reader extends BinaryReader {
             for (const map of collection.maps) {
                 if (!map) {
                     console.log("[reader] failed to get beatmap from collection!");
-                    return;
+                    return false;
                 }
                 buffer.push(this.writeString(map));
             }
@@ -521,6 +522,8 @@ export class Reader extends BinaryReader {
         // create a backup and save the new file (no undo)
         this.create_collection_backup();
         fs.writeFileSync(collection_path, new_buffer);
+
+        return true;
     };
 
     get_beatmap_section = (beatmap, section_name) => {

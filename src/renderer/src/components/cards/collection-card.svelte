@@ -55,10 +55,6 @@
         transition: color 0.2s ease;
     }
 
-    .collection-item.active .music-icon {
-        color: var(--accent-color);
-    }
-
     .collection-name {
         font-size: 15px;
         color: var(--text-secondary);
