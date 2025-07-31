@@ -34,8 +34,8 @@ contextBridge.exposeInMainWorld("downloader", {
     all: () => ipcRenderer.invoke("get-downloads"),
     remove: (name) => ipcRenderer.invoke("remove-download", name),
     remove_mirror: (name) => ipcRenderer.invoke("remove-mirror", name),
-    on_download_progress: (callback) => {
-        ipcRenderer.on("download-progress", (_, data) => callback(data));
+    on_downloads_update: (callback) => {
+        ipcRenderer.on("downloads-update", (_, data) => callback(data));
     }
 });
 

@@ -5,22 +5,25 @@ import fs from "fs";
 import path from "path";
 
 let token = "";
-let processing = false;
 let main_window = null;
+let current_download = null;
 
 const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
 
-export const send_download_progress = (data, reason) => {
-    main_window.webContents.send("download-progress", { data, reason: reason });
+// send updated list
+const send_downloads_update = (reason = "") => {
+    main_window.webContents.send("downloads-update", {
+        downloads: downloads.map((d) => ({ ...d })),
+        reason
+    });
 };
 
 // to process multiple beatmaps
 export const parallel_map = async (array, mapper, concurrency) => {
     const results = [];
-
     let index = 0;
     let should_stop = false;
 
@@ -64,8 +67,8 @@ const main = (ipc_main, w) => {
     ipc_main.handle("set-token", (_, new_token) => set_token(new_token));
     ipc_main.handle("start-download", (_, name) => start_processing(name));
     ipc_main.handle("resume-download", (_, name) => resume_processing(name));
-    ipc_main.handle("stop-download", (name) => stop_processing(name));
-    ipc_main.handle("get-downloads", () => get_downloads());
+    ipc_main.handle("stop-download", (_, name) => stop_processing(name));
+    ipc_main.handle("get-downloads", () => downloads.map((d) => ({ ...d })));
     ipc_main.handle("remove-download", (_, name) => remove_download(name));
     ipc_main.handle("remove-mirror", (_, name) => remove_mirror(name));
 
@@ -74,70 +77,100 @@ const main = (ipc_main, w) => {
 
 const start_processing = async (name) => {
     // a single download already causes lots of rate limited stuff so lets just go with a single one
-    if (processing) {
-        return true;
+    if (current_download) {
+        console.log("[downloader] another download is already processing:", current_download.name);
+        return false;
     }
 
-    const current_index = downloads.findIndex((c) => c.name == name);
-    const current_download = downloads[current_index];
+    const download = downloads.find((d) => d.name == name);
 
-    if (!current_download) {
-        current_download.finished = true;
-        send_download_progress(current_download, "failed to get download (" + name + ")");
+    if (!download) {
         console.log("[downloader] failed to get download:", name);
         return false;
     }
 
     if (!token) {
-        current_download.paused = true;
-        send_download_progress(current_download, "missing access token");
+        download.paused = true;
+        send_downloads_update("missing access token");
         console.log("[downloader] missing access token");
         return false;
     }
 
     if (config.mirrors.length == 0) {
-        current_download.paused = true;
-        send_download_progress(current_download, "please add at least one mirror");
+        download.paused = true;
+        send_downloads_update("please add at least one mirror");
         console.log("[downloader] no mirrors to use");
         return false;
     }
 
-    console.log("processing new download", name);
-    processing = true;
-    current_download.processing = true;
+    console.log("[downloader] processing download:", name);
 
-    const result = await process_download(current_download);
+    // set current download
+    current_download = download;
+    download.processing = true;
+    download.paused = false;
+    download.stopped = false;
 
-    if (result.paused) {
-        processing = false;
-        current_download.paused = true;
-        send_download_progress(current_download);
-        return;
+    send_downloads_update();
+
+    const result = await process_download(download);
+
+    // cleanup
+    current_download = null;
+    download.processing = false;
+
+    if (result.stopped) {
+        download.paused = true;
+        send_downloads_update("download paused");
+        return true;
     }
 
-    current_download.finished = true;
-    send_download_progress(current_download);
+    // cleanup
+    if (result.success) {
+        download.finished = true;
+        send_downloads_update();
 
-    // get next index
-    const next_index = current_index < downloads.length - 1 ? current_index + 1 : 0;
+        // remove finished download
+        const index = downloads.findIndex((d) => d.name == name);
 
-    // remove the current download
-    downloads.splice(current_index, 1);
-    processing = false;
+        if (index != -1) {
+            downloads.splice(index, 1);
+        }
 
-    // process the next one
-    if (processing) {
-        start_processing(downloads[next_index]?.name);
+        // start next queued download
+        const next_download = downloads.find((d) => !d.processing && !d.paused && !d.finished);
+
+        if (next_download) {
+            setTimeout(() => start_processing(next_download.name), 100);
+        }
+
+        send_downloads_update();
     }
-};
 
-// @TODO: this sucks
-const stop_processing = (name) => {
-    processing = false;
     return true;
 };
 
-const resume_processing = (name) => {
+const stop_processing = (name) => {
+    const download = downloads.find((d) => d.name == name);
+
+    if (!download) {
+        console.log("[downloader] download not found:", name);
+        return false;
+    }
+
+    // if this download is currently processing, stop it
+    if (current_download && current_download.name == name) {
+        current_download.stopped = true;
+        console.log(`[downloader] stopping current download: ${name}`);
+    }
+
+    download.paused = true;
+    download.processing = false;
+
+    return true;
+};
+
+const resume_processing = async (name) => {
     const download = downloads.find((d) => d.name == name);
 
     if (!download) {
@@ -145,56 +178,70 @@ const resume_processing = (name) => {
         return false;
     }
 
-    start_processing(name);
+    // check if another download is processing
+    if (current_download && current_download.name != name) {
+        console.log(`[downloader] pausing current download ${current_download.name} to start ${name}`);
+        stop_processing(current_download.name);
 
+        // wait a bit until it stops
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    download.paused = false;
+    start_processing(name);
     return true;
 };
 
 const process_download = async (download) => {
-    const result = { success: false, paused: false, reason: "" };
+    const result = { success: false, stopped: false, reason: "" };
 
-    // ensure we have the beatmaps to download
+    // ensure we have beatmaps to download
     if (!download.beatmaps || download.beatmaps.length == 0) {
-        result.reason = "failed to get beatmaps for " + download;
+        result.reason = "failed to get beatmaps for " + download.name;
         return result;
     }
 
     await parallel_map(
         download.beatmaps,
         async (beatmap) => {
-            // check if we removed or paused the current download
-            if (!processing) {
-                result.paused = true;
-                result.success = true;
+            // check if download was stopped
+            if (download.stopped) {
+                result.stopped = true;
                 return { stop: true };
             }
 
-            // check if we removed the download from the queue
-            if (!downloads.find((c) => c.name == download.name)) {
+            // check if download was removed
+            if (!downloads.find((d) => d.name == download.name)) {
                 result.success = true;
                 return { stop: true };
             }
 
             const beatmap_result = await process_beatmap(beatmap);
 
-            // beatmap failed to download
+            // update progress
             if (!beatmap_result) {
                 download.progress.failed++;
             }
 
             download.progress.index++;
-            send_download_progress(download);
+            send_downloads_update();
 
             return beatmap_result;
         },
         MAX_PARALLEL_DOWNLOADS
     );
 
-    result.success = true;
+    if (download.stopped) {
+        result.stopped = true;
+    } else {
+        result.success = true;
+    }
+
     return result;
 };
 
 const process_beatmap = async (beatmap) => {
+    const save_path = get_save_path();
     const beatmap_data = await get_beatmap_info(beatmap.md5);
 
     if (!beatmap_data) {
@@ -203,17 +250,16 @@ const process_beatmap = async (beatmap) => {
     }
 
     const id = beatmap_data.beatmapset_id;
+
+    // check if we alredy have a folder with the same id or the file itself
+    if ((fs.existsSync(path.resolve(save_path, id)), fs.existsSync(path.resolve(save_path, `${id}.osz`)))) {
+        return true;
+    }
+
     const osz_stream = await get_osz(id);
 
     if (!osz_stream) {
         console.log(`failed to download beatmap ${id}`);
-        return false;
-    }
-
-    const save_path = get_save_path();
-
-    if (!save_path) {
-        processing = false;
         return false;
     }
 
@@ -237,7 +283,6 @@ const get_beatmap_info = async (hash) => {
             }
         });
 
-        // valid response?
         if (!response.ok) {
             return null;
         }
@@ -256,7 +301,6 @@ const get_osz = async (beatmap_id) => {
     for (let i = 0; i < config.mirrors.length; i++) {
         const mirror = config.mirrors[i];
 
-        // ignore if mirror is in a cooldown (rate limited)
         if (mirror.cooldown && mirror.cooldown > Date.now()) {
             continue;
         }
@@ -305,30 +349,60 @@ const save_file = async (buffer, file_path) => {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// @TODO: validate beatmaps before download
 const add_download = (download) => {
-    console.log("adding", download.name);
-
-    // add extra shit
+    // setup download object
     if (!download?.progress) {
-        download.progress = { index: 0, length: download.beatmaps.length, failed: 0 };
+        download.progress = {
+            index: 0,
+            length: download.beatmaps.length,
+            failed: 0
+        };
     }
 
+    // ensure properties are being set
     download.finished = false;
+    download.processing = false;
+    download.paused = false;
+    download.stopped = false;
+
+    // pause
+    download.paused = current_download ? true : false;
+
     downloads.push(download);
 
-    if (!processing) {
-        start_processing(download.name);
+    // start processing if theres no active download
+    if (!current_download) {
+        setTimeout(() => start_processing(download.name), 100);
     }
 
+    send_downloads_update();
     return true;
 };
 
-// @TODO: start next download if possible
 const remove_download = (name) => {
+    // stop if this download is currently processing
+    if (current_download && current_download.name == name) {
+        stop_processing(name);
+    }
+
     const index = downloads.findIndex((d) => d.name == name);
-    if (index != -1) downloads.splice(index, 1);
-    console.log("removing", name, index);
+
+    if (index != -1) {
+        downloads.splice(index, 1);
+        console.log("removing", name, index);
+
+        // start processing if theres no active download
+        setTimeout(() => {
+            if (!current_download) {
+                const next_download = downloads.find((d) => !d.processing && !d.paused && !d.finished);
+                if (next_download) {
+                    start_processing(next_download.name);
+                }
+            }
+        }, 100);
+    }
+
+    send_downloads_update();
     return true;
 };
 
@@ -350,8 +424,6 @@ const set_token = (new_token) => {
     token = new_token;
 };
 
-const get_downloads = () => downloads;
-
 const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
@@ -363,7 +435,6 @@ export const downloader = {
     remove_download,
     remove_mirror,
     set_token,
-    get_downloads,
     start_processing,
     stop_processing
 };
