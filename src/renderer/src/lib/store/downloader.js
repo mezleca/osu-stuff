@@ -1,38 +1,13 @@
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 import { show_notification } from "./notifications";
-
-const progress_update_data = {
-    name: "",
-    index: 0,
-    length: 0,
-    failed: false,
-    finished: false
-};
 
 const download_data = {
     name: "",
     beatmaps: [],
-    index: 0,
     paused: false,
     finished: false,
     progress: { index: 0, length: 0, failed: 0 }
 };
-
-/*
-    contextBridge.exposeInMainWorld("downloader", {
-        add: (obj) => ipcRenderer.invoke("add-download", obj),
-        add_mirror: (obj) => ipcRenderer.invoke("add-mirror", obj),
-        set_token: (token) => ipcRenderer.invoke("set-token", token),
-        start: (name) => ipcRenderer.invoke("start-download", name),
-        stop: () => ipcRenderer.invoke("stop-download"),
-        all: () => ipcRenderer.invoke("get-downloads"),
-        remove: (name) => ipcRenderer.invoke("remove-download", name),
-        remove_mirror: (name) => ipcRenderer.invoke("remove-mirror", name),
-        on_download_progress: (callback) => {
-            ipcRenderer.on("download-progress", (_, data) => callback(data));
-        }
-    });
-*/
 
 class Downloader {
     constructor() {
@@ -43,7 +18,7 @@ class Downloader {
         // check if theres any download on background
         const result = await window.downloader.all();
 
-        if (!result) {
+        if (!result || result?.length == 0) {
             return;
         }
 
@@ -57,20 +32,63 @@ class Downloader {
             return;
         }
 
-        const result = await window.downloader.add(download);
+        const new_download = { ...download_data, ...download };
+
+        // add the download before to prevent race condition
+        this.downloads.update((old) => [...old, new_download]);
+
+        const result = await window.downloader.add(new_download);
 
         // @TODO: reason
         if (!result) {
+            this.remove(download.name);
             show_notification({ type: "error", text: "failed to add download" });
             return;
         }
-
-        this.downloads.update((old) => [...old, download]);
     }
 
-    stop(name) {
+    async stop(name) {
         if (!name || name == "") {
             show_notification({ type: "error", text: "failed to stop download (invalid name)" });
+            return;
+        }
+
+        this.downloads.update((old) =>
+            old.map((download) => {
+                if (download.name == name) {
+                    download.paused = true;
+                }
+                return download;
+            })
+        );
+
+        const result = await window.downloader.stop(name);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to stop " + name });
+            return;
+        }
+    }
+
+    async resume(name) {
+        if (!name || name == "") {
+            show_notification({ type: "error", text: "failed to resume download (invalid name)" });
+            return;
+        }
+
+        this.downloads.update((old) =>
+            old.map((download) => {
+                if (download.name == name) {
+                    download.paused = false;
+                }
+                return download;
+            })
+        );
+
+        const result = await window.downloader.resume(name);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to resume " + name });
             return;
         }
     }
@@ -80,18 +98,37 @@ class Downloader {
             show_notification({ type: "error", text: "failed to remove download (invalid name)" });
             return;
         }
+
+        this.downloads.update((old) => old.filter((d) => d.name != name));
+        window.downloader.remove(name);
     }
 
-    /** @param {progress_update_data} data */
-    update_progress(data) {
-        console.log(`[downloader] | name: ${data.name} | index: ${data.index} | failed: ${data.failed} | finished: ${data.finished}`);
-        // remove finished download
+    update_progress(download) {
+        const { data, reason } = download;
+
+        console.log(
+            `[downloader] | name: ${data.name} | index: ${data.progress.index} | failed: ${data.progress.failed} | paused: ${data.paused} | finished: ${data.finished}`
+        );
+
         if (data.finished) {
             this.remove(data.name);
             return;
         }
 
-        this.downloads.update((old) => [...old.filter((d) => d.name != data.name), data]);
+        if (data.paused && reason) {
+            show_notification({ type: "alert", text: reason });
+        }
+
+        this.downloads.update((old) => {
+            const updated = old.map((old_download) => {
+                if (old_download.name == data.name) {
+                    return data;
+                }
+                return old_download;
+            });
+
+            return updated;
+        });
     }
 
     async update_token(token) {
@@ -110,4 +147,4 @@ export const downloader = new Downloader();
 await downloader.initialize();
 
 // add listeners
-window.downloader.on_download_progress(downloader.update_progress);
+window.downloader.on_download_progress((data) => downloader.update_progress(data));

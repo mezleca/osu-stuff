@@ -13,15 +13,8 @@ const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
 
-export const send_download_progress = (data) => {
-    console.log("sending progress", data.name, data.progress.index);
-    main_window.webContents.send("download-progress", {
-        name: data.name,
-        index: data.progress.index,
-        length: data.progress.length,
-        failed: data.progress.failed,
-        finished: data.finished
-    });
+export const send_download_progress = (data, reason) => {
+    main_window.webContents.send("download-progress", { data, reason: reason });
 };
 
 // to process multiple beatmaps
@@ -70,7 +63,8 @@ const main = (ipc_main, w) => {
     ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
     ipc_main.handle("set-token", (_, new_token) => set_token(new_token));
     ipc_main.handle("start-download", (_, name) => start_processing(name));
-    ipc_main.handle("stop-download", () => stop_processing());
+    ipc_main.handle("resume-download", (_, name) => resume_processing(name));
+    ipc_main.handle("stop-download", (name) => stop_processing(name));
     ipc_main.handle("get-downloads", () => get_downloads());
     ipc_main.handle("remove-download", (_, name) => remove_download(name));
     ipc_main.handle("remove-mirror", (_, name) => remove_mirror(name));
@@ -88,22 +82,22 @@ const start_processing = async (name) => {
     const current_download = downloads[current_index];
 
     if (!current_download) {
-        current_download.paused = true;
-        send_download_progress(current_download);
+        current_download.finished = true;
+        send_download_progress(current_download, "failed to get download (" + name + ")");
         console.log("[downloader] failed to get download:", name);
         return false;
     }
 
     if (!token) {
         current_download.paused = true;
-        send_download_progress(current_download);
+        send_download_progress(current_download, "missing access token");
         console.log("[downloader] missing access token");
         return false;
     }
 
     if (config.mirrors.length == 0) {
         current_download.paused = true;
-        send_download_progress(current_download);
+        send_download_progress(current_download, "please add at least one mirror");
         console.log("[downloader] no mirrors to use");
         return false;
     }
@@ -115,6 +109,7 @@ const start_processing = async (name) => {
     const result = await process_download(current_download);
 
     if (result.paused) {
+        processing = false;
         current_download.paused = true;
         send_download_progress(current_download);
         return;
@@ -136,8 +131,23 @@ const start_processing = async (name) => {
     }
 };
 
-const stop_processing = () => {
+// @TODO: this sucks
+const stop_processing = (name) => {
     processing = false;
+    return true;
+};
+
+const resume_processing = (name) => {
+    const download = downloads.find((d) => d.name == name);
+
+    if (!download) {
+        console.log("[downloader] failed to resume", name);
+        return false;
+    }
+
+    start_processing(name);
+
+    return true;
 };
 
 const process_download = async (download) => {
@@ -304,19 +314,25 @@ const add_download = (download) => {
         download.progress = { index: 0, length: download.beatmaps.length, failed: 0 };
     }
 
+    download.finished = false;
     downloads.push(download);
+
+    if (!processing) {
+        start_processing(download.name);
+    }
+
     return true;
 };
 
+// @TODO: start next download if possible
 const remove_download = (name) => {
     const index = downloads.findIndex((d) => d.name == name);
-    if (index) downloads.splice(index, 1);
+    if (index != -1) downloads.splice(index, 1);
     console.log("removing", name, index);
     return true;
 };
 
 const add_mirror = (mirror) => {
-    console.log("add_mirror:", mirror);
     if (!mirror.name || !mirror.url) {
         console.log("add_mirror: missing name/url");
         return;
@@ -326,7 +342,6 @@ const add_mirror = (mirror) => {
 };
 
 const remove_mirror = (name) => {
-    console.log("remove_mirror:", name);
     delete_mirror.run(name);
     update_mirrors();
 };
