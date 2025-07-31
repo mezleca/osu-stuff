@@ -26,8 +26,6 @@ export const format_time = (secs) => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
-export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {
     if (typeof options != "object") {

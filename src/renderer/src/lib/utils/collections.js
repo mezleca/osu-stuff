@@ -1,7 +1,8 @@
-import { get_beatmap_status_code, get_code_by_mode, osu_beatmaps } from "../store/beatmaps";
+import { osu_beatmaps } from "../store/beatmaps";
 import { collections } from "../store/collections";
 import { downloader } from "../store/downloader";
 import { show_notification } from "../store/notifications";
+import { convert_beatmap_keys } from "./beatmaps";
 
 export const get_osu_data = async (force) => {
     const collection_data = await window.osu.get_collections(force);
@@ -24,17 +25,6 @@ export const get_osu_data = async (force) => {
     }
 };
 
-const RENAME_MAP = {
-    difficulty_rating: "star",
-    hit_length: "length",
-    version: "difficulty",
-    id: "difficulty_id",
-    checksum: "md5",
-    accuracy: "od",
-    drain: "hp",
-    creator: "mapper"
-};
-
 const get_tournament_maps = async (id) => {
     const response = await window.fetch({ url: `https://osucollector.com/api/tournaments/${id}` });
     const data = response.json();
@@ -54,7 +44,7 @@ const get_tournament_maps = async (id) => {
             round[k].maps.map((beatmap) => {
                 const beatmapset = beatmap.beatmapset;
 
-                // remove beatmapset from the beatmap object (to make it separate)
+                // we dont need that
                 delete beatmap.beatmapset;
                 beatmap.beatmapset_id = beatmapset.id;
 
@@ -106,43 +96,18 @@ export const get_from_osu_collector = async (url) => {
             continue;
         }
 
-        const processed = { ...b };
         const extra = collection_data.beatmapsets.find((set) => set.id == b.beatmapset_id) || {};
-
         extra.beatmapset_id = extra.id;
 
+        // delete extra keys
         delete extra.checksum;
         delete extra.id;
 
-        const mode = get_code_by_mode(processed.mode);
+        // rename beatmap keys (creator -> mapper, etc...)
+        const processed = { ...b, ...extra };
+        const renamed = convert_beatmap_keys(processed);
 
-        Object.assign(processed, extra);
-
-        // rename other keys
-        for (const [old_key, new_key] of Object.entries(RENAME_MAP)) {
-            const value = processed[old_key];
-            if (value) {
-                if (old_key == "difficulty_rating") {
-                    // create 4 gamemodes sr shit
-                    processed.star_rating = new Array(4).fill({ pair: [], nm: -1 });
-
-                    // populate the current gamemode
-                    processed.star_rating[mode] = {
-                        nm: processed.difficulty_rating,
-                        pair: [0, processed.difficulty_rating]
-                    };
-                } else {
-                    processed[new_key] = value;
-                }
-
-                // remove old key
-                delete processed[old_key];
-            }
-        }
-
-        processed.status = get_beatmap_status_code(processed.status) || 0;
-        processed.mode = mode;
-        beatmaps.set(processed.difficulty_id, processed);
+        beatmaps.set(renamed.difficulty_id, renamed);
     }
 
     return {

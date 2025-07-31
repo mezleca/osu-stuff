@@ -420,10 +420,7 @@ export const osu_beatmaps = {
         osu_beatmaps_store.set(new Map());
     },
     all: () => {
-        let all_beatmaps = [];
-        osu_beatmaps_store.subscribe((map) => {
-            all_beatmaps = Array.from(map.values());
-        })();
-        return all_beatmaps;
+        console.log(get(osu_beatmaps_store));
+        return Array.from(get(osu_beatmaps_store).values());
     }
 };

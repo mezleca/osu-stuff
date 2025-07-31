@@ -1,8 +1,8 @@
 <script>
     import { collections } from "../lib/store/collections";
-    import { get_beatmap_list } from "../lib/store/beatmaps";
-    import { show_notification } from "../lib/store/notifications";
-    import { get_beatmap_data } from "../lib/utils/beatmaps";
+    import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
+    import { downloader } from "../lib/store/downloader";
+    import { convert_beatmap_keys, get_beatmap_data } from "../lib/utils/beatmaps";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -37,16 +37,38 @@
     $: selected_collection = collections.selected;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
-    const handle_control = (type, beatmap) => {
+    const handle_control = async (type, beatmap) => {
         if (type == "add") {
-            show_notification("todo");
+            const result = await downloader.single_download(beatmap);
+
+            if (!result) {
+                return;
+            }
+
+            // is a set
+            if (result.beatmaps) {
+                for (const beatmap of result.beatmaps) {
+                    const converted = convert_beatmap_keys(beatmap);
+
+                    converted.local = true;
+                    converted.downloaded = true;
+
+                    osu_beatmaps.add(converted.md5, converted);
+                }
+            } else {
+                const converted = convert_beatmap_keys(result);
+
+                converted.local = true;
+                converted.downloaded = true;
+
+                osu_beatmaps.add(converted.md5, converted);
+            }
         } else {
             remove_beatmap(beatmap.md5);
         }
     };
 
     const remove_beatmap = (hash) => {
-        // @TODO:
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }

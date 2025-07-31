@@ -30,6 +30,28 @@ class Downloader {
         }
     }
 
+    async single_download(beatmap) {
+        if (!beatmap.id && !beatmap.md5) {
+            show_notification({ type: "error", text: "beatmap object is invalid" });
+            return;
+        }
+
+        // make sure beatmapset_id exists
+        if (!beatmap.beatmapset_id && beatmap.id) {
+            beatmap.beatmapset_id = beatmap.id;
+        }
+
+        const result = await window.downloader.single(beatmap);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to download beatmap..." });
+            return;
+        }
+
+        show_notification({ type: "success", text: `downloaded (${result.title})` });
+        return result;
+    }
+
     async stop(name) {
         if (!name || name == "") {
             show_notification({ type: "error", text: "failed to stop download (invalid name)" });
