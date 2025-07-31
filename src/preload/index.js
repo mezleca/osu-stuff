@@ -29,18 +29,13 @@ contextBridge.exposeInMainWorld("downloader", {
     add_mirror: (obj) => ipcRenderer.invoke("add-mirror", obj),
     set_token: (token) => ipcRenderer.invoke("set-token", token),
     start: (name) => ipcRenderer.invoke("start-download", name),
-    stop: () => ipcRenderer.invoke("stop-download"),
+    stop: (name) => ipcRenderer.invoke("stop-download", name),
+    resume: (name) => ipcRenderer.invoke("resume-download", name),
     all: () => ipcRenderer.invoke("get-downloads"),
     remove: (name) => ipcRenderer.invoke("remove-download", name),
     remove_mirror: (name) => ipcRenderer.invoke("remove-mirror", name),
-    on_token_update: (callback) => {
-        ipcRenderer.on("token-update", (_, data) => callback(data));
-    },
-    on_path_update: (callback) => {
-        ipcRenderer.on("path-update", (_, data) => callback(data));
-    },
-    on_download_progress: (callback) => {
-        ipcRenderer.on("download-progress", (_, data) => callback(data));
+    on_downloads_update: (callback) => {
+        ipcRenderer.on("downloads-update", (_, data) => callback(data));
     }
 });
 

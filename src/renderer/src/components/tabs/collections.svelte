@@ -18,6 +18,7 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import { downloader } from "../../lib/store/downloader";
 
     let filtered_collections = [];
 
@@ -59,20 +60,17 @@
     };
 
     const get_context_options = (collection) => {
-        const current_name = collection.name;
-        const to_merge = $all_collections
-            .filter((c) => c.name != current_name && c.maps.length > 0)
-            .map((c) => ({ id: `merge-${c.name}-${current_name}`, text: c.name }));
-
         return [
             { id: "merge", text: "merge collections" },
             { id: "missing", text: "get missing beatmaps" },
             { id: "rename", text: "rename collection" },
             { id: "export", text: "export collection" },
             { id: "export-beatmap", text: "export beatmaps" },
-            { id: `delete-${current_name}`, text: "delete" }
+            { id: `delete-${collection.name}`, text: "delete" }
         ];
     };
+
+    /* --- POPUP HANDLER FUNCTIONS --- */
 
     const handle_merge_collections = (data) => {
         if (data.collections.length < 2) {
@@ -112,7 +110,6 @@
             return;
         }
 
-        // handle the rest
         switch (type) {
             case "merge":
                 show_popup("merge collections", "collections");
@@ -121,7 +118,7 @@
                 console.log("TODO");
                 break;
             case "missing":
-                console.log("TODO");
+                show_popup("missing beatmaps", "collections");
                 break;
             case "export":
                 console.log("TODO");
@@ -177,8 +174,21 @@
         collections.add({ name, maps: md5_hashes });
     };
 
-    const handle_from_player = async (name, status, type) => {
-        console.log("TODO");
+    const handle_missing_beatmaps = async (data, missing_collections) => {
+        const invalid = [];
+
+        for (const missing of missing_collections) {
+            // only include the beatmaps from the selected collection
+            if (data.collections.includes(missing.name)) {
+                invalid.push(...missing.beatmaps);
+            }
+        }
+
+        downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
+    };
+
+    const handle_from_player = async (data) => {
+        console.log("TODO", data);
     };
 
     const handle_new_collection_popup = (data) => {
@@ -204,6 +214,29 @@
         } else if (type == "from player") {
             handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
         }
+    };
+
+    /* --- POPUP FUNCTIONS --- */
+
+    const create_missing_beatmaps_popup = async () => {
+        const addon = new PopupAddon();
+        const collections = [],
+            invalid_beatmaps = [];
+
+        for (const collection of $all_collections) {
+            // check if theres any missing beatmap on this collection
+            const invalid = await window.osu.missing_beatmaps(collection.maps);
+
+            if (invalid.length > 0) {
+                collections.push(collection.name);
+                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
+            }
+        }
+
+        addon.add({ id: "collections", type: "buttons", multiple: true, data: collections });
+        addon.set_callback((data) => handle_missing_beatmaps(data, invalid_beatmaps));
+
+        add_new_popup("missing beatmaps", addon, "collections");
     };
 
     const create_merge_collections_popup = () => {
@@ -299,6 +332,7 @@
         if ($sort == "") $sort = "artist";
         create_new_collection_popup();
         create_merge_collections_popup();
+        create_missing_beatmaps_popup();
     });
 </script>
 

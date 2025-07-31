@@ -3,40 +3,50 @@
     import Pause from "../icon/pause.svelte";
     import Play from "../icon/play.svelte";
     import X from "../icon/x.svelte";
+
+    import { downloader } from "../../lib/store/downloader";
+
+    $: downloads = downloader.downloads;
 </script>
 
 <div class="content tab-content" style="padding: 20px;">
     <div class="manager-content">
-        <div class="download-container">
-            <div class="download-info">
-                <h1>name</h1>
-            </div>
-            <div class="download-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 40%;"></div>
+        {#each $downloads as download}
+            <div class="download-container">
+                <div class="download-info">{download.name}</div>
+                <div class="download-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {Math.floor((download.progress.index / download.beatmaps?.length) * 100)}%;"></div>
+                    </div>
+                </div>
+                <div class="download-status">
+                    <p>downloading... <span>({download.progress.index}/{download.beatmaps?.length})</span></p>
+                </div>
+                <div class="download-actions">
+                    <button class="action" onclick={() => (download.paused ? downloader.resume(download.name) : downloader.stop(download.name))}>
+                        {#if download.paused}
+                            <Play />
+                        {:else}
+                            <Pause />
+                        {/if}
+                    </button>
+                    <button class="action" onclick={() => downloader.remove(download.name)}>
+                        <X />
+                    </button>
                 </div>
             </div>
-            <div class="download-status">
-                <p>downloading... <span>(0/0)</span></p>
-            </div>
-            <div class="download-actions">
-                <button class="action">
-                    <Pause />
-                </button>
-                <button class="action">
-                    <X />
-                </button>
-            </div>
-        </div>
+        {/each}
     </div>
 </div>
 
 <style>
     .download-container {
+        position: relative;
         display: flex;
         flex-direction: column;
         padding: 16px;
         margin-bottom: 10px;
+        height: fit-content;
         background-color: var(--bg-status);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         border: 1px solid rgb(120, 120, 120, 0.15);
@@ -53,8 +63,8 @@
         margin-bottom: 10px;
     }
 
-    .download-info > h1 {
-        font-size: 1.5em;
+    .download-info {
+        font-size: 1.3em;
     }
 
     .download-status > p {

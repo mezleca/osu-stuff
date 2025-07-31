@@ -1,33 +1,29 @@
 import { config } from "../database/config";
+import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
 
 import fs from "fs";
 import path from "path";
-import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
 
 let token = "";
-let processing = false;
 let main_window = null;
+let current_download = null;
 
-const downloads = new Map();
+const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
 
-export const send_download_progress = (data) => {
-    console.log("sending progress", data.name, data.progress.index);
-    main_window.webContents.send("download-progress", {
-        name: data.name,
-        index: data.progress.index,
-        length: data.progress.length,
-        failed: data.progress.failed,
-        finished: data.finished
+// send updated list
+const send_downloads_update = (reason = "") => {
+    main_window.webContents.send("downloads-update", {
+        downloads: downloads.map((d) => ({ ...d })),
+        reason
     });
 };
 
 // to process multiple beatmaps
 export const parallel_map = async (array, mapper, concurrency) => {
     const results = [];
-
     let index = 0;
     let should_stop = false;
 
@@ -64,14 +60,15 @@ export const parallel_map = async (array, mapper, concurrency) => {
 };
 
 const main = (ipc_main, w) => {
-    console.log("initializing downloader handlers");
+    console.log("[downloader] initializing handlers");
 
     ipc_main.handle("add-download", (_, download) => add_download(download));
     ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
     ipc_main.handle("set-token", (_, new_token) => set_token(new_token));
     ipc_main.handle("start-download", (_, name) => start_processing(name));
-    ipc_main.handle("stop-download", () => stop_processing());
-    ipc_main.handle("get-downloads", () => get_downloads());
+    ipc_main.handle("resume-download", (_, name) => resume_processing(name));
+    ipc_main.handle("stop-download", (_, name) => stop_processing(name));
+    ipc_main.handle("get-downloads", () => downloads.map((d) => ({ ...d })));
     ipc_main.handle("remove-download", (_, name) => remove_download(name));
     ipc_main.handle("remove-mirror", (_, name) => remove_mirror(name));
 
@@ -79,77 +76,172 @@ const main = (ipc_main, w) => {
 };
 
 const start_processing = async (name) => {
-    if (processing) {
-        return;
+    // a single download already causes lots of rate limited stuff so lets just go with a single one
+    if (current_download) {
+        console.log("[downloader] another download is already processing:", current_download.name);
+        return false;
     }
 
-    processing = true;
+    const download = downloads.find((d) => d.name == name);
 
-    while (processing && downloads.size > 0) {
-        // make sure we have a token
-        if (!token) {
-            break;
-        }
-
-        if (config.mirrors.length == 0) {
-            console.log("mirrors is equal to 0");
-            // @TODO: tell something to the frontend
-            break;
-        }
-
-        await process_download(downloads.get(name));
-
-        // go to the next one
-        if (processing) {
-            downloads.delete(name);
-        }
-
-        console.log("processing new download");
+    if (!download) {
+        console.log("[downloader] failed to get download:", name);
+        return false;
     }
 
-    processing = false;
+    if (!token) {
+        download.paused = true;
+        send_downloads_update("missing access token");
+        console.log("[downloader] missing access token");
+        return false;
+    }
+
+    if (config.mirrors.length == 0) {
+        download.paused = true;
+        send_downloads_update("please add at least one mirror");
+        console.log("[downloader] no mirrors to use");
+        return false;
+    }
+
+    console.log("[downloader] processing download:", name);
+
+    // set current download
+    current_download = download;
+    download.processing = true;
+    download.paused = false;
+    download.stopped = false;
+
+    send_downloads_update();
+
+    const result = await process_download(download);
+
+    // cleanup
+    current_download = null;
+    download.processing = false;
+
+    if (result.stopped) {
+        download.paused = true;
+        send_downloads_update("download paused");
+        return true;
+    }
+
+    // cleanup
+    if (result.success) {
+        download.finished = true;
+        send_downloads_update();
+
+        // remove finished download
+        const index = downloads.findIndex((d) => d.name == name);
+
+        if (index != -1) {
+            downloads.splice(index, 1);
+        }
+
+        // start next queued download
+        const next_download = downloads.find((d) => !d.processing && !d.paused && !d.finished);
+
+        if (next_download) {
+            setTimeout(() => start_processing(next_download.name), 100);
+        }
+
+        send_downloads_update();
+    }
+
+    return true;
 };
 
-const stop_processing = () => {
-    processing = false;
+const stop_processing = (name) => {
+    const download = downloads.find((d) => d.name == name);
+
+    if (!download) {
+        console.log("[downloader] download not found:", name);
+        return false;
+    }
+
+    // if this download is currently processing, stop it
+    if (current_download && current_download.name == name) {
+        current_download.stopped = true;
+        console.log(`[downloader] stopping current download: ${name}`);
+    }
+
+    download.paused = true;
+    download.processing = false;
+
+    return true;
+};
+
+const resume_processing = async (name) => {
+    const download = downloads.find((d) => d.name == name);
+
+    if (!download) {
+        console.log("[downloader] failed to resume", name);
+        return false;
+    }
+
+    // check if another download is processing
+    if (current_download && current_download.name != name) {
+        console.log(`[downloader] pausing current download ${current_download.name} to start ${name}`);
+        stop_processing(current_download.name);
+
+        // wait a bit until it stops
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    download.paused = false;
+    start_processing(name);
+    return true;
 };
 
 const process_download = async (download) => {
-    // ensure we have the beatmaps to download
+    const result = { success: false, stopped: false, reason: "" };
+
+    // ensure we have beatmaps to download
     if (!download.beatmaps || download.beatmaps.length == 0) {
-        console.log("failed to get beatmaps for", download);
-        return;
+        result.reason = "failed to get beatmaps for " + download.name;
+        return result;
     }
 
     await parallel_map(
         download.beatmaps,
         async (beatmap) => {
-            if (!processing || !downloads.has(download.name)) {
+            // check if download was stopped
+            if (download.stopped) {
+                result.stopped = true;
                 return { stop: true };
             }
 
-            const success = await process_beatmap(download, beatmap);
+            // check if download was removed
+            if (!downloads.find((d) => d.name == download.name)) {
+                result.success = true;
+                return { stop: true };
+            }
 
-            if (!success) {
+            const beatmap_result = await process_beatmap(beatmap);
+
+            // update progress
+            if (!beatmap_result) {
                 download.progress.failed++;
             }
 
             download.progress.index++;
-            send_download_progress(download);
+            send_downloads_update();
 
-            return success;
+            return beatmap_result;
         },
         MAX_PARALLEL_DOWNLOADS
     );
-};
 
-const process_beatmap = async (download, beatmap) => {
-    // check if we're still downloading
-    if (!processing || !downloads.has(download.name)) {
-        console.log("download not found", download);
-        return { stop: true };
+    if (download.stopped) {
+        result.stopped = true;
+    } else {
+        result.success = true;
     }
 
+    return result;
+};
+
+const process_beatmap = async (beatmap) => {
+    const save_path = get_save_path();
     const beatmap_data = await get_beatmap_info(beatmap.md5);
 
     if (!beatmap_data) {
@@ -157,25 +249,24 @@ const process_beatmap = async (download, beatmap) => {
         return false;
     }
 
-    const osz_stream = await get_osz(beatmap_data.id);
+    const id = beatmap_data.beatmapset_id;
+
+    // check if we alredy have a folder with the same id or the file itself
+    if ((fs.existsSync(path.resolve(save_path, id)), fs.existsSync(path.resolve(save_path, `${id}.osz`)))) {
+        return true;
+    }
+
+    const osz_stream = await get_osz(id);
 
     if (!osz_stream) {
-        console.log(`failed to download beatmap ${beatmap_data.id}`);
+        console.log(`failed to download beatmap ${id}`);
         return false;
     }
 
-    const save_path = get_save_path();
-
-    if (!save_path) {
-        processing = false;
-        return false;
-    }
-
-    const filename = `${beatmap_data.beatmapset_id}.osz`;
+    const filename = `${id}.osz`;
     const full_path = path.join(save_path, filename);
 
     await save_file(osz_stream, full_path);
-
     return true;
 };
 
@@ -192,7 +283,6 @@ const get_beatmap_info = async (hash) => {
             }
         });
 
-        // valid response?
         if (!response.ok) {
             return null;
         }
@@ -211,7 +301,6 @@ const get_osz = async (beatmap_id) => {
     for (let i = 0; i < config.mirrors.length; i++) {
         const mirror = config.mirrors[i];
 
-        // ignore if mirror is in a cooldown (rate limited)
         if (mirror.cooldown && mirror.cooldown > Date.now()) {
             continue;
         }
@@ -254,22 +343,70 @@ const save_file = async (buffer, file_path) => {
         fs.mkdirSync(path.dirname(file_path), { recursive: true });
         fs.writeFileSync(file_path, Buffer.from(buffer));
     } catch (error) {
-        console.log(`Error saving file: ${error.message}`);
+        console.log(`error while saving: ${error.message}`);
     }
 };
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const add_download = (download) => {
-    downloads.set(download.name, download);
+    // setup download object
+    if (!download?.progress) {
+        download.progress = {
+            index: 0,
+            length: download.beatmaps.length,
+            failed: 0
+        };
+    }
+
+    // ensure properties are being set
+    download.finished = false;
+    download.processing = false;
+    download.paused = false;
+    download.stopped = false;
+
+    // pause
+    download.paused = current_download ? true : false;
+
+    downloads.push(download);
+
+    // start processing if theres no active download
+    if (!current_download) {
+        setTimeout(() => start_processing(download.name), 100);
+    }
+
+    send_downloads_update();
+    return true;
 };
 
 const remove_download = (name) => {
-    downloads.delete(name);
+    // stop if this download is currently processing
+    if (current_download && current_download.name == name) {
+        stop_processing(name);
+    }
+
+    const index = downloads.findIndex((d) => d.name == name);
+
+    if (index != -1) {
+        downloads.splice(index, 1);
+        console.log("removing", name, index);
+
+        // start processing if theres no active download
+        setTimeout(() => {
+            if (!current_download) {
+                const next_download = downloads.find((d) => !d.processing && !d.paused && !d.finished);
+                if (next_download) {
+                    start_processing(next_download.name);
+                }
+            }
+        }, 100);
+    }
+
+    send_downloads_update();
+    return true;
 };
 
 const add_mirror = (mirror) => {
-    console.log("add_mirror:", mirror);
     if (!mirror.name || !mirror.url) {
         console.log("add_mirror: missing name/url");
         return;
@@ -279,7 +416,6 @@ const add_mirror = (mirror) => {
 };
 
 const remove_mirror = (name) => {
-    console.log("remove_mirror:", name);
     delete_mirror.run(name);
     update_mirrors();
 };
@@ -287,8 +423,6 @@ const remove_mirror = (name) => {
 const set_token = (new_token) => {
     token = new_token;
 };
-
-const get_downloads = () => downloads;
 
 const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
@@ -301,7 +435,6 @@ export const downloader = {
     remove_download,
     remove_mirror,
     set_token,
-    get_downloads,
     start_processing,
     stop_processing
 };

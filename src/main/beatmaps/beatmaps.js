@@ -297,7 +297,7 @@ export const get_missing_beatmaps = (beatmaps) => {
             continue;
         }
 
-        missing_beatmaps.push(md5);
+        missing_beatmaps.push({ md5 });
     }
 
     return missing_beatmaps;
