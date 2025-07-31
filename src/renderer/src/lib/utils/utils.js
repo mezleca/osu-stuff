@@ -31,7 +31,6 @@ export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {
     if (typeof options != "object") {
-        console.log("not and object", options);
         return;
     }
 

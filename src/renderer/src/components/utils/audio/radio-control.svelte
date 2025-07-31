@@ -181,15 +181,11 @@
     };
 
     const toggle_random = () => {
-        const new_state = audio_manager.toggle_random();
-        console.log();
-        console.log("radio: random toggled:", new_state);
+        audio_manager.toggle_random();
     };
 
     const toggle_repeat = () => {
-        const new_state = audio_manager.toggle_repeat();
-        console.log($random_active, $repeat_active);
-        console.log("radio: repeat toggled:", new_state);
+        audio_manager.toggle_repeat();
     };
 </script>
 

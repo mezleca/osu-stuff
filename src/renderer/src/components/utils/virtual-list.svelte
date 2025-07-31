@@ -165,7 +165,6 @@
         await tick();
 
         if (!container) {
-            console.log("container not found");
             return;
         }
 

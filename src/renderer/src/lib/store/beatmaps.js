@@ -210,8 +210,6 @@ class BeatmapList extends BeatmapListBase {
             options.status = status;
         }
 
-        if (extra_options) console.log("requesting beatmaps with", extra_options);
-
         const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 
         if (!result) {
@@ -342,8 +340,6 @@ class BeatmapList extends BeatmapListBase {
         if (status != "" && status != ALL_STATUS_KEY) {
             options.status = status;
         }
-
-        if (extra_options) console.log("requesting beatmaps with", extra_options);
 
         const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 

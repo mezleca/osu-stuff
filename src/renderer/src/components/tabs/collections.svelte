@@ -6,6 +6,7 @@
     import { onMount } from "svelte";
     import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
+    import { downloader } from "../../lib/store/downloader";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -18,7 +19,6 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
-    import { downloader } from "../../lib/store/downloader";
 
     let filtered_collections = [];
 

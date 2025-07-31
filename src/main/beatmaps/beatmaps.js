@@ -283,7 +283,6 @@ export const get_missing_beatmaps = (beatmaps) => {
     const missing_beatmaps = [];
 
     if (!beatmaps) {
-        console.log("missing the fucking beatmap list");
         return missing_beatmaps;
     }
 
@@ -304,10 +303,7 @@ export const get_missing_beatmaps = (beatmaps) => {
 };
 
 export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
-    console.log("filtered options", extra);
-
     if (!osu_data) {
-        console.log("osu_data is null");
         return [];
     }
 
@@ -396,7 +392,6 @@ export const get_beatmaps_from_database = async (force) => {
     }
 
     if (osu_data) {
-        console.log("nuh uh", force);
         return true;
     }
 

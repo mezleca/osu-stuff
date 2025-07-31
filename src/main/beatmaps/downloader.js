@@ -408,7 +408,6 @@ const remove_download = (name) => {
 
 const add_mirror = (mirror) => {
     if (!mirror.name || !mirror.url) {
-        console.log("add_mirror: missing name/url");
         return;
     }
     insert_mirror.run(mirror.name, mirror.url);

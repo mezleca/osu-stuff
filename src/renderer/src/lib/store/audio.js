@@ -224,13 +224,11 @@ class AudioManager {
     set_random(enabled) {
         if (this.is_preview) return;
         this.random.set(enabled);
-        console.log(`[${this.id}] random: ${get(this.random)} | ${enabled}`);
     }
 
     set_repeat(enabled) {
         if (this.is_preview) return;
         this.repeat.set(enabled);
-        console.log(`[${this.id}] repeat: ${get(this.repeat)} | ${enabled}`);
     }
 
     toggle_random() {

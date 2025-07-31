@@ -232,7 +232,7 @@ export const delete_collection = (instance, collection) => {
     const collection_to_delete = saved_collections.find((c) => c.Name == collection.name);
 
     if (!collection_to_delete) {
-        console.log("failed to get collection to delete :c");
+        console.log("could not find", collection.name);
         return;
     }
 

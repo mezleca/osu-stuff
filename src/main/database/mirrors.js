@@ -50,5 +50,4 @@ export const update_mirrors = () => {
     if (mirrors) {
         config.mirrors = mirrors;
     }
-    console.log(config.mirrors);
 };

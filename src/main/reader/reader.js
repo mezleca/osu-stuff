@@ -43,7 +43,7 @@ export class Reader extends BinaryReader {
         }
 
         if (this.buffer.byteLength == 0) {
-            console.log("invalid buffer");
+            console.log("[osdb] invalid buffer");
             return false;
         }
 
@@ -53,7 +53,7 @@ export class Reader extends BinaryReader {
             const version = osdb_versions[version_string];
 
             if (!version) {
-                throw new Error(`invalid osdb version (got: ${version_string})`);
+                throw new Error(`[osdb] invalid version (got: ${version_string})`);
             }
 
             const is_minimal = version_string.endsWith("min");
@@ -128,7 +128,7 @@ export class Reader extends BinaryReader {
             const footer = this.string2();
 
             if (footer != "By Piotrekol") {
-                throw new Error("invalid file footer, this collection might be corrupted.");
+                throw new Error("[osdb] invalid file footer, this collection might be corrupted.");
             }
 
             return data;
