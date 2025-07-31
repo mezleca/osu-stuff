@@ -202,10 +202,11 @@ const process_beatmap = async (beatmap) => {
         return false;
     }
 
-    const osz_stream = await get_osz(beatmap_data.id);
+    const id = beatmap_data.beatmapset_id;
+    const osz_stream = await get_osz(id);
 
     if (!osz_stream) {
-        console.log(`failed to download beatmap ${beatmap_data.id}`);
+        console.log(`failed to download beatmap ${id}`);
         return false;
     }
 
@@ -216,11 +217,10 @@ const process_beatmap = async (beatmap) => {
         return false;
     }
 
-    const filename = `${beatmap_data.beatmapset_id}.osz`;
+    const filename = `${id}.osz`;
     const full_path = path.join(save_path, filename);
 
     await save_file(osz_stream, full_path);
-
     return true;
 };
 
