@@ -1,7 +1,7 @@
 import { get, writable } from "svelte/store";
 import { access_token } from "./config";
 import { show_notification } from "./notifications";
-import { BeatmapListBase } from "./beatmaps";
+import { BeatmapListBase, osu_beatmaps } from "./beatmaps";
 import { debounce } from "../utils/utils";
 
 // l
@@ -90,6 +90,11 @@ class DiscoverManager extends BeatmapListBase {
 
     is_same_item(beatmapset1, beatmapset2) {
         return beatmapset1.id == beatmapset2.id;
+    }
+
+    async get_from_local_by_id(id) {
+        const result = await window.osu.get_beatmap_by_id(id);
+        return result;
     }
 
     select_beatmapset(beatmapset, index) {
@@ -198,10 +203,22 @@ class DiscoverManager extends BeatmapListBase {
         // only append if we are paginating, otherwise replace
         const current_cursor = get(this.cursor);
 
+        // append download, local (so we know what maps we have)
+        // @TODO: objects that are downloaded through downloader will not be found cuz osu_data only updates on reload / start
+        // so in order for this to work with any beatmaps we need to create a func to also update osu_data on download
+        const updated_beatmapsets = data.beatmapsets.map(async (set) => {
+            const local_beatmap = await this.get_from_local_by_id(set.id);
+            if (local_beatmap) {
+                set.downloaded = local_beatmap.downloaded;
+                set.local = local_beatmap.local;
+            }
+            return set;
+        });
+
         if (current_cursor == "") {
-            this.beatmaps.set([...data.beatmapsets]);
+            this.beatmaps.set([...updated_beatmapsets]);
         } else {
-            this.beatmaps.update((sets) => [...sets, ...data.beatmapsets]);
+            this.beatmaps.update((sets) => [...sets, ...updated_beatmapsets]);
         }
 
         this.cursor.set(data.cursor_string || "");
@@ -228,7 +245,7 @@ class DiscoverManager extends BeatmapListBase {
                 }
                 this.data.update((obj) => ({ ...obj, [type]: value }));
             } else {
-                if (filter.data[value] == undefined) {
+                if (!filter.data[value]) {
                     console.log("[discover] value doenst exist:", type, value);
                     return;
                 }

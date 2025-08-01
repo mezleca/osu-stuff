@@ -63,6 +63,7 @@ const main = (ipc_main, w) => {
     console.log("[downloader] initializing handlers");
 
     ipc_main.handle("add-download", (_, download) => add_download(download));
+    ipc_main.handle("single-download", (_, beatmap) => single_download(beatmap));
     ipc_main.handle("add-mirror", (_, mirror) => add_mirror(mirror));
     ipc_main.handle("set-token", (_, new_token) => set_token(new_token));
     ipc_main.handle("start-download", (_, name) => start_processing(name));
@@ -242,18 +243,19 @@ const process_download = async (download) => {
 
 const process_beatmap = async (beatmap) => {
     const save_path = get_save_path();
-    const beatmap_data = await get_beatmap_info(beatmap.md5);
+    const beatmap_data = await get_beatmap_info(beatmap);
 
     if (!beatmap_data) {
-        console.log(`failed to get beatmap info for ${beatmap.md5}`);
+        console.log(`failed to get beatmap info for ${beatmap.md5 ?? beatmap.beatmapset_id}`);
         return false;
     }
 
-    const id = beatmap_data.beatmapset_id;
+    const id = String(beatmap_data.beatmapset_id);
 
     // check if we alredy have a folder with the same id or the file itself
     if ((fs.existsSync(path.resolve(save_path, id)), fs.existsSync(path.resolve(save_path, `${id}.osz`)))) {
-        return true;
+        console.log("[downloader] file already exists");
+        return beatmap_data;
     }
 
     const osz_stream = await get_osz(id);
@@ -267,10 +269,21 @@ const process_beatmap = async (beatmap) => {
     const full_path = path.join(save_path, filename);
 
     await save_file(osz_stream, full_path);
-    return true;
+    return beatmap_data;
 };
 
-const get_beatmap_info = async (hash) => {
+const get_beatmap_info = async (beatmap) => {
+    if (beatmap.beatmapset_id) {
+        return beatmap;
+    }
+
+    const hash = beatmap.md5;
+
+    // dont even bother
+    if (!hash) {
+        return null;
+    }
+
     // return cached beatmap data if possible
     if (beatmap_cache.has(hash)) {
         return beatmap_cache.get(hash);
@@ -347,7 +360,10 @@ const save_file = async (buffer, file_path) => {
     }
 };
 
-export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const single_download = async (beatmap) => {
+    const result = await process_beatmap(beatmap);
+    return result;
+};
 
 const add_download = (download) => {
     // setup download object

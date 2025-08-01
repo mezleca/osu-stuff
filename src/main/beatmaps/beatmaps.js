@@ -169,7 +169,6 @@ export const get_beatmap_by_md5 = (md5) => {
     return osu_data.beatmaps.get(md5);
 };
 
-// @NOTE: a "little" too expensive
 export const get_beatmaps_by_id = (id) => {
     const beatmaps = [];
     for (const [_, beatmap] of osu_data.beatmaps) {
@@ -178,6 +177,15 @@ export const get_beatmaps_by_id = (id) => {
         }
     }
     return beatmaps;
+};
+
+export const get_beatmap_by_set_id = (id) => {
+    for (const [_, beatmap] of osu_data.beatmaps) {
+        if (beatmap.beatmapset_id == id) {
+            return beatmap;
+        }
+    }
+    return false;
 };
 
 export const get_beatmap_data = (id, query, is_unique_id) => {
@@ -384,6 +392,15 @@ export const get_extra_information = async (beatmaps) => {
     }
 
     return beatmaps;
+};
+
+export const add_beatmap = (hash, beatmap) => {
+    if (!hash || !beatmap) {
+        console.log("failed to add beatmap (missing shit)");
+        return false;
+    }
+
+    osu_data.beatmaps.set(hash, beatmap);
 };
 
 export const get_beatmaps_from_database = async (force) => {

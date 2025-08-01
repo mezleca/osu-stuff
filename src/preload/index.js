@@ -7,8 +7,10 @@ contextBridge.exposeInMainWorld("config", {
 });
 
 contextBridge.exposeInMainWorld("osu", {
+    add_beatmap: (md5, beatmap) => ipcRenderer.invoke("add-beatmap", md5, beatmap),
     get_beatmaps: (force) => ipcRenderer.invoke("get-beatmaps", force),
     get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
+    get_beatmap_by_id: (id) => ipcRenderer.invoke("get-beatmap-by-id", id),
     missing_beatmaps: (beatmaps) => ipcRenderer.invoke("missing-beatmaps", beatmaps),
     get_collections: (force) => ipcRenderer.invoke("get-collections", force),
     filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args),
@@ -29,6 +31,7 @@ contextBridge.exposeInMainWorld("downloader", {
     add_mirror: (obj) => ipcRenderer.invoke("add-mirror", obj),
     set_token: (token) => ipcRenderer.invoke("set-token", token),
     start: (name) => ipcRenderer.invoke("start-download", name),
+    single: (beatmap) => ipcRenderer.invoke("single-download", beatmap),
     stop: (name) => ipcRenderer.invoke("stop-download", name),
     resume: (name) => ipcRenderer.invoke("resume-download", name),
     all: () => ipcRenderer.invoke("get-downloads"),

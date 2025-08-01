@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { show_notification } from "./notifications";
+import { convert_beatmap_keys } from "../utils/beatmaps";
 
 const ignored_update_messages = ["download paused"];
 
@@ -28,6 +29,42 @@ class Downloader {
             show_notification({ type: "error", text: "failed to add download" });
             return;
         }
+    }
+
+    async single_download(beatmap) {
+        if (!beatmap.id && !beatmap.md5) {
+            show_notification({ type: "error", text: "beatmap object is invalid" });
+            return;
+        }
+
+        // make sure beatmapset_id exists
+        if (!beatmap.beatmapset_id && beatmap.id) {
+            beatmap.beatmapset_id = beatmap.id;
+        }
+
+        const result = await window.downloader.single(beatmap);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to download beatmap..." });
+            return;
+        }
+
+        // @TODO: move this to convert_beatmap_keys
+        if (result.beatmapset) {
+            result.title = result.beatmapset.title;
+            result.artist = result.beatmapset.artist;
+            result.mapper = result.beatmapset.creator;
+        }
+
+        // convert so we a have a valid object
+        const converted = convert_beatmap_keys(result);
+
+        converted.local = true;
+        converted.downloaded = true;
+
+        show_notification({ type: "success", text: `downloaded (${converted.title})` });
+
+        return converted;
     }
 
     async stop(name) {

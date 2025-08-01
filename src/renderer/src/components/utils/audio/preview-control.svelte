@@ -7,7 +7,7 @@
     import { get_audio_manager, get_audio_preview } from "../../../lib/store/audio";
 
     export let beatmap = null;
-    export let on_remove = null;
+    export let on_right = null;
 
     const audio_manager = get_audio_manager("preview");
     const PREVIEW_BASE_URL = "https://b.ppy.sh/preview/";
@@ -48,9 +48,9 @@
         await audio_manager.play();
     };
 
-    const handle_remove = (event) => {
+    const handle_right = (event, type) => {
         event.stopPropagation();
-        on_remove();
+        on_right(type);
     };
 
     const handle_play_click = (event) => {
@@ -68,8 +68,8 @@
         {/if}
     </button>
 
-    {#if on_remove}
-        <button class="preview-btn close-btn" onclick={handle_remove}>
+    {#if on_right}
+        <button class="preview-btn close-btn" onclick={(e) => handle_right(e, beatmap?.local ? "remove" : "add")}>
             {#if beatmap?.local}
                 <X />
             {:else}

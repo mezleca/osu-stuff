@@ -42,6 +42,7 @@ const lazer_status = {
 export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
+        this.last_options = null;
         this.index = writable(-1);
         this.items = writable([]);
         this.selected = writable(null);
@@ -62,11 +63,11 @@ export class BeatmapListBase {
         this.current_key = key;
     }
 
-    async handle_context_change(new_items) {
+    async handle_context_change() {
         throw new Error("handle_context_change is not implemented yet");
     }
 
-    async find_item(items, target_identifier) {
+    async find_item() {
         throw new Error("find_item is not implement yet");
     }
 
@@ -217,7 +218,19 @@ class BeatmapList extends BeatmapListBase {
             return null;
         }
 
+        this.last_options = { name: name, extra: options };
         return result;
+    }
+
+    async reload_beatmaps() {
+        if (this.last_options == null) {
+            return;
+        }
+
+        const result = await this.get_beatmaps(this.last_options.name, this.last_options.extra);
+
+        // just set the beatmaps directly instead of updating is_set, etc...
+        this.beatmaps.set(result);
     }
 
     async find_item(beatmaps, target_md5) {
@@ -300,56 +313,6 @@ class BeatmapList extends BeatmapListBase {
 
     get_show_invalid = () => get(this.show_invalid);
     get_status = () => get(this.status);
-
-    async get_beatmaps(name, extra_options = {}) {
-        const is_all_beatmaps = name == ALL_BEATMAPS_KEY;
-        const beatmaps = is_all_beatmaps ? null : collections.get(name)?.maps;
-        const options = { ...extra_options };
-
-        if (!name && !is_all_beatmaps) {
-            return null;
-        }
-
-        if (!is_all_beatmaps && !beatmaps) {
-            show_notification({ type: "error", text: "failed to get beatmaps from " + name });
-            return null;
-        }
-
-        if (is_all_beatmaps) {
-            options.all = true;
-            options.unique = true;
-        }
-
-        const min = this.get_min_sr();
-        const max = this.get_max_sr();
-
-        if (!isNaN(min) && !isNaN(max)) {
-            options.sr = { min, max };
-        }
-
-        const query = this.get_query();
-        const sort = this.get_sort();
-        const status = this.get_status();
-
-        options.invalid = this.get_show_invalid();
-
-        if (sort != "") {
-            options.sort = sort;
-        }
-
-        if (status != "" && status != ALL_STATUS_KEY) {
-            options.status = status;
-        }
-
-        const result = await window.osu.filter_beatmaps(beatmaps, query, options);
-
-        if (!result) {
-            show_notification({ type: "error", text: "failed to filter beatmaps" });
-            return null;
-        }
-
-        return result;
-    }
 }
 
 const managers = new Map();
@@ -420,10 +383,7 @@ export const osu_beatmaps = {
         osu_beatmaps_store.set(new Map());
     },
     all: () => {
-        let all_beatmaps = [];
-        osu_beatmaps_store.subscribe((map) => {
-            all_beatmaps = Array.from(map.values());
-        })();
-        return all_beatmaps;
+        console.log(get(osu_beatmaps_store));
+        return Array.from(get(osu_beatmaps_store).values());
     }
 };

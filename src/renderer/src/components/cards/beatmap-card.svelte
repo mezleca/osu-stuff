@@ -109,7 +109,7 @@
     <div class="card-container">
         <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
             <img bind:this={image_element} class="bg-img" alt="" />
-            <PreviewControl {beatmap} on_remove={control} />
+            <PreviewControl {beatmap} on_right={control} />
 
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -136,7 +136,7 @@
 {:else}
     <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
         <img bind:this={image_element} class="bg-img" alt="" />
-        <PreviewControl {beatmap} on_remove={control} />
+        <PreviewControl {beatmap} on_right={control} />
 
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->

@@ -4,7 +4,14 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
 import { initialize_mirrors } from "./database/mirrors";
-import { filter_beatmaps, get_beatmap_data, get_beatmaps_from_database, get_missing_beatmaps } from "./beatmaps/beatmaps";
+import {
+    add_beatmap,
+    filter_beatmaps,
+    get_beatmap_by_set_id,
+    get_beatmap_data,
+    get_beatmaps_from_database,
+    get_missing_beatmaps
+} from "./beatmaps/beatmaps";
 import { get_collections_from_database, update_collections } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
 
@@ -77,10 +84,12 @@ async function createWindow() {
     ipcMain.handle("update-config", (_, values) => update_config_database(values));
 
     // osu related stuff
+    ipcMain.handle("add-beatmap", (_, hash, beatmap) => add_beatmap(hash, beatmap));
     ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
     ipcMain.handle("get-collections", (_, force) => get_collections_from_database(force));
     ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
     ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
+    ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
 

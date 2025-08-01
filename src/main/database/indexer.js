@@ -1,7 +1,6 @@
 import { get_app_path } from "./utils.js";
 import { reader } from "../reader/reader.js";
 import { BrowserWindow } from "electron";
-import { sleep } from "../beatmaps/downloader.js";
 import { config } from "./config.js";
 
 import Processor from "../../../build/Release/processor.node";
@@ -159,8 +158,8 @@ export const process_beatmaps = async (beatmaps_array) => {
         }
     }
 
-    // without that renderer dont update (prob race condition)
-    await sleep(100);
+    // prevent renderer race condition
+    await new Promise((r) => setTimeout(r, 100));
 
     window?.webContents.send("process", { show: false });
 
