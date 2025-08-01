@@ -400,8 +400,6 @@ export const add_beatmap = (hash, beatmap) => {
         return false;
     }
 
-    console.log("adding", hash, beatmap);
-
     osu_data.beatmaps.set(hash, beatmap);
 };
 
