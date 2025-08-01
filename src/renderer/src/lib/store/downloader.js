@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { show_notification } from "./notifications";
+import { convert_beatmap_keys } from "../utils/beatmaps";
 
 const ignored_update_messages = ["download paused"];
 
@@ -48,8 +49,22 @@ class Downloader {
             return;
         }
 
-        show_notification({ type: "success", text: `downloaded (${result.title})` });
-        return result;
+        // @TODO: move this to convert_beatmap_keys
+        if (result.beatmapset) {
+            result.title = result.beatmapset.title;
+            result.artist = result.beatmapset.artist;
+            result.mapper = result.beatmapset.creator;
+        }
+
+        // convert so we a have a valid object
+        const converted = convert_beatmap_keys(result);
+
+        converted.local = true;
+        converted.downloaded = true;
+
+        show_notification({ type: "success", text: `downloaded (${converted.title})` });
+
+        return converted;
     }
 
     async stop(name) {

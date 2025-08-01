@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("config", {
 });
 
 contextBridge.exposeInMainWorld("osu", {
+    add_beatmap: (md5, beatmap) => ipcRenderer.invoke("add-beatmap", md5, beatmap),
     get_beatmaps: (force) => ipcRenderer.invoke("get-beatmaps", force),
     get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
     get_beatmap_by_id: (id) => ipcRenderer.invoke("get-beatmap-by-id", id),

@@ -42,6 +42,7 @@
     };
 
     const filter_beatmaps = async (extra) => {
+        console.log("filtering");
         const result = await list.get_beatmaps($selected_collection.name, extra);
         list.set_beatmaps(result, $query, false);
     };

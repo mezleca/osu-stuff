@@ -246,7 +246,7 @@ const process_beatmap = async (beatmap) => {
     const beatmap_data = await get_beatmap_info(beatmap);
 
     if (!beatmap_data) {
-        console.log(`failed to get beatmap info for ${beatmap.md5 ?? beatmap}`);
+        console.log(`failed to get beatmap info for ${beatmap.md5 ?? beatmap.beatmapset_id}`);
         return false;
     }
 
@@ -254,8 +254,8 @@ const process_beatmap = async (beatmap) => {
 
     // check if we alredy have a folder with the same id or the file itself
     if ((fs.existsSync(path.resolve(save_path, id)), fs.existsSync(path.resolve(save_path, `${id}.osz`)))) {
-        console.log("[downloader] filea lready exists");
-        return beatmap;
+        console.log("[downloader] file already exists");
+        return beatmap_data;
     }
 
     const osz_stream = await get_osz(id);
@@ -280,7 +280,7 @@ const get_beatmap_info = async (beatmap) => {
     const hash = beatmap.md5;
 
     // dont even bother
-    if (hash) {
+    if (!hash) {
         return null;
     }
 

@@ -204,6 +204,8 @@ class DiscoverManager extends BeatmapListBase {
         const current_cursor = get(this.cursor);
 
         // append download, local (so we know what maps we have)
+        // @TODO: objects that are downloaded through downloader will not be found cuz osu_data only updates on reload / start
+        // so in order for this to work with any beatmaps we need to create a func to also update osu_data on download
         const updated_beatmapsets = data.beatmapsets.map(async (set) => {
             const local_beatmap = await this.get_from_local_by_id(set.id);
             if (local_beatmap) {

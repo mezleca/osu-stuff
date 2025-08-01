@@ -394,6 +394,17 @@ export const get_extra_information = async (beatmaps) => {
     return beatmaps;
 };
 
+export const add_beatmap = (hash, beatmap) => {
+    if (!hash || !beatmap) {
+        console.log("failed to add beatmap (missing shit)");
+        return false;
+    }
+
+    console.log("adding", hash, beatmap);
+
+    osu_data.beatmaps.set(hash, beatmap);
+};
+
 export const get_beatmaps_from_database = async (force) => {
     if (force) {
         osu_data = null;

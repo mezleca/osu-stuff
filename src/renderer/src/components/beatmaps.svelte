@@ -28,7 +28,9 @@
     export let on_end = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
-    const { beatmaps, selected } = list;
+
+    $: beatmaps = list.beatmaps;
+    $: selected = list.selected;
 
     $: if ($selected) {
         selected_beatmap = $selected;
@@ -47,22 +49,17 @@
 
             // is a set
             if (result.beatmaps) {
-                for (const beatmap of result.beatmaps) {
-                    const converted = convert_beatmap_keys(beatmap);
-
-                    converted.local = true;
-                    converted.downloaded = true;
-
-                    osu_beatmaps.add(converted.md5, converted);
-                }
+                result.beatmaps.map(async (b) => {
+                    await window.osu.add_beatmap(b.md5, b);
+                    osu_beatmaps.add(b.md5, b);
+                });
             } else {
-                const converted = convert_beatmap_keys(result);
-
-                converted.local = true;
-                converted.downloaded = true;
-
-                osu_beatmaps.add(converted.md5, converted);
+                await window.osu.add_beatmap(result.md5, result);
+                osu_beatmaps.add(result.md5, result);
             }
+
+            // force list redraw (if possible)
+            if (list.reload_beatmaps) list.reload_beatmaps();
         } else {
             remove_beatmap(beatmap.md5);
         }
@@ -93,8 +90,6 @@
             case "browser":
                 open_on_browser(beatmap);
                 break;
-            case "download":
-                break;
             case "export":
                 break;
             case "delete":
@@ -107,21 +102,11 @@
         if (beatmap?.downloaded) {
             return [
                 { id: "browser", text: "open in browser" },
-                { id: "download", text: "download beatmap" },
                 { id: "export", text: "export beatmap" },
                 { id: "delete", text: "delete beatmap" }
             ];
-        } else if (!beatmap?.downloaded && beatmap?.beatmapset_id) {
-            return [
-                { id: "browser", text: "open in browser" },
-                { id: "download", text: "download beatmap" },
-                { id: "delete", text: "delete beatmap" }
-            ];
         } else {
-            return [
-                { id: "download", text: "download beatmap" },
-                { id: "delete", text: "delete beatmap" }
-            ];
+            return [{ id: "delete", text: "delete beatmap" }];
         }
     };
 </script>
