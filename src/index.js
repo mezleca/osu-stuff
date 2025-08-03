@@ -205,7 +205,5 @@ app.whenReady().then(async () => {
     create_window();
 });
 
-// hardware acceleraion on linux makes app unstable after 10/20 min (need to test this again btw)
-app.on('activate', app.disableHardwareAcceleration);
 app.on('will-quit', () => globalShortcut.unregisterAll);
 app.on('window-all-closed', app.quit);
