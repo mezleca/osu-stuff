@@ -52,6 +52,7 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse
 ## build it yourself
 
 ### prerequisites
+- [bun](https://bun.sh/)
 - [node.js](https://nodejs.org/)  
 - [git](https://git-scm.com/downloads)  
 
@@ -62,19 +63,19 @@ git clone https://github.com/mezleca/osu-stuff.git
 
 # install dependencies
 cd osu-stuff
-npm install
+bun install
 
 # build for your platform
-npm run build
+bun run build
 
 # or build for specific platform
-npm run build:win    # windows
-npm run build:linux  # linux
+bun run build:win    # windows
+bun run build:linux  # linux
 
 # binaries location: /dist/...
 
 # to run instead of building:
-npm start
+bun start
 ```
 
 ## credits
