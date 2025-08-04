@@ -1,6 +1,7 @@
 appId: com.osu-stuff.app
 productName: osu-stuff
 afterPack: scripts/cleanup.js
+compression: "normal"
 electronLanguages:
     - "en-US"
 directories:
