@@ -161,8 +161,6 @@
             return;
         }
 
-        console.log(beatmaps, hashes);
-
         // temp add to osu beatmaps store
         for (const beatmap of beatmaps) {
             osu_beatmaps.add(beatmap.md5, beatmap);
