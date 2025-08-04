@@ -1,15 +1,24 @@
 <script>
-    import Music from "../icon/music.svelte";
-    export let name,
+    // props
+        export let name,
         count,
         selected,
-        callback = () => {};
+        edit,
+        select_callback = () => {},
+        rename_callback = () => {};
+
+    // components
+    import Text from "../utils/basic/text.svelte";
+
+    // icons
+    import Music from "../icon/music.svelte";
+
 </script>
 
-<button class="collection-item" onclick={callback} class:active={selected == true}>
+<button class="collection-item" onclick={select_callback} class:active={selected == true}>
     <div class="collection-info">
         <Music />
-        <span class="collection-name">{name}</span>
+        <Text value={name} {edit} update_callback={rename_callback}/>
     </div>
     <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
 </button>
@@ -53,14 +62,6 @@
         height: 14px;
         color: var(--accent-color2);
         transition: color 0.2s ease;
-    }
-
-    .collection-name {
-        font-size: 15px;
-        color: var(--text-secondary);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
     }
 
     .collection-count {
