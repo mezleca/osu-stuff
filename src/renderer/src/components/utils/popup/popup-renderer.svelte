@@ -141,10 +141,6 @@
         padding-bottom: 10px;
     }
 
-    .container-content {
-        /* Children of container will be rendered here */
-    }
-
     .buttons-container {
         display: flex;
         flex-direction: column;

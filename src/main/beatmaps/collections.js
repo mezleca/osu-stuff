@@ -14,13 +14,9 @@ export const get_collections_from_database = async (force) => {
         return;
     }
 
-    console.log("lazer mode", config.lazer_mode, "force", force);
-
     if (collection_data && !force) {
         return collection_data;
     }
-
-    console.log("getting from osu! data from", osu_folder);
 
     const location = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "collection.db");
 
