@@ -14,13 +14,17 @@ export const get_osu_data = async (force) => {
     const collections_array = Array.from(collection_data.collections.values());
     const version = collection_data.version;
 
+    // remove selected colection
+    collections.selected.set({ });
+
+    // add new collections
     collections.set(collections_array);
     collections.set_version(version);
 
     const beatmaps_data = await window.osu.get_beatmaps(force);
 
     if (!beatmaps_data) {
-        console.log("failed to initialize");
+        console.log("[osu] failed to initialize");
         return;
     }
 };
