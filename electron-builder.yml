@@ -1,5 +1,6 @@
 appId: com.osu-stuff.app
 productName: osu-stuff
+afterPack: scripts/cleanup.js
 electronLanguages:
     - "en-US"
 directories:
@@ -15,9 +16,6 @@ files:
     - "!node_modules/realm/prebuilds/android*/**"
     - "!node_modules/realm/prebuilds/apple*/**"
     - "build/Release/**"
-asarUnpack:
-    - resources/**
-    - "build/Release/**"
 win:
     executableName: stuff
 nsis:
@@ -25,14 +23,6 @@ nsis:
     shortcutName: ${productName}
     uninstallDisplayName: ${productName}
     createDesktopShortcut: always
-mac:
-    entitlementsInherit: build/entitlements.mac.plist
-    extendInfo:
-        - NSCameraUsageDescription: Application requests access to the device's camera.
-        - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-        - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-        - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-    notarize: false
 dmg:
     artifactName: ${name}-${version}.${ext}
 linux:
@@ -40,7 +30,7 @@ linux:
         - AppImage
         - snap
         - deb
-    maintainer: electronjs.org
+    maintainer: https://github.com/mezleca
     category: Utility
 appImage:
     artifactName: ${name}-${version}.${ext}

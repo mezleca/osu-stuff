@@ -23,6 +23,7 @@ export class PopupAddon {
         this.default_values = new Map();
     }
 
+    /** @param {DEFAULT_OPTIONS} options */
     add(options = {}) {
         const merged_options = { ...DEFAULT_OPTIONS, ...options };
 
@@ -77,14 +78,14 @@ export class PopupAddon {
         const target_store = this.element_stores.get(condition.id);
         const target_value = get(target_store);
 
-        if (condition.except != undefined) {
+        if (!condition.except) {
             if (!target_value && condition.except) {
                 return true;
             }
             return target_value != condition.except;
         }
 
-        if (condition.value != undefined) {
+        if (!condition.value) {
             return target_value == condition.value;
         }
 

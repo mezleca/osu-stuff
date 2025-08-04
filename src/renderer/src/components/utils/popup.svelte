@@ -22,6 +22,7 @@
             const store = active_popup.popup.element_stores.get(element.id);
             if (store) {
                 store.subscribe((value) => {
+                    console.log(element);
                     element_values[element.id] = value;
                 });
             }

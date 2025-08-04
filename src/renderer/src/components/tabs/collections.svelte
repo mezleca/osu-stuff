@@ -32,6 +32,7 @@
     $: collection_search = collections.query;
     $: all_collections = collections.collections;
     $: should_update = collections.needs_update;
+    $: old_collection_name = ""; // context menu option
 
     const filter_collection = () => {
         if ($collection_search == "") {
@@ -63,9 +64,9 @@
         return [
             { id: "merge", text: "merge collections" },
             { id: "missing", text: "get missing beatmaps" },
-            { id: "rename", text: "rename collection" },
-            { id: "export", text: "export collection" },
-            { id: "export-beatmap", text: "export beatmaps" },
+            { id: `rename-${collection.name}`, text: "rename collection" },
+            { id: `export-${collection.name}`, text: "export collection" },
+            { id: "export beatmaps", text: "export beatmaps" },
             { id: `delete-${collection.name}`, text: "delete" }
         ];
     };
@@ -92,7 +93,6 @@
 
         for (const name of data.collections) {
             const collection = collections.get(name);
-
             if (collection) {
                 collection.maps.map((h) => beatmaps.add(h));
             }
@@ -110,35 +110,34 @@
             return;
         }
 
+        const splitted_shit = type.split("-");
+
+        if (splitted_shit.length > 0) {
+            const custom_type = splitted_shit[0];
+            switch (custom_type) {
+                case "delete":
+                    collections.remove(splitted_shit[1]);
+                    break;
+                case "rename":
+                    console.log(splitted_shit[1]);
+                    old_collection_name = splitted_shit[1];
+                    show_popup("rename", "collections");
+                    break;
+            }
+        } else {
+        // fallback to normal types
         switch (type) {
             case "merge":
-                show_popup("merge collections", "collections");
-                break;
-            case "rename":
-                console.log("TODO");
+                show_popup("merge", "collections");
                 break;
             case "missing":
-                show_popup("missing beatmaps", "collections");
+                show_popup("missing", "collections");
                 break;
             case "export":
-                console.log("TODO");
+                show_popup("export", "collections");
                 break;
-            case "export-beatmap":
+            case "export beatmaps":
                 console.log("TODO");
-                break;
-            default: {
-                const splitted_shit = type.split("-");
-
-                if (splitted_shit.length <= 1) {
-                    return;
-                }
-
-                const custom_type = splitted_shit[0];
-                const name = splitted_shit[1];
-
-                if (custom_type == "delete") {
-                    collections.remove(name);
-                }
                 break;
             }
         }
@@ -187,6 +186,14 @@
         downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
     };
 
+    const handle_rename_collection = (data) => {
+
+    };
+
+    const handle_export_collections = async (data) => {
+
+    };
+
     const handle_from_player = async (data) => {
         console.log("TODO", data);
     };
@@ -218,6 +225,11 @@
 
     /* --- POPUP FUNCTIONS --- */
 
+    const get_collection_name = () => {
+        console.log(old_collection_name);
+        return old_collection_name;
+    }
+
     const create_missing_beatmaps_popup = async () => {
         const addon = new PopupAddon();
         const collections = [],
@@ -236,7 +248,27 @@
         addon.add({ id: "collections", type: "buttons", multiple: true, data: collections });
         addon.set_callback((data) => handle_missing_beatmaps(data, invalid_beatmaps));
 
-        add_new_popup("missing beatmaps", addon, "collections");
+        add_new_popup("missing", addon, "collections");
+    };
+
+    const create_rename_collection_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ type: "input", id: "name", label: "new name", value: get_collection_name() });
+        addon.set_callback(handle_rename_collection);
+
+        add_new_popup("rename", addon, "collections");
+    };
+
+    const create_export_collections_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ type: "buttons", label: "collections", data: $all_collections.map((c) => c.name) });
+        addon.add({ type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"]});
+
+        addon.set_callback(handle_export_collections);
+
+        add_new_popup("export", addon, "collections");
     };
 
     const create_merge_collections_popup = () => {
@@ -246,7 +278,7 @@
         addon.add({ id: "collections", type: "buttons", multiple: true, data: $all_collections.map((c) => c.name) });
 
         addon.set_callback(handle_merge_collections);
-        add_new_popup("merge collections", addon, "collections");
+        add_new_popup("merge", addon, "collections");
     };
 
     const create_new_collection_popup = () => {
@@ -333,6 +365,8 @@
         create_new_collection_popup();
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
+        create_rename_collection_popup();
+        create_export_collections_popup();
     });
 </script>
 
