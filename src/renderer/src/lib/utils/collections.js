@@ -88,11 +88,14 @@ export const get_from_osu_collector = async (url) => {
         return null;
     }
 
-    const beatmaps = new Map();
-    const new_maps = collection_data.beatmaps.filter((c) => !osu_beatmaps.has(c.checksum));
+    const beatmaps = [];
 
-    for (const b of new_maps) {
-        if (beatmaps.has(b.id)) {
+    for (const b of collection_data.beatmaps) {
+        // dont process beatmaps that we already have
+        const beatmap_result = await window.osu.get_beatmap_by_md5(b.checksum);
+
+        if (beatmap_result) {
+            beatmaps.push(beatmap_result);
             continue;
         }
 
@@ -105,14 +108,15 @@ export const get_from_osu_collector = async (url) => {
 
         // rename beatmap keys (creator -> mapper, etc...)
         const processed = { ...b, ...extra };
-        const renamed = convert_beatmap_keys(processed);
+        const converted = convert_beatmap_keys(processed);
 
-        beatmaps.set(renamed.difficulty_id, renamed);
+        beatmaps.push(converted);
     }
 
     return {
         name: collection_name,
-        beatmaps: Array.from(beatmaps.values()).filter((b) => b.beatmapset_id)
+        beatmaps,
+        hashes: beatmaps.map((b) => b.md5).filter((b) => b != undefined)
     };
 };
 

@@ -7,6 +7,7 @@ import { initialize_mirrors } from "./database/mirrors";
 import {
     add_beatmap,
     filter_beatmaps,
+    get_beatmap_by_md5,
     get_beatmap_by_set_id,
     get_beatmap_data,
     get_beatmaps_from_database,
@@ -90,6 +91,7 @@ async function createWindow() {
     ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
     ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
     ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));
+    ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
 
