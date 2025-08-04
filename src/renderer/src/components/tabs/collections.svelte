@@ -154,22 +154,21 @@
             return;
         }
 
-        const { name, beatmaps } = data;
+        const { name, beatmaps, hashes } = data;
 
         if (collections.get(name)) {
             show_notification({ type: "warning", text: name + " already exists!" });
             return;
         }
 
-        const md5_hashes = [];
+        console.log(beatmaps, hashes);
 
         // temp add to osu beatmaps store
         for (const beatmap of beatmaps) {
             osu_beatmaps.add(beatmap.md5, beatmap);
-            md5_hashes.push(beatmap.md5);
         }
 
-        collections.add({ name, maps: md5_hashes });
+        collections.add({ name, maps: hashes });
 
         show_notification({ type: "success", text: "added " + name });
     };
