@@ -65,6 +65,12 @@
     scroll-behavior: smooth;
 }
 
+:focus {
+  outline: 0;
+  outline-color: transparent;
+  outline-style: none;
+}
+
 svg {
     z-index: 1;
 }
@@ -670,6 +676,13 @@ button:hover {
 
 .field-label {
     display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.field-label {
+    display: block;
     color: #ffffff;
     font-size: 15px;
     margin-bottom: 5px;
@@ -734,14 +747,17 @@ button:hover {
 }
 
 .text-input {
+    background: none;
+    border: none;
+    box-shadow: none;
+    resize: none;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
     width: 100%;
-    background-color: var(--bg-color);
-    border: 2px solid var(--header-border-color);
-    border-radius: 6px;
-    padding: 12px 16px;
-    color: #ffffff;
-    font-size: 14px;
-    transition: border-color var(--context-fade-delay) ease;
+    height: auto;
+    min-height: 0;
 }
 
 .text-input:focus {

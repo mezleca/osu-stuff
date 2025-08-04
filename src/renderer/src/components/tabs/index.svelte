@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
 
-    // componentes
+    // components
     import Popup from "../utils/popup.svelte";
 
     const show_shit = (data) => {

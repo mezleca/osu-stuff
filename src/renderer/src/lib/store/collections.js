@@ -11,6 +11,11 @@ class CollectionManager {
     }
 
     set(collections) {
+        // add extra properties
+        for (let i = 0; i < collections.length; i++) {
+            collections[i].edit = false;
+        }
+
         this.collections.set(collections);
     }
 
@@ -19,18 +24,27 @@ class CollectionManager {
     }
 
     get(name) {
-        let result = null;
-
-        this.collections.subscribe((collections) => {
-            result = collections.find((c) => c.name == name) || null;
-        })();
-
-        return result;
+        const desired = get(this.collections).find((c) => c.name == name);
+        return desired;
     }
 
     add(collection) {
         this.collections.update((old) => [...old, collection]);
         this.needs_update.set(true);
+    }
+
+    replace(data) {
+        this.collections.update((collections) => {
+            const updated = [];
+            for (const collection of collections) {
+                if (collection.name == data.name) {
+                    Object.assign(collection, data);
+                    console.log(collection);
+                }
+                updated.push(collection);
+            }
+            return updated;
+        });
     }
 
     select(name) {
@@ -41,6 +55,20 @@ class CollectionManager {
         }
 
         this.selected.set(desired);
+    }
+
+    rename(old_name, new_name) {
+        this.collections.update((collections) => {
+            const updated = [];
+            for (const collection of collections) {
+                if (collection.name == old_name) {
+                    collection.name == new_name;
+                    collection.edit = false;
+                }
+                updated.push(collection);
+            }
+            return updated;
+        });
     }
 
     remove(name) {

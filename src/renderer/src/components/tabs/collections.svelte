@@ -71,7 +71,7 @@
         ];
     };
 
-    /* --- POPUP HANDLER FUNCTIONS --- */
+    /* --- HANDLERS --- */
 
     const handle_merge_collections = (data) => {
         if (data.collections.length < 2) {
@@ -119,9 +119,7 @@
                     collections.remove(splitted_shit[1]);
                     break;
                 case "rename":
-                    console.log(splitted_shit[1]);
-                    old_collection_name = splitted_shit[1];
-                    show_popup("rename", "collections");
+                    enable_edit_mode(splitted_shit[1]);
                     break;
             }
         } else {
@@ -186,8 +184,33 @@
         downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
     };
 
-    const handle_rename_collection = (data) => {
+    const enable_edit_mode = (name) => {
+        // get selected collection from context menu
+        const collection = collections.get(name);
 
+        if (!collection) {
+            show_notification({ type: "error", text: "failed to get collection "});
+            return;
+        }
+
+        // update item
+        collection.edit = true;
+        collections.replace(collection);
+    };
+
+    const handle_rename_collection = (old_name, new_name) => {
+        // get selected collection from context menu
+        const collection = collections.get(old_name);
+
+        if (!collection) {
+            show_notification({ type: "error", text: "failed to get collection "});
+            return;
+        }
+
+        // update item
+        collection.name = new_name;
+        collection.edit = false;
+        collections.replace(collection);
     };
 
     const handle_export_collections = async (data) => {
@@ -225,11 +248,6 @@
 
     /* --- POPUP FUNCTIONS --- */
 
-    const get_collection_name = () => {
-        console.log(old_collection_name);
-        return old_collection_name;
-    }
-
     const create_missing_beatmaps_popup = async () => {
         const addon = new PopupAddon();
         const collections = [],
@@ -249,15 +267,6 @@
         addon.set_callback((data) => handle_missing_beatmaps(data, invalid_beatmaps));
 
         add_new_popup("missing", addon, "collections");
-    };
-
-    const create_rename_collection_popup = async () => {
-        const addon = new PopupAddon();
-
-        addon.add({ type: "input", id: "name", label: "new name", value: get_collection_name() });
-        addon.set_callback(handle_rename_collection);
-
-        add_new_popup("rename", addon, "collections");
     };
 
     const create_export_collections_popup = async () => {
@@ -365,7 +374,6 @@
         create_new_collection_popup();
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
-        create_rename_collection_popup();
         create_export_collections_popup();
     });
 </script>
@@ -392,8 +400,10 @@
                         <CollectionCard
                             name={collection.name}
                             count={collection.maps.length ?? 0}
+                            edit={collection.edit}
                             selected={$selected_collection?.name == collection.name}
-                            callback={() => collections.select(collection.name)}
+                            select_callback={() => collections.select(collection.name)}
+                            rename_callback={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
                         />
                     </ContextMenu>
                 {/each}

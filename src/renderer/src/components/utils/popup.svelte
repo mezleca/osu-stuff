@@ -22,7 +22,6 @@
             const store = active_popup.popup.element_stores.get(element.id);
             if (store) {
                 store.subscribe((value) => {
-                    console.log(element);
                     element_values[element.id] = value;
                 });
             }
@@ -302,39 +301,13 @@
         max-height: 85%;
         overflow: hidden;
         overflow-y: scroll;
-        margin-top: 50px; /* header height idk */
+        margin-top: 50px; /* header height */
     }
 
     .text {
         font-size: 15px;
         color: var(--text-color);
         margin-bottom: 15px;
-    }
-
-    .field-group {
-        margin-bottom: 15px;
-    }
-
-    .field-label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-
-    .text-input {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #444;
-        border-radius: 4px;
-        background: #2a2a2a;
-        color: var(--text-primary);
-        font-size: 14px;
-    }
-
-    .text-input:focus {
-        outline: none;
-        border-color: var(--accent-color);
     }
 
     .container {
