@@ -1,0 +1,19 @@
+# .github/dependabot.yml
+version: 2
+updates:
+    # bun
+    - package-ecosystem: "npm"
+      directory: "/"
+      schedule:
+          interval: "daily"
+      open-pull-requests-limit: 10
+      reviewers:
+          - "mezleca"
+      assignees:
+          - "mezleca"
+    # actions
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      open-pull-requests-limit: 3
