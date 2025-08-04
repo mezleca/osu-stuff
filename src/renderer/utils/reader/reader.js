@@ -534,7 +534,6 @@ export class Reader extends BinaryReader {
                 return;
             }
 
-            // @TODO: implement a way to use both stable and lazer data at the same time
             const lazer_mode = is_lazer_mode();
 
             if (lazer_mode) {
@@ -826,7 +825,6 @@ export class Reader extends BinaryReader {
                 if (!collection?.uuid) {
                     this.collections.beatmaps.delete(id);
                 } else {
-                    // @TODO: need to implement this to stable collections so i can create a "undo" feature
                     this.pending_deletion.add(collection);
                     this.collections.beatmaps.delete(id);
                 }

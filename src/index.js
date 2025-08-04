@@ -27,15 +27,14 @@ const create_dialog = async (options = {}) => {
 
 const get_icon_path = () => {
     
-    const base_path = path.resolve("./build/icons");
+    const base_path = path.resolve("./");
     
     switch (process.platform) {
       case "win32":
-        return path.join(base_path, "win/icon.ico");
+        return path.join(base_path, "icon.ico");
       case "linux": 
-      case "darwin":
       default: 
-        return path.join(base_path, "png/256x256.png");
+        return path.join(base_path, "icon.png");
     }
 };
 

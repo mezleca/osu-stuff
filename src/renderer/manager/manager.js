@@ -87,7 +87,6 @@ export const update_collection_list = (beatmaps) => {
 export const show_update_button = () => update_collection_button.style.display = "block";
 export const hide_update_button = () => update_collection_button.style.display = "none";
 
-// @TODO: rewrite this, some functions shoudn't be initialize here
 export const lazer_mode = async (target, name) => {
 
     if (target.checked && !core.config.get("lazer_path")) {

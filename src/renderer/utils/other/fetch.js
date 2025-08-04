@@ -46,7 +46,6 @@ export const osu_fetch = async (url) => {
     }
 };
 
-// @TODO: also fetch beatmap data (title, artist, etc... so we dont have to download everything to filter beatmaps)
 export const fetch_osustats = async (collection_url) => {
 
     const id = collection_url.split("/").find((v) => Number(v));
