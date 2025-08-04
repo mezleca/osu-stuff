@@ -4,7 +4,7 @@
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
-    import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
     import { ContextMenu } from "wx-svelte-menu";
@@ -14,7 +14,7 @@
     import Search from "../utils/basic/search.svelte";
     import CollectionCard from "../cards/collection-card.svelte";
     import Beatmaps from "../beatmaps.svelte";
-    import Popup from "../utils/popup.svelte";
+    import Popup from "../utils/popup/popup.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
@@ -26,13 +26,14 @@
     const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
 
     const list = get_beatmap_list("collections");
+    const popup_manager = get_popup_manager("collections");
+
     const { sort, query, status, show_invalid } = list;
 
     $: selected_collection = collections.selected;
     $: collection_search = collections.query;
     $: all_collections = collections.collections;
     $: should_update = collections.needs_update;
-    $: old_collection_name = ""; // context menu option
 
     const filter_collection = () => {
         if ($collection_search == "") {
@@ -169,6 +170,8 @@
         }
 
         collections.add({ name, maps: md5_hashes });
+
+        show_notification({ type: "success", text: "added " + name });
     };
 
     const handle_missing_beatmaps = async (data, missing_collections) => {
@@ -214,7 +217,7 @@
     };
 
     const handle_export_collections = async (data) => {
-
+        console.log(data.collections, data.type);
     };
 
     const handle_from_player = async (data) => {
@@ -266,18 +269,18 @@
         addon.add({ id: "collections", type: "buttons", multiple: true, data: collections });
         addon.set_callback((data) => handle_missing_beatmaps(data, invalid_beatmaps));
 
-        add_new_popup("missing", addon, "collections");
+        popup_manager.register("missing", addon);
     };
 
     const create_export_collections_popup = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ type: "buttons", label: "collections", data: $all_collections.map((c) => c.name) });
-        addon.add({ type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"]});
+        addon.add({ id: "collections", type: "buttons", label: "collections", data: $all_collections.map((c) => c.name) });
+        addon.add({ id: "type", type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"]});
 
         addon.set_callback(handle_export_collections);
 
-        add_new_popup("export", addon, "collections");
+        popup_manager.register("export", addon);
     };
 
     const create_merge_collections_popup = () => {
@@ -287,13 +290,13 @@
         addon.add({ id: "collections", type: "buttons", multiple: true, data: $all_collections.map((c) => c.name) });
 
         addon.set_callback(handle_merge_collections);
-        add_new_popup("merge", addon, "collections");
+        popup_manager.register("merge", addon);
     };
 
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "name", type: "input", label: "name", active: () => ({ id: "collection_type", except: "from osu! collector" }) });
+        addon.add({ id: "name", type: "input", label: "name", show_when: { id: "collection_type", except: "from osu! collector" } });
 
         // collection type (player / osu! collector)
         addon.add({
@@ -302,14 +305,14 @@
             label: "collection type",
             text: "select collection type",
             data: ["from player", "from osu! collector"],
-            active: () => ({ id: "empty_collection", value: false })
+            show_when: { id: "empty_collection", equals: false }
         });
 
         // player options container
         addon.add({
             id: "player_container",
             type: "container",
-            active: () => ({ id: "collection_type", value: "from player" })
+            show_when: { id: "collection_type", equals: "from player" }
         });
 
         // player options
@@ -341,7 +344,7 @@
         addon.add({
             id: "collector_container",
             type: "container",
-            active: () => ({ id: "collection_type", value: "from osu! collector" })
+            show_when: { id: "collection_type", equals: "from osu! collector" }
         });
 
         // osu! collector options
@@ -353,10 +356,10 @@
         });
 
         // empty collection toggle
-        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", value: true });
+        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", equals: true });
 
         addon.set_callback(handle_new_collection_popup);
-        add_new_popup("new collection", addon, "collections");
+        popup_manager.register("new collection", addon);
     };
 
     $: if ($all_collections || $collection_search) {
