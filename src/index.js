@@ -112,7 +112,7 @@ const create_window = () => {
             contextIsolation: true,
             enableRemoteModule: true,
             webSecurity: true,
-            preload: path.resolve(__dirname, "dist", "preload.bundle.js"),
+            preload: path.resolve(__dirname, "..", "out", "preload.js"),
             sandbox: false,
         },
     });
