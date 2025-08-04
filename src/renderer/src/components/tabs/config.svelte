@@ -3,12 +3,12 @@
     import { config, update_access_token } from "../../lib/store/config";
     import { get_osu_data } from "../../lib/utils/collections";
     import { show_notification } from "../../lib/store/notifications";
-    import { add_new_popup, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
 
     // components
     import Add from "../utils/add.svelte";
     import InputDialog from "../utils/input-dialog.svelte";
-    import Popup from "../utils/popup.svelte";
+    import Popup from "../utils/popup/popup.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
 
     let osu_id;
@@ -21,6 +21,8 @@
     let local_images = false;
     let initialized = false;
     let fetching_token = false;
+
+    const popup_manager = get_popup_manager("config");
 
     const save_and_update = async (key, value) => {
         save_config(key, value);
@@ -77,7 +79,7 @@
         new_mirror_popup.add({ id: "url", type: "input", label: "url", text: "ex: https://beatconnect.io/d/" });
         new_mirror_popup.set_callback(add_mirror);
 
-        add_new_popup("new-mirror", new_mirror_popup, "config");
+        popup_manager.register("new-mirror", new_mirror_popup);
     };
 
     onMount(() => {
