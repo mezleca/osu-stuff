@@ -1,6 +1,4 @@
-export const osdb_schema = {
-    // TODO
-};
+export const osdb_schema = { };
 
 export const osdb_versions = {
     "o!dm": 1,

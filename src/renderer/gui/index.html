@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>osu-stuff</title>
-    <link href="../../dist/index.min.css" type="text/css" rel="stylesheet">
+    <link href="../../../out/index.min.css" type="text/css" rel="stylesheet">
 </head>
 <body>
     <div id="loading-screen">
@@ -113,7 +113,7 @@
         if (window.process.env.STUFF_ENV == "dev") {
             script.src = "../app.js";
         } else {
-            script.src = "../../dist/app.bundle.js";
+            script.src = "../../../out/app.js";
         }
 
         script.type = "module";

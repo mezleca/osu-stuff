@@ -44,7 +44,6 @@ const validate_filter = (key, op, value) => {
     return true;
 }
 
-// @TODO: more shit
 export const search_filter = (beatmap) => {
 
     let query = core.search_query;

@@ -50,8 +50,6 @@ const render = (id, extra) => {
     });
 };
 
-// @TODO: dynamic size
-// also this code is a mess
 const render_items = (id, extra = { force: false, check: false }) => {
     const virtual_list = virtual_lists.get(id);
 

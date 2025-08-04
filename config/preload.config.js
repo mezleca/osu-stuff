@@ -11,8 +11,8 @@ export default {
     target: 'electron-preload',
     mode: 'production',
     output: {
-        filename: 'preload.bundle.js',
-        path: path.resolve(__dirname, '..', 'src', 'dist'),
+        filename: 'preload.js',
+        path: path.resolve(__dirname, '..', 'out'),
         libraryTarget: 'commonjs2',
     },
     devtool: false,

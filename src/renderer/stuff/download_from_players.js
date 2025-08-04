@@ -309,7 +309,6 @@ export const download_from_players = async (options) => {
         }
     }
 
-    // @TODO: rework this, i want the function get_maps to already return only missing and unique beatmaps
     const missing_maps = [];
     const md5_only = maps.map((m) => { 
         
