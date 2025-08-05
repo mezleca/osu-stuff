@@ -34,7 +34,7 @@
         if (!active_popup?.popup) {
             return;
         }
-        
+
         const values = active_popup.popup.get_values();
         active_popup.popup.callback(values);
         hide_popup(key);
@@ -60,13 +60,11 @@
 
         if (is_multiple) {
             const is_selected = current.includes(option_value);
-            new_value = is_selected 
-                ? current.filter(v => v != option_value)
-                : [...current, option_value];
+            new_value = is_selected ? current.filter((v) => v != option_value) : [...current, option_value];
         } else {
             new_value = current.includes(option_value) ? [] : [option_value];
         }
-        
+
         update_element(element_id, new_value);
     };
 
@@ -74,54 +72,42 @@
         if (!active_popup?.popup) {
             return [];
         }
-        
-        const all_elements = active_popup.popup.elements.filter(el => 
-            active_popup.popup.should_show_element(el)
-        );
 
-        const root_elements = all_elements.filter(el => !el.parent);
-        
+        const all_elements = active_popup.popup.elements.filter((el) => active_popup.popup.should_show_element(el));
+
+        const root_elements = all_elements.filter((el) => !el.parent);
+
         // build hierarchy
-        return root_elements.map(element => ({
+        return root_elements.map((element) => ({
             ...element,
-            children: all_elements.filter(child => child.parent == element.id)
+            children: all_elements.filter((child) => child.parent == element.id)
         }));
     };
 
     onMount(() => {
         manager = get_popup_manager(key);
-        
+
         // subscribe to popup changes
-        const unsubscribe = manager.get_active().subscribe(popup => {
+        const unsubscribe = manager.get_active().subscribe((popup) => {
             active_popup = popup;
         });
-        
+
         return unsubscribe;
     });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div 
-    bind:this={container} 
-    class="popup-container" 
-    class:show={is_active}
-    on:click={close_on_backdrop}
->
+<div bind:this={container} class="popup-container" class:show={is_active} on:click={close_on_backdrop}>
     {#if active_popup}
         <div class="popup-content">
             {#each visible_elements as element}
                 {#if element.type == "container"}
-                    <PopupRenderer 
-                        {element} 
-                        value={element_values[element.id]}
-                        on_update={update_element}
-                        on_toggle={toggle_button}
-                    >
+                    <PopupRenderer {element} value={element_values[element.id]} on_update={update_element} on_toggle={toggle_button}>
                         {#if element.children?.length > 0}
                             {#each element.children as child}
-                                <PopupRenderer 
-                                    element={child} 
+                                <PopupRenderer
+                                    element={child}
                                     value={element_values[child.id]}
                                     on_update={update_element}
                                     on_toggle={toggle_button}
@@ -130,18 +116,13 @@
                         {/if}
                     </PopupRenderer>
                 {:else}
-                    <PopupRenderer 
-                        {element} 
-                        value={element_values[element.id]}
-                        on_update={update_element}
-                        on_toggle={toggle_button}
-                    />
-                    
+                    <PopupRenderer {element} value={element_values[element.id]} on_update={update_element} on_toggle={toggle_button} />
+
                     {#if element.children?.length > 0}
                         <div class="children-container">
                             {#each element.children as child}
-                                <PopupRenderer 
-                                    element={child} 
+                                <PopupRenderer
+                                    element={child}
                                     value={element_values[child.id]}
                                     on_update={update_element}
                                     on_toggle={toggle_button}
@@ -151,7 +132,7 @@
                     {/if}
                 {/if}
             {/each}
-            
+
             <div class="popup-actions">
                 <button class="cancel-btn" on:click={handle_cancel}>cancel</button>
                 <button class="submit-btn" on:click={handle_submit}>submit</button>

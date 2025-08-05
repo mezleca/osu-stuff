@@ -13,7 +13,7 @@ import {
     get_beatmaps_from_database,
     get_missing_beatmaps
 } from "./beatmaps/beatmaps";
-import { get_collections_from_database, update_collections } from "./beatmaps/collections";
+import { get_and_update_collections, update_collections, get_collection_data } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
 
 import path from "path";
@@ -23,12 +23,14 @@ import icon from "../../resources/icon.png?asset";
 const additionalArguments = [
     "--enable-smooth-scrolling",
     "--enable-zero-copy",
-    "--enable-gpu-rasterization",
+    "--enable-gpu-rasterization", // improved animations on virtual list (not by much tbh)
     "--disable-features=TranslateUI",
+    "--disable-renderer-backgrounding", // fixed some stuterring on my shitty ass pc (while playing heavy games)
     "--disable-ipc-flooding-protection",
-    "--no-sandbox",
-    "--disable-background-timer-throttling"
+    "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
 ];
+
+const is_dev_mode = is.dev && process.env["ELECTRON_RENDERER_URL"];
 
 // protocol to get images / stuff from osu!
 protocol.registerSchemesAsPrivileged([
@@ -42,12 +44,6 @@ protocol.registerSchemesAsPrivileged([
         }
     }
 ]);
-
-const fetch_manager = new FetchManager();
-
-ipcMain.handle("http-request", async (_, options) => {
-    return await fetch_manager.request(options);
-});
 
 async function createWindow() {
     // create the browser window.
@@ -71,6 +67,21 @@ async function createWindow() {
         }
     });
 
+    const fetch_manager = new FetchManager();
+    const original_handle = ipcMain.handle.bind(ipcMain);
+
+    // override for debug
+    if (is_dev_mode) {
+        ipcMain.handle = function (channel, handler) {
+            console.log(`[debug] registered handler: ${channel}`);
+            return original_handle(channel, async (...args) => {
+                console.log(`[debug] received invoke for ${channel}`);
+                const result = await handler(...args);
+                return result;
+            });
+        };
+    }
+
     // extra
     ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
 
@@ -84,16 +95,30 @@ async function createWindow() {
     ipcMain.handle("get-config", () => config);
     ipcMain.handle("update-config", (_, values) => update_config_database(values));
 
+    // since we're using vite for dev, cors happen
+    ipcMain.handle("http-request", async (_, options) => {
+        return await fetch_manager.request(options);
+    });
+
     // osu related stuff
     ipcMain.handle("add-beatmap", (_, hash, beatmap) => add_beatmap(hash, beatmap));
     ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
-    ipcMain.handle("get-collections", (_, force) => get_collections_from_database(force));
+    ipcMain.handle("get-collections", (_, force) => get_and_update_collections(force));
+    ipcMain.handle("get-collection-data", (_, location, type) => get_collection_data(location, type));
     ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
     ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
     ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));
     ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
+
+    // mhm
+    if (is_dev_mode) {
+        setInterval(async () => {
+            const node_memory = await process.getProcessMemoryInfo();
+            console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
+        }, 2000);
+    }
 
     await initialize_config();
     initialize_mirrors();
@@ -124,7 +149,7 @@ async function createWindow() {
 
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    if (is_dev_mode) {
         mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
     } else {
         mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));

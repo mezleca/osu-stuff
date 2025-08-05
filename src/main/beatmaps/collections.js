@@ -6,7 +6,7 @@ import fs from "fs";
 
 let collection_data = null;
 
-export const get_collections_from_database = async (force) => {
+export const get_and_update_collections = async (force) => {
     const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
 
     if (!osu_folder) {
@@ -52,4 +52,24 @@ export const update_collections = async (data) => {
     collection_data = data;
 
     return { success: true };
+};
+
+export const get_collection_data = async (location, type) => {
+    const result = { success: false, data: null, reason: "" };
+
+    if (!fs.existsSync(location)) {
+        result.reason = "invalid file location";
+        return result;
+    }
+
+    const data = type == "db" ? await reader.get_collections_data(location) : await reader.get_osdb_data(location);
+
+    if (!data) {
+        result.reason = "failed to read collection data";
+        return result;
+    }
+
+    result.success = true;
+    result.data = type == "db" ? Array.from(data.collections.values()) : data;
+    return result;
 };

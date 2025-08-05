@@ -1,6 +1,7 @@
 <script>
-    export let location = "",
-        type = "";
+    export let location = "";
+    export let type = "folder";
+    export let callback = null;
 
     const show_dialog = async () => {
         const dialog = await window.extra.dialog({
@@ -13,6 +14,7 @@
         }
 
         location = dialog.filePaths[0];
+        if (callback) callback(location);
     };
 </script>
 

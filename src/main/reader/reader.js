@@ -37,15 +37,15 @@ export class Reader extends BinaryReader {
         this.instance = get_realm_instance(path, schemas);
     };
 
-    get_osdb_data = async (buffer) => {
-        if (buffer) {
-            this.set_buffer(buffer);
-        }
+    get_osdb_data = async (location) => {
+        const buffer = fs.readFileSync(location);
 
-        if (this.buffer.byteLength == 0) {
+        if (buffer.byteLength == 0) {
             console.log("[osdb] invalid buffer");
             return false;
         }
+
+        this.set_buffer(buffer);
 
         try {
             const data = {};
@@ -59,12 +59,10 @@ export class Reader extends BinaryReader {
             const is_minimal = version_string.endsWith("min");
 
             if (version >= 7) {
-                const compressed_data = this.buffer.buffer.slice(this.offset);
+                const compressed_data = this.buffer.subarray(this.offset);
                 const decompressed_data = zlib.gunzipSync(compressed_data);
 
                 this.set_buffer(decompressed_data);
-                this.offset = 0;
-
                 this.string2();
             }
 
@@ -88,8 +86,8 @@ export class Reader extends BinaryReader {
 
                 for (let j = 0; j < beatmaps_count; j++) {
                     const beatmap = {
-                        map_id: this.int(),
-                        map_set_id: version >= 2 ? this.int() : -1
+                        difficulty_id: this.int(),
+                        beatmapset_id: version >= 2 ? this.int() : -1
                     };
 
                     if (!is_minimal) {
@@ -105,11 +103,11 @@ export class Reader extends BinaryReader {
                     }
 
                     if (version >= 8 || (version >= 5 && !is_minimal)) {
-                        beatmap.play_mode = this.byte();
+                        beatmap.mode = this.byte();
                     }
 
                     if (version >= 8 || (version >= 6 && !is_minimal)) {
-                        beatmap.stars_nomod = this.double();
+                        beatmap.difficulty_rating = this.double();
                     }
 
                     collection.beatmaps.push(beatmap);
@@ -180,10 +178,10 @@ export class Reader extends BinaryReader {
                 for (let i = 0; i < collection.beatmaps.length; i++) {
                     const beatmap = collection.beatmaps[i];
 
-                    buffer.push(this.writeInt(beatmap.map_id || 0));
+                    buffer.push(this.writeInt(beatmap.difficulty_id || 0));
 
                     if (version >= 2) {
-                        buffer.push(this.writeInt(beatmap.map_set_id || -1));
+                        buffer.push(this.writeInt(beatmap.beatmapset_id || -1));
                     }
 
                     if (!is_minimal) {
@@ -199,11 +197,11 @@ export class Reader extends BinaryReader {
                     }
 
                     if (version >= 8 || (version >= 5 && !is_minimal)) {
-                        buffer.push(this.writeByte(beatmap?.play_mode || 0));
+                        buffer.push(this.writeByte(beatmap?.mode || 0));
                     }
 
                     if (version >= 8 || (version >= 6 && !is_minimal)) {
-                        buffer.push(this.writeDouble(beatmap?.stars_nomod || 0.0));
+                        buffer.push(this.writeDouble(beatmap?.difficulty_rating || 0.0));
                     }
                 }
 
@@ -435,13 +433,13 @@ export class Reader extends BinaryReader {
             } catch (e) {
                 this.instance = null;
                 console.error(e);
-                return null;
+                return false;
             }
         }
 
         if (!fs.existsSync(file_path)) {
             console.log(`[reader] collections file not found: ${file_path}`);
-            return null;
+            return false;
         }
 
         const buffer = fs.readFileSync(file_path);

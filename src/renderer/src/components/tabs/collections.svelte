@@ -1,6 +1,6 @@
 <script>
     import { collections } from "../../lib/store/collections";
-    import { get_from_osu_collector } from "../../lib/utils/collections";
+    import { get_from_osu_collector, get_db_data, get_osdb_data } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
@@ -19,6 +19,7 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
 
     let filtered_collections = [];
 
@@ -34,6 +35,9 @@
     $: collection_search = collections.query;
     $: all_collections = collections.collections;
     $: should_update = collections.needs_update;
+    $: pending_collections = collections.pending_collections;
+    $: missing_beatmaps = collections.missing_beatmaps;
+    $: missing_collections = collections.missing_collections;
 
     const filter_collection = () => {
         if ($collection_search == "") {
@@ -65,6 +69,7 @@
         return [
             { id: "merge", text: "merge collections" },
             { id: "missing", text: "get missing beatmaps" },
+            { id: "import", text: "import collections" }, // @TODO: move to add-btn popup
             { id: `rename-${collection.name}`, text: "rename collection" },
             { id: `export-${collection.name}`, text: "export collection" },
             { id: "export beatmaps", text: "export beatmaps" },
@@ -104,7 +109,7 @@
     };
 
     // @TODO: surly theres better ways to do this
-    const handle_context_menu = (event) => {
+    const handle_context_menu = async (event) => {
         const type = event.action?.id;
 
         if (!type) {
@@ -113,7 +118,7 @@
 
         const splitted_shit = type.split("-");
 
-        if (splitted_shit.length > 0) {
+        if (splitted_shit.length > 1) {
             const custom_type = splitted_shit[0];
             switch (custom_type) {
                 case "delete":
@@ -124,20 +129,25 @@
                     break;
             }
         } else {
-        // fallback to normal types
-        switch (type) {
-            case "merge":
-                show_popup("merge", "collections");
-                break;
-            case "missing":
-                show_popup("missing", "collections");
-                break;
-            case "export":
-                show_popup("export", "collections");
-                break;
-            case "export beatmaps":
-                console.log("TODO");
-                break;
+            // fallback to normal types
+            switch (type) {
+                case "merge":
+                    show_popup("merge", "collections");
+                    break;
+                // @TODO: this should not be here, place it somewhere else later (add-btn popup)
+                case "import":
+                    show_popup("import", "collections");
+                    break;
+                case "missing":
+                    await get_missing_beatmaps();
+                    show_popup("missing", "collections");
+                    break;
+                case "export":
+                    show_popup("export", "collections");
+                    break;
+                case "export beatmaps":
+                    console.log("TODO");
+                    break;
             }
         }
     };
@@ -171,10 +181,10 @@
         show_notification({ type: "success", text: "added " + name });
     };
 
-    const handle_missing_beatmaps = async (data, missing_collections) => {
+    const handle_missing_beatmaps = async (data) => {
         const invalid = [];
 
-        for (const missing of missing_collections) {
+        for (const missing of $missing_beatmaps) {
             // only include the beatmaps from the selected collection
             if (data.collections.includes(missing.name)) {
                 invalid.push(...missing.beatmaps);
@@ -189,7 +199,7 @@
         const collection = collections.get(name);
 
         if (!collection) {
-            show_notification({ type: "error", text: "failed to get collection "});
+            show_notification({ type: "error", text: "failed to get collection " });
             return;
         }
 
@@ -203,7 +213,7 @@
         const collection = collections.get(old_name);
 
         if (!collection) {
-            show_notification({ type: "error", text: "failed to get collection "});
+            show_notification({ type: "error", text: "failed to get collection " });
             return;
         }
 
@@ -211,6 +221,92 @@
         collection.name = new_name;
         collection.edit = false;
         collections.replace(collection);
+    };
+
+    const handle_import_collections = async (data) => {
+        // cancelled?
+        if (!data.location || data.location == "") {
+            return;
+        }
+
+        // get file type
+        const splitted = data.location.split(".");
+        const type = splitted[splitted.length - 1];
+
+        if (type != "db" && type != "osdb") {
+            show_notification({ type: "error", text: "please use a valid collection file (.db or .osdb)" });
+            return;
+        }
+
+        const result = type == "db" ? await get_db_data(data.location) : await get_osdb_data(data.location);
+
+        if (!result.success) {
+            show_notification({ type: "error", text: result.reason });
+            return;
+        }
+
+        // remove old pending
+        if ($pending_collections.data != null) {
+            collections.clear_pending();
+        }
+
+        $pending_collections = { type, data: type == "db" ? result.data : result.data.collections };
+        show_popup("add-pending", "collections");
+    };
+
+    const handle_pending_collections = async (data) => {
+        const type = $pending_collections.type;
+
+        if (data.collections.length == 0 || !type) {
+            return;
+        }
+
+        // loop through each collection from pending (from the previous file on the previous popup)
+        for (const collection of $pending_collections.data) {
+            // check if we selected it on this popup
+            if (!data.collections.includes(collection.name)) {
+                continue;
+            }
+
+            // dont add collection that already exists
+            if (collections.get(collection.name)) {
+                show_notification({ type: "error", text: `failed to add ${collection.name} (already exists)` });
+                continue;
+            }
+
+            if (type == "osdb") {
+                // osdb also saves information about beatmapsed_id, etc... but if the hashes are available, use them instead
+                if (collection.hash_only_beatmaps.length != 0) {
+                    collections.add({ name: collection.name, maps: collection.hash_only_beatmaps });
+                } else {
+                    const hashes = [];
+                    // add each one of the beatmaps, one at... time... yes im retarded
+                    for (const beatmap of collection.beatmaps) {
+                        const map_already_exists = window.osu.get_beatmap_by_md5(beatmap.md5);
+
+                        if (map_already_exists) {
+                            hashes.push(beatmap.md5);
+                            continue;
+                        }
+
+                        const converted = convert_beatmap_keys(beatmap);
+
+                        converted.downloaded = false;
+                        converted.local = true; // kinda forgot why i added this
+
+                        // add beatmap to osu! data object (main process)
+                        await window.osu.add_beatmap(converted.md5, converted);
+                        hashes.push(converted.md5);
+                    }
+                    collections.add({ name: collection.name, maps: hashes });
+                }
+            } else {
+                // just add :D
+                collections.add(collection);
+            }
+
+            show_notification({ type: "success", text: `added ${collection.name}` });
+        }
     };
 
     const handle_export_collections = async (data) => {
@@ -246,10 +342,15 @@
         }
     };
 
-    /* --- POPUP FUNCTIONS --- */
+    const get_missing_beatmaps = async () => {
+        if ($missing_beatmaps.length != 0) {
+            $missing_beatmaps = [];
+        }
 
-    const create_missing_beatmaps_popup = async () => {
-        const addon = new PopupAddon();
+        if ($missing_collections.length != 0) {
+            $missing_collections = [];
+        }
+
         const collections = [],
             invalid_beatmaps = [];
 
@@ -263,17 +364,51 @@
             }
         }
 
-        addon.add({ id: "collections", type: "buttons", multiple: true, data: collections });
-        addon.set_callback((data) => handle_missing_beatmaps(data, invalid_beatmaps));
+        $missing_beatmaps = invalid_beatmaps;
+        $missing_collections = collections;
+    };
+
+    /* --- POPUP FUNCTIONS --- */
+
+    const create_missing_beatmaps_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "collections", type: "buttons", label: "collections to download", multiple: true, data: () => $missing_collections });
+        addon.set_callback(handle_missing_beatmaps);
 
         popup_manager.register("missing", addon);
+    };
+
+    const create_import_collections_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "location", type: "file-dialog", label: "collection file" });
+        addon.set_callback(handle_import_collections);
+
+        popup_manager.register("import", addon);
+    };
+
+    // @TODO: use collection-card buttons_type so i can show the ammount of beatmaps
+    const create_pending_collection_select = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({
+            id: "collections",
+            type: "buttons",
+            multiple: true,
+            label: "collections to import",
+            data: () => $pending_collections?.data?.map((c) => c.name) ?? []
+        });
+        addon.set_callback(handle_pending_collections);
+
+        popup_manager.register("add-pending", addon);
     };
 
     const create_export_collections_popup = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collections", type: "buttons", label: "collections", data: $all_collections.map((c) => c.name) });
-        addon.add({ id: "type", type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"]});
+        addon.add({ id: "collections", type: "buttons", label: "collections", data: () => $all_collections.map((c) => c.name) });
+        addon.add({ id: "type", type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"] });
 
         addon.set_callback(handle_export_collections);
 
@@ -284,7 +419,13 @@
         const addon = new PopupAddon();
 
         addon.add({ id: "name", type: "input", label: "name" });
-        addon.add({ id: "collections", type: "buttons", multiple: true, data: $all_collections.map((c) => c.name) });
+        addon.add({
+            id: "collections",
+            type: "buttons",
+            label: "collections to merge",
+            multiple: true,
+            data: () => $all_collections.map((c) => c.name)
+        });
 
         addon.set_callback(handle_merge_collections);
         popup_manager.register("merge", addon);
@@ -363,17 +504,20 @@
         filter_collection();
     }
 
-    // @TODO: this makes us request the collections every time we go into this tab
-    // in collections theres no difference since the collections are usually small but on radio we can notice a small delay
+    // @TODO: this makes us request the collection every time we go into this tab
+    // for small collections this is not a big of a problem since the collections are usually small
+    // but on radio we can notice a small delay since we're doing this 2 times
     $: if ($selected_collection.name || $query || $sort || $status || $show_invalid) {
         filter_beatmaps();
     }
 
     onMount(() => {
         if ($sort == "") $sort = "artist";
+        create_pending_collection_select();
         create_new_collection_popup();
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
+        create_import_collections_popup();
         create_export_collections_popup();
     });
 </script>

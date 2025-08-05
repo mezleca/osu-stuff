@@ -25,7 +25,7 @@ export class PopupAddon {
 
     add(options = {}) {
         const element = { ...DEFAULT_OPTIONS, ...options };
-        
+
         if (!element.id || !element.type) {
             console.error("element requires id and type", element);
             return this;
@@ -45,7 +45,7 @@ export class PopupAddon {
         if (!element.show_when) {
             return true;
         }
-        
+
         const { id, equals, not_equals, except } = element.show_when;
         const target_store = this.stores.get(id);
 
@@ -53,9 +53,9 @@ export class PopupAddon {
             console.log("[popup] failed to get target store");
             return true;
         }
-        
+
         const target_value = get(target_store);
-        
+
         if (equals != undefined) {
             return target_value == equals;
         }
@@ -85,7 +85,7 @@ export class PopupAddon {
     }
 
     reset_hidden_elements() {
-        this.elements.forEach(element => {
+        this.elements.forEach((element) => {
             if (!this.should_show_element(element)) {
                 const default_value = this.defaults.get(element.id);
                 this.stores.get(element.id)?.set(default_value);
@@ -95,24 +95,25 @@ export class PopupAddon {
 
     get_values() {
         const values = {};
-        
-        this.elements.filter((el) => this.should_show_element(el))
+
+        this.elements
+            .filter((el) => this.should_show_element(el))
             .filter((el) => !["container", "text"].includes(el.type))
             .forEach((el) => {
                 const value = this.get_store_value(el.id);
-                values[el.id] = Array.isArray(value) && !el.multiple ? value[0] : value;
+                values[el.id] = value;
             });
-            
+
         return values;
     }
 
     clear() {
-        this.elements.forEach(element => {
+        this.elements.forEach((element) => {
             const default_value = this.defaults.get(element.id);
             this.stores.get(element.id)?.set(default_value);
         });
     }
-};
+}
 
 class PopupManager {
     constructor() {
@@ -140,7 +141,7 @@ class PopupManager {
     get_active() {
         return this.active;
     }
-};
+}
 
 const managers = new Map();
 

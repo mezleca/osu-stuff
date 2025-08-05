@@ -1,6 +1,6 @@
 <script>
     // props
-        export let name,
+    export let name,
         count,
         selected,
         edit,
@@ -12,13 +12,12 @@
 
     // icons
     import Music from "../icon/music.svelte";
-
 </script>
 
 <button class="collection-item" onclick={select_callback} class:active={selected == true}>
     <div class="collection-info">
         <Music />
-        <Text value={name} {edit} update_callback={rename_callback}/>
+        <Text value={name} {edit} update_callback={rename_callback} />
     </div>
     <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
 </button>
