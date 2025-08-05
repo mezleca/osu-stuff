@@ -13,7 +13,7 @@ import {
     get_beatmaps_from_database,
     get_missing_beatmaps
 } from "./beatmaps/beatmaps";
-import { get_collections_from_database, update_collections } from "./beatmaps/collections";
+import { get_and_update_collections, update_collections, get_collection_data } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
 
 import path from "path";
@@ -43,12 +43,6 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
-const fetch_manager = new FetchManager();
-
-ipcMain.handle("http-request", async (_, options) => {
-    return await fetch_manager.request(options);
-});
-
 async function createWindow() {
     // create the browser window.
     const mainWindow = new BrowserWindow({
@@ -71,6 +65,20 @@ async function createWindow() {
         }
     });
 
+    const fetch_manager = new FetchManager();
+    const original_handle = ipcMain.handle.bind(ipcMain);
+
+    // override for debug
+    // @TODO: only override on dev mode
+    ipcMain.handle = function (channel, handler) {
+        console.log(`[debug] registered handler: ${channel}`);
+        return original_handle(channel, async (...args) => {
+            console.log(`[debug] received invoke for ${channel}`);
+            const result = await handler(...args);
+            return result;
+        });
+    };
+
     // extra
     ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
 
@@ -84,10 +92,16 @@ async function createWindow() {
     ipcMain.handle("get-config", () => config);
     ipcMain.handle("update-config", (_, values) => update_config_database(values));
 
+    // since we're using vite for dev, cors happen
+    ipcMain.handle("http-request", async (_, options) => {
+        return await fetch_manager.request(options);
+    });
+
     // osu related stuff
     ipcMain.handle("add-beatmap", (_, hash, beatmap) => add_beatmap(hash, beatmap));
     ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
-    ipcMain.handle("get-collections", (_, force) => get_collections_from_database(force));
+    ipcMain.handle("get-collections", (_, force) => get_and_update_collections(force));
+    ipcMain.handle("get-collection-data", (_, location, type) => get_collection_data(location, type));
     ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
     ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
     ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));

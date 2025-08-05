@@ -1,4 +1,7 @@
 export class BinaryReader {
+    /** @type {Buffer} */
+    buffer;
+
     constructor(buffer) {
         this.offset = 0;
         if (buffer) {
@@ -6,8 +9,8 @@ export class BinaryReader {
         }
     }
 
-    set_buffer = (buf) => {
-        this.buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+    set_buffer = (buffer) => {
+        this.buffer = buffer;
         this.offset = 0;
     };
 

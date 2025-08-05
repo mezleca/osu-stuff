@@ -1,11 +1,14 @@
 <script>
-    import Dropdown from "../basic/dropdown.svelte";
-    import Checkbox from "../basic/checkbox.svelte";
-
+    // props
     export let element;
     export let value;
     export let on_update;
     export let on_toggle;
+
+    // components
+    import Dropdown from "../basic/dropdown.svelte";
+    import Checkbox from "../basic/checkbox.svelte";
+    import InputDialog from "../input-dialog.svelte";
 </script>
 
 <div class="field-group">
@@ -13,7 +16,6 @@
         <h1 class="text-element" style="font-size: {element.font_size}px;">
             {element.text}
         </h1>
-        
     {:else if element.type == "input"}
         <label for={element.id} class="field-label">{element.label}</label>
         <input
@@ -25,38 +27,33 @@
             style={element.style}
             on:input={(e) => on_update(element.id, e.target.value)}
         />
-        
     {:else if element.type == "checkbox"}
-        <Checkbox
-            id={element.id}
-            bind:value
-            label={element.label || element.text}
-            onchange={(id, val) => on_update(id, val)}
-        />
-        
+        <Checkbox id={element.id} bind:value label={element.label || element.text} onchange={(id, val) => on_update(id, val)} />
     {:else if element.type == "dropdown"}
+        {@const data = typeof element.data == "function" ? element.data() : element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label">{element.label}</label>
         {/if}
-        <Dropdown
-            options={element.data}
-            selected_value={value}
-            placeholder={element.text}
-            on_update={(val) => on_update(element.id, val)}
-        />
-        
+        <Dropdown options={data} selected_value={value} placeholder={element.text} on_update={(val) => on_update(element.id, val)} />
+    {:else if element.type == "file-dialog"}
+        {#if element.label}
+            <!-- svelte-ignore a11y_label_has_associated_control -->
+            <label class="field-label">{element.label}</label>
+        {/if}
+        <InputDialog type={element.dialog_type || "file"} location={value} callback={(val) => on_update(element.id, val)} />
     {:else if element.type == "buttons"}
+        {@const data = typeof element.data == "function" ? element.data() : element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label">{element.label}</label>
         {/if}
         <div class="buttons-container" style={element.style}>
-            {#each element.data as option}
+            {#each data as option}
                 {@const option_value = option.value || option}
                 {@const option_label = option.label || option}
                 {@const is_selected = (value || []).includes(option_value)}
-                
+
                 <button
                     class="select-button"
                     class:selected={is_selected}
@@ -66,7 +63,6 @@
                 </button>
             {/each}
         </div>
-        
     {:else if element.type == "container"}
         <div class="container {element.class || ''}" style={element.style}>
             {#if element.text || element.label}
@@ -74,8 +70,8 @@
                     {element.label || element.text}
                 </div>
             {/if}
-            
-            <!-- Slot for container children -->
+
+            <!-- slot for children -->
             <div class="container-content">
                 <slot></slot>
             </div>

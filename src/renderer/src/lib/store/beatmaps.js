@@ -383,7 +383,6 @@ export const osu_beatmaps = {
         osu_beatmaps_store.set(new Map());
     },
     all: () => {
-        console.log(get(osu_beatmaps_store));
         return Array.from(get(osu_beatmaps_store).values());
     }
 };

@@ -44,7 +44,7 @@
         if (event.key == "Enter") update_value();
     };
 
-    // @TODO (MAYBE): a way to check if we clicked on an parent or something 
+    // @TODO (MAYBE): a way to check if we clicked on an parent or something
     const on_mouse_up = () => {
         if (!edit) return;
         update_value();
@@ -62,7 +62,7 @@
 
 {#if edit}
     <textarea bind:this={element} {id} class="text-edit" bind:value={edit_value} oninput={update_text_area_height} rows={1}></textarea>
-    {:else}
+{:else}
     <span>{value}</span>
 {/if}
 

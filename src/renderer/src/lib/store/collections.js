@@ -1,10 +1,18 @@
 import { writable, get } from "svelte/store";
 import { show_notification } from "./notifications";
 
+const DEFAULT_PENDING_DATA = {
+    type: "",
+    data: null
+};
+
 class CollectionManager {
     constructor() {
         this.needs_update = writable(false);
         this.collections = writable([]);
+        this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
+        this.missing_beatmaps = writable([]); // temp added via popup
+        this.missing_collections = writable([]); // temp added via popup
         this.version = writable(0);
         this.query = writable("");
         this.selected = writable({ name: "", maps: [] });
@@ -125,6 +133,10 @@ class CollectionManager {
 
         show_notification({ text: "updated collection" });
         this.needs_update.set(false);
+    }
+
+    clear_pending() {
+        this.pending_collections.set(DEFAULT_PENDING_DATA);
     }
 }
 

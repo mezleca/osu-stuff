@@ -1,4 +1,3 @@
-import { osu_beatmaps } from "../store/beatmaps";
 import { collections } from "../store/collections";
 import { downloader } from "../store/downloader";
 import { show_notification } from "../store/notifications";
@@ -15,7 +14,7 @@ export const get_osu_data = async (force) => {
     const version = collection_data.version;
 
     // remove selected colection
-    collections.selected.set({ });
+    collections.selected.set({});
 
     // add new collections
     collections.set(collections_array);
@@ -133,4 +132,14 @@ export const download_missing_beatmaps = async (collection) => {
     }
 
     downloader.add({ name: collection.name, beatmaps });
+};
+
+export const get_osdb_data = async (location) => {
+    const result = await window.osu.get_collection_data(location, "osdb");
+    return result;
+};
+
+export const get_db_data = async (location) => {
+    const result = await window.osu.get_collection_data(location, "db");
+    return result;
 };
