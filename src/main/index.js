@@ -30,6 +30,8 @@ const additionalArguments = [
     "--disable-background-timer-throttling"
 ];
 
+const is_dev_mode = is.dev && process.env["ELECTRON_RENDERER_URL"];
+
 // protocol to get images / stuff from osu!
 protocol.registerSchemesAsPrivileged([
     {
@@ -69,16 +71,17 @@ async function createWindow() {
     const original_handle = ipcMain.handle.bind(ipcMain);
 
     // override for debug
-    // @TODO: only override on dev mode
-    ipcMain.handle = function (channel, handler) {
-        console.log(`[debug] registered handler: ${channel}`);
-        return original_handle(channel, async (...args) => {
-            console.log(`[debug] received invoke for ${channel}`);
-            const result = await handler(...args);
-            return result;
-        });
-    };
-
+    if (is_dev_mode) {
+        ipcMain.handle = function (channel, handler) {
+            console.log(`[debug] registered handler: ${channel}`);
+            return original_handle(channel, async (...args) => {
+                console.log(`[debug] received invoke for ${channel}`);
+                const result = await handler(...args);
+                return result;
+            });
+        };
+    }
+    
     // extra
     ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
 
@@ -138,7 +141,7 @@ async function createWindow() {
 
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    if (is_dev_mode) {
         mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
     } else {
         mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
