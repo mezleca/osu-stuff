@@ -54,11 +54,7 @@
                 {@const option_label = option.label || option}
                 {@const is_selected = (value || []).includes(option_value)}
 
-                <button
-                    class="select-button"
-                    class:selected={is_selected}
-                    on:click={() => on_toggle(element.id, option_value, element.multiple != false)}
-                >
+                <button class="select-button" class:selected={is_selected} on:click={() => on_toggle(element.id, option_value, element.multiple)}>
                     {option_label}
                 </button>
             {/each}

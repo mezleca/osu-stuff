@@ -81,7 +81,7 @@ async function createWindow() {
             });
         };
     }
-    
+
     // extra
     ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
 
@@ -119,7 +119,7 @@ async function createWindow() {
             console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
         }, 2000);
     }
-    
+
     await initialize_config();
     initialize_mirrors();
 

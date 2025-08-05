@@ -373,7 +373,7 @@
     const create_missing_beatmaps_popup = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collections", type: "buttons", multiple: true, data: () => $missing_collections });
+        addon.add({ id: "collections", type: "buttons", label: "collections to download", multiple: true, data: () => $missing_collections });
         addon.set_callback(handle_missing_beatmaps);
 
         popup_manager.register("missing", addon);
@@ -392,7 +392,13 @@
     const create_pending_collection_select = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collections", type: "buttons", data: () => $pending_collections?.data?.map((c) => c.name) ?? [] });
+        addon.add({
+            id: "collections",
+            type: "buttons",
+            multiple: true,
+            label: "collections to import",
+            data: () => $pending_collections?.data?.map((c) => c.name) ?? []
+        });
         addon.set_callback(handle_pending_collections);
 
         popup_manager.register("add-pending", addon);
@@ -413,7 +419,13 @@
         const addon = new PopupAddon();
 
         addon.add({ id: "name", type: "input", label: "name" });
-        addon.add({ id: "collections", type: "buttons", multiple: true, data: () => $all_collections.map((c) => c.name) });
+        addon.add({
+            id: "collections",
+            type: "buttons",
+            label: "collections to merge",
+            multiple: true,
+            data: () => $all_collections.map((c) => c.name)
+        });
 
         addon.set_callback(handle_merge_collections);
         popup_manager.register("merge", addon);
