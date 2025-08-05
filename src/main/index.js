@@ -23,11 +23,12 @@ import icon from "../../resources/icon.png?asset";
 const additionalArguments = [
     "--enable-smooth-scrolling",
     "--enable-zero-copy",
-    "--enable-gpu-rasterization",
+    "--enable-gpu-rasterization", // improved animations on virtual list (not by much tbh)
     "--disable-features=TranslateUI",
+    "--disable-renderer-backgrounding", // fixed some stuterring on my shitty ass pc (while playing heavy games)
+    "--enable-gpu-rasterization", // hmm
     "--disable-ipc-flooding-protection",
-    "--no-sandbox",
-    "--disable-background-timer-throttling"
+    "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
 ];
 
 const is_dev_mode = is.dev && process.env["ELECTRON_RENDERER_URL"];
@@ -112,6 +113,14 @@ async function createWindow() {
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
 
+    // mhm
+    if (is_dev_mode) {
+        setInterval(async () => {
+            const node_memory = await process.getProcessMemoryInfo();
+            console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
+        }, 2000);
+    }
+    
     await initialize_config();
     initialize_mirrors();
 
