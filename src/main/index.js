@@ -26,7 +26,6 @@ const additionalArguments = [
     "--enable-gpu-rasterization", // improved animations on virtual list (not by much tbh)
     "--disable-features=TranslateUI",
     "--disable-renderer-backgrounding", // fixed some stuterring on my shitty ass pc (while playing heavy games)
-    "--enable-gpu-rasterization", // hmm
     "--disable-ipc-flooding-protection",
     "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
 ];
