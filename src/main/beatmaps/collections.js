@@ -38,20 +38,20 @@ export const get_and_update_collections = async (force) => {
 
 export const update_collections = async (data) => {
     if (!data || data?.collections?.length == 0) {
-        return { reason: "0 length", success: false };
+        return { reason: "invalid collection object", success: false };
     }
 
     // update collection file
     const result = await reader.update_collections_data(data);
 
-    if (!result) {
-        return { success: false, reason: "unknown" };
+    if (!result.success) {
+        return result;
     }
 
     // update beatmap object to ensure sync
     collection_data = data;
 
-    return { success: true };
+    return result;
 };
 
 export const get_collection_data = async (location, type) => {

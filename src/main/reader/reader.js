@@ -482,16 +482,18 @@ export class Reader extends BinaryReader {
         fs.renameSync(old_collection_path, new_collection_path);
     };
 
-    // @TODO: reason
     update_collections_data = async (data) => {
+        const result = { success: false, reason: "" };
+
         if (config.lazer_mode) {
             if (!this.instance) {
-                console.log("failed to get realm instance");
-                return false;
+                result.reason = "failed to get realm instance";
+                return result;
             }
 
             update_collection(this.instance, data.collections);
-            return true;
+            result.success = true;
+            return result;
         }
 
         const buffer = [];
@@ -507,8 +509,8 @@ export class Reader extends BinaryReader {
 
             for (const map of collection.maps) {
                 if (!map) {
-                    console.log("[reader] failed to get beatmap from collection!");
-                    return false;
+                    result.reason = `one of the hashes from ${name} is invalid`;
+                    return result;
                 }
                 buffer.push(this.writeString(map));
             }
@@ -521,7 +523,8 @@ export class Reader extends BinaryReader {
         this.create_collection_backup();
         fs.writeFileSync(collection_path, new_buffer);
 
-        return true;
+        result.success = true;
+        return result;
     };
 
     get_beatmap_section = (beatmap, section_name) => {
