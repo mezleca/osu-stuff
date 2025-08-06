@@ -36,7 +36,6 @@ const create_mode_star_rating = (star_rating) => ({
     pair: [[0, Math.round(star_rating * 100) / 100]]
 });
 
-// @TODO: NO
 const create_star_rating = (rating) => {
     return GAMEMODES.map(() => create_mode_star_rating(rating));
 };
@@ -166,7 +165,6 @@ export const lazer_to_osu_db = (instance) => {
 };
 
 /** @param {Realm} instance */
-// @TODO: testm ore
 export const update_collection = (instance, collections) => {
     const result = { success: false, reason: "" };
 

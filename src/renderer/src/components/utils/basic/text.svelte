@@ -1,7 +1,7 @@
 <script>
     import { onMount, onDestroy } from "svelte";
 
-    // @TODO: use InputManager instead of creating a new listener for each component
+    // @TODO: create InputManager so i dont have to manually add a listener to each element
 
     // props
     export let value = "";

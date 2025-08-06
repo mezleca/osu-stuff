@@ -522,7 +522,6 @@
     });
 </script>
 
-<!-- @TODO: move css from app.cs to here -->
 <div class="content tab-content">
     <!-- more options -->
     <Add callback={() => show_popup("new collection", "collections")} />
