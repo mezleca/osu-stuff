@@ -16,6 +16,7 @@ using namespace std;
 
 const set<string> VIDEO_EXTENSIONS = {".avi", ".mov", ".mp4", ".flv"};
 const size_t PROGRESS_UPDATE_INTERVAL = 100;
+static bool is_processing = false;
 
 string trim(const string &s)
 {
@@ -347,6 +348,7 @@ public:
     {
         if (shutdown_requested)
         {
+            is_processing = false;
             return;
         }
 
@@ -391,6 +393,7 @@ private:
         {
             progress_callback.Release();
             has_callback = false;
+            is_processing = false;
         }
     }
 
@@ -406,6 +409,12 @@ private:
 Napi::Value process_beatmaps(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
+
+    if (is_processing) 
+    {
+        cerr << "error: already processing" << endl;
+        return env.Null();
+    }
 
     if (info.Length() < 1 || !info[0].IsArray())
     {
@@ -446,6 +455,8 @@ Napi::Value process_beatmaps(const Napi::CallbackInfo &info)
 
         beatmaps.push_back({md5, unique_id, file_path, audio_path, image_path});
     }
+
+    is_processing = true;
 
     Napi::Function progress_cb = info.Length() > 1 && info[1].IsFunction() ? info[1].As<Napi::Function>() : Napi::Function();
     AudioProcessor *worker = new AudioProcessor(env, beatmaps, progress_cb);

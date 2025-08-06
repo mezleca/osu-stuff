@@ -11,8 +11,6 @@ import path from "path";
 const PROCESSOR_PATH = get_app_path();
 const BATCH_SIZE = 999;
 
-export let is_processing = false;
-
 /** @type {BrowserWindow} */
 let window = null;
 let database = null;
@@ -82,7 +80,7 @@ export const filter_unique_beatmaps = (beatmaps_array) => {
 };
 
 export const process_beatmaps = async (beatmaps_array) => {
-    if (is_processing) {
+    if (Processor.is_processing) {
         console.error("[indexer] already processing");
         return null;
     }
@@ -91,7 +89,6 @@ export const process_beatmaps = async (beatmaps_array) => {
         return new Map();
     }
 
-    is_processing = true;
     window?.webContents.send("process", { show: true });
 
     const md5_list = beatmaps_array.map((b) => b.md5);
@@ -140,7 +137,6 @@ export const process_beatmaps = async (beatmaps_array) => {
         // shouldn't happen (unless we have a invalid beatmap object)
         if (!processed_beatmaps) {
             console.error("[indexer] failed to get processed beatmaps");
-            is_processing = false;
             window?.webContents.send("process", { show: false });
             return new Map();
         }
@@ -179,9 +175,6 @@ export const process_beatmaps = async (beatmaps_array) => {
             duration: processed.duration
         });
     }
-
-    // @TODO: this needs to be on the Processor module
-    is_processing = false;
 
     return extra_info_map;
 };
