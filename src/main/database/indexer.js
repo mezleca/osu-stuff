@@ -80,7 +80,7 @@ export const filter_unique_beatmaps = (beatmaps_array) => {
 };
 
 export const process_beatmaps = async (beatmaps_array) => {
-    if (Processor.is_processing) {
+    if (Processor.is_processing()) {
         console.error("[indexer] already processing");
         return null;
     }
@@ -88,6 +88,9 @@ export const process_beatmaps = async (beatmaps_array) => {
     if (!beatmaps_array || beatmaps_array.length == 0) {
         return new Map();
     }
+
+    // let everything load
+    await new Promise((r) => setTimeout(r, 20));
 
     window?.webContents.send("process", { show: true });
 

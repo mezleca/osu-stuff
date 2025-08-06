@@ -15,7 +15,7 @@
 using namespace std;
 
 const set<string> VIDEO_EXTENSIONS = {".avi", ".mov", ".mp4", ".flv"};
-const size_t PROGRESS_UPDATE_INTERVAL = 100;
+const size_t PROGRESS_UPDATE_INTERVAL = 50;
 static bool is_processing = false;
 
 string trim(const string &s)
@@ -309,14 +309,15 @@ public:
         vector<thread> threads;
         size_t chunk_size = total_beatmaps / thread_count + (total_beatmaps % thread_count ? 1 : 0);
 
+        is_processing = true;
+
         auto worker = [&](size_t start, size_t end)
         {
             for (size_t i = start; i < end && !shutdown_requested; ++i)
             {
                 audio_results[i] = get_beatmap_info(beatmap_files[i]);
                 size_t current = ++processed_count;
-                // send 100 otherwise shit will lag
-                if (has_callback && (current % PROGRESS_UPDATE_INTERVAL == 0 || current == total_beatmaps))
+                if ((has_callback && (current % PROGRESS_UPDATE_INTERVAL == 0 || current == total_beatmaps)) || current == 0)
                 {
                     progress_callback.NonBlockingCall(
                         [current](Napi::Env env, Napi::Function cb)
@@ -389,11 +390,11 @@ public:
 private:
     void cleanup_callback()
     {
+        is_processing = false;
         if (has_callback)
         {
             progress_callback.Release();
             has_callback = false;
-            is_processing = false;
         }
     }
 
@@ -456,8 +457,6 @@ Napi::Value process_beatmaps(const Napi::CallbackInfo &info)
         beatmaps.push_back({md5, unique_id, file_path, audio_path, image_path});
     }
 
-    is_processing = true;
-
     Napi::Function progress_cb = info.Length() > 1 && info[1].IsFunction() ? info[1].As<Napi::Function>() : Napi::Function();
     AudioProcessor *worker = new AudioProcessor(env, beatmaps, progress_cb);
     Napi::Promise promise = worker->GetPromise();
@@ -477,6 +476,11 @@ Napi::Value clear_cache(const Napi::CallbackInfo &info)
     return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value get_is_processing(const Napi::CallbackInfo &info)
+{
+    return Napi::Boolean::New(info.Env(), is_processing);
+}
+
 Napi::Object initialize(Napi::Env env, Napi::Object exports)
 {
     cout << "using libsnd " << sf_version_string() << endl;
@@ -484,6 +488,8 @@ Napi::Object initialize(Napi::Env env, Napi::Object exports)
     exports.Set("process_beatmaps", Napi::Function::New(env, process_beatmaps));
     exports.Set("test", Napi::Function::New(env, test));
     exports.Set("clear_cache", Napi::Function::New(env, clear_cache));
+    exports.Set("is_processing", Napi::Function::New(env, get_is_processing));
+
     return exports;
 }
 
