@@ -1,6 +1,7 @@
 <script>
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { input } from "../../lib/store/input";
 
     // components
     import Popup from "../utils/popup/popup.svelte";
@@ -43,6 +44,17 @@
 
     onMount(() => {
         create_fuck_ton_addon();
+        input.on("a", () => {
+            console.log("pressed a");
+        });
+        input.on("control+a", () => {
+            console.log("pressed ctrl + a");
+        });
+    });
+
+    onDestroy(() => {
+        input.unregister("a");
+        input.unregister("control+a");
     });
 </script>
 

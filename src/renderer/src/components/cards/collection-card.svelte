@@ -14,7 +14,7 @@
     import Music from "../icon/music.svelte";
 </script>
 
-<button class="collection-item" onclick={select_callback} class:active={selected == true}>
+<button class="collection-item" onclick={select_callback} class:active={selected}>
     <div class="collection-info">
         <Music />
         <Text value={name} {edit} update_callback={rename_callback} />

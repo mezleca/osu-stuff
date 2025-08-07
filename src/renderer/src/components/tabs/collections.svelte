@@ -7,6 +7,7 @@
     import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
+    import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -19,7 +20,6 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
-    import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
 
     let filtered_collections = [];
 
@@ -199,7 +199,7 @@
         const collection = collections.get(name);
 
         if (!collection) {
-            show_notification({ type: "error", text: "failed to get collection " });
+            show_notification({ type: "error", text: "failed to get collection" });
             return;
         }
 
@@ -213,7 +213,7 @@
         const collection = collections.get(old_name);
 
         if (!collection) {
-            show_notification({ type: "error", text: "failed to get collection " });
+            show_notification({ type: "error", text: "failed to get collection" });
             return;
         }
 

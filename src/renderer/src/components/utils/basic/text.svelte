@@ -1,7 +1,6 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-
-    // @TODO: create InputManager so i dont have to manually add a listener to each element
+    import { input } from "../../../lib/store/input";
 
     // props
     export let value = "";
@@ -9,9 +8,7 @@
     export let edit = false;
 
     let id = crypto.randomUUID();
-    let added_listeners = false;
 
-    $: value = value;
     $: edit_value = "";
     $: element = null;
 
@@ -20,16 +17,10 @@
         if (update_callback) update_callback(value, edit_value);
     };
 
-    // only add listeners when edit is true
-    $: if (edit && !added_listeners) {
-        window.addEventListener("mouseup", on_mouse_up);
-        window.addEventListener("keypress", on_keypress);
-        added_listeners = false;
-    }
-
     // automatically focus on edit
     $: if (element && edit) {
-        console.log("focusing");
+        input.on("mouse1", () => release(true));
+        input.on("enter", () => release(false));
         element.focus();
     }
 
@@ -39,13 +30,8 @@
         target.style.height = target.scrollHeight + "px";
     };
 
-    const on_keypress = (event) => {
-        if (!edit) return;
-        if (event.key == "Enter") update_value();
-    };
-
-    // @TODO (MAYBE): a way to check if we clicked on an parent or something
-    const on_mouse_up = () => {
+    // @TODO: check if we clicked on an parent or something
+    const release = () => {
         if (!edit) return;
         update_value();
     };
@@ -55,8 +41,8 @@
     });
 
     onDestroy(() => {
-        window.removeEventListener("mouseup", on_mouse_up);
-        window.removeEventListener("keypress", on_keypress);
+        input.unregister("mouse1");
+        input.unregister("enter");
     });
 </script>
 

@@ -47,7 +47,6 @@ class CollectionManager {
             for (const collection of collections) {
                 if (collection.name == data.name) {
                     Object.assign(collection, data);
-                    console.log(collection);
                 }
                 updated.push(collection);
             }
