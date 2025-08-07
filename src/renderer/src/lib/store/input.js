@@ -53,10 +53,12 @@ class InputManager {
         this.handlers.set(keys.toLowerCase(), callback);
     }
 
-    unregister(keys) {
-        if (this.handlers.has(keys)) {
-            this.handlers.delete(keys);
-        }
+    unregister(...comb) {
+        for (const keys of comb) {
+            if (this.handlers.has(keys)) {
+                this.handlers.delete(keys);
+            }
+        }  
     }
 
     reset() {

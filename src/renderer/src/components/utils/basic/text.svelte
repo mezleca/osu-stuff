@@ -41,8 +41,7 @@
     });
 
     onDestroy(() => {
-        input.unregister("mouse1");
-        input.unregister("enter");
+        input.unregister("mouse1", "enter");
     });
 </script>
 

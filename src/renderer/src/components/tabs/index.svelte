@@ -53,8 +53,7 @@
     });
 
     onDestroy(() => {
-        input.unregister("a");
-        input.unregister("control+a");
+        input.unregister("a", "control+a");
     });
 </script>
 

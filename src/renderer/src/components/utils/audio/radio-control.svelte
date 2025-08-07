@@ -31,19 +31,18 @@
     $: repeat_active = audio_manager.repeat;
     $: should_force_random = audio_manager.force_random;
 
-    // sync volume with config
     $: {
+        // sync volume with config
         if (audio_state.volume != undefined) {
             config.set("radio_volume", audio_state.volume);
         }
-    }
 
-    // auto-play when selection changes
-    $: {
+        // auto-play when selection changes
         if (current_id && audio_state.id != current_id && !is_loading && !is_changing_selection) {
             handle_selection_change();
         }
 
+        // thats a very shitty way to implement random but theres no way im gonna refactor this for the 5th time
         if ($should_force_random && audio_state.playing) {
             audio_state.pause();
             audio_manager.play_next();
@@ -174,8 +173,7 @@
     });
 
     onDestroy(() => {
-        input.unregister("f2");
-        input.unregister("shift+f2");
+        input.unregister("f2", "shift+f2");
     });
 </script>
 
