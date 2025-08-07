@@ -1,4 +1,12 @@
 <script>
+    import { onMount, onDestroy } from "svelte";
+    import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
+    import { get_beatmap_list } from "../../../lib/store/beatmaps";
+    import { get_beatmap_data } from "../../../lib/utils/beatmaps";
+    import { config } from "../../../lib/store/config";
+    import { input } from "../../../lib/store/input";
+
+    // icons
     import Play from "../../icon/play.svelte";
     import Pause from "../../icon/pause.svelte";
     import RandomIcon from "../../icon/random-icon.svelte";
@@ -8,14 +16,9 @@
     import Volume from "../../icon/volume.svelte";
     import VolumeMuted from "../../icon/volume-muted.svelte";
 
-    import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
-    import { get_beatmap_list } from "../../../lib/store/beatmaps";
-    import { get_beatmap_data } from "../../../lib/utils/beatmaps";
-    import { config } from "../../../lib/store/config";
-
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
-
+    
     const { beatmaps, index, selected, invalid_selected } = radio_list;
 
     $: audio_state = $audio_manager;
@@ -23,9 +26,10 @@
     $: current_id = current_beatmap?.md5;
     $: is_playing = audio_state.playing && audio_state.id == current_id;
     $: is_loading = audio_state.is_loading;
+    $: is_changing_selection = audio_state.is_changing_selection;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
-    $: is_changing_selection = false;
+    $: should_force_random = audio_manager.force_random;
 
     // sync volume with config
     $: {
@@ -39,7 +43,48 @@
         if (current_id && audio_state.id != current_id && !is_loading && !is_changing_selection) {
             handle_selection_change();
         }
+
+        if ($should_force_random && audio_state.playing) {
+            audio_state.pause();
+            audio_manager.play_next();
+        }
     }
+
+    const get_next_id_callback = async (direction) => {
+        if ($beatmaps.length == 0) {
+            console.log("radio: no beatmaps available");
+            return null;
+        }
+
+        const current_index = $index;
+        let next_idx = current_index;
+
+        if ($invalid_selected) {
+            invalid_selected.set(false);
+            next_idx = 0;
+        } else if (direction == 0) {
+            next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
+        } else {
+            next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
+        }
+
+        // get next beatmap id
+        const beatmap_id = $beatmaps[next_idx];
+        
+        // update selection (if changed)
+        if (next_idx != current_index) {
+            const new_beatmap = await get_beatmap_data(beatmap_id);
+            if (new_beatmap) {
+                radio_list.select_beatmap(new_beatmap, next_idx);
+            }
+        }
+
+        return beatmap_id;
+    };
+
+    const get_beatmap_data_callback = async (beatmap_id) => {
+        return await get_beatmap_data(beatmap_id);
+    };
 
     const handle_selection_change = async () => {
         if (!current_beatmap?.audio_path) {
@@ -47,101 +92,18 @@
             return;
         }
 
-        is_loading = true;
-
         const audio = await get_local_audio(current_beatmap.audio_path);
-
-        // @TOFIX: this prevents the same invalid song from playing over and over but this only works if the user is on the radio tab
+        
+        // handle invalid audio
         if (!audio) {
             console.log("radio: failed to create local audio");
-            is_loading = false;
-            await get_next_song(1);
+            await audio_manager.play_next();
             return;
         }
 
         await audio_manager.setup_audio(current_id, audio);
         await audio_manager.play();
-
-        is_loading = false;
     };
-
-    const get_next_song = async (direction = 0) => {
-        if ($beatmaps.length == 0) {
-            console.log("radio: no beatmaps available");
-            return null;
-        }
-
-        is_changing_selection = true;
-
-        const current_index = $index;
-        let next_idx = current_index;
-
-        // handle invalid selection context
-        if ($invalid_selected) {
-            invalid_selected.set(false);
-            next_idx = 0;
-        } else {
-            // calculate next index based on direction and settings
-            if (direction == 1) {
-                next_idx = current_index + 1;
-            } else if (direction == -1) {
-                next_idx = current_index - 1;
-            } else {
-                if ($repeat_active) {
-                    next_idx = current_index;
-                    audio_manager.set_repeat(false); // disable after one repeat
-                } else if ($random_active) {
-                    next_idx = Math.floor(Math.random() * $beatmaps.length);
-                } else {
-                    next_idx = current_index + 1;
-                }
-            }
-
-            // wrap around
-            if (next_idx >= $beatmaps.length) {
-                next_idx = 0;
-            } else if (next_idx < 0) {
-                next_idx = $beatmaps.length - 1;
-            }
-        }
-
-        // get beatmap data
-        const new_beatmap = await get_beatmap_data($beatmaps[next_idx]);
-
-        if (!new_beatmap?.audio_path) {
-            console.log("radio: invalid next beatmap");
-            is_changing_selection = false;
-            return null;
-        }
-
-        // update selection if changed
-        if (next_idx != current_index) {
-            radio_list.select_beatmap(new_beatmap, next_idx);
-        }
-
-        // create audio
-        const audio = await get_local_audio(new_beatmap.audio_path);
-
-        if (!audio) {
-            console.log("radio: failed to create audio for next song");
-            is_changing_selection = false;
-            return null;
-        }
-
-        is_changing_selection = false;
-
-        return { audio, id: new_beatmap.md5 };
-    };
-
-    // initialize next callback
-    audio_manager.set_next_callback(get_next_song);
-
-    // restore volume from config
-    const saved_volume = config.get("radio_volume");
-
-    if (saved_volume != undefined) {
-        audio_manager.set_volume(saved_volume);
-    }
 
     const handle_play_pause = async () => {
         if (!current_id) {
@@ -187,6 +149,30 @@
     const toggle_repeat = () => {
         audio_manager.toggle_repeat();
     };
+
+    onMount(() => {
+        // set up callbacks for the audio manager
+        audio_manager.set_callbacks({
+            get_next_id: get_next_id_callback,
+            get_beatmap_data: get_beatmap_data_callback
+        });
+
+        // restore volume from config
+        const saved_volume = config.get("radio_volume");
+
+        if (saved_volume) {
+            audio_manager.set_volume(saved_volume);
+        }
+
+        // set up keyboard shortcuts
+        input.on("f2", () => { console.log("pressed f2"); });
+        input.on("shift+f2", () => { console.log("pressed shift + f2"); });
+    });
+
+    onDestroy(() => {
+        input.unregister("f2");
+        input.unregister("shift+f2");
+    });
 </script>
 
 <div>
@@ -211,7 +197,7 @@
         <!-- progress section -->
         <div class="progress-section">
             <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div role="button" tabindex={0} class="progress-bar" onclick={handle_seek}>
+            <div role="button" tabindex="0" class="progress-bar" onclick={handle_seek}>
                 <div class="progress-fill" style="width: {audio_state.progress_bar_width}%;"></div>
             </div>
 
@@ -221,7 +207,6 @@
             </div>
         </div>
 
-        <!-- controls section -->
         <div class="controls-section">
             <button class="control-btn random" class:active={$random_active} onclick={toggle_random}>
                 <RandomIcon />
