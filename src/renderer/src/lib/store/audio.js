@@ -9,7 +9,7 @@ class AudioManager {
         this.id = id;
         this.is_preview = id == "preview";
         this.attempts = 0;
-        
+
         this.random = writable(false);
         this.repeat = writable(false);
         this.force_random = writable(false);
@@ -75,7 +75,7 @@ class AudioManager {
         if (state.audio != event.target) return;
 
         console.log(`[${this.id}] audio ended`);
-        
+
         this.store.update((obj) => ({
             ...obj,
             playing: false,
@@ -97,7 +97,7 @@ class AudioManager {
         if (direction == -1) {
             return current_index - 1 < 0 ? beatmaps_length - 1 : current_index - 1;
         }
-        
+
         // next
         if (direction == 1) {
             return current_index + 1 >= beatmaps_length ? 0 : current_index + 1;
@@ -108,11 +108,11 @@ class AudioManager {
             this.set_repeat(false); // disable after one repeat
             return current_index;
         }
-        
+
         if (random_active) {
             return Math.floor(Math.random() * beatmaps_length);
         }
-        
+
         // default to next
         return current_index + 1 >= beatmaps_length ? 0 : current_index + 1;
     };
@@ -285,7 +285,7 @@ class AudioManager {
 
         const target_time = percent * state.audio.duration;
         state.audio.currentTime = target_time;
-        
+
         console.log(`[${this.id}] seeking to: ${format_time(target_time)} (${(percent * 100).toFixed(1)}%)`);
     }
 
@@ -342,7 +342,7 @@ class AudioManager {
         }
 
         console.log(`[${this.id}] getting next song`);
-        
+
         this.store.update((obj) => ({ ...obj, is_loading: true, is_changing_selection: true }));
 
         try {
@@ -392,7 +392,7 @@ class AudioManager {
         if (this.is_preview || !this.get_next_id_callback) return;
 
         console.log(`[${this.id}] getting next song (manual)`);
-        
+
         this.store.update((obj) => ({ ...obj, is_changing_selection: true }));
 
         try {
@@ -403,7 +403,7 @@ class AudioManager {
             }
 
             const result = await this.load_and_setup_audio(next_id);
-            
+
             if (result) {
                 await this.play();
             }

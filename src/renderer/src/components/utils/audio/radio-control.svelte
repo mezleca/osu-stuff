@@ -18,7 +18,7 @@
 
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
-    
+
     const { beatmaps, index, selected, invalid_selected } = radio_list;
 
     $: audio_state = $audio_manager;
@@ -70,7 +70,7 @@
 
         // get next beatmap id
         const beatmap_id = $beatmaps[next_idx];
-        
+
         // update selection (if changed)
         if (next_idx != current_index) {
             const new_beatmap = await get_beatmap_data(beatmap_id);
@@ -93,7 +93,7 @@
         }
 
         const audio = await get_local_audio(current_beatmap.audio_path);
-        
+
         // handle invalid audio
         if (!audio) {
             console.log("radio: failed to create local audio");
@@ -165,8 +165,12 @@
         }
 
         // set up keyboard shortcuts
-        input.on("f2", () => { console.log("pressed f2"); });
-        input.on("shift+f2", () => { console.log("pressed shift + f2"); });
+        input.on("f2", () => {
+            console.log("pressed f2");
+        });
+        input.on("shift+f2", () => {
+            console.log("pressed shift + f2");
+        });
     });
 
     onDestroy(() => {
