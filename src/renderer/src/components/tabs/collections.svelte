@@ -139,7 +139,6 @@
                 break;
             case "rename":
                 enable_edit_mode(id_parts[1]);
-                break;
             case "delete":
                 collections.remove(id_parts[1]);
                 break;
