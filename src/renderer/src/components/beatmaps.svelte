@@ -2,7 +2,7 @@
     import { collections } from "../lib/store/collections";
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
-    import { convert_beatmap_keys, get_beatmap_data } from "../lib/utils/beatmaps";
+    import { get_beatmap_data } from "../lib/utils/beatmaps";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -24,6 +24,7 @@
     export let direction;
     export let list_manager = null;
     export let set = false;
+    export let show_control = true;
     export let remove_callback = () => {};
     export let on_end = () => {};
 
@@ -138,6 +139,7 @@
                         {show_bpm}
                         {show_star_rating}
                         {show_status}
+                        {show_control}
                         {set}
                         {center}
                         selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
@@ -153,6 +155,7 @@
                     {show_status}
                     {set}
                     {center}
+                    {show_control}
                     selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
                     control={(type) => handle_control(type, beatmap)}
                     click={() => handle_click(beatmap, index)}

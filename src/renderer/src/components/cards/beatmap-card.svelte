@@ -19,6 +19,7 @@
         center = false,
         click = null,
         control = null,
+        show_control = true,
         extra = null,
         set = false;
 
@@ -109,8 +110,9 @@
     <div class="card-container">
         <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
             <img bind:this={image_element} class="bg-img" alt="" />
-            <PreviewControl {beatmap} on_right={control} />
-
+            {#if show_control}
+                <PreviewControl {beatmap} on_right={control} />
+            {/if}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="set-info" onclick={extra} class:centered={center}>
@@ -136,8 +138,9 @@
 {:else}
     <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
         <img bind:this={image_element} class="bg-img" alt="" />
-        <PreviewControl {beatmap} on_right={control} />
-
+        {#if show_control}
+            <PreviewControl {beatmap} on_right={control} />
+        {/if}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="info" onclick={extra} class:centered={center}>

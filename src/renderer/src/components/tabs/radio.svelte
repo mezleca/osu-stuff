@@ -6,6 +6,7 @@
     import { format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
+    import { get_beatmap_data } from "../../lib/utils/beatmaps";
     import { input } from "../../lib/store/input";
 
     // components
@@ -16,7 +17,6 @@
 
     // misc
     import PlaceholderImg from "../../assets/placeholder.png";
-    import { get_beatmap_data } from "../../lib/utils/beatmaps";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
@@ -100,6 +100,7 @@
                 show_status={false}
                 center={true}
                 max_width={true}
+                show_control={false}
                 bind:selected_beatmap={beatmap}
                 direction="left"
             />
