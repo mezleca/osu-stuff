@@ -51,7 +51,6 @@ export const update_collections = async (data) => {
 
     // update beatmap object to ensure sync
     collection_data = data;
-
     return result;
 };
 

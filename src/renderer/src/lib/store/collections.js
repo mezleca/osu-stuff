@@ -120,15 +120,15 @@ class CollectionManager {
             return;
         }
 
-        if (version == 0) {
-            show_notification({ type: "error", text: "failed to update collection (version == 0)" });
+        if (!version) {
+            show_notification({ type: "error", text: "failed to update collection (invalid version)" });
             return;
         }
 
         const result = await window.osu.update_collections({ collections: data, version: version });
 
         if (!result.success) {
-            show_notification({ type: "error", text: "failed to update collections\n Reason:" + result.reason });
+            show_notification({ type: "error", text: `failed to update collections ${result.reason}` });
         }
 
         show_notification({ text: "updated collection" });

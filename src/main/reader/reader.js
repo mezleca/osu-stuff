@@ -539,7 +539,7 @@ export class Reader extends BinaryReader {
             return result;
         }
 
-        const { success, buffer, reason } = this.write_collections_data();
+        const { success, buffer, reason } = this.write_collections_data(data);
 
         if (!success) {
             result.reason = reason;
