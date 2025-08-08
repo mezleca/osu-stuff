@@ -143,3 +143,8 @@ export const get_db_data = async (location) => {
     const result = await window.osu.get_collection_data(location, "db");
     return result;
 };
+
+export const export_collection = async (collection, type) => {
+    const result = await window.osu.export_collection(collection, type);
+    return result;
+};

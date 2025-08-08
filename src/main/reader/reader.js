@@ -146,18 +146,20 @@ export class Reader extends BinaryReader {
         }
     };
 
-    write_osdb_data = async (data, version_string) => {
+    write_osdb_data = (data, version_string) => {
+        const result = { success: false, reason: "", buffer: null };
+
         try {
             if (!data || !data.collections) {
-                console.log("[osdb] invalid data structure");
-                return null;
+                result.reason = "invalid data structure";
+                return reason;
             }
 
             const version = osdb_versions[version_string];
 
             if (!version) {
-                console.log(`[osdb] invalid osdb version: ${version_string}`);
-                return null;
+                result.reason = `[osdb] invalid osdb version: ${version_string}`;
+                return result;
             }
 
             const is_minimal = version_string.endsWith("min");
@@ -170,8 +172,8 @@ export class Reader extends BinaryReader {
                 buffer.push(this.writeString2(version_string));
             }
 
-            buffer.push(this.writeLong(data.save_date || new Date().getTime()));
-            buffer.push(this.writeString2(data.last_editor || ""));
+            buffer.push(this.writeLong(data.save_date ?? new Date().getTime()));
+            buffer.push(this.writeString2(data.last_editor ?? ""));
             buffer.push(this.writeInt(data.collections.length));
 
             for (let i = 0; i < data.collections.length; i++) {
@@ -235,11 +237,13 @@ export class Reader extends BinaryReader {
                 buffers.push(content_buffer);
             }
 
-            const final_buffer = this.join_buffer(buffers);
-            return final_buffer;
+            result.success = true;
+            result.buffer = this.join_buffer(buffers);
+
+            return result;
         } catch (error) {
-            console.log(error);
-            return null;
+            result.reason = error;
+            return result;
         }
     };
 
@@ -493,20 +497,8 @@ export class Reader extends BinaryReader {
         fs.renameSync(old_collection_path, new_collection_path);
     };
 
-    update_collections_data = async (data) => {
-        const result = { success: false, reason: "" };
-
-        if (config.lazer_mode) {
-            if (!this.instance) {
-                result.reason = "failed to get realm instance";
-                return result;
-            }
-
-            update_collection(this.instance, data.collections);
-            result.success = true;
-            return result;
-        }
-
+    write_collections_data = (data) => {
+        const result = { success: false, reason: "", buffer: null };
         const buffer = [];
 
         buffer.push(this.writeInt(data.version));
@@ -527,12 +519,38 @@ export class Reader extends BinaryReader {
             }
         }
 
-        const new_buffer = this.join_buffer(buffer);
+        result.success = true;
+        result.buffer = this.join_buffer(buffer);
+
+        return result;
+    };
+
+    update_collections_data = async (data) => {
+        const result = { success: false, reason: "" };
+
+        if (config.lazer_mode) {
+            if (!this.instance) {
+                result.reason = "failed to get realm instance";
+                return result;
+            }
+
+            update_collection(this.instance, data.collections);
+            result.success = true;
+            return result;
+        }
+
+        const { success, buffer, reason } = this.write_collections_data(data);
+
+        if (!success) {
+            result.reason = reason;
+            return result;
+        }
+
         const collection_path = path.resolve(config.stable_path, "collection.db");
 
         // create a backup and save the new file (no undo)
         this.create_collection_backup();
-        fs.writeFileSync(collection_path, new_buffer);
+        fs.writeFileSync(collection_path, buffer);
 
         result.success = true;
         return result;

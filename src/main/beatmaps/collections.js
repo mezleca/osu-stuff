@@ -1,5 +1,6 @@
 import { config } from "../database/config.js";
 import { reader } from "../reader/reader.js";
+import { get_beatmap_by_md5, get_playername } from "./beatmaps.js";
 
 import path from "path";
 import fs from "fs";
@@ -27,7 +28,7 @@ export const get_and_update_collections = async (force) => {
 
     const result = await reader.get_collections_data(location);
 
-    if (result == null) {
+    if (!result) {
         console.log("failed to get collection file");
         return;
     }
@@ -50,7 +51,6 @@ export const update_collections = async (data) => {
 
     // update beatmap object to ensure sync
     collection_data = data;
-
     return result;
 };
 
@@ -71,5 +71,60 @@ export const get_collection_data = async (location, type) => {
 
     result.success = true;
     result.data = type == "db" ? Array.from(data.collections.values()) : data;
+    return result;
+};
+
+export const export_collection = async (collections, type) => {
+    const result = { success: false, data: null, reason: "" };
+
+    if (collections.length == 0) {
+        result.reason = "invalid collection data";
+        return result;
+    }
+
+    const version = collection_data.version;
+    const data = { version, collections };
+
+    // osdb also needs more bullshit even on minimal mode (prob needed to display on osu! stats or something)
+    if (type == "osdb") {
+        const beatmaps = [],
+            hashes = [];
+        for (const collection of collections) {
+            for (const hash of collection.maps) {
+                const beatmap = get_beatmap_by_md5(hash);
+                // @NOTE: not sure if i do this on v1 but i think its better to just ignore this beatmap if not downloaded
+                if (beatmap) {
+                    beatmaps.push(beatmap);
+                    hashes.push(hash);
+                }
+            }
+            // add our update data to the new collection
+            collection.beatmaps = beatmaps;
+            collection.hash_only_beatmaps = hashes;
+            collection.last_editor = get_playername();
+
+            // cleanup
+            delete collection.maps;
+        }
+    }
+
+    const { success, reason, buffer } = type == "db" ? reader.write_collections_data(data) : reader.write_osdb_data(data, "o!dm8min");
+
+    if (!success) {
+        result.reason = reason;
+        return result;
+    }
+
+    if (!fs.existsSync(config.export_path)) {
+        result.reason = "invalid export path";
+        return result;
+    }
+
+    const final_name = data.collections.map((c) => c.name).join("-") + `.${type}`;
+    const location = path.resolve(config.export_path, final_name);
+
+    fs.writeFileSync(location, buffer);
+
+    result.success = true;
     return result;
 };

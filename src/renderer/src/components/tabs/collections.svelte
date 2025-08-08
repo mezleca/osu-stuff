@@ -1,6 +1,6 @@
 <script>
     import { collections } from "../../lib/store/collections";
-    import { get_from_osu_collector, get_db_data, get_osdb_data } from "../../lib/utils/collections";
+    import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
@@ -20,6 +20,7 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import { config } from "../../lib/store/config";
 
     let filtered_collections = [];
 
@@ -69,7 +70,7 @@
         return [
             { id: "merge", text: "merge collections" },
             { id: `rename-${collection.name}`, text: "rename collection" },
-            { id: `export-${collection.name}`, text: "export collection" },
+            { id: `export-${collection.name}`, text: "export collections" },
             { id: "export beatmaps", text: "export beatmaps" },
             { id: `delete-${collection.name}`, text: "delete" }
         ];
@@ -135,6 +136,7 @@
                 break;
             case "rename":
                 enable_edit_mode(id_parts[1]);
+                break;
             case "delete":
                 collections.remove(id_parts[1]);
                 break;
@@ -209,6 +211,10 @@
         if (!collection) {
             show_notification({ type: "error", text: "failed to get collection" });
             return;
+        }
+
+        if (old_name != new_name) {
+            $should_update = true;
         }
 
         // update item
@@ -304,7 +310,20 @@
     };
 
     const handle_export_collections = async (data) => {
-        console.log(data.collections, data.type);
+        const to_export = [];
+
+        for (const name of data.collections) {
+            to_export.push(collections.get(name));
+        }
+
+        const result = await export_collection(to_export, data.type);
+
+        if (!result.success) {
+            show_notification({ type: "error", text: result.reason });
+            return;
+        }
+
+        show_notification({ type: "success", text: `exported on ${config.get("export_path")}` });
     };
 
     const handle_from_player = async (data) => {
@@ -403,8 +422,8 @@
     const create_export_collections_popup = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collections", type: "buttons", label: "collections", data: () => $all_collections.map((c) => c.name) });
-        addon.add({ id: "type", type: "dropdown", label: "collection type", data: ["legacy database (.db)", "osdb"] });
+        addon.add({ id: "collections", type: "buttons", label: "collections", multiple: true, data: () => $all_collections.map((c) => c.name) });
+        addon.add({ id: "type", type: "dropdown", value: "db", label: "collection type", data: ["db", "osdb"] });
 
         addon.set_callback(handle_export_collections);
 

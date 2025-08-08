@@ -30,24 +30,24 @@
         });
     }
 
-    const handle_submit = async () => {
+    const handle_submit = () => {
         const values = active_popup.popup.get_values();
         const callback = active_popup.popup.callback;
 
         // close popup first
-        await hide_popup(key);
-        
+        hide_popup(key);
+
         // and then use the stored callback if available
         if (callback) callback(values);
     };
 
-    const handle_cancel = async () => {
-        await hide_popup(key);
+    const handle_cancel = () => {
+        hide_popup(key);
     };
 
-    const close_on_backdrop = async (event) => {
+    const close_on_backdrop = (event) => {
         if (event.target == container) {
-            await handle_cancel();
+            handle_cancel();
         }
     };
 
