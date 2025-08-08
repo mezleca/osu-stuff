@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-  <img src="https://github.com/mezleca/osu-stuff/blob/main/build/images/menu.png">
+  <img src="https://github.com/mezleca/osu-stuff/blob/main/resources/preview.png">
 </p>
 
 ## wtf is osu-stuff
