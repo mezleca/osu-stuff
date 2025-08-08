@@ -80,10 +80,6 @@
     const handle_extra_options = async (data) => {
         const option = data.extra[0];
 
-        // @TOFIX: at least for the new collections popup i have to do this
-        // otherwise the popup doenst open (prob more timing issues...)
-        await hide_popup("extra");
-
         switch (option) {
             case "new collection":
                 show_popup("new", "collections");

@@ -32,8 +32,13 @@
 
     const handle_submit = async () => {
         const values = active_popup.popup.get_values();
-        active_popup.popup.callback(values);
+        const callback = active_popup.popup.callback;
+
+        // close popup first
         await hide_popup(key);
+        
+        // and then use the stored callback if available
+        if (callback) callback(values);
     };
 
     const handle_cancel = async () => {
