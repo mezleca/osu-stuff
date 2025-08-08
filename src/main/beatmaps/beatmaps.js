@@ -165,6 +165,10 @@ export const filter_beatmap = (beatmap, query) => {
     return search_filter(beatmap, query, search_filters);
 };
 
+export const get_playername = () => {
+    return osu_data.player_name;
+};
+
 export const get_beatmap_by_md5 = (md5) => {
     return osu_data.beatmaps.get(md5);
 };
