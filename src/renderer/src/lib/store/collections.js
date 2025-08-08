@@ -9,6 +9,7 @@ const DEFAULT_PENDING_DATA = {
 class CollectionManager {
     constructor() {
         this.needs_update = writable(false);
+        this.hide_remove = writable(false);
         this.collections = writable([]);
         this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
         this.missing_beatmaps = writable([]); // temp added via popup

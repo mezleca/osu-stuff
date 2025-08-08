@@ -108,47 +108,38 @@
         collections.add({ name: data.name, maps: new_beatmaps });
     };
 
-    // @TODO: surly theres better ways to do this
     const handle_context_menu = async (event) => {
-        const type = event.action?.id;
-
-        if (!type) {
+        if (!event.action) {
             return;
         }
+        
+        const id_parts = event.action.id.split("-");
+        const type = id_parts[0];
 
-        const splitted_shit = type.split("-");
-
-        if (splitted_shit.length > 1) {
-            const custom_type = splitted_shit[0];
-            switch (custom_type) {
-                case "delete":
-                    collections.remove(splitted_shit[1]);
-                    break;
-                case "rename":
-                    enable_edit_mode(splitted_shit[1]);
-                    break;
-            }
-        } else {
-            // fallback to normal types
-            switch (type) {
-                case "merge":
-                    show_popup("merge", "collections");
-                    break;
-                // @TODO: this should not be here, place it somewhere else later (add-btn popup)
-                case "import":
-                    show_popup("import", "collections");
-                    break;
-                case "missing":
-                    await get_missing_beatmaps();
-                    show_popup("missing", "collections");
-                    break;
-                case "export":
-                    show_popup("export", "collections");
-                    break;
-                case "export beatmaps":
-                    console.log("TODO");
-                    break;
-            }
+        switch (type) {
+            case "merge":
+                show_popup("merge", "collections");
+                break;
+            case "rename":
+                enable_edit_mode(id_parts[1]);
+                break;
+            // @TODO: this should not be here, place it somewhere else later (add-btn popup)
+            case "import":
+                show_popup("import", "collections");
+                break;
+            case "missing":
+                await get_missing_beatmaps();
+                show_popup("missing", "collections");
+                break;
+            case "delete":
+                collections.remove(id_parts[1]);
+                break;
+            case "export":
+                show_popup("export", "collections");
+                break;
+            case "export beatmaps":
+                console.log("TODO");
+                break;
         }
     };
 
