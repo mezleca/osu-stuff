@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
 import { show_notification } from "./notifications";
+import { config } from "./config";
 
 const DEFAULT_PENDING_DATA = {
     type: "",
@@ -120,7 +121,7 @@ class CollectionManager {
             return;
         }
 
-        if (!version) {
+        if (!version && !config.get("lazer_mode")) {
             show_notification({ type: "error", text: "failed to update collection (invalid version)" });
             return;
         }

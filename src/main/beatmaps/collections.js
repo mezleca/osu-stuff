@@ -62,7 +62,7 @@ export const get_collection_data = async (location, type) => {
         return result;
     }
 
-    const data = type == "db" ? await reader.get_collections_data(location) : await reader.get_osdb_data(location);
+    const data = type == "db" ? await reader.get_collections_data(location, true) : await reader.get_osdb_data(location);
 
     if (!data) {
         result.reason = "failed to read collection data";

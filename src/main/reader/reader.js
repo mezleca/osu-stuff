@@ -426,8 +426,8 @@ export class Reader extends BinaryReader {
         return data;
     };
 
-    get_collections_data = async (file_path) => {
-        if (config.lazer_mode) {
+    get_collections_data = async (file_path, ignore_lazer_mode) => {
+        if (config.lazer_mode && !ignore_lazer_mode) {
             try {
                 await this.get_instance(file_path, ALL_SCHEMAS);
 
