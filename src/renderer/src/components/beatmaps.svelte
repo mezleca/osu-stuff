@@ -1,5 +1,6 @@
 <script>
     import { collections } from "../lib/store/collections";
+    import { show_notification } from "../lib/store/notifications";
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
@@ -37,6 +38,8 @@
         selected_beatmap = $selected;
     }
 
+    $: all_collections = collections.collections;
+    $: should_hide_remove = collections.hide_remove;
     $: selected_collection = collections.selected;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
@@ -73,6 +76,21 @@
         remove_callback();
     };
 
+    const move_to = (name, hash) => {
+        const collection = collections.get(name);
+
+        if (!collection) {
+            show_notification({ type: "error", text: `failed to get ${name}` });
+            return;
+        }
+
+        if (!collection.maps.includes(hash)) {
+            collection.maps.push(hash);
+            collections.replace(collection);
+            collections.needs_update.set(true);
+        }
+    };
+
     const handle_click = (beatmap, index) => {
         list.select_beatmap(beatmap, index);
     };
@@ -85,13 +103,21 @@
     };
 
     const handle_context_menu = (event, beatmap) => {
-        const type = event.action?.id;
+        if (!event.action) {
+            return;
+        }
 
+        const id_parts = event.action.id.split("-");
+        const type = id_parts[0];
+        
         switch (type) {
             case "browser":
                 open_on_browser(beatmap);
                 break;
             case "export":
+                break;
+            case "move":
+                move_to(id_parts[1], id_parts[2]);
                 break;
             case "delete":
                 remove_beatmap(beatmap.md5);
@@ -99,16 +125,24 @@
         }
     };
 
-    const get_context_options = (beatmap) => {
+    const get_context_options = (beatmap, hash) => {
+        const collections_name = $all_collections.filter((c) => c.name != $selected_collection.name)
+            .map((c) => ({ id: `move-${c.name}-${hash}`, text: c.name }));
+        
+        const result = [
+            { id: "browser", text: "open in browser" },
+            { id: "move", text: "move beatmap to", data: collections_name }
+        ];
+
+        if (!$should_hide_remove) {
+            result.push({ id: "delete", text: "delete beatmap" });
+        } 
+
         if (beatmap?.downloaded) {
-            return [
-                { id: "browser", text: "open in browser" },
-                { id: "export", text: "export beatmap" },
-                { id: "delete", text: "delete beatmap" }
-            ];
-        } else {
-            return [{ id: "delete", text: "delete beatmap" }];
+            result.push({ id: "export", text: "export beatmap" });
         }
+
+        return result;
     };
 </script>
 
@@ -133,7 +167,7 @@
         {@const hash = $beatmaps[index]}
         {#await get_beatmap_data(hash) then beatmap}
             {#if show_context}
-                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
+                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap, hash)} at="point">
                     <BeatmapCard
                         {beatmap}
                         {show_bpm}

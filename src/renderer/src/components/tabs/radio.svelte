@@ -23,9 +23,9 @@
 
     const { selected, query, sort } = list;
 
+    $: all_collections = collections.collections;
     $: beatmap = $selected;
     $: bg = PlaceholderImg;
-    $: all_collections = collections.collections;
     $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
 
@@ -54,6 +54,9 @@
         // default radio_mode to all beatmaps
         if ($radio_mode == "") $radio_mode = ALL_BEATMAPS_KEY;
 
+        // no reason to enable that here (wouldn't work anyways)
+        collections.hide_remove.set(true);
+
         // select random
         input.on("f2", () => {
             audio.force_random.set(true);
@@ -78,6 +81,7 @@
 
     onDestroy(() => {
         input.unregister("f2", "shift+f2");
+        collections.hide_remove.set(false);
     });
 </script>
 
