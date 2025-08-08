@@ -84,7 +84,10 @@ async function createWindow() {
             });
         };
 
-        // inspector.open(9229, "127.0.0.1");
+        setInterval(async () => {
+            const node_memory = await process.getProcessMemoryInfo();
+            console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
+        }, 2000);
     }
 
     // extra
@@ -116,14 +119,6 @@ async function createWindow() {
     ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
-
-    // mhm
-    if (is_dev_mode) {
-        setInterval(async () => {
-            const node_memory = await process.getProcessMemoryInfo();
-            console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
-        }, 2000);
-    }
 
     await initialize_config();
     initialize_mirrors();
