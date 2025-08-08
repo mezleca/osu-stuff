@@ -462,9 +462,9 @@
         });
 
         // file dialog
-        addon.add({ 
-            id: "location", 
-            type: "file-dialog", 
+        addon.add({
+            id: "location",
+            type: "file-dialog",
             label: "collection file",
             parent: "import_container"
         });

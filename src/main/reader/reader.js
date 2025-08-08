@@ -32,6 +32,14 @@ export class Reader extends BinaryReader {
         this.instance = null;
     }
 
+    cleanup() {
+        this.buffer = null;
+        this.offset = 0;
+        if (global.gc) {
+            global.gc();
+        }
+    }
+
     get_instance = async (path, schemas) => {
         if (this.instance) return;
         this.instance = get_realm_instance(path, schemas);
@@ -133,6 +141,8 @@ export class Reader extends BinaryReader {
         } catch (error) {
             console.log(error);
             return false;
+        } finally {
+            this.cleanup();
         }
     };
 
@@ -246,7 +256,7 @@ export class Reader extends BinaryReader {
             }
         }
 
-        this.offset = 0;
+        this.cleanup();
 
         if (!fs.existsSync(file_path)) {
             console.log(`[reader] file not found: ${file_path}`);
@@ -279,7 +289,7 @@ export class Reader extends BinaryReader {
         const extra_start = this.offset;
         const permission_id = this.int();
 
-        this.offset = 0;
+        this.cleanup();
 
         return {
             version,
@@ -444,8 +454,8 @@ export class Reader extends BinaryReader {
 
         const buffer = fs.readFileSync(file_path);
 
+        this.cleanup();
         this.set_buffer(buffer);
-        this.offset = 0;
 
         const collections = new Map();
         const version = this.int();
@@ -466,7 +476,8 @@ export class Reader extends BinaryReader {
             });
         }
 
-        this.offset = 0;
+        this.cleanup();
+
         return { version, length: count, collections };
     };
 

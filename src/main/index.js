@@ -45,6 +45,9 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
+app.commandLine.appendSwitch("--max-old-space-size", "2048");
+app.commandLine.appendSwitch("--expose-gc");
+
 async function createWindow() {
     // create the browser window.
     const mainWindow = new BrowserWindow({
@@ -70,8 +73,8 @@ async function createWindow() {
     const fetch_manager = new FetchManager();
     const original_handle = ipcMain.handle.bind(ipcMain);
 
-    // override for debug
     if (is_dev_mode) {
+        // override for debug
         ipcMain.handle = function (channel, handler) {
             console.log(`[debug] registered handler: ${channel}`);
             return original_handle(channel, async (...args) => {
@@ -80,6 +83,8 @@ async function createWindow() {
                 return result;
             });
         };
+
+        // inspector.open(9229, "127.0.0.1");
     }
 
     // extra
