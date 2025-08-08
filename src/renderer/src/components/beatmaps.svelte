@@ -109,7 +109,7 @@
 
         const id_parts = event.action.id.split("-");
         const type = id_parts[0];
-        
+
         switch (type) {
             case "browser":
                 open_on_browser(beatmap);
@@ -126,9 +126,10 @@
     };
 
     const get_context_options = (beatmap, hash) => {
-        const collections_name = $all_collections.filter((c) => c.name != $selected_collection.name)
+        const collections_name = $all_collections
+            .filter((c) => c.name != $selected_collection.name)
             .map((c) => ({ id: `move-${c.name}-${hash}`, text: c.name }));
-        
+
         const result = [
             { id: "browser", text: "open in browser" },
             { id: "move", text: "move beatmap to", data: collections_name }
@@ -136,7 +137,7 @@
 
         if (!$should_hide_remove) {
             result.push({ id: "delete", text: "delete beatmap" });
-        } 
+        }
 
         if (beatmap?.downloaded) {
             result.push({ id: "export", text: "export beatmap" });

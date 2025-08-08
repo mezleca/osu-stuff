@@ -112,7 +112,7 @@
         if (!event.action) {
             return;
         }
-        
+
         const id_parts = event.action.id.split("-");
         const type = id_parts[0];
 
