@@ -41,7 +41,6 @@ export class PopupAddon {
     }
 
     should_show_element(element) {
-        // if condition is not avialable show
         if (!element.show_when) {
             return true;
         }
@@ -134,7 +133,11 @@ class PopupManager {
 
     hide() {
         const current = get(this.active);
-        current?.popup?.clear();
+
+        if (current?.popup) {
+            current.popup.clear();
+        }
+
         this.active.set(null);
     }
 
@@ -158,7 +161,7 @@ export const show_popup = (key, manager_key = "default") => {
     manager.show(key);
 };
 
-export const hide_popup = (manager_key = "default") => {
+export const hide_popup = async (manager_key = "default") => {
     const manager = get_popup_manager(manager_key);
-    manager.hide();
+    await manager.hide();
 };

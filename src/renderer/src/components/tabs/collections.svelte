@@ -4,7 +4,7 @@
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, hide_popup } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
     import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
@@ -68,8 +68,6 @@
     const get_context_options = (collection) => {
         return [
             { id: "merge", text: "merge collections" },
-            { id: "missing", text: "get missing beatmaps" },
-            { id: "import", text: "import collections" }, // @TODO: move to add-btn popup
             { id: `rename-${collection.name}`, text: "rename collection" },
             { id: `export-${collection.name}`, text: "export collection" },
             { id: "export beatmaps", text: "export beatmaps" },
@@ -78,6 +76,25 @@
     };
 
     /* --- HANDLERS --- */
+
+    const handle_extra_options = async (data) => {
+        const option = data.extra[0];
+
+        // @TOFIX: at least for the new collections popup i have to do this
+        // otherwise the popup doenst open (prob more timing issues...)
+        await hide_popup("extra");
+
+        switch (option) {
+            case "new collection":
+                show_popup("new", "collections");
+                break;
+            case "get missing beatmaps":
+                // update missing beatmaps data
+                await get_missing_beatmaps();
+                show_popup("missing", "collections");
+                break;
+        }
+    };
 
     const handle_merge_collections = (data) => {
         if (data.collections.length < 2) {
@@ -122,15 +139,6 @@
                 break;
             case "rename":
                 enable_edit_mode(id_parts[1]);
-                break;
-            // @TODO: this should not be here, place it somewhere else later (add-btn popup)
-            case "import":
-                show_popup("import", "collections");
-                break;
-            case "missing":
-                await get_missing_beatmaps();
-                show_popup("missing", "collections");
-                break;
             case "delete":
                 collections.remove(id_parts[1]);
                 break;
@@ -168,7 +176,6 @@
         }
 
         collections.add({ name, maps: hashes });
-
         show_notification({ type: "success", text: "added " + name });
     };
 
@@ -326,7 +333,9 @@
             return;
         }
 
-        if (type == "from osu! collector") {
+        if (type == "from file") {
+            handle_import_collections(data);
+        } else if (type == "from osu! collector") {
             handle_from_osu_collector(data.collection_url);
         } else if (type == "from player") {
             handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
@@ -361,6 +370,15 @@
 
     /* --- POPUP FUNCTIONS --- */
 
+    const create_extra_options_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "extra", type: "buttons", label: "extra options", data: ["new collection", "get missing beatmaps"] });
+        addon.set_callback(handle_extra_options);
+
+        popup_manager.register("extra", addon);
+    };
+
     const create_missing_beatmaps_popup = async () => {
         const addon = new PopupAddon();
 
@@ -368,15 +386,6 @@
         addon.set_callback(handle_missing_beatmaps);
 
         popup_manager.register("missing", addon);
-    };
-
-    const create_import_collections_popup = async () => {
-        const addon = new PopupAddon();
-
-        addon.add({ id: "location", type: "file-dialog", label: "collection file" });
-        addon.set_callback(handle_import_collections);
-
-        popup_manager.register("import", addon);
     };
 
     // @TODO: use collection-card buttons_type so i can show the ammount of beatmaps
@@ -425,7 +434,7 @@
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "name", type: "input", label: "name", show_when: { id: "collection_type", except: "from osu! collector" } });
+        addon.add({ id: "name", type: "input", label: "name", value: "", show_when: { id: "empty_collection", equals: true } });
 
         // collection type (player / osu! collector)
         addon.add({
@@ -433,7 +442,8 @@
             type: "dropdown",
             label: "collection type",
             text: "select collection type",
-            data: ["from player", "from osu! collector"],
+            value: "",
+            data: ["from player", "from osu! collector", "from file"],
             show_when: { id: "empty_collection", equals: false }
         });
 
@@ -444,11 +454,27 @@
             show_when: { id: "collection_type", equals: "from player" }
         });
 
+        // import collections container
+        addon.add({
+            id: "import_container",
+            type: "container",
+            show_when: { id: "collection_type", equals: "from file" }
+        });
+
+        // file dialog
+        addon.add({ 
+            id: "location", 
+            type: "file-dialog", 
+            label: "collection file",
+            parent: "import_container"
+        });
+
         // player options
         addon.add({
             id: "player_name",
             type: "input",
             label: "player name",
+            value: "",
             parent: "player_container"
         });
 
@@ -457,6 +483,7 @@
             type: "dropdown",
             label: "status",
             text: "beatmap status",
+            value: "",
             data: DEFAULT_STATUS_TYPES,
             parent: "player_container"
         });
@@ -465,6 +492,7 @@
             id: "beatmap_type",
             type: "buttons",
             label: "beatmap type",
+            value: [],
             data: ["created", "favorites", "best performance", "pinned"],
             parent: "player_container"
         });
@@ -481,14 +509,15 @@
             id: "collection_url",
             type: "input",
             label: "url",
+            value: "",
             parent: "collector_container"
         });
 
         // empty collection toggle
-        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", equals: true });
+        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", value: true });
 
         addon.set_callback(handle_new_collection_popup);
-        popup_manager.register("new collection", addon);
+        popup_manager.register("new", addon);
     };
 
     $: if ($all_collections || $collection_search) {
@@ -504,18 +533,19 @@
 
     onMount(() => {
         if ($sort == "") $sort = "artist";
+
+        create_extra_options_popup();
         create_pending_collection_select();
         create_new_collection_popup();
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
-        create_import_collections_popup();
         create_export_collections_popup();
     });
 </script>
 
 <div class="content tab-content">
     <!-- more options -->
-    <Add callback={() => show_popup("new collection", "collections")} />
+    <Add callback={() => show_popup("extra", "collections")} />
     <Popup key="collections" />
     <div class="sidebar">
         <div class="sidebar-header">

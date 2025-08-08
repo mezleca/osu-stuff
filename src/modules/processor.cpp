@@ -375,22 +375,25 @@ public:
             result.Set(i, obj);
         }
 
-        cleanup_callback();
+        cleanup();
         promise_deferred.Resolve(result);
     }
 
     void OnError(const Napi::Error &error) override
     {
-        cleanup_callback();
+        cleanup();
         promise_deferred.Reject(error.Value());
     }
 
     Napi::Promise GetPromise() { return promise_deferred.Promise(); }
 
 private:
-    void cleanup_callback()
+    void cleanup()
     {
         is_processing = false;
+        beatmap_files.clear();
+        audio_results.clear();
+
         if (has_callback)
         {
             progress_callback.Release();
