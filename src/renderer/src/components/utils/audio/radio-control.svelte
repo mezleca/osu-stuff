@@ -1,10 +1,9 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
     import { get_beatmap_data } from "../../../lib/utils/beatmaps";
     import { config } from "../../../lib/store/config";
-    import { input } from "../../../lib/store/input";
 
     // icons
     import Play from "../../icon/play.svelte";
@@ -42,10 +41,13 @@
             handle_selection_change();
         }
 
-        // thats a very shitty way to implement random but theres no way im gonna refactor this for the 5th time
-        if ($should_force_random && audio_state.playing) {
-            audio_state.pause();
-            audio_manager.play_next();
+        if ($should_force_random) {
+            if (audio_state.audio && audio_state.audio.currentTime > 0.1) {
+                if (is_playing) audio_manager.pause();
+                audio_manager.play_next().then(() => audio_manager.force_random.set(false));
+            } else {
+                $should_force_random = false;
+            }
         }
     }
 
@@ -67,8 +69,18 @@
             next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
         }
 
+        audio_manager.force_random.set(false);
+
         // get next beatmap id
         const beatmap_id = $beatmaps[next_idx];
+
+        // save beatmap information so we can use it later
+        audio_manager.previous_random_songs.update((old) => {
+            if (old.includes(beatmap_id)) {
+                return old;
+            }
+            return [...old, { hash: beatmap_id, index: next_idx }];
+        });
 
         // update selection (if changed)
         if (next_idx != current_index) {
@@ -162,18 +174,6 @@
         if (saved_volume) {
             audio_manager.set_volume(saved_volume);
         }
-
-        // set up keyboard shortcuts
-        input.on("f2", () => {
-            console.log("pressed f2");
-        });
-        input.on("shift+f2", () => {
-            console.log("pressed shift + f2");
-        });
-    });
-
-    onDestroy(() => {
-        input.unregister("f2", "shift+f2");
     });
 </script>
 

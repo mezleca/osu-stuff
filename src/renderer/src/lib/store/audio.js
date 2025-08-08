@@ -58,7 +58,10 @@ class AudioManager {
 
     on_timeupdate = (event) => {
         const state = this.get_state();
-        if (state.audio != event.target) return;
+
+        if (state.audio != event.target) {
+            return;
+        }
 
         const current_time = event.target.currentTime ?? 0;
         const duration = event.target.duration ?? 1;
@@ -72,7 +75,10 @@ class AudioManager {
 
     on_ended = async (event) => {
         const state = this.get_state();
-        if (state.audio != event.target) return;
+
+        if (state.audio != event.target) {
+            return;
+        }
 
         console.log(`[${this.id}] audio ended`);
 
@@ -90,6 +96,14 @@ class AudioManager {
     };
 
     calculate_next_index = (current_index, beatmaps_length, direction = 0) => {
+        const force_random = get(this.force_random);
+        const random_idx = Math.floor(Math.random() * beatmaps_length);
+
+        // get random index
+        if (force_random) {
+            return random_idx;
+        }
+
         const random_active = get(this.random);
         const repeat_active = get(this.repeat);
 
@@ -109,19 +123,20 @@ class AudioManager {
             return current_index;
         }
 
+        // get random index
         if (random_active) {
-            return Math.floor(Math.random() * beatmaps_length);
+            return random_idx;
         }
 
         // default to next
         return current_index + 1 >= beatmaps_length ? 0 : current_index + 1;
     };
 
-    // == AUDIO MANAGEMENT ==
     async setup_audio(id, audio_data) {
         console.log(`[${this.id}] setting up audio for: ${id}`);
 
         const old_state = this.get_state();
+
         if (old_state.id == id && old_state.audio) {
             console.log(`[${this.id}] audio already setup for: ${id}`);
             return old_state.audio;
@@ -414,7 +429,6 @@ class AudioManager {
         }
     }
 
-    // == CLEANUP ==
     clean_audio() {
         const state = this.get_state();
         if (!state.audio) return;
