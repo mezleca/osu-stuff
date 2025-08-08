@@ -1,13 +1,12 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { collections } from "../../lib/store/collections";
     import { ALL_BEATMAPS_KEY, DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
     import { radio_mode } from "../../lib/store/audio";
     import { format_time, get_image_url } from "../../lib/utils/utils";
+    import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
-
-    const list = get_beatmap_list("radio");
-    const { selected, query, sort } = list;
+    import { input } from "../../lib/store/input";
 
     // components
     import Search from "../utils/basic/search.svelte";
@@ -17,11 +16,17 @@
 
     // misc
     import PlaceholderImg from "../../assets/placeholder.png";
+    import { get_beatmap_data } from "../../lib/utils/beatmaps";
 
-    $: all_collections = collections.collections;
+    const list = get_beatmap_list("radio");
+    const audio = get_audio_manager("radio");
+
+    const { selected, query, sort } = list;
+
     $: beatmap = $selected;
     $: bg = PlaceholderImg;
-
+    $: all_collections = collections.collections;
+    $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
 
     const update_background_image = () => {
@@ -46,8 +51,33 @@
     }
 
     onMount(() => {
+        // default radio_mode to all beatmaps
         if ($radio_mode == "") $radio_mode = ALL_BEATMAPS_KEY;
+
+        // select random
+        input.on("f2", () => {
+            audio.force_random.set(true);
+        });
+
+        // get previous random songs
+        input.on("shift+f2", async () => {
+            const index = $previous_songs.length - 2;
+            const data = $previous_songs[index];
+
+            if (!data) {
+                return;
+            }
+
+            const beatmap = await get_beatmap_data(data.hash);
+            list.select_beatmap(beatmap, data.index);
+            $previous_songs.pop();
+        });
+
         update_background_image();
+    });
+
+    onDestroy(() => {
+        input.unregister("f2", "shift+f2");
     });
 </script>
 

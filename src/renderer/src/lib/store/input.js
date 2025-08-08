@@ -58,7 +58,7 @@ class InputManager {
             if (this.handlers.has(keys)) {
                 this.handlers.delete(keys);
             }
-        }  
+        }
     }
 
     reset() {
