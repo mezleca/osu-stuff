@@ -31,11 +31,6 @@
     $: should_force_random = audio_manager.force_random;
 
     $: {
-        // sync volume with config
-        if (audio_state.volume != undefined) {
-            config.set("radio_volume", audio_state.volume);
-        }
-
         // auto-play when selection changes
         if (current_id && audio_state.id != current_id && !is_loading && !is_changing_selection) {
             handle_selection_change();
@@ -150,6 +145,8 @@
         const rect = event.currentTarget.getBoundingClientRect();
         const percent = (event.clientX - rect.left) / rect.width;
         const volume = Math.round(percent * 100);
+        
+        config.set("radio_volume", volume);
         audio_manager.set_volume(volume);
     };
 
@@ -162,6 +159,8 @@
     };
 
     onMount(() => {
+        const saved_volume = config.get("radio_volume");
+
         // set up callbacks for the audio manager
         audio_manager.set_callbacks({
             get_next_id: get_next_id_callback,
@@ -169,8 +168,6 @@
         });
 
         // restore volume from config
-        const saved_volume = config.get("radio_volume");
-
         if (saved_volume) {
             audio_manager.set_volume(saved_volume);
         }
