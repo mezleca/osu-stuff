@@ -23,11 +23,11 @@
 
     const { selected, query, sort } = list;
 
-    $: all_collections = collections.collections;
-    $: beatmap = $selected;
-    $: bg = PlaceholderImg;
+    $: all_collections = collections.all_collections;
     $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
+    $: beatmap = $selected;
+    $: bg = PlaceholderImg;
 
     const update_background_image = () => {
         if (beatmap && beatmap?.image_path) {
