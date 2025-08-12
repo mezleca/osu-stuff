@@ -145,7 +145,7 @@
         const rect = event.currentTarget.getBoundingClientRect();
         const percent = (event.clientX - rect.left) / rect.width;
         const volume = Math.round(percent * 100);
-        
+
         config.set("radio_volume", volume);
         audio_manager.set_volume(volume);
     };

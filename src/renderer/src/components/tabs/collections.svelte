@@ -4,10 +4,11 @@
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon, hide_popup } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
     import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
+    import { config } from "../../lib/store/config";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -20,9 +21,6 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
-    import { config } from "../../lib/store/config";
-
-    let filtered_collections = [];
 
     const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
     const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
@@ -32,21 +30,14 @@
 
     const { sort, query, status, show_invalid } = list;
 
+    $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
     $: collection_search = collections.query;
-    $: all_collections = collections.collections;
+    $: all_collections = collections.all_collections;
     $: should_update = collections.needs_update;
     $: pending_collections = collections.pending_collections;
     $: missing_beatmaps = collections.missing_beatmaps;
     $: missing_collections = collections.missing_collections;
-
-    const filter_collection = () => {
-        if ($collection_search == "") {
-            filtered_collections = $all_collections;
-        } else {
-            filtered_collections = $all_collections.filter((obj) => obj.name.toLowerCase()?.includes($collection_search.toLowerCase()));
-        }
-    };
 
     const filter_beatmaps = async (extra) => {
         const result = await list.get_beatmaps($selected_collection.name, extra);
@@ -63,7 +54,8 @@
         if ($selected_collection.name) {
             filter_beatmaps();
         }
-        filter_collection();
+
+        collections.filter();
     };
 
     const get_context_options = (collection) => {
@@ -535,8 +527,9 @@
         popup_manager.register("new", addon);
     };
 
-    $: if ($all_collections || $collection_search) {
-        filter_collection();
+    // update collection object based on query
+    $: if ($collection_search != undefined) {
+        collections.filter();
     }
 
     // @TODO: this makes us request the collection every time we go into this tab
@@ -564,17 +557,17 @@
     <Popup key="collections" />
     <div class="sidebar">
         <div class="sidebar-header">
-            <Search bind:value={$collection_search} placeholder="search collections" callback={filter_collection} />
+            <Search bind:value={$collection_search} placeholder="search collections" />
             {#if $should_update}
                 <button class="update-btn" onclick={() => collections.update()}>update</button>
             {/if}
         </div>
         <div class="collections">
             <!-- show collections -->
-            {#if filtered_collections.length == 0}
-                <p>{filtered_collections.length} results</p>
+            {#if $filtered_collections.length == 0}
+                <p>{$filtered_collections.length} results</p>
             {:else}
-                {#each filtered_collections as collection}
+                {#each $filtered_collections as collection}
                     <ContextMenu onclick={handle_context_menu} options={get_context_options(collection)} at="point">
                         <CollectionCard
                             name={collection.name}

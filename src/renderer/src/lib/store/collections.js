@@ -12,6 +12,7 @@ class CollectionManager {
         this.needs_update = writable(false);
         this.hide_remove = writable(false);
         this.collections = writable([]);
+        this.all_collections = writable([]);
         this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
         this.missing_beatmaps = writable([]); // temp added via popup
         this.missing_collections = writable([]); // temp added via popup
@@ -20,31 +21,36 @@ class CollectionManager {
         this.selected = writable({ name: "", maps: [] });
     }
 
+    // update store to use our collection array
     set(collections) {
-        // add extra properties
+        // ensure edit variable exists
         for (let i = 0; i < collections.length; i++) {
             collections[i].edit = false;
         }
 
-        this.collections.set(collections);
+        this.all_collections.set(collections);
     }
 
+    // need this to write the binary file
     set_version(version) {
         this.version.set(version);
     }
 
+    // get collection by name
     get(name) {
-        const desired = get(this.collections).find((c) => c.name == name);
+        const desired = get(this.all_collections).find((c) => c.name == name);
         return desired;
     }
 
+    // add new collection
     add(collection) {
-        this.collections.update((old) => [...old, collection]);
+        this.all_collections.update((old) => [...old, collection]);
         this.needs_update.set(true);
     }
 
+    // update a collection that already exists
     replace(data) {
-        this.collections.update((collections) => {
+        this.all_collections.update((collections) => {
             const updated = [];
             for (const collection of collections) {
                 if (collection.name == data.name) {
@@ -56,8 +62,9 @@ class CollectionManager {
         });
     }
 
+    // select a collection
     select(name) {
-        const desired = get(this.collections).find((c) => c.name == name);
+        const desired = get(this.all_collections).find((c) => c.name == name);
 
         if (!desired) {
             return;
@@ -66,8 +73,20 @@ class CollectionManager {
         this.selected.set(desired);
     }
 
+    // filter collections by name
+    filter() {
+        const query = get(this.query);
+        const collections = get(this.all_collections);
+
+        if (query == "") {
+            this.collections.set(collections);
+        } else {
+            this.collections.set(collections.filter((c) => c.name.toLowerCase()?.includes(query.toLowerCase())));
+        }
+    }
+
     rename(old_name, new_name) {
-        this.collections.update((collections) => {
+        this.all_collections.update((collections) => {
             const updated = [];
             for (const collection of collections) {
                 if (collection.name == old_name) {
@@ -87,12 +106,13 @@ class CollectionManager {
             this.selected.set({ name: "", maps: [] });
         }
 
-        this.collections.update((c) => c.filter((c1) => c1.name != name));
+        this.all_collections.update((c) => c.filter((c1) => c1.name != name));
         this.needs_update.set(true);
     }
 
+    // remove beatmap from a specific collection
     remove_beatmap(name, md5) {
-        this.collections.update((collections) => {
+        this.all_collections.update((collections) => {
             return collections.map((collection) => {
                 if (collection.name != name) {
                     return collection;
@@ -112,11 +132,12 @@ class CollectionManager {
         this.needs_update.set(true);
     }
 
+    // update binary file (or realm database if lazer)
     async update() {
-        const data = get(this.collections);
+        const current_collections = get(this.all_collections);
         const version = get(this.version);
 
-        if (data.length == 0) {
+        if (current_collections.length == 0) {
             this.needs_update.set(false);
             return;
         }
@@ -126,7 +147,7 @@ class CollectionManager {
             return;
         }
 
-        const result = await window.osu.update_collections({ collections: data, version: version });
+        const result = await window.osu.update_collections({ collections: current_collections, version: version });
 
         if (!result.success) {
             show_notification({ type: "error", text: `failed to update collections ${result.reason}` });
@@ -136,6 +157,7 @@ class CollectionManager {
         this.needs_update.set(false);
     }
 
+    // remove all pending collections
     clear_pending() {
         this.pending_collections.set(DEFAULT_PENDING_DATA);
     }
