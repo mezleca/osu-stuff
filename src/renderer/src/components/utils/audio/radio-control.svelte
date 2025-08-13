@@ -15,6 +15,9 @@
     import Volume from "../../icon/volume.svelte";
     import VolumeMuted from "../../icon/volume-muted.svelte";
 
+    // components
+    import ControlBar from "../basic/control-bar.svelte";
+
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
@@ -135,29 +138,6 @@
         }
     };
 
-    const handle_seek = (event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const percent = (event.clientX - rect.left) / rect.width;
-        audio_manager.seek(percent);
-    };
-
-    const handle_volume = (event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const percent = (event.clientX - rect.left) / rect.width;
-        const volume = Math.round(percent * 100);
-
-        config.set("radio_volume", volume);
-        audio_manager.set_volume(volume);
-    };
-
-    const toggle_random = () => {
-        audio_manager.toggle_random();
-    };
-
-    const toggle_repeat = () => {
-        audio_manager.toggle_repeat();
-    };
-
     onMount(() => {
         const saved_volume = config.get("radio_volume");
 
@@ -187,19 +167,12 @@
             {/if}
         </div>
 
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div role="button" tabindex={0} class="volume-bar" onclick={handle_volume}>
-            <div class="volume-fill" style="width: {audio_state.volume}%;"></div>
-        </div>
+        <ControlBar value={audio_state.volume} full={false} callback={(v) => audio_manager.set_volume(v * 100)} />
     </div>
     <div class="radio-control">
         <!-- progress section -->
         <div class="progress-section">
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div role="button" tabindex="0" class="progress-bar" onclick={handle_seek}>
-                <div class="progress-fill" style="width: {audio_state.progress_bar_width}%;"></div>
-            </div>
-
+            <ControlBar value={audio_state.progress_bar_width} callback={(v) => audio_manager.seek(v)} />
             <div class="time-display">
                 <span>{audio_state.progress}</span>
                 <span>{audio_state.duration}</span>
@@ -207,7 +180,7 @@
         </div>
 
         <div class="controls-section">
-            <button class="control-btn random" class:active={$random_active} onclick={toggle_random}>
+            <button class="control-btn random" class:active={$random_active} onclick={audio_manager.toggle_random}>
                 <RandomIcon />
             </button>
 
@@ -231,7 +204,7 @@
                 </button>
             </div>
 
-            <button class="control-btn repeat" class:active={$repeat_active} onclick={toggle_repeat}>
+            <button class="control-btn repeat" class:active={$repeat_active} onclick={audio_manager.toggle_repeat}>
                 <RepeatIcon />
             </button>
         </div>
@@ -252,25 +225,12 @@
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 8px;
         padding: 8px;
+        gap: 8px;
         background-color: rgba(19, 19, 19, 0.8);
         border-radius: 6px;
         width: fit-content;
         margin-bottom: 10px;
-    }
-
-    .volume-bar {
-        width: 0;
-        overflow: hidden;
-        transition: width 0.3s ease;
-        background-color: #444;
-        height: 6px;
-        border-radius: 3px;
-    }
-
-    .volume-container:hover .volume-bar {
-        width: 120px;
     }
 
     .volume-icon {
@@ -288,23 +248,8 @@
         gap: 8px;
     }
 
-    .progress-bar {
-        height: 6px;
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 3px;
-        cursor: pointer;
-        position: relative;
-    }
-
-    .progress-fill,
-    .volume-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--accent-color-half), var(--accent-color));
-        border-radius: 3px;
-        width: 0%;
-        position: relative;
-        transition: width 0.1s ease;
-        pointer-events: none;
+    :global(.volume-container:hover .control-bar) {
+        width: 120px;
     }
 
     .time-display {
