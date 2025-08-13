@@ -14,7 +14,7 @@
     import Music from "../icon/music.svelte";
 </script>
 
-<button class="collection-item" onclick={select_callback} class:active={selected}>
+<button class="collection-item" onclick={select_callback} class:active={selected} class:editing={edit}>
     <div class="collection-info">
         <Music />
         <Text value={name} {edit} update_callback={rename_callback} />
@@ -47,6 +47,10 @@
         background: rgba(255, 64, 129, 0.15);
         border-color: var(--accent-color-half);
         transform: translateX(4px);
+    }
+
+    .collection-item.editing {
+        border-color: rgb(243, 213, 81);
     }
 
     .collection-info {
