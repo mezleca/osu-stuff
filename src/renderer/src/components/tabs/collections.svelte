@@ -527,8 +527,8 @@
         popup_manager.register("new", addon);
     };
 
-    // update collection object based on query
-    $: if ($collection_search != undefined) {
+    // update collection object on query or when we update something from the collections object
+    $: if ($collection_search != undefined || $all_collections) {
         collections.filter();
     }
 
