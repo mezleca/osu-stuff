@@ -4,6 +4,7 @@
     export let count = 0;
     export let item_height = 100;
     export let buffer = 6;
+    export let extra = 0; // create extra spacing on end if we have more than 10 items
     export let height = "100%";
     export let carousel = false;
     export let max_width = false;
@@ -31,7 +32,7 @@
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
 
-    $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count;
+    $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count > 10 ? count + extra : count;
     $: item_height_with_padding = item_height + padding;
     $: total_height = rows_per_screen * item_height_with_padding;
     $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
