@@ -138,6 +138,12 @@
         }
     };
 
+    const set_volume = (v) => {
+        const clamped_volume = Math.max(0, Math.min(100, v));
+        audio_manager.set_volume(clamped_volume);
+        config.set("radio_volume", clamped_volume);
+    }
+
     onMount(() => {
         const saved_volume = config.get("radio_volume");
 
@@ -167,7 +173,7 @@
             {/if}
         </div>
 
-        <ControlBar value={audio_state.volume} full={false} callback={(v) => audio_manager.set_volume(v * 100)} />
+        <ControlBar value={audio_state.volume} full={false} callback={(v) => set_volume(v * 100)} />
     </div>
     <div class="radio-control">
         <!-- progress section -->

@@ -307,17 +307,15 @@ class AudioManager {
 
     set_volume = (volume) => {
         const state = this.get_state();
-        const clamped_volume = Math.max(0, Math.min(100, volume));
-
+        
         if (state.audio) {
-            state.audio.volume = clamped_volume / 100;
+            state.audio.volume = volume / 100;
         }
 
-        // update stores
-        config.set("radio_volume", clamped_volume);
-        this.store.update((obj) => ({ ...obj, volume: clamped_volume }));
-        
-        console.log(`[${this.id}] volume set to: ${clamped_volume}%`);
+        // update store
+        this.store.update((obj) => ({ ...obj, volume }));
+
+        console.log(`[${this.id}] volume set to: ${volume}%`);
     }
 
     toggle_mute() {
