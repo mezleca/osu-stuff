@@ -132,7 +132,7 @@ class AudioManager {
         return current_index + 1 >= beatmaps_length ? 0 : current_index + 1;
     };
 
-    async setup_audio(id, audio_data) {
+    setup_audio = (id, audio_data) => {
         console.log(`[${this.id}] setting up audio for: ${id}`);
 
         const old_state = this.get_state();
@@ -162,7 +162,7 @@ class AudioManager {
         return audio_data;
     }
 
-    async load_and_setup_audio(beatmap_id) {
+    load_and_setup_audio = async (beatmap_id) => {
         if (this.attempts >= 3) {
             console.log(`[${this.id}] stop cuz too much attempts`);
             this.attempts = 0;
@@ -216,7 +216,7 @@ class AudioManager {
         }
     }
 
-    async play() {
+    play = async () => {
         const state = this.get_state();
         const target_audio = state.audio;
 
@@ -254,7 +254,7 @@ class AudioManager {
         }
     }
 
-    pause(audio = null) {
+    pause = (audio = null) => {
         const state = this.get_state();
         const target_audio = audio || state.audio;
 
@@ -267,7 +267,7 @@ class AudioManager {
         this.store.update((obj) => ({ ...obj, playing: false }));
     }
 
-    pause_until(condition) {
+    pause_until = (condition) => {
         const state = this.get_state();
 
         if (!state.audio) {
@@ -291,7 +291,7 @@ class AudioManager {
         }, 100);
     }
 
-    seek(percent) {
+    seek = (percent) => {
         const state = this.get_state();
 
         if (!state.audio) {
@@ -304,7 +304,7 @@ class AudioManager {
         console.log(`[${this.id}] seeking to: ${format_time(target_time)} (${(percent * 100).toFixed(1)}%)`);
     }
 
-    set_volume(volume) {
+    set_volume = (volume) => {
         const state = this.get_state();
         const clamped_volume = Math.max(0, Math.min(100, volume));
 
@@ -321,37 +321,37 @@ class AudioManager {
         this.set_volume(current_volume > 0 ? 0 : DEFAULT_VOLUME);
     }
 
-    set_random(enabled) {
+    set_random = (enabled) => {
         if (this.is_preview) return;
         this.random.set(enabled);
     }
 
-    set_repeat(enabled) {
+    set_repeat = (enabled) => {
         if (this.is_preview) return;
         this.repeat.set(enabled);
     }
 
-    toggle_random() {
+    toggle_random = () => {
         const current_value = get(this.random);
         const new_value = !current_value;
         this.set_random(new_value);
         return new_value;
     }
 
-    toggle_repeat() {
+    toggle_repeat = () => {
         const current_value = get(this.repeat);
         const new_value = !current_value;
         this.set_repeat(new_value);
         return new_value;
     }
 
-    set_callbacks(callbacks) {
+    set_callbacks = (callbacks) => {
         if (this.is_preview) return;
         this.get_next_id_callback = callbacks.get_next_id;
         this.get_beatmap_data_callback = callbacks.get_beatmap_data;
     }
 
-    async play_next() {
+    play_next = async () => {
         if (this.is_preview || !this.get_next_id_callback) {
             return;
         }
@@ -380,7 +380,7 @@ class AudioManager {
         }
     }
 
-    async play_previous() {
+    play_previous = async () => {
         if (this.is_preview || !this.get_next_id_callback) {
             return;
         }
@@ -403,7 +403,7 @@ class AudioManager {
         }
     }
 
-    async play_next_song() {
+    play_next_song = async () => {
         if (this.is_preview || !this.get_next_id_callback) return;
 
         console.log(`[${this.id}] getting next song (manual)`);
@@ -429,9 +429,12 @@ class AudioManager {
         }
     }
 
-    clean_audio() {
+    clean_audio = () => {
         const state = this.get_state();
-        if (!state.audio) return;
+        
+        if (!state.audio) {
+            return;
+        }
 
         console.log(`[${this.id}] cleaning up current audio`);
 
