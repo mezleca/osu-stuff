@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { format_time } from "../utils/utils.js";
 import { get_from_media } from "../utils/utils.js";
+import { config } from "../store/config.js";
 
 const DEFAULT_VOLUME = 50;
 
@@ -312,7 +313,10 @@ class AudioManager {
             state.audio.volume = clamped_volume / 100;
         }
 
+        // update stores
+        config.set("radio_volume", clamped_volume);
         this.store.update((obj) => ({ ...obj, volume: clamped_volume }));
+        
         console.log(`[${this.id}] volume set to: ${clamped_volume}%`);
     }
 
