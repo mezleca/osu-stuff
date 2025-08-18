@@ -34,7 +34,7 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
             - name: checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: setup bun
               uses: oven-sh/setup-bun@v2
@@ -73,7 +73,7 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
             - name: checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: setup bun
               uses: oven-sh/setup-bun@v2
@@ -113,7 +113,7 @@ jobs:
             (github.event.inputs.action_type == 'draft' || github.event.inputs.action_type == 'publish')
         steps:
             - name: checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: get version
               id: get_version
