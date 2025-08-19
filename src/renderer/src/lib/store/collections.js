@@ -38,8 +38,7 @@ class CollectionManager {
 
     // get collection by name
     get(name) {
-        const desired = get(this.all_collections).find((c) => c.name == name);
-        return desired;
+        return get(this.all_collections).find((c) => c.name == name);
     }
 
     // add new collection
@@ -66,11 +65,9 @@ class CollectionManager {
     select(name) {
         const desired = get(this.all_collections).find((c) => c.name == name);
 
-        if (!desired) {
-            return;
+        if (desired) {
+            this.selected.set(desired);
         }
-
-        this.selected.set(desired);
     }
 
     // filter collections by name

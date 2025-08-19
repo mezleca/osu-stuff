@@ -142,7 +142,7 @@
         const clamped_volume = Math.max(0, Math.min(100, v));
         audio_manager.set_volume(clamped_volume);
         config.set("radio_volume", clamped_volume);
-    }
+    };
 
     onMount(() => {
         const saved_volume = config.get("radio_volume");

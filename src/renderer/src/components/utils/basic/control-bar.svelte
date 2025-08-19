@@ -23,7 +23,7 @@
         border-radius: 3px;
         cursor: pointer;
         position: relative;
-        transition: 0.10s width;
+        transition: 0.1s width;
     }
 
     .control-fill {

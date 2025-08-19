@@ -38,7 +38,7 @@
         selected_beatmap = $selected;
     }
 
-    $: all_collections = collections.collections;
+    $: all_collections = collections.all_collections;
     $: should_hide_remove = collections.hide_remove;
     $: selected_collection = collections.selected;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
@@ -130,10 +130,11 @@
             .filter((c) => c.name != $selected_collection.name)
             .map((c) => ({ id: `move-${c.name}-${hash}`, text: c.name }));
 
-        const result = [
-            { id: "browser", text: "open in browser" },
-            { id: "move", text: "move beatmap to", data: collections_name }
-        ];
+        const result = [{ id: "browser", text: "open in browser" }];
+
+        if (collections_name.length > 0) {
+            result.push({ id: "move", text: "move beatmap to", data: collections_name });
+        }
 
         if (!$should_hide_remove) {
             result.push({ id: "delete", text: "delete beatmap" });
