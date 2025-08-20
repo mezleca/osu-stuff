@@ -2,7 +2,6 @@
     import { onMount, onDestroy } from "svelte";
     import { collections } from "../../lib/store/collections";
     import { ALL_BEATMAPS_KEY, DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
-    import { radio_mode } from "../../lib/store/audio";
     import { format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
@@ -24,6 +23,7 @@
     const { selected, query, sort } = list;
 
     $: all_collections = collections.all_collections;
+    $: selected_collection = collections.selected_radio;
     $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
     $: beatmap = $selected;
@@ -38,24 +38,27 @@
     };
 
     const update_beatmaps = async () => {
-        const beatmaps = await list.get_beatmaps($radio_mode, { unique: true, sort: $sort });
-        list.set_beatmaps(beatmaps, $radio_mode, true);
+        // hide remove beatmap option if we're showing all beatmaps
+        collections.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
+
+        const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort });
+        list.set_beatmaps(beatmaps, $selected_collection, true);
     };
 
+    // update radio bg on beatmap change
     $: if (beatmap) {
         update_background_image();
     }
 
-    $: if ($radio_mode || $query || $sort) {
+    // update beatmap list
+    $: if ($selected_collection.name || $query || $sort) {
+        if ($selected_collection.name != ALL_BEATMAPS_KEY) collections.select($selected_collection.name, true);
         update_beatmaps();
     }
 
     onMount(() => {
-        // default radio_mode to all beatmaps
-        if ($radio_mode == "") $radio_mode = ALL_BEATMAPS_KEY;
-
-        // no reason to enable that here (wouldn't work anyways)
-        collections.hide_remove.set(true);
+        // default selected "collection" to all beatmaps
+        if ($selected_collection.name == "") collections.select(ALL_BEATMAPS_KEY, true);
 
         // select random
         input.on("f2", () => {
@@ -91,22 +94,23 @@
             <div class="sidebar-header">
                 <Search bind:value={$query} placeholder="search beatmaps" />
                 <div class="filter-container">
-                    <Dropdown placeholder={"mode"} bind:selected_value={$radio_mode} options={beatmap_options} />
+                    <Dropdown placeholder={"mode"} bind:selected_value={$selected_collection.name} options={beatmap_options} />
                     <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={DEFAULT_SORT_OPTIONS} />
                 </div>
             </div>
             <Beatmaps
                 tab_id={"radio"}
+                {selected_collection}
                 show_invalid={false}
-                key={$radio_mode}
+                key={$selected_collection.name}
                 show_bpm={false}
                 show_star_rating={false}
                 show_status={false}
                 center={true}
                 max_width={true}
                 show_control={false}
+                remove_callback={update_beatmaps}
                 bind:selected_beatmap={beatmap}
-                direction="left"
             />
         </div>
 

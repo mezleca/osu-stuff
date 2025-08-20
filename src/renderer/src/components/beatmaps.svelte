@@ -12,6 +12,7 @@
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
+    export let selected_collection;
     export let carousel;
     export let show_bpm = true;
     export let show_star_rating = true;
@@ -40,7 +41,6 @@
 
     $: all_collections = collections.all_collections;
     $: should_hide_remove = collections.hide_remove;
-    $: selected_collection = collections.selected;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
     const handle_control = async (type, beatmap) => {
@@ -70,6 +70,7 @@
     };
 
     const remove_beatmap = (hash) => {
+        console.log($selected_collection);
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }

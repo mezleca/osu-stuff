@@ -527,5 +527,3 @@ export const get_audio_manager = (id) => {
     }
     return audio_managers.get(id);
 };
-
-export const radio_mode = writable("");

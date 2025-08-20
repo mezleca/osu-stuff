@@ -1,16 +1,26 @@
 import { writable, get } from "svelte/store";
 import { show_notification } from "./notifications";
 import { config } from "./config";
+import { is_special_key } from "./other";
 
 const DEFAULT_PENDING_DATA = {
     type: "",
     data: null
 };
 
+const DEFAULT_SELECTED_COLLECTION = {
+    name: "",
+    maps: []
+};
+
+const create_selected_data = (name = "", data = []) => {
+    return { ...DEFAULT_PENDING_DATA, name, data };
+};
+
 class CollectionManager {
     constructor() {
         this.needs_update = writable(false);
-        this.hide_remove = writable(false);
+        this.hide_remove = writable(false); // hide remove beatmap option from context menu
         this.collections = writable([]);
         this.all_collections = writable([]);
         this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
@@ -18,7 +28,8 @@ class CollectionManager {
         this.missing_collections = writable([]); // temp added via popup
         this.version = writable(0);
         this.query = writable("");
-        this.selected = writable({ name: "", maps: [] });
+        this.selected = writable(DEFAULT_SELECTED_COLLECTION);
+        this.selected_radio = writable(DEFAULT_SELECTED_COLLECTION); // not the best way but works
     }
 
     // update store to use our collection array
@@ -61,12 +72,13 @@ class CollectionManager {
         });
     }
 
-    // select a collection
-    select(name) {
-        const desired = get(this.all_collections).find((c) => c.name == name);
+    // select collection (default or radio)
+    select(name, is_radio) {
+        const desired = is_special_key(name) ? create_selected_data(name) : get(this.all_collections).find((c) => c.name == name);
 
         if (desired) {
-            this.selected.set(desired);
+            if (is_radio) this.selected_radio.set(desired);
+            else this.selected.set(desired);
         }
     }
 
@@ -118,6 +130,7 @@ class CollectionManager {
                 const maps = collection.maps;
                 const index = maps.indexOf(md5);
 
+                console.log(index, md5);
                 if (index != -1) {
                     maps.splice(index, 1);
                 }

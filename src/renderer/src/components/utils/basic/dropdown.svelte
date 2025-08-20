@@ -1,5 +1,5 @@
 <script>
-    import { convert_keys } from "../../../lib/store/other";
+    import { convert_special_key } from "../../../lib/store/other";
 
     // props
     export let options = [];
@@ -10,8 +10,8 @@
     let is_open = false;
     let dropdown_ref;
 
-    // convert_keys will convert shit from "@stuff:__something__" to "original name idk"
-    $: display_text = convert_keys(selected_value) || placeholder;
+    // convert_special_key will convert shit from "@stuff:__something__" to "original name idk"
+    $: display_text = convert_special_key(selected_value) || placeholder;
 
     const toggle_dropdown = () => (is_open = !is_open);
 
@@ -49,7 +49,7 @@
         <div class="dropdown_menu">
             {#each options as option}
                 <button class="dropdown_item" onclick={() => select_option(option)} type="button">
-                    {option.label || convert_keys(option)}
+                    {option.label || convert_special_key(option)}
                 </button>
             {/each}
         </div>

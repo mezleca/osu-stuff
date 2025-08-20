@@ -14,7 +14,11 @@ const SPECIAL_KEYS = new Map([
     [ALL_STATUS_KEY, "all"]
 ]);
 
+export const is_special_key = (key) => {
+    return SPECIAL_KEYS.has(key);
+};
+
 // for special keys
-export const convert_keys = (key) => {
+export const convert_special_key = (key) => {
     return SPECIAL_KEYS.has(key) ? SPECIAL_KEYS.get(key) : key;
 };

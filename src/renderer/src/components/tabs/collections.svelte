@@ -574,7 +574,7 @@
                             count={collection.maps.length ?? 0}
                             edit={collection.edit}
                             selected={$selected_collection?.name == collection.name}
-                            select_callback={() => collections.select(collection.name)}
+                            select_callback={() => collections.select(collection.name, false)}
                             rename_callback={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
                         />
                     </ContextMenu>
@@ -594,7 +594,7 @@
             </ExpandableMenu>
         </div>
         <!-- render beatmap list -->
-        <Beatmaps carousel={true} tab_id={"collections"} {remove_callback} direction={"right"} />
+        <Beatmaps carousel={true} tab_id={"collections"} {remove_callback} direction={"right"} {selected_collection} />
     </div>
 </div>
 
