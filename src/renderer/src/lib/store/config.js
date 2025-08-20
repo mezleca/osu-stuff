@@ -8,8 +8,11 @@ const default_config_fields = {
     stable_path: "",
     stable_songs_path: "",
     lazer_path: "",
-    lazer: false,
-    local: false
+    export_path: "",
+    local_images: false,
+    lazer_mode: false,
+    radio_volume: null,
+    mirrors: []
 };
 
 const create_persistent_config = () => {
