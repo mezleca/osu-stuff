@@ -469,21 +469,20 @@ const export_beatmap_to_path = async (beatmap_data, target_path) => {
         type: "nodebuffer",
         compression: "DEFLATE"
     });
-    
+
     fs.writeFileSync(target_path, content);
     return { success: true, path: target_path, skipped: false };
 };
 
 const add_stable_beatmap_to_zip = async (zip, beatmap_data) => {
-    const folder = beatmap_data.folder_name || 
-                   (beatmap_data.file_path ? beatmap_data.file_path.split("/")[0] : null);
+    const folder = beatmap_data.folder_name || (beatmap_data.file_path ? beatmap_data.file_path.split("/")[0] : null);
 
     if (!folder) {
         throw new Error("failed to determine folder for stable beatmap");
     }
 
     const folder_path = path.resolve(config.stable_songs_path, folder);
-    
+
     if (!fs.existsSync(folder_path)) {
         throw new Error(`folder not found: ${folder_path}`);
     }
@@ -505,7 +504,7 @@ const add_lazer_beatmap_to_zip = async (zip, beatmap_data) => {
         if (!filename || !hash) continue;
 
         const file_location = get_lazer_file_location(hash);
-        
+
         if (!fs.existsSync(file_location)) {
             console.log(`[export] missing lazer file ${file_location}`);
             continue;
@@ -591,12 +590,11 @@ const export_single_beatmap = async (beatmap) => {
         const status = export_result.skipped ? "exists" : "done";
         emit_export_update({ md5, status, path: export_result.path });
 
-        return { 
-            success: true, 
-            written: [export_result.path], 
-            reason: "" 
+        return {
+            success: true,
+            written: [export_result.path],
+            reason: ""
         };
-
     } catch (err) {
         console.log(`export_single_beatmap error: ${err.message}`);
         const reason = err.message;
@@ -610,23 +608,23 @@ const find_collection = (collections, collection_name) => {
     if (collections instanceof Map) {
         return collections.get(collection_name);
     }
-    
+
     // handle Array type collections
     if (Array.isArray(collections)) {
-        return collections.find(c => c.name === collection_name);
+        return collections.find((c) => c.name === collection_name);
     }
-    
+
     // handle Object type collections
     if (collections && typeof collections === "object") {
         // try direct key access first
         if (collections[collection_name]) {
             return collections[collection_name];
         }
-        
+
         // fallback to searching in values
-        return Object.values(collections).find(c => c?.name === collection_name);
+        return Object.values(collections).find((c) => c?.name === collection_name);
     }
-    
+
     return null;
 };
 
@@ -639,7 +637,7 @@ const export_beatmaps = async (collection_names) => {
 
     try {
         const collection_data = await get_and_update_collections();
-        
+
         if (!collection_data?.collections) {
             const reason = "failed to read local collections";
             emit_export_update({ status: "error", reason });
@@ -659,7 +657,7 @@ const export_beatmaps = async (collection_names) => {
         for (const collection_name of collection_names) {
             try {
                 const collection = find_collection(collection_data.collections, collection_name);
-                
+
                 if (!collection) {
                     console.log(`[export] collection not found: ${collection_name}`);
                     continue;
@@ -669,22 +667,16 @@ const export_beatmaps = async (collection_names) => {
                     continue;
                 }
 
-                const exported_files = await export_collection(
-                    collection_name, 
-                    collection.maps, 
-                    config.export_path, 
-                    exported_cache
-                );
+                const exported_files = await export_collection(collection_name, collection.maps, config.export_path, exported_cache);
 
                 written_files.push(...exported_files);
-
             } catch (error) {
                 console.log(`[export] failed to process collection ${collection_name}: ${error.message}`);
             }
         }
 
         const success = written_files.length > 0;
-        
+
         if (success) {
             console.log(`[export] batch finished, exported ${written_files.length} files`);
             emit_export_update({ status: "complete", written: written_files.length });
@@ -695,7 +687,6 @@ const export_beatmaps = async (collection_names) => {
         }
 
         return { success, written: written_files, reason: success ? "" : "no files were exported" };
-
     } catch (error) {
         const reason = `export failed: ${error.message}`;
         emit_export_update({ status: "error", reason });
@@ -712,10 +703,10 @@ const export_collection = async (collection_name, md5_list, export_path, exporte
         throw new Error(`failed to create collection folder: ${collection_folder}`);
     }
 
-    emit_export_update({ 
-        status: "start", 
-        collection: collection_name, 
-        total: md5_list.length 
+    emit_export_update({
+        status: "start",
+        collection: collection_name,
+        total: md5_list.length
     });
 
     const exported_files = [];
@@ -740,7 +731,6 @@ const export_collection = async (collection_name, md5_list, export_path, exporte
             }
 
             exported_files.push(target_path);
-
         } catch (error) {
             console.log(`[export] error processing beatmap ${md5}: ${error.message}`);
             emit_export_update({ status: "missing", collection: collection_name, md5 });
@@ -763,7 +753,7 @@ const handle_cached_beatmap = async (id, target_path, exported_cache, collection
     }
 
     const existing_path = exported_cache.get(id);
-    
+
     try {
         // try hard link first, fallback to copy
         try {
@@ -778,7 +768,6 @@ const handle_cached_beatmap = async (id, target_path, exported_cache, collection
             status: "linked",
             path: target_path
         });
-
     } catch (e) {
         console.log(`[export] failed to link/copy for ${id}: ${e.message}`);
         throw e; // re-throw for handling
