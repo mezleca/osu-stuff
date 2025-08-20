@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld("osu", {
     get_collections: (force) => ipcRenderer.invoke("get-collections", force),
     filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args),
     update_collections: (data) => ipcRenderer.invoke("update-collections", data)
+    ,
+    export_beatmaps: (beatmaps) => ipcRenderer.invoke("export-beatmaps", beatmaps),
+    export_beatmap: (beatmap) => ipcRenderer.invoke("export-beatmap", beatmap)
 });
 
 contextBridge.exposeInMainWorld("indexer", {
@@ -42,6 +45,10 @@ contextBridge.exposeInMainWorld("downloader", {
     remove_mirror: (name) => ipcRenderer.invoke("remove-mirror", name),
     on_downloads_update: (callback) => {
         ipcRenderer.on("downloads-update", (_, data) => callback(data));
+    }
+    ,
+    on_export_update: (callback) => {
+        ipcRenderer.on("export-update", (_, data) => callback(data));
     }
 });
 

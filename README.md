@@ -124,3 +124,14 @@ bun run build:linux
 ## credits
 
 - [CollectionManager](https://github.com/Piotrekol/CollectionManager) osdb files
+
+## Export beatmaps
+
+You can export beatmaps from your collections as .osz files. This creates one .osz per beatmapset in the configured export folder.
+
+How to use:
+- Open the Collections tab.
+- Right click a collection and choose "export beatmaps" (or use the "extra options" menu in the sidebar).
+- Select one or more collections in the popup and confirm.
+
+Files are written to the path configured in the app settings (default: app data/exports). If no files were exported, check your mirrors and that the beatmaps exist on your configured mirrors.

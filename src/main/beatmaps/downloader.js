@@ -443,6 +443,123 @@ const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
+const exportBeatmaps = async (beatmaps) => {
+    const result = { success: false, written: [], reason: "" };
+
+    if (!beatmaps || !Array.isArray(beatmaps) || beatmaps.length == 0) {
+        result.reason = "invalid beatmaps list";
+        return result;
+    }
+
+    // ensure export path exists
+    const export_path = config.export_path;
+
+    try {
+        if (!export_path || !fs.existsSync(export_path)) {
+            fs.mkdirSync(export_path, { recursive: true });
+        }
+    } catch (err) {
+        result.reason = `failed to create export path: ${err.message}`;
+        return result;
+    }
+
+    for (const b of beatmaps) {
+        try {
+            const info = await get_beatmap_info(b);
+
+            if (!info) {
+                console.log(`[export] failed to get beatmap info for ${b.md5 ?? b.beatmapset_id}`);
+                continue;
+            }
+
+            const id = String(info.beatmapset_id);
+            const osz_stream = await get_osz(id);
+
+            if (!osz_stream) {
+                console.log(`[export] failed to fetch osz for ${id}`);
+                continue;
+            }
+
+            const filename = `${id}.osz`;
+            const full_path = path.join(export_path, filename);
+            await save_file(osz_stream, full_path);
+            result.written.push(full_path);
+        } catch (err) {
+            console.log(`[export] error exporting beatmap: ${err.message}`);
+        }
+    }
+
+    result.success = result.written.length > 0;
+    if (!result.success) result.reason = "no files were exported";
+    return result;
+};
+
+const emit_export_update = (data) => {
+    try {
+        if (main_window) main_window.webContents.send("export-update", data);
+    } catch (err) {
+        console.log("failed to emit export update", err.message);
+    }
+};
+
+const exportSingleBeatmap = async (beatmap) => {
+    const result = { success: false, written: [], reason: "" };
+
+    if (!beatmap) {
+        result.reason = "invalid beatmap";
+        return result;
+    }
+
+    try {
+        emit_export_update({ md5: beatmap.md5 || null, status: "start" });
+
+        const info = await get_beatmap_info(beatmap);
+
+        if (!info) {
+            emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: "failed to resolve beatmap" });
+            result.reason = "failed to resolve beatmap";
+            return result;
+        }
+
+        const id = String(info.beatmapset_id);
+        emit_export_update({ md5: info.checksum || info.md5 || null, status: "fetching", id });
+
+        const osz_stream = await get_osz(id);
+
+        if (!osz_stream) {
+            emit_export_update({ md5: info.checksum || info.md5 || null, status: "error", reason: "failed to fetch osz" });
+            result.reason = "failed to fetch osz";
+            return result;
+        }
+
+        const export_path = config.export_path;
+
+        if (!export_path) {
+            result.reason = "invalid export path";
+            emit_export_update({ md5: info.checksum || info.md5 || null, status: "error", reason: result.reason });
+            return result;
+        }
+
+        const filename = `${id}.osz`;
+        const full_path = path.join(export_path, filename);
+
+        emit_export_update({ md5: info.checksum || info.md5 || null, status: "saving", path: full_path });
+
+        await save_file(osz_stream, full_path);
+
+        emit_export_update({ md5: info.checksum || info.md5 || null, status: "done", path: full_path });
+
+        result.success = true;
+        result.written.push(full_path);
+        return result;
+    } catch (err) {
+        console.log(`exportSingleBeatmap error: ${err.message}`);
+        emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: err.message });
+        result.reason = err.message;
+        return result;
+    }
+};
+
 export const downloader = {
     main,
     add_download,
@@ -452,4 +569,7 @@ export const downloader = {
     set_token,
     start_processing,
     stop_processing
+    ,
+    exportBeatmaps,
+    exportSingleBeatmap
 };

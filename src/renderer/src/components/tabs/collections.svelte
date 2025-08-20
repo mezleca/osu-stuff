@@ -136,7 +136,8 @@
                 show_popup("export", "collections");
                 break;
             case "export beatmaps":
-                console.log("TODO");
+                show_popup("export-beatmaps", "collections");
+                break;
                 break;
         }
     };
@@ -318,6 +319,22 @@
         show_notification({ type: "success", text: `exported on ${config.get("export_path")}` });
     };
 
+    const handle_export_beatmaps = async (data) => {
+        if (!data.collections || data.collections.length == 0) return;
+
+        // lazy import util to avoid circular deps
+        const { export_beatmaps } = await import("../../lib/utils/collections");
+
+        const result = await export_beatmaps(data.collections);
+
+        if (!result.success) {
+            show_notification({ type: "error", text: result.reason || "failed to export beatmaps" });
+            return;
+        }
+
+        show_notification({ type: "success", text: `exported ${result.written?.length ?? 0} beatmaps to ${config.get("export_path")}` });
+    };
+
     const handle_from_player = async (data) => {
         console.log("TODO", data);
     };
@@ -420,6 +437,15 @@
         addon.set_callback(handle_export_collections);
 
         popup_manager.register("export", addon);
+    };
+
+    const create_export_beatmaps_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "collections", type: "buttons", label: "collections", multiple: true, data: () => $all_collections.map((c) => c.name) });
+        addon.set_callback(handle_export_beatmaps);
+
+        popup_manager.register("export-beatmaps", addon);
     };
 
     const create_merge_collections_popup = () => {
@@ -548,6 +574,7 @@
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
         create_export_collections_popup();
+    create_export_beatmaps_popup();
     });
 </script>
 

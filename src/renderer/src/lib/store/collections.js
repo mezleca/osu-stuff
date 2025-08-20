@@ -130,7 +130,6 @@ class CollectionManager {
                 const maps = collection.maps;
                 const index = maps.indexOf(md5);
 
-                console.log(index, md5);
                 if (index != -1) {
                     maps.splice(index, 1);
                 }

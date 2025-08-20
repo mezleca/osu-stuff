@@ -130,3 +130,28 @@ await downloader.initialize();
 
 // add listener
 window.downloader.on_downloads_update((data) => downloader.update_downloads(data));
+
+// listen for export progress updates
+if (window.downloader.on_export_update) {
+    window.downloader.on_export_update((data) => {
+        if (!data) return;
+
+        switch (data.status) {
+            case "start":
+                show_notification({ type: "info", text: "export started" });
+                break;
+            case "fetching":
+                show_notification({ type: "info", text: `fetching beatmapset ${data.id}` });
+                break;
+            case "saving":
+                show_notification({ type: "info", text: `saving to ${data.path}` });
+                break;
+            case "done":
+                show_notification({ type: "success", text: `exported ${data.path}` });
+                break;
+            case "error":
+                show_notification({ type: "error", text: data.reason || "export failed" });
+                break;
+        }
+    });
+}
