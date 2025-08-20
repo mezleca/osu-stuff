@@ -4,7 +4,7 @@ import { config } from "../database/config";
 import Realm from "realm";
 import path from "path";
 
-const LAZER_SCHEMA_VERSION = 50;
+const LAZER_SCHEMA_VERSION = 51;
 
 export const lazer_beatmap_status = {
     "-4": "LocacllyModified",

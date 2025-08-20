@@ -138,7 +138,6 @@
             case "export beatmaps":
                 show_popup("export-beatmaps", "collections");
                 break;
-                break;
         }
     };
 
@@ -574,7 +573,7 @@
         create_merge_collections_popup();
         create_missing_beatmaps_popup();
         create_export_collections_popup();
-    create_export_beatmaps_popup();
+        create_export_beatmaps_popup();
     });
 </script>
 

@@ -445,12 +445,7 @@ const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
-/**
- * Batch export beatmaps by fetching .osz from mirrors (legacy behavior).
- * @param {Array<object>} beatmaps - array of beatmap objects or identifiers
- * @returns {{success:boolean, written:string[], reason?:string}}
- */
-const exportBeatmaps = async (beatmaps) => {
+const export_beatmaps = async (beatmaps) => {
     const result = { success: false, written: [], reason: "" };
 
     if (!beatmaps || !Array.isArray(beatmaps) || beatmaps.length == 0) {
@@ -509,17 +504,7 @@ const emit_export_update = (data) => {
     }
 };
 
-/**
- * Export a single beatmap by packaging local files into a .osz archive.
- * Works for both stable and lazer modes:
- * - stable: zips the folder under `config.stable_songs_path/<folder_name>`
- * - lazer: zips files referenced in `beatmap.beatmapset.Files` using hashes
- * Emits `export-update` events during the process.
- *
- * @param {object} beatmap - beatmap object (from osu.db / realm conversion)
- * @returns {{success:boolean, written:string[], reason?:string}}
- */
-const exportSingleBeatmap = async (beatmap) => {
+const export_single_beatmap = async (beatmap) => {
     const result = { success: false, written: [], reason: "" };
 
     if (!beatmap) {
@@ -552,6 +537,7 @@ const exportSingleBeatmap = async (beatmap) => {
             }
 
             const folder_path = path.resolve(config.stable_songs_path, folder);
+
             if (!fs.existsSync(folder_path)) {
                 result.reason = `folder not found: ${folder_path}`;
                 emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
@@ -559,13 +545,13 @@ const exportSingleBeatmap = async (beatmap) => {
             }
 
             // recursively add files
-            const addDir = (base, relBase) => {
+            const add_dir = (base, relBase) => {
                 const files = fs.readdirSync(base, { withFileTypes: true });
                 for (const f of files) {
                     const full = path.join(base, f.name);
                     const rel = path.join(relBase, f.name);
                     if (f.isDirectory()) {
-                        addDir(full, rel);
+                        add_dir(full, rel);
                     } else if (f.isFile()) {
                         try {
                             const data = fs.readFileSync(full);
@@ -578,10 +564,11 @@ const exportSingleBeatmap = async (beatmap) => {
             };
 
             emit_export_update({ md5: beatmap.md5 || null, status: "packing", folder: folder_path });
-            addDir(folder_path, "");
+            add_dir(folder_path, "");
         } else {
             // lazer: use beatmap.beatmapset.Files to map filenames to hashed files
             const set = beatmap.beatmapset;
+
             if (!set || !set.Files || !Array.isArray(set.Files) || set.Files.length == 0) {
                 result.reason = "missing beatmapset file info for lazer";
                 emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
@@ -595,9 +582,12 @@ const exportSingleBeatmap = async (beatmap) => {
                 const filename = f.Filename || f.filename || f.name;
                 const hash = (f.File && f.File.Hash) || f.Hash || f.file;
 
-                if (!filename || !hash) continue;
+                if (!filename || !hash) {
+                    continue;
+                }
 
                 const file_location = get_lazer_file_location(hash);
+
                 if (!fs.existsSync(file_location)) {
                     console.log(`[export] missing lazer file ${file_location}`);
                     continue;
@@ -628,7 +618,7 @@ const exportSingleBeatmap = async (beatmap) => {
         result.written.push(target);
         return result;
     } catch (err) {
-        console.log(`exportSingleBeatmap error: ${err.message}`);
+        console.log(`export_single_beatmap error: ${err.message}`);
         emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: err.message });
         result.reason = err.message;
         return result;
@@ -643,8 +633,7 @@ export const downloader = {
     remove_mirror,
     set_token,
     start_processing,
-    stop_processing
-    ,
-    exportBeatmaps,
-    exportSingleBeatmap
+    stop_processing,
+    export_beatmaps,
+    export_single_beatmap
 };
