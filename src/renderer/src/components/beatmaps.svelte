@@ -70,7 +70,6 @@
     };
 
     const remove_beatmap = (hash) => {
-        console.log($selected_collection);
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }
@@ -116,6 +115,10 @@
                 open_on_browser(beatmap);
                 break;
             case "export":
+                // single beatmap export
+                if (beatmap && beatmap.md5) {
+                    window.osu.export_beatmap(beatmap);
+                }
                 break;
             case "move":
                 move_to(id_parts[1], id_parts[2]);

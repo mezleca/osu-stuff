@@ -3,6 +3,8 @@ import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirror
 
 import fs from "fs";
 import path from "path";
+import JSZip from "jszip";
+import { get_lazer_file_location } from "../reader/realm.js";
 
 let token = "";
 let main_window = null;
@@ -443,6 +445,196 @@ const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
+/**
+ * Batch export beatmaps by fetching .osz from mirrors (legacy behavior).
+ * @param {Array<object>} beatmaps - array of beatmap objects or identifiers
+ * @returns {{success:boolean, written:string[], reason?:string}}
+ */
+const exportBeatmaps = async (beatmaps) => {
+    const result = { success: false, written: [], reason: "" };
+
+    if (!beatmaps || !Array.isArray(beatmaps) || beatmaps.length == 0) {
+        result.reason = "invalid beatmaps list";
+        return result;
+    }
+
+    // ensure export path exists
+    const export_path = config.export_path;
+
+    try {
+        if (!export_path || !fs.existsSync(export_path)) {
+            fs.mkdirSync(export_path, { recursive: true });
+        }
+    } catch (err) {
+        result.reason = `failed to create export path: ${err.message}`;
+        return result;
+    }
+
+    for (const b of beatmaps) {
+        try {
+            const info = await get_beatmap_info(b);
+
+            if (!info) {
+                console.log(`[export] failed to get beatmap info for ${b.md5 ?? b.beatmapset_id}`);
+                continue;
+            }
+
+            const id = String(info.beatmapset_id);
+            const osz_stream = await get_osz(id);
+
+            if (!osz_stream) {
+                console.log(`[export] failed to fetch osz for ${id}`);
+                continue;
+            }
+
+            const filename = `${id}.osz`;
+            const full_path = path.join(export_path, filename);
+            await save_file(osz_stream, full_path);
+            result.written.push(full_path);
+        } catch (err) {
+            console.log(`[export] error exporting beatmap: ${err.message}`);
+        }
+    }
+
+    result.success = result.written.length > 0;
+    if (!result.success) result.reason = "no files were exported";
+    return result;
+};
+
+const emit_export_update = (data) => {
+    try {
+        if (main_window) main_window.webContents.send("export-update", data);
+    } catch (err) {
+        console.log("failed to emit export update", err.message);
+    }
+};
+
+/**
+ * Export a single beatmap by packaging local files into a .osz archive.
+ * Works for both stable and lazer modes:
+ * - stable: zips the folder under `config.stable_songs_path/<folder_name>`
+ * - lazer: zips files referenced in `beatmap.beatmapset.Files` using hashes
+ * Emits `export-update` events during the process.
+ *
+ * @param {object} beatmap - beatmap object (from osu.db / realm conversion)
+ * @returns {{success:boolean, written:string[], reason?:string}}
+ */
+const exportSingleBeatmap = async (beatmap) => {
+    const result = { success: false, written: [], reason: "" };
+
+    if (!beatmap) {
+        result.reason = "invalid beatmap";
+        return result;
+    }
+    try {
+        emit_export_update({ md5: beatmap.md5 || null, status: "start" });
+
+        const export_path = config.export_path;
+        if (!export_path) {
+            result.reason = "invalid export path";
+            emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
+            return result;
+        }
+
+        // ensure export directory exists
+        fs.mkdirSync(export_path, { recursive: true });
+
+        const zip = new JSZip();
+
+        if (!config.lazer_mode) {
+            // stable: beatmap.folder_name points to folder under Songs
+            const folder = beatmap.folder_name || (beatmap.file_path ? beatmap.file_path.split("/")[0] : null);
+
+            if (!folder) {
+                result.reason = "failed to determine folder for stable beatmap";
+                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
+                return result;
+            }
+
+            const folder_path = path.resolve(config.stable_songs_path, folder);
+            if (!fs.existsSync(folder_path)) {
+                result.reason = `folder not found: ${folder_path}`;
+                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
+                return result;
+            }
+
+            // recursively add files
+            const addDir = (base, relBase) => {
+                const files = fs.readdirSync(base, { withFileTypes: true });
+                for (const f of files) {
+                    const full = path.join(base, f.name);
+                    const rel = path.join(relBase, f.name);
+                    if (f.isDirectory()) {
+                        addDir(full, rel);
+                    } else if (f.isFile()) {
+                        try {
+                            const data = fs.readFileSync(full);
+                            zip.file(rel, data);
+                        } catch (e) {
+                            console.log(`failed to add file ${full}: ${e.message}`);
+                        }
+                    }
+                }
+            };
+
+            emit_export_update({ md5: beatmap.md5 || null, status: "packing", folder: folder_path });
+            addDir(folder_path, "");
+        } else {
+            // lazer: use beatmap.beatmapset.Files to map filenames to hashed files
+            const set = beatmap.beatmapset;
+            if (!set || !set.Files || !Array.isArray(set.Files) || set.Files.length == 0) {
+                result.reason = "missing beatmapset file info for lazer";
+                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
+                return result;
+            }
+
+            emit_export_update({ md5: beatmap.md5 || null, status: "packing", files: set.Files.length });
+
+            for (const f of set.Files) {
+                // f may have shape { Filename, File: { Hash } } depending on realm export
+                const filename = f.Filename || f.filename || f.name;
+                const hash = (f.File && f.File.Hash) || f.Hash || f.file;
+
+                if (!filename || !hash) continue;
+
+                const file_location = get_lazer_file_location(hash);
+                if (!fs.existsSync(file_location)) {
+                    console.log(`[export] missing lazer file ${file_location}`);
+                    continue;
+                }
+
+                try {
+                    const data = fs.readFileSync(file_location);
+                    zip.file(filename, data);
+                } catch (e) {
+                    console.log(`failed to add lazer file ${file_location}: ${e.message}`);
+                }
+            }
+        }
+
+        // finalize zip
+        const id = beatmap.beatmapset_id || beatmap.difficulty_id || beatmap.md5 || Date.now();
+        const pretty_name = `${id}.osz`;
+        const target = path.join(export_path, pretty_name);
+
+        emit_export_update({ md5: beatmap.md5 || null, status: "saving", path: target });
+
+        const content = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+        fs.writeFileSync(target, content);
+
+        emit_export_update({ md5: beatmap.md5 || null, status: "done", path: target });
+
+        result.success = true;
+        result.written.push(target);
+        return result;
+    } catch (err) {
+        console.log(`exportSingleBeatmap error: ${err.message}`);
+        emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: err.message });
+        result.reason = err.message;
+        return result;
+    }
+};
+
 export const downloader = {
     main,
     add_download,
@@ -452,4 +644,7 @@ export const downloader = {
     set_token,
     start_processing,
     stop_processing
+    ,
+    exportBeatmaps,
+    exportSingleBeatmap
 };

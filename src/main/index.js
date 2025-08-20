@@ -120,6 +120,8 @@ async function createWindow() {
     ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
+    ipcMain.handle("export-beatmaps", (_, beatmaps) => downloader.exportBeatmaps(beatmaps));
+    ipcMain.handle("export-beatmap", (_, beatmap) => downloader.exportSingleBeatmap(beatmap));
 
     await initialize_config();
     initialize_mirrors();
