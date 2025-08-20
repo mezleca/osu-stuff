@@ -52,7 +52,6 @@
 
     // update beatmap list
     $: if ($selected_collection.name || $query || $sort) {
-        if ($selected_collection.name != ALL_BEATMAPS_KEY) collections.select($selected_collection.name, true);
         update_beatmaps();
     }
 
