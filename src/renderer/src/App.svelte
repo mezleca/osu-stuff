@@ -18,6 +18,7 @@
     // extra
     import Header from "./components/header.svelte";
     import Notifications from "./components/utils/notifications.svelte";
+    import ExportProgress from "./components/utils/export-progress.svelte";
 
     $: initialized = false;
 
@@ -50,6 +51,7 @@
 
     <!-- notification container -->
     <Notifications />
+    <ExportProgress />
 
     <!-- loading screen -->
     {#if !initialized}

@@ -150,22 +150,13 @@ export const export_collection = async (collection, type) => {
 };
 
 export const export_beatmaps = async (collection_names) => {
-    if (!collection_names || collection_names.length == 0) return { success: false, reason: "no collections selected" };
-
-    const beatmaps = [];
-
-    for (const name of collection_names) {
-        const collection = collections.get(name);
-        if (!collection || !collection.maps) continue;
-
-        for (const md5 of collection.maps) {
-            const b = await window.osu.get_beatmap_by_md5(md5);
-            if (b) beatmaps.push(b);
-        }
+    if (!collection_names || collection_names.length == 0) {
+        return { success: false, reason: "no collections selected" };
     }
 
-    if (beatmaps.length == 0) return { success: false, reason: "no beatmaps found" };
+    show_notification({ type: "info", text: `starting export: ${collection_names.length} collections` });
 
-    const result = await window.osu.export_beatmaps(beatmaps);
+    // send only collection names to the main process; main will resolve local beatmaps
+    const result = await window.osu.export_beatmaps(collection_names);
     return result;
 };

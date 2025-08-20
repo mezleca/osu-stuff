@@ -1,15 +1,18 @@
 import { config } from "../database/config";
 import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
+import { get_lazer_file_location } from "../reader/realm.js";
+import { get_and_update_collections } from "./collections.js";
+import { get_beatmap_by_md5 } from "./beatmaps.js";
 
 import fs from "fs";
 import path from "path";
 import JSZip from "jszip";
-import { get_lazer_file_location } from "../reader/realm.js";
 
 let token = "";
 let main_window = null;
 let current_download = null;
 
+const zip = new JSZip();
 const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
@@ -334,7 +337,11 @@ const get_osz = async (beatmap_id) => {
         }
 
         try {
-            const response = await fetch(`${url}/${beatmap_id}`);
+            const osz_url = `${url}/${beatmap_id}`;
+            const response = await fetch(osz_url);
+
+            // @TODO: only add on debug mode
+            console.log(`[debug] mirror download data for (${osz_url}) (status: ${response.status} | text: ${response.statusText}})`);
 
             if (response.status == 429) {
                 console.log(`added rate limit to ${mirror.name}`);
@@ -445,55 +452,104 @@ const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
-const export_beatmaps = async (beatmaps) => {
-    const result = { success: false, written: [], reason: "" };
-
-    if (!beatmaps || !Array.isArray(beatmaps) || beatmaps.length == 0) {
-        result.reason = "invalid beatmaps list";
-        return result;
+const export_beatmap_to_path = async (beatmap_data, target_path) => {
+    if (fs.existsSync(target_path)) {
+        return { success: true, path: target_path, skipped: true };
     }
 
-    // ensure export path exists
-    const export_path = config.export_path;
+    const zip = new JSZip();
 
-    try {
-        if (!export_path || !fs.existsSync(export_path)) {
-            fs.mkdirSync(export_path, { recursive: true });
+    if (!config.lazer_mode) {
+        await add_stable_beatmap_to_zip(zip, beatmap_data);
+    } else {
+        await add_lazer_beatmap_to_zip(zip, beatmap_data);
+    }
+
+    const content = await zip.generateAsync({
+        type: "nodebuffer",
+        compression: "DEFLATE"
+    });
+    
+    fs.writeFileSync(target_path, content);
+    return { success: true, path: target_path, skipped: false };
+};
+
+const add_stable_beatmap_to_zip = async (zip, beatmap_data) => {
+    const folder = beatmap_data.folder_name || 
+                   (beatmap_data.file_path ? beatmap_data.file_path.split("/")[0] : null);
+
+    if (!folder) {
+        throw new Error("failed to determine folder for stable beatmap");
+    }
+
+    const folder_path = path.resolve(config.stable_songs_path, folder);
+    
+    if (!fs.existsSync(folder_path)) {
+        throw new Error(`folder not found: ${folder_path}`);
+    }
+
+    add_directory_to_zip(zip, folder_path, "");
+};
+
+const add_lazer_beatmap_to_zip = async (zip, beatmap_data) => {
+    const set = beatmap_data.beatmapset;
+
+    if (!set?.Files?.length) {
+        throw new Error("missing beatmapset file info for lazer");
+    }
+
+    for (const f of set.Files) {
+        const filename = f.Filename || f.filename || f.name;
+        const hash = (f.File && f.File.Hash) || f.Hash || f.file;
+
+        if (!filename || !hash) continue;
+
+        const file_location = get_lazer_file_location(hash);
+        
+        if (!fs.existsSync(file_location)) {
+            console.log(`[export] missing lazer file ${file_location}`);
+            continue;
         }
-    } catch (err) {
-        result.reason = `failed to create export path: ${err.message}`;
-        return result;
-    }
 
-    for (const b of beatmaps) {
         try {
-            const info = await get_beatmap_info(b);
-
-            if (!info) {
-                console.log(`[export] failed to get beatmap info for ${b.md5 ?? b.beatmapset_id}`);
-                continue;
-            }
-
-            const id = String(info.beatmapset_id);
-            const osz_stream = await get_osz(id);
-
-            if (!osz_stream) {
-                console.log(`[export] failed to fetch osz for ${id}`);
-                continue;
-            }
-
-            const filename = `${id}.osz`;
-            const full_path = path.join(export_path, filename);
-            await save_file(osz_stream, full_path);
-            result.written.push(full_path);
-        } catch (err) {
-            console.log(`[export] error exporting beatmap: ${err.message}`);
+            const data = fs.readFileSync(file_location);
+            zip.file(filename, data);
+        } catch (e) {
+            console.log(`failed to add lazer file ${file_location}: ${e.message}`);
         }
     }
+};
 
-    result.success = result.written.length > 0;
-    if (!result.success) result.reason = "no files were exported";
-    return result;
+const add_directory_to_zip = (zip, base_path, rel_base) => {
+    const files = fs.readdirSync(base_path, { withFileTypes: true });
+
+    for (const f of files) {
+        const full_path = path.join(base_path, f.name);
+        const rel_path = path.join(rel_base, f.name);
+
+        if (f.isDirectory()) {
+            add_directory_to_zip(zip, full_path, rel_path);
+        } else if (f.isFile()) {
+            try {
+                const data = fs.readFileSync(full_path);
+                zip.file(rel_path, data);
+            } catch (e) {
+                console.log(`failed to add file ${full_path}: ${e.message}`);
+            }
+        }
+    }
+};
+
+const ensure_directory = (dir_path) => {
+    try {
+        if (!fs.existsSync(dir_path)) {
+            fs.mkdirSync(dir_path, { recursive: true });
+        }
+        return true;
+    } catch (err) {
+        console.log(`failed to create directory ${dir_path}: ${err.message}`);
+        return false;
+    }
 };
 
 const emit_export_update = (data) => {
@@ -504,125 +560,244 @@ const emit_export_update = (data) => {
     }
 };
 
+// export single beatmap
 const export_single_beatmap = async (beatmap) => {
-    const result = { success: false, written: [], reason: "" };
-
     if (!beatmap) {
-        result.reason = "invalid beatmap";
-        return result;
+        return { success: false, written: [], reason: "invalid beatmap" };
     }
+
     try {
-        emit_export_update({ md5: beatmap.md5 || null, status: "start" });
+        const md5 = beatmap.md5 || null;
+        emit_export_update({ md5, status: "start" });
 
-        const export_path = config.export_path;
-        if (!export_path) {
-            result.reason = "invalid export path";
-            emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
-            return result;
+        if (!config.export_path) {
+            const reason = "no export path configured";
+            emit_export_update({ md5, status: "error", reason });
+            return { success: false, written: [], reason };
         }
 
-        // ensure export directory exists
-        fs.mkdirSync(export_path, { recursive: true });
-
-        const zip = new JSZip();
-
-        if (!config.lazer_mode) {
-            // stable: beatmap.folder_name points to folder under Songs
-            const folder = beatmap.folder_name || (beatmap.file_path ? beatmap.file_path.split("/")[0] : null);
-
-            if (!folder) {
-                result.reason = "failed to determine folder for stable beatmap";
-                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
-                return result;
-            }
-
-            const folder_path = path.resolve(config.stable_songs_path, folder);
-
-            if (!fs.existsSync(folder_path)) {
-                result.reason = `folder not found: ${folder_path}`;
-                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
-                return result;
-            }
-
-            // recursively add files
-            const add_dir = (base, relBase) => {
-                const files = fs.readdirSync(base, { withFileTypes: true });
-                for (const f of files) {
-                    const full = path.join(base, f.name);
-                    const rel = path.join(relBase, f.name);
-                    if (f.isDirectory()) {
-                        add_dir(full, rel);
-                    } else if (f.isFile()) {
-                        try {
-                            const data = fs.readFileSync(full);
-                            zip.file(rel, data);
-                        } catch (e) {
-                            console.log(`failed to add file ${full}: ${e.message}`);
-                        }
-                    }
-                }
-            };
-
-            emit_export_update({ md5: beatmap.md5 || null, status: "packing", folder: folder_path });
-            add_dir(folder_path, "");
-        } else {
-            // lazer: use beatmap.beatmapset.Files to map filenames to hashed files
-            const set = beatmap.beatmapset;
-
-            if (!set || !set.Files || !Array.isArray(set.Files) || set.Files.length == 0) {
-                result.reason = "missing beatmapset file info for lazer";
-                emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: result.reason });
-                return result;
-            }
-
-            emit_export_update({ md5: beatmap.md5 || null, status: "packing", files: set.Files.length });
-
-            for (const f of set.Files) {
-                // f may have shape { Filename, File: { Hash } } depending on realm export
-                const filename = f.Filename || f.filename || f.name;
-                const hash = (f.File && f.File.Hash) || f.Hash || f.file;
-
-                if (!filename || !hash) {
-                    continue;
-                }
-
-                const file_location = get_lazer_file_location(hash);
-
-                if (!fs.existsSync(file_location)) {
-                    console.log(`[export] missing lazer file ${file_location}`);
-                    continue;
-                }
-
-                try {
-                    const data = fs.readFileSync(file_location);
-                    zip.file(filename, data);
-                } catch (e) {
-                    console.log(`failed to add lazer file ${file_location}: ${e.message}`);
-                }
-            }
+        if (!ensure_directory(config.export_path)) {
+            const reason = "failed to create export directory";
+            emit_export_update({ md5, status: "error", reason });
+            return { success: false, written: [], reason };
         }
 
-        // finalize zip
         const id = beatmap.beatmapset_id || beatmap.difficulty_id || beatmap.md5 || Date.now();
-        const pretty_name = `${id}.osz`;
-        const target = path.join(export_path, pretty_name);
+        const filename = `${id}.osz`;
+        const target_path = path.join(config.export_path, filename);
 
-        emit_export_update({ md5: beatmap.md5 || null, status: "saving", path: target });
+        const export_result = await export_beatmap_to_path(beatmap, target_path);
 
-        const content = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-        fs.writeFileSync(target, content);
+        const status = export_result.skipped ? "exists" : "done";
+        emit_export_update({ md5, status, path: export_result.path });
 
-        emit_export_update({ md5: beatmap.md5 || null, status: "done", path: target });
+        return { 
+            success: true, 
+            written: [export_result.path], 
+            reason: "" 
+        };
 
-        result.success = true;
-        result.written.push(target);
-        return result;
     } catch (err) {
         console.log(`export_single_beatmap error: ${err.message}`);
-        emit_export_update({ md5: beatmap.md5 || null, status: "error", reason: err.message });
-        result.reason = err.message;
-        return result;
+        const reason = err.message;
+        emit_export_update({ md5: beatmap.md5 || null, status: "error", reason });
+        return { success: false, written: [], reason };
     }
+};
+
+const find_collection = (collections, collection_name) => {
+    // handle Map type collections
+    if (collections instanceof Map) {
+        return collections.get(collection_name);
+    }
+    
+    // handle Array type collections
+    if (Array.isArray(collections)) {
+        return collections.find(c => c.name === collection_name);
+    }
+    
+    // handle Object type collections
+    if (collections && typeof collections === "object") {
+        // try direct key access first
+        if (collections[collection_name]) {
+            return collections[collection_name];
+        }
+        
+        // fallback to searching in values
+        return Object.values(collections).find(c => c?.name === collection_name);
+    }
+    
+    return null;
+};
+
+const export_beatmaps = async (collection_names) => {
+    if (!Array.isArray(collection_names) || collection_names.length === 0) {
+        const reason = "invalid collections payload";
+        emit_export_update({ status: "error", reason });
+        return { success: false, written: [], reason };
+    }
+
+    try {
+        const collection_data = await get_and_update_collections();
+        
+        if (!collection_data?.collections) {
+            const reason = "failed to read local collections";
+            emit_export_update({ status: "error", reason });
+            return { success: false, written: [], reason };
+        }
+
+        if (!config.export_path || !ensure_directory(config.export_path)) {
+            const reason = "export path not configured or failed to create";
+            emit_export_update({ status: "error", reason });
+            return { success: false, written: [], reason };
+        }
+
+        const exported_cache = new Map();
+        const written_files = [];
+
+        // process each collection
+        for (const collection_name of collection_names) {
+            try {
+                const collection = find_collection(collection_data.collections, collection_name);
+                
+                if (!collection) {
+                    console.log(`[export] collection not found: ${collection_name}`);
+                    continue;
+                }
+
+                if (!Array.isArray(collection.maps) || collection.maps.length === 0) {
+                    continue;
+                }
+
+                const exported_files = await export_collection(
+                    collection_name, 
+                    collection.maps, 
+                    config.export_path, 
+                    exported_cache
+                );
+
+                written_files.push(...exported_files);
+
+            } catch (error) {
+                console.log(`[export] failed to process collection ${collection_name}: ${error.message}`);
+            }
+        }
+
+        const success = written_files.length > 0;
+        
+        if (success) {
+            console.log(`[export] batch finished, exported ${written_files.length} files`);
+            emit_export_update({ status: "complete", written: written_files.length });
+        } else {
+            const reason = "no files were exported";
+            console.log(`[export] batch finished with zero exports`);
+            emit_export_update({ status: "error", reason });
+        }
+
+        return { success, written: written_files, reason: success ? "" : "no files were exported" };
+
+    } catch (error) {
+        const reason = `export failed: ${error.message}`;
+        emit_export_update({ status: "error", reason });
+        return { success: false, written: [], reason };
+    }
+};
+
+// export specific collection to folder
+const export_collection = async (collection_name, md5_list, export_path, exported_cache) => {
+    const safe_name = collection_name.replace(/[\\/:*?"<>|]/g, "_");
+    const collection_folder = path.join(export_path, safe_name);
+
+    if (!ensure_directory(collection_folder)) {
+        throw new Error(`failed to create collection folder: ${collection_folder}`);
+    }
+
+    emit_export_update({ 
+        status: "start", 
+        collection: collection_name, 
+        total: md5_list.length 
+    });
+
+    const exported_files = [];
+
+    for (const md5 of md5_list) {
+        try {
+            const beatmap_data = await get_beatmap_by_md5(md5);
+
+            if (!beatmap_data?.beatmapset_id) {
+                emit_export_update({ status: "missing", collection: collection_name, md5 });
+                continue;
+            }
+
+            const id = String(beatmap_data.beatmapset_id);
+            const target_path = path.join(collection_folder, `${id}.osz`);
+
+            // check deduplication cache
+            if (exported_cache.has(id)) {
+                await handle_cached_beatmap(id, target_path, exported_cache, collection_name);
+            } else {
+                await handle_new_beatmap(beatmap_data, id, target_path, exported_cache, collection_name);
+            }
+
+            exported_files.push(target_path);
+
+        } catch (error) {
+            console.log(`[export] error processing beatmap ${md5}: ${error.message}`);
+            emit_export_update({ status: "missing", collection: collection_name, md5 });
+        }
+    }
+
+    return exported_files;
+};
+
+// handle already cached beatmap files
+const handle_cached_beatmap = async (id, target_path, exported_cache, collection_name) => {
+    if (fs.existsSync(target_path)) {
+        emit_export_update({
+            beatmapset_id: id,
+            collection: collection_name,
+            status: "exists",
+            path: target_path
+        });
+        return;
+    }
+
+    const existing_path = exported_cache.get(id);
+    
+    try {
+        // try hard link first, fallback to copy
+        try {
+            fs.linkSync(existing_path, target_path);
+        } catch (link_err) {
+            fs.copyFileSync(existing_path, target_path);
+        }
+
+        emit_export_update({
+            beatmapset_id: id,
+            collection: collection_name,
+            status: "linked",
+            path: target_path
+        });
+
+    } catch (e) {
+        console.log(`[export] failed to link/copy for ${id}: ${e.message}`);
+        throw e; // re-throw for handling
+    }
+};
+
+// handle new beatmap files (not in cache)
+const handle_new_beatmap = async (beatmap_data, id, target_path, exported_cache, collection_name) => {
+    const export_result = await export_beatmap_to_path(beatmap_data, target_path);
+    exported_cache.set(id, target_path);
+
+    const status = export_result.skipped ? "exists" : "done";
+
+    emit_export_update({
+        beatmapset_id: id,
+        collection: collection_name,
+        status,
+        path: target_path
+    });
 };
 
 export const downloader = {

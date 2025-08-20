@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { show_notification } from "./notifications";
+import { show_export_progress, hide_export_progress } from "./export_progress";
 import { convert_beatmap_keys } from "../utils/beatmaps";
 
 const ignored_update_messages = ["download paused"];
@@ -136,22 +137,26 @@ if (window.downloader.on_export_update) {
     window.downloader.on_export_update((data) => {
         if (!data) return;
 
-        switch (data.status) {
-            case "start":
-                show_notification({ type: "info", text: "export started" });
-                break;
-            case "fetching":
-                show_notification({ type: "info", text: `fetching beatmapset ${data.id}` });
-                break;
-            case "saving":
-                show_notification({ type: "info", text: `saving to ${data.path}` });
-                break;
-            case "done":
-                show_notification({ type: "success", text: `exported ${data.path}` });
-                break;
-            case "error":
-                show_notification({ type: "error", text: data.reason || "export failed" });
-                break;
+        // build a richer payload for the compact export progress UI
+        const payload = {
+            id: data.id,
+            collection: data.collection,
+            status: data.status,
+            path: data.path,
+            total: data.total,
+            md5: data.md5,
+            beatmapset_id: data.beatmapset_id,
+            reason: data.reason
+        };
+
+        // show compact export progress UI for activity
+        if (data.status) {
+            show_export_progress(payload);
+        }
+
+        // keep notifications only for errors; final success is displayed in the progress box
+        if (data.status == "error") {
+            show_notification({ type: "error", text: `${data.reason || "export failed"} ${data.collection ?? ""}` });
         }
     });
 }
