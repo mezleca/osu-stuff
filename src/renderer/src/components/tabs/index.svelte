@@ -5,12 +5,10 @@
 
     // components
     import Popup from "../utils/popup/popup.svelte";
+    import { show_export_progress } from "../../lib/store/export_progress";
 
     const popup_manager = get_popup_manager("index");
-
-    const show_shit = (data) => {
-        console.log("test data", data);
-    };
+    const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
 
     function get_random_shit(max = 5) {
         const items = ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo", "fred", "plugh", "xyzzy", "thud"];
@@ -38,17 +36,17 @@
         addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: () => get_random_shit(10) });
         addon.add({ id: "cool3", type: "buttons", label: "cool3", multiple: true, parent: "container2", data: ["321", "123"] });
 
-        addon.set_callback(show_shit);
+        addon.set_callback(() => console.log("callback"));
         popup_manager.register("test", addon);
     };
 
     onMount(() => {
         create_fuck_ton_addon();
         input.on("a", () => {
-            console.log("pressed a");
+            show_export_progress(export_test_data);
         });
         input.on("control+a", () => {
-            console.log("pressed ctrl + a");
+            show_export_progress({ ...export_test_data, status: "missing" });
         });
     });
 

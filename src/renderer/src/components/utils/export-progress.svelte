@@ -19,7 +19,7 @@
     <div class="export-progress" transition:fade>
         <div class="left">
             <div class="title">exporting</div>
-            <div class="meta">{state.collection ?? "-"} {state.id ? `• ${state.id}` : ""}</div>
+            <div class="meta">{state.collection ?? "-"} {state.id ? `- ${state.id}` : ""}</div>
         </div>
         <div class="right">
             {#if state.status == "done"}
@@ -29,7 +29,7 @@
             {:else if state.status == "missing"}
                 <div class="status">missing</div>
             {:else if state.status == "start"}
-                <div class="status">starting ({state.total ?? "-"})</div>
+                <div class="status">starting</div>
             {:else}
                 <div class="status">{state.status}</div>
             {/if}
@@ -42,28 +42,25 @@
         position: fixed;
         left: 16px;
         bottom: 16px;
-        background: rgba(20, 20, 20, 0.95);
+        background: rgba(22, 22, 22, 0.95);
+        border: 1px solid rgb(34, 34, 34);
         color: #fff;
-        padding: 10px 14px;
+        padding: 12px 16px;
         border-radius: 6px;
         display: flex;
-        gap: 12px;
+        gap: 16px;
         align-items: center;
-        z-index: 2000;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
-    }
-
-    .left .title {
-        font-weight: 600;
+        z-index: 1000;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
     }
 
     .left .meta {
-        font-size: 0.9em;
+        font-size: 0.85em;
         color: #ccc;
     }
 
     .right .status {
-        font-size: 0.9em;
+        font-size: 0.85em;
         color: var(--accent-color);
     }
 </style>
