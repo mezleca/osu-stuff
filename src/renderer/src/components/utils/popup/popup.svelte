@@ -1,6 +1,5 @@
 <script>
-    import { onMount } from "svelte";
-    import { get_popup_manager, hide_popup } from "../../../lib/store/popup";
+    import { ConfirmAddon, get_popup_manager, hide_popup } from "../../../lib/store/popup";
 
     // props
     export let key = "default";
@@ -8,31 +7,22 @@
     // components
     import PopupRenderer from "./popup-renderer.svelte";
 
-    let manager;
-    let active_popup = null;
+    let manager = get_popup_manager(key);
+    let active_popup = manager.active;
     let container = null;
 
-    $: element_values = {};
-    $: visible_elements = get_visible_elements(element_values);
-    $: is_active = active_popup != null;
+    $: active_elements = get_visible_elements();
+    $: is_active = $active_popup != null;
+    $: is_confirm = $active_popup?.popup instanceof ConfirmAddon;
 
-    // sync store values
-    $: if (active_popup?.popup) {
-        active_popup.popup.elements.forEach((element) => {
-            const store = active_popup.popup.stores.get(element.id);
-            if (store) {
-                store.subscribe((value) => {
-                    // console.log("updating", element.id, value);
-                    element_values[element.id] = value;
-                    element_values = { ...element_values };
-                });
-            }
-        });
+    // update active on popup change
+    $: if ($active_popup?.popup) {
+        active_elements = get_visible_elements();
     }
 
-    const handle_submit = () => {
-        const values = active_popup.popup.get_values();
-        const callback = active_popup.popup.callback;
+    const handle_submit = (value) => {
+        const values = value ? value : $active_popup.popup.get_values();
+        const callback = $active_popup.popup.callback;
 
         // close popup first
         hide_popup(key);
@@ -52,91 +42,91 @@
     };
 
     const update_element = (element_id, value) => {
-        active_popup?.popup?.update_store(element_id, value);
+        $active_popup?.popup?.update(element_id, value);
+
+        // update active elements
+        active_elements = get_visible_elements();
     };
 
-    const toggle_button = (element_id, option_value, is_multiple) => {
-        const current = active_popup.popup.get_store_value(element_id) || [];
-        let new_value;
+    const toggle_button = (id, value, is_multiple) => {
+        const element = $active_popup.popup.get_element(id);
 
-        if (is_multiple) {
-            const is_selected = current.includes(option_value);
-            new_value = is_selected ? current.filter((v) => v != option_value) : [...current, option_value];
-        } else {
-            new_value = current.includes(option_value) ? [] : [option_value];
+        if (!element) {
+            console.log("toggle_button(): failed to get", id);
+            return;
         }
 
-        update_element(element_id, new_value);
+        let new_value;
+        const is_selected = element.value.includes(value);
+
+        if (is_multiple) {
+            new_value = is_selected ? element.value.filter((v) => v != value) : [...element.value, value];
+        } else {
+            new_value = is_selected ? [] : [value];
+        }
+
+        update_element(id, new_value);
     };
 
     const get_visible_elements = () => {
-        if (!active_popup?.popup) {
+        if (!$active_popup?.popup) {
             return [];
         }
 
-        const all_elements = active_popup.popup.elements.filter((el) => active_popup.popup.should_show_element(el));
+        const elements = $active_popup.popup.get_elements();
+
+        // skip bs if we have ConfirmAddon
+        if ($active_popup.popup instanceof ConfirmAddon) {
+            return elements;
+        }
+
+        const all_elements = elements.filter((el) => $active_popup.popup.should_show_element(el));
         const root_elements = all_elements.filter((el) => !el.parent);
 
-        // build hierarchy
+        // build element hierarchy
         return root_elements.map((element) => ({
             ...element,
             children: all_elements.filter((child) => child.parent == element.id)
         }));
     };
-
-    onMount(() => {
-        manager = get_popup_manager(key);
-
-        // subscribe to popup changes
-        const unsubscribe = manager.get_active().subscribe((popup) => {
-            active_popup = popup;
-        });
-
-        return unsubscribe;
-    });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={container} class="popup-container" class:show={is_active} on:click={close_on_backdrop}>
-    {#if active_popup}
+<div bind:this={container} class="popup-container" class:show={is_active} onclick={close_on_backdrop}>
+    {#if $active_popup}
         <div class="popup-content">
-            {#each visible_elements as element}
-                {#if element.type == "container"}
-                    <PopupRenderer {element} value={element_values[element.id]} on_update={update_element} on_toggle={toggle_button}>
+            {#each active_elements as element}
+                {#if element.type == "container" || is_confirm}
+                    <PopupRenderer {element} value={element.value} on_update={is_confirm ? handle_submit : update_element} on_toggle={toggle_button}>
                         {#if element.children?.length > 0}
                             {#each element.children as child}
-                                <PopupRenderer
-                                    element={child}
-                                    value={element_values[child.id]}
-                                    on_update={update_element}
-                                    on_toggle={toggle_button}
-                                />
+                                <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
                             {/each}
                         {/if}
                     </PopupRenderer>
                 {:else}
-                    <PopupRenderer {element} value={element_values[element.id]} on_update={update_element} on_toggle={toggle_button} />
-
+                    <PopupRenderer {element} value={element.value} on_update={update_element} on_toggle={toggle_button} />
                     {#if element.children?.length > 0}
                         <div class="children-container">
                             {#each element.children as child}
-                                <PopupRenderer
-                                    element={child}
-                                    value={element_values[child.id]}
-                                    on_update={update_element}
-                                    on_toggle={toggle_button}
-                                />
+                                <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
                             {/each}
                         </div>
                     {/if}
                 {/if}
             {/each}
-
-            <div class="popup-actions">
-                <button class="cancel-btn" on:click={handle_cancel}>cancel</button>
-                <button class="submit-btn" on:click={handle_submit}>submit</button>
-            </div>
+            {#if $active_popup.popup?.type != "button"}
+                <div class="popup-actions" class:actions-separator={!is_confirm}>
+                    {#if is_confirm && $active_popup.popup.type == "text"}
+                        <button class="submit-btn" onclick={() => handle_submit("yes")}>yes</button>
+                        <button class="cancel-btn" onclick={() => handle_submit("no")}>no</button>
+                    {:else if !is_confirm}
+                        <button class="cancel-btn" onclick={() => handle_cancel()}>cancel</button>
+                        <button class="submit-btn" onclick={() => handle_submit()}>submit</button>
+                    {/if}
+                </div>
+            {/if}
         </div>
     {/if}
 </div>
@@ -176,6 +166,9 @@
         display: flex;
         gap: 10px;
         justify-content: center;
+    }
+
+    .actions-separator {
         margin-top: 20px;
         padding-top: 15px;
         border-top: 1px solid #333;
