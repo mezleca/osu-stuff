@@ -13,8 +13,8 @@ a simple and useful app that gives you freedom to:
 
 - manage your lazer/stable collections (import, export, merge, etc...)
 - download beatmaps (missing beatmaps from collections, from players, etc...)
-- listen to songs from your osu! folder (filtered from collections or idk, your query?)
-- a lot more
+- listen to beatmaps songs from your osu installation (radio tab)
+- a lot more...
 
 > [!NOTE]  
 > beatmaps downloaded with lazer mode on will be placed on your exports folder!
@@ -123,4 +123,5 @@ bun run build:linux
 
 ## credits
 
-- [CollectionManager](https://github.com/Piotrekol/CollectionManager) osdb files
+- [CollectionManager](https://github.com/Piotrekol/CollectionManager) .osdb files
+- [Osu!Collector](https://osucollector.com) 
