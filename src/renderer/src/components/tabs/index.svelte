@@ -30,6 +30,15 @@
         popup_manager.register("aids", addon);
     };
 
+    const create_yes_no_confirm_addon = () => {
+        const addon = new ConfirmAddon("text");
+
+        addon.add({ text: "question here!!!" });
+
+        addon.set_callback((v) => console.log(v));
+        popup_manager.register("question", addon);
+    };
+
     const create_test_addon = () => {
         const addon = new PopupAddon();
 
@@ -53,6 +62,7 @@
     onMount(() => {
         create_test_addon();
         create_confirm_addon();
+        create_yes_no_confirm_addon();
 
         input.on("a", () => {
             show_export_progress(export_test_data);
@@ -74,5 +84,6 @@
         <p>yeah thats the main tab</p>
         <button onclick={() => show_popup("test", "index")}>open popup addon</button>
         <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
+        <button onclick={() => show_popup("question", "index")}>open yes/no confirmation addon</button>
     </div>
 </div>

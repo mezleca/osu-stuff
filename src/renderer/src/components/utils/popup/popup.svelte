@@ -59,8 +59,6 @@
         let new_value;
         const is_selected = element.value.includes(value);
 
-        console.log(value, is_selected, element.value);
-
         if (is_multiple) {
             new_value = is_selected ? element.value.filter((v) => v != value) : [...element.value, value];
         } else {
@@ -119,10 +117,10 @@
                 {/if}
             {/each}
             {#if $active_popup.popup?.type != "button"}
-                <div class="popup-actions">
+                <div class="popup-actions" class:actions-separator={!is_confirm}>
                     {#if is_confirm && $active_popup.popup.type == "text"}
-                        <button class="cancel-btn" onclick={() => handle_submit("no")}>no</button>
                         <button class="submit-btn" onclick={() => handle_submit("yes")}>yes</button>
+                        <button class="cancel-btn" onclick={() => handle_submit("no")}>no</button>
                     {:else if !is_confirm}
                         <button class="cancel-btn" onclick={() => handle_cancel()}>cancel</button>
                         <button class="submit-btn" onclick={() => handle_submit()}>submit</button>
@@ -168,6 +166,9 @@
         display: flex;
         gap: 10px;
         justify-content: center;
+    }
+
+    .actions-separator {
         margin-top: 20px;
         padding-top: 15px;
         border-top: 1px solid #333;

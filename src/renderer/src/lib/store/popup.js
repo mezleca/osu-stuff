@@ -101,12 +101,8 @@ class BaseAddon {
     }
 
     update(id, value) {
-        // allow either setting a full element object or updating only the
-        // element's `value` property. This prevents callers that pass only
-        // the new value from overwriting the whole element object.
         this.elements.update((old) => {
             const updated = old ? new Map(old) : new Map();
-
             const is_full_element = value && typeof value === "object" && (value.type || value.id || value.hasOwnProperty("value"));
 
             if (is_full_element) {
@@ -121,9 +117,7 @@ class BaseAddon {
             return updated;
         });
 
-        // Reset hidden elements after the change. This method updates the
-        // store directly to avoid calling `update()` again and causing a
-        // recursive loop.
+        // reset hidden elements after the change
         this.reset_hidden_elements();
     }
 
@@ -132,18 +126,17 @@ class BaseAddon {
             return;
         }
 
-        // Update the store in a single transaction to avoid triggering
-        // `update()` recursively (which would call this method again).
         this.elements.update((old) => {
             const updated = old ? new Map(old) : new Map();
 
-            // iterate over a snapshot of entries
             for (const [id, element] of Array.from(updated.entries())) {
                 const default_value = this.defaults.get(id);
-                if (default_value === undefined) continue;
 
-                // if the element is currently hidden, reset its value to
-                // the stored default
+                if (!default_value) {
+                    continue;
+                }
+
+                // if the element is currently hidden, reset its value to the stored default
                 if (!this.should_show_element(element)) {
                     updated.set(id, { ...element, value: default_value });
                 }
@@ -198,6 +191,11 @@ export class ConfirmAddon extends BaseAddon {
 
         if (this.type == "button") {
             element.multiple = false;
+        }
+
+        // give random id to prevent issues
+        if (this.type == "text") {
+            element.id = crypto.randomUUID();
         }
 
         // removed unused properties
