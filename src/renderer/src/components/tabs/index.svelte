@@ -1,11 +1,11 @@
 <script>
     import { onDestroy, onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
+    import { show_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
 
     // components
     import Popup from "../utils/popup/popup.svelte";
-    import { show_export_progress } from "../../lib/store/export_progress";
 
     const popup_manager = get_popup_manager("index");
     const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
@@ -20,7 +20,17 @@
         return result;
     }
 
-    const create_fuck_ton_addon = () => {
+    const create_confirm_addon = () => {
+        const addon = new ConfirmAddon("button");
+
+        addon.add({ id: "something", text: "123" });
+        addon.add({ id: "something2", text: "v12" });
+
+        addon.set_callback((v) => console.log(v));
+        popup_manager.register("aids", addon);
+    };
+
+    const create_test_addon = () => {
         const addon = new PopupAddon();
 
         addon.add({ id: "something", type: "text", text: "ts is a text", font_size: 20 });
@@ -36,12 +46,14 @@
         addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: () => get_random_shit(10) });
         addon.add({ id: "cool3", type: "buttons", label: "cool3", multiple: true, parent: "container2", data: ["321", "123"] });
 
-        addon.set_callback(() => console.log("callback"));
+        addon.set_callback((data) => console.log(data));
         popup_manager.register("test", addon);
     };
 
     onMount(() => {
-        create_fuck_ton_addon();
+        create_test_addon();
+        create_confirm_addon();
+
         input.on("a", () => {
             show_export_progress(export_test_data);
         });
@@ -60,6 +72,7 @@
     <div class="index-content">
         <h1>hey</h1>
         <p>yeah thats the main tab</p>
-        <button onclick={() => show_popup("test", "index")}>click me</button>
+        <button onclick={() => show_popup("test", "index")}>open popup addon</button>
+        <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
     </div>
 </div>

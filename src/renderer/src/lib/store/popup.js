@@ -1,10 +1,38 @@
 import { get, writable } from "svelte/store";
 
+/**
+ * @typedef {Object} ActivePopup
+ * @property {string} key
+ * @property {BaseAddon} popup
+ */
+
+/**
+ * @typedef {Object} PopupCondition
+ * @property {string} id
+ * @property {any} value
+ * @property {any} except
+ * @property {any} not_equals
+ */
+
+/**
+ * @typedef {Object} PopupElement
+ * @property {string} id
+ * @property {string} type
+ * @property {string?} class
+ * @property {string?} parent
+ * @property {string?} text
+ * @property {string?} label
+ * @property {any} value
+ * @property {number?} font_size
+ * @property {(Array<PopupElement>|null)} data
+ * @property {boolean} multiple
+ * @property {PopupCondition} show_when
+ */
+
 const DEFAULT_OPTIONS = {
     id: "",
     type: "",
     class: "",
-    style: "",
     parent: "",
     text: "",
     label: "",
@@ -15,12 +43,179 @@ const DEFAULT_OPTIONS = {
     show_when: null
 };
 
-export class PopupAddon {
+class BaseAddon {
     constructor() {
-        this.elements = [];
-        this.callback = null;
-        this.stores = new Map();
+        /** @type {import("svelte/store").Writable<Map<string, PopupElement>>} */
+        this.elements = writable(new Map());
         this.defaults = new Map();
+        this.callback = null;
+    }
+
+    add(options = {}) {
+        throw new Error("add(): not implemented");
+    }
+
+    set_callback(callback) {
+        this.callback = callback;
+    }
+
+    should_show_element(element) {
+        const store = get(this.elements);
+
+        if (!element.show_when) {
+            return true;
+        }
+
+        const { id, equals, not_equals, except } = element.show_when;
+        const target = store.get(id);
+
+        if (!target) {
+            console.log("[popup] failed to get target store");
+            return true;
+        }
+
+        if (equals != undefined) {
+            return target.value == equals;
+        }
+
+        if (not_equals != undefined) {
+            return target.value != not_equals;
+        }
+
+        if (except != undefined) {
+            return target.value != except;
+        }
+
+        return !!target.value; // show if true
+    }
+
+    /** @returns {(PopupElement|null)} */
+    get_element(id) {
+        const store = get(this.elements);
+        return store ? store.get(id) : null;
+    }
+
+    get_elements() {
+        const store = get(this.elements);
+        return Array.from(store.values());
+    }
+
+    update(id, value) {
+        // allow either setting a full element object or updating only the
+        // element's `value` property. This prevents callers that pass only
+        // the new value from overwriting the whole element object.
+        this.elements.update((old) => {
+            const updated = old ? new Map(old) : new Map();
+
+            const is_full_element = value && typeof value === "object" && (value.type || value.id || value.hasOwnProperty("value"));
+
+            if (is_full_element) {
+                // set/replace full element object
+                updated.set(id, value);
+            } else {
+                // update only the value property of an existing element
+                const existing = updated.get(id) || { ...DEFAULT_OPTIONS, id };
+                updated.set(id, { ...existing, value });
+            }
+
+            return updated;
+        });
+
+        // Reset hidden elements after the change. This method updates the
+        // store directly to avoid calling `update()` again and causing a
+        // recursive loop.
+        this.reset_hidden_elements();
+    }
+
+    reset_hidden_elements() {
+        if (this.defaults.size == 0) {
+            return;
+        }
+
+        // Update the store in a single transaction to avoid triggering
+        // `update()` recursively (which would call this method again).
+        this.elements.update((old) => {
+            const updated = old ? new Map(old) : new Map();
+
+            // iterate over a snapshot of entries
+            for (const [id, element] of Array.from(updated.entries())) {
+                const default_value = this.defaults.get(id);
+                if (default_value === undefined) continue;
+
+                // if the element is currently hidden, reset its value to
+                // the stored default
+                if (!this.should_show_element(element)) {
+                    updated.set(id, { ...element, value: default_value });
+                }
+            }
+
+            return updated;
+        });
+    }
+
+    get_values() {
+        const values = {};
+        const elements = get(this.elements);
+
+        for (const [k, e] of elements) {
+            // ignore hidden elements
+            if (!this.should_show_element(e)) {
+                continue;
+            }
+
+            // ignore read only elements
+            if (["container", "text"].includes(e.type)) {
+                continue;
+            }
+
+            values[k] = e.value;
+        }
+
+        return values;
+    }
+
+    clear() {
+        throw new Error("clear(): not implemented");
+    }
+}
+
+export class ConfirmAddon extends BaseAddon {
+    constructor(type) {
+        super();
+        this.type = type || "text";
+    }
+
+    add(options = {}) {
+        const element = { ...DEFAULT_OPTIONS, ...options };
+
+        if (!element.id && this.type != "text") {
+            console.error("element requires id", element);
+            return this;
+        }
+
+        // ensure the new element has the correct type/multiple flags
+        element.type = this.type == "button" ? "button" : "text";
+
+        if (this.type == "button") {
+            element.multiple = false;
+        }
+
+        // removed unused properties
+        if (element.show_when) {
+            delete element.show_when;
+        }
+
+        this.update(element.id, element);
+        return this;
+    }
+
+    // confirmation doesn't need this method
+    clear() {}
+}
+
+export class PopupAddon extends BaseAddon {
+    constructor() {
+        super();
     }
 
     add(options = {}) {
@@ -31,92 +226,37 @@ export class PopupAddon {
             return this;
         }
 
-        this.elements.push(element);
-        this.stores.set(element.id, writable(element.value));
+        // ensure valid properties
+        if (element.type == "buttons") {
+            if (!element.value) element.value = [];
+        } else {
+            if (!element.value) element.value = "";
+        }
+
+        this.update(element.id, element);
         this.defaults.set(element.id, element.value);
     }
 
-    set_callback(callback) {
-        this.callback = callback;
-    }
-
-    should_show_element(element) {
-        if (!element.show_when) {
-            return true;
-        }
-
-        const { id, equals, not_equals, except } = element.show_when;
-        const target_store = this.stores.get(id);
-
-        if (!target_store) {
-            console.log("[popup] failed to get target store");
-            return true;
-        }
-
-        const target_value = get(target_store);
-
-        if (equals != undefined) {
-            return target_value == equals;
-        }
-
-        if (not_equals != undefined) {
-            return target_value != not_equals;
-        }
-
-        if (except != undefined) {
-            return target_value != except;
-        }
-
-        return !!target_value; // show if true
-    }
-
-    get_store_value(element_id) {
-        const store = this.stores.get(element_id);
-        return store ? get(store) : null;
-    }
-
-    update_store(element_id, value) {
-        const store = this.stores.get(element_id);
-        if (store) {
-            store.set(value);
-            this.reset_hidden_elements();
-        }
-    }
-
-    reset_hidden_elements() {
-        this.elements.forEach((element) => {
-            if (!this.should_show_element(element)) {
-                const default_value = this.defaults.get(element.id);
-                this.stores.get(element.id)?.set(default_value);
-            }
-        });
-    }
-
-    get_values() {
-        const values = {};
-
-        this.elements
-            .filter((el) => this.should_show_element(el))
-            .filter((el) => !["container", "text"].includes(el.type))
-            .forEach((el) => {
-                const value = this.get_store_value(el.id);
-                values[el.id] = value;
-            });
-
-        return values;
-    }
-
     clear() {
-        this.elements.forEach((element) => {
-            const default_value = this.defaults.get(element.id);
-            this.stores.get(element.id)?.set(default_value);
+        this.elements.update((old) => {
+            const updated = old ? new Map(old) : new Map();
+
+            for (const [id, element] of Array.from(updated.entries())) {
+                const default_value = this.defaults.get(id);
+                if (default_value === undefined) continue;
+                updated.set(id, { ...element, value: default_value });
+            }
+
+            return updated;
         });
     }
 }
 
 class PopupManager {
     constructor() {
+        /** @type {Map<string, BaseAddon>} */
         this.popups = new Map();
+        /** @type {import("svelte/store").Writable<ActivePopup|null>} */
         this.active = writable(null);
     }
 

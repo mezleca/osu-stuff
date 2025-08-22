@@ -24,8 +24,7 @@
             type="text"
             placeholder={element.text}
             value={value || ""}
-            style={element.style}
-            on:input={(e) => on_update(element.id, e.target.value)}
+            oninput={(e) => on_update(element.id, e.target.value)}
         />
     {:else if element.type == "checkbox"}
         <Checkbox id={element.id} bind:value label={element.label || element.text} onchange={(id, val) => on_update(id, val)} />
@@ -42,6 +41,17 @@
             <label class="field-label">{element.label}</label>
         {/if}
         <InputDialog type={element.dialog_type || "file"} location={value} callback={(val) => on_update(element.id, val)} />
+        <!-- @TODO: button is only supported on ConfirmAddon -->
+    {:else if element.type == "button"}
+        {#if element.label}
+            <!-- svelte-ignore a11y_label_has_associated_control -->
+            <label class="field-label">{element.label}</label>
+        {/if}
+
+        <div class="button-container">
+            <!-- @NOTE: on_update will call submit on ConfirmAddon -->
+            <button class="select-button" onclick={() => on_update(element.text)}>{element.text}</button>
+        </div>
     {:else if element.type == "buttons"}
         {@const data = typeof element.data == "function" ? element.data() : element.data}
         {#if element.label}
@@ -54,7 +64,7 @@
                 {@const option_label = option.label || option}
                 {@const is_selected = (value || []).includes(option_value)}
 
-                <button class="select-button" class:selected={is_selected} on:click={() => on_toggle(element.id, option_value, element.multiple)}>
+                <button class="select-button" class:selected={is_selected} onclick={() => on_toggle(element.id, option_value, element.multiple)}>
                     {option_label}
                 </button>
             {/each}
@@ -133,11 +143,15 @@
         padding-bottom: 10px;
     }
 
+    .button-container,
     .buttons-container {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+    }
+
+    .buttons-container {
         margin-top: 8px;
+        gap: 8px;
     }
 
     .select-button {
