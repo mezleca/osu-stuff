@@ -55,8 +55,6 @@ export const initialize_indexer = async (mainWindow) => {
     window = mainWindow;
 };
 
-// unique_id = song id btw
-// yeah, i cant name stuff
 export const filter_unique_beatmaps = (beatmaps_array) => {
     const seen_unique_ids = new Set();
     const unique_beatmaps = [];
@@ -79,14 +77,19 @@ export const filter_unique_beatmaps = (beatmaps_array) => {
     return unique_beatmaps;
 };
 
-export const process_beatmaps = async (beatmaps_array) => {
+export const process_beatmaps = async (beatmaps) => {
+    let processed_beatmaps = [];
+
     if (Processor.is_processing()) {
         console.error("[indexer] already processing");
         return null;
     }
 
+    const beatmaps_array = Array.from(beatmaps.values());
+
     if (!beatmaps_array || beatmaps_array.length == 0) {
-        return new Map();
+        console.log("[indexer] beatmap array == 0");
+        return beatmaps;
     }
 
     // let everything load
@@ -95,66 +98,69 @@ export const process_beatmaps = async (beatmaps_array) => {
     window?.webContents.send("process", { show: true });
 
     const md5_list = beatmaps_array.map((b) => b.md5);
-    const existing_info = get_multiple_data(md5_list);
-
-    // get non saved beatmaps
+    // get extra beatmap data from database
+    const existing_info = get_saved_beatmap_data(md5_list);
+    // get beatmaps that have not been processed
     const to_process = beatmaps_array.filter((b) => !existing_info.has(b.md5));
 
-    let processed_beatmaps = [];
+    if (to_process.length == 0) {
+        console.log("[indexer] 0 beatmaps to process...");
+        return beatmaps;
+    }
 
-    if (to_process.length > 0) {
-        console.log(`[indexer] processing ${to_process.length} new beatmaps`);
+    console.log(`[indexer] processing ${to_process.length} new beatmaps`);
 
-        const processor_input = [];
+    const processor_input = [];
 
-        for (let i = 0; i < to_process.length; i++) {
-            const beatmap = to_process[i];
-            const result = {};
+    for (let i = 0; i < to_process.length; i++) {
+        const beatmap = to_process[i];
+        const result = {};
 
-            result.md5 = beatmap.md5;
-            result.unique_id = beatmap.unique_id;
+        result.md5 = beatmap.md5;
+        result.unique_id = beatmap.unique_id;
 
-            if (config.lazer_mode) {
-                result.file_path = beatmap.file_path;
-                result.audio_path = beatmap.audio_path;
-                result.image_path = beatmap.image_path;
-            } else {
-                result.file_path = reader.get_file_location(beatmap);
-            }
-
-            processor_input.push(result);
+        // lazer save all of the files location on realm
+        if (config.lazer_mode) {
+            result.file_path = beatmap.file_path;
+            result.audio_path = beatmap.audio_path;
+            result.image_path = beatmap.image_path;
+        } else {
+            result.file_path = reader.get_file_location(beatmap);
         }
 
-        processed_beatmaps = await Processor.process_beatmaps(processor_input, (index) => {
-            const file_name = processor_input[index].file_path;
-            const split = file_name.split("/");
-            window?.webContents.send("process-update", {
-                status: "processing beatmaps",
-                text: `processing ${split[split.length - 1]}`,
-                index,
-                length: processor_input.length,
-                small: "this might take a while"
-            });
+        processor_input.push(result);
+    }
+
+    // process beatmap using custom cpp module
+    processed_beatmaps = await Processor.process_beatmaps(processor_input, (index) => {
+        const file_name = processor_input[index].file_path;
+        const split = file_name.split("/");
+        window?.webContents.send("process-update", {
+            status: "processing beatmaps",
+            text: `processing ${split[split.length - 1]}`,
+            index,
+            length: processor_input.length,
+            small: "this might take a while"
         });
+    });
 
-        // shouldn't happen (unless we have a invalid beatmap object)
-        if (!processed_beatmaps) {
-            console.error("[indexer] failed to get processed beatmaps");
-            window?.webContents.send("process", { show: false });
-            return new Map();
-        }
+    // shouldn't happen (unless we have a invalid beatmap object)
+    if (!processed_beatmaps) {
+        console.error("[indexer] failed to get processed beatmaps");
+        window?.webContents.send("process", { show: false });
+        return new Map();
+    }
 
-        const successful_beatmaps = processed_beatmaps.filter((beatmap) => beatmap.success);
+    const successful_beatmaps = processed_beatmaps.filter((beatmap) => beatmap.success);
 
-        if (successful_beatmaps.length > 0) {
-            insert_beatmaps(successful_beatmaps);
-        }
+    if (successful_beatmaps.length > 0) {
+        insert_beatmaps(successful_beatmaps);
+    }
 
-        const failed_beatmaps = processed_beatmaps.length - successful_beatmaps.length;
+    const failed_beatmaps = processed_beatmaps.length - successful_beatmaps.length;
 
-        if (failed_beatmaps > 0) {
-            console.log("failed to proccess", failed_beatmaps, "beamtaps");
-        }
+    if (failed_beatmaps > 0) {
+        console.log("failed to proccess", failed_beatmaps, "beamtaps");
     }
 
     // prevent renderer race condition
@@ -162,24 +168,37 @@ export const process_beatmaps = async (beatmaps_array) => {
 
     window?.webContents.send("process", { show: false });
 
-    const extra_info_map = new Map(existing_info);
-
-    // create a new map object so we can append this data to the main beatmap array
+    // modify beatmaps that have been processed
     for (let i = 0; i < processed_beatmaps.length; i++) {
         const processed = processed_beatmaps[i];
 
+        // get beatmap data
+        const data = beatmaps.get(processed.md5);
+
         if (!processed.success) {
+            data.processed = false;
+        }
+
+        // remove extra shit
+        delete processed.success;
+
+        // update beatmap data
+        Object.assign(data, processed);
+    }
+
+    // also modify beatmaps that are already saved
+    for (let i = 0; i < beatmaps_array.length; i++) {
+        const md5 = beatmaps_array[i].md5;
+        const existing = existing_info.get(md5);
+
+        if (!existing) {
             continue;
         }
 
-        extra_info_map.set(processed.md5, {
-            audio_path: processed.audio_path,
-            image_path: processed.image_path,
-            duration: processed.duration
-        });
+        Object.assign(beatmaps_array[i], existing);
     }
 
-    return extra_info_map;
+    return beatmaps;
 };
 
 export const get_data = (md5) => {
@@ -190,7 +209,7 @@ export const get_data = (md5) => {
     return query.get(md5);
 };
 
-export const get_multiple_data = (md5_array) => {
+export const get_saved_beatmap_data = (md5_array) => {
     if (!md5_array || md5_array.length == 0) {
         return new Map();
     }

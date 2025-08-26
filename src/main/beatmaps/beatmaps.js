@@ -383,19 +383,8 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
 };
 
 export const get_extra_information = async (beatmaps) => {
-    const beatmaps_array = Array.from(beatmaps.values());
-    const processed_data = await process_beatmaps(beatmaps_array);
-
-    if (processed_data) {
-        for (const [md5, extra_info] of processed_data) {
-            const existing_beatmap = beatmaps.get(md5);
-            if (existing_beatmap) {
-                beatmaps.set(md5, { ...existing_beatmap, ...extra_info });
-            }
-        }
-    }
-
-    return beatmaps;
+    const processed_data = await process_beatmaps(beatmaps);
+    return processed_data;
 };
 
 export const add_beatmap = (hash, beatmap) => {

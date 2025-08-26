@@ -17,6 +17,7 @@
 
     // components
     import ControlBar from "../basic/control-bar.svelte";
+    import { show_notification } from "../../../lib/store/notifications";
 
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
@@ -96,8 +97,8 @@
     };
 
     const handle_selection_change = async () => {
-        if (!current_beatmap?.audio_path) {
-            console.log("radio: no audio path for selected beatmap");
+        if (!current_beatmap?.processed || !current_beatmap?.audio_path) {
+            show_notification({ type: "error", text: "invalid beatmap: couldn't be processed" });
             return;
         }
 

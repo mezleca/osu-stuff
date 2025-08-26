@@ -124,4 +124,4 @@ bun run build:linux
 ## credits
 
 - [CollectionManager](https://github.com/Piotrekol/CollectionManager) .osdb files
-- [Osu!Collector](https://osucollector.com) 
+- [Osu!Collector](https://osucollector.com)
