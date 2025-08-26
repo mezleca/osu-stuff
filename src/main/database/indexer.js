@@ -176,7 +176,7 @@ export const process_beatmaps = async (beatmaps) => {
         const data = beatmaps.get(processed.md5);
 
         if (!processed.success) {
-            data.processed = false;
+            continue;
         }
 
         // remove extra shit
@@ -195,6 +195,7 @@ export const process_beatmaps = async (beatmaps) => {
             continue;
         }
 
+        // update beatmap data
         Object.assign(beatmaps_array[i], existing);
     }
 

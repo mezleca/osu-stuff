@@ -22,3 +22,24 @@ export const is_special_key = (key) => {
 export const convert_special_key = (key) => {
     return SPECIAL_KEYS.has(key) ? SPECIAL_KEYS.get(key) : key;
 };
+
+export const validate_url = (url, target = null) => {
+    try {
+        const parsed = new URL(url);
+
+        // needs a hostname
+        if (!parsed.hostname || parsed.hostname.length == 0) {
+            return false;
+        }
+
+        // check if target matches
+        if (target && parsed.hostname != target) {
+            return false;
+        }
+
+        return true;
+    } catch (e) {
+        // invalid url
+        return false;
+    }
+};

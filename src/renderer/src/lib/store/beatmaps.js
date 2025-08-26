@@ -39,6 +39,8 @@ const lazer_status = {
     Loved: 4
 };
 
+const managers = new Map();
+
 export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
@@ -98,14 +100,6 @@ export class BeatmapListBase {
         return this.is_same_item(item, current);
     }
 
-    get_selected() {
-        return get(this.selected);
-    }
-
-    get_query = () => get(this.query);
-    get_sort = () => get(this.sort);
-    is_empty = () => get(this.items)?.length == 0;
-
     clear() {
         this.items.set([]);
         this.selected.set(null);
@@ -136,7 +130,7 @@ class BeatmapList extends BeatmapListBase {
     // (so you dont lost selected context on like "specific collection -> all beatmaps")
     async handle_context_change(new_beatmaps) {
         try {
-            const current_selected = this.get_selected();
+            const current_selected = get(this.selected);
 
             if (!current_selected) {
                 return;
@@ -194,12 +188,12 @@ class BeatmapList extends BeatmapListBase {
             options.sr = { min, max };
         }
 
-        const query = this.get_query();
-        const sort = this.get_sort();
-        const status = this.get_status();
+        const query = get(this.query);
+        const sort = get(this.sort);
+        const status = get(this.status);
 
         // to show invalid beatmaps ()
-        options.invalid = this.get_show_invalid();
+        options.invalid = get(this.show_invalid);
 
         // add sort to extra filter options
         if (sort != "") {
@@ -310,12 +304,41 @@ class BeatmapList extends BeatmapListBase {
         const sr_data = get(this.sr_range);
         return sr_data?.max ? sr_data.max : 0;
     }
-
-    get_show_invalid = () => get(this.show_invalid);
-    get_status = () => get(this.status);
 }
 
-const managers = new Map();
+class OsuBeatmaps {
+    constructor() {
+        this.beatmaps = writable(new Map());
+    }
+
+    add(key, beatmap) {
+        this.beatmaps.update((map) => {
+            const new_map = new Map(map);
+            new_map.set(key, beatmap);
+            return new_map;
+        });
+    }
+
+    remove(key) {
+        this.beatmaps.update((map) => {
+            const new_map = new Map(map);
+            new_map.delete(key);
+            return new_map;
+        });
+    }
+
+    get(key) {
+        return get(this.beatmaps).get(key);
+    }
+
+    has(key) {
+        return get(this.beatmaps).has(key);
+    }
+
+    all() {
+        return get(this.beatmaps);
+    }
+};
 
 /** @returns {BeatmapList} */
 export const get_beatmap_list = (tab_id) => {
@@ -326,7 +349,9 @@ export const get_beatmap_list = (tab_id) => {
     return managers.get(tab_id);
 };
 
-export const get_code_by_mode = (mode) => mode_code[mode] ?? -1;
+export const get_code_by_mode = (mode) => {
+    return mode_code[mode] ?? -1;
+};
 
 export const get_beatmap_status_code = (status) => {
     if (!status) {
@@ -343,46 +368,4 @@ export const get_beatmap_status_code = (status) => {
     return beatmap_status[status];
 };
 
-export const discover_beatmaps_search = writable("");
-export const collection_search = writable("");
-export const osu_beatmaps_store = writable(new Map());
-
-export const osu_beatmaps = {
-    add: (hash, beatmap) => {
-        osu_beatmaps_store.update((map) => {
-            const new_map = new Map(map);
-            new_map.set(hash, beatmap);
-            return new_map;
-        });
-    },
-    set: (data) => {
-        osu_beatmaps_store.update(() => data);
-    },
-    has: (hash) => {
-        let exists = false;
-        osu_beatmaps_store.subscribe((map) => {
-            exists = map.has(hash);
-        })();
-        return exists;
-    },
-    get: (hash) => {
-        let value;
-        osu_beatmaps_store.subscribe((map) => {
-            value = map.get(hash);
-        })();
-        return value;
-    },
-    remove: (hash) => {
-        osu_beatmaps_store.update((map) => {
-            const new_map = new Map(map);
-            new_map.delete(hash);
-            return new_map;
-        });
-    },
-    clear: () => {
-        osu_beatmaps_store.set(new Map());
-    },
-    all: () => {
-        return Array.from(get(osu_beatmaps_store).values());
-    }
-};
+export const osu_beatmaps = new OsuBeatmaps();
