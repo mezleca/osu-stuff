@@ -382,11 +382,6 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
     return filtered_beatmaps.map((b) => (typeof b == "string" ? b : b?.md5));
 };
 
-export const get_extra_information = async (beatmaps) => {
-    const processed_data = await process_beatmaps(beatmaps);
-    return processed_data;
-};
-
 export const add_beatmap = (hash, beatmap) => {
     if (!hash || !beatmap) {
         console.log("failed to add beatmap (missing shit)");
@@ -427,7 +422,7 @@ export const get_beatmaps_from_database = async (force) => {
     }
 
     osu_data = result;
-    osu_data.beatmaps = await get_extra_information(osu_data.beatmaps);
+    osu_data.beatmaps = await process_beatmaps(osu_data.beatmaps);
 
     return true;
 };
