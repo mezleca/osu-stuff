@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 
 export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
+export const MAX_STAR_RATING_VALUE = 10; // lazer
 
 let osu_data = null;
 
@@ -266,6 +267,18 @@ export const sort_beatmaps = (beatmaps, type) => {
     return result;
 };
 
+export const validate_star_rating = (sr, min, max) => {
+    if (sr < min) {
+        return false;
+    }
+
+    if (max == MAX_STAR_RATING_VALUE) {
+        return true;
+    }
+
+    return sr <= max;
+};
+
 export const filter_by_sr = (beatmap, min, max) => {
     // ignore unknown beatmaps
     if (!beatmap || typeof beatmap == "string") {
@@ -277,18 +290,12 @@ export const filter_by_sr = (beatmap, min, max) => {
         return true;
     }
 
-    // my logic sucks so lets do that
+    // what
     if (min == 0 && max == 0) {
         return true;
     }
 
-    const star_rating = beatmap.star_rating[beatmap.mode]?.nm;
-
-    if (star_rating && star_rating >= min && star_rating <= max) {
-        return true;
-    }
-
-    return false;
+    return validate_star_rating(beatmap.star_rating, min, max);
 };
 
 export const get_missing_beatmaps = (beatmaps) => {
@@ -361,6 +368,7 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
         // filter by sr
         if (beatmap && extra.sr) {
             const result = filter_by_sr(beatmap, extra.sr.min, extra.sr.max);
+
             if (!result) {
                 continue;
             }

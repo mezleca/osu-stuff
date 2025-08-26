@@ -15,6 +15,11 @@ export class FetchManager {
         if (!options.url) {
             return { error: "missing url parameter" };
         }
+
+        if (typeof options.url != "string") {
+            return { error: "url has invalid type: " + typeof options.url };
+        }
+        
         return null;
     }
 
@@ -93,7 +98,7 @@ export class FetchManager {
         }
 
         // handle media
-        if (options.url.startsWith("media://")) {
+        if (options.url?.startsWith("media://")) {
             try {
                 return await this.handle_media_protocol(options.url);
             } catch (err) {

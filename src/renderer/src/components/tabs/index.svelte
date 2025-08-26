@@ -6,6 +6,7 @@
 
     // components
     import Popup from "../utils/popup/popup.svelte";
+    import { get_player_data } from "../../lib/utils/beatmaps";
 
     const popup_manager = get_popup_manager("index");
     const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
@@ -33,9 +34,13 @@
     const create_yes_no_confirm_addon = () => {
         const addon = new ConfirmAddon("text");
 
-        addon.add({ text: "question here!!!" });
+        addon.add({ text: "get ranked sotarks maps?" });
 
-        addon.set_callback((v) => console.log(v));
+        addon.set_callback(async (v) => {
+            const result = await get_player_data({ player_name: "Sotarks", beatmap_options: new Set(["created maps"]), beatmap_status: new Set(["ranked"]), star_rating: { min: 0, max: 10 } });
+            console.log(result);
+        });
+
         popup_manager.register("question", addon);
     };
 

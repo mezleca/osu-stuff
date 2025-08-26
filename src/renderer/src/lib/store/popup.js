@@ -103,7 +103,7 @@ class BaseAddon {
     update(id, value) {
         this.elements.update((old) => {
             const updated = old ? new Map(old) : new Map();
-            const is_full_element = value && typeof value === "object" && (value.type || value.id || value.hasOwnProperty("value"));
+            const is_full_element = value && typeof value == "object" && (value.type || value.id || value.hasOwnProperty("value"));
 
             if (is_full_element) {
                 // set/replace full element object
@@ -241,7 +241,7 @@ export class PopupAddon extends BaseAddon {
 
             for (const [id, element] of Array.from(updated.entries())) {
                 const default_value = this.defaults.get(id);
-                if (default_value === undefined) continue;
+                if (default_value == undefined) continue;
                 updated.set(id, { ...element, value: default_value });
             }
 
