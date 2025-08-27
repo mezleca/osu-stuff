@@ -26,6 +26,14 @@ export const format_time = (secs) => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
+export const string_is_valid = (value) => {
+    if (typeof value != "string") return false;
+    if (value == "" || value == " ") return false;
+    return true;
+};
+
+export const context_separator = "<|=‎=|>";
+
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {
     if (typeof options != "object") {

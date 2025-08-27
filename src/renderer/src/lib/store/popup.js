@@ -32,17 +32,17 @@ import { get, writable } from "svelte/store";
 const DEFAULT_OPTIONS = {
     id: "",
     type: "",
-    class: "",
-    parent: "",
+    class: "", // css
+    parent: "", // parent container
     text: "",
-    label: "",
+    label: "", // for buttons, etc...
     value: "",
-    font_size: 14,
-    min: 0,
-    max: 10,
-    data: [],
-    multiple: false,
-    show_when: null
+    font_size: 14, // for text type
+    min: 0, // range type
+    max: 10, // range type
+    data: [], // for buttons
+    multiple: false, // for buttons
+    show_when: null // condition array
 };
 
 class BaseAddon {
@@ -258,7 +258,7 @@ export class ConfirmAddon extends BaseAddon {
             }
 
             element.multiple = false;
-        } else if (element.type === "text") {
+        } else if (element.type == "text") {
             // text doesn't need id, but if missing, generate random one
             if (!element.id) {
                 element.id = crypto.randomUUID();

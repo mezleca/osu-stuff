@@ -67,7 +67,7 @@
         addon.add({ id: "container", type: "container", show_when: { id: "mhm", equals: true } });
         addon.add({ id: "container2", type: "container", show_when: { id: "mhm2", equals: "active" } });
         addon.add({ id: "drop", type: "dropdown", text: "items", data: ["123", "321", "1", "aaaaaaa"] });
-        addon.add({ id: "cool", type: "buttons", label: "cool", multiple: true, data: () => ["abc", "bcd", "efg"] });
+        addon.add({ id: "cool", type: "buttons", label: "cool (row)", class: "row", multiple: true, data: () => ["abc", "bcd", "efg"] });
         addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: () => get_random_shit(10) });
         addon.add({ id: "cool3", type: "buttons", label: "cool3", multiple: true, parent: "container2", data: ["321", "123"] });
 

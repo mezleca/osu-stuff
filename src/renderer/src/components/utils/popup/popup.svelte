@@ -168,6 +168,7 @@
         border: 1px solid rgb(90, 90, 90, 0.5);
         min-width: 500px;
         max-height: 85%;
+        max-width: 80%;
         overflow: hidden;
         overflow-y: scroll;
         margin-top: 50px;

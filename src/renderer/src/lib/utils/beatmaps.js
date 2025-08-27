@@ -119,7 +119,6 @@ export const fetch_osu_beatmaps = async (base_url, limit = 999) => {
     return maps.filter((b) => b != undefined);
 };
 
-// @NOTE: same func from main proc
 export const validate_star_rating = (sr, min, max) => {
     if (sr < min) {
         return false;
@@ -147,40 +146,42 @@ export const get_player_data = async (options) => {
 
     try {
         // get player data
-        const player_response = await fetch({ url: `https://osu.ppy.sh/api/v2/users/${player_name}`, ...fetch_config });
+        const player_response = await fetch({
+            url: `https://osu.ppy.sh/api/v2/users/${player_name}`,
+            ...fetch_config
+        });
 
         if (player_response.status != 200) {
             show_notification({ type: "error", text: player_response.statusText });
-            console.log("player response:", player_response);
             return null;
         }
 
         const player = await player_response.json();
-        console.log("player data:", player);
 
         if (!player?.id) {
-            console.log("[get_player_data] player not found:", player_name);
             return null;
         }
 
-        // get extra data
-        const extra_response = await fetch({ url: `https://osu.ppy.sh/users/${player.id}/extra-pages/top_ranks?mode=osu`, ...fetch_config });
+        // get extra data for counts
+        const extra_response = await fetch({
+            url: `https://osu.ppy.sh/users/${player.id}/extra-pages/top_ranks?mode=osu`,
+            ...fetch_config
+        });
 
         if (!extra_response) {
             show_notification({ type: "error", text: extra_response.statusText });
-            console.log("extra data:", extra);
             return null;
         }
 
         const extra = await extra_response.json();
-        console.log("extra data:", extra);
 
         const has_option = (name) => beatmap_options.has(name) || beatmap_options.has("all");
         const has_status = (status) => beatmap_status.has(status) || beatmap_status.has("all");
 
-        const should_fetch_created = has_option("created maps");
+        // build promises for fetching beatmaps
         const beatmap_promises = [];
 
+        // first place scores
         if (extra.firsts?.count && has_option("first place")) {
             beatmap_promises.push({
                 key: "firsts",
@@ -188,6 +189,7 @@ export const get_player_data = async (options) => {
             });
         }
 
+        // best performance scores
         if (extra.best?.count && has_option("best performance")) {
             beatmap_promises.push({
                 key: "bests",
@@ -195,7 +197,7 @@ export const get_player_data = async (options) => {
             });
         }
 
-        // user favourites
+        // favourite beatmaps
         if (player.favourite_beatmapset_count && has_option("favourites")) {
             beatmap_promises.push({
                 key: "favs",
@@ -203,7 +205,9 @@ export const get_player_data = async (options) => {
             });
         }
 
-        // user created beatmaps
+        // created beatmaps by status
+        const should_fetch_created = has_option("created maps");
+
         if (should_fetch_created) {
             if (player.ranked_beatmapset_count && has_status("ranked")) {
                 beatmap_promises.push({
@@ -249,33 +253,32 @@ export const get_player_data = async (options) => {
             beatmap_data[p.key] = beatmap_results[index] || [];
         });
 
-        console.log("finished fetch promise", beatmap_data);
-
         // filter beatmaps
         const filter_maps = (maps) => {
             return maps.filter((map) => {
                 // score with beatmap property
                 if (map?.beatmap?.difficulty_rating != undefined) {
                     const b = map.beatmap;
+
                     if (!has_status(b.status)) {
-                        console.log("map does not have status", b.status);
                         return false;
                     }
+
                     return validate_star_rating(b.difficulty_rating, star_rating.min, star_rating.max);
                 }
 
                 // beatmapset with multiple beatmaps
                 if (map?.beatmaps != undefined) {
                     if (!has_status(map?.status)) {
-                        console.log("map does not have status", map.status);
                         return false;
                     }
+
+                    // check if at least one difficulty passes the star rating filter
                     return map.beatmaps.some((b) => validate_star_rating(b.difficulty_rating, star_rating.min, star_rating.max));
                 }
 
                 // single beatmap
                 if (!has_status(map?.status)) {
-                    console.log("map does not have status", map.status);
                     return false;
                 }
 
@@ -284,19 +287,60 @@ export const get_player_data = async (options) => {
             });
         };
 
-        // combine and filter all maps
-        const all_maps = new Set([
-            ...beatmap_data.firsts,
-            ...beatmap_data.bests,
-            ...beatmap_data.favs,
-            ...beatmap_data.ranked,
-            ...beatmap_data.loved,
-            ...beatmap_data.pending,
-            ...beatmap_data.grave
+        // filter each category separately
+        const filtered_data = {
+            firsts: filter_maps(beatmap_data.firsts),
+            bests: filter_maps(beatmap_data.bests),
+            favs: filter_maps(beatmap_data.favs),
+            ranked: filter_maps(beatmap_data.ranked),
+            loved: filter_maps(beatmap_data.loved),
+            pending: filter_maps(beatmap_data.pending),
+            grave: filter_maps(beatmap_data.grave)
+        };
+
+        // combine all filtered maps
+        const all_filtered_maps = new Set([
+            ...filtered_data.firsts,
+            ...filtered_data.bests,
+            ...filtered_data.favs,
+            ...filtered_data.ranked,
+            ...filtered_data.loved,
+            ...filtered_data.pending,
+            ...filtered_data.grave
         ]);
 
-        // filter and convert new beatmaps
-        const filtered_maps = filter_maps(Array.from(all_maps)).map((b) => convert_beatmap_keys(b));
+        const expanded_maps = [];
+
+        for (const map of Array.from(all_filtered_maps)) {
+            if (map?.beatmaps && Array.isArray(map.beatmaps)) {
+                // for beatmapsets, only include difficulties that pass the sr filter
+                for (const diff of map.beatmaps) {
+                    if (validate_star_rating(diff.difficulty_rating, star_rating.min, star_rating.max)) {
+                        const merged = { ...map, ...diff };
+                        delete merged.beatmaps;
+                        expanded_maps.push(merged);
+                    }
+                }
+            } else {
+                expanded_maps.push(map);
+            }
+        }
+
+        // convert all maps to consistent format
+        const converted_maps = expanded_maps.map((map) => convert_beatmap_keys(map));
+
+        // deduplicate by md5 or difficulty_id
+        const unique_maps = converted_maps
+            .filter((map) => map.md5 || map.difficulty_id)
+            .reduce((acc, map) => {
+                const key = map.md5 || map.difficulty_id;
+                if (!acc.has(key)) {
+                    acc.set(key, map);
+                }
+                return acc;
+            }, new Map());
+
+        const final_maps = Array.from(unique_maps.values());
 
         return {
             player: {
@@ -309,16 +353,16 @@ export const get_player_data = async (options) => {
                 rank_history: player.rank_history
             },
             counts: {
-                firsts: beatmap_data.firsts.length,
-                bests: beatmap_data.bests.length,
-                favs: beatmap_data.favs.length,
-                ranked: beatmap_data.ranked.length,
-                loved: beatmap_data.loved.length,
-                pending: beatmap_data.pending.length,
-                grave: beatmap_data.grave.length,
-                total: filtered_maps.length
+                firsts: filtered_data.firsts.length,
+                bests: filtered_data.bests.length,
+                favs: filtered_data.favs.length,
+                ranked: filtered_data.ranked.length,
+                loved: filtered_data.loved.length,
+                pending: filtered_data.pending.length,
+                grave: filtered_data.grave.length,
+                total: final_maps.length
             },
-            maps: filtered_maps,
+            maps: final_maps,
             filters: {
                 sr_range: star_rating,
                 options: Array.from(beatmap_options),
