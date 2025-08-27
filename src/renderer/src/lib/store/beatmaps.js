@@ -45,6 +45,7 @@ export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
         this.last_options = null;
+        this.hide_remove = writable(false); // hide remove beatmap option from context menu
         this.index = writable(-1);
         this.items = writable([]);
         this.selected = writable(null);
@@ -177,7 +178,6 @@ class BeatmapList extends BeatmapListBase {
         // to return all of the beatmaps
         if (is_all_beatmaps) {
             options.all = true;
-            options.unique = true;
         }
 
         // add star range to extra filter options

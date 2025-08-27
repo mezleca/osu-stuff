@@ -146,16 +146,16 @@
         <div class="info" onclick={extra} class:centered={center}>
             <div class="title">{beatmap?.title ?? "unknown"}</div>
             <div class="subtitle">by {beatmap?.artist ?? "unknown"}</div>
-            <div class="mapper">mapped by {beatmap.mapper ?? "unknown"}</div>
+            <div class="mapper">mapped by {beatmap?.mapper ?? "unknown"}</div>
             {#if show_status}
                 <div class="stats">
                     <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
                     <div class="right-stats">
                         {#if show_bpm}
-                            <span class="stars">{Math.round(beatmap.bpm) ?? "0"} bpm</span>
+                            <span class="stars">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
                         {/if}
                         {#if show_star_rating}
-                            <span class="stars">★ {beatmap?.star_rating?.[beatmap.mode].nm ?? 0}</span>
+                            <span class="stars">★ {beatmap?.star_rating?.[beatmap?.mode].nm ?? 0}</span>
                         {/if}
                     </div>
                 </div>

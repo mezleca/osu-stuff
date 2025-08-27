@@ -15,11 +15,11 @@
     export let selected_collection;
     export let carousel;
     export let show_bpm = true;
+    export let show_remove = true;
     export let show_star_rating = true;
     export let show_status = true;
     export let center = false;
     export let show_context = true;
-    export let selected_beatmap;
     export let max_width;
     export let height = 100;
     export let columns = 0;
@@ -31,16 +31,10 @@
     export let on_end = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
-
-    $: beatmaps = list.beatmaps;
-    $: selected = list.selected;
-
-    $: if ($selected) {
-        selected_beatmap = $selected;
-    }
+    const { beatmaps, selected } = list;
 
     $: all_collections = collections.all_collections;
-    $: should_hide_remove = collections.hide_remove;
+    $: should_hide_remove = list.hide_remove;
     $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
     const handle_control = async (type, beatmap) => {
@@ -131,7 +125,7 @@
 
     const get_context_options = (beatmap, hash) => {
         const collections_name = $all_collections
-            .filter((c) => c.name != $selected_collection.name)
+            .filter((c) => ($selected_collection ? c.name != $selected_collection.name : true))
             .map((c) => ({ id: `move-${c.name}-${hash}`, text: c.name }));
 
         const result = [{ id: "browser", text: "open in browser" }];
@@ -178,12 +172,13 @@
                         {beatmap}
                         {show_bpm}
                         {show_star_rating}
+                        {show_remove}
                         {show_status}
                         {show_control}
                         {set}
                         {center}
                         selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
-                        control={(type) => handle_control(type, beatmap)}
+                        control={show_remove ? (type) => handle_control(type, beatmap) : null}
                         click={() => handle_click(beatmap, index)}
                     />
                 </ContextMenu>

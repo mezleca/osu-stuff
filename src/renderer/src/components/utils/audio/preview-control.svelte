@@ -36,7 +36,6 @@
 
         // setup new audio
         const url = beatmap?.preview_url ? `https:${beatmap.preview_url}` : `${PREVIEW_BASE_URL}${beatmap.beatmapset_id}.mp3`;
-        console.log("preview: setting up new track:", url);
         const audio = await get_audio_preview(url);
 
         if (!audio) {

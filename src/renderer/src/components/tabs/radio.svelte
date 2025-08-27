@@ -26,12 +26,11 @@
     $: selected_collection = collections.selected_radio;
     $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
-    $: beatmap = $selected;
     $: bg = PlaceholderImg;
 
     const update_background_image = () => {
-        if (beatmap && beatmap?.image_path) {
-            get_image_url(beatmap.image_path).then((url) => (bg = url));
+        if ($selected && $selected?.image_path) {
+            get_image_url($selected.image_path).then((url) => (bg = url));
         } else {
             bg = PlaceholderImg;
         }
@@ -39,13 +38,13 @@
 
     const update_beatmaps = async () => {
         // hide remove beatmap option if we're showing all beatmaps
-        collections.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
+        list.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
         const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort });
         if (beatmaps) list.set_beatmaps(beatmaps, $selected_collection, true);
     };
 
     // update radio bg on beatmap change
-    $: if (beatmap) {
+    $: if ($selected) {
         update_background_image();
     }
 
@@ -82,7 +81,7 @@
 
     onDestroy(() => {
         input.unregister("f2", "shift+f2");
-        collections.hide_remove.set(false);
+        list.hide_remove.set(false);
     });
 </script>
 
@@ -108,7 +107,6 @@
                 max_width={true}
                 show_control={false}
                 remove_callback={update_beatmaps}
-                bind:selected_beatmap={beatmap}
             />
         </div>
 
@@ -116,31 +114,31 @@
             <div class="radio-beatmap">
                 <div class="radio-beatmap-header">
                     <div class="status">playing</div>
-                    <div class="status">{beatmap?.status_text ?? "unknown"}</div>
+                    <div class="status">{$selected?.status_text ?? "unknown"}</div>
                 </div>
 
                 <div class="song-info">
-                    <div class="title">{beatmap?.title || "No song selected"}</div>
-                    <div class="artist">{beatmap?.artist || ""}</div>
+                    <div class="title">{$selected?.title || "No song selected"}</div>
+                    <div class="artist">{$selected?.artist || ""}</div>
                 </div>
 
                 <div class="stats">
                     <div class="stat">
                         <div class="stat-label">BPM</div>
-                        <div class="stat-value">{beatmap?.bpm || "---"}</div>
+                        <div class="stat-value">{$selected?.bpm || "---"}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">DURATION</div>
-                        <div class="stat-value">{beatmap?.duration ? format_time(beatmap?.duration) : "---"}</div>
+                        <div class="stat-value">{$selected?.duration ? format_time($selected?.duration) : "---"}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">MAPPED BY</div>
-                        <div class="stat-value">{beatmap?.mapper || "---"}</div>
+                        <div class="stat-value">{$selected?.mapper || "---"}</div>
                     </div>
                 </div>
 
                 <div class="radio-controls">
-                    {#if beatmap?.md5}
+                    {#if $selected?.md5}
                         <RadioControl />
                     {/if}
                 </div>
