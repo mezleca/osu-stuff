@@ -2,7 +2,7 @@
     import { collections } from "../../lib/store/collections";
     import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
-    import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
+    import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
     import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
@@ -461,6 +461,34 @@
 
         addon.set_callback(handle_merge_collections);
         popup_manager.register("merge", addon);
+    };
+
+    // @TODO: v1 has support for multiple users using "tag" component
+    const create_from_player_popup = () => {
+        const addon = new PopupAddon();
+
+        // player name
+        addon.add({ id: "player_name", type: "input", label: "player name", value: "ppy" });
+
+        // beatmap options
+        addon.add({
+            id: "beatmap_options",
+            type: "buttons",
+            label: "beatmap options",
+            multiple: true,
+            data: ["best performance", "first place", "favourites", "created maps"]
+        });
+
+        // beatmap status
+        addon.add({
+            id: "beatmap_status",
+            type: "buttons",
+            label: "beatmap status",
+            multiple: true,
+            data: Object.keys(beatmap_status)
+        });
+
+        // @TODO: sr
     };
 
     const create_new_collection_popup = () => {

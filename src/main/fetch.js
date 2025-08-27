@@ -19,7 +19,7 @@ export class FetchManager {
         if (typeof options.url != "string") {
             return { error: "url has invalid type: " + typeof options.url };
         }
-        
+
         return null;
     }
 

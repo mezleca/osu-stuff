@@ -34,10 +34,16 @@
     const create_yes_no_confirm_addon = () => {
         const addon = new ConfirmAddon("text");
 
-        addon.add({ text: "get ranked sotarks maps?" });
+        addon.add({ text: "test player fetch?" });
 
         addon.set_callback(async (v) => {
-            const result = await get_player_data({ player_name: "Sotarks", beatmap_options: new Set(["created maps"]), beatmap_status: new Set(["ranked"]), star_rating: { min: 0, max: 10 } });
+            const result = await get_player_data({
+                player_name: "Froslass",
+                beatmap_options: new Set(["created maps", "first place"]),
+                beatmap_status: new Set(["ranked", "loved"]),
+                star_rating: { min: 0, max: 10 }
+            });
+
             console.log(result);
         });
 

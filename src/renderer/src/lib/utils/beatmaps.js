@@ -43,7 +43,19 @@ export const get_by_unique_id = async (id) => {
 };
 
 export const convert_beatmap_keys = (beatmap) => {
-    const processed = { ...beatmap };
+    const processed = beatmap;
+
+    // its possible we're dealing with something from the osu! api
+    // so lets ensure we have everything in the right place
+    // normally first place shit
+    if (beatmap?.beatmap && beatmap?.beatmapset && beatmap?.pp) {
+        Object.assign(processed, { ...beatmap.beatmapset, ...beatmap.beatmap });
+
+        // not needed
+        delete processed.beatmapset;
+        delete processed.beatmap;
+    }
+
     const mode = get_code_by_mode(processed.mode);
 
     for (const [old_key, new_key] of Object.entries(RENAME_MAP)) {
@@ -64,15 +76,22 @@ export const convert_beatmap_keys = (beatmap) => {
         }
     }
 
-    processed.status = get_beatmap_status_code(processed.status) || 0;
+    // set status if possible
+    if (isNaN(Number(processed.status))) {
+        processed.status = get_beatmap_status_code(processed.status) || 0;
+    }
+
+    // set extra options
     processed.mode = mode;
+    processed.local = true;
+    processed.downloaded = true;
 
     return processed;
 };
 
 // get osu beatmaps from osu! api
 export const fetch_osu_beatmaps = async (base_url, limit = 999) => {
-    const maps = [];  
+    const maps = [];
     let offset = 0;
 
     for (let i = 0; i < limit; i++) {
@@ -123,7 +142,7 @@ export const get_player_data = async (options) => {
 
     const fetch_config = {
         method: "GET",
-        headers: { 'Authorization': `Bearer ${get(access_token)}` }
+        headers: { Authorization: `Bearer ${get(access_token)}` }
     };
 
     try {
@@ -147,7 +166,7 @@ export const get_player_data = async (options) => {
         // get extra data
         const extra_response = await fetch({ url: `https://osu.ppy.sh/users/${player.id}/extra-pages/top_ranks?mode=osu`, ...fetch_config });
 
-        if (!extra_response ) {
+        if (!extra_response) {
             show_notification({ type: "error", text: extra_response.statusText });
             console.log("extra data:", extra);
             return null;
@@ -159,39 +178,78 @@ export const get_player_data = async (options) => {
         const has_option = (name) => beatmap_options.has(name) || beatmap_options.has("all");
         const has_status = (status) => beatmap_status.has(status) || beatmap_status.has("all");
 
-        // fetch beatmaps
-        const beatmaps = await Promise.all([
-            extra.firsts?.count && has_option("first place") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/scores/firsts?mode=osu`, extra.firsts.count, star_rating) 
-                : [],
-            
-            extra.best?.count && has_option("best performance") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/scores/best?mode=osu`, extra.best.count, star_rating) 
-                : [],
-            
-            player.favourite_beatmapset_count && has_option("favourites") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/favourite`, player.favourite_beatmapset_count, star_rating) 
-                : [],
-            
-            player.ranked_beatmapset_count && has_status("ranked") && has_option("created maps") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/ranked`, player.ranked_beatmapset_count, star_rating) 
-                : [],
-            
-            player.loved_beatmapset_count && has_status("loved") && has_option("created maps") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/loved`, player.loved_beatmapset_count, star_rating) 
-                : [],
-            
-            player.pending_beatmapset_count && has_status("pending") && has_option("created maps") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/pending`, player.pending_beatmapset_count, star_rating) 
-                : [],
-            
-            player.graveyard_beatmapset_count && has_status("graveyard") && has_option("created maps") 
-                ? fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/graveyard`, player.graveyard_beatmapset_count, star_rating) 
-                : []
-        ]);
+        const should_fetch_created = has_option("created maps");
+        const beatmap_promises = [];
 
-        console.log("finished fetch promise", beatmaps);
-        const [firsts, bests, favs, ranked, loved, pending, grave] = beatmaps;
+        if (extra.firsts?.count && has_option("first place")) {
+            beatmap_promises.push({
+                key: "firsts",
+                promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/scores/firsts?mode=osu`, extra.firsts.count)
+            });
+        }
+
+        if (extra.best?.count && has_option("best performance")) {
+            beatmap_promises.push({
+                key: "bests",
+                promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/scores/best?mode=osu`, extra.best.count)
+            });
+        }
+
+        // user favourites
+        if (player.favourite_beatmapset_count && has_option("favourites")) {
+            beatmap_promises.push({
+                key: "favs",
+                promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/favourite`, player.favourite_beatmapset_count)
+            });
+        }
+
+        // user created beatmaps
+        if (should_fetch_created) {
+            if (player.ranked_beatmapset_count && has_status("ranked")) {
+                beatmap_promises.push({
+                    key: "ranked",
+                    promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/ranked`, player.ranked_beatmapset_count)
+                });
+            }
+
+            if (player.loved_beatmapset_count && has_status("loved")) {
+                beatmap_promises.push({
+                    key: "loved",
+                    promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/loved`, player.loved_beatmapset_count)
+                });
+            }
+
+            if (player.pending_beatmapset_count && has_status("pending")) {
+                beatmap_promises.push({
+                    key: "pending",
+                    promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/pending`, player.pending_beatmapset_count)
+                });
+            }
+
+            if (player.graveyard_beatmapset_count && has_status("graveyard")) {
+                beatmap_promises.push({
+                    key: "grave",
+                    promise: fetch_osu_beatmaps(`https://osu.ppy.sh/users/${player.id}/beatmapsets/graveyard`, player.graveyard_beatmapset_count)
+                });
+            }
+        }
+
+        // execute all promises
+        const beatmap_results = await Promise.all(beatmap_promises.map((p) => p.promise));
+
+        // organize results by key
+        const beatmap_data = {};
+        const all_keys = ["firsts", "bests", "favs", "ranked", "loved", "pending", "grave"];
+
+        // initialize all keys with empty arrays
+        all_keys.forEach((key) => (beatmap_data[key] = []));
+
+        // populate with actual data
+        beatmap_promises.forEach((p, index) => {
+            beatmap_data[p.key] = beatmap_results[index] || [];
+        });
+
+        console.log("finished fetch promise", beatmap_data);
 
         // filter beatmaps
         const filter_maps = (maps) => {
@@ -205,16 +263,16 @@ export const get_player_data = async (options) => {
                     }
                     return validate_star_rating(b.difficulty_rating, star_rating.min, star_rating.max);
                 }
-                
+
                 // beatmapset with multiple beatmaps
                 if (map?.beatmaps != undefined) {
                     if (!has_status(map?.status)) {
                         console.log("map does not have status", map.status);
                         return false;
                     }
-                    return map.beatmaps.some(b => validate_star_rating(b.difficulty_rating, star_rating.min, star_rating.max));
+                    return map.beatmaps.some((b) => validate_star_rating(b.difficulty_rating, star_rating.min, star_rating.max));
                 }
-                
+
                 // single beatmap
                 if (!has_status(map?.status)) {
                     console.log("map does not have status", map.status);
@@ -227,8 +285,18 @@ export const get_player_data = async (options) => {
         };
 
         // combine and filter all maps
-        const all_maps = new Set([...firsts, ...bests, ...favs, ...ranked, ...loved, ...pending, ...grave]);
-        const filtered_maps = filter_maps(Array.from(all_maps));
+        const all_maps = new Set([
+            ...beatmap_data.firsts,
+            ...beatmap_data.bests,
+            ...beatmap_data.favs,
+            ...beatmap_data.ranked,
+            ...beatmap_data.loved,
+            ...beatmap_data.pending,
+            ...beatmap_data.grave
+        ]);
+
+        // filter and convert new beatmaps
+        const filtered_maps = filter_maps(Array.from(all_maps)).map((b) => convert_beatmap_keys(b));
 
         return {
             player: {
@@ -241,23 +309,22 @@ export const get_player_data = async (options) => {
                 rank_history: player.rank_history
             },
             counts: {
-                firsts: firsts.length,
-                bests: bests.length,
-                favs: favs.length,
-                ranked: ranked.length,
-                loved: loved.length,
-                pending: pending.length,
-                grave: grave.length,
+                firsts: beatmap_data.firsts.length,
+                bests: beatmap_data.bests.length,
+                favs: beatmap_data.favs.length,
+                ranked: beatmap_data.ranked.length,
+                loved: beatmap_data.loved.length,
+                pending: beatmap_data.pending.length,
+                grave: beatmap_data.grave.length,
                 total: filtered_maps.length
             },
             maps: filtered_maps,
             filters: {
                 sr_range: star_rating,
                 options: Array.from(beatmap_options),
-                statuses: Array.from(beatmap_status)
+                status: Array.from(beatmap_status)
             }
         };
-
     } catch (error) {
         console.error("[get_player_data] error:", error);
         return null;

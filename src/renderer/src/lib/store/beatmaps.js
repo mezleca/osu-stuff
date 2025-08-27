@@ -5,7 +5,7 @@ import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
 import { config } from "./config";
 
-const mode_code = {
+export const mode_code = {
     osu: 0,
     "osu!": 0,
     taiko: 1,
@@ -13,7 +13,7 @@ const mode_code = {
     mania: 3
 };
 
-const beatmap_status = {
+export const beatmap_status = {
     all: -1,
     unknown: 0,
     unsubmitted: 1,
@@ -27,7 +27,7 @@ const beatmap_status = {
     loved: 7
 };
 
-const lazer_status = {
+export const lazer_status = {
     LocallyModified: -4,
     None: -3,
     Graveyard: -2,
@@ -338,7 +338,7 @@ class OsuBeatmaps {
     all() {
         return get(this.beatmaps);
     }
-};
+}
 
 /** @returns {BeatmapList} */
 export const get_beatmap_list = (tab_id) => {
