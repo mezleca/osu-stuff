@@ -49,6 +49,9 @@ class BaseAddon {
     constructor() {
         /** @type {import("svelte/store").Writable<Map<string, PopupElement>>} */
         this.elements = writable(new Map());
+        this.custom_action = false;
+        this.custom_submit = "yes";
+        this.custom_cancel = "no";
         this.defaults = new Map();
         this.callback = null;
     }
@@ -205,47 +208,99 @@ class BaseAddon {
         return values;
     }
 
+    set_custom_action(value) {
+        this.custom_action = value;
+    }
+
+    set_submit_action(value) {
+        this.custom_submit = value;
+    }
+
+    set_cancel_action(value) {
+        this.custom_cancel = value;
+    }
+
     clear() {
         throw new Error("clear(): not implemented");
     }
 }
 
 export class ConfirmAddon extends BaseAddon {
-    constructor(type) {
+    constructor() {
         super();
-        this.type = type || "text";
     }
 
     add(options = {}) {
         const element = { ...DEFAULT_OPTIONS, ...options };
 
-        if (!element.id && this.type != "text") {
-            console.error("element requires id", element);
+        // if no type is specified, determine by properties
+        if (!element.type) {
+            if (element.id && (element.text || element.label)) {
+                element.type = "button";
+            } else if (element.text && !element.id) {
+                element.type = "text";
+            } else {
+                console.error("element requires either id+text/label for button or just text for display", element);
+                return this;
+            }
+        }
+
+        // validate based on type
+        if (element.type == "button") {
+            if (!element.id) {
+                console.error("button element requires id", element);
+                return this;
+            }
+
+            if (!element.text && !element.label) {
+                console.error("button element requires text or label", element);
+                return this;
+            }
+
+            element.multiple = false;
+        } else if (element.type === "text") {
+            // text doesn't need id, but if missing, generate random one
+            if (!element.id) {
+                element.id = crypto.randomUUID();
+            }
+
+            if (!element.text) {
+                console.error("text element requires text property", element);
+                return this;
+            }
+        } else {
+            console.error("ConfirmAddon only supports 'button' and 'text' types, got:", element.type);
             return this;
         }
 
-        // ensure the new element has the correct type/multiple flags
-        element.type = this.type == "button" ? "button" : "text";
-
-        if (this.type == "button") {
-            element.multiple = false;
-        }
-
-        // give random id to prevent issues
-        if (this.type == "text") {
-            element.id = crypto.randomUUID();
-        }
-
-        // removed unused properties
-        if (element.show_when) {
-            delete element.show_when;
-        }
+        // remove usless properties in confirm
+        delete element.show_when;
+        delete element.data;
 
         this.update(element.id, element);
         return this;
     }
 
-    // confirmation doesn't need this method
+    add_title(text, options = {}) {
+        return this.add({
+            type: "text",
+            text,
+            class: options.class || "title",
+            font_size: options.font_size || 16,
+            ...options
+        });
+    }
+
+    add_button(id, text, options = {}) {
+        return this.add({
+            type: "button",
+            id,
+            text,
+            ...options
+        });
+    }
+
+    // clear is not needed on this class
     clear() {}
 }
 

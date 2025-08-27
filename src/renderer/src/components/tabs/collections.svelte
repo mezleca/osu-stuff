@@ -4,7 +4,7 @@
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
     import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
@@ -70,14 +70,12 @@
 
     /* --- HANDLERS --- */
 
-    const handle_extra_options = async (data) => {
-        const option = data.extra[0];
-
+    const handle_extra_options = async (option) => {
         switch (option) {
             case "new collection":
                 show_popup("new", "collections");
                 break;
-            case "get missing beatmaps":
+            case "missing beatmaps":
                 // update missing beatmaps data
                 await get_missing_beatmaps();
                 show_popup("missing", "collections");
@@ -394,11 +392,13 @@
     /* --- POPUP FUNCTIONS --- */
 
     const create_extra_options_popup = async () => {
-        const addon = new PopupAddon();
+        const addon = new ConfirmAddon();
 
-        addon.add({ id: "extra", type: "buttons", label: "extra options", data: ["new collection", "get missing beatmaps"] });
+        addon.add_title("collection options");
+        addon.add_button("new collection", "new collection");
+        addon.add_button("get missing beatmaps", "missing beatmaps");
+
         addon.set_callback(handle_extra_options);
-
         popup_manager.register("extra", addon);
     };
 

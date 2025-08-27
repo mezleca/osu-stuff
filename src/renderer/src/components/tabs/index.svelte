@@ -22,17 +22,21 @@
     }
 
     const create_confirm_addon = () => {
-        const addon = new ConfirmAddon("button");
+        const addon = new ConfirmAddon();
 
-        addon.add({ id: "something", text: "123" });
-        addon.add({ id: "something2", text: "v12" });
+        addon.add_title("select and option");
+        addon.add_button("123", "button 1");
+        addon.add_button("1253", "button 2");
 
-        addon.set_callback((v) => console.log(v));
+        addon.set_callback((v) => console.log("selected option: ", v));
         popup_manager.register("aids", addon);
     };
 
     const create_yes_no_confirm_addon = () => {
-        const addon = new ConfirmAddon("text");
+        const addon = new ConfirmAddon();
+
+        // force show action
+        addon.set_custom_action(true);
 
         addon.add({ text: "test player fetch?" });
 

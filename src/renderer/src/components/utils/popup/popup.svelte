@@ -31,7 +31,14 @@
         if (callback) callback(values);
     };
 
-    const handle_cancel = () => {
+    const handle_cancel = (value, check) => {
+        // force submit on confirm instance
+        if (is_confirm && check) {
+            handle_submit(value);
+            return;
+        }
+
+        // or just hide
         hide_popup(key);
     };
 
@@ -116,11 +123,15 @@
                     {/if}
                 {/if}
             {/each}
-            {#if $active_popup.popup?.type != "button"}
-                <div class="popup-actions" class:actions-separator={!is_confirm}>
-                    {#if is_confirm && $active_popup.popup.type == "text"}
-                        <button class="submit-btn" onclick={() => handle_submit("yes")}>yes</button>
-                        <button class="cancel-btn" onclick={() => handle_submit("no")}>no</button>
+            {#if $active_popup.popup.custom_action || !is_confirm}
+                <div class="popup-actions actions-separator">
+                    {#if $active_popup.popup.custom_action}
+                        <button class="submit-btn" onclick={() => handle_submit($active_popup.popup.custom_submit)}
+                            >{$active_popup.popup.custom_submit}</button
+                        >
+                        <button class="cancel-btn" onclick={() => handle_cancel($active_popup.popup.custom_cancel, true)}
+                            >{$active_popup.popup.custom_cancel}</button
+                        >
                     {:else if !is_confirm}
                         <button class="cancel-btn" onclick={() => handle_cancel()}>cancel</button>
                         <button class="submit-btn" onclick={() => handle_submit()}>submit</button>
