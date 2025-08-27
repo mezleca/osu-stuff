@@ -1,6 +1,7 @@
 import { get } from "svelte/store";
 import { get_beatmap_status_code, get_code_by_mode, osu_beatmaps } from "../store/beatmaps";
 import { access_token } from "../store/config";
+import { show_notification } from "../store/notifications";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 
@@ -116,6 +117,7 @@ export const get_player_data = async (options) => {
     const { player_name, beatmap_options, beatmap_status, star_rating } = options;
 
     if (!player_name) {
+        show_notification({ type: "error", text: "invalid player name!" });
         return null;
     }
 
@@ -127,9 +129,15 @@ export const get_player_data = async (options) => {
     try {
         // get player data
         const player_response = await fetch({ url: `https://osu.ppy.sh/api/v2/users/${player_name}`, ...fetch_config });
-        console.log(player_response);
+
+        if (player_response.status != 200) {
+            show_notification({ type: "error", text: player_response.statusText });
+            console.log("player response:", player_response);
+            return null;
+        }
+
         const player = await player_response.json();
-        console.log(player);
+        console.log("player data:", player);
 
         if (!player?.id) {
             console.log("[get_player_data] player not found:", player_name);
@@ -138,11 +146,15 @@ export const get_player_data = async (options) => {
 
         // get extra data
         const extra_response = await fetch({ url: `https://osu.ppy.sh/users/${player.id}/extra-pages/top_ranks?mode=osu`, ...fetch_config });
-        const extra = await extra_response.json();
 
-        if (!extra) {
+        if (!extra_response ) {
+            show_notification({ type: "error", text: extra_response.statusText });
+            console.log("extra data:", extra);
             return null;
         }
+
+        const extra = await extra_response.json();
+        console.log("extra data:", extra);
 
         const has_option = (name) => beatmap_options.has(name) || beatmap_options.has("all");
         const has_status = (status) => beatmap_status.has(status) || beatmap_status.has("all");
@@ -178,6 +190,7 @@ export const get_player_data = async (options) => {
                 : []
         ]);
 
+        console.log("finished fetch promise", beatmaps);
         const [firsts, bests, favs, ranked, loved, pending, grave] = beatmaps;
 
         // filter beatmaps
