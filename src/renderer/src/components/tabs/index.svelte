@@ -54,6 +54,7 @@
         const addon = new PopupAddon();
 
         addon.add({ id: "something", type: "text", text: "ts is a text", font_size: 20 });
+        addon.add({ id: "range-test", type: "range", label: "range test", min: 0, max: 105 });
         addon.add({ id: "dialog-test", type: "file-dialog", label: "select a file" });
         // shoud enable container 1 on checked
         addon.add({ id: "mhm", type: "checkbox", label: "checkbox to enable da container" });

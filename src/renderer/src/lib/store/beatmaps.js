@@ -184,7 +184,7 @@ class BeatmapList extends BeatmapListBase {
         const min = this.get_min_sr();
         const max = this.get_max_sr();
 
-        if (!isNaN(min) && !isNaN(max)) {
+        if (min != null && max != null && !isNaN(min) && !isNaN(max) && Number(min) < Number(max)) {
             options.sr = { min, max };
         }
 
@@ -297,12 +297,14 @@ class BeatmapList extends BeatmapListBase {
 
     get_min_sr() {
         const sr_data = get(this.sr_range);
-        return sr_data?.min ? sr_data.min : 0;
+        const v = sr_data?.min;
+        return v == undefined || v == null ? null : Number(v);
     }
 
     get_max_sr() {
         const sr_data = get(this.sr_range);
-        return sr_data?.max ? sr_data.max : 0;
+        const v = sr_data?.max;
+        return v == undefined || v == null ? null : Number(v);
     }
 }
 

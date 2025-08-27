@@ -9,6 +9,9 @@
     import Dropdown from "../basic/dropdown.svelte";
     import Checkbox from "../basic/checkbox.svelte";
     import InputDialog from "../input-dialog.svelte";
+    import RangeSlider from "../basic/range-slider.svelte";
+
+    $: range = element?.value ?? { min: element?.min ?? 0, max: element?.max ?? 10 };
 </script>
 
 <div class="field-group">
@@ -82,6 +85,18 @@
                 <slot></slot>
             </div>
         </div>
+    {:else if element.type == "range"}
+        {#if element.label}
+            <!-- svelte-ignore a11y_label_has_associated_control -->
+            <label class="field-label">{element.label}</label>
+        {/if}
+        <RangeSlider
+            min={+range.min}
+            max={+range.max}
+            min_bound={element.min ?? 0}
+            max_bound={element.max ?? 10}
+            on_update={(data) => on_update(element.id, data)}
+        />
     {/if}
 </div>
 

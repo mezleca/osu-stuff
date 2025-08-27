@@ -38,6 +38,8 @@ const DEFAULT_OPTIONS = {
     label: "",
     value: "",
     font_size: 14,
+    min: 0,
+    max: 10,
     data: [],
     multiple: false,
     show_when: null
@@ -224,9 +226,21 @@ export class PopupAddon extends BaseAddon {
             return this;
         }
 
-        // ensure valid properties
+        // ensure valid properties per type
         if (element.type == "buttons") {
             if (!element.value) element.value = [];
+        } else if (element.type == "range") {
+            // min/max bounds are provided by the element or fallback to defaults
+            if (element.min == undefined) element.min = DEFAULT_OPTIONS.min;
+            if (element.max == undefined) element.max = DEFAULT_OPTIONS.max;
+            if (!element.value || typeof element.value != "object") {
+                element.value = { min: element.min, max: element.max };
+            } else {
+                element.value = {
+                    min: Math.max(element.min, parseFloat(element.value.min ?? element.min)),
+                    max: Math.min(element.max, parseFloat(element.value.max ?? element.max))
+                };
+            }
         } else {
             if (!element.value) element.value = "";
         }
