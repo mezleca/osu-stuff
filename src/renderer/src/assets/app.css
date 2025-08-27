@@ -98,6 +98,18 @@ main {
     flex-direction: column;
 }
 
+.row {
+    flex-direction: row !important;
+}
+
+.column {
+    flex-direction: column !important;
+}
+
+.fit {
+    width: fit-content !important;
+}
+
 .header {
     display: flex;
     align-items: center;

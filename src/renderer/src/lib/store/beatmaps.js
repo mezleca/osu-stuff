@@ -5,7 +5,7 @@ import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
 import { config } from "./config";
 
-const mode_code = {
+export const mode_code = {
     osu: 0,
     "osu!": 0,
     taiko: 1,
@@ -13,7 +13,7 @@ const mode_code = {
     mania: 3
 };
 
-const beatmap_status = {
+export const beatmap_status = {
     all: -1,
     unknown: 0,
     unsubmitted: 1,
@@ -27,7 +27,7 @@ const beatmap_status = {
     loved: 7
 };
 
-const lazer_status = {
+export const lazer_status = {
     LocallyModified: -4,
     None: -3,
     Graveyard: -2,
@@ -184,7 +184,7 @@ class BeatmapList extends BeatmapListBase {
         const min = this.get_min_sr();
         const max = this.get_max_sr();
 
-        if (!isNaN(min) && !isNaN(max)) {
+        if (min != null && max != null && !isNaN(min) && !isNaN(max) && Number(min) < Number(max)) {
             options.sr = { min, max };
         }
 
@@ -297,12 +297,14 @@ class BeatmapList extends BeatmapListBase {
 
     get_min_sr() {
         const sr_data = get(this.sr_range);
-        return sr_data?.min ? sr_data.min : 0;
+        const v = sr_data?.min;
+        return v == undefined || v == null ? null : Number(v);
     }
 
     get_max_sr() {
         const sr_data = get(this.sr_range);
-        return sr_data?.max ? sr_data.max : 0;
+        const v = sr_data?.max;
+        return v == undefined || v == null ? null : Number(v);
     }
 }
 
@@ -338,7 +340,7 @@ class OsuBeatmaps {
     all() {
         return get(this.beatmaps);
     }
-};
+}
 
 /** @returns {BeatmapList} */
 export const get_beatmap_list = (tab_id) => {

@@ -91,13 +91,13 @@ export const update_access_token = async (force) => {
     // get new access token
     const new_token = await get_access_token(id, secret);
 
-    // update downloader token
-    await downloader.update_token(new_token.access_token);
-
     if (!new_token) {
         show_notification({ type: "error", text: "failed to get access token..." });
         return;
     }
+
+    // update downloader token
+    await downloader.update_token(new_token.access_token);
 
     access_token.set(new_token.access_token);
 };

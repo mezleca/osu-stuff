@@ -2,13 +2,14 @@
     import { collections } from "../../lib/store/collections";
     import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
-    import { get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
+    import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
     import { onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";
-    import { convert_beatmap_keys } from "../../lib/utils/beatmaps";
+    import { convert_beatmap_keys, get_player_data } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
+    import { context_separator, string_is_valid } from "../../lib/utils/utils";
     import { ContextMenu } from "wx-svelte-menu";
 
     // components
@@ -61,23 +62,21 @@
     const get_context_options = (collection) => {
         return [
             { id: "merge", text: "merge collections" },
-            { id: `rename-${collection.name}`, text: "rename collection" },
-            { id: `export-${collection.name}`, text: "export collections" },
+            { id: `rename${context_separator}${collection.name}`, text: "rename collection" },
+            { id: `export${context_separator}${collection.name}`, text: "export collections" },
             { id: "export beatmaps", text: "export beatmaps" },
-            { id: `delete-${collection.name}`, text: "delete" }
+            { id: `delete${context_separator}${collection.name}`, text: "delete" }
         ];
     };
 
     /* --- HANDLERS --- */
 
-    const handle_extra_options = async (data) => {
-        const option = data.extra[0];
-
+    const handle_extra_options = async (option) => {
         switch (option) {
             case "new collection":
                 show_popup("new", "collections");
                 break;
-            case "get missing beatmaps":
+            case "missing beatmaps":
                 // update missing beatmaps data
                 await get_missing_beatmaps();
                 show_popup("missing", "collections");
@@ -119,7 +118,7 @@
             return;
         }
 
-        const id_parts = event.action.id.split("-");
+        const id_parts = event.action.id.split(context_separator);
         const type = id_parts[0];
 
         switch (type) {
@@ -141,22 +140,25 @@
         }
     };
 
-    const handle_from_osu_collector = async (url) => {
+    const handle_from_osu_collector = async (data) => {
+        const { collection_url: url, name: custom_name } = data;
+
         if (url == "") {
             return;
         }
 
-        const data = await get_from_osu_collector(url);
+        const collection_data = await get_from_osu_collector(url);
 
-        if (!data) {
+        if (!collection_data) {
             show_notification({ type: "error", text: "failed to get collection: " + url });
             return;
         }
 
-        const { name, beatmaps, hashes } = data;
+        const { name, beatmaps, hashes } = collection_data;
+        const new_name = string_is_valid(custom_name) ? custom_name : name;
 
-        if (collections.get(name)) {
-            show_notification({ type: "warning", text: name + " already exists!" });
+        if (collections.get(new_name)) {
+            show_notification({ type: "warning", text: new_name + " already exists!" });
             return;
         }
 
@@ -165,8 +167,8 @@
             osu_beatmaps.add(beatmap.md5, beatmap);
         }
 
-        collections.add({ name, maps: hashes });
-        show_notification({ type: "success", text: "added " + name });
+        collections.add({ name: new_name, maps: hashes });
+        show_notification({ type: "success", text: "added " + new_name });
     };
 
     const handle_missing_beatmaps = async (data) => {
@@ -335,11 +337,58 @@
     };
 
     const handle_from_player = async (data) => {
-        console.log("TODO", data);
+        if (data.beatmap_options.length == 0) {
+            show_notification({ type: "error", text: "no options selected for player" });
+            return;
+        }
+
+        const joined_options = data.beatmap_options.join(", ");
+        const joined_status = data.beatmap_status.join(", ");
+
+        // rename some properties
+        data.player_name = data.name;
+
+        // func needs a Set instead of array
+        data.beatmap_options = new Set(data.beatmap_options);
+        data.beatmap_status = new Set(data.beatmap_status);
+
+        const result = await get_player_data(data);
+
+        if (!result) {
+            return;
+        }
+
+        if (result.maps.length == 0) {
+            show_notification({ type: "error", text: "found 0 beatmaps lol" });
+            return;
+        }
+
+        // get hash list
+        const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
+
+        // temp add to osu beatmaps store
+        for (const beatmap of result.maps) {
+            beatmap.downloaded = false;
+            osu_beatmaps.add(beatmap.md5, beatmap);
+        }
+
+        // create collection name (64 max chars)
+        const collection_name = `${data.name} - ${joined_options} (${joined_status})`.substring(0, 64);
+
+        // add new collection
+        collections.add({ name: collection_name, maps: hashes });
+        show_notification({ type: "success", text: "added " + collection_name });
     };
 
     const handle_new_collection_popup = (data) => {
-        if (data.name == "") {
+        const type = data.collection_type;
+
+        if (type == "") {
+            show_notification({ type: "error", text: "please select a collection type bro" });
+            return;
+        }
+
+        if (data.name == "" && type == "from player") {
             show_notification({ type: "error", text: "forgot the collection name huh?" });
             return;
         }
@@ -349,19 +398,12 @@
             return;
         }
 
-        const type = data.collection_type;
-
-        if (type == "") {
-            show_notification({ type: "error", text: "please select a collection type bro" });
-            return;
-        }
-
         if (type == "from file") {
             handle_import_collections(data);
         } else if (type == "from osu! collector") {
-            handle_from_osu_collector(data.collection_url);
+            handle_from_osu_collector(data);
         } else if (type == "from player") {
-            handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
+            handle_from_player(data);
         }
     };
 
@@ -394,11 +436,13 @@
     /* --- POPUP FUNCTIONS --- */
 
     const create_extra_options_popup = async () => {
-        const addon = new PopupAddon();
+        const addon = new ConfirmAddon();
 
-        addon.add({ id: "extra", type: "buttons", label: "extra options", data: ["new collection", "get missing beatmaps"] });
+        addon.add_title("collection options");
+        addon.add_button("new collection", "new collection");
+        addon.add_button("get missing beatmaps", "missing beatmaps");
+
         addon.set_callback(handle_extra_options);
-
         popup_manager.register("extra", addon);
     };
 
@@ -466,31 +510,37 @@
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "name", type: "input", label: "name", value: "", show_when: { id: "empty_collection", equals: true } });
-
-        // collection type (player / osu! collector)
-        addon.add({
-            id: "collection_type",
-            type: "dropdown",
-            label: "collection type",
-            text: "select collection type",
-            value: "",
-            data: ["from player", "from osu! collector", "from file"],
-            show_when: { id: "empty_collection", equals: false }
-        });
+        // collection name / player name
+        addon.add({ id: "name", type: "input", label: "name", value: "", show_when: { id: "collection_type", not_equals: "from file" } });
 
         // player options container
         addon.add({
             id: "player_container",
             type: "container",
-            show_when: { id: "collection_type", equals: "from player" }
+            show_when: [
+                { id: "collection_type", equals: "from player" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
         });
 
         // import collections container
         addon.add({
             id: "import_container",
             type: "container",
-            show_when: { id: "collection_type", equals: "from file" }
+            show_when: [
+                { id: "collection_type", equals: "from file" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
+        });
+
+        // osu! collector container
+        addon.add({
+            id: "collector_container",
+            type: "container",
+            show_when: [
+                { id: "collection_type", equals: "from osu! collector" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
         });
 
         // file dialog
@@ -503,37 +553,37 @@
 
         // player options
         addon.add({
-            id: "player_name",
-            type: "input",
-            label: "player name",
-            value: "",
-            parent: "player_container"
+            id: "beatmap_options",
+            type: "buttons",
+            label: "beatmap options",
+            parent: "player_container",
+            class: "row",
+            multiple: true,
+            data: ["best performance", "first place", "favourites", "created maps"]
         });
 
+        const removed_status = ["all", "unknown", "unsubmitted", "unused"];
+        const filtered_status = Object.keys(beatmap_status).filter((v) => !removed_status.includes(v));
+
+        // beatmap status
         addon.add({
             id: "beatmap_status",
-            type: "dropdown",
-            label: "status",
-            text: "beatmap status",
-            value: "",
-            data: DEFAULT_STATUS_TYPES,
-            parent: "player_container"
-        });
-
-        addon.add({
-            id: "beatmap_type",
             type: "buttons",
-            label: "beatmap type",
-            value: [],
-            data: ["created", "favorites", "best performance", "pinned"],
-            parent: "player_container"
+            label: "beatmap status",
+            parent: "player_container",
+            class: "row",
+            multiple: true,
+            data: filtered_status
         });
 
-        // osu! collector container
+        // beatmap star rating
         addon.add({
-            id: "collector_container",
-            type: "container",
-            show_when: { id: "collection_type", equals: "from osu! collector" }
+            id: "star_rating",
+            type: "range",
+            label: "sr range",
+            parent: "player_container",
+            min: 0,
+            max: 10
         });
 
         // osu! collector options
@@ -543,6 +593,17 @@
             label: "url",
             value: "",
             parent: "collector_container"
+        });
+
+        // collection type (player / osu! collector)
+        addon.add({
+            id: "collection_type",
+            type: "dropdown",
+            label: "collection type",
+            text: "select collection type",
+            value: "",
+            data: ["from player", "from osu! collector", "from file"],
+            show_when: { id: "empty_collection", equals: false }
         });
 
         // empty collection toggle
@@ -567,6 +628,7 @@
     onMount(() => {
         if ($sort == "") $sort = "artist";
 
+        // initialize popups lol
         create_extra_options_popup();
         create_pending_collection_select();
         create_new_collection_popup();

@@ -4,6 +4,8 @@
 
     export let min = 0;
     export let max = 10;
+    export let min_bound = 0;
+    export let max_bound = 10;
     export let on_update = () => {};
 
     let container;
@@ -13,8 +15,9 @@
             return;
         }
 
-        const min_percent = (min / 10) * 100;
-        const max_percent = (max / 10) * 100;
+        const range_span = max_bound - min_bound || 1;
+        const min_percent = ((min - min_bound) / range_span) * 100;
+        const max_percent = ((max - min_bound) / range_span) * 100;
 
         const fill = container.querySelector(".fill");
         const min_thumb = container.querySelector(".min-thumb");
@@ -22,34 +25,39 @@
 
         fill.style.left = `${min_percent}%`;
         fill.style.width = `${max_percent - min_percent}%`;
-        min_thumb.style.left = `calc(${min_percent}% - 0px)`;
-        max_thumb.style.left = `calc(${max_percent}% - 24px)`;
+
+        min_thumb.style.left = `${min_percent}%`;
+        max_thumb.style.left = `${max_percent}%`;
+
+        const usable_width = container.offsetWidth - 32;
+        const min_position = 16 + (min_percent / 100) * usable_width;
+        const max_position = 16 + (max_percent / 100) * usable_width;
+
+        min_thumb.style.left = `${min_position}px`;
+        max_thumb.style.left = `${max_position}px`;
     };
 
-    const clamp = (number, min_val, max_val) => {
-        return Math.min(Math.max(number, min_val), max_val);
-    };
+    const clamp = (number, min_val, max_val) => Math.min(Math.max(number, min_val), max_val);
 
     const handle_min = (e) => {
         const new_min = parseFloat(e.target.value);
-        min = clamp(new_min, 0, max - 0.5);
+        const step = Math.abs(parseFloat(e.target.step) || 0.1);
+        min = clamp(new_min, min_bound, max - step);
         update_fill();
     };
 
     const handle_max = (e) => {
         const new_max = parseFloat(e.target.value);
-        max = clamp(new_max, min + 0.5, 10);
+        const step = Math.abs(parseFloat(e.target.step) || 0.1);
+        max = clamp(new_max, min + step, max_bound);
         update_fill();
     };
 
-    const on_update_debounce = debounce(() => {
-        on_update({ min, max });
-    }, 50);
+    const on_update_debounce = debounce(() => on_update({ min, max }), 50);
 
     const update_fill = (event) => {
         tick().then(() => {
             update();
-            // dont use callback on resize events
             if (!event) on_update_debounce();
         });
     };
@@ -57,18 +65,15 @@
     onMount(() => {
         update_fill();
         window.addEventListener("resize", update_fill);
-
-        return () => {
-            window.removeEventListener("resize", update_fill);
-        };
+        return () => window.removeEventListener("resize", update_fill);
     });
 </script>
 
 <div bind:this={container} class="slider-container">
     <div class="track"></div>
     <div class="fill"></div>
-    <input type="range" min="0" max="10" step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
-    <input type="range" min="0" max="10" step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
+    <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
+    <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
     <div class="min-thumb">{min.toFixed(1)}</div>
     <div class="max-thumb">{max.toFixed(1)}</div>
 </div>
@@ -147,6 +152,7 @@
         font-weight: bold;
         color: #333;
         pointer-events: none;
+        transform: translateX(-50%);
         z-index: 3;
     }
 </style>

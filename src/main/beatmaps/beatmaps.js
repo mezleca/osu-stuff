@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 
 export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
+export const MAX_STAR_RATING_VALUE = 10; // lazer
 
 let osu_data = null;
 
@@ -277,18 +278,24 @@ export const filter_by_sr = (beatmap, min, max) => {
         return true;
     }
 
-    // my logic sucks so lets do that
-    if (min == 0 && max == 0) {
+    // normalize inputs
+    const min_val = min == undefined || min == null ? null : Number(min);
+    const max_val = max == undefined || max == null ? null : Number(max);
+
+    // no sr filter
+    if (min_val == null && max_val == null) {
         return true;
     }
 
-    const star_rating = beatmap.star_rating[beatmap.mode]?.nm;
+    // get numeric star rating for the beatmap (based on its mode)
+    const sr = Number(get_beatmap_sr(beatmap, beatmap.mode ?? 0));
+    if (isNaN(sr)) return true;
 
-    if (star_rating && star_rating >= min && star_rating <= max) {
-        return true;
-    }
+    // apply min/max checks
+    if (min_val != null && sr < min_val) return false;
+    if (max_val != null && max_val != MAX_STAR_RATING_VALUE && sr > max_val) return false;
 
-    return false;
+    return true;
 };
 
 export const get_missing_beatmaps = (beatmaps) => {
@@ -361,6 +368,7 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
         // filter by sr
         if (beatmap && extra.sr) {
             const result = filter_by_sr(beatmap, extra.sr.min, extra.sr.max);
+
             if (!result) {
                 continue;
             }

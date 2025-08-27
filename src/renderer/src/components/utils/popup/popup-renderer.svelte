@@ -9,18 +9,21 @@
     import Dropdown from "../basic/dropdown.svelte";
     import Checkbox from "../basic/checkbox.svelte";
     import InputDialog from "../input-dialog.svelte";
+    import RangeSlider from "../basic/range-slider.svelte";
+
+    $: range = element?.value ?? { min: element?.min ?? 0, max: element?.max ?? 10 };
 </script>
 
 <div class="field-group">
     {#if element.type == "text"}
-        <h1 class="text-element" style="font-size: {element.font_size}px;">
+        <h1 class="text-element {element.class || ''}" style="font-size: {element.font_size}px;">
             {element.text}
         </h1>
     {:else if element.type == "input"}
-        <label for={element.id} class="field-label">{element.label}</label>
+        <label for={element.id} class="field-label {element.class || ''}">{element.label}</label>
         <input
             id={element.id}
-            class="text-input"
+            class="text-input {element.class || ''}"
             type="text"
             placeholder={element.text}
             value={value || ""}
@@ -32,33 +35,33 @@
         {@const data = typeof element.data == "function" ? element.data() : element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="field-label">{element.label}</label>
+            <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
         <Dropdown options={data} selected_value={value} placeholder={element.text} on_update={(val) => on_update(element.id, val)} />
     {:else if element.type == "file-dialog"}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="field-label">{element.label}</label>
+            <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
         <InputDialog type={element.dialog_type || "file"} location={value} callback={(val) => on_update(element.id, val)} />
         <!-- @TODO: button is only supported on ConfirmAddon -->
     {:else if element.type == "button"}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="field-label">{element.label}</label>
+            <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
 
         <div class="button-container">
             <!-- @NOTE: on_update will call submit on ConfirmAddon -->
-            <button class="select-button" onclick={() => on_update(element.text)}>{element.text}</button>
+            <button class="select-button {element.class || ''}" onclick={() => on_update(element.text)}>{element.text}</button>
         </div>
     {:else if element.type == "buttons"}
         {@const data = typeof element.data == "function" ? element.data() : element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="field-label">{element.label}</label>
+            <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
-        <div class="buttons-container" style={element.style}>
+        <div class="buttons-container {element.class || ''}" style={element.style}>
             {#each data as option}
                 {@const option_value = option.value || option}
                 {@const option_label = option.label || option}
@@ -82,6 +85,18 @@
                 <slot></slot>
             </div>
         </div>
+    {:else if element.type == "range"}
+        {#if element.label}
+            <!-- svelte-ignore a11y_label_has_associated_control -->
+            <label class="field-label {element.class || ''}">{element.label}</label>
+        {/if}
+        <RangeSlider
+            min={+range.min}
+            max={+range.max}
+            min_bound={element.min ?? 0}
+            max_bound={element.max ?? 10}
+            on_update={(data) => on_update(element.id, data)}
+        />
     {/if}
 </div>
 
@@ -93,7 +108,6 @@
     .field-label {
         display: block;
         margin-bottom: 5px;
-        font-weight: 500;
         color: var(--text-primary);
     }
 
@@ -133,7 +147,6 @@
     }
 
     .container-title {
-        font-weight: 500;
         margin-bottom: 15px;
         color: var(--text-primary);
         display: flex;
@@ -147,6 +160,7 @@
     .buttons-container {
         display: flex;
         flex-direction: column;
+        flex-wrap: wrap;
     }
 
     .buttons-container {

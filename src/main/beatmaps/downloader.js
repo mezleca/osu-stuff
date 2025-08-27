@@ -604,32 +604,31 @@ const export_single_beatmap = async (beatmap) => {
 };
 
 const find_collection = (collections, collection_name) => {
-    // handle Map type collections
+    // handle map type collections
     if (collections instanceof Map) {
         return collections.get(collection_name);
     }
 
-    // handle Array type collections
+    // handle array type collections
     if (Array.isArray(collections)) {
-        return collections.find((c) => c.name === collection_name);
+        return collections.find((c) => c.name == collection_name);
     }
 
-    // handle Object type collections
-    if (collections && typeof collections === "object") {
-        // try direct key access first
+    // handle object type collections
+    if (collections && typeof collections == "object") {
         if (collections[collection_name]) {
             return collections[collection_name];
         }
 
         // fallback to searching in values
-        return Object.values(collections).find((c) => c?.name === collection_name);
+        return Object.values(collections).find((c) => c?.name == collection_name);
     }
 
     return null;
 };
 
 const export_beatmaps = async (collection_names) => {
-    if (!Array.isArray(collection_names) || collection_names.length === 0) {
+    if (!Array.isArray(collection_names) || collection_names.length == 0) {
         const reason = "invalid collections payload";
         emit_export_update({ status: "error", reason });
         return { success: false, written: [], reason };
@@ -663,7 +662,7 @@ const export_beatmaps = async (collection_names) => {
                     continue;
                 }
 
-                if (!Array.isArray(collection.maps) || collection.maps.length === 0) {
+                if (!Array.isArray(collection.maps) || collection.maps.length == 0) {
                     continue;
                 }
 
