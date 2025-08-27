@@ -361,7 +361,7 @@
         } else if (type == "from osu! collector") {
             handle_from_osu_collector(data.collection_url);
         } else if (type == "from player") {
-            handle_from_player(data.player_name, data.beatmap_status, data.beatmap_type);
+            handle_from_player(data.player_name, data.beatmap_options, data.beatmap_status, data.star_rating);
         }
     };
 
@@ -463,38 +463,10 @@
         popup_manager.register("merge", addon);
     };
 
-    // @TODO: v1 has support for multiple users using "tag" component
-    const create_from_player_popup = () => {
-        const addon = new PopupAddon();
-
-        // player name
-        addon.add({ id: "player_name", type: "input", label: "player name", value: "ppy" });
-
-        // beatmap options
-        addon.add({
-            id: "beatmap_options",
-            type: "buttons",
-            label: "beatmap options",
-            multiple: true,
-            data: ["best performance", "first place", "favourites", "created maps"]
-        });
-
-        // beatmap status
-        addon.add({
-            id: "beatmap_status",
-            type: "buttons",
-            label: "beatmap status",
-            multiple: true,
-            data: Object.keys(beatmap_status)
-        });
-
-        // @TODO: sr
-    };
-
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "name", type: "input", label: "name", value: "", show_when: { id: "empty_collection", equals: true } });
+        addon.add({ id: "name", type: "input", label: "name", value: "" });
 
         // collection type (player / osu! collector)
         addon.add({
@@ -511,14 +483,30 @@
         addon.add({
             id: "player_container",
             type: "container",
-            show_when: { id: "collection_type", equals: "from player" }
+            show_when: [
+                { id: "collection_type", equals: "from player" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
         });
 
         // import collections container
         addon.add({
             id: "import_container",
             type: "container",
-            show_when: { id: "collection_type", equals: "from file" }
+            show_when: [
+                { id: "collection_type", equals: "from file" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
+        });
+
+        // osu! collector container
+        addon.add({
+            id: "collector_container",
+            type: "container",
+            show_when: [
+                { id: "collection_type", equals: "from osu! collector" },
+                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
+            ]
         });
 
         // file dialog
@@ -531,37 +519,32 @@
 
         // player options
         addon.add({
-            id: "player_name",
-            type: "input",
-            label: "player name",
-            value: "",
-            parent: "player_container"
+            id: "beatmap_options",
+            type: "buttons",
+            label: "beatmap options",
+            parent: "player_container",
+            multiple: true,
+            data: ["best performance", "first place", "favourites", "created maps"]
         });
 
+        // beatmap status
         addon.add({
             id: "beatmap_status",
-            type: "dropdown",
-            label: "status",
-            text: "beatmap status",
-            value: "",
-            data: DEFAULT_STATUS_TYPES,
-            parent: "player_container"
-        });
-
-        addon.add({
-            id: "beatmap_type",
             type: "buttons",
-            label: "beatmap type",
-            value: [],
-            data: ["created", "favorites", "best performance", "pinned"],
-            parent: "player_container"
+            label: "beatmap status",
+            parent: "player_container",
+            multiple: true,
+            data: Object.keys(beatmap_status)
         });
 
-        // osu! collector container
+        // beatmap star rating
         addon.add({
-            id: "collector_container",
-            type: "container",
-            show_when: { id: "collection_type", equals: "from osu! collector" }
+            id: "star_rating",
+            type: "range",
+            label: "sr range",
+            parent: "player_container",
+            min: 0,
+            max: 10
         });
 
         // osu! collector options
@@ -595,6 +578,7 @@
     onMount(() => {
         if ($sort == "") $sort = "artist";
 
+        // initialize popups lol
         create_extra_options_popup();
         create_pending_collection_select();
         create_new_collection_popup();

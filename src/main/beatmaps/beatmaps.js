@@ -267,18 +267,6 @@ export const sort_beatmaps = (beatmaps, type) => {
     return result;
 };
 
-export const validate_star_rating = (sr, min, max) => {
-    if (sr < min) {
-        return false;
-    }
-
-    if (max == MAX_STAR_RATING_VALUE) {
-        return true;
-    }
-
-    return sr <= max;
-};
-
 export const filter_by_sr = (beatmap, min, max) => {
     // ignore unknown beatmaps
     if (!beatmap || typeof beatmap == "string") {
@@ -291,11 +279,11 @@ export const filter_by_sr = (beatmap, min, max) => {
     }
 
     // normalize inputs
-    const min_val = min === undefined || min === null ? null : Number(min);
-    const max_val = max === undefined || max === null ? null : Number(max);
+    const min_val = min == undefined || min == null ? null : Number(min);
+    const max_val = max == undefined || max == null ? null : Number(max);
 
     // no sr filter
-    if (min_val === null && max_val === null) {
+    if (min_val == null && max_val == null) {
         return true;
     }
 
@@ -304,8 +292,8 @@ export const filter_by_sr = (beatmap, min, max) => {
     if (isNaN(sr)) return true;
 
     // apply min/max checks
-    if (min_val !== null && sr < min_val) return false;
-    if (max_val !== null && max_val !== MAX_STAR_RATING_VALUE && sr > max_val) return false;
+    if (min_val != null && sr < min_val) return false;
+    if (max_val != null && max_val != MAX_STAR_RATING_VALUE && sr > max_val) return false;
 
     return true;
 };

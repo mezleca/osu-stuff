@@ -26,7 +26,7 @@ import { get, writable } from "svelte/store";
  * @property {number?} font_size
  * @property {(Array<PopupElement>|null)} data
  * @property {boolean} multiple
- * @property {PopupCondition} show_when
+ * @property {(PopupCondition|Array<PopupCondition>)} show_when
  */
 
 const DEFAULT_OPTIONS = {
@@ -61,6 +61,31 @@ class BaseAddon {
         this.callback = callback;
     }
 
+    evaluate_condition(condition) {
+        const store = get(this.elements);
+        const { id, equals, not_equals, except } = condition;
+        const target = store.get(id);
+
+        if (!target) {
+            console.log("[popup] failed to get target store for condition:", id);
+            return true;
+        }
+
+        if (equals != undefined) {
+            return target.value == equals;
+        }
+
+        if (not_equals != undefined) {
+            return target.value != not_equals;
+        }
+
+        if (except != undefined) {
+            return target.value != except;
+        }
+
+        return !!target.value; // show if true
+    }
+
     should_show_element(element) {
         const store = get(this.elements);
 
@@ -89,6 +114,17 @@ class BaseAddon {
         }
 
         return !!target.value; // show if true
+    }
+
+    should_show_element(element) {
+        if (!element.show_when) {
+            return true;
+        }
+
+        // support multiple conditions
+        const conditions = Array.isArray(element.show_when) ? element.show_when : [element.show_when];
+
+        return conditions.every((condition) => this.evaluate_condition(condition));
     }
 
     /** @returns {(PopupElement|null)} */
@@ -230,9 +266,6 @@ export class PopupAddon extends BaseAddon {
         if (element.type == "buttons") {
             if (!element.value) element.value = [];
         } else if (element.type == "range") {
-            // min/max bounds are provided by the element or fallback to defaults
-            if (element.min == undefined) element.min = DEFAULT_OPTIONS.min;
-            if (element.max == undefined) element.max = DEFAULT_OPTIONS.max;
             if (!element.value || typeof element.value != "object") {
                 element.value = { min: element.min, max: element.max };
             } else {

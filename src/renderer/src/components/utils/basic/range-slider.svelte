@@ -32,7 +32,7 @@
         const usable_width = container.offsetWidth - 32;
         const min_position = 16 + (min_percent / 100) * usable_width;
         const max_position = 16 + (max_percent / 100) * usable_width;
-        
+
         min_thumb.style.left = `${min_position}px`;
         max_thumb.style.left = `${max_position}px`;
     };
