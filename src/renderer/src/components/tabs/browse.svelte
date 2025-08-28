@@ -27,7 +27,6 @@
     };
 
     $: if ($query != undefined || $status || $sort) {
-        console.log($query);
         update_beatmaps();
     }
 

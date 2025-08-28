@@ -27,9 +27,9 @@ class InputManager {
             this.last_clicked_element = event.target;
         }
 
-        // @TODO: well, order shouldn't matter here
-        const current_comb = Array.from(this.keys.values()).join("+");
-
+        // sort so we dont have order issues
+        const current_comb = Array.from(this.keys.values()).sort().join("+");
+    
         if (this.handlers.has(current_comb)) {
             const comb_callback = this.handlers.get(current_comb);
             if (typeof comb_callback == "function") comb_callback();
@@ -50,13 +50,17 @@ class InputManager {
             return;
         }
 
-        this.handlers.set(keys.toLowerCase(), callback);
+        // sort so we dont have order issues
+        const normalized_keys = keys.toLowerCase().split("+").sort().join("+");
+        this.handlers.set(normalized_keys, callback);
     }
 
     unregister(...comb) {
         for (const keys of comb) {
-            if (this.handlers.has(keys)) {
-                this.handlers.delete(keys);
+            // sort so we dont have order issues
+            const normalized_keys = keys.toLowerCase().split("+").sort().join("+");
+            if (this.handlers.has(normalized_keys)) {
+                this.handlers.delete(normalized_keys);
             }
         }
     }
