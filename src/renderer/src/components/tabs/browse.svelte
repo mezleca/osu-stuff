@@ -9,14 +9,14 @@
     import Beatmaps from "../beatmaps.svelte";
 
     const list = get_beatmap_list("browse");
-    const { query } = list;
+    const { query, status, sort } = list;
 
     const update_beatmaps = async () => {
         const beatmaps = await list.get_beatmaps(ALL_BEATMAPS_KEY, { unique: false });
         if (beatmaps) list.set_beatmaps(beatmaps, { name: ALL_BEATMAPS_KEY }, false);
     };
 
-    $: if ($query != undefined) {
+    $: if ($query != undefined || $status || $sort) {
         update_beatmaps();
     }
 
