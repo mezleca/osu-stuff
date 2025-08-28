@@ -29,7 +29,7 @@ class InputManager {
 
         // sort so we dont have order issues
         const current_comb = Array.from(this.keys.values()).sort().join("+");
-    
+
         if (this.handlers.has(current_comb)) {
             const comb_callback = this.handlers.get(current_comb);
             if (typeof comb_callback == "function") comb_callback();

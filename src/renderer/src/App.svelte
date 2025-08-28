@@ -3,7 +3,7 @@
     import { active_tab, is_maximized } from "./lib/store/other";
     import { show_notification } from "./lib/store/notifications";
     import { indexing, indexing_data } from "./lib/store/indexer";
-    import { debounce } from "./lib/utils/utils";
+    import { debounce, is_dev_mode } from "./lib/utils/utils";
     import { get_osu_data } from "./lib/utils/collections";
 
     // tabs
@@ -21,7 +21,6 @@
     import ExportProgress from "./components/utils/export-progress.svelte";
 
     $: initialized = false;
-
     $: indexing_status = $indexing_data?.status ?? "doing something";
     $: indexing_width = $indexing_data?.length ? ($indexing_data.index / $indexing_data.length) * 100 : 0;
     $: indexing_progress = $indexing_data?.text ?? "";
@@ -33,12 +32,18 @@
     };
 
     onMount(async () => {
-        get_osu_data(false)
-            .then(() => (initialized = true))
-            .catch((err) => {
-                console.log(err);
-                show_notification({ type: "error", timeout: 5000, text: `failed to initialize\n${err}` });
-            });
+        try {
+            // first lets check if we're on dev_mode
+            const dev_mode_result = await window.extra.is_dev_mode();
+            is_dev_mode.set(dev_mode_result);
+
+            // then lets get beatmaps from database
+            await get_osu_data(false);
+            initialized = true;
+        } catch (err) {
+            console.log(err);
+            show_notification({ type: "error", timeout: 5000, text: `failed to initialize\n${err}` });
+        }
     });
 
     // disable window border on fullscreen
