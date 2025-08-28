@@ -45,7 +45,9 @@ export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
         this.last_options = null;
-        this.index = writable(-1);
+        this.last_result = null; // last beatmap array or something
+        this.hide_remove = writable(false); // hide remove beatmap option from context menu
+        this.index = writable(-1); // index of selected?
         this.items = writable([]);
         this.selected = writable(null);
         this.query = writable("");
@@ -101,9 +103,14 @@ export class BeatmapListBase {
     }
 
     clear() {
+        // clear stores
         this.items.set([]);
         this.selected.set(null);
         this.index.set(-1);
+
+        // clear normal values
+        this.last_options = null;
+        this.last_result = null;
     }
 
     update_query(value) {
@@ -177,7 +184,6 @@ class BeatmapList extends BeatmapListBase {
         // to return all of the beatmaps
         if (is_all_beatmaps) {
             options.all = true;
-            options.unique = true;
         }
 
         // add star range to extra filter options
@@ -205,6 +211,19 @@ class BeatmapList extends BeatmapListBase {
             options.status = status;
         }
 
+        // add query to extra filter options
+        if (query != undefined) {
+            options.query = query;
+        }
+
+        const options_state = JSON.stringify({ name, extra: options });
+        const last_state = JSON.stringify(this.last_options);
+
+        // return old state if we have the same options, etc...
+        if (options_state == last_state && this.last_result) {
+            return this.last_result;
+        }
+
         const result = await window.osu.filter_beatmaps(beatmaps, query, options);
 
         if (!result) {
@@ -212,7 +231,13 @@ class BeatmapList extends BeatmapListBase {
             return null;
         }
 
+        // we dont want that
+        if (options.force) {
+            delete options.force;
+        }
+
         this.last_options = { name: name, extra: options };
+        this.last_result = result;
         return result;
     }
 

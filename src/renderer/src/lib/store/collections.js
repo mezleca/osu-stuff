@@ -20,7 +20,6 @@ const create_selected_data = (name = "", data = []) => {
 class CollectionManager {
     constructor() {
         this.needs_update = writable(false);
-        this.hide_remove = writable(false); // hide remove beatmap option from context menu
         this.collections = writable([]);
         this.all_collections = writable([]);
         this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
