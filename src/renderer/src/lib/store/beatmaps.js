@@ -211,6 +211,11 @@ class BeatmapList extends BeatmapListBase {
             options.status = status;
         }
 
+        // add query to extra filter options
+        if (query != undefined) {
+            options.query = query;
+        }
+
         const options_state = JSON.stringify({ name, extra: options });
         const last_state = JSON.stringify(this.last_options);
 
