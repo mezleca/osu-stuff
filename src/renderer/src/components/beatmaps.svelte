@@ -67,6 +67,7 @@
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }
+
         remove_callback();
     };
 

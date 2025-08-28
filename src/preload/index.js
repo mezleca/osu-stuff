@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld("shell", {
 });
 
 contextBridge.exposeInMainWorld("extra", {
+    is_dev_mode: () => ipcRenderer.invoke("is-dev-mode"),
     fetch_stats: (url, cookies) => ipcRenderer.invoke("fetch-stats", url, cookies),
     create_auth: (url, end) => ipcRenderer.invoke("create-auth", url, end),
     dialog: (options) => ipcRenderer.invoke("dialog", options),

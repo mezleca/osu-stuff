@@ -32,14 +32,6 @@ a simple and useful app that gives you freedom to:
 > v2 alpha/beta releases are also on the [releases](https://github.com/mezleca/osu-stuff/releases/) page
 > (bug reports / feature requests are always welcome!)
 
-## custom mirrors
-
-| name          | url                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------ |
-| `beatconnect` | [https://beatconnect.io/d/](https://beatconnect.io/d/)                               |
-| `catboy`      | [https://catboy.best/d/](https://catboy.best/d/)                                     |
-| `sayobot`     | [https://dl.sayobot.cn/beatmaps/download/](https://dl.sayobot.cn/beatmaps/download/) |
-
 ## linux dependencies
 
 ### debian/ubuntu

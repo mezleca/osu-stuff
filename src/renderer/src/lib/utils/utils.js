@@ -1,3 +1,5 @@
+import { writable } from "svelte/store";
+
 export const get_from_media = async (file) => {
     const url = "media://" + encodeURI(file);
     const data = await window.fetch({ url });
@@ -33,6 +35,7 @@ export const string_is_valid = (value) => {
 };
 
 export const context_separator = "<|=‎=|>";
+export const is_dev_mode = writable(false);
 
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {

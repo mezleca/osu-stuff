@@ -1,105 +1,142 @@
 <script>
-    import { onDestroy, onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
-    import { show_export_progress } from "../../lib/store/export_progress";
-    import { input } from "../../lib/store/input";
+    import { marked } from "marked";
+    import { onMount } from "svelte";
+    import { is_dev_mode } from "../../lib/utils/utils";
 
-    // components
-    import Popup from "../utils/popup/popup.svelte";
-    import { get_player_data } from "../../lib/utils/beatmaps";
+    // fix tables
+    import ExtendedTables from "marked-extended-tables";
 
-    const popup_manager = get_popup_manager("index");
-    const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
+    // @TODO: move markdown stuff to MarkDownRenderer component
 
-    function get_random_shit(max = 5) {
-        const items = ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo", "fred", "plugh", "xyzzy", "thud"];
-        const result = [];
-        for (let i = 0; i < Math.floor(Math.random() * max); i++) {
-            const idx = Math.floor(Math.random() * items.length);
-            result.push(items[idx]);
-        }
-        return result;
-    }
+    // markdown content
+    import IndexMarkdown from "../../assets/index.md?raw";
 
-    const create_confirm_addon = () => {
-        const addon = new ConfirmAddon();
+    // test tab
+    import TestContent from "./test.svelte";
 
-        addon.add_title("select and option");
-        addon.add_button("123", "button 1");
-        addon.add_button("1253", "button 2");
+    // github like css for markdown
+    import "github-markdown-css/github-markdown.css";
 
-        addon.set_callback((v) => console.log("selected option: ", v));
-        popup_manager.register("aids", addon);
-    };
+    // create image map for easier matching
+    const images = import.meta.glob("../../assets/images/*.{png,jpg,jpeg,gif,svg}", { eager: true, import: "default" });
+    const image_map = {};
 
-    const create_yes_no_confirm_addon = () => {
-        const addon = new ConfirmAddon();
-
-        // force show action
-        addon.set_custom_action(true);
-
-        addon.add({ text: "test player fetch?" });
-
-        addon.set_callback(async (v) => {
-            const result = await get_player_data({
-                player_name: "Froslass",
-                beatmap_options: new Set(["created maps", "first place"]),
-                beatmap_status: new Set(["ranked", "loved"]),
-                star_rating: { min: 0, max: 10 }
-            });
-
-            console.log(result);
-        });
-
-        popup_manager.register("question", addon);
-    };
-
-    const create_test_addon = () => {
-        const addon = new PopupAddon();
-
-        addon.add({ id: "something", type: "text", text: "ts is a text", font_size: 20 });
-        addon.add({ id: "range-test", type: "range", label: "range test", min: 0, max: 105 });
-        addon.add({ id: "dialog-test", type: "file-dialog", label: "select a file" });
-        // shoud enable container 1 on checked
-        addon.add({ id: "mhm", type: "checkbox", label: "checkbox to enable da container" });
-        // should enable container 2 on "active"
-        addon.add({ id: "mhm2", type: "dropdown", text: "dropdown to enable container2", data: ["not active", "active", "test"] });
-        addon.add({ id: "container", type: "container", show_when: { id: "mhm", equals: true } });
-        addon.add({ id: "container2", type: "container", show_when: { id: "mhm2", equals: "active" } });
-        addon.add({ id: "drop", type: "dropdown", text: "items", data: ["123", "321", "1", "aaaaaaa"] });
-        addon.add({ id: "cool", type: "buttons", label: "cool (row)", class: "row", multiple: true, data: () => ["abc", "bcd", "efg"] });
-        addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: () => get_random_shit(10) });
-        addon.add({ id: "cool3", type: "buttons", label: "cool3", multiple: true, parent: "container2", data: ["321", "123"] });
-
-        addon.set_callback((data) => console.log(data));
-        popup_manager.register("test", addon);
-    };
-
-    onMount(() => {
-        create_test_addon();
-        create_confirm_addon();
-        create_yes_no_confirm_addon();
-
-        input.on("a", () => {
-            show_export_progress(export_test_data);
-        });
-        input.on("control+a", () => {
-            show_export_progress({ ...export_test_data, status: "missing" });
-        });
+    Object.keys(images).forEach((full_path) => {
+        const file_name = full_path.split("/").pop();
+        image_map[file_name] = images[full_path];
+        image_map[full_path] = images[full_path]; // keep full path too
     });
 
-    onDestroy(() => {
-        input.unregister("a", "control+a");
+    function resolve_image_path(href) {
+        // try exact path first
+        if (image_map[href]) {
+            return image_map[href];
+        }
+
+        // try just filename
+        const file_name = href.split("/").pop();
+
+        if (image_map[file_name]) {
+            return image_map[file_name];
+        }
+
+        // if not found, return original path
+        return href;
+    }
+
+    marked.use(ExtendedTables());
+    marked.use({
+        renderer: {
+            image(href, text, title) {
+                const resolved_href = resolve_image_path(href);
+                return `<img src="${resolved_href}" alt="${text || ""}" ${title ? `title="${title}"` : ""}/>`;
+            }
+        },
+        hooks: {
+            postprocess(html) {
+                // regex to find <img> tags with src that needs to be resolved
+                return html.replace(/<img([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (_, before, src, after) => {
+                    const resolved_src = resolve_image_path(src);
+                    return `<img${before}src="${resolved_src}"${after}>`;
+                });
+            }
+        }
+    });
+
+    marked.setOptions({
+        gfm: true,
+        tables: true
+    });
+
+    $: container = null;
+    $: index_content = "";
+    $: show_test = false;
+
+    onMount(async () => {
+        // update content
+        index_content = await marked.parse(IndexMarkdown);
+
+        // wait until we have the container
+        await new Promise((r) => {
+            let interval = setInterval(() => {
+                if (container != null) {
+                    r();
+                    clearInterval(interval);
+                }
+            }, 10);
+        });
+
+        // now that we have the container, lets handle links stuff
+        const all_links = [...container.querySelectorAll("a")];
+
+        for (const link of all_links) {
+            link.addEventListener("click", (e) => {
+                // we dont want to open shit on the current webview
+                e.preventDefault();
+
+                // get target url
+                const target_url = e.target.getAttribute("href");
+
+                if (!target_url || target_url == "") {
+                    return;
+                }
+
+                // open on browser
+                window.shell.open(target_url, {});
+            });
+        }
     });
 </script>
 
-<div class="content tab-content">
-    <Popup key={"index"} />
-    <div class="index-content">
-        <h1>hey</h1>
-        <p>yeah thats the main tab</p>
-        <button onclick={() => show_popup("test", "index")}>open popup addon</button>
-        <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
-        <button onclick={() => show_popup("question", "index")}>open yes/no confirmation addon</button>
-    </div>
+<div class="markdown-body content tab-content index-content" bind:this={container}>
+    {@html index_content}
+    {#if $is_dev_mode}
+        <button onclick={() => (show_test = !show_test)}>toggle test</button>
+    {/if}
+    {#if show_test}
+        <TestContent />
+    {/if}
 </div>
+
+<style>
+    .index-content {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    :global(.markdown-body p) {
+        font-size: 1em;
+    }
+
+    :global(.markdown-body h2, .markdown-body h1) {
+        font-size: 1.7em;
+        padding-bottom: 0.1em;
+    }
+
+    :global(.markdown-body table) {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 16px;
+        overflow: visible;
+    }
+</style>

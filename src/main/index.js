@@ -91,6 +91,7 @@ async function createWindow() {
     }
 
     // extra
+    ipcMain.handle("is-dev-mode", () => is_dev_mode);
     ipcMain.handle("dev-tools", () => mainWindow.webContents.openDevTools({ mode: "detach" }));
 
     // window controls
