@@ -28,10 +28,6 @@ a simple and useful app that gives you freedom to:
 
 - **latest stable version**: [download here](https://github.com/mezleca/osu-stuff/releases/latest)
 
-> [!NOTE]  
-> v2 alpha/beta releases are also on the [releases](https://github.com/mezleca/osu-stuff/releases/) page
-> (bug reports / feature requests are always welcome!)
-
 ## linux dependencies
 
 ### debian/ubuntu
