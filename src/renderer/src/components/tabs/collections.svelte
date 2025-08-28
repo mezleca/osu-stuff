@@ -53,7 +53,7 @@
 
     const remove_callback = () => {
         if ($selected_collection.name) {
-            filter_beatmaps();
+            filter_beatmaps({ force: true });
         }
 
         collections.filter();

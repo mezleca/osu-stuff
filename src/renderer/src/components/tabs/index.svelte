@@ -10,7 +10,7 @@
 
     // markdown content
     import IndexMarkdown from "../../assets/index.md?raw";
-    
+
     // test tab
     import TestContent from "./test.svelte";
 
@@ -111,10 +111,10 @@
 <div class="markdown-body content tab-content index-content" bind:this={container}>
     {@html index_content}
     {#if $is_dev_mode}
-        <button onclick={() => show_test = !show_test}>toggle test</button>
+        <button onclick={() => (show_test = !show_test)}>toggle test</button>
     {/if}
     {#if show_test}
-        <TestContent/> 
+        <TestContent />
     {/if}
 </div>
 
