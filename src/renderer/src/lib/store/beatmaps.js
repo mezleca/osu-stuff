@@ -56,6 +56,10 @@ export class BeatmapListBase {
         this.invalid_selected = writable(false);
     }
 
+    get_items() {
+        return get(this.items);
+    }
+
     set_items(items, key, ignore_context = false) {
         this.items.set(items);
 

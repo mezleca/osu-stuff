@@ -41,8 +41,18 @@
     $: missing_collections = collections.missing_collections;
 
     const filter_beatmaps = async (extra) => {
+        // check if the length matches, if not force
+        if (!extra.force) {
+            if (list.get_items().length != $selected_collection.maps.length) {
+                extra.force = true;
+            }
+        }
+
         const result = await list.get_beatmaps($selected_collection.name, extra);
-        if (result) list.set_beatmaps(result, $query, false);
+        
+        if (result) {
+            list.set_beatmaps(result, $query, false);
+        }
     };
 
     // force list update
