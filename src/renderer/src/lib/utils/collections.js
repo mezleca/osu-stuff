@@ -1,3 +1,5 @@
+import { reset_beatmap_lists } from "../store/beatmaps";
+import { reset_audio_manager } from "../store/audio";
 import { collections } from "../store/collections";
 import { config } from "../store/config";
 import { downloader } from "../store/downloader";
@@ -16,7 +18,6 @@ export const get_osu_data = async (force) => {
     }
 
     const osu_promises = [window.osu.get_collections(force), window.osu.get_beatmaps(force)];
-
     const osu_result = await Promise.all(osu_promises);
 
     // check if we failed to get osu! data
@@ -32,6 +33,12 @@ export const get_osu_data = async (force) => {
 
     // remove selected colection
     collections.selected.set({});
+
+    // beamtap list cleanup
+    reset_beatmap_lists();
+
+    // radio manager cleanup
+    reset_audio_manager();
 
     // add new collections
     collections.set(collections_array);

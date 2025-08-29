@@ -1,7 +1,6 @@
 import { writable, get } from "svelte/store";
 import { format_time } from "../utils/utils.js";
 import { get_from_media } from "../utils/utils.js";
-import { config } from "../store/config.js";
 
 const DEFAULT_VOLUME = 50;
 
@@ -526,4 +525,12 @@ export const get_audio_manager = (id) => {
         audio_managers.set(id, new AudioManager(id));
     }
     return audio_managers.get(id);
+};
+
+export const reset_audio_manager = () => {
+    const managers = Array.from(audio_managers.values());
+
+    for (const manager of managers) {
+        manager.clean_audio();
+    }
 };

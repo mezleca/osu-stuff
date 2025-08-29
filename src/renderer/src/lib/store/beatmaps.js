@@ -371,6 +371,14 @@ class OsuBeatmaps {
     }
 }
 
+export const reset_beatmap_lists = () => {
+    const lists = Array.from(managers.values());
+
+    for (const list of lists) {
+        list.clear();
+    }
+};
+
 /** @returns {BeatmapList} */
 export const get_beatmap_list = (tab_id) => {
     if (!managers.has(tab_id)) {
