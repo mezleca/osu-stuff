@@ -1,5 +1,6 @@
 <script>
     import { onMount, tick, onDestroy } from "svelte";
+    import { debounce } from "../../lib/utils/utils";
 
     export let count = 0;
     export let item_height = 100;
@@ -11,7 +12,7 @@
     export let key = crypto.randomUUID();
     export let direction = "right";
     export let get_key = () => crypto.randomUUID();
-    export let on_end = () => {};
+    export let on_update = null;
     export let selected = -1;
     export let columns = null;
 
@@ -117,6 +118,11 @@
         last_hovered_item = hovered_item;
     };
 
+    const call_update = debounce((index) => {
+        const actual_index = (index + 1) * columns;
+        if (on_update) on_update(actual_index);
+    }, 100);
+
     const carousel_update = () => {
         if (animation_frame_id) {
             return;
@@ -153,6 +159,7 @@
         if (container) {
             container_height = container.clientHeight;
         }
+
         if (carousel_enabled && !is_scrolling) {
             carousel_update();
         }
@@ -247,12 +254,13 @@
     <div class="spacer" style="height: {total_height}px;"></div>
     <div class="viewport" style="transform: translateY({offset_y}px);">
         {#key key}
-            {#if columns_mode}
-                {#each { length: visible_items } as _, i (start_index + i)}
-                    {@const actual_index = start_index + i}
-                    {#if actual_index == count - 1}
-                        {on_end()}
-                    {/if}
+            {#each { length: visible_items } as _, i (start_index + i)}
+                <!-- only update on last item rendered -->
+                {@const actual_index = start_index + i}
+                {#if i == visible_items - 1 && on_update}
+                    {call_update(actual_index)}
+                {/if}
+                {#if columns_mode}
                     {@const row_index = start_index + i}
                     {@const column_items = get_column_items(row_index)}
                     <div
@@ -273,13 +281,7 @@
                             </div>
                         {/each}
                     </div>
-                {/each}
-            {:else}
-                {#each { length: visible_items } as _, i (start_index + i)}
-                    {@const actual_index = start_index + i}
-                    {#if actual_index == count - 1}
-                        {on_end()}
-                    {/if}
+                {:else}
                     <div
                         id={get_key(i)}
                         class="item {direction}"
@@ -296,8 +298,8 @@
                     >
                         <slot index={actual_index} />
                     </div>
-                {/each}
-            {/if}
+                {/if}
+            {/each}
         {/key}
     </div>
 </div>

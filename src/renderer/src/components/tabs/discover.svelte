@@ -14,11 +14,6 @@
 
     $: query = discover.query;
     $: data = discover.data;
-    $: should_update = discover.should_update;
-
-    $: if ($should_update) {
-        discover.search();
-    }
 </script>
 
 <div class="content tab-content">
@@ -61,6 +56,20 @@
         </div>
 
         <!-- render beatmap list -->
-        <Beatmaps show_context={false} set={true} columns={2} list_manager={discover} />
+        <Beatmaps
+            show_context={false}
+            set={true}
+            columns={2}
+            list_manager={discover}
+            on_update={(i) => {
+                // update list on 10 items to the end
+                if (discover.can_load_more() && discover.get_list_length() - i <= 10) {
+                    console.log(`[discover] loading more at item ${i}/${discover.get_list_length()}`);
+                    discover.search();
+                } else {
+                    console.log("discover.can_load_more() -> false:", discover.can_load_more(), discover.get_list_length() - i <= 10);
+                }
+            }}
+        />
     </div>
 </div>
