@@ -43,7 +43,7 @@
     const filter_beatmaps = async (extra = {}) => {
         // check if the length matches, if not force
         if (!extra?.force) {
-            if (list.get_items().length != $selected_collection.maps.length) {
+            if ($selected_collection?.maps && list.get_items().length != $selected_collection.maps.length) {
                 extra.force = true;
             }
         }

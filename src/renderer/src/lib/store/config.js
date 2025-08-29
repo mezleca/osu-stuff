@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { show_notification } from "./notifications";
 import { downloader } from "./downloader";
+import { string_is_valid } from "../utils/utils";
 
 const default_config_fields = {
     osu_id: "",
@@ -53,6 +54,11 @@ const create_persistent_config = () => {
 
 export const get_access_token = async (id, secret) => {
     try {
+        // early return without notifications
+        if (!string_is_valid(id) || !string_is_valid(secret)) {
+            return;
+        }
+
         const response = await window.fetch({
             url: "https://osu.ppy.sh/oauth/token",
             method: "POST",
@@ -65,7 +71,8 @@ export const get_access_token = async (id, secret) => {
         });
 
         if (response.status != 200) {
-            console.log("failed to get access token ;-;", response);
+            show_notification({ type: "error", text: "failed to get access token..." });
+            console.log("failed access token request:", response.status, response.statusText);
             return;
         }
 
@@ -92,7 +99,6 @@ export const update_access_token = async (force) => {
     const new_token = await get_access_token(id, secret);
 
     if (!new_token) {
-        show_notification({ type: "error", text: "failed to get access token..." });
         return;
     }
 
