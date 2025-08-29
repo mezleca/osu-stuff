@@ -12,7 +12,7 @@ export const get_and_update_collections = async (force) => {
 
     if (!osu_folder) {
         console.error("[get_collections] failed to get osu! folder");
-        return;
+        return false;
     }
 
     if (collection_data && !force) {
@@ -23,14 +23,14 @@ export const get_and_update_collections = async (force) => {
 
     if (!fs.existsSync(location)) {
         console.log("failed to get collection file in", location);
-        return;
+        return false;
     }
 
     const result = await reader.get_collections_data(location);
 
     if (!result) {
         console.log("failed to get collection file");
-        return;
+        return false;
     }
 
     collection_data = result;

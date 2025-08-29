@@ -1,14 +1,34 @@
 import { collections } from "../store/collections";
+import { config } from "../store/config";
 import { downloader } from "../store/downloader";
 import { show_notification } from "../store/notifications";
 import { convert_beatmap_keys } from "./beatmaps";
+import { string_is_valid } from "./utils";
 
 export const get_osu_data = async (force) => {
-    const collection_data = await window.osu.get_collections(force);
+    const stable_path = config.get("stable_path");
+    const lazer_path = config.get("lazer_path");
 
-    if (!collection_data) {
+    // dont show notification if we dont have a valid path
+    if (!string_is_valid(stable_path) && !string_is_valid(lazer_path)) {
+        console.log("no osu! path to search....");
         return;
     }
+
+    const osu_promises = [
+        window.osu.get_collections(force),
+        window.osu.get_beatmaps(force)
+    ];
+
+    const osu_result = await Promise.all(osu_promises);
+
+    // check if we failed to get osu! data
+    if (osu_result.some((p) => !p)) {
+        show_notification({ type: "error", text: "failed to read osu! data... please ensure the osu! directory is valid"});
+        return;
+    }
+
+    const collection_data = osu_result[0];
 
     const collections_array = Array.from(collection_data.collections.values());
     const version = collection_data.version;
@@ -19,13 +39,6 @@ export const get_osu_data = async (force) => {
     // add new collections
     collections.set(collections_array);
     collections.set_version(version);
-
-    const beatmaps_data = await window.osu.get_beatmaps(force);
-
-    if (!beatmaps_data) {
-        console.log("[osu] failed to initialize");
-        return;
-    }
 };
 
 const get_tournament_maps = async (id) => {
