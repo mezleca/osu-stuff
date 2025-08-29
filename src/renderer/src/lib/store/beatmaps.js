@@ -60,6 +60,10 @@ export class BeatmapListBase {
         return get(this.items);
     }
 
+    get_list_length() {
+        return get(this.items).length;
+    }
+
     set_items(items, key, ignore_context = false) {
         this.items.set(items);
 

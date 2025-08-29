@@ -1,7 +1,7 @@
 import { get, writable } from "svelte/store";
 import { access_token } from "./config";
 import { show_notification } from "./notifications";
-import { BeatmapListBase, osu_beatmaps } from "./beatmaps";
+import { BeatmapListBase } from "./beatmaps";
 import { debounce } from "../utils/utils";
 
 // l
@@ -67,6 +67,8 @@ class DiscoverManager extends BeatmapListBase {
         this.last_query = writable("");
         this.data = writable(DEFAULT_DATA_VALUES);
         this.should_update = writable(false);
+        this.is_loading = writable(false);
+        this.has_reached_end = writable(false);
 
         // track last search state to detect changes
         this.last_search_state = "";
@@ -141,6 +143,11 @@ class DiscoverManager extends BeatmapListBase {
     }
 
     search = debounce(async () => {
+        // only one at time baby
+        if (get(this.is_loading)) {
+            return;
+        }
+
         const token = get(access_token);
 
         if (token == "") {
@@ -148,20 +155,98 @@ class DiscoverManager extends BeatmapListBase {
             return;
         }
 
+        // dont make more request if we reached the end
+        if (get(this.has_reached_end)) {
+            console.log("[discover] reached end of results");
+            return;
+        }
+
+        this.is_loading.set(true);
+
         const current_state = this.get_current_search_state();
 
         // reset cursor/beatmaps if search parameters changed
         if (this.last_search_state != current_state) {
             this.cursor.set("");
             this.beatmaps.set([]);
+            this.has_reached_end.set(false);
             this.last_search_state = current_state;
         }
 
-        const normalized_data = [];
+        try {
+            const normalized_data = this.normalize_filter_data(get(this.data));
+            const baked_url = this.bake_url(normalized_data);
 
-        for (const [key, values] of Object.entries(get(this.data))) {
-            // for some reason the osu! api use a single char for filter params...
+            const result = await window.fetch({
+                url: baked_url,
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            });
+
+            if (result.status != 200) {
+                console.log("[discover] failed to fetch beatmaps", result);
+                return;
+            }
+
+            const data = await result.json();
+
+            // check if we have any beatmaps left to search
+            if (!data.beatmapsets || data.beatmapsets.length == 0) {
+                this.has_reached_end.set(true);
+                return;
+            }
+
+            // append download, local
+            const updated_beatmapsets = await Promise.all(
+                data.beatmapsets.map(async (set) => {
+                    const local_beatmap = await this.get_from_local_by_id(set.id);
+                    if (local_beatmap) {
+                        set.downloaded = local_beatmap.downloaded;
+                        set.local = local_beatmap.local;
+                    }
+                    return set;
+                })
+            );
+
+            const current_cursor = get(this.cursor);
+
+            // update beatmap list
+            if (current_cursor == "") {
+                this.beatmaps.set([...updated_beatmapsets]);
+            } else {
+                this.beatmaps.update((sets) => [...sets, ...updated_beatmapsets]);
+            }
+
+            // update cursor
+            const new_cursor = data.cursor_string || "";
+            this.cursor.set(new_cursor);
+
+            // that means we reached the end ;-;
+            if (new_cursor == "") {
+                this.has_reached_end.set(true);
+            }
+
+            this.last_query.set(get(this.query));
+        } catch (error) {
+            console.error("[discover] search error:", error);
+            show_notification({ type: "error", text: "failed to search beatmaps" });
+        } finally {
+            this.is_loading.set(false);
+        }
+    }, 500);
+
+    normalize_filter_data(data) {
+        const normalized_data = {};
+
+        for (const [key, values] of Object.entries(data)) {
+            // for some reason the osu! api use a single char for filter params..
             const filter_data = filter_map.get(key);
+
+            if (!filter_data) {
+                continue;
+            }
+
             const new_key = filter_data.code;
 
             // return the expected filter value (ex: japanese -> 13)
@@ -172,57 +257,22 @@ class DiscoverManager extends BeatmapListBase {
                 } else {
                     normalized_data[new_key] = filter_data.data[values];
                 }
-            } else {
-                for (const value of values) {
-                    // in this case, the value will be the same
-                    if (Array.isArray(filter_data.data)) {
-                        normalized_data[new_key] = value;
-                    } else {
-                        normalized_data[new_key] = filter_data.data[value];
+            } else if (Array.isArray(values) && values.length > 0) {
+                // in this case, the value will be the same
+                if (Array.isArray(filter_data.data)) {
+                    normalized_data[new_key] = values;
+                } else {
+                    const mapped_values = values.map((value) => filter_data.data[value]).filter((val) => val != undefined);
+
+                    if (mapped_values.length > 0) {
+                        normalized_data[new_key] = mapped_values;
                     }
                 }
             }
         }
 
-        const baked_url = this.bake_url(normalized_data);
-
-        const result = await window.fetch({
-            url: baked_url,
-            headers: {
-                Authorization: "Bearer " + token
-            }
-        });
-
-        if (result.status != 200) {
-            console.log("[discover] failed to fetch beatmaps", result);
-            return;
-        }
-
-        const data = result.json();
-
-        // only append if we are paginating, otherwise replace
-        const current_cursor = get(this.cursor);
-
-        // append download, local (so we know what maps we have)
-        const updated_beatmapsets = data.beatmapsets.map(async (set) => {
-            const local_beatmap = await this.get_from_local_by_id(set.id);
-            if (local_beatmap) {
-                set.downloaded = local_beatmap.downloaded;
-                set.local = local_beatmap.local;
-            }
-            return set;
-        });
-
-        if (current_cursor == "") {
-            this.beatmaps.set([...updated_beatmapsets]);
-        } else {
-            this.beatmaps.update((sets) => [...sets, ...updated_beatmapsets]);
-        }
-
-        this.cursor.set(data.cursor_string || "");
-        this.last_query.set(get(this.query));
-        this.should_update.set(false);
-    }, 250);
+        return normalized_data;
+    }
 
     update(type, value) {
         if (!filter_map.has(type)) {
@@ -254,7 +304,7 @@ class DiscoverManager extends BeatmapListBase {
         // force immediate reset and search trigger
         this.cursor.set("");
         this.beatmaps.set([]);
-        this.should_update.set(true);
+        this.has_reached_end.set(false);
 
         // trigger search immediately after filter change
         this.search();
@@ -278,7 +328,12 @@ class DiscoverManager extends BeatmapListBase {
     update_query(value) {
         if (get(this.query) == value) return;
         this.query.set(value);
+        this.has_reached_end.set(false);
         this.search();
+    }
+
+    can_load_more() {
+        return !get(this.is_loading) && !get(this.has_reached_end);
     }
 }
 

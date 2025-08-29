@@ -28,7 +28,7 @@
     export let set = false;
     export let show_control = true;
     export let remove_callback = () => {};
-    export let on_end = () => {};
+    export let on_update = null;
 
     const list = list_manager || get_beatmap_list(tab_id);
     const { beatmaps, selected } = list;
@@ -162,7 +162,7 @@
         {tab_id}
         {direction}
         {columns}
-        {on_end}
+        {on_update}
         let:index
     >
         {@const hash = $beatmaps[index]}
