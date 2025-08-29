@@ -29,7 +29,6 @@ export const format_time = (secs) => {
 };
 
 export const string_is_valid = (value) => {
-    if (typeof value != "string") return false;
     if (value == "" || value == " ") return false;
     return true;
 };
