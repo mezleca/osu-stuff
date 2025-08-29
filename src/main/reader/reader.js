@@ -250,7 +250,7 @@ export class Reader extends BinaryReader {
     get_osu_data = async (file_path) => {
         // remove old objects, buffers, etc...
         this.cleanup();
-        
+
         if (config.lazer_mode) {
             console.log("[reader] reading lazer data...");
             try {
