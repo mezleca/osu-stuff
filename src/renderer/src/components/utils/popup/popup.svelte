@@ -31,15 +31,18 @@
         if (callback) callback(values);
     };
 
-    const handle_cancel = (value, check) => {
-        // force submit on confirm instance
-        if (is_confirm && check) {
+    const handle_cancel = (value) => {
+        // if we have and value, submit it
+        if (value) {
             handle_submit(value);
             return;
         }
 
-        // or just hide
+        // otherwise just hide and call the cancel callback
+        const callback = $active_popup.popup.cancel_callback;
+
         hide_popup(key);
+        if (callback) callback();
     };
 
     const close_on_backdrop = (event) => {
@@ -129,7 +132,7 @@
                         <button class="submit-btn" onclick={() => handle_submit($active_popup.popup.custom_submit)}
                             >{$active_popup.popup.custom_submit}</button
                         >
-                        <button class="cancel-btn" onclick={() => handle_cancel($active_popup.popup.custom_cancel, true)}
+                        <button class="cancel-btn" onclick={() => handle_cancel($active_popup.popup.custom_cancel)}
                             >{$active_popup.popup.custom_cancel}</button
                         >
                     {:else if !is_confirm}

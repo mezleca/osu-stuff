@@ -340,9 +340,6 @@ const get_osz = async (beatmap_id) => {
             const osz_url = `${url}/${beatmap_id}`;
             const response = await fetch(osz_url);
 
-            // @TODO: only add on debug mode
-            console.log(`[debug] mirror download data for (${osz_url}) (status: ${response.status} | text: ${response.statusText}})`);
-
             if (response.status == 429) {
                 console.log(`added rate limit to ${mirror.name}`);
                 mirror.cooldown = Date.now() + COOLDOWN_MINUTES * 60 * 1000;

@@ -54,6 +54,7 @@ class BaseAddon {
         this.custom_cancel = "no";
         this.defaults = new Map();
         this.callback = null;
+        this.cancel_callback = null;
     }
 
     add(options = {}) {
@@ -62,6 +63,10 @@ class BaseAddon {
 
     set_callback(callback) {
         this.callback = callback;
+    }
+
+    set_cancel_callback(callback) {
+        this.cancel_callback = callback;
     }
 
     evaluate_condition(condition) {
@@ -126,7 +131,6 @@ class BaseAddon {
 
         // support multiple conditions
         const conditions = Array.isArray(element.show_when) ? element.show_when : [element.show_when];
-
         return conditions.every((condition) => this.evaluate_condition(condition));
     }
 
@@ -208,15 +212,13 @@ class BaseAddon {
         return values;
     }
 
-    set_custom_action(value) {
-        this.custom_action = value;
-    }
-
     set_submit_action(value) {
+        this.custom_action = true;
         this.custom_submit = value;
     }
 
     set_cancel_action(value) {
+        this.custom_action = true;
         this.custom_cancel = value;
     }
 
@@ -404,4 +406,36 @@ export const show_popup = (key, manager_key = "default") => {
 export const hide_popup = (manager_key = "default") => {
     const manager = get_popup_manager(manager_key);
     manager.hide();
+};
+
+export const quick_confirm = async (title, options = { }) => {
+    const addon = new ConfirmAddon();
+
+    addon.add_title(title);
+
+    if (!options?.submit) options.submit = "yes";
+    if (!options?.cancel) options.cancel = "no";
+
+    // add custom actions
+    addon.set_submit_action(options.submit);
+    addon.set_cancel_action(options.cancel);
+
+    // get/create temp manager
+    const manager_key = options?.key ? options.key : "temp";
+    const manager = get_popup_manager(manager_key);
+
+    // wait until the user does something
+    const result = await new Promise((resolve) => {
+        // finish promise on action 
+        addon.set_callback((value) => resolve(value));
+        addon.set_cancel_callback(() => resolve(null));
+
+        // temp register the new addon
+        manager.register("confirmation", addon);
+
+        // show it 
+        manager.show("confirmation");
+    });
+
+    return result;
 };

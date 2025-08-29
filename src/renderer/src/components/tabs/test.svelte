@@ -1,9 +1,8 @@
 <script>
     import { onDestroy, onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon, quick_confirm } from "../../lib/store/popup";
     import { show_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
-    import { get_player_data } from "../../lib/utils/beatmaps";
 
     // components
     import Popup from "../utils/popup/popup.svelte";
@@ -32,26 +31,9 @@
         popup_manager.register("aids", addon);
     };
 
-    const create_yes_no_confirm_addon = () => {
-        const addon = new ConfirmAddon();
-
-        // force show action
-        addon.set_custom_action(true);
-
-        addon.add({ text: "test player fetch?" });
-
-        addon.set_callback(async (v) => {
-            const result = await get_player_data({
-                player_name: "Froslass",
-                beatmap_options: new Set(["created maps", "first place"]),
-                beatmap_status: new Set(["ranked", "loved"]),
-                star_rating: { min: 0, max: 10 }
-            });
-
-            console.log(result);
-        });
-
-        popup_manager.register("question", addon);
+    const show_yes_no_addon = async () => {
+        const result = await quick_confirm("hello", { key: "index" });
+        console.log(result);
     };
 
     const create_test_addon = () => {
@@ -78,7 +60,6 @@
     onMount(() => {
         create_test_addon();
         create_confirm_addon();
-        create_yes_no_confirm_addon();
 
         input.on("a", () => {
             show_export_progress(export_test_data);
@@ -96,7 +77,7 @@
 <div class="test">
     <button onclick={() => show_popup("test", "index")}>open popup addon</button>
     <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
-    <button onclick={() => show_popup("question", "index")}>open yes/no confirmation addon</button>
+    <button onclick={() => show_yes_no_addon()}>open yes/no confirmation addon</button>
     <Popup key={"index"} />
 </div>
 
