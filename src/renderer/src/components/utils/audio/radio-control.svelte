@@ -98,6 +98,7 @@
 
     const handle_selection_change = async () => {
         if (!current_beatmap?.audio_path) {
+            console.log("invalid beatmap:", current_beatmap);
             show_notification({ type: "error", text: "invalid beatmap: couldn't be processed" });
             return;
         }

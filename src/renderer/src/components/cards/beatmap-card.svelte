@@ -29,21 +29,26 @@
     let image_loaded = false;
     let observer = null;
 
-    $: current_image_src = get_image_source(beatmap, is_visible, set);
-
-    $: if (beatmap && current_image_src) {
-        load_image(current_image_src);
+    $: if (beatmap) {
+        get_image_source(beatmap, is_visible, set)
+            .then((i) => load_image(i))
+            .catch(() => {});
     }
 
-    const get_image_source = (beatmap, visible, is_set) => {
-        if (!beatmap || !visible) return PlaceholderImg;
+    const get_image_source = async (beatmap, visible, is_set) => {
+        if (!beatmap || !visible) {
+            return PlaceholderImg;
+        }
 
         if (is_set && beatmap?.covers?.cover) {
             return beatmap.covers.cover;
         }
 
         if (beatmap?.image_path) {
-            return `media://${encodeURI(beatmap.image_path)}`;
+            const resolved_path = window.path.resolve(beatmap.image_path);
+            const normalized_slashes = resolved_path.replace(/\\/g, "/");
+            const media_uri = `media://${encodeURI(normalized_slashes)}`;
+            return media_uri;
         }
 
         if (beatmap?.beatmapset_id) {

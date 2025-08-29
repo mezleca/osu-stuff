@@ -15,16 +15,13 @@ export const get_osu_data = async (force) => {
         return;
     }
 
-    const osu_promises = [
-        window.osu.get_collections(force),
-        window.osu.get_beatmaps(force)
-    ];
+    const osu_promises = [window.osu.get_collections(force), window.osu.get_beatmaps(force)];
 
     const osu_result = await Promise.all(osu_promises);
 
     // check if we failed to get osu! data
     if (osu_result.some((p) => !p)) {
-        show_notification({ type: "error", text: "failed to read osu! data... please ensure the osu! directory is valid"});
+        show_notification({ type: "error", text: "failed to read osu! data... please ensure the osu! directory is valid" });
         return;
     }
 

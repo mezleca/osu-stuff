@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer, shell } = require("electron");
+const path = require("path");
 import { check_folder_permissions } from "./utils/validator.js";
 
 contextBridge.exposeInMainWorld("config", {
@@ -70,4 +71,9 @@ contextBridge.exposeInMainWorld("extra", {
     check_folder_permissions: (folder) => check_folder_permissions(folder),
     fetch: (options) => ipcRenderer.invoke("http-request", options),
     dev_tools: () => ipcRenderer.invoke("dev-tools")
+});
+
+contextBridge.exposeInMainWorld("path", {
+    resolve: (a) => path.resolve(a),
+    normalize: (a) => path.normalize(a)
 });

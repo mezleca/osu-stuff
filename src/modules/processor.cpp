@@ -12,6 +12,30 @@
 #include <unordered_map>
 #include <set>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <locale>
+#include <codecvt>
+
+std::wstring utf8_to_wide(const std::string &utf8_str)
+{
+    if (utf8_str.empty())
+        return std::wstring();
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &utf8_str[0], (int)utf8_str.size(), NULL, 0);
+    std::wstring wide_str(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &utf8_str[0], (int)utf8_str.size(), &wide_str[0], size_needed);
+    return wide_str;
+}
+
+std::string normalize_path_separators(const std::string &path)
+{
+    std::string normalized = path;
+    std::replace(normalized.begin(), normalized.end(), '/', '\\');
+    return normalized;
+}
+#endif
+
 using namespace std;
 
 const set<string> VIDEO_EXTENSIONS = {".avi", ".mov", ".mp4", ".flv"};
@@ -118,7 +142,12 @@ AudioCache audio_cache;
 OsuFileInfo parse_osu_file(const string &osu_file_path)
 {
     OsuFileInfo info;
+#ifdef _WIN32
+    std::wstring wide_path = utf8_to_wide(osu_file_path);
+    std::ifstream file(wide_path, std::ios::binary);
+#else
     ifstream file(osu_file_path);
+#endif
 
     if (!file.is_open())
     {
@@ -149,7 +178,11 @@ OsuFileInfo parse_osu_file(const string &osu_file_path)
                 string key = trim(line.substr(0, pos));
                 if (key == "AudioFilename")
                 {
-                    info.audio_filename = trim(line.substr(pos + 1));
+                    string filename = trim(line.substr(pos + 1));
+#ifdef _WIN32
+                    filename = normalize_path_separators(filename);
+#endif
+                    info.audio_filename = filename;
                 }
             }
         }
@@ -170,6 +203,9 @@ OsuFileInfo parse_osu_file(const string &osu_file_path)
 
                 if (VIDEO_EXTENSIONS.find(ext) == VIDEO_EXTENSIONS.end())
                 {
+#ifdef _WIN32
+                    filename = normalize_path_separators(filename);
+#endif
                     info.image_filename = filename;
                     break;
                 }
@@ -261,6 +297,7 @@ BeatmapInfo get_beatmap_info(const BeatmapObject &beatmap)
         info.image_path = beatmap.image_path;
     }
 
+    std::cout << "getting audio info for: " << info.audio_path << std::endl;
     AudioInfo audio_info = get_audio_information(info.unique_id, info.audio_path);
 
     info.success = audio_info.success;
@@ -268,7 +305,7 @@ BeatmapInfo get_beatmap_info(const BeatmapObject &beatmap)
 
     if (!info.success)
     {
-        info.reason = "failed to get audio data";
+        info.reason = "failed to get audio data from: " + info.audio_path;
     }
 
     return info;
@@ -414,7 +451,7 @@ Napi::Value process_beatmaps(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    if (is_processing) 
+    if (is_processing)
     {
         cerr << "error: already processing" << endl;
         return env.Null();

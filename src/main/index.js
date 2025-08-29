@@ -182,10 +182,17 @@ app.whenReady().then(async () => {
     // @TODO: this is dangerous asf LOL i can literally get any file using ts
     protocol.handle("media", (req) => {
         try {
-            const location = decodeURI(req.url.replace("media://", ""));
-            return net.fetch(`file://${location}`);
+            let location = decodeURI(req.url.replace("media://", ""));
+
+            // stupid windows needs file:/// and C:/ instead of C/
+            if (process.platform == "win32" && !location.includes(":/")) {
+                location = location.replace(/^([A-Z])\//, "$1:/");
+            }
+
+            return net.fetch(process.platform == "win32" ? `file:///${location}` : `file://${location}`);
         } catch (err) {
-            // ignore
+            console.error("protocol error:", err);
+            return new Response("not found", { status: 404 });
         }
     });
 
