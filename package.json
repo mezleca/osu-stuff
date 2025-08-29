@@ -21,10 +21,7 @@
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
         "better-sqlite3": "^12.2.0",
-        "github-markdown-css": "^5.8.1",
         "jszip": "^3.10.1",
-        "marked": "^16.2.1",
-        "marked-extended-tables": "^2.0.1",
         "realm": "20.2.0",
         "wx-svelte-menu": "^2.2.1"
     },
