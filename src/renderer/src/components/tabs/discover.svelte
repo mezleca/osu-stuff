@@ -64,10 +64,7 @@
             on_update={(i) => {
                 // update list on 10 items to the end
                 if (discover.can_load_more() && discover.get_list_length() - i <= 10) {
-                    console.log(`[discover] loading more at item ${i}/${discover.get_list_length()}`);
                     discover.search();
-                } else {
-                    console.log("discover.can_load_more() -> false:", discover.can_load_more(), discover.get_list_length() - i <= 10);
                 }
             }}
         />

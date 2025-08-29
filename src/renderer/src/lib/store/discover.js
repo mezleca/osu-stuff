@@ -145,7 +145,6 @@ class DiscoverManager extends BeatmapListBase {
     search = debounce(async () => {
         // only one at time baby
         if (get(this.is_loading)) {
-            console.log("[discover] already loading, skipping...");
             return;
         }
 
@@ -192,10 +191,9 @@ class DiscoverManager extends BeatmapListBase {
 
             const data = result.json();
 
-            // Verifica se não há mais resultados
+            // check if we have any beatmaps left to search
             if (!data.beatmapsets || data.beatmapsets.length == 0) {
                 this.has_reached_end.set(true);
-                console.log("[discover] no more results available");
                 return;
             }
 
@@ -213,7 +211,7 @@ class DiscoverManager extends BeatmapListBase {
 
             const current_cursor = get(this.cursor);
 
-            // Atualiza a lista de beatmaps
+            // update beatmap list
             if (current_cursor == "") {
                 this.beatmaps.set([...updated_beatmapsets]);
             } else {
