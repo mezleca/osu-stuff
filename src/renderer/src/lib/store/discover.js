@@ -189,7 +189,7 @@ class DiscoverManager extends BeatmapListBase {
                 return;
             }
 
-            const data = result.json();
+            const data = await result.json();
 
             // check if we have any beatmaps left to search
             if (!data.beatmapsets || data.beatmapsets.length == 0) {
