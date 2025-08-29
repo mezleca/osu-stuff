@@ -14,18 +14,20 @@ export const get_app_path = () => {
 };
 
 export const get_window_path = () => {
+    const result = { lazer_path: "", stable_path: "" };
+
     const stable_path = path.resolve(os.homedir(), "AppData", "Local", "osu!");
     const lazer_path = path.resolve(os.homedir(), "AppData", "Roaming", "osu");
 
     if (fs.existsSync(stable_path)) {
-        return { lazer: false, path: stable_path };
+        result.stable_path = stable_path;
     }
 
     if (fs.existsSync(lazer_path)) {
-        return { lazer: true, path: lazer_path };
+        result.lazer_path = lazer_path;
     }
 
-    return { lazer: false, path: null };
+    return result;
 };
 
 export const get_linux_path = async () => {

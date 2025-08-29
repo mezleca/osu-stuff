@@ -122,7 +122,7 @@ export const initialize_config = async () => {
     const osu_path = osu_path_result?.stable_path;
     const lazer_path = osu_path_result?.lazer_path;
 
-    if (osu_path != "") {
+    if (osu_path && osu_path != "") {
         update_config({ stable_path: osu_path, lazer_mode: config.lazer_mode ?? false });
         const stable_songs_path = path.resolve(osu_path, "Songs");
 
