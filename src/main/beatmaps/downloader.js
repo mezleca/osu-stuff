@@ -454,12 +454,10 @@ const export_beatmap_to_path = async (beatmap_data, target_path) => {
         return { success: true, path: target_path, skipped: true };
     }
 
-    const zip = new JSZip();
-
     if (!config.lazer_mode) {
-        await add_stable_beatmap_to_zip(zip, beatmap_data);
+        await add_stable_beatmap_to_zip(beatmap_data);
     } else {
-        await add_lazer_beatmap_to_zip(zip, beatmap_data);
+        await add_lazer_beatmap_to_zip(beatmap_data);
     }
 
     const content = await zip.generateAsync({
@@ -471,7 +469,7 @@ const export_beatmap_to_path = async (beatmap_data, target_path) => {
     return { success: true, path: target_path, skipped: false };
 };
 
-const add_stable_beatmap_to_zip = async (zip, beatmap_data) => {
+const add_stable_beatmap_to_zip = async (beatmap_data) => {
     const folder = beatmap_data.folder_name || (beatmap_data.file_path ? beatmap_data.file_path.split("/")[0] : null);
 
     if (!folder) {
@@ -484,10 +482,10 @@ const add_stable_beatmap_to_zip = async (zip, beatmap_data) => {
         throw new Error(`folder not found: ${folder_path}`);
     }
 
-    add_directory_to_zip(zip, folder_path, "");
+    add_directory_to_zip(folder_path, "");
 };
 
-const add_lazer_beatmap_to_zip = async (zip, beatmap_data) => {
+const add_lazer_beatmap_to_zip = async (beatmap_data) => {
     const set = beatmap_data.beatmapset;
 
     if (!set?.Files?.length) {
@@ -516,7 +514,7 @@ const add_lazer_beatmap_to_zip = async (zip, beatmap_data) => {
     }
 };
 
-const add_directory_to_zip = (zip, base_path, rel_base) => {
+const add_directory_to_zip = (base_path, rel_base) => {
     const files = fs.readdirSync(base_path, { withFileTypes: true });
 
     for (const f of files) {
@@ -524,7 +522,7 @@ const add_directory_to_zip = (zip, base_path, rel_base) => {
         const rel_path = path.join(rel_base, f.name);
 
         if (f.isDirectory()) {
-            add_directory_to_zip(zip, full_path, rel_path);
+            add_directory_to_zip(full_path, rel_path);
         } else if (f.isFile()) {
             try {
                 const data = fs.readFileSync(full_path);
