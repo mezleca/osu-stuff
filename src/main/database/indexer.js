@@ -95,8 +95,6 @@ export const process_beatmaps = async (beatmaps) => {
     // let everything load
     await new Promise((r) => setTimeout(r, 20));
 
-    window?.webContents.send("process", { show: true });
-
     const md5_list = beatmaps_array.map((b) => b.md5);
     // get extra beatmap data from database
     const existing_info = get_saved_beatmap_data(md5_list);
@@ -107,6 +105,8 @@ export const process_beatmaps = async (beatmaps) => {
         console.log("[indexer] 0 beatmaps to process...");
         return beatmaps;
     }
+
+    window?.webContents.send("process", { show: true });
 
     console.log(`[indexer] processing ${to_process.length} new beatmaps`);
 
