@@ -3,7 +3,7 @@
     import { config, update_access_token } from "../../lib/store/config";
     import { get_osu_data } from "../../lib/utils/collections";
     import { show_notification } from "../../lib/store/notifications";
-    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon, quick_confirm } from "../../lib/store/popup";
 
     // components
     import Add from "../utils/add.svelte";
@@ -65,11 +65,29 @@
         mirrors = $config.mirrors;
     };
 
-    // @TODO: confirmation
     const remove_mirror = async (name) => {
+        const confirm_result = await quick_confirm(`delete ${name}?`, { key: "config" });
+
+        if (confirm_result != "yes") {
+            return;
+        }
+
+        // remove mirror from database
         await window.downloader.remove_mirror(name);
+
+        // sync config data
         await config.reload();
         mirrors = $config.mirrors;
+    };
+
+    const reload_files = async () => {
+        const confirm_result = await quick_confirm("are you sure?", { key: "config" });
+
+        if (confirm_result != "yes") {
+            return;
+        }
+
+        get_osu_data(true);
     };
 
     const create_mirror_popup = () => {
@@ -157,7 +175,7 @@
             </div>
 
             <!-- @TODO: confirmation -->
-            <button type="button" onclick={() => get_osu_data(true)}>reload files</button>
+            <button type="button" onclick={() => reload_files()}>reload files</button>
             <!-- keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
             <button type="button" onclick={() => window.extra.dev_tools()}>open dev tools</button>
         </div>

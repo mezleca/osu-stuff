@@ -408,7 +408,7 @@ export const hide_popup = (manager_key = "default") => {
     manager.hide();
 };
 
-export const quick_confirm = async (title, options = { }) => {
+export const quick_confirm = async (title, options = {}) => {
     const addon = new ConfirmAddon();
 
     addon.add_title(title);
@@ -426,14 +426,14 @@ export const quick_confirm = async (title, options = { }) => {
 
     // wait until the user does something
     const result = await new Promise((resolve) => {
-        // finish promise on action 
+        // finish promise on action
         addon.set_callback((value) => resolve(value));
         addon.set_cancel_callback(() => resolve(null));
 
         // temp register the new addon
         manager.register("confirmation", addon);
 
-        // show it 
+        // show it
         manager.show("confirmation");
     });
 
