@@ -1,14 +1,90 @@
 import { config } from "../database/config";
 import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
+import { get_colection_beatmaps } from "./collections";
 
 import fs from "fs";
 import path from "path";
 
 export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
 export const MAX_STAR_RATING_VALUE = 10; // lazer
+export const MAX_RETURN_SIZE = 256;
+
+// @TODO: create check funcs for ALL_BEATMAPS and ALL_STATUS on main proc (so renderer dont have to redeclarated them)
+export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
+export const ALL_STATUS_KEY = "@stuff:__all_status__";
+
+// filter
+const TEXT_SORT_KEYS = ["title", "artist"];
+const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
 
 let osu_data = null;
+
+// cache for beatmap lists ( list_id | { state, list } )
+const beatmaps_cache = new Map();
+
+const create_state_key = (options) => {
+    return JSON.stringify(options);
+};
+
+const create_beatmaps_result = (value, data) => {
+    const result = { count: value || 0, data: [], found: true };
+
+    if (osu_data && !value) result.count = osu_data.beatmaps.size;
+    if (data) result.data = data;
+
+    return result;
+};
+
+export const update_beatmap_list = (options) => {
+    const list_id = options.id;
+
+    if (!list_id) {
+        return { found: false };
+    }
+
+    const new_state = create_state_key(options);
+    const list = beatmaps_cache.get(list_id) ?? { state: new_state, count: 0, maps: [] };
+
+    // dont update if state matches
+    if (new_state == list.state && beatmaps_cache.has(list_id)) {
+        console.log("detected same state, returning old list");
+        return create_beatmaps_result(list.count);
+    }
+
+    // update the state / filtered list
+    list.maps = filter_beatmaps(options) || [];
+    list.count = list.maps.length;
+    list.state = new_state;
+
+    // update cache
+    beatmaps_cache.set(list_id, list);
+
+    // return basic data
+    return create_beatmaps_result(list.count);
+};
+
+// get beatmaps using paging system
+const get_beatmap_from_list = (id, index) => {
+    if (!id) {
+        return false;
+    }
+
+    // get list by id
+    const current_list = beatmaps_cache.get(id);
+
+    if (!current_list) {
+        console.log("failed to get list data from:", id);
+        return false;
+    }
+
+    if (current_list.count == 0) {
+        return false;
+    }
+
+    const hash = current_list.maps[index];
+    return osu_data.beatmaps.get(hash) ?? false;
+};
 
 // get nm star rating based on gamemode
 export const get_beatmap_sr = (beatmap, gamemode = 0) => {
@@ -193,34 +269,32 @@ export const get_beatmap_by_set_id = (id) => {
     return false;
 };
 
-export const get_beatmap_data = (id, query, is_unique_id) => {
+export const get_beatmap_data = (options = { id: null, index: null, is_unique: false }) => {
     const result = { filtered: false, beatmap: null };
 
     // ignore unknown maps if we dont have a query yet
-    if (!id || id == "") {
+    if (!options.id || options.id == "") {
         result.filtered = true;
         return result;
     }
 
-    result.beatmap = is_unique_id ? get_beatmaps_by_id(id) : get_beatmap_by_md5(id);
-
-    // ignore unknown maps if we dont have a query yet
-    if (!result.beatmap && query == "") {
-        result.beatmap = { [is_unique_id ? "id" : "md5"]: id };
+    // handle beatmap from beatmap list
+    if (options.id != null && options.index != null) {
+        result.beatmap = get_beatmap_from_list(options.id, options.index);
+        if (!result.beatmap) result.filtered = true;
         return result;
     }
 
-    if (query && query != "") {
-        const passes_filter = filter_beatmap(result.beatmap, query);
-        result.filtered = !passes_filter;
+    result.beatmap = options.is_unique ? get_beatmaps_by_id(options.id) : get_beatmap_by_md5(options.id);
+
+    // ignore unknown maps if we dont have a query yet
+    if (!result.beatmap) {
+        result.beatmap = { [options.is_unique ? "id" : "md5"]: options.id };
         return result;
     }
 
     return result;
 };
-
-const TEXT_SORT_KEYS = ["title", "artist"];
-const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
 
 const normalize_text = (text) => {
     if (!text) {
@@ -321,53 +395,54 @@ export const get_missing_beatmaps = (beatmaps) => {
     return missing_beatmaps;
 };
 
-export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
+export const filter_beatmaps = (options = { id: "", query: "", unique: false, invalid: false, sort: null, sr: null, status: null }) => {
     if (!osu_data) {
+        console.log("osu data is null LUL");
         return [];
     }
 
-    const beatmaps = list ? list : Array.from(osu_data.beatmaps.keys());
-    const seen_unique_ids = new Set();
+    const beatmaps = options.id == ALL_BEATMAPS_KEY ? Array.from(osu_data.beatmaps.keys()) : get_colection_beatmaps(options.id);
 
     if (!beatmaps) {
-        console.log("failed to get beatmaps array");
         return [];
     }
 
+    const seen_unique_ids = new Set();
     let filtered_beatmaps = [];
 
     // filter beatmaps based on query and stuff
     for (let i = 0; i < beatmaps.length; i++) {
         const list_beatmap = beatmaps[i];
-        const { beatmap, filtered } = get_beatmap_data(list_beatmap, query ?? "", false);
+        const { beatmap, filtered } = get_beatmap_data({ id: list_beatmap, is_unique: false });
 
         if (filtered) {
             continue;
         }
 
-        // extra.invalid == i dont give a fuck if the map is invalid bro, just gimme ts
-        if (!extra.invalid && !beatmap.hasOwnProperty("downloaded")) {
+        // options.invalid == i dont give a fuck if the map is invalid bro, just gimme ts
+        if (!options.invalid && !beatmap.hasOwnProperty("downloaded")) {
+            console.log("filtered: map is invalid");
             continue;
         }
 
         // filter by status
-        if (extra.status) {
+        if (options.status) {
             // oh yeah, more hacks
-            if (!config.lazer_mode && (extra.status == "graveyard" || extra.status == "wip")) {
-                extra.status = "pending";
+            if (!config.lazer_mode && (options.status == "graveyard" || options.status == "wip")) {
+                options.status = "pending";
             }
 
-            if (beatmap.status_text != extra.status) continue;
+            if (beatmap.status_text != options.status) continue;
         }
 
         // check if we already added this unique id
-        if (extra.unique && beatmap?.unique_id && seen_unique_ids.has(beatmap?.unique_id)) {
+        if (options.unique && beatmap?.unique_id && seen_unique_ids.has(beatmap?.unique_id)) {
             continue;
         }
 
         // filter by sr
-        if (beatmap && extra.sr) {
-            const result = filter_by_sr(beatmap, extra.sr.min, extra.sr.max);
+        if (beatmap && options.sr) {
+            const result = filter_by_sr(beatmap, options.sr.min, options.sr.max);
 
             if (!result) {
                 continue;
@@ -376,14 +451,14 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
 
         filtered_beatmaps.push(beatmap);
 
-        if (extra.unique && beatmap?.unique_id) {
+        if (options.unique && beatmap?.unique_id) {
             seen_unique_ids.add(beatmap.unique_id);
         }
     }
 
     // sort pass
-    if (extra.sort != null) {
-        filtered_beatmaps = sort_beatmaps(filtered_beatmaps, extra.sort);
+    if (options.sort != null) {
+        filtered_beatmaps = sort_beatmaps(filtered_beatmaps, options.sort);
     }
 
     // return only hashes
@@ -397,15 +472,18 @@ export const add_beatmap = (hash, beatmap) => {
     }
 
     osu_data.beatmaps.set(hash, beatmap);
+    return create_beatmaps_result();
 };
 
-export const get_beatmaps_from_database = async (force) => {
+export const load_beatmaps_from_database = async (force) => {
+    // reset osu object on force
     if (force) {
         osu_data = null;
     }
 
+    // return current data if we already loaded
     if (osu_data) {
-        return true;
+        return create_beatmaps_result();
     }
 
     const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
@@ -422,6 +500,7 @@ export const get_beatmaps_from_database = async (force) => {
         return false;
     }
 
+    // read data from binary file
     const result = await reader.get_osu_data(file_path);
 
     if (result == null) {
@@ -429,8 +508,9 @@ export const get_beatmaps_from_database = async (force) => {
         return false;
     }
 
+    // update and process beatmaps (give extra information like actual song duration, audio_path, etc...)
     osu_data = result;
     osu_data.beatmaps = await process_beatmaps(osu_data.beatmaps);
 
-    return true;
+    return create_beatmaps_result();
 };

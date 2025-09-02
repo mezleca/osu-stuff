@@ -19,6 +19,7 @@
     import Header from "./components/header.svelte";
     import Notifications from "./components/utils/notifications.svelte";
     import ExportProgress from "./components/utils/export-progress.svelte";
+    import { downloader } from "./lib/store/downloader";
 
     $: initialized = false;
     $: indexing_status = $indexing_data?.status ?? "doing something";
@@ -33,11 +34,14 @@
 
     onMount(async () => {
         try {
-            // first lets check if we're on dev_mode
+            // update dev_mode var
             const dev_mode_result = await window.extra.is_dev_mode();
             is_dev_mode.set(dev_mode_result);
 
-            // then lets get beatmaps from database
+            // initialize downloader
+            await downloader.initialize();
+
+            // load beatmaps from database
             await get_osu_data(false);
             initialized = true;
         } catch (err) {

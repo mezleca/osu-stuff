@@ -165,10 +165,14 @@
         {on_update}
         let:index
     >
-        {@const hash = $beatmaps[index]}
-        {#await get_beatmap_data(hash) then beatmap}
+        {@const data = $beatmaps[index]}
+        {#await get_beatmap_data({ ...data, id: list.list_id }) then beatmap}
+            <!-- update list if our old data is pending -->
+            {#if data.pending}
+                {list.update_beatmap(data.index, beatmap)}
+            {/if}
             {#if show_context}
-                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap, hash)} at="point">
+                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap, beatmap.md5)} at="point">
                     <BeatmapCard
                         {beatmap}
                         {show_bpm}

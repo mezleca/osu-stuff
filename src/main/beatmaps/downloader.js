@@ -657,7 +657,7 @@ const export_beatmaps = async (collection_names) => {
                     continue;
                 }
 
-                if (!Array.isArray(collection.maps) || collection.maps.length == 0) {
+                if (collection.count == 0) {
                     continue;
                 }
 

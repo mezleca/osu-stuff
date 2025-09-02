@@ -29,7 +29,7 @@
     const list = get_beatmap_list("collections");
     const popup_manager = get_popup_manager("collections");
 
-    const { sort, query, status, show_invalid } = list;
+    const { sort, query, status, show_invalid, sr_range } = list;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
@@ -48,17 +48,22 @@
             }
         }
 
+        // update list id
+        list.update_list_id($selected_collection.name);
+
         const result = await list.get_beatmaps($selected_collection.name, extra);
 
-        if (result) {
-            list.set_beatmaps(result, $query, false);
+        if (!result) {
+            show_notification({ type: "error", text: "failed to get beatmap from collection" });
+            return;
         }
+
+        list.set_beatmaps(result.count, $query, false);
     };
 
     // force list update
     const update_sr = async (data) => {
         list.update_range(data);
-        filter_beatmaps();
     };
 
     const remove_callback = () => {
@@ -631,7 +636,7 @@
     // @TODO: this makes us request the collection every time we go into this tab
     // for small collections this is not a big of a problem since the collections are usually small
     // but on radio we can notice a small delay since we're doing this 2 times
-    $: if ($selected_collection.name || $query || $sort || $status || $show_invalid) {
+    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $sr_range)) {
         filter_beatmaps();
     }
 
@@ -669,7 +674,7 @@
                     <ContextMenu onclick={handle_context_menu} options={get_context_options(collection)} at="point">
                         <CollectionCard
                             name={collection.name}
-                            count={collection.maps.length ?? 0}
+                            count={collection.count ?? 0}
                             edit={collection.edit}
                             selected={$selected_collection?.name == collection.name}
                             select_callback={() => collections.select(collection.name, false)}

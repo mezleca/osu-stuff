@@ -5,13 +5,13 @@ import { initialize_config, config, update_config_database } from "./database/co
 import { initialize_indexer } from "./database/indexer";
 import { initialize_mirrors } from "./database/mirrors";
 import {
+    load_beatmaps_from_database,
     add_beatmap,
-    filter_beatmaps,
     get_beatmap_by_md5,
     get_beatmap_by_set_id,
     get_beatmap_data,
-    get_beatmaps_from_database,
-    get_missing_beatmaps
+    get_missing_beatmaps,
+    update_beatmap_list
 } from "./beatmaps/beatmaps";
 import { get_and_update_collections, update_collections, get_collection_data, export_collection } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
@@ -110,15 +110,15 @@ async function createWindow() {
     });
 
     // osu related stuff
+    ipcMain.handle("load-beatmaps", (_, force) => load_beatmaps_from_database(force));
     ipcMain.handle("add-beatmap", (_, hash, beatmap) => add_beatmap(hash, beatmap));
-    ipcMain.handle("get-beatmaps", (_, force) => get_beatmaps_from_database(force));
     ipcMain.handle("get-collections", (_, force) => get_and_update_collections(force));
     ipcMain.handle("get-collection-data", (_, location, type) => get_collection_data(location, type));
     ipcMain.handle("export-collection", (_, collection, type) => export_collection(collection, type));
-    ipcMain.handle("filter-beatmaps", (_, hashes, query, extra) => filter_beatmaps(hashes, query, extra));
-    ipcMain.handle("get-beatmap", (_, data, is_unique_id) => get_beatmap_data(data, "", is_unique_id));
+    ipcMain.handle("get-beatmap", (_, options) => get_beatmap_data(options));
     ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));
     ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
+    ipcMain.handle("update-beatmap-list", (_, options) => update_beatmap_list(options));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
     ipcMain.handle("export-beatmaps", (_, beatmaps) => downloader.export_beatmaps(beatmaps));

@@ -44,7 +44,9 @@ const managers = new Map();
 export class BeatmapListBase {
     constructor(list_id) {
         this.list_id = list_id;
+        this.max_size = 0;
         this.last_options = null;
+        this.last_received_index = 0; // index of the last request beatmap
         this.last_result = null; // last beatmap array or something
         this.hide_remove = writable(false); // hide remove beatmap option from context menu
         this.index = writable(-1); // index of selected?
@@ -72,6 +74,7 @@ export class BeatmapListBase {
             this.handle_context_change(items);
         }
 
+        this.last_received_index = 0;
         this.current_key = key;
     }
 
@@ -89,11 +92,10 @@ export class BeatmapListBase {
         if (old_selected && this.is_same_item(item, old_selected)) {
             this.selected.set(null);
             this.index.set(-1);
-            return;
+        } else {
+            this.selected.set(item);
+            this.index.set(index);
         }
-
-        this.selected.set(item);
-        this.index.set(index);
     }
 
     is_same_item(item1, item2) {
@@ -110,19 +112,21 @@ export class BeatmapListBase {
         return this.is_same_item(item, current);
     }
 
-    clear() {
-        // clear stores
-        this.items.set([]);
-        this.selected.set(null);
-        this.index.set(-1);
-
-        // clear normal values
-        this.last_options = null;
-        this.last_result = null;
+    update_list_id(id) {
+        this.list_id = id;
     }
 
     update_query(value) {
         this.query.set(value);
+    }
+
+    clear() {
+        this.last_received_index = 0;
+        this.items.set([]);
+        this.selected.set(null);
+        this.index.set(-1);
+        this.last_options = null;
+        this.last_result = null;
     }
 }
 
@@ -136,9 +140,24 @@ class BeatmapList extends BeatmapListBase {
         this.is_unique = false;
     }
 
-    set_beatmaps(beatmaps, key, unique = false, ignore_context = false) {
+    set_beatmaps(count, key, unique = false, ignore_context = false) {
+        // create virtual items based on count
+        const beatmaps = [];
+
+        for (let i = 0; i < count; i++) {
+            beatmaps[i] = { index: i, pending: true };
+        }
+
         this.set_items(beatmaps, key, ignore_context);
         this.is_unique = unique;
+    }
+
+    update_beatmap(index, data) {
+        const updated_beatmaps = get(this.beatmaps);
+
+        // update pending beatmap
+        updated_beatmaps[index] = { ...data, pending: false };
+        this.beatmaps.set(updated_beatmaps);
     }
 
     // will be used to try getting the old selected beatmap on the beatmap list
@@ -175,24 +194,7 @@ class BeatmapList extends BeatmapListBase {
 
     async get_beatmaps(name, extra_options = {}) {
         // get all beatmaps if no collection_name is provided
-        const is_all_beatmaps = name == ALL_BEATMAPS_KEY;
-        const beatmaps = is_all_beatmaps ? null : collections.get(name)?.maps;
         const options = { ...extra_options };
-
-        // prevent bullshitting
-        if (!name && !is_all_beatmaps) {
-            return null;
-        }
-
-        if (!is_all_beatmaps && !beatmaps) {
-            show_notification({ type: "error", text: "failed to get beatmaps from " + name });
-            return null;
-        }
-
-        // to return all of the beatmaps
-        if (is_all_beatmaps) {
-            options.all = true;
-        }
 
         // add star range to extra filter options
         const min = this.get_min_sr();
@@ -224,6 +226,9 @@ class BeatmapList extends BeatmapListBase {
             options.query = query;
         }
 
+        // add list id
+        options.id = this.list_id;
+
         const options_state = JSON.stringify({ name, extra: options });
         const last_state = JSON.stringify(this.last_options);
 
@@ -232,10 +237,10 @@ class BeatmapList extends BeatmapListBase {
             return this.last_result;
         }
 
-        const result = await window.osu.filter_beatmaps(beatmaps, query, options);
+        const result = await window.osu.update_beatmap_list(options);
 
-        if (!result) {
-            show_notification({ type: "error", text: "failed to filter beatmaps" });
+        if (!result.found) {
+            show_notification({ type: "error", text: "failed to filter beatmaps (list not found)" });
             return null;
         }
 
