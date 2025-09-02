@@ -440,7 +440,8 @@ export class Reader extends BinaryReader {
                     data.collections.set(collection.Name, {
                         uuid: collection.ID.toString(),
                         name: collection.Name,
-                        maps: Array.from(collection.BeatmapMD5Hashes)
+                        maps: Array.from(collection.BeatmapMD5Hashes),
+                        deleted: []
                     });
                 }
 
@@ -477,7 +478,8 @@ export class Reader extends BinaryReader {
 
             collections.set(name, {
                 name: name,
-                maps: md5
+                maps: md5,
+                deleted: []
             });
         }
 

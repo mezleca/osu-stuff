@@ -18,7 +18,13 @@
 
     const update_beatmaps = async () => {
         const beatmaps = await list.get_beatmaps(ALL_BEATMAPS_KEY, { unique: false });
-        if (beatmaps) list.set_beatmaps(beatmaps, { name: ALL_BEATMAPS_KEY }, false);
+
+        // update list id
+        list.update_list_id(ALL_BEATMAPS_KEY);
+
+        if (beatmaps) {
+            list.set_beatmaps(beatmaps.count, { name: ALL_BEATMAPS_KEY }, false);
+        }
     };
 
     const update_sr = async (data) => {

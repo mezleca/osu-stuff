@@ -7,6 +7,26 @@ import fs from "fs";
 
 let collection_data = null;
 
+const create_collection_result = () => {
+    // send everything except the maps property
+    return {
+        version: collection_data.version,
+        collections: Array.from(collection_data.collections.values()).map((c) => {
+            return { name: c.name, count: c.maps.length, deleted: c.deleted };
+        })
+    };
+};
+
+export const get_colection_beatmaps = (name) => {
+    const result = collection_data.collections.get(name);
+
+    if (!result) {
+        return false;
+    }
+
+    return result.maps;
+};
+
 export const get_and_update_collections = async (force) => {
     const osu_folder = config.lazer_mode ? config.lazer_path : config.stable_path;
 
@@ -15,8 +35,9 @@ export const get_and_update_collections = async (force) => {
         return false;
     }
 
+    // return
     if (collection_data && !force) {
-        return collection_data;
+        return create_collection_result();
     }
 
     const location = config.lazer_mode ? path.resolve(osu_folder, "client.realm") : path.resolve(osu_folder, "collection.db");
@@ -26,6 +47,7 @@ export const get_and_update_collections = async (force) => {
         return false;
     }
 
+    // read binary file
     const result = await reader.get_collections_data(location);
 
     if (!result) {
@@ -33,8 +55,11 @@ export const get_and_update_collections = async (force) => {
         return false;
     }
 
+    // update our collection object
     collection_data = result;
-    return result;
+
+    // return basic information to the renderer
+    return create_collection_result();
 };
 
 export const update_collections = async (data) => {
@@ -57,6 +82,7 @@ export const update_collections = async (data) => {
 export const get_collection_data = async (location, type) => {
     const result = { success: false, data: null, reason: "" };
 
+    // ensure file exists
     if (!fs.existsSync(location)) {
         result.reason = "invalid file location";
         return result;

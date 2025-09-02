@@ -16,30 +16,44 @@ const RENAME_MAP = {
     creator: "mapper"
 };
 
-const get_beatmap = async (id, is_unique_id) => {
-    const cached = osu_beatmaps.get(id);
+const get_beatmap = async (options) => {
+    const cached = osu_beatmaps.get(options.id);
 
+    // return cached beatmap if possible
     if (cached) {
+        console.log("returning cached", options.id, cached);
         return cached;
     }
 
-    const result = await window.osu.get_beatmap(id, is_unique_id);
+    // get new beatmap
+    const result = await window.osu.get_beatmap(options);
 
-    if (!result) {
+    if (result.filtered) {
         return {};
     }
 
-    osu_beatmaps.add(id, result.beatmap);
+    // add new beatmap to cache
+    osu_beatmaps.add(result.beatmap.md5, result.beatmap);
     return result.beatmap;
 };
 
-export const get_beatmap_data = async (md5) => {
-    if (typeof md5 == "object") return md5; // discover
-    return await get_beatmap(md5, false);
+export const get_beatmap_data = async (data) => {
+    // handle discover request
+    if (typeof data == "object" && !data.pending) {
+        return data;
+    }
+
+    // handle virtual list request
+    if (typeof data == "object" && data.pending) {
+        return await get_beatmap({ id: data.id, index: data.index });
+    }
+
+    // handle beatmap by md5
+    return await get_beatmap({ id: data, is_unique: false });
 };
 
 export const get_by_unique_id = async (id) => {
-    return await get_beatmap(id, true);
+    return await get_beatmap({ id, is_unique: true });
 };
 
 export const convert_beatmap_keys = (beatmap) => {

@@ -17,7 +17,7 @@ export const get_osu_data = async (force) => {
         return;
     }
 
-    const osu_promises = [window.osu.get_collections(force), window.osu.get_beatmaps(force)];
+    const osu_promises = [window.osu.get_collections(force), window.osu.load_beatmaps(force)];
     const osu_result = await Promise.all(osu_promises);
 
     // check if we failed to get osu! data
@@ -28,7 +28,7 @@ export const get_osu_data = async (force) => {
 
     const collection_data = osu_result[0];
 
-    const collections_array = Array.from(collection_data.collections.values());
+    const collections_array = collection_data.collections;
     const version = collection_data.version;
 
     // remove selected colection

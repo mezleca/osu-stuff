@@ -8,8 +8,9 @@ contextBridge.exposeInMainWorld("config", {
 });
 
 contextBridge.exposeInMainWorld("osu", {
+    load_beatmaps: (force) => ipcRenderer.invoke("load-beatmaps", force),
     add_beatmap: (md5, beatmap) => ipcRenderer.invoke("add-beatmap", md5, beatmap),
-    get_beatmaps: (force) => ipcRenderer.invoke("get-beatmaps", force),
+    get_beatmaps: (options) => ipcRenderer.invoke("get-beatmaps", options),
     get_beatmap: (md5, query) => ipcRenderer.invoke("get-beatmap", md5, query),
     get_beatmap_by_id: (id) => ipcRenderer.invoke("get-beatmap-by-id", id),
     get_beatmap_by_md5: (md5) => ipcRenderer.invoke("get-beatmap-by-md5", md5),
@@ -17,7 +18,7 @@ contextBridge.exposeInMainWorld("osu", {
     export_collection: (type, beatmtaps) => ipcRenderer.invoke("export-collection", type, beatmtaps),
     get_collection_data: (location, type) => ipcRenderer.invoke("get-collection-data", location, type),
     get_collections: (force) => ipcRenderer.invoke("get-collections", force),
-    filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args),
+    update_beatmap_list: (options) => ipcRenderer.invoke("update-beatmap-list", options),
     update_collections: (data) => ipcRenderer.invoke("update-collections", data),
     export_beatmaps: (beatmaps) => ipcRenderer.invoke("export-beatmaps", beatmaps),
     export_beatmap: (beatmap) => ipcRenderer.invoke("export-beatmap", beatmap)

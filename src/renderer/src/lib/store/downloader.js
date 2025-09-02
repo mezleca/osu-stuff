@@ -126,9 +126,6 @@ class Downloader {
 
 export const downloader = new Downloader();
 
-// initialize downloader
-await downloader.initialize();
-
 // add listener
 window.downloader.on_downloads_update((data) => downloader.update_downloads(data));
 
