@@ -42,10 +42,8 @@
 
     const filter_beatmaps = async (extra = {}) => {
         // check if the length matches, if not force
-        if (!extra?.force) {
-            if ($selected_collection?.maps && list.get_items().length != $selected_collection.maps.length) {
-                extra.force = true;
-            }
+        if (list.current_key != $selected_collection.name) {
+            extra.force = true;
         }
 
         // update list id
@@ -58,7 +56,7 @@
             return;
         }
 
-        list.set_beatmaps(result.count, $query, false);
+        list.set_beatmaps(result.count, $selected_collection.name, false);
     };
 
     // force list update

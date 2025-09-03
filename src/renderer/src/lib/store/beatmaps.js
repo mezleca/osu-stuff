@@ -4,6 +4,7 @@ import { collections } from "./collections";
 import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
 import { config } from "./config";
+import { debounce } from "../utils/utils";
 
 export const mode_code = {
     osu: 0,
@@ -43,7 +44,7 @@ const managers = new Map();
 
 export class BeatmapListBase {
     constructor(list_id) {
-        this.list_id = list_id;
+        this.list_id = writable(list_id || crypto.randomUUID());
         this.max_size = 0;
         this.last_options = null;
         this.last_received_index = 0; // index of the last request beatmap
@@ -113,7 +114,7 @@ export class BeatmapListBase {
     }
 
     update_list_id(id) {
-        this.list_id = id;
+        this.list_id.set(id);
     }
 
     update_query(value) {
@@ -138,26 +139,44 @@ class BeatmapList extends BeatmapListBase {
         this.status = writable("");
         this.show_invalid = writable(false);
         this.is_unique = false;
+        this.temp_items = new Map();
+        this.loading_queue = new Set();
     }
 
     set_beatmaps(count, key, unique = false, ignore_context = false) {
         // create virtual items based on count
         const beatmaps = [];
+        this.loading_queue.clear();
 
         for (let i = 0; i < count; i++) {
-            beatmaps[i] = { index: i, pending: true };
+            beatmaps[i] = { index: i, pending: true, collection_key: key };
         }
 
         this.set_items(beatmaps, key, ignore_context);
         this.is_unique = unique;
     }
 
+    update_list_debounce = debounce(() => {
+        for (const [index, data] of this.temp_items) {
+            this.beatmaps.update((arr) => {
+                arr[index] = { ...data, pending: false };
+                this.temp_items.delete(index);
+                return arr;
+            });
+        }
+    }, 25);
+
     update_beatmap(index, data) {
         const updated_beatmaps = get(this.beatmaps);
 
+        // ignore old updates
+        if (updated_beatmaps[index]?.collection_key != this.current_key) {
+            return;
+        }
+
         // update pending beatmap
-        updated_beatmaps[index] = { ...data, pending: false };
-        this.beatmaps.set(updated_beatmaps);
+        this.temp_items.set(index, data);
+        this.update_list_debounce();
     }
 
     // will be used to try getting the old selected beatmap on the beatmap list
@@ -192,9 +211,36 @@ class BeatmapList extends BeatmapListBase {
         this.sr_range.set(data);
     }
 
+    async load_beatmap_at_index(index) {
+        const request_key = `${this.current_key}-${index}`;
+
+        if (this.loading_queue.has(request_key)) {
+            return;
+        }
+
+        this.loading_queue.add(request_key);
+
+        const beatmap_data = await get_beatmap_data({
+            id: get(this.list_id),
+            index: index,
+            virtual: true
+        });
+
+        if (this.current_key == get(this.beatmaps)[index]?.collection_key) {
+            this.update_beatmap(index, beatmap_data);
+        }
+
+        this.loading_queue.delete(request_key);
+    }
+
     async get_beatmaps(name, extra_options = {}) {
         // get all beatmaps if no collection_name is provided
         const options = { ...extra_options };
+
+        if (this.current_collection != name) {
+            options.force_clear = true;
+            this.current_collection = name;
+        }
 
         // add star range to extra filter options
         const min = this.get_min_sr();
@@ -227,7 +273,7 @@ class BeatmapList extends BeatmapListBase {
         }
 
         // add list id
-        options.id = this.list_id;
+        options.id = get(this.list_id);
 
         const options_state = JSON.stringify({ name, extra: options });
         const last_state = JSON.stringify(this.last_options);

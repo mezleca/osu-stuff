@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("osu", {
     missing_beatmaps: (beatmaps) => ipcRenderer.invoke("missing-beatmaps", beatmaps),
     export_collection: (type, beatmtaps) => ipcRenderer.invoke("export-collection", type, beatmtaps),
     get_collection_data: (location, type) => ipcRenderer.invoke("get-collection-data", location, type),
+    clear_beatmap_list_cache: (id) => ipcRenderer.invoke("clear-beatmap-list-cache", id),
     get_collections: (force) => ipcRenderer.invoke("get-collections", force),
     update_beatmap_list: (options) => ipcRenderer.invoke("update-beatmap-list", options),
     update_collections: (data) => ipcRenderer.invoke("update-collections", data),

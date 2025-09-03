@@ -11,7 +11,8 @@ import {
     get_beatmap_by_set_id,
     get_beatmap_data,
     get_missing_beatmaps,
-    update_beatmap_list
+    update_beatmap_list,
+    clear_beatmap_list_cache
 } from "./beatmaps/beatmaps";
 import { get_and_update_collections, update_collections, get_collection_data, export_collection } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
@@ -71,24 +72,24 @@ async function createWindow() {
     });
 
     const fetch_manager = new FetchManager();
-    const original_handle = ipcMain.handle.bind(ipcMain);
+    // const original_handle = ipcMain.handle.bind(ipcMain);
 
-    if (is_dev_mode) {
-        // override for debug
-        ipcMain.handle = function (channel, handler) {
-            console.log(`[debug] registered handler: ${channel}`);
-            return original_handle(channel, async (...args) => {
-                console.log(`[debug] received invoke for ${channel}`);
-                const result = await handler(...args);
-                return result;
-            });
-        };
+    // if (is_dev_mode) {
+    //     // override for debug
+    //     ipcMain.handle = function (channel, handler) {
+    //         console.log(`[debug] registered handler: ${channel}`);
+    //         return original_handle(channel, async (...args) => {
+    //             console.log(`[debug] received invoke for ${channel}`);
+    //             const result = await handler(...args);
+    //             return result;
+    //         });
+    //     };
 
-        setInterval(async () => {
-            const node_memory = await process.getProcessMemoryInfo();
-            console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
-        }, 2000);
-    }
+    //     setInterval(async () => {
+    //         const node_memory = await process.getProcessMemoryInfo();
+    //         console.log(`[debug] using ${(node_memory.residentSet / 1024).toFixed(2)} mbs`);
+    //     }, 2000);
+    // }
 
     // extra
     ipcMain.handle("is-dev-mode", () => is_dev_mode);
@@ -119,6 +120,7 @@ async function createWindow() {
     ipcMain.handle("get-beatmap-by-id", (_, id) => get_beatmap_by_set_id(id));
     ipcMain.handle("get-beatmap-by-md5", (_, md5) => get_beatmap_by_md5(md5));
     ipcMain.handle("update-beatmap-list", (_, options) => update_beatmap_list(options));
+    ipcMain.handle("clear-beatmap-list-cache", (_, id) => clear_beatmap_list_cache(id));
     ipcMain.handle("missing-beatmaps", (_, data) => get_missing_beatmaps(data));
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
     ipcMain.handle("export-beatmaps", (_, beatmaps) => downloader.export_beatmaps(beatmaps));

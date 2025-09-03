@@ -39,12 +39,13 @@ const get_beatmap = async (options) => {
 
 export const get_beatmap_data = async (data) => {
     // handle discover request
-    if (typeof data == "object" && !data.pending) {
+    if (typeof data == "object" && !data.virtual) {
+        console.log("ajidajwd", data);
         return data;
     }
 
     // handle virtual list request
-    if (typeof data == "object" && data.pending) {
+    if (typeof data == "object" && data.virtual) {
         return await get_beatmap({ id: data.id, index: data.index });
     }
 

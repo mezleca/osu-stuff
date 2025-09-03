@@ -36,6 +36,45 @@ export const string_is_valid = (value) => {
 export const context_separator = "<|=‎=|>";
 export const is_dev_mode = writable(false);
 
+export const inview = (node, options = {}) => {
+    let observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        const detail = {
+            inView: entry.isIntersecting,
+            entry,
+            observer,
+            node
+        };
+
+        node.dispatchEvent(new CustomEvent("inview_change", { detail }));
+
+        if (entry.isIntersecting) {
+            node.dispatchEvent(new CustomEvent("inview_enter", { detail }));
+            if (options.unobserveOnEnter) observer.unobserve(node);
+        } else {
+            node.dispatchEvent(new CustomEvent("inview_leave", { detail }));
+        }
+    }, options);
+
+    observer.observe(node);
+
+    return {
+        destroy: () => observer.disconnect(),
+        update: (opts) => {
+            observer.disconnect();
+            observer = new IntersectionObserver((entries) => {
+                const entry = entries[0];
+                node.dispatchEvent(
+                    new CustomEvent("inview_change", {
+                        detail: { inView: entry.isIntersecting, entry, observer, node }
+                    })
+                );
+            }, opts);
+            observer.observe(node);
+        }
+    };
+};
+
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {
     if (typeof options != "object") {

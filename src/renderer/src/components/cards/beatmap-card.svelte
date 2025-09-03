@@ -1,5 +1,5 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
+    import { inview } from "../../lib/utils/utils";
 
     // components
     import PreviewControl from "../utils/audio/preview-control.svelte";
@@ -21,13 +21,12 @@
         control = null,
         show_control = true,
         extra = null,
+        on_visible = null,
         set = false;
 
-    let card_element;
     let image_element;
     let is_visible = false;
     let image_loaded = false;
-    let observer = null;
 
     $: if (beatmap) {
         get_image_source(beatmap, is_visible, set)
@@ -86,66 +85,52 @@
         img.src = src;
     };
 
-    onMount(() => {
-        observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (entry.isIntersecting && !is_visible) {
-                    is_visible = true;
-                }
-            },
-            { threshold: 0.1, rootMargin: "50px" }
-        );
-
-        if (card_element) {
-            observer.observe(card_element);
-        }
-    });
-
-    onDestroy(() => {
-        if (observer && card_element) {
-            observer.unobserve(card_element);
-        }
-    });
+    const update_visible = () => {
+        if (on_visible) on_visible();
+        is_visible = true;
+    };
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-{#if set}
-    <div class="card-container">
-        <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
-            <img bind:this={image_element} class="bg-img" alt="" />
-            {#if show_control}
-                <PreviewControl {beatmap} on_right={control} />
-            {/if}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="set-info" onclick={extra} class:centered={center}>
-                <div class="title">{beatmap?.title ?? "unknown"}</div>
-                <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
-                <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
-                <div class="stats">
-                    <span class="stat">{beatmap.status}</span>
-                    <div class="right-stats">
-                        <div class="favorites">
-                            <HeartFill />
-                            <span>{beatmap.favourite_count}</span>
-                        </div>
-                        <div class="play-count">
-                            <PlayCircle />
-                            <span>{beatmap.play_count}</span>
-                        </div>
+<div
+    use:inview={{ unobserveOnEnter: true }}
+    class="small-card"
+    class:selected
+    class:loaded={image_loaded}
+    onclick={click}
+    oninview_enter={update_visible}
+>
+    <!-- render background image -->
+    <img bind:this={image_element} class="bg-img" alt="" />
+
+    <!-- render preview controls -->
+    {#if show_control}
+        <PreviewControl {beatmap} on_right={control} />
+    {/if}
+
+    {#if set}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="set-info" onclick={extra} class:centered={center}>
+            <div class="title">{beatmap?.title ?? "unknown"}</div>
+            <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
+            <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
+            <div class="stats">
+                <span class="stat">{beatmap.status}</span>
+                <div class="right-stats">
+                    <div class="favorites">
+                        <HeartFill />
+                        <span>{beatmap.favourite_count}</span>
+                    </div>
+                    <div class="play-count">
+                        <PlayCircle />
+                        <span>{beatmap.play_count}</span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-{:else}
-    <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
-        <img bind:this={image_element} class="bg-img" alt="" />
-        {#if show_control}
-            <PreviewControl {beatmap} on_right={control} />
-        {/if}
+    {:else}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="info" onclick={extra} class:centered={center}>
@@ -166,8 +151,8 @@
                 </div>
             {/if}
         </div>
-    </div>
-{/if}
+    {/if}
+</div>
 
 <style>
     .small-card {

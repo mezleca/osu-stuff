@@ -23,6 +23,7 @@
         "better-sqlite3": "^12.2.0",
         "jszip": "^3.10.1",
         "realm": "20.2.0",
+        "svelte-inview": "^4.0.4",
         "wx-svelte-menu": "^2.2.1"
     },
     "devDependencies": {

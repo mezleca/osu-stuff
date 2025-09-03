@@ -24,7 +24,13 @@ let osu_data = null;
 const beatmaps_cache = new Map();
 
 const create_state_key = (options) => {
-    return JSON.stringify(options);
+    return JSON.stringify({ ...options, list_id: options.id ?? "" });
+};
+
+export const clear_beatmap_list_cache = (list_id) => {
+    if (list_id && beatmaps_cache.has(list_id)) {
+        beatmaps_cache.delete(list_id);
+    }
 };
 
 const create_beatmaps_result = (value, data) => {
@@ -50,6 +56,11 @@ export const update_beatmap_list = (options) => {
     if (new_state == list.state && beatmaps_cache.has(list_id)) {
         console.log("detected same state, returning old list");
         return create_beatmaps_result(list.count);
+    }
+
+    // always clear
+    if (beatmaps_cache.has(list_id)) {
+        clear_beatmap_list_cache(list_id);
     }
 
     // update the state / filtered list
@@ -421,7 +432,6 @@ export const filter_beatmaps = (options = { id: "", query: "", unique: false, in
 
         // options.invalid == i dont give a fuck if the map is invalid bro, just gimme ts
         if (!options.invalid && !beatmap.hasOwnProperty("downloaded")) {
-            console.log("filtered: map is invalid");
             continue;
         }
 
