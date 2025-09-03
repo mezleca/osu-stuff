@@ -16,7 +16,6 @@
     export let columns = null;
 
     let container;
-    let viewport;
     let hovered_item = -1;
     let container_height = 0;
     let animation_frame_id = null;
@@ -254,7 +253,7 @@
     bind:clientHeight={container_height}
 >
     <div class="spacer" style="height: {total_height}px;"></div>
-    <div bind:this={viewport} class="viewport" style="transform: translateY({offset_y}px);">
+    <div class="viewport" style="transform: translateY({offset_y}px);">
         {#each { length: visible_items } as _, i (start_index + i)}
             <!-- only update on last item rendered -->
             {@const actual_index = start_index + i}
