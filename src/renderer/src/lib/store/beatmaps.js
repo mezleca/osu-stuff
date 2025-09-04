@@ -327,7 +327,6 @@ class BeatmapList extends BeatmapListBase {
     }
 
     select_beatmap(beatmap, index) {
-        console.log("selecting", beatmap, index);
         this.select_item(beatmap, index);
     }
 

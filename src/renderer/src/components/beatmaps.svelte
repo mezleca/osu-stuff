@@ -148,15 +148,12 @@
         return result;
     };
 
-    const handle_move_up = () => {};
-    const handle_move_down = () => {};
-
     // not a great name...
     const handle_move_beatmap = async (direction) => {
         const new_index = direction == "previous" ? $index - 1 : $index + 1;
 
         if ((direction == "previous" && new_index < 0) || (direction == "next" && new_index > $beatmaps.length)) {
-            console.log("not updating next beatmap (list limit)", new_index);
+            console.log("not updating selected beatmap (reached list limit):", new_index);
             return;
         }
 
@@ -172,14 +169,12 @@
     };
 
     onMount(() => {
-        input.on("ArrowUp", handle_move_up);
-        input.on("ArrowDown", handle_move_down);
         input.on("ArrowLeft", () => handle_move_beatmap("previous"));
         input.on("ArrowRight", () => handle_move_beatmap("next"));
 
         // on destroy
         return () => {
-            input.remove("ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight");
+            input.remove("ArrowLeft", "ArrowRight");
         };
     });
 </script>
