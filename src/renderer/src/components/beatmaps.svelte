@@ -9,6 +9,8 @@
     // components
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
+    import { onMount } from "svelte";
+    import { input } from "../lib/store/input";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
@@ -31,7 +33,7 @@
     export let on_update = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
-    const { beatmaps, selected, list_id } = list;
+    const { beatmaps, selected, list_id, index } = list;
 
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
@@ -145,6 +147,41 @@
 
         return result;
     };
+
+    const handle_move_up = () => {};
+    const handle_move_down = () => {};
+
+    // not a great name...
+    const handle_move_beatmap = async (direction) => {
+        const new_index = direction == "previous" ? $index - 1 : $index + 1;
+
+        if ((direction == "previous" && new_index < 0) || (direction == "next" && new_index > $beatmaps.length)) {
+            console.log("not updating next beatmap (list limit)", new_index);
+            return;
+        }
+
+        const hash = $beatmaps[new_index];
+        const new_beatmap = await get_beatmap_data(hash);
+
+        if (!new_beatmap) {
+            console.log("failed to get beatmap:", hash, new_index);
+            return;
+        }
+
+        list.select_beatmap(new_beatmap, new_index);
+    };
+
+    onMount(() => {
+        input.on("ArrowUp", handle_move_up);
+        input.on("ArrowDown", handle_move_down);
+        input.on("ArrowLeft", () => handle_move_beatmap("previous"));
+        input.on("ArrowRight", () => handle_move_beatmap("next"));
+
+        // on destroy
+        return () => {
+            input.remove("ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight");
+        };
+    });
 </script>
 
 <div class="beatmaps-container">
