@@ -1,16 +1,16 @@
 <script>
+    import { onMount } from "svelte";
     import { collections } from "../lib/store/collections";
     import { show_notification } from "../lib/store/notifications";
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
     import { ContextMenu } from "wx-svelte-menu";
+    import { input } from "../lib/store/input";
 
     // components
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
-    import { onMount } from "svelte";
-    import { input } from "../lib/store/input";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
