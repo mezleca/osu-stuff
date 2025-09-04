@@ -44,11 +44,10 @@ const managers = new Map();
 
 export class BeatmapListBase {
     constructor(list_id) {
-        this.list_id = writable(list_id || crypto.randomUUID());
+        this.list_id = writable(list_id);
         this.max_size = 0;
         this.last_options = null;
         this.last_received_index = 0; // index of the last request beatmap
-        this.last_result = null; // last beatmap array or something
         this.hide_remove = writable(false); // hide remove beatmap option from context menu
         this.index = writable(-1); // index of selected?
         this.items = writable([]);
@@ -127,7 +126,6 @@ export class BeatmapListBase {
         this.selected.set(null);
         this.index.set(-1);
         this.last_options = null;
-        this.last_result = null;
     }
 }
 
@@ -164,7 +162,7 @@ class BeatmapList extends BeatmapListBase {
                 return arr;
             });
         }
-    }, 25);
+    }, 30);
 
     update_beatmap(index, data) {
         const updated_beatmaps = get(this.beatmaps);
@@ -274,15 +272,6 @@ class BeatmapList extends BeatmapListBase {
 
         // add list id
         options.id = get(this.list_id);
-
-        const options_state = JSON.stringify({ name, extra: options });
-        const last_state = JSON.stringify(this.last_options);
-
-        // return old state if we have the same options, etc...
-        if (options_state == last_state && this.last_result) {
-            return this.last_result;
-        }
-
         const result = await window.osu.update_beatmap_list(options);
 
         if (!result.found) {
@@ -295,8 +284,8 @@ class BeatmapList extends BeatmapListBase {
             delete options.force;
         }
 
+        // save last options for reload
         this.last_options = { name: name, extra: options };
-        this.last_result = result;
         return result;
     }
 

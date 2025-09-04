@@ -85,7 +85,6 @@ const get_beatmap_from_list = (id, index) => {
     const current_list = beatmaps_cache.get(id);
 
     if (!current_list) {
-        console.log("failed to get list data from:", id);
         return false;
     }
 
@@ -216,7 +215,7 @@ export const search_filter = (beatmap, query, search_filters) => {
         const thing = to_type(filter.v);
 
         // ignore invalid filters
-        if (!thing || thing == "") {
+        if (!thing && thing != 0) {
             continue;
         }
 
@@ -225,7 +224,10 @@ export const search_filter = (beatmap, query, search_filters) => {
         // hack
         // also need global gamemode variable
         if (key == "star_rating") {
-            if (!validate_filter(beatmap?.[key][0]?.nm, filter.o, thing)) {
+            const gamemode = beatmap.mode || 0;
+            const sr_value = beatmap?.[key]?.[gamemode]?.pair?.[1] || 0;
+            
+            if (!validate_filter(sr_value, filter.o, thing)) {
                 valid = false;
                 break;
             }
@@ -240,7 +242,7 @@ export const search_filter = (beatmap, query, search_filters) => {
     return valid && text_included;
 };
 
-export const filter_beatmap = (beatmap, query) => {
+export const filter_by_query = (beatmap, query) => {
     const search_filters = [];
     const regex = /\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
 
@@ -280,30 +282,35 @@ export const get_beatmap_by_set_id = (id) => {
     return false;
 };
 
-export const get_beatmap_data = (options = { id: null, index: null, is_unique: false }) => {
+export const get_beatmap_data = (options = { id: null, query: "", index: null, is_unique: false }) => {
     const result = { filtered: false, beatmap: null };
+    const is_from_list = options.id != null && options.index != null;
 
-    // ignore unknown maps if we dont have a query yet
-    if (!options.id || options.id == "") {
+    // dont allow invalid ids
+    if (!options.id && options.id != 0) {
         result.filtered = true;
         return result;
     }
 
     // handle beatmap from beatmap list
-    if (options.id != null && options.index != null) {
+    if (is_from_list) {
         result.beatmap = get_beatmap_from_list(options.id, options.index);
-        if (!result.beatmap) result.filtered = true;
-        return result;
+    } else {
+        if (options.is_unique) {
+            result.beatmap = get_beatmaps_by_id(options.id);
+        } else {
+            result.beatmap = osu_data.beatmaps.get(options.id);
+        }
     }
 
-    result.beatmap = options.is_unique ? get_beatmaps_by_id(options.id) : get_beatmap_by_md5(options.id);
-
-    // ignore unknown maps if we dont have a query yet
     if (!result.beatmap) {
         result.beatmap = { [options.is_unique ? "id" : "md5"]: options.id };
+        result.filtered = true;
         return result;
     }
 
+    // beatmap has been found
+    result.filtered = false;
     return result;
 };
 
@@ -408,44 +415,50 @@ export const get_missing_beatmaps = (beatmaps) => {
 
 export const filter_beatmaps = (options = { id: "", query: "", unique: false, invalid: false, sort: null, sr: null, status: null }) => {
     if (!osu_data) {
-        console.log("osu data is null LUL");
         return [];
     }
 
     const beatmaps = options.id == ALL_BEATMAPS_KEY ? Array.from(osu_data.beatmaps.keys()) : get_colection_beatmaps(options.id);
 
-    if (!beatmaps) {
+    if (!beatmaps || beatmaps.length == 0) {
+        console.log("no beatmaps found for:", options.id);
         return [];
     }
 
     const seen_unique_ids = new Set();
     let filtered_beatmaps = [];
 
-    // filter beatmaps based on query and stuff
     for (let i = 0; i < beatmaps.length; i++) {
         const list_beatmap = beatmaps[i];
         const { beatmap, filtered } = get_beatmap_data({ id: list_beatmap, is_unique: false });
 
+        // skip if is not found
         if (filtered) {
             continue;
         }
 
-        // options.invalid == i dont give a fuck if the map is invalid bro, just gimme ts
-        if (!options.invalid && !beatmap.hasOwnProperty("downloaded")) {
+        // skip if we dont have the downloaded property set
+        if (!beatmap.hasOwnProperty("downloaded")) {
+            continue;
+        }
+
+        // filter by query
+        if (options.query && !filter_by_query(beatmap, options.query)) {
             continue;
         }
 
         // filter by status
         if (options.status) {
-            // oh yeah, more hacks
             if (!config.lazer_mode && (options.status == "graveyard" || options.status == "wip")) {
                 options.status = "pending";
             }
 
-            if (beatmap.status_text != options.status) continue;
+            if (beatmap.status_text != options.status) {
+                continue;
+            }
         }
 
-        // check if we already added this unique id
+        // if the user asks for unique ids, make sure this is an unique id
         if (options.unique && beatmap?.unique_id && seen_unique_ids.has(beatmap?.unique_id)) {
             continue;
         }
@@ -453,7 +466,6 @@ export const filter_beatmaps = (options = { id: "", query: "", unique: false, in
         // filter by sr
         if (beatmap && options.sr) {
             const result = filter_by_sr(beatmap, options.sr.min, options.sr.max);
-
             if (!result) {
                 continue;
             }

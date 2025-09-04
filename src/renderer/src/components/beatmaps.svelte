@@ -175,43 +175,42 @@
     <div class="beatmaps-header">
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
     </div>
-    {#key $list_id}
-        <VirtualList
-            count={$beatmaps?.length ?? 0}
-            width="100%"
-            height="100%"
-            item_height={height}
-            selected={selected_index}
-            {max_width}
-            {carousel}
-            {direction}
-            {columns}
-            {on_update}
-            let:index
-        >
-            {@const data = $beatmaps[index]}
-            {@const beatmap = data.pending ? create_placeholder_beatmap(data) : data}
-            <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
-                <BeatmapCard
-                    {beatmap}
-                    {show_bpm}
-                    {show_star_rating}
-                    {show_remove}
-                    {show_status}
-                    {show_control}
-                    {show_context}
-                    {set}
-                    {center}
-                    selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
-                    control={show_remove ? (type) => handle_control(type, beatmap) : null}
-                    click={() => handle_click(beatmap, index)}
-                    on_visible={() => {
-                        if (data.pending) {
-                            list.load_beatmap_at_index(index);
-                        }
-                    }}
-                />
-            </ContextMenu>
-        </VirtualList>
-    {/key}
+    <VirtualList
+        key={$list_id}
+        count={$beatmaps?.length ?? 0}
+        width="100%"
+        height="100%"
+        item_height={height}
+        selected={selected_index}
+        {max_width}
+        {carousel}
+        {direction}
+        {columns}
+        on_update={(index) => {
+            if (on_update) on_update(index);
+            if ($beatmaps[index]?.pending) {
+                list.load_beatmap_at_index(index);
+            }
+        }}
+        let:index
+    >
+        {@const data = $beatmaps[index]}
+        {@const beatmap = data.pending ? create_placeholder_beatmap(data) : data}
+        <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap)} at="point">
+            <BeatmapCard
+                {beatmap}
+                {show_bpm}
+                {show_star_rating}
+                {show_remove}
+                {show_status}
+                {show_control}
+                {show_context}
+                {set}
+                {center}
+                selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
+                control={show_remove ? (type) => handle_control(type, beatmap) : null}
+                click={() => handle_click(beatmap, index)}
+            />
+        </ContextMenu>
+    </VirtualList>
 </div>

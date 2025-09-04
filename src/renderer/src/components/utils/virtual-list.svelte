@@ -11,7 +11,7 @@
     export let max_width = false;
     export let key = crypto.randomUUID();
     export let direction = "right";
-    export let on_update = null;
+    export let on_update = () => {};
     export let selected = -1;
     export let columns = null;
 
@@ -115,11 +115,6 @@
         last_scroll_top = scroll_top;
         last_hovered_item = hovered_item;
     };
-
-    const call_update = debounce((index) => {
-        const actual_index = (index + 1) * columns;
-        if (on_update) on_update(actual_index);
-    }, 100);
 
     const carousel_update = () => {
         if (animation_frame_id) {
@@ -257,9 +252,6 @@
         {#each { length: visible_items } as _, i (start_index + i)}
             <!-- only update on last item rendered -->
             {@const actual_index = start_index + i}
-            {#if i == visible_items - 1 && on_update}
-                {call_update(actual_index)}
-            {/if}
             {#if columns_mode}
                 {@const row_index = start_index + i}
                 {@const column_items = get_column_items(row_index)}
@@ -268,6 +260,7 @@
                     style="height: {item_height_with_padding}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
                 >
                     {#each column_items as item_index}
+                        {on_update(item_index)}
                         <div
                             id={crypto.randomUUID()}
                             class="item {direction} column-item"
@@ -282,6 +275,7 @@
                     {/each}
                 </div>
             {:else}
+                {on_update(actual_index)}
                 <div
                     id={crypto.randomUUID()}
                     class="item {direction}"

@@ -62,8 +62,8 @@
             columns={2}
             list_manager={discover}
             on_update={(i) => {
-                // update list on 10 items to the end
-                if (discover.can_load_more() && discover.get_list_length() - i <= 10) {
+                // update list on last index
+                if (discover.can_load_more() && discover.get_list_length() - i <= 2) {
                     discover.search();
                 }
             }}

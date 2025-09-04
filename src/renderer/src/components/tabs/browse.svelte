@@ -13,7 +13,7 @@
     const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
     const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
 
-    const list = get_beatmap_list("browse");
+    const list = get_beatmap_list(ALL_BEATMAPS_KEY);
     const { query, status, sort } = list;
 
     const update_beatmaps = async () => {
@@ -55,6 +55,6 @@
                 <RangeSlider on_update={update_sr} />
             </ExpandableMenu>
         </div>
-        <Beatmaps tab_id={"browse"} show_context={true} show_remove={false} set={false} columns={2} direction={"right"} />
+        <Beatmaps tab_id={ALL_BEATMAPS_KEY} show_context={true} show_remove={false} set={false} columns={2} direction={"right"} />
     </div>
 </div>
