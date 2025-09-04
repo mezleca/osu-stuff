@@ -1,10 +1,12 @@
 <script>
+    import { onMount } from "svelte";
     import { collections } from "../lib/store/collections";
     import { show_notification } from "../lib/store/notifications";
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
     import { ContextMenu } from "wx-svelte-menu";
+    import { input } from "../lib/store/input";
 
     // components
     import VirtualList from "./utils/virtual-list.svelte";
@@ -31,7 +33,7 @@
     export let on_update = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
-    const { beatmaps, selected, list_id } = list;
+    const { beatmaps, selected, list_id, index } = list;
 
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
@@ -145,6 +147,36 @@
 
         return result;
     };
+
+    // not a great name...
+    const handle_move_beatmap = async (direction) => {
+        const new_index = direction == "previous" ? $index - 1 : $index + 1;
+
+        if ((direction == "previous" && new_index < 0) || (direction == "next" && new_index > $beatmaps.length)) {
+            console.log("not updating selected beatmap (reached list limit):", new_index);
+            return;
+        }
+
+        const hash = $beatmaps[new_index];
+        const new_beatmap = await get_beatmap_data(hash);
+
+        if (!new_beatmap) {
+            console.log("failed to get beatmap:", hash, new_index);
+            return;
+        }
+
+        list.select_beatmap(new_beatmap, new_index);
+    };
+
+    onMount(() => {
+        input.on("ArrowLeft", () => handle_move_beatmap("previous"));
+        input.on("ArrowRight", () => handle_move_beatmap("next"));
+
+        // on destroy
+        return () => {
+            input.remove("ArrowLeft", "ArrowRight");
+        };
+    });
 </script>
 
 <div class="beatmaps-container">

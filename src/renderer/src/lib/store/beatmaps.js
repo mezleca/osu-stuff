@@ -293,7 +293,9 @@ class BeatmapList extends BeatmapListBase {
     }
 
     is_same_item(beatmap1, beatmap2) {
-        return this.is_unique ? beatmap1.unique_id == beatmap2.unique_id : beatmap1.md5 == beatmap2.md5;
+        return this.is_unique
+            ? (beatmap1?.unique_id ?? beatmap1) == (beatmap2?.unique_id ?? beatmap2)
+            : (beatmap1?.md5 ?? beatmap1) == (beatmap2?.md5 ?? beatmap2);
     }
 
     async find(beatmaps, target_md5) {
