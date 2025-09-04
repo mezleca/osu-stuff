@@ -39,10 +39,10 @@
     const update_beatmaps = async () => {
         // hide remove beatmap option if we're showing all beatmaps
         list.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
-        
+
         const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort });
 
-        if (beatmaps) { 
+        if (beatmaps) {
             list.set_beatmaps(beatmaps, $selected_collection, true);
             list.update_list_id($selected_collection.name);
         }
