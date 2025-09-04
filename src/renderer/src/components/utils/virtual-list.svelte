@@ -1,6 +1,5 @@
 <script>
-    import { onMount, tick, onDestroy } from "svelte";
-    import { debounce } from "../../lib/utils/utils";
+    import { onMount, tick } from "svelte";
 
     export let count = 0;
     export let item_height = 100;
@@ -11,8 +10,7 @@
     export let max_width = false;
     export let key = crypto.randomUUID();
     export let direction = "right";
-    export let get_key = () => crypto.randomUUID();
-    export let on_update = null;
+    export let on_update = () => {};
     export let selected = -1;
     export let columns = null;
 
@@ -118,11 +116,6 @@
         last_hovered_item = hovered_item;
     };
 
-    const call_update = debounce((index) => {
-        const actual_index = (index + 1) * columns;
-        if (on_update) on_update(actual_index);
-    }, 100);
-
     const carousel_update = () => {
         if (animation_frame_id) {
             return;
@@ -200,18 +193,24 @@
         return items;
     };
 
-    // clear cache when key changes
-    $: if (key) {
+    const reset = () => {
         element_cache.clear();
         hovered_item = -1;
-    }
+    };
 
+    // automatically scroll to item on selected item update
     $: if (selected != -1 && container) {
         scroll_to_item(selected);
     }
 
+    // update carrousel on scroll update
     $: if (carousel_enabled && container && visible_items > 0 && !is_scrolling) {
         carousel_update();
+    }
+
+    // reset cache when key changes
+    $: if (key) {
+        reset();
     }
 
     onMount(() => {
@@ -219,7 +218,6 @@
 
         if (selected != -1) {
             scroll_top = 0;
-
             if (container) {
                 container.scrollTop = 0;
                 tick().then(() => {
@@ -227,16 +225,17 @@
                 });
             }
         }
-    });
 
-    onDestroy(() => {
-        if (animation_frame_id) {
-            cancelAnimationFrame(animation_frame_id);
-        }
-        if (scroll_timeout) {
-            clearTimeout(scroll_timeout);
-        }
-        element_cache.clear();
+        // on destroy
+        return () => {
+            if (animation_frame_id) {
+                cancelAnimationFrame(animation_frame_id);
+            }
+
+            if (scroll_timeout) {
+                clearTimeout(scroll_timeout);
+            }
+        };
     });
 </script>
 
@@ -253,54 +252,55 @@
 >
     <div class="spacer" style="height: {total_height}px;"></div>
     <div class="viewport" style="transform: translateY({offset_y}px);">
-        {#key key}
-            {#each { length: visible_items } as _, i (start_index + i)}
-                <!-- only update on last item rendered -->
-                {@const actual_index = start_index + i}
-                {#if i == visible_items - 1 && on_update}
-                    {call_update(actual_index)}
+        {#each { length: visible_items } as _, i (start_index + i)}
+            <!-- only update on last item rendered -->
+            {@const actual_index = start_index + i}
+            {#if columns_mode}
+                {@const row_index = start_index + i}
+                {@const column_items = get_column_items(row_index)}
+                <div
+                    class="row-container"
+                    style="height: {item_height_with_padding}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
+                >
+                    {#each column_items as item_index}
+                        {#if on_update}
+                            {on_update(item_index)}
+                        {/if}
+                        <div
+                            id={crypto.randomUUID()}
+                            class="item {direction} column-item"
+                            style="height: {item_height_with_padding}px; width: 100%;"
+                            on:mouseenter={() => handle_mouse_enter(item_index)}
+                            on:mouseleave={handle_mouse_leave}
+                            role="button"
+                            tabindex="0"
+                        >
+                            <slot index={item_index} />
+                        </div>
+                    {/each}
+                </div>
+            {:else}
+                {#if on_update}
+                    {on_update(actual_index)}
                 {/if}
-                {#if columns_mode}
-                    {@const row_index = start_index + i}
-                    {@const column_items = get_column_items(row_index)}
-                    <div
-                        class="row-container"
-                        style="height: {item_height_with_padding}px; display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%;"
-                    >
-                        {#each column_items as item_index}
-                            <div
-                                id={get_key(item_index)}
-                                class="item {direction} column-item"
-                                style="height: {item_height_with_padding}px; width: 100%;"
-                                on:mouseenter={() => handle_mouse_enter(item_index)}
-                                on:mouseleave={handle_mouse_leave}
-                                role="button"
-                                tabindex="0"
-                            >
-                                <slot index={item_index} />
-                            </div>
-                        {/each}
-                    </div>
-                {:else}
-                    <div
-                        id={get_key(i)}
-                        class="item {direction}"
-                        class:carousel-effect={carousel_enabled}
-                        style="width: {max_width
-                            ? carousel_enabled
-                                ? '98'
-                                : '100'
-                            : '80'}%; height: {item_height_with_padding}px; transform-origin: {direction} center; justify-self: {direction};"
-                        on:mouseenter={() => handle_mouse_enter(actual_index)}
-                        on:mouseleave={handle_mouse_leave}
-                        role="button"
-                        tabindex="0"
-                    >
-                        <slot index={actual_index} />
-                    </div>
-                {/if}
-            {/each}
-        {/key}
+                <div
+                    id={crypto.randomUUID()}
+                    class="item {direction}"
+                    class:carousel-effect={carousel_enabled}
+                    style="width: {max_width
+                        ? carousel_enabled
+                            ? '98'
+                            : '100'
+                        : '80'}%; height: {item_height_with_padding}px; transform-origin: {direction} center; justify-self: {direction};"
+                    on:mouseenter={() => handle_mouse_enter(actual_index)}
+                    on:mouseleave={handle_mouse_leave}
+                    role="button"
+                    tabindex="0"
+                >
+                    <slot index={actual_index} />
+                </div>
+            {/if}
+        {/each}
     </div>
 </div>
 

@@ -29,7 +29,7 @@
     const list = get_beatmap_list("collections");
     const popup_manager = get_popup_manager("collections");
 
-    const { sort, query, status, show_invalid } = list;
+    const { sort, query, status, show_invalid, sr_range } = list;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
@@ -52,6 +52,7 @@
 
         if (result) {
             list.set_beatmaps(result, $query, false);
+            list.update_list_id($selected_collection.name);
         }
     };
 
@@ -628,10 +629,7 @@
         collections.filter();
     }
 
-    // @TODO: this makes us request the collection every time we go into this tab
-    // for small collections this is not a big of a problem since the collections are usually small
-    // but on radio we can notice a small delay since we're doing this 2 times
-    $: if ($selected_collection.name || $query || $sort || $status || $show_invalid) {
+    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $sr_range)) {
         filter_beatmaps();
     }
 
