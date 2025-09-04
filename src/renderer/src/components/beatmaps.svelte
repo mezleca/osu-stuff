@@ -28,10 +28,10 @@
     export let set = false;
     export let show_control = true;
     export let remove_callback = () => {};
-    export let on_update = null;
+    export let on_update = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
-    const { beatmaps, selected } = list;
+    const { beatmaps, selected, list_id } = list;
 
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
@@ -152,6 +152,7 @@
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
     </div>
     <VirtualList
+        key={$list_id}
         count={$beatmaps?.length ?? 0}
         width="100%"
         height="100%"

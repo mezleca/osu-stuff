@@ -43,7 +43,7 @@ const managers = new Map();
 
 export class BeatmapListBase {
     constructor(list_id) {
-        this.list_id = list_id;
+        this.list_id = writable(list_id);
         this.last_options = null;
         this.last_result = null; // last beatmap array or something
         this.hide_remove = writable(false); // hide remove beatmap option from context menu
@@ -110,6 +110,14 @@ export class BeatmapListBase {
         return this.is_same_item(item, current);
     }
 
+    update_list_id(id) {
+        this.list_id.set(id);
+    }
+
+    update_query(value) {
+        this.query.set(value);
+    }
+
     clear() {
         // clear stores
         this.items.set([]);
@@ -119,10 +127,6 @@ export class BeatmapListBase {
         // clear normal values
         this.last_options = null;
         this.last_result = null;
-    }
-
-    update_query(value) {
-        this.query.set(value);
     }
 }
 

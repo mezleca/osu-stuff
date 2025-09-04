@@ -80,10 +80,6 @@ body {
     color: #ffffff;
     height: 100vh;
     overflow: hidden;
-    font-family:
-        system-ui,
-        -apple-system,
-        sans-serif;
 }
 
 #app {
