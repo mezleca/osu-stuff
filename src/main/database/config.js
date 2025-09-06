@@ -1,12 +1,15 @@
-import { get_app_path, get_osu_path } from "./utils.js";
-
-import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-export const CONFIG_LOCATION = get_app_path();
+import { BaseDatabase } from "./database.js";
+import { get_app_path, get_osu_path } from "./utils.js";
 
-const config_keys = [
+// singleton instance
+let config_db = null;
+
+export let config = {};
+
+const CONFIG_KEYS = [
     "osu_id",
     "osu_secret",
     "stable_path",
@@ -18,129 +21,152 @@ const config_keys = [
     "radio_volume"
 ];
 
-let database = null;
-let get_config = null;
-
-export let config = {
-    osu_id: null,
-    osu_secret: null,
-    stable_path: null,
-    stable_songs_path: null,
-    lazer_path: null,
-    export_path: null,
-    local_images: false,
-    lazer_mode: false,
-    radio_volume: null,
-    mirrors: []
-};
-
-console.log("config path", CONFIG_LOCATION);
-
-const create_config_table = () => {
-    database.exec(`
-		CREATE TABLE IF NOT EXISTS config (
-			id INTEGER PRIMARY KEY DEFAULT 1,
-			osu_id INTEGER,
-			osu_secret TEXT,
-			stable_path TEXT,
-			stable_songs_path TEXT,
-			lazer_path TEXT,
-			export_path TEXT,
-			local_images INTEGER,
-			lazer_mode INTEGER,
-			radio_volume INTEGER
-		);
-	`);
-};
-
-const update_config = (values) => {
-    const keys = Object.keys(values).filter((k) => config_keys.includes(k));
-
-    if (keys.length == 0) {
-        console.log("cant update cuz 0 length");
-        return;
+export class ConfigDatabase extends BaseDatabase {
+    constructor() {
+        super("config.db", get_app_path());
+        this.config = {
+            osu_id: null,
+            osu_secret: null,
+            stable_path: null,
+            stable_songs_path: null,
+            lazer_path: null,
+            export_path: null,
+            local_images: false,
+            lazer_mode: false,
+            radio_volume: null
+        };
     }
 
-    const clause = keys.map((k) => `${k} = EXCLUDED.${k}`).join(", ");
-    const statement = database.prepare(`
-		INSERT INTO config (id, ${keys.join(", ")}) 
-		VALUES (1, ${keys.map(() => "?").join(", ")})
-		ON CONFLICT(id) DO UPDATE SET ${clause}
-	`);
+    create_tables() {
+        this.exec(`
+            CREATE TABLE IF NOT EXISTS config (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                osu_id INTEGER,
+                osu_secret TEXT,
+                stable_path TEXT,
+                stable_songs_path TEXT,
+                lazer_path TEXT,
+                export_path TEXT,
+                local_images INTEGER,
+                lazer_mode INTEGER,
+                radio_volume INTEGER
+            );
+        `);
+    }
 
-    const params = keys.map((k) => {
-        const value = typeof values[k] == "boolean" ? Number(values[k]) : values[k];
-        config[k] = values[k];
-        return value;
-    });
+    prepare_statements() {
+        this.prepare_statement("get_config", "SELECT * FROM config WHERE id = 1");
+        this.prepare_statement("count_rows", "SELECT COUNT(*) as count FROM config");
+        this.prepare_statement("insert_default", "INSERT INTO config (id) VALUES (1)");
+    }
 
-    statement.run(...params);
-};
+    post_initialize() {
+        this.ensure_config_row();
+        this.load_config();
+    }
+
+    ensure_config_row() {
+        const row_count = this.get_statement("count_rows").get().count;
+
+        if (row_count == 0) {
+            this.get_statement("insert_default").run();
+        }
+    }
+
+    load_config() {
+        const config_obj = this.get_statement("get_config").get();
+
+        if (!config_obj) {
+            return;
+        }
+
+        // load values from db into config object
+        for (const [key, value] of Object.entries(config_obj)) {
+            if (key == "local_images" || key == "lazer_mode") {
+                this.config[key] = Boolean(value);
+                continue;
+            }
+            this.config[key] = value;
+        }
+
+        // setup export path if empty
+        if (!this.config.export_path || this.config.export_path == "") {
+            this.update({ export_path: path.resolve(get_app_path(), "exports") });
+        }
+    }
+
+    async setup_default_paths() {
+        const config_obj = this.get_statement("get_config").get();
+
+        // we already have the default stable path
+        if (config_obj.stable_path && config_obj.stable_path != "") {
+            return;
+        }
+
+        const osu_path_result = await get_osu_path();
+        const osu_path = osu_path_result?.stable_path;
+        const lazer_path = osu_path_result?.lazer_path;
+
+        if (osu_path && osu_path != "") {
+            this.update({ stable_path: osu_path, lazer_mode: this.config.lazer_mode ?? false });
+
+            const stable_songs_path = path.resolve(osu_path, "Songs");
+
+            if (fs.existsSync(stable_songs_path)) {
+                this.update({ stable_songs_path });
+            }
+        }
+
+        if (lazer_path) {
+            this.update({ lazer_path, lazer_mode: this.config.lazer_mode ?? false });
+        }
+    }
+
+    update(values) {
+        console.log("updating", values);
+        const keys = Object.keys(values).filter((k) => CONFIG_KEYS.includes(k));
+
+        if (keys.length == 0) {
+            console.log("[config] no valid keys to update");
+            return;
+        }
+
+        const clause = keys.map((k) => `${k} = EXCLUDED.${k}`).join(", ");
+        const statement = this.database.prepare(`
+            INSERT INTO config (id, ${keys.join(", ")}) 
+            VALUES (1, ${keys.map(() => "?").join(", ")})
+            ON CONFLICT(id) DO UPDATE SET ${clause}
+        `);
+
+        const params = keys.map((k) => {
+            const value = typeof values[k] == "boolean" ? Number(values[k]) : values[k];
+            this.config[k] = values[k];
+            return value;
+        });
+
+        statement.run(...params);
+    }
+
+    get() {
+        return this.config;
+    }
+}
 
 export const initialize_config = async () => {
-    const file_path = path.resolve(CONFIG_LOCATION, "config.db");
+    config_db = new ConfigDatabase();
+    config_db.initialize();
+    await config_db.setup_default_paths();
 
-    database = new Database(file_path);
-    create_config_table();
+    // update the exported config
+    config = config_db.config;
 
-    // ensure at least one row exists in the config table
-    const row_count = database.prepare("SELECT COUNT(*) as count FROM config").get().count;
-
-    if (row_count == 0) {
-        database.prepare("INSERT INTO config (id) VALUES (1)").run();
-    }
-
-    get_config = database.prepare(`SELECT * FROM config WHERE id = 1`);
-    let config_obj = get_config.get();
-
-    if (!config_obj) {
-        return;
-    }
-
-    // update config_obj values on start
-    for (const [k, v] of Object.entries(config_obj)) {
-        if (k == "local_images" || k == "lazer_mode") {
-            config[k] = Boolean(v);
-            continue;
-        }
-        config[k] = v;
-    }
-
-    // always force the creation of export_path (if its empty)
-    if (!config.export_path || config.export_path == "") {
-        update_config({ export_path: path.resolve(CONFIG_LOCATION, "exports") });
-    }
-
-    // we already have the default stable path so lets just early return
-    if (config_obj.stable_path && config_obj.stable_path != "") {
-        return;
-    }
-
-    // populate config with the default value (if possible)
-    const osu_path_result = await get_osu_path();
-
-    const osu_path = osu_path_result?.stable_path;
-    const lazer_path = osu_path_result?.lazer_path;
-
-    if (osu_path && osu_path != "") {
-        update_config({ stable_path: osu_path, lazer_mode: config.lazer_mode ?? false });
-        const stable_songs_path = path.resolve(osu_path, "Songs");
-
-        // maybe the user have a different songs path?
-        if (fs.existsSync(stable_songs_path)) {
-            update_config({ stable_songs_path });
-        }
-    }
-
-    if (lazer_path) {
-        update_config({ lazer_path, lazer_mode: config.lazer_mode ?? false });
-    }
+    return config_db;
 };
 
 export const update_config_database = (obj) => {
-    return update_config(obj);
+    return config_db?.update(obj);
 };
 
 export const get_config_database = () => {
-    return config;
+    return config_db?.get();
 };
