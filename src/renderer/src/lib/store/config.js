@@ -40,7 +40,7 @@ class ConfigStore {
         }
 
         if (mirrors) {
-            config.mirrors = mirrors;
+            config_obj.mirrors = mirrors;
         }
 
         this.store.set(config_obj);
