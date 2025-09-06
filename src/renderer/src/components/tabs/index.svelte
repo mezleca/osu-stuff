@@ -23,7 +23,7 @@
                 e.preventDefault();
                 const target_url = e.target.getAttribute("href");
 
-                if (target_url && target_url !== "") {
+                if (target_url && target_url != "") {
                     window.shell.open(target_url, {});
                 }
             });

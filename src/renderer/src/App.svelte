@@ -4,6 +4,7 @@
     import { show_notification } from "./lib/store/notifications";
     import { indexing, indexing_data } from "./lib/store/indexer";
     import { debounce, is_dev_mode } from "./lib/utils/utils";
+    import { config } from "./lib/store/config";
     import { get_osu_data } from "./lib/utils/collections";
 
     // tabs
@@ -33,16 +34,19 @@
 
     onMount(async () => {
         try {
-            // first lets check if we're on dev_mode
-            const dev_mode_result = await window.extra.is_dev_mode();
-            is_dev_mode.set(dev_mode_result);
+            // initialize config system
+            await config.load();
+
+            // check if we're on dev mode
+            is_dev_mode.set(await window.extra.is_dev_mode());
 
             // then lets get beatmaps from database
             await get_osu_data(false);
-            initialized = true;
         } catch (err) {
             console.log(err);
             show_notification({ type: "error", timeout: 5000, text: `failed to initialize\n${err}` });
+        } finally {
+            initialized = true;
         }
     });
 

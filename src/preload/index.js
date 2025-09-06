@@ -4,6 +4,7 @@ import { check_folder_permissions } from "./utils/validator.js";
 
 contextBridge.exposeInMainWorld("config", {
     get: () => ipcRenderer.invoke("get-config"),
+    get_mirrors: () => ipcRenderer.invoke("get-mirrors"),
     update: (values) => ipcRenderer.invoke("update-config", values)
 });
 

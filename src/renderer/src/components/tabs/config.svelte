@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { config, update_access_token } from "../../lib/store/config";
+    import { config } from "../../lib/store/config";
     import { get_osu_data } from "../../lib/utils/collections";
     import { show_notification } from "../../lib/store/notifications";
     import { get_popup_manager, show_popup, PopupAddon, quick_confirm } from "../../lib/store/popup";
@@ -11,44 +11,47 @@
     import Popup from "../utils/popup/popup.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
 
-    let osu_id;
-    let osu_secret = "";
-    let stable_path = "";
-    let lazer_path = "";
-    let stable_songs_path = "";
-    let mirrors = [];
-    let lazer_mode = false;
-    let local_images = false;
     let initialized = false;
-    let fetching_token = false;
+    let last_config = {};
 
     const popup_manager = get_popup_manager("config");
 
-    const save_and_update = async (key, value) => {
-        save_config(key, value);
-
-        if (fetching_token) {
+    const handle_config_change = async (new_config) => {
+        if (!initialized || !last_config) {
             return;
         }
 
-        fetching_token = true;
-        await update_access_token();
-        fetching_token = false;
-    };
+        const changes = [];
 
-    const save_config = (key, value) => {
-        if (initialized && value != $config[key]) {
-            config.set(key, value);
+        // check what changed
+        for (const [key, value] of Object.entries(new_config)) {
+            if (last_config[key] != value) {
+                changes.push({ key, value, old_value: last_config[key] });
+            }
         }
+
+        if (changes.length == 0) {
+            return;
+        }
+
+        // save changes to backend
+        for (const change of changes) {
+            await window.config.update({ [change.key]: change.value });
+            console.log(`updated ${change.key}: ${change.old_value} -> ${change.value}`);
+        }
+
+        // update access token if credentials changed
+        const credential_changes = changes.filter((c) => c.key == "osu_id" || c.key == "osu_secret");
+
+        if (credential_changes.length > 0) {
+            await config.update_access_token();
+        }
+
+        last_config = { ...new_config };
     };
 
-    $: if (osu_id) save_and_update("osu_id", osu_id);
-    $: if (osu_secret) save_and_update("osu_secret", osu_secret);
-    $: if (stable_path) save_config("stable_path", stable_path);
-    $: if (lazer_path) save_config("lazer_path", lazer_path);
-    $: if (stable_songs_path) save_config("stable_songs_path", stable_songs_path);
-    $: if (lazer_mode != undefined) save_config("lazer_mode", lazer_mode);
-    $: if (local_images != undefined) save_config("local_images", local_images);
+    // watch for config changes
+    $: handle_config_change($config);
 
     const add_mirror = async (data) => {
         const { name, url } = data;
@@ -58,11 +61,11 @@
             return;
         }
 
+        // add new mirror to database
         await window.downloader.add_mirror({ name, url });
 
         // force update
         await config.reload();
-        mirrors = $config.mirrors;
     };
 
     const remove_mirror = async (name) => {
@@ -77,7 +80,6 @@
 
         // sync config data
         await config.reload();
-        mirrors = $config.mirrors;
     };
 
     const reload_files = async () => {
@@ -101,17 +103,8 @@
     };
 
     onMount(() => {
-        // update values on start
-        osu_id = $config.osu_id || "";
-        osu_secret = $config.osu_secret || "";
-        stable_path = $config.stable_path || "";
-        lazer_path = $config.lazer_path || "";
-        stable_songs_path = $config.stable_songs_path || "";
-        lazer_mode = $config.lazer_mode == true || $config.lazer_mode == "true";
-        local_images = $config.local_images == true || $config.local_images == "true";
-        mirrors = $config.mirrors;
+        last_config = { ...$config };
         initialized = true;
-
         create_mirror_popup();
     });
 </script>
@@ -130,7 +123,7 @@
                         rel="noopener noreferrer">here</a
                     > and paste the ID below
                 </div>
-                <input id="osu_id_input" type="password" class="text-input" placeholder="ex: 123" bind:value={osu_id} />
+                <input id="osu_id_input" type="password" class="text-input" placeholder="ex: 123" bind:value={$config.osu_id} />
             </div>
 
             <div class="field-group" id="osu_secret">
@@ -142,36 +135,32 @@
                         rel="noopener noreferrer">here</a
                     > and paste the SECRET below
                 </div>
-                <input id="osu_secret_input" type="password" class="text-input" placeholder="ex: 123" bind:value={osu_secret} />
+                <input id="osu_secret_input" type="password" class="text-input" placeholder="ex: 123" bind:value={$config.osu_secret} />
             </div>
 
             <div class="field-group" id="stable_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu stable path</label>
                 <div class="field-description">click to select your osu! stable path</div>
-                <InputDialog bind:location={stable_path} type="folder" />
+                <InputDialog bind:location={$config.stable_path} type="folder" />
             </div>
 
             <div class="field-group" id="lazer_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu lazer path</label>
                 <div class="field-description">click to select your osu! lazer path</div>
-                <InputDialog bind:location={lazer_path} type="folder" />
+                <InputDialog bind:location={$config.lazer_path} type="folder" />
             </div>
 
             <div class="field-group" id="stable_songs_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">songs folder</label>
                 <div class="field-description">click to select your osu! songs folder</div>
-                <InputDialog bind:location={stable_songs_path} type="folder" />
+                <InputDialog bind:location={$config.stable_songs_path} type="folder" />
             </div>
 
             <div class="field-group">
-                <Checkbox bind:value={lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
-            </div>
-
-            <div class="field-group">
-                <Checkbox bind:value={local_images} label={"use local beatmap images"} desc="useful if you have no internet connection" />
+                <Checkbox bind:value={$config.lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
             </div>
 
             <!-- @TODO: confirmation -->
@@ -185,7 +174,7 @@
                 <div class="info-box-subtitle"></div>
             </div>
             <div class="info-box-stats">
-                {#each mirrors as mirror}
+                {#each $config.mirrors as mirror}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="stat-item" onclick={() => remove_mirror(mirror.name)}>

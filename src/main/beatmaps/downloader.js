@@ -432,13 +432,12 @@ const add_mirror = (mirror) => {
     if (!mirror.name || !mirror.url) {
         return;
     }
-    insert_mirror.run(mirror.name, mirror.url);
-    update_mirrors();
+
+    return insert_mirror(mirror.name, mirror.url);
 };
 
 const remove_mirror = (name) => {
-    delete_mirror.run(name);
-    update_mirrors();
+    return delete_mirror(name);
 };
 
 const set_token = (new_token) => {

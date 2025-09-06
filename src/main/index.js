@@ -3,7 +3,7 @@ import { downloader } from "./beatmaps/downloader";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
-import { initialize_mirrors } from "./database/mirrors";
+import { get_mirrors, initialize_mirrors } from "./database/mirrors";
 import {
     add_beatmap,
     filter_beatmaps,
@@ -100,6 +100,9 @@ async function createWindow() {
     ipcMain.handle("minimize", () => mainWindow.minimize());
     ipcMain.handle("close", () => app.quit());
 
+    // mirror related stuff
+    ipcMain.handle("get-mirrors", () => get_mirrors());
+
     // config related stuff
     ipcMain.handle("get-config", () => config);
     ipcMain.handle("update-config", (_, values) => update_config_database(values));
@@ -127,6 +130,7 @@ async function createWindow() {
     await initialize_config();
     initialize_mirrors();
 
+    // initialize downloader handlers
     downloader.main(ipcMain, mainWindow);
 
     // indexer will be used to process extra beatmap information and save into a sqlite database
