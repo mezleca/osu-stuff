@@ -129,4 +129,4 @@ class ConfigStore {
 
 // global config
 export const config = new ConfigStore();
-export const {access_token} = config;
+export const { access_token } = config;
