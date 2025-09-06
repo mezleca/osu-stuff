@@ -224,7 +224,7 @@ export class IndexerDatabase extends BaseDatabase {
 
         // update existing beatmaps
         for (let i = 0; i < beatmaps_array.length; i++) {
-            const md5 = beatmaps_array[i].md5;
+            const {md5} = beatmaps_array[i];
             const existing = existing_info.get(md5);
 
             if (!existing) {
