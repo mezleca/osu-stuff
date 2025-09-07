@@ -2,22 +2,20 @@ import path from "path";
 import fs from "fs";
 import StreamZip from "node-stream-zip";
 
-import { spawn } from "child_process";
 import { get_app_path } from "../database/utils";
 
 // @TODO: send notification to main process on success, error, etc...
 
 const is_windows = process.platform == "win32";
 
-class SongDownloader {
-    constructor(repository, location) {
-        if (!location || !repository) {
-            throw new Error("missing paramater");
+export class YTdlp {
+    constructor(location) {
+        if (!location) {
+            throw new Error("missing location");
         }
 
         this.temp_location = path.resolve(location, "temp");
-        this.downloaded_location = path.resolve(location, "downloaded");
-
+        
         if (!fs.existsSync(location)) {
             fs.mkdirSync(location, { recursive: true });
         }
@@ -26,13 +24,9 @@ class SongDownloader {
             fs.mkdirSync(this.temp_location);
         }
 
-        if (!fs.existsSync(this.downloaded_location)) {
-            fs.mkdirSync(this.downloaded_location);
-        }
-
         this.ext = is_windows ? "_x86.exe" : "_linux";
         this.version = "";
-        this.repository = repository;
+        this.repository = "yt-dlp/yt-dlp";
         this.custom_ffmpeg_location = path.resolve(location, "ffmpeg");
         this.binary_location = path.resolve(location, `yt-dlp${this.ext}`);
         this.version_location = path.resolve(location, "yt-dlp-version");
@@ -173,77 +167,59 @@ class SongDownloader {
         console.log("dlp: ffmpeg extracted");
     }
 
-    async download(url) {
+    async exec(additional_args = []) {
         // check if the binary exists
-        if (!url || !fs.existsSync(this.binary_location)) {
+        if (!this.is_binary_available()) {
             return false;
         }
 
-        // build args
-        const args = [
-            "-x",
-            "--audio-format",
-            "mp3",
-            "-N",
-            "6",
-            "--http-chunk-size",
-            "10M",
-            "--paths",
-            `temp:${this.temp_location}`,
-            "--paths",
-            `home:${this.downloaded_location}`
-        ];
+        // build base args with common configurations
+        const base_args = [];
 
         // add custom ffmpeg PATH on windows
         if (is_windows) {
-            args.push("--ffmpeg-location", this.custom_ffmpeg_location);
+            base_args.push("--ffmpeg-location", this.custom_ffmpeg_location);
         }
 
-        // add url
-        args.push(url);
+        // combine base args with additional args
+        const args = [...base_args, ...additional_args];
 
         const result = await new Promise((r) => {
             const proc = spawn(this.binary_location, args);
             let stdout_buffer = "";
+            let stderr_buffer = "";
 
             proc.stdout.on("data", (d) => {
                 stdout_buffer += d.toString();
             });
 
-            proc.stderr.on("data", () => {});
+            proc.stderr.on("data", (d) => {
+                stderr_buffer += d.toString();
+            });
 
             proc.on("close", (code) => {
-                if (code == 0) {
-                    // get file location
-                    const lines = stdout_buffer
-                        .split("\n")
-                        .map((l) => l.trim())
-                        .filter((l) => l);
-                    const move_line = lines.find((l) => l.includes("[MoveFiles]"));
-
-                    if (!move_line) {
-                        r(null);
-                        return;
-                    }
-
-                    // return null if we didn't find anything
-                    const audio_location = move_line.split(" to ")[1]?.replace(/^["']|["']$/g, "");
-
-                    if (!audio_location) {
-                        r(null);
-                        return;
-                    }
-
-                    const audio_name = path.basename(audio_location);
-                    r({ name: audio_name, location: audio_location });
-                }
-
-                r(null);
+                r({
+                    code,
+                    stdout: stdout_buffer,
+                    stderr: stderr_buffer
+                });
             });
         });
 
         return result;
     }
-}
 
-export const song_downloader = new SongDownloader("yt-dlp/yt-dlp", get_app_path());
+    get_binary_location() {
+        return this.binary_location;
+    }
+
+    get_custom_ffmpeg_location() {
+        return this.custom_ffmpeg_location;
+    }
+
+    is_binary_available() {
+        return fs.existsSync(this.binary_location);
+    }
+};
+
+export const yt_dlp = new YTdlp(get_app_path);
