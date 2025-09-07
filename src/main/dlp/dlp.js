@@ -1,8 +1,13 @@
 import path from "path";
 import fs from "fs";
+import StreamZip from "node-stream-zip";
 
 import { spawn } from "child_process";
 import { get_app_path } from "../database/utils";
+
+// @TODO: send notification to main process on success, error, etc...
+
+const is_windows = process.platform == "win32";
 
 class SongDownloader {
     constructor(repository, location) {
@@ -25,14 +30,18 @@ class SongDownloader {
             fs.mkdirSync(this.downloaded_location);
         }
 
+        this.ext = is_windows ? "_x86.exe" : "_linux";
+        this.version = "";
         this.repository = repository;
-        this.ext = process.platform == "win32" ? "_x86.exe" : "_linux";
+        this.custom_ffmpeg_location = path.resolve(location, "ffmpeg");
         this.binary_location = path.resolve(location, `yt-dlp${this.ext}`);
         this.version_location = path.resolve(location, "yt-dlp-version");
-        this.version = "";
     }
 
     async initialize() {
+        // download ffmpeg binary on windows
+        await this.download_ffmpeg();
+
         // check if our binary already exists
         if (fs.existsSync(this.binary_location) && fs.existsSync(this.version_location)) {
             const saved_version = fs.readFileSync(this.version_location, "utf-8");
@@ -95,7 +104,7 @@ class SongDownloader {
         const data = await result.json();
 
         // loop through assets until we find the correct binary
-        const target_name = process.platform == "win32" ? "yt-dlp_x86.exe" : "yt-dlp_linux";
+        const target_name = is_windows ? "yt-dlp_x86.exe" : "yt-dlp_linux";
         const target_asset = data.assets.find((a) => a.name == target_name);
 
         if (!target_asset) {
@@ -119,6 +128,51 @@ class SongDownloader {
         fs.writeFileSync(this.version_location, version, "utf-8");
     }
 
+    // @TODO: test on windows lol
+    async download_ffmpeg() {
+        // windows only
+        if (process.platform != "win32" || fs.existsSync(this.custom_ffmpeg_location)) {
+            return;
+        }
+
+        // ensure folder is created
+        if (!fs.existsSync(this.custom_ffmpeg_location)) {
+            fs.mkdirSync(this.custom_ffmpeg_location, { recursive: true });
+        }
+
+        console.log("dlp: downloading ffmpeg for windows");
+
+        const FFMPEG_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip";
+        const response = await fetch(FFMPEG_URL);
+        const buffer = await response.arrayBuffer();
+
+        // save temp zip file
+        const temp_zip = path.resolve(this.temp_location, `ffmpeg_${Date.now()}.zip`);
+        fs.writeFileSync(temp_zip, Buffer.from(buffer));
+
+        const zip = new StreamZip.async({ file: temp_zip });
+        const entries = await zip.entries();
+
+        // extract only bin files
+        for (const entry of Object.values(entries)) {
+            if (entry.name.includes("/bin/") && !entry.isDirectory) {
+                const file_name = path.basename(entry.name);
+                const output_path = path.resolve(this.temp_location, file_name);
+
+                await zip.extract(entry.name, output_path);
+
+                // move to app folder
+                const final_path = path.resolve(this.custom_ffmpeg_location, file_name);
+                fs.renameSync(output_path, final_path);
+            }
+        }
+
+        await zip.close();
+        fs.unlinkSync(temp_zip); // cleanup
+
+        console.log("dlp: ffmpeg extracted");
+    }
+
     async download(url) {
         // check if the binary exists
         if (!url || !fs.existsSync(this.binary_location)) {
@@ -129,7 +183,7 @@ class SongDownloader {
         const args = [
             "-x",
             "--audio-format",
-            "opus",
+            "mp3",
             "-N",
             "6",
             "--http-chunk-size",
@@ -137,9 +191,16 @@ class SongDownloader {
             "--paths",
             `temp:${this.temp_location}`,
             "--paths",
-            `home:${this.downloaded_location}`,
-            url
+            `home:${this.downloaded_location}`
         ];
+
+        // add custom ffmpeg PATH on windows
+        if (is_windows) {
+            args.push("--ffmpeg-location", this.custom_ffmpeg_location);
+        }
+
+        // add url
+        args.push(url);
 
         const result = await new Promise((r) => {
             const proc = spawn(this.binary_location, args);
