@@ -70,8 +70,10 @@ export class SongDownloader {
             return false;
         }
 
-        // return null if we didn't find anything
-        const audio_location = move_line.split(" to ")[1]?.replace(/^["']|["']$/g, "");
+        // Use a regular expression to robustly extract the file path from the [MoveFiles] line
+        const moveFilesRegex = /\[MoveFiles\].* to (["']?)(.+?)\1$/;
+        const match = move_line.match(moveFilesRegex);
+        const audio_location = match ? match[2] : null;
 
         if (!audio_location) {
             return false;
