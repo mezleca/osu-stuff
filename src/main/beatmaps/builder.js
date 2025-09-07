@@ -112,9 +112,14 @@ class BeatmapBuilder {
                     throw new Error(`builder: missing ${property.key}`);
                 }
 
-                // mhm
-                if ((property.key == "ArtistUnicode" || property.key == "TitleUnicode") && !has_custom_value) {
-                    value = file.get(property.key.split("U")[0]) ?? "";
+                // Use explicit mapping for Unicode keys to their fallback values
+                if (!has_custom_value && (property.key === "ArtistUnicode" || property.key === "TitleUnicode")) {
+                    const fallbackMap = {
+                        "ArtistUnicode": "Artist",
+                        "TitleUnicode": "Title"
+                    };
+                    const fallbackKey = fallbackMap[property.key];
+                    value = file.get(fallbackKey) ?? "";
                 }
 
                 // fallback to default value if available
