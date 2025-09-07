@@ -91,8 +91,8 @@ class BeatmapBuilder {
 
     /** @param {LegacyBeatmapFile} file */
     write(file) {
-        if ((!file) instanceof LegacyBeatmapFile) {
-            throw new Error("NOOOOOOOOOO");
+        if (!(file instanceof LegacyBeatmapFile)) {
+            throw new Error("builder: not a instance of LegacyBeatmapFile...");
         }
 
         // initialize buffer with version
