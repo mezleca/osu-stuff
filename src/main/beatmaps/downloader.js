@@ -6,13 +6,12 @@ import { get_beatmap_by_md5 } from "./beatmaps.js";
 
 import fs from "fs";
 import path from "path";
-import JSZip from "jszip";
+import AdmZip from "adm-zip";
 
 let token = "";
 let main_window = null;
 let current_download = null;
 
-const zip = new JSZip();
 const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
@@ -448,27 +447,21 @@ const get_save_path = () => {
     return config.lazer_mode ? config.export_path : config.stable_songs_path;
 };
 
-const export_beatmap_to_path = async (beatmap_data, target_path) => {
-    if (fs.existsSync(target_path)) {
-        return { success: true, path: target_path, skipped: true };
-    }
+const get_beatmap_files = async (beatmap_data) => {
+    const files = [];
 
     if (!config.lazer_mode) {
-        await add_stable_beatmap_to_zip(beatmap_data);
+        const stable_files = get_stable_beatmap_files(beatmap_data);
+        files.push(...stable_files);
     } else {
-        await add_lazer_beatmap_to_zip(beatmap_data);
+        const lazer_files = get_lazer_beatmap_files(beatmap_data);
+        files.push(...lazer_files);
     }
 
-    const content = await zip.generateAsync({
-        type: "nodebuffer",
-        compression: "DEFLATE"
-    });
-
-    fs.writeFileSync(target_path, content);
-    return { success: true, path: target_path, skipped: false };
+    return files;
 };
 
-const add_stable_beatmap_to_zip = async (beatmap_data) => {
+const get_stable_beatmap_files = (beatmap_data) => {
     const folder = beatmap_data.folder_name || (beatmap_data.file_path ? beatmap_data.file_path.split("/")[0] : null);
 
     if (!folder) {
@@ -481,11 +474,12 @@ const add_stable_beatmap_to_zip = async (beatmap_data) => {
         throw new Error(`folder not found: ${folder_path}`);
     }
 
-    add_directory_to_zip(folder_path, "");
+    return get_dir_files(folder_path, "");
 };
 
-const add_lazer_beatmap_to_zip = async (beatmap_data) => {
+const get_lazer_beatmap_files = (beatmap_data) => {
     const set = beatmap_data.beatmapset;
+    const files = [];
 
     if (!set?.Files?.length) {
         throw new Error("missing beatmapset file info for lazer");
@@ -495,7 +489,9 @@ const add_lazer_beatmap_to_zip = async (beatmap_data) => {
         const filename = f.Filename || f.filename || f.name;
         const hash = (f.File && f.File.Hash) || f.Hash || f.file;
 
-        if (!filename || !hash) continue;
+        if (!filename || !hash) {
+            continue;
+        }
 
         const file_location = get_lazer_file_location(hash);
 
@@ -504,32 +500,82 @@ const add_lazer_beatmap_to_zip = async (beatmap_data) => {
             continue;
         }
 
-        try {
-            const data = fs.readFileSync(file_location);
-            zip.file(filename, data);
-        } catch (e) {
-            console.log(`failed to add lazer file ${file_location}: ${e.message}`);
-        }
+        files.push({
+            source_path: file_location,
+            zip_path: filename
+        });
     }
+
+    return files;
 };
 
-const add_directory_to_zip = (base_path, rel_base) => {
-    const files = fs.readdirSync(base_path, { withFileTypes: true });
+const get_dir_files = (base_path, rel_base) => {
+    const files = [];
+    const dir_files = fs.readdirSync(base_path, { withFileTypes: true });
 
-    for (const f of files) {
+    for (const f of dir_files) {
         const full_path = path.join(base_path, f.name);
         const rel_path = path.join(rel_base, f.name);
 
         if (f.isDirectory()) {
-            add_directory_to_zip(full_path, rel_path);
+            const sub_files = get_dir_files(full_path, rel_path);
+            files.push(...sub_files);
         } else if (f.isFile()) {
+            files.push({
+                source_path: full_path,
+                zip_path: rel_path
+            });
+        }
+    }
+
+    return files;
+};
+
+const create_zip_from_files = (files, target_path) => {
+    try {
+        const zip = new AdmZip();
+
+        for (const file of files) {
             try {
-                const data = fs.readFileSync(full_path);
-                zip.file(rel_path, data);
+                const dir_path = path.dirname(file.zip_path);
+                const file_name = path.basename(file.zip_path);
+
+                zip.addLocalFile(file.source_path, dir_path === "." ? "" : dir_path, file_name);
             } catch (e) {
-                console.log(`failed to add file ${full_path}: ${e.message}`);
+                console.log(`failed to add file ${file.source_path}: ${e.message}`);
             }
         }
+
+        zip.writeZip(target_path);
+        return true;
+    } catch (error) {
+        console.log(`failed to create zip: ${error.message}`);
+        return false;
+    }
+};
+
+const export_beatmap_to_path = async (beatmap_data, target_path) => {
+    if (fs.existsSync(target_path)) {
+        return { success: true, path: target_path, skipped: true };
+    }
+
+    try {
+        const files = await get_beatmap_files(beatmap_data);
+
+        if (files.length === 0) {
+            throw new Error("no files found to export");
+        }
+
+        const success = create_zip_from_files(files, target_path);
+
+        if (!success) {
+            throw new Error("failed to create zip file");
+        }
+
+        return { success: true, path: target_path, skipped: false };
+    } catch (error) {
+        console.log(`failed to export beatmap: ${error.message}`);
+        throw error;
     }
 };
 

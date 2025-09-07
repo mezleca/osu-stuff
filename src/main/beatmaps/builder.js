@@ -1,4 +1,4 @@
-import JSZip from "jszip";
+import AdmZip from "adm-zip";
 import fs from "fs";
 import path from "path";
 
@@ -137,9 +137,9 @@ class BeatmapBuilder {
     }
 
     /** @param {LegacyBeatmapFile} file */
-    async zip(file) {
+    zip(file) {
         const buffer = this.write(file);
-        const zip = new JSZip();
+        const zip = new AdmZip();
 
         const file_location = file.get("AudioLocation");
         const file_name = file.get("Title");
@@ -151,15 +151,12 @@ class BeatmapBuilder {
         }
 
         // add audio file
-        zip.file(DEFAULT_AUDIO_NAME, fs.readFileSync(file_location));
+        zip.addLocalFile(DEFAULT_AUDIO_NAME, file_location);
 
         // add .osu file
-        zip.file(`${file_name}.osu`, buffer);
+        zip.addFile(`${file_name}.osu`, buffer);
 
-        return await zip.generateAsync({
-            type: "nodebuffer",
-            compression: "DEFLATE"
-        });
+        return zip.toBuffer();
     }
 }
 
