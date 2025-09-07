@@ -115,8 +115,8 @@ class BeatmapBuilder {
                 // Use explicit mapping for Unicode keys to their fallback values
                 if (!has_custom_value && (property.key === "ArtistUnicode" || property.key === "TitleUnicode")) {
                     const fallbackMap = {
-                        "ArtistUnicode": "Artist",
-                        "TitleUnicode": "Title"
+                        ArtistUnicode: "Artist",
+                        TitleUnicode: "Title"
                     };
                     const fallbackKey = fallbackMap[property.key];
                     value = file.get(fallbackKey) ?? "";
@@ -157,10 +157,9 @@ class BeatmapBuilder {
         zip.file(`${file_name}.osu`, buffer);
 
         return await zip.generateAsync({
-                    type: "nodebuffer",
-                    compression: "DEFLATE"
-                });
-
+            type: "nodebuffer",
+            compression: "DEFLATE"
+        });
     }
 }
 
