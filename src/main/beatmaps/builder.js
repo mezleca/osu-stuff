@@ -156,12 +156,11 @@ class BeatmapBuilder {
         // add .osu file
         zip.file(`${file_name}.osu`, buffer);
 
-        const zipped = await zip.generateAsync({
-            type: "nodebuffer",
-            compression: "DEFLATE"
-        });
+        return await zip.generateAsync({
+                    type: "nodebuffer",
+                    compression: "DEFLATE"
+                });
 
-        return zipped;
     }
 }
 
