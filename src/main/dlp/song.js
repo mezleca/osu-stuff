@@ -1,19 +1,26 @@
 import path from "path";
 import fs from "fs";
 
-import { yt_dlp } from "./dlp";
+import { yt_dlp, YTdlp } from "./dlp";
 import { get_app_path } from "../database/utils";
 
 // @TODO: send notification to main process on success, error, etc...
 
-class SongDownloader  {
-    constructor(repository, location) {
-        if (!location || !repository) {
-            throw new Error("missing paramater");
+export class SongDownloader {
+    constructor(location, dlp) {
+        if (!dlp) {
+            throw new Error("missing yt-dlp instance");
+        }
+
+        if (!location) {
+            throw new Error("missing location dumbass");
         }
 
         this.downloaded_location = path.resolve(location, "downloaded");
         this.temp_location = path.resolve(location, "temp");
+
+        /** @type {YTdlp} */
+        this.dlp = dlp;
 
         if (!fs.existsSync(this.downloaded_location)) {
             fs.mkdirSync(this.downloaded_location, { recursive: true });
@@ -21,7 +28,7 @@ class SongDownloader  {
     }
 
     async initialize() {
-        await yt_dlp.initialize();
+        await this.dlp.initialize();
     }
 
     async download(url) {
@@ -46,10 +53,10 @@ class SongDownloader  {
             url
         ];
 
-        const result = await yt_dlp.exec(download_args);
+        const result = await this.dlp.exec(download_args);
 
-        if (!result || result.code !== 0) {
-            return null;
+        if (!result || result.code != 0) {
+            return false;
         }
 
         // get file location from stdout
@@ -60,14 +67,14 @@ class SongDownloader  {
         const move_line = lines.find((l) => l.includes("[MoveFiles]"));
 
         if (!move_line) {
-            return null;
+            return false;
         }
 
         // return null if we didn't find anything
         const audio_location = move_line.split(" to ")[1]?.replace(/^["']|["']$/g, "");
 
         if (!audio_location) {
-            return null;
+            return false;
         }
 
         const audio_name = path.basename(audio_location);
@@ -75,4 +82,4 @@ class SongDownloader  {
     }
 }
 
-export const song_downloader = new SongDownloader("yt-dlp/yt-dlp", get_app_path());
+export const song_downloader = new SongDownloader(get_app_path(), yt_dlp);

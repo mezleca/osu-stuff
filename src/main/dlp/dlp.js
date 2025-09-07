@@ -1,8 +1,9 @@
 import path from "path";
 import fs from "fs";
-import StreamZip from "node-stream-zip";
+import AdmZip from "adm-zip";
 
 import { get_app_path } from "../database/utils";
+import { spawn } from "child_process";
 
 // @TODO: send notification to main process on success, error, etc...
 
@@ -15,7 +16,7 @@ export class YTdlp {
         }
 
         this.temp_location = path.resolve(location, "temp");
-        
+
         if (!fs.existsSync(location)) {
             fs.mkdirSync(location, { recursive: true });
         }
@@ -25,54 +26,62 @@ export class YTdlp {
         }
 
         this.ext = is_windows ? "_x86.exe" : "_linux";
+        this.name = `yt-dlp${this.ext}`;
         this.version = "";
         this.repository = "yt-dlp/yt-dlp";
         this.custom_ffmpeg_location = path.resolve(location, "ffmpeg");
-        this.binary_location = path.resolve(location, `yt-dlp${this.ext}`);
+        this.binary_location = path.resolve(location, this.name);
         this.version_location = path.resolve(location, "yt-dlp-version");
     }
 
     async initialize() {
-        // download ffmpeg binary on windows
-        await this.download_ffmpeg();
+        try {
+            // download ffmpeg binary on windows
+            if (is_windows) await this.download_ffmpeg();
 
-        // check if our binary already exists
-        if (fs.existsSync(this.binary_location) && fs.existsSync(this.version_location)) {
-            const saved_version = fs.readFileSync(this.version_location, "utf-8");
-            const latest_version = await this.get_latest_version();
+            // check if our binary already exists
+            if (fs.existsSync(this.binary_location) && fs.existsSync(this.version_location)) {
+                const saved_version = fs.readFileSync(this.version_location, "utf-8");
+                const latest_version = await this.get_latest_version();
 
-            // check if we're on the latest version
-            if (saved_version == latest_version) {
-                this.update_version(latest_version);
-                return;
+                // check if we're on the latest version
+                if (saved_version == latest_version) {
+                    this.update_version(latest_version);
+                    return true;
+                }
+
+                console.log(`dlp: detected new yt-dlp version\ndownloading: ${latest_version}`);
+            } else {
+                console.log("dlp: downloading latest yt-dlp binary");
             }
 
-            console.log(`dlp: detected new yt-dlp version\ndownloading: ${latest_version}`);
-        } else {
-            console.log("dlp: downloading latest yt-dlp binary");
+            // otherwise download latest version
+            const new_binary = await this.download_latest_binary();
+
+            if (!new_binary) {
+                console.error("dlp: failed to download yt-dlp binary");
+                return false;
+            }
+
+            const { buffer, version } = new_binary;
+
+            // update binary / version
+            fs.writeFileSync(this.binary_location, Buffer.from(buffer));
+
+            // give exec permission on linux
+            if (process.platform == "linux") {
+                console.log("dlp: ensuring yt-dlp binary has exec permissions");
+                fs.chmodSync(this.binary_location, 0o755);
+            }
+
+            this.update_version(version);
+            console.log(`dlp: downloaded ${version} succesfully`);
+
+            return true;
+        } catch (err) {
+            console.error(err);
+            return false;
         }
-
-        // otherwise download latest version
-        const new_binary = await this.download_latest_binary();
-
-        if (!new_binary) {
-            console.error("dlp: failed to download yt-dlp binary");
-            return;
-        }
-
-        const { buffer, version } = new_binary;
-
-        // update binary / version
-        fs.writeFileSync(this.binary_location, Buffer.from(buffer));
-
-        // give exec permission on linux
-        if (process.platform == "linux") {
-            console.log("dlp: ensuring yt-dlp binary has exec permissions");
-            fs.chmodSync(this.binary_location, 0o755);
-        }
-
-        this.update_version(version);
-        console.log(`dlp: downloaded ${version} succesfully`);
     }
 
     async get_latest_version() {
@@ -122,10 +131,8 @@ export class YTdlp {
         fs.writeFileSync(this.version_location, version, "utf-8");
     }
 
-    // @TODO: test on windows lol
     async download_ffmpeg() {
-        // windows only
-        if (process.platform != "win32" || fs.existsSync(this.custom_ffmpeg_location)) {
+        if (fs.existsSync(this.custom_ffmpeg_location)) {
             return;
         }
 
@@ -138,38 +145,30 @@ export class YTdlp {
 
         const FFMPEG_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip";
         const response = await fetch(FFMPEG_URL);
-        const buffer = await response.arrayBuffer();
 
-        // save temp zip file
-        const temp_zip = path.resolve(this.temp_location, `ffmpeg_${Date.now()}.zip`);
-        fs.writeFileSync(temp_zip, Buffer.from(buffer));
-
-        const zip = new StreamZip.async({ file: temp_zip });
-        const entries = await zip.entries();
-
-        // extract only bin files
-        for (const entry of Object.values(entries)) {
-            if (entry.name.includes("/bin/") && !entry.isDirectory) {
-                const file_name = path.basename(entry.name);
-                const output_path = path.resolve(this.temp_location, file_name);
-
-                await zip.extract(entry.name, output_path);
-
-                // move to app folder
-                const final_path = path.resolve(this.custom_ffmpeg_location, file_name);
-                fs.renameSync(output_path, final_path);
-            }
+        if (response.status != 200) {
+            console.log("failed to download ffmpeg", response.statusText);
+            return;
         }
 
-        await zip.close();
-        fs.unlinkSync(temp_zip); // cleanup
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const zip = new AdmZip(buffer);
+        const entries = zip.getEntries();
 
-        console.log("dlp: ffmpeg extracted");
+        for (const entry of entries) {
+            if (entry.entryName.includes("/bin/") && !entry.isDirectory) {
+                const file_name = path.basename(entry.entryName);
+                const final_path = path.resolve(this.custom_ffmpeg_location, file_name);
+                const content = entry.getData();
+                fs.writeFileSync(final_path, content);
+            }
+        }
     }
 
     async exec(additional_args = []) {
         // check if the binary exists
         if (!this.is_binary_available()) {
+            console.log("dlp: binary is not available");
             return false;
         }
 
@@ -206,7 +205,7 @@ export class YTdlp {
             });
         });
 
-        return result;
+        return result ?? false;
     }
 
     get_binary_location() {
@@ -220,6 +219,6 @@ export class YTdlp {
     is_binary_available() {
         return fs.existsSync(this.binary_location);
     }
-};
+}
 
-export const yt_dlp = new YTdlp(get_app_path);
+export const yt_dlp = new YTdlp(get_app_path());
