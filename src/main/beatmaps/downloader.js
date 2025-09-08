@@ -495,7 +495,7 @@ const get_lazer_beatmap_files = (beatmap_data) => {
 
         const file_location = get_lazer_file_location(hash);
 
-        if (!fs.existsSync(file_location)) {
+        if (!audio_location || !fs.existsSync(audio_location)) {
             console.log(`[export] missing lazer file ${file_location}`);
             continue;
         }
