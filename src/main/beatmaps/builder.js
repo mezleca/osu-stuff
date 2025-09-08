@@ -68,6 +68,10 @@ class LegacyBeatmapFile {
     }
 
     set_audio(location) {
+        if (!fs.existsSync(location)) {
+            throw new Error("audio file does not exists");
+        }
+
         this.properties.set("AudioFilename", {
             value: location,
             path: true
@@ -75,6 +79,11 @@ class LegacyBeatmapFile {
     }
 
     set_image(location) {
+        // ensure file actually exists
+        if (!fs.existsSync(location)) {
+            throw new Error("image file does not exists");
+        }
+
         this.properties.set("Background", {
             value: [0, 0, location], // x, y, filename (full path for now)
             path: true

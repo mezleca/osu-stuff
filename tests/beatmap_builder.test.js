@@ -51,6 +51,22 @@ describe("builder", async () => {
         expect(osu_content).toContain("Title:idk");
     });
 
+    test("handle invalid audio file path", () => {
+        const invalidAudioBeatmap = builder.create();
+        const INVALID_AUDIO_LOCATION = path.resolve(__dirname, "utils", "nonexistent_audio.mp3");
+        expect(() => {
+            invalidAudioBeatmap.set_audio(INVALID_AUDIO_LOCATION);
+        }).toThrow();
+    });
+
+    test("handle invalid image file path", () => {
+        const invalidImageBeatmap = builder.create();
+        const INVALID_IMAGE_LOCATION = path.resolve(__dirname, "utils", "nonexistent_bg.jpg");
+        expect(() => {
+            invalidImageBeatmap.set_image(INVALID_IMAGE_LOCATION);
+        }).toThrow();
+    });
+
     test("create zip with all files", () => {
         const zip_buffer = builder.zip(beatmap);
 
