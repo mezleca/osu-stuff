@@ -171,8 +171,6 @@ export class BeatmapBuilder {
                     let new_value = "";
 
                     for (let i = 0; i < value.length; i++) {
-                        console.log("adding property", value[i]);
-
                         if (typeof value[i] == "number") {
                             new_value += value[i];
                         } else {
