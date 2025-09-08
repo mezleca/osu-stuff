@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { describe, expect, test } from "bun:test";
-import { TEST_TARGET_PATH, clean_test_path } from "./utils";
+import { TEST_TARGET_PATH, clean_test_path } from "./utils/utils";
 import { YTdlp } from "../src/main/dlp/dlp";
 import { SongDownloader } from "../src/main/dlp/song";
 

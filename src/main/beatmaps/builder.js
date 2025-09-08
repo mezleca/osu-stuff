@@ -67,21 +67,35 @@ class LegacyBeatmapFile {
         this.properties.set(key, value);
     }
 
+    set_audio(location) {
+        this.properties.set("AudioFilename", {
+            value: location,
+            path: true
+        });
+    }
+
     set_image(location) {
-        const file_name = path.basename(location);
-        this.properties.set("Background", [0, 0, file_name]); // x, y, filename
-        this.properties.set("BackgroundLocation", location); // store full path separately
+        this.properties.set("Background", {
+            value: [0, 0, location], // x, y, filename (full path for now)
+            path: true
+        });
     }
 
     get(key) {
-        return this.properties.get(key);
+        const prop = this.properties.get(key);
+        // if its a path object, return the value
+        if (prop && typeof prop == "object" && prop.path) {
+            return prop.value;
+        }
+        return prop;
     }
 
     get_image() {
-        if (!this.properties.has("Background")) {
+        const bg = this.properties.get("Background");
+        if (!bg || !bg.value || !Array.isArray(bg.value)) {
             return false;
         }
-        return this.properties.get("Background")[2];
+        return path.basename(bg.value[2]); // return just the filename
     }
 
     has(key) {
@@ -89,7 +103,7 @@ class LegacyBeatmapFile {
     }
 }
 
-class BeatmapBuilder {
+export class BeatmapBuilder {
     constructor() {}
 
     create() {
@@ -131,27 +145,52 @@ class BeatmapBuilder {
                     };
                     const fallback_key = fallback_map[property.key];
                     value = file.get(fallback_key) ?? "";
+                } else if (has_custom_value) {
+                    const prop = file.properties.get(property.key);
+
+                    // check if this property has path flag
+                    if (prop && typeof prop == "object" && prop.path) {
+                        value = prop.value;
+
+                        // if its a string path (like audio), use basename for .osu
+                        if (typeof value == "string") {
+                            value = path.basename(value);
+                        }
+                        // if its array (like background), process the path at index 2
+                        else if (Array.isArray(value)) {
+                            value = [...value]; // copy array
+                            value[2] = path.basename(value[2]); // convert path to basename
+                        }
+                    } else {
+                        value = prop;
+                    }
                 }
 
-                // fix AudioFilename to use only basename, not full path
-                if (property.key == "AudioFilename" && has_custom_value) {
-                    const audio_path = file.get(property.key);
-                    value = path.basename(audio_path);
-                }
-
-                // https://osu.ppy.sh/wiki/en/Client/File_formats/osu_%28file_format%29
+                // handle array values
                 if (Array.isArray(value)) {
-                    for (const v of value) {
-                        if (isNaN(Number(v))) {
-                            buffer.push(`"${v}"`);
+                    let new_value = "";
+
+                    for (let i = 0; i < value.length; i++) {
+                        console.log("adding property", value[i]);
+
+                        if (typeof value[i] == "number") {
+                            new_value += value[i];
                         } else {
-                            buffer.push(v);
+                            // images, videos needs double quotes
+                            new_value += `"${value[i]}"`;
+                        }
+
+                        // separate values by ","
+                        if (i != value.length - 1) {
+                            new_value += ",";
                         }
                     }
+
+                    buffer.push(new_value);
                 } else {
                     // fallback to default value if available
                     if (!value) {
-                        value = has_custom_value ? file.get(property.key) : property.value;
+                        value = property.value;
                     }
 
                     buffer.push(`${property.key}:${value}`);
@@ -169,13 +208,16 @@ class BeatmapBuilder {
         const buffer = this.write(file);
         const zip = new AdmZip();
 
-        const audio_location = file.get("AudioFilename");
+        const audio_prop = file.properties.get("AudioFilename");
+        const audio_location = audio_prop && audio_prop.path ? audio_prop.value : null;
         const file_name = file.get("Title");
-        const background_location = file.get("BackgroundLocation");
+
+        const bg_prop = file.properties.get("Background");
+        const background_location = bg_prop && bg_prop.path ? bg_prop.value[2] : null;
         const background_filename = file.get_image();
 
         // ensure audio file exists
-        if (!fs.existsSync(audio_location)) {
+        if (!audio_location || !fs.existsSync(audio_location)) {
             console.error("builder: failed to find audio file");
             return false;
         }
