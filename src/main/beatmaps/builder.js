@@ -2,15 +2,12 @@ import AdmZip from "adm-zip";
 import fs from "fs";
 import path from "path";
 
-const DEFAULT_AUDIO_NAME = "audio.mp3";
-
-// @TODO: background / storyboard support
+// @TODO: video support
 class LegacyBeatmapFile {
     constructor() {
         this.properties = new Map();
         this.version = "osu file format v14\n";
         this.section_data = new Map([
-            // @TODO: idk if this is broken, tested with a .opus file and dint work (maybe .opus issue? idk)
             [
                 "General",
                 [
@@ -60,17 +57,31 @@ class LegacyBeatmapFile {
                     { key: "SliderTickRate", value: 1 }
                 ]
             ],
-            ["Events", []],
+            ["Events", [{ key: "Background", value: "// not specified" }]],
             ["HitObject", []]
         ]);
     }
 
+    // set option
     set(key, value) {
         this.properties.set(key, value);
     }
 
+    set_image(location) {
+        const file_name = path.basename(location);
+        this.properties.set("Background", [0, 0, file_name]); // x, y, filename
+        this.properties.set("BackgroundLocation", location); // store full path separately
+    }
+
     get(key) {
         return this.properties.get(key);
+    }
+
+    get_image() {
+        if (!this.properties.has("Background")) {
+            return false;
+        }
+        return this.properties.get("Background")[2];
     }
 
     has(key) {
@@ -112,22 +123,39 @@ class BeatmapBuilder {
                     throw new Error(`builder: missing ${property.key}`);
                 }
 
-                // Use explicit mapping for Unicode keys to their fallback values
-                if (!has_custom_value && (property.key === "ArtistUnicode" || property.key === "TitleUnicode")) {
-                    const fallbackMap = {
+                // use explicit mapping for Unicode keys to their fallback values
+                if (!has_custom_value && (property.key == "ArtistUnicode" || property.key == "TitleUnicode")) {
+                    const fallback_map = {
                         ArtistUnicode: "Artist",
                         TitleUnicode: "Title"
                     };
-                    const fallbackKey = fallbackMap[property.key];
-                    value = file.get(fallbackKey) ?? "";
+                    const fallback_key = fallback_map[property.key];
+                    value = file.get(fallback_key) ?? "";
                 }
 
-                // fallback to default value if available
-                if (!value) {
-                    value = has_custom_value ? file.get(property.key) : property.value;
+                // fix AudioFilename to use only basename, not full path
+                if (property.key == "AudioFilename" && has_custom_value) {
+                    const audio_path = file.get(property.key);
+                    value = path.basename(audio_path);
                 }
 
-                buffer.push(`${property.key}:${value}`);
+                // https://osu.ppy.sh/wiki/en/Client/File_formats/osu_%28file_format%29
+                if (Array.isArray(value)) {
+                    for (const v of value) {
+                        if (isNaN(Number(v))) {
+                            buffer.push(`"${v}"`);
+                        } else {
+                            buffer.push(v);
+                        }
+                    }
+                } else {
+                    // fallback to default value if available
+                    if (!value) {
+                        value = has_custom_value ? file.get(property.key) : property.value;
+                    }
+
+                    buffer.push(`${property.key}:${value}`);
+                }
             }
 
             buffer.push(""); // add blank line between each section
@@ -141,20 +169,28 @@ class BeatmapBuilder {
         const buffer = this.write(file);
         const zip = new AdmZip();
 
-        const file_location = file.get("AudioLocation");
+        const audio_location = file.get("AudioFilename");
         const file_name = file.get("Title");
+        const background_location = file.get("BackgroundLocation");
+        const background_filename = file.get_image();
 
         // ensure audio file exists
-        if (!fs.existsSync(file_location)) {
-            console.log("builder: failed to find audio file");
+        if (!fs.existsSync(audio_location)) {
+            console.error("builder: failed to find audio file");
             return false;
         }
 
-        // add audio file
-        zip.addLocalFile(DEFAULT_AUDIO_NAME, file_location);
+        // add audio file with correct name in zip
+        const audio_filename = path.basename(audio_location);
+        zip.addLocalFile(audio_location, "", audio_filename);
+
+        // add background if present
+        if (background_location && fs.existsSync(background_location)) {
+            zip.addLocalFile(background_location, "", background_filename);
+        }
 
         // add .osu file
-        zip.addFile(`${file_name}.osu`, buffer);
+        zip.addFile(`${file_name}.osu`, Buffer.from(buffer));
 
         return zip.toBuffer();
     }
