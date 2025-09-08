@@ -3,7 +3,7 @@ import path from "path";
 
 import { $ } from "bun";
 
-export const TEST_TARGET_PATH = path.resolve(__dirname, ".temp");
+export const TEST_TARGET_PATH = path.resolve(__dirname, "..", ".temp");
 
 export const create_temp_path = () => {
     if (!fs.existsSync(TEST_TARGET_PATH)) {
@@ -12,8 +12,10 @@ export const create_temp_path = () => {
 };
 
 export const clean_test_path = async () => {
+    // ensure path acutally exists
     if (!fs.existsSync(TEST_TARGET_PATH)) {
         create_temp_path();
+        return;
     }
 
     let result = "";
@@ -23,6 +25,4 @@ export const clean_test_path = async () => {
     } else {
         result = await $`rm ${TEST_TARGET_PATH}/*`.text();
     }
-
-    console.log("clean_test_path():", result);
 };

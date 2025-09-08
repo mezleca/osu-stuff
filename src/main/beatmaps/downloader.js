@@ -495,7 +495,7 @@ const get_lazer_beatmap_files = (beatmap_data) => {
 
         const file_location = get_lazer_file_location(hash);
 
-        if (!fs.existsSync(file_location)) {
+        if (!audio_location || !fs.existsSync(audio_location)) {
             console.log(`[export] missing lazer file ${file_location}`);
             continue;
         }
@@ -540,7 +540,7 @@ const create_zip_from_files = (files, target_path) => {
                 const dir_path = path.dirname(file.zip_path);
                 const file_name = path.basename(file.zip_path);
 
-                zip.addLocalFile(file.source_path, dir_path === "." ? "" : dir_path, file_name);
+                zip.addLocalFile(file.source_path, dir_path == "." ? "" : dir_path, file_name);
             } catch (e) {
                 console.log(`failed to add file ${file.source_path}: ${e.message}`);
             }
@@ -562,7 +562,7 @@ const export_beatmap_to_path = async (beatmap_data, target_path) => {
     try {
         const files = await get_beatmap_files(beatmap_data);
 
-        if (files.length === 0) {
+        if (files.length == 0) {
             throw new Error("no files found to export");
         }
 
