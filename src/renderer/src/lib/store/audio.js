@@ -4,6 +4,7 @@ import { get_from_media } from "../utils/utils.js";
 
 const DEFAULT_VOLUME = 50;
 
+// @TODO: refactor, ts is a mess
 class AudioManager {
     constructor(id) {
         this.id = id;
@@ -455,6 +456,15 @@ class AudioManager {
         }
 
         audio.src = "";
+
+        // reset state
+        this.store.update((obj) => ({
+            ...obj,
+            id: null,
+            audio: null,
+            playing: false,
+            is_loading: false
+        }));
     };
 }
 

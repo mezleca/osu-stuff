@@ -96,6 +96,11 @@ export class BeatmapListBase {
         this.index.set(index);
     }
 
+    remove_selected() {
+        this.selected.set(null);
+        this.index.set(-1);
+    }
+
     is_same_item(item1, item2) {
         throw new Error("is_same_item is not implemented yet");
     }

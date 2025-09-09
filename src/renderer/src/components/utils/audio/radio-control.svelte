@@ -3,6 +3,7 @@
     import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
     import { get_beatmap_data } from "../../../lib/utils/beatmaps";
+    import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
 
     // icons
@@ -17,36 +18,43 @@
 
     // components
     import ControlBar from "../basic/control-bar.svelte";
-    import { show_notification } from "../../../lib/store/notifications";
 
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
     const { beatmaps, index, selected, invalid_selected } = radio_list;
 
+    let current_beatmap = null;
+
+    const get_current_id = () => current_beatmap?.md5;
+
     $: audio_state = $audio_manager;
-    $: current_beatmap = $selected;
-    $: current_id = current_beatmap?.md5;
-    $: is_playing = audio_state.playing && audio_state.id == current_id;
+    $: is_playing = audio_state.playing && audio_state.id == get_current_id();
     $: is_loading = audio_state.is_loading;
     $: is_changing_selection = audio_state.is_changing_selection;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
     $: should_force_random = audio_manager.force_random;
 
-    $: {
-        // auto-play when selection changes
-        if (current_id && audio_state.id != current_id && !is_loading && !is_changing_selection) {
-            handle_selection_change();
-        }
+    $: if ($selected) {
+        get_beatmap_data($selected).then((bm) => {
+            current_beatmap = bm;
+        });
+    } else {
+        current_beatmap = null;
+    }
 
-        if ($should_force_random) {
-            if (audio_state.audio && audio_state.audio.currentTime > 0.1) {
-                if (is_playing) audio_manager.pause();
-                audio_manager.play_next().then(() => audio_manager.force_random.set(false));
-            } else {
-                $should_force_random = false;
-            }
+    // auto play when selected beatmap changes changes
+    $: if (current_beatmap && current_beatmap.md5 && audio_state.id != current_beatmap.md5 && !is_loading && !is_changing_selection) {
+        handle_selection_change();
+    }
+
+    $: if ($should_force_random) {
+        if (audio_state.audio && audio_state.audio.currentTime > 0.1) {
+            if (is_playing) audio_manager.pause();
+            audio_manager.play_next().then(() => audio_manager.force_random.set(false));
+        } else {
+            audio_manager.force_random.set(false);
         }
     }
 
@@ -83,10 +91,7 @@
 
         // update selection (if changed)
         if (next_idx != current_index) {
-            const new_beatmap = await get_beatmap_data(beatmap_id);
-            if (new_beatmap) {
-                radio_list.select_beatmap(new_beatmap, next_idx);
-            }
+            radio_list.select_beatmap(beatmap_id, next_idx);
         }
 
         return beatmap_id;
@@ -112,12 +117,12 @@
             return;
         }
 
-        await audio_manager.setup_audio(current_id, audio);
+        await audio_manager.setup_audio(get_current_id(), audio);
         await audio_manager.play();
     };
 
     const handle_play_pause = async () => {
-        if (!current_id) {
+        if (!get_current_id()) {
             console.log("radio: no current beatmap selected");
             return;
         }
@@ -125,7 +130,7 @@
         const state = audio_state;
 
         // toggle if same track
-        if (state.id == current_id && state.audio) {
+        if (state.id == get_current_id() && state.audio) {
             if (state.playing) {
                 audio_manager.pause();
             } else {
@@ -135,7 +140,7 @@
         }
 
         // play current selection
-        if (state.id == current_id) {
+        if (state.id == get_current_id()) {
             await audio_manager.play();
         }
     };
@@ -156,7 +161,7 @@
         });
 
         // restore volume from config
-        if (saved_volume) {
+        if (saved_volume != null) {
             audio_manager.set_volume(saved_volume);
         }
     });

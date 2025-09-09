@@ -1,9 +1,10 @@
 <script>
     import { onMount, tick } from "svelte";
 
+    export let items = [];
     export let count = 0;
     export let item_height = 100;
-    export let buffer = 6;
+    export let buffer = 5;
     export let extra = 0; // create extra spacing on end if we have more than 10 items
     export let height = "100%";
     export let carousel = false;
@@ -19,11 +20,17 @@
     let container_height = 0;
     let scroll_top = 0;
     let animation_frame_id = null;
+    let target_scroll = 0;
     let last_scroll_top = -1;
     let last_hovered_item = -1;
     let padding = 10;
     let scroll_timeout = null;
     let is_scrolling = false;
+
+    let scroll_animation_id = null;
+    let scroll_start_time = null;
+    let scroll_animation_duration = 10;
+    let start_scroll = 0;
 
     // cache for element styles to avoid redundant updates
     let element_cache = new Map();
@@ -31,13 +38,13 @@
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
 
-    $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count > 10 ? count + extra : count;
+    $: rows_per_screen = columns_mode ? Math.ceil(count / Math.max(columns, 1)) : count > 10 ? count + extra : count;
     $: item_height_with_padding = item_height + padding;
     $: total_height = rows_per_screen * item_height_with_padding;
     $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
     $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
     $: end_index = Math.min(start_index + visible_count, rows_per_screen);
-    $: visible_items = end_index - start_index;
+    $: visible_items = Math.max(0, end_index - start_index);
     $: offset_y = start_index * item_height_with_padding;
 
     const lerp = (start, end, factor) => start + (end - start) * factor;
@@ -53,8 +60,13 @@
         HOVER_MARGIN: 8
     };
 
+    const ease_out = (t, d) => {
+        t /= d; // normalize
+        return t * t * (3.0 - 2.0 * t);
+    };
+
     const update_carousel_effect = () => {
-        if (!carousel_enabled || !container || is_scrolling) {
+        if (!carousel_enabled || !container) {
             return;
         }
 
@@ -129,7 +141,25 @@
 
     const handle_scroll = (e) => {
         scroll_top = e.target.scrollTop;
-        if (carousel_enabled) carousel_update();
+
+        // clear existing timeout and set scroll state
+        if (scroll_timeout) {
+            clearTimeout(scroll_timeout);
+        }
+
+        is_scrolling = true;
+
+        scroll_timeout = setTimeout(() => {
+            is_scrolling = false;
+            if (carousel_enabled) {
+                carousel_update();
+            }
+        }, 20);
+
+        // update carousel effect
+        if (carousel_enabled) {
+            carousel_update();
+        }
     };
 
     const handle_mouse_enter = (index) => {
@@ -158,27 +188,64 @@
         }
     };
 
-    export const scroll_to_item = async (index) => {
-        if (index < 0) {
-            return;
+    const clear_scroll_animation = () => {
+        scroll_animation_id = null;
+        scroll_start_time = 0;
+        start_scroll = 0;
+    };
+
+    const animate_scroll = (currentTime) => {
+        if (!scroll_start_time) {
+            scroll_start_time = currentTime;
+            start_scroll = container.scrollTop;
         }
 
+        const elapsed = currentTime - scroll_start_time;
+        const duration = scroll_animation_duration;
+
+        if (elapsed < duration) {
+            const t = ease_out(elapsed, duration);
+            const new_scroll = lerp(start_scroll, target_scroll, t);
+            container.scrollTop = new_scroll;
+            scroll_animation_id = requestAnimationFrame(animate_scroll);
+        } else {
+            container.scrollTop = target_scroll;
+            clear_scroll_animation();
+        }
+    };
+
+    export const scroll_to_item = async (index) => {
         await tick();
 
-        if (!container) {
+        if (index < 0 || !container) {
+            console.log("container not found");
             return;
         }
 
-        const target_scroll = columns_mode
+        // cancel existing animation
+        if (scroll_animation_id) {
+            cancelAnimationFrame(scroll_animation_id);
+            scroll_animation_id = null;
+        }
+
+        // calculate target
+        target_scroll = columns_mode
             ? Math.floor(index / columns) * item_height_with_padding - container_height / 2 + item_height_with_padding / 2
             : index * item_height_with_padding - container_height / 2 + item_height_with_padding / 2;
 
-        const distance = Math.abs(scroll_top - target_scroll);
+        target_scroll = Math.max(0, Math.min(target_scroll, total_height - container_height));
+        const distance = Math.abs(target_scroll - container.scrollTop);
 
-        container.scrollTo({
-            top: Math.max(0, target_scroll),
-            behavior: distance > 2000 ? "instant" : "smooth"
-        });
+        // force old instant behaviour
+        if (distance > 2000) {
+            container.scrollTo({
+                top: target_scroll,
+                behavior: "instant"
+            });
+        } else {
+            // start animation
+            scroll_animation_id = requestAnimationFrame(animate_scroll);
+        }
     };
 
     const get_column_items = (row_index) => {
@@ -199,12 +266,12 @@
     };
 
     // automatically scroll to item on selected item update
-    $: if (selected != -1 && container) {
+    $: if (selected != -1) {
         scroll_to_item(selected);
     }
 
     // update carrousel on scroll update
-    $: if (carousel_enabled && container && visible_items > 0 && !is_scrolling) {
+    $: if (carousel_enabled && visible_items > 0) {
         carousel_update();
     }
 
@@ -216,21 +283,13 @@
     onMount(() => {
         update_height();
 
-        if (selected != -1) {
-            scroll_top = 0;
-            if (container) {
-                container.scrollTop = 0;
-                tick().then(() => {
-                    scroll_to_item(selected);
-                });
-            }
-        }
-
         // on destroy
         return () => {
             if (animation_frame_id) {
                 cancelAnimationFrame(animation_frame_id);
             }
+
+            clear_scroll_animation();
 
             if (scroll_timeout) {
                 clearTimeout(scroll_timeout);
@@ -252,9 +311,10 @@
 >
     <div class="spacer" style="height: {total_height}px;"></div>
     <div class="viewport" style="transform: translateY({offset_y}px);">
-        {#each { length: visible_items } as _, i (start_index + i)}
-            <!-- only update on last item rendered -->
+        {#each Array(visible_items) as _, i (items[start_index + i] ?? start_index + i)}
             {@const actual_index = start_index + i}
+            {@const key = items[actual_index] ?? actual_index}
+            <!-- only update on last item rendered -->
             {#if columns_mode}
                 {@const row_index = start_index + i}
                 {@const column_items = get_column_items(row_index)}
@@ -267,7 +327,7 @@
                             {on_update(item_index)}
                         {/if}
                         <div
-                            id={crypto.randomUUID()}
+                            id={key}
                             class="item {direction} column-item"
                             style="height: {item_height_with_padding}px; width: 100%;"
                             on:mouseenter={() => handle_mouse_enter(item_index)}
@@ -284,7 +344,7 @@
                     {on_update(actual_index)}
                 {/if}
                 <div
-                    id={crypto.randomUUID()}
+                    id={key}
                     class="item {direction}"
                     class:carousel-effect={carousel_enabled}
                     style="width: {max_width

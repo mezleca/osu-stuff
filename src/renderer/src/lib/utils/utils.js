@@ -35,6 +35,12 @@ export const string_is_valid = (value) => {
 
 export const context_separator = "<|=‎=|>";
 export const is_dev_mode = writable(false);
+export const mouse_position = { x: 0, y: 0 };
+
+document.addEventListener("mousemove", (event) => {
+    mouse_position.x = event.clientX;
+    mouse_position.y = event.clientY;
+});
 
 // override fetch function (prevent cors on dev mode)
 window.fetch = async (options = { url: null }) => {

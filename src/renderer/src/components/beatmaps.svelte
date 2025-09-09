@@ -5,12 +5,12 @@
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
-    import { ContextMenu } from "wx-svelte-menu";
     import { input } from "../lib/store/input";
 
     // components
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
+    import ContextMenu from "./utils/context-menu.svelte";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
@@ -35,12 +35,15 @@
     const list = list_manager || get_beatmap_list(tab_id);
     const { beatmaps, selected, list_id, index } = list;
 
+    let context_menu;
+    let current_beatmap_hash = null; // store the current beatmap hash for context actions
+
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
-    $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
-    const handle_control = async (type, beatmap) => {
+    const handle_control = async (type, hash) => {
         if (type == "add") {
+            const beatmap = await get_beatmap_data(hash);
             const result = await downloader.single_download(beatmap);
 
             if (!result) {
@@ -61,16 +64,22 @@
             // force list redraw (if possible)
             if (list.reload_beatmaps) list.reload_beatmaps();
         } else {
-            remove_beatmap(beatmap.md5);
+            remove_beatmap(hash);
         }
     };
 
     const remove_beatmap = (hash) => {
+        // remove from the collection :+1:
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
         }
 
-        remove_callback();
+        // if the map has previously selected, deselect
+        if ($selected == hash) {
+            list.remove_selected();
+        }
+
+        remove_callback(hash);
     };
 
     const move_to = (name, hash) => {
@@ -88,8 +97,15 @@
         }
     };
 
-    const handle_click = (beatmap, index) => {
-        list.select_beatmap(beatmap, index);
+    const handle_click = async (hash, index) => {
+        const beatmap = await get_beatmap_data(hash);
+
+        // ensure beatmap actually exists
+        if (!beatmap) {
+            return;
+        }
+
+        list.select_beatmap(hash, index);
     };
 
     const open_on_browser = (beatmap) => {
@@ -99,12 +115,17 @@
         window.shell.open(`https://osu.ppy.sh/beatmapsets/${beatmap.beatmapset_id}`);
     };
 
-    const handle_context_menu = (event, beatmap) => {
-        if (!event.action) {
+    const handle_context_menu = async (event) => {
+        if (!current_beatmap_hash || !show_context) {
             return;
         }
 
-        const id_parts = event.action.id.split("-");
+        // use the stored beatmap hash
+        const beatmap = await get_beatmap_data(current_beatmap_hash);
+
+        // get action from detail
+        const action = event.detail;
+        const id_parts = action.id.split("-");
         const type = id_parts[0];
 
         switch (type) {
@@ -118,7 +139,9 @@
                 }
                 break;
             case "move":
-                move_to(id_parts[1], id_parts[2]);
+                // move-CollectionName-BeatmapHash
+                const collection_name = id_parts.slice(1, -1).join("-"); // handle collection names with dashes
+                move_to(collection_name, beatmap.md5);
                 break;
             case "delete":
                 remove_beatmap(beatmap.md5);
@@ -126,10 +149,21 @@
         }
     };
 
-    const get_context_options = (beatmap, hash) => {
+    const get_context_options = async () => {
+        if (!current_beatmap_hash || !show_context) {
+            return [];
+        }
+
+        // use the stored beatmap hash
+        const beatmap = await get_beatmap_data(current_beatmap_hash);
+
+        if (!beatmap) {
+            return [];
+        }
+
         const collections_name = $all_collections
             .filter((c) => ($selected_collection ? c.name != $selected_collection.name : true))
-            .map((c) => ({ id: `move-${c.name}-${hash}`, text: c.name }));
+            .map((c) => ({ id: `move-${c.name}-${beatmap.md5}`, text: c.name }));
 
         const result = [{ id: "browser", text: "open in browser" }];
 
@@ -158,14 +192,21 @@
         }
 
         const hash = $beatmaps[new_index];
-        const new_beatmap = await get_beatmap_data(hash);
+        list.select_beatmap(hash, new_index);
+    };
 
-        if (!new_beatmap) {
-            console.log("failed to get beatmap:", hash, new_index);
+    const on_context = async (event, hash) => {
+        // ensure we have a valid beatmap
+        if (!hash) {
+            console.log("context: invalid beatmap hash");
             return;
         }
 
-        list.select_beatmap(new_beatmap, new_index);
+        // store the current beatmap hash for later use
+        current_beatmap_hash = hash;
+
+        // show context menu at cursor position
+        context_menu.show(event);
     };
 
     onMount(() => {
@@ -180,16 +221,25 @@
 </script>
 
 <div class="beatmaps-container">
+    <!-- render beatmap matches-->
     <div class="beatmaps-header">
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
     </div>
+
+    <!-- render context menu -->
+    {#if show_context}
+        <ContextMenu bind:this={context_menu} onclick={handle_context_menu} options={get_context_options} />
+    {/if}
+
+    <!-- render beatmaps virtual list-->
     <VirtualList
+        items={$beatmaps}
         key={$list_id}
         count={$beatmaps?.length ?? 0}
         width="100%"
         height="100%"
         item_height={height}
-        selected={selected_index}
+        selected={$index}
         {max_width}
         {carousel}
         {tab_id}
@@ -198,38 +248,23 @@
         {on_update}
         let:index
     >
+        <!-- get current md5 hash -->
         {@const hash = $beatmaps[index]}
-        {#await get_beatmap_data(hash) then beatmap}
-            {#if show_context}
-                <ContextMenu onclick={(event) => handle_context_menu(event, beatmap)} options={get_context_options(beatmap, hash)} at="point">
-                    <BeatmapCard
-                        {beatmap}
-                        {show_bpm}
-                        {show_star_rating}
-                        {show_remove}
-                        {show_status}
-                        {show_control}
-                        {set}
-                        {center}
-                        selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
-                        control={show_remove ? (type) => handle_control(type, beatmap) : null}
-                        click={() => handle_click(beatmap, index)}
-                    />
-                </ContextMenu>
-            {:else}
-                <BeatmapCard
-                    {beatmap}
-                    {show_bpm}
-                    {show_star_rating}
-                    {show_status}
-                    {set}
-                    {center}
-                    {show_control}
-                    selected={$selected && (list.is_unique ? $selected.unique_id == beatmap.unique_id : $selected.md5 == beatmap.md5)}
-                    control={(type) => handle_control(type, beatmap)}
-                    click={() => handle_click(beatmap, index)}
-                />
-            {/if}
-        {/await}
+
+        <!-- render beatmap card -->
+        <BeatmapCard
+            selected={$selected}
+            {hash}
+            {show_bpm}
+            {show_star_rating}
+            {show_status}
+            {set}
+            {center}
+            {show_control}
+            {show_remove}
+            control={(type) => handle_control(type, hash)}
+            on_click={() => handle_click(hash, index)}
+            on_context={(e) => on_context(e, hash)}
+        />
     </VirtualList>
 </div>

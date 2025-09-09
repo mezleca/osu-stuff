@@ -43,6 +43,15 @@
     </div>
 
     <div class="content-sections">
+        {#if $is_dev_mode}
+            <section style="margin-top: 20px;">
+                <button on:click={() => (show_test = !show_test)}>toggle test</button>
+                {#if show_test}
+                    <TestContent />
+                {/if}
+            </section>
+        {/if}
+
         <section>
             <h2>authentication</h2>
             <p>
@@ -105,14 +114,6 @@
         <section>
             <h2>license</h2>
             <p>this project is licensed under the MIT License.</p>
-            {#if $is_dev_mode}
-                <section>
-                    <button on:click={() => (show_test = !show_test)}>toggle test</button>
-                    {#if show_test}
-                        <TestContent />
-                    {/if}
-                </section>
-            {/if}
         </section>
     </div>
 </div>
