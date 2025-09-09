@@ -3,6 +3,7 @@
     import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
     import { get_beatmap_data } from "../../../lib/utils/beatmaps";
+    import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
 
     // icons
@@ -17,7 +18,6 @@
 
     // components
     import ControlBar from "../basic/control-bar.svelte";
-    import { show_notification } from "../../../lib/store/notifications";
 
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
@@ -93,7 +93,7 @@
         if (next_idx != current_index) {
             const new_beatmap = await get_beatmap_data(beatmap_id);
             if (new_beatmap) {
-                radio_list.select_beatmap(new_beatmap, next_idx);
+                radio_list.select_beatmap(beatmap_id, next_idx);
             }
         }
 

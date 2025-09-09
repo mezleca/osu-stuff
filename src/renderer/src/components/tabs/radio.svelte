@@ -49,7 +49,6 @@
 
     // update selected map when hash changes
     $: if ($selected) {
-        console.log($selected);
         get_beatmap_data($selected).then((bm) => {
             selected_beatmap = bm;
             update_background_image();

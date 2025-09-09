@@ -145,7 +145,7 @@
         clearTimeout(leave_timeout);
         leave_timeout = setTimeout(() => {
             hide();
-        }, 200); // Simpler: just close after leaving
+        }, 200);
     };
 
     const handle_outside_click = (event) => {
@@ -186,7 +186,6 @@
 {/if}
 
 {#if is_visible}
-    <!-- @TODO: apply fade to other items -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         bind:this={menu_element}
