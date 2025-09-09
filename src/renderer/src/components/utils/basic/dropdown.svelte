@@ -1,4 +1,5 @@
 <script>
+    import { fade, slide } from "svelte/transition";
     import { convert_special_key } from "../../../lib/store/other";
 
     // props
@@ -46,7 +47,7 @@
         <div class="dropdown_arrow" class:active={is_open}></div>
     </button>
     {#if is_open}
-        <div class="dropdown_menu">
+        <div class="dropdown_menu" transition:slide={{ duration: 100 }}>
             {#each options as option}
                 <button class="dropdown_item" onclick={() => select_option(option)} type="button">
                     {option.label || convert_special_key(option)}
