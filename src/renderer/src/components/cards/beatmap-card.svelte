@@ -206,7 +206,8 @@
         border-color: var(--accent-color);
     }
 
-    .bg-img:not([src]), .bg-img[src=""] {
+    .bg-img:not([src]),
+    .bg-img[src=""] {
         opacity: 0;
     }
 

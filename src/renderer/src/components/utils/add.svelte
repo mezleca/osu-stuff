@@ -9,3 +9,27 @@
         <line x1="2" y1="5" x2="8" y2="5" stroke-width="1" />
     </svg>
 </button>
+
+<style>
+    .add-btn {
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        background: #ff4444;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 99;
+    }
+
+    .add-btn:hover {
+        background: #ff2424;
+        transform: scale(1.05);
+    }
+</style>

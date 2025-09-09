@@ -13,3 +13,15 @@
     <circle cx="11" cy="11" r="8"></circle>
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 </svg>
+
+<style>
+    .search-input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-input);
+        width: 18px;
+        height: 18px;
+    }
+</style>

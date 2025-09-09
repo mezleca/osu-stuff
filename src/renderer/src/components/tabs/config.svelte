@@ -186,3 +186,72 @@
         </div>
     </div>
 </div>
+
+<style>
+    .field-group {
+        margin-bottom: 24px;
+    }
+
+    .field-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .field-label {
+        display: block;
+        color: #ffffff;
+        margin-bottom: 5px;
+        font-size: 15px;
+        color: var(--text-primary);
+    }
+
+    .field-description {
+        color: #999999;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .field-description > a {
+        color: var(--accent-color);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .info-box {
+        padding: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .info-box-title {
+        color: var(--accent-color);
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+
+    .info-box-subtitle {
+        color: #cccccc;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .info-box-stats {
+        display: grid;
+        margin-top: 10px;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .config-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .config-content {
+            grid-template-columns: 50% 50%;
+        }
+    }
+</style>

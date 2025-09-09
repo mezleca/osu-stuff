@@ -268,3 +268,10 @@
         />
     </VirtualList>
 </div>
+
+<style>
+    .results-count {
+        color: var(--accent-color);
+        font-size: 13px;
+    }
+</style>
