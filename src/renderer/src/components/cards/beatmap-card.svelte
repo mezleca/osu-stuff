@@ -1,5 +1,6 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
+    import { onDestroy } from "svelte";
+    import { get_beatmap_data } from "../../lib/utils/beatmaps";
 
     // components
     import PreviewControl from "../utils/audio/preview-control.svelte";
@@ -8,39 +9,38 @@
     import HeartFill from "../icon/heart-fill.svelte";
     import PlayCircle from "../icon/play-circle.svelte";
 
-    // extra
-    import PlaceholderImg from "../../assets/placeholder.png";
-
-    export let selected = false,
-        beatmap = {},
+    export let selected = null,
+        hash = null,
         show_bpm = true,
         show_star_rating = true,
         show_status = true,
         center = false,
-        click = null,
+        on_click = null,
+        on_context = null,
         control = null,
         show_control = true,
         extra = null,
         set = false;
 
+    const LOAD_DELAY = 50;
+
+    let beatmap;
+    let load_timeout;
     let card_element;
     let image_element;
-    let is_visible = false;
+    let beatmap_loaded = false;
     let image_loaded = false;
-    let observer = null;
+    let image_src = null;
 
-    $: if (beatmap) {
-        get_image_source(beatmap, is_visible, set)
-            .then((i) => load_image(i))
-            .catch(() => {});
-    }
+    $: is_selected = beatmap ? selected == beatmap.md5 : false;
 
-    const get_image_source = async (beatmap, visible, is_set) => {
-        if (!beatmap || !visible) {
-            return PlaceholderImg;
+    const get_image_source = async () => {
+        if (!beatmap) {
+            console.log("failed to get image: beatmap is null");
+            return null;
         }
 
-        if (is_set && beatmap?.covers?.cover) {
+        if (set && beatmap?.covers?.cover) {
             return beatmap.covers.cover;
         }
 
@@ -55,119 +55,120 @@
             return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
         }
 
-        return PlaceholderImg;
+        return null;
     };
 
-    const load_image = (src) => {
-        if (!image_element || !src) {
-            return;
+    const load_beatmap = async () => {
+        try {
+            beatmap = await get_beatmap_data(hash);
+            image_src = await get_image_source();
+        } catch (err) {
+            console.error("failed to load beatmap:", hash, err);
+        } finally {
+            beatmap_loaded = true;
         }
+    };
 
-        // reset loading state when source changes
+    const handle_click = () => {
+        if (beatmap && on_click) on_click();
+    };
+
+    const handle_extra = () => {
+        if (beatmap && extra) extra(beatmap);
+    };
+
+    const handle_context = (e) => {
+        event.preventDefault();
+        if (beatmap && on_context) on_context(card_element, hash);
+    };
+
+    $: if (hash) {
+        // prevent svelte from reusing shit
+        beatmap = null;
+        image_src = null;
+        beatmap_loaded = false;
         image_loaded = false;
 
-        // preload the current image
-        const img = new Image();
-
-        img.onload = () => {
-            if (image_element && image_element.src != src) {
-                image_element.src = src;
-            }
-            image_loaded = true;
-        };
-
-        img.onerror = () => {
-            if (image_element && src != PlaceholderImg) {
-                image_element.src = PlaceholderImg;
-                image_loaded = true;
-            }
-        };
-
-        img.src = src;
-    };
-
-    onMount(() => {
-        observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (entry.isIntersecting && !is_visible) {
-                    is_visible = true;
-                }
-            },
-            { threshold: 0.1, rootMargin: "50px" }
-        );
-
-        if (card_element) {
-            observer.observe(card_element);
+        // clear old tiemout
+        if (load_timeout) {
+            clearTimeout(load_timeout);
         }
-    });
+
+        // load updated beatmap
+        load_timeout = setTimeout(load_beatmap, LOAD_DELAY);
+    }
 
     onDestroy(() => {
-        if (observer && card_element) {
-            observer.unobserve(card_element);
-        }
+        if (load_timeout) clearTimeout(load_timeout);
     });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-{#if set}
-    <div class="card-container">
-        <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
-            <img bind:this={image_element} class="bg-img" alt="" />
+<div class="card-container">
+    <div
+        class="small-card"
+        class:selected={is_selected}
+        class:loaded={image_loaded}
+        onclick={handle_click}
+        oncontextmenu={handle_context}
+        bind:this={card_element}
+    >
+        {#if beatmap_loaded}
+            <!-- render background image -->
+            <img
+                bind:this={image_element}
+                src={image_src}
+                loading="lazy"
+                onload={() => (image_loaded = true)}
+                onerror={() => (image_loaded = true)}
+                class="bg-img"
+                alt=""
+            />
+
+            <!-- render audio control -->
             {#if show_control}
                 <PreviewControl {beatmap} on_right={control} />
             {/if}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="set-info" onclick={extra} class:centered={center}>
+        {/if}
+        <!-- render set information -->
+        <div class={set ? "set-info" : "info"} onclick={handle_extra} class:centered={center}>
+            {#if !beatmap_loaded || !image_loaded}
+                <div class="title">loading...</div>
+            {:else}
                 <div class="title">{beatmap?.title ?? "unknown"}</div>
                 <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
                 <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
-                <div class="stats">
-                    <span class="stat">{beatmap.status}</span>
-                    <div class="right-stats">
-                        <div class="favorites">
-                            <HeartFill />
-                            <span>{beatmap.favourite_count}</span>
-                        </div>
-                        <div class="play-count">
-                            <PlayCircle />
-                            <span>{beatmap.play_count}</span>
+                {#if show_status}
+                    <div class="stats">
+                        <span class="stat">{beatmap[set ? "status" : "status_text"] ?? "unknown"}</span>
+                        <div class="right-stats">
+                            {#if set}
+                                <!-- render favorites / playcount on set -->
+                                <div class="favorites">
+                                    <HeartFill />
+                                    <span>{beatmap.favourite_count}</span>
+                                </div>
+                                <div class="play-count">
+                                    <PlayCircle />
+                                    <span>{beatmap.play_count}</span>
+                                </div>
+                            {:else}
+                                <!-- render bpm / star rating on normal card -->
+                                {#if show_bpm}
+                                    <span class="stars">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
+                                {/if}
+                                {#if show_star_rating}
+                                    <span class="stars">★ {beatmap?.star_rating?.[beatmap?.mode].nm ?? 0}</span>
+                                {/if}
+                            {/if}
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-{:else}
-    <div class="small-card" class:selected class:loaded={image_loaded} onclick={click} bind:this={card_element}>
-        <img bind:this={image_element} class="bg-img" alt="" />
-        {#if show_control}
-            <PreviewControl {beatmap} on_right={control} />
-        {/if}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="info" onclick={extra} class:centered={center}>
-            <div class="title">{beatmap?.title ?? "unknown"}</div>
-            <div class="subtitle">by {beatmap?.artist ?? "unknown"}</div>
-            <div class="mapper">mapped by {beatmap?.mapper ?? "unknown"}</div>
-            {#if show_status}
-                <div class="stats">
-                    <span class="stat">{beatmap?.status_text ?? "unknown"}</span>
-                    <div class="right-stats">
-                        {#if show_bpm}
-                            <span class="stars">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
-                        {/if}
-                        {#if show_star_rating}
-                            <span class="stars">★ {beatmap?.star_rating?.[beatmap?.mode].nm ?? 0}</span>
-                        {/if}
-                    </div>
-                </div>
+                {/if}
             {/if}
         </div>
     </div>
-{/if}
+</div>
 
 <style>
     .small-card {
@@ -196,14 +197,19 @@
         transition: opacity 0.3s ease-out;
         display: block;
         min-height: 100px;
-    }
-
-    .small-card.loaded .bg-img {
-        opacity: 1;
+        z-index: 1;
     }
 
     .selected {
         border-color: var(--accent-color);
+    }
+
+    .bg-img:not([src]) {
+        opacity: 0;
+    }
+
+    .small-card.loaded .bg-img {
+        opacity: 1;
     }
 
     .small-card::after {
@@ -250,8 +256,7 @@
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
     }
 
-    .small-card .artist,
-    .small-card .subtitle {
+    .small-card .artist {
         font-size: 13px;
         color: #fff;
         overflow: hidden;

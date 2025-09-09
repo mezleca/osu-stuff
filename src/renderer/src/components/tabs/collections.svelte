@@ -10,7 +10,6 @@
     import { convert_beatmap_keys, get_player_data } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
-    import { ContextMenu } from "wx-svelte-menu";
 
     // components
     import Add from "../utils/add.svelte";
@@ -22,6 +21,7 @@
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import RangeSlider from "../utils/basic/range-slider.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import ContextMenu from "../utils/context-menu.svelte";
 
     const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
     const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
@@ -125,11 +125,11 @@
     };
 
     const handle_context_menu = async (event) => {
-        if (!event.action) {
+        if (!event.detail) {
             return;
         }
 
-        const id_parts = event.action.id.split(context_separator);
+        const id_parts = event.detail.id.split(context_separator);
         const type = id_parts[0];
 
         switch (type) {

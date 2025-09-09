@@ -1,6 +1,7 @@
 <script>
     import { onMount, tick } from "svelte";
 
+    export let items = [];
     export let count = 0;
     export let item_height = 100;
     export let buffer = 6;
@@ -31,13 +32,13 @@
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
 
-    $: rows_per_screen = columns_mode ? Math.ceil(count / columns) : count > 10 ? count + extra : count;
+    $: rows_per_screen = columns_mode ? Math.ceil(count / Math.max(columns, 1)) : count > 10 ? count + extra : count;
     $: item_height_with_padding = item_height + padding;
     $: total_height = rows_per_screen * item_height_with_padding;
     $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
     $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
     $: end_index = Math.min(start_index + visible_count, rows_per_screen);
-    $: visible_items = end_index - start_index;
+    $: visible_items = Math.max(0, end_index - start_index);
     $: offset_y = start_index * item_height_with_padding;
 
     const lerp = (start, end, factor) => start + (end - start) * factor;
@@ -193,6 +194,10 @@
         return items;
     };
 
+    const get_element_id = (index) => {
+        return items[index] ?? index;
+    };
+
     const reset = () => {
         element_cache.clear();
         hovered_item = -1;
@@ -252,9 +257,10 @@
 >
     <div class="spacer" style="height: {total_height}px;"></div>
     <div class="viewport" style="transform: translateY({offset_y}px);">
-        {#each { length: visible_items } as _, i (start_index + i)}
-            <!-- only update on last item rendered -->
+        {#each Array(visible_items) as _, i (items[start_index + i] ?? start_index + i)}
             {@const actual_index = start_index + i}
+            {@const key = items[actual_index] ?? actual_index}
+            <!-- only update on last item rendered -->
             {#if columns_mode}
                 {@const row_index = start_index + i}
                 {@const column_items = get_column_items(row_index)}
@@ -267,7 +273,7 @@
                             {on_update(item_index)}
                         {/if}
                         <div
-                            id={crypto.randomUUID()}
+                            id={key}
                             class="item {direction} column-item"
                             style="height: {item_height_with_padding}px; width: 100%;"
                             on:mouseenter={() => handle_mouse_enter(item_index)}
@@ -284,7 +290,7 @@
                     {on_update(actual_index)}
                 {/if}
                 <div
-                    id={crypto.randomUUID()}
+                    id={key}
                     class="item {direction}"
                     class:carousel-effect={carousel_enabled}
                     style="width: {max_width

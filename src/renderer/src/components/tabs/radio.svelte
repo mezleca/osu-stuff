@@ -14,25 +14,24 @@
     import Beatmaps from "../beatmaps.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
 
-    // misc
-    import PlaceholderImg from "../../assets/placeholder.png";
-
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
 
     const { selected, query, sort } = list;
 
+    $: selected_beatmap = null;
     $: all_collections = collections.all_collections;
     $: selected_collection = collections.selected_radio;
     $: previous_songs = audio.previous_random_songs;
     $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
-    $: bg = PlaceholderImg;
+    $: bg = "";
 
-    const update_background_image = () => {
-        if ($selected && $selected?.image_path) {
-            get_image_url($selected.image_path).then((url) => (bg = url));
+    const update_background_image = async () => {
+        if (selected_beatmap?.image_path) {
+            const url = await get_image_url(selected_beatmap.image_path);
+            bg = `url(${url})`;
         } else {
-            bg = PlaceholderImg;
+            bg = "";
         }
     };
 
@@ -48,9 +47,16 @@
         }
     };
 
-    // update radio bg on beatmap change
+    // update selected map when hash changes
     $: if ($selected) {
-        update_background_image();
+        console.log($selected);
+        get_beatmap_data($selected).then((bm) => {
+            selected_beatmap = bm;
+            update_background_image();
+        });
+    } else {
+        selected_beatmap = null;
+        bg = "";
     }
 
     // update beatmap list
@@ -91,7 +97,7 @@
 </script>
 
 <div class="content tab-content">
-    <div class="radio-container" style="--radio-bg: url({bg});">
+    <div class="radio-container" style="--radio-bg: {bg};">
         <div class="sidebar">
             <div class="sidebar-header">
                 <Search bind:value={$query} placeholder="search beatmaps" />
@@ -101,8 +107,10 @@
                 </div>
             </div>
             <Beatmaps
-                tab_id={"radio"}
                 {selected_collection}
+                selected={$selected}
+                unique={list.is_unique}
+                tab_id={"radio"}
                 show_invalid={false}
                 key={$selected_collection.name}
                 show_bpm={false}
@@ -116,34 +124,34 @@
         </div>
 
         <div class="radio-data">
-            <div class="radio-beatmap">
+            <div class="radio-beatmap" class:no-bg={!bg}>
                 <div class="radio-beatmap-header">
                     <div class="status">playing</div>
-                    <div class="status">{$selected?.status_text ?? "unknown"}</div>
+                    <div class="status">{selected_beatmap?.status_text ?? "unknown"}</div>
                 </div>
 
                 <div class="song-info">
-                    <div class="title">{$selected?.title || "No song selected"}</div>
-                    <div class="artist">{$selected?.artist || ""}</div>
+                    <div class="title">{selected_beatmap?.title || "No song selected"}</div>
+                    <div class="artist">{selected_beatmap?.artist || ""}</div>
                 </div>
 
                 <div class="stats">
                     <div class="stat">
                         <div class="stat-label">BPM</div>
-                        <div class="stat-value">{$selected?.bpm || "---"}</div>
+                        <div class="stat-value">{selected_beatmap?.bpm || "---"}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">DURATION</div>
-                        <div class="stat-value">{$selected?.duration ? format_time($selected?.duration) : "---"}</div>
+                        <div class="stat-value">{selected_beatmap?.duration ? format_time(selected_beatmap?.duration) : "---"}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">MAPPED BY</div>
-                        <div class="stat-value">{$selected?.mapper || "---"}</div>
+                        <div class="stat-value">{selected_beatmap?.mapper || "---"}</div>
                     </div>
                 </div>
 
                 <div class="radio-controls">
-                    {#if $selected?.md5}
+                    {#if selected_beatmap?.md5}
                         <RadioControl />
                     {/if}
                 </div>
@@ -158,6 +166,7 @@
         height: 100%;
         overflow: hidden;
         display: flex;
+        --radio-bg: none;
     }
 
     .sidebar {
@@ -200,13 +209,20 @@
         position: absolute;
         inset: 0;
         z-index: -1;
-        background-image: var(--radio-bg);
+        background: var(--radio-bg, linear-gradient(90deg, rgba(23, 50, 82, 1) 0%, rgba(74, 19, 89, 1) 100%));
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         opacity: 1;
         filter: brightness(0.05);
-        transition: all 0.3s;
+        transition:
+            background-image 0.3s ease,
+            opacity 0.3s ease;
+    }
+
+    .radio-beatmap.no-bg::before {
+        background: linear-gradient(90deg, rgba(23, 50, 82, 1) 0%, rgba(74, 19, 89, 1) 100%);
+        background-image: none;
     }
 
     .radio-beatmap-header {
