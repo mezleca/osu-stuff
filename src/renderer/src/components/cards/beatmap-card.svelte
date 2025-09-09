@@ -32,7 +32,7 @@
     let image_loaded = false;
     let image_src = null;
 
-    $: is_selected = beatmap ? selected == beatmap.md5 : false;
+    $: is_selected = beatmap && selected ? selected == beatmap.md5 : false;
 
     const get_image_source = async () => {
         if (!beatmap) {

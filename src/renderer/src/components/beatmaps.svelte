@@ -111,13 +111,15 @@
     };
 
     const handle_context_menu = async (event) => {
-        // use the stored beatmap hash
-        if (!current_beatmap_hash) {
+        if (!current_beatmap_hash || !show_context) {
             return;
         }
 
+        // use the stored beatmap hash
         const beatmap = await get_beatmap_data(current_beatmap_hash);
-        const action = event.detail; // get action from detail
+
+        // get action from detail
+        const action = event.detail; 
         const id_parts = action.id.split("-");
         const type = id_parts[0];
 
@@ -143,12 +145,13 @@
     };
 
     const get_context_options = async () => {
-        // use the stored beatmap hash
-        if (!current_beatmap_hash) {
+        if (!current_beatmap_hash || !show_context) {
             return [];
         }
 
+        // use the stored beatmap hash
         const beatmap = await get_beatmap_data(current_beatmap_hash);
+
         if (!beatmap) {
             return [];
         }
@@ -225,7 +228,10 @@
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
     </div>
 
-    <ContextMenu bind:this={context_menu} onclick={handle_context_menu} options={get_context_options} />
+    <!-- render context menu -->
+    {#if show_context}
+        <ContextMenu bind:this={context_menu} onclick={handle_context_menu} options={get_context_options} />
+    {/if}
 
     <!-- render beatmaps virtual list-->
     <VirtualList

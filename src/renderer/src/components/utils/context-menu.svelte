@@ -215,6 +215,7 @@
         min-width: 120px;
         font-size: 0.8em;
         transform: translateZ(0);
+        z-index: 99999;
     }
 
     .menu-item {
@@ -253,6 +254,6 @@
         border-radius: 6px;
         padding: 4px 0;
         min-width: 150px;
-        z-index: 10000;
+        z-index: 99999;
     }
 </style>
