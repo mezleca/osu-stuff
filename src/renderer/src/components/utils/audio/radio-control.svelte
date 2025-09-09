@@ -91,10 +91,7 @@
 
         // update selection (if changed)
         if (next_idx != current_index) {
-            const new_beatmap = await get_beatmap_data(beatmap_id);
-            if (new_beatmap) {
-                radio_list.select_beatmap(beatmap_id, next_idx);
-            }
+            radio_list.select_beatmap(beatmap_id, next_idx);
         }
 
         return beatmap_id;

@@ -79,7 +79,7 @@
             list.remove_selected();
         }
 
-        remove_callback();
+        remove_callback(hash);
     };
 
     const move_to = (name, hash) => {

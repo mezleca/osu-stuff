@@ -35,16 +35,18 @@
         }
     };
 
-    const update_beatmaps = async () => {
+    const update_beatmaps = async (removed) => {
         // hide remove beatmap option if we're showing all beatmaps
         list.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
 
-        const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort });
+        const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort, force: !!removed });
 
-        if (beatmaps) {
-            list.set_beatmaps(beatmaps, $selected_collection, true);
-            list.update_list_id($selected_collection.name);
+        if (!beatmaps) {
+            return;
         }
+
+        list.set_beatmaps(beatmaps, $selected_collection, true);
+        list.update_list_id($selected_collection.name);
     };
 
     // update selected map when hash changes
@@ -56,6 +58,7 @@
     } else {
         selected_beatmap = null;
         bg = "";
+        audio.clean_audio();
     }
 
     // update beatmap list
@@ -64,6 +67,11 @@
     }
 
     onMount(() => {
+        // always reset state if no beatmaps are selected
+        if (!selected_beatmap) {
+            audio.clean_audio();
+        }
+
         // default selected "collection" to all beatmaps
         if ($selected_collection.name == "") collections.select(ALL_BEATMAPS_KEY, true);
 
@@ -81,8 +89,7 @@
                 return;
             }
 
-            const beatmap = await get_beatmap_data(data.hash);
-            list.select_beatmap(beatmap, data.index);
+            list.select_beatmap(data.hash, data.index);
             $previous_songs.pop();
         });
 
