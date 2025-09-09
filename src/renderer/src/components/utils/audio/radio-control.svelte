@@ -161,7 +161,7 @@
         });
 
         // restore volume from config
-        if (saved_volume != undefined) {
+        if (saved_volume != null) {
             audio_manager.set_volume(saved_volume);
         }
     });
