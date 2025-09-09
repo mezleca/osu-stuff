@@ -78,7 +78,7 @@
     };
 
     const handle_context = (e) => {
-        event.preventDefault();
+        e?.preventDefault();
         if (beatmap && on_context) on_context(card_element, hash);
     };
 
