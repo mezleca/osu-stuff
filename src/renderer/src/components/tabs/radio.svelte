@@ -187,7 +187,6 @@
         overflow: hidden;
         padding: 20px;
         background-color: rgba(18, 18, 18, 0.95);
-        z-index: 1;
     }
 
     .radio-beatmap {

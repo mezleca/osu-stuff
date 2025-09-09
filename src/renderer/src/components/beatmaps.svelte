@@ -119,7 +119,7 @@
         const beatmap = await get_beatmap_data(current_beatmap_hash);
 
         // get action from detail
-        const action = event.detail; 
+        const action = event.detail;
         const id_parts = action.id.split("-");
         const type = id_parts[0];
 

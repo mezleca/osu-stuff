@@ -1,19 +1,23 @@
 <script>
-    import { onMount, onDestroy, tick } from "svelte";
+    import { onMount, tick } from "svelte";
+    import { fade } from "svelte/transition";
     import { mouse_position } from "../../lib/utils/utils";
+
+    import MenuItem from "./menu-item.svelte";
 
     export let options = [];
     export let onclick = () => {};
     export let at = "point";
 
-    $: is_visible = false;
-
+    let is_visible = false;
     let menu_element;
     let position = { x: 0, y: 0 };
-    let active_submenu = null;
-    let hover_timeout;
     let current_target = null;
     let resolved_options = [];
+    let active_path = [];
+    let leave_timeout;
+    let last_menu = null;
+    let mouse_entered_menu = false;
 
     export const show = async (target_or_event) => {
         if (typeof options == "function") {
@@ -30,16 +34,26 @@
         }
 
         position = get_position(current_target);
-
         is_visible = true;
+        active_path = [];
+        mouse_entered_menu = false;
+
         await tick();
         adjust_position();
+
+        // auto close if we're not hovering
+        setTimeout(() => {
+            if (is_visible && !mouse_entered_menu) {
+                hide();
+            }
+        }, 2000);
     };
 
     export const hide = () => {
         is_visible = false;
-        active_submenu = null;
-        clearTimeout(hover_timeout);
+        active_path = [];
+        mouse_entered_menu = false;
+        clearTimeout(leave_timeout);
     };
 
     const get_position = (element) => {
@@ -93,11 +107,6 @@
         if (adjusted_y < PADDING) {
             adjusted_y = PADDING;
         }
-
-        // only update position if it actually changed
-        if (position.x != adjusted_x || position.y != adjusted_y) {
-            position = { x: adjusted_x, y: adjusted_y };
-        }
     };
 
     const handle_item_click = (item, event) => {
@@ -112,23 +121,31 @@
         onclick({ detail: item });
     };
 
-    const handle_item_hover = (item) => {
-        clearTimeout(hover_timeout);
-
-        if (item.data && Array.isArray(item.data)) {
-            hover_timeout = setTimeout(() => {
-                active_submenu = item.id;
-            }, 100);
-        } else {
-            active_submenu = null;
-        }
+    const handle_submenu_enter = (item, depth) => {
+        clearTimeout(leave_timeout);
+        mouse_entered_menu = true;
+        active_path = [...active_path.slice(0, depth), item];
+        last_menu = item;
     };
 
-    const handle_item_leave = () => {
-        clearTimeout(hover_timeout);
-        hover_timeout = setTimeout(() => {
-            active_submenu = null;
+    const handle_submenu_leave = (depth) => {
+        clearTimeout(leave_timeout);
+        leave_timeout = setTimeout(() => {
+            active_path = active_path.slice(0, depth);
+            last_menu = null;
         }, 150);
+    };
+
+    const handle_menu_enter = () => {
+        clearTimeout(leave_timeout);
+        mouse_entered_menu = true;
+    };
+
+    const handle_menu_leave = () => {
+        clearTimeout(leave_timeout);
+        leave_timeout = setTimeout(() => {
+            hide();
+        }, 200); // Simpler: just close after leaving
     };
 
     const handle_outside_click = (event) => {
@@ -152,14 +169,12 @@
         document.addEventListener("click", handle_outside_click);
         document.addEventListener("keydown", handle_keydown);
 
+        // on destroy
         return () => {
             document.removeEventListener("click", handle_outside_click);
             document.removeEventListener("keydown", handle_keydown);
+            clearTimeout(leave_timeout);
         };
-    });
-
-    onDestroy(() => {
-        clearTimeout(hover_timeout);
     });
 </script>
 
@@ -170,35 +185,26 @@
     </div>
 {/if}
 
-<!-- context menu -->
 {#if is_visible}
-    <div bind:this={menu_element} class="context-menu" style="left: {position.x}px; top: {position.y}px;">
+    <!-- @TODO: apply fade to other items -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        bind:this={menu_element}
+        class="context-menu"
+        style="left: {position.x}px; top: {position.y}px;"
+        onmouseenter={handle_menu_enter}
+        onmouseleave={handle_menu_leave}
+        transition:fade={{ delay: 0, duration: 100 }}
+    >
         {#each resolved_options as item}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-                class="menu-item"
-                class:has-submenu={item.data && Array.isArray(item.data)}
-                onclick={(e) => handle_item_click(item, e)}
-                onmouseenter={() => handle_item_hover(item)}
-                onmouseleave={handle_item_leave}
-            >
-                <span>{item.text}</span>
-                {#if item.data && Array.isArray(item.data)}
-                    <span class="arrow">▶</span>
-                {/if}
-
-                <!-- submenu -->
-                {#if item.data && Array.isArray(item.data) && active_submenu == item.id}
-                    <div class="submenu">
-                        {#each item.data as sub_item}
-                            <div class="menu-item" onclick={(e) => handle_item_click(sub_item, e)}>
-                                {sub_item.text}
-                            </div>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
+            <MenuItem
+                {item}
+                {active_path}
+                depth={0}
+                onclick={handle_item_click}
+                on_submenu_enter={handle_submenu_enter}
+                on_submenu_leave={handle_submenu_leave}
+            />
         {/each}
     </div>
 {/if}
@@ -211,49 +217,9 @@
         border-radius: 6px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         padding: 4px 0;
-        z-index: 9999;
+        z-index: 99999;
         min-width: 120px;
         font-size: 0.8em;
         transform: translateZ(0);
-        z-index: 99999;
-    }
-
-    .menu-item {
-        position: relative;
-        padding: 8px 12px;
-        cursor: pointer;
-        user-select: none;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        transition: background-color 0.1s ease;
-    }
-
-    .menu-item:hover {
-        background-color: var(--bg-secondary);
-    }
-
-    .menu-item.has-submenu {
-        padding-right: 24px;
-    }
-
-    .arrow {
-        position: absolute;
-        right: 8px;
-        font-size: 8px;
-        color: #666;
-    }
-
-    .submenu {
-        position: absolute;
-        left: calc(100% + 2px);
-        top: -4px;
-        background: var(--bg-primary);
-        border: 1px solid #2e2e2e;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border-radius: 6px;
-        padding: 4px 0;
-        min-width: 150px;
-        z-index: 99999;
     }
 </style>

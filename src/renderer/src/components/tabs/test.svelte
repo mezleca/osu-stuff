@@ -6,9 +6,32 @@
 
     // components
     import Popup from "../utils/popup/popup.svelte";
+    import ContextMenu from "../utils/context-menu.svelte";
 
     const popup_manager = get_popup_manager("index");
     const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
+
+    const generate_nested_array = (depth, current = 1) => {
+        const get_id = () => Math.random().toString(36).substring(2, 8);
+        const make_text = (id) => `Item ${id}`;
+
+        const items = Array.from({ length: 3 }, (_, i) => {
+            const obj = {
+                id: get_id(),
+                text: make_text(i + 1)
+            };
+
+            if (i == 2 && current < depth) {
+                obj.data = generate_nested_array(depth, current + 1);
+            }
+
+            return obj;
+        });
+
+        return items;
+    };
+
+    const random_options = generate_nested_array(5);
 
     function get_random_shit(max = 5) {
         const items = ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo", "fred", "plugh", "xyzzy", "thud"];
@@ -78,6 +101,9 @@
     <button onclick={() => show_popup("test", "index")}>open popup addon</button>
     <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
     <button onclick={() => show_yes_no_addon()}>open yes/no confirmation addon</button>
+    <ContextMenu options={random_options} onclick={(e) => console.log(e)}>
+        <button>open context menu</button>
+    </ContextMenu>
     <Popup key={"index"} />
 </div>
 
