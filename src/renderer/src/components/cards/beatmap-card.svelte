@@ -5,6 +5,9 @@
     // components
     import PreviewControl from "../utils/audio/preview-control.svelte";
 
+    // fallback bg image
+    import FallbackImage from "../../assets/images/fallback.png";
+
     // icons
     import HeartFill from "../icon/heart-fill.svelte";
     import PlayCircle from "../icon/play-circle.svelte";
@@ -30,14 +33,14 @@
     let image_element;
     let beatmap_loaded = false;
     let image_loaded = false;
-    let image_src = null;
+    let image_src = FallbackImage;
 
     $: is_selected = beatmap && selected ? selected == beatmap.md5 : false;
 
     const get_image_source = async () => {
         if (!beatmap) {
             console.log("failed to get image: beatmap is null");
-            return null;
+            return FallbackImage;
         }
 
         if (set && beatmap?.covers?.cover) {
@@ -55,7 +58,7 @@
             return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
         }
 
-        return null;
+        return FallbackImage;
     };
 
     const load_beatmap = async () => {
@@ -85,7 +88,6 @@
     $: if (hash) {
         // prevent svelte from reusing shit
         beatmap = null;
-        image_src = null;
         beatmap_loaded = false;
         image_loaded = false;
 
@@ -114,18 +116,17 @@
         oncontextmenu={handle_context}
         bind:this={card_element}
     >
-        {#if beatmap_loaded}
-            <!-- render background image -->
-            <img
-                bind:this={image_element}
-                src={image_src}
-                loading="lazy"
-                onload={() => (image_loaded = true)}
-                onerror={() => (image_loaded = true)}
-                class="bg-img"
-                alt=""
-            />
+        <!-- render background image -->
+        <img
+            bind:this={image_element}
+            src={image_src}
+            onload={() => (image_loaded = true)}
+            onerror={() => (image_loaded = true)}
+            class="bg-img"
+            alt=""
+        />
 
+        {#if beatmap_loaded}
             <!-- render audio control -->
             {#if show_control}
                 <PreviewControl {beatmap} on_right={control} />
@@ -133,9 +134,7 @@
         {/if}
         <!-- render set information -->
         <div class={set ? "set-info" : "info"} onclick={handle_extra} class:centered={center}>
-            {#if !beatmap_loaded || !image_loaded}
-                <div class="title">loading...</div>
-            {:else}
+            {#if beatmap_loaded}
                 <div class="title">{beatmap?.title ?? "unknown"}</div>
                 <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
                 <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
