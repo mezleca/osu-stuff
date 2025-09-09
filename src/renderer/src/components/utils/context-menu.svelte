@@ -19,12 +19,20 @@
     let last_menu = null;
     let mouse_entered_menu = false;
 
-    export const show = async (target_or_event) => {
-        if (typeof options == "function") {
-            resolved_options = await options();
-        } else {
-            resolved_options = options;
+    const resolve_options = async (options) => {
+        try {
+            if (typeof options == "function") {
+                return await options();
+            } else {
+                return options;
+            }
+        } catch (err) {
+            return [{ id: "error", text: "failed to load options" }];
         }
+    };
+
+    export const show = async (target_or_event) => {
+        resolved_options = await resolve_options(options);
 
         // determine position based on target type
         if (target_or_event instanceof MouseEvent) {
