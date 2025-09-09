@@ -121,7 +121,10 @@
             bind:this={image_element}
             src={image_src}
             onload={() => (image_loaded = true)}
-            onerror={() => (image_loaded = true)}
+            onerror={() => {
+                image_loaded = true;
+                image_element.src = FallbackImage;
+            }}
             class="bg-img"
             alt=""
         />
@@ -203,7 +206,7 @@
         border-color: var(--accent-color);
     }
 
-    .bg-img:not([src]) {
+    .bg-img:not([src]), .bg-img[src=""] {
         opacity: 0;
     }
 
