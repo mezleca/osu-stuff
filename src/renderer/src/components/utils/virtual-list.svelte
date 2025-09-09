@@ -24,6 +24,7 @@
     let last_hovered_item = -1;
     let padding = 10;
     let scroll_timeout = null;
+    let scroll_to_timeout = null;
     let is_scrolling = false;
 
     // cache for element styles to avoid redundant updates
@@ -55,7 +56,7 @@
     };
 
     const update_carousel_effect = () => {
-        if (!carousel_enabled || !container || is_scrolling) {
+        if (!carousel_enabled || !container) {
             return;
         }
 
@@ -130,7 +131,25 @@
 
     const handle_scroll = (e) => {
         scroll_top = e.target.scrollTop;
-        if (carousel_enabled) carousel_update();
+
+        // clear existing timeout and set scroll state
+        if (scroll_timeout) {
+            clearTimeout(scroll_timeout);
+        }
+
+        is_scrolling = true;
+
+        scroll_timeout = setTimeout(() => {
+            is_scrolling = false;
+            if (carousel_enabled) {
+                carousel_update();
+            }
+        }, 20);
+
+        // update carousel effect
+        if (carousel_enabled) {
+            carousel_update();
+        }
     };
 
     const handle_mouse_enter = (index) => {
@@ -164,6 +183,11 @@
             return;
         }
 
+        // clear any pending scroll_to operations
+        if (scroll_to_timeout) {
+            clearTimeout(scroll_to_timeout);
+        }
+
         await tick();
 
         if (!container) {
@@ -175,11 +199,23 @@
             : index * item_height_with_padding - container_height / 2 + item_height_with_padding / 2;
 
         const distance = Math.abs(scroll_top - target_scroll);
+        const behavior = distance > 2000 ? "instant" : "smooth";
+
+        is_scrolling = true;
 
         container.scrollTo({
             top: Math.max(0, target_scroll),
-            behavior: distance > 2000 ? "instant" : "smooth"
+            behavior
         });
+
+        const scroll_duration = behavior == "instant" ? 50 : Math.min(distance * 0.5, 500);
+
+        scroll_to_timeout = setTimeout(() => {
+            is_scrolling = false;
+            if (carousel_enabled) {
+                carousel_update();
+            }
+        }, scroll_duration);
     };
 
     const get_column_items = (row_index) => {
@@ -194,10 +230,6 @@
         return items;
     };
 
-    const get_element_id = (index) => {
-        return items[index] ?? index;
-    };
-
     const reset = () => {
         element_cache.clear();
         hovered_item = -1;
@@ -209,7 +241,7 @@
     }
 
     // update carrousel on scroll update
-    $: if (carousel_enabled && container && visible_items > 0 && !is_scrolling) {
+    $: if (carousel_enabled && container && visible_items > 0) {
         carousel_update();
     }
 
@@ -239,6 +271,10 @@
 
             if (scroll_timeout) {
                 clearTimeout(scroll_timeout);
+            }
+
+            if (scroll_to_timeout) {
+                clearTimeout(scroll_to_timeout);
             }
         };
     });

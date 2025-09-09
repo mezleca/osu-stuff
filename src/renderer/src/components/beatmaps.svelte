@@ -40,7 +40,6 @@
 
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
-    $: selected_index = $beatmaps && $selected ? $beatmaps.findIndex((hash) => hash == $selected.md5) : -1;
 
     const handle_control = async (type, hash) => {
         if (type == "add") {
@@ -70,8 +69,14 @@
     };
 
     const remove_beatmap = (hash) => {
+        // remove from the collection :+1:
         if ($selected_collection.name != "" && tab_id) {
             collections.remove_beatmap($selected_collection.name, hash);
+        }
+
+        // if the map has previously selected, deselect
+        if ($selected == hash) {
+            list.remove_selected();
         }
 
         remove_callback();
@@ -187,14 +192,7 @@
         }
 
         const hash = $beatmaps[new_index];
-        const new_beatmap = await get_beatmap_data(hash);
-
-        if (!new_beatmap) {
-            console.log("failed to get beatmap:", hash, new_index);
-            return;
-        }
-
-        list.select_beatmap(new_beatmap, new_index);
+        list.select_beatmap(hash, new_index);
     };
 
     const on_context = async (event, hash) => {
@@ -241,7 +239,7 @@
         width="100%"
         height="100%"
         item_height={height}
-        selected={selected_index}
+        selected={$index}
         {max_width}
         {carousel}
         {tab_id}
