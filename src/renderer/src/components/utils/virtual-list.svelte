@@ -29,11 +29,11 @@
 
     let scroll_animation_id = null;
     let scroll_start_time = null;
-    let scroll_animation_duration = 10;
+    let scroll_animation_duration = 250;
     let start_scroll = 0;
 
-    // cache for element styles to avoid redundant updates
-    let element_cache = new Map();
+    // cache for element styles
+    let element_cache = new WeakMap();
 
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
@@ -60,9 +60,9 @@
         HOVER_MARGIN: 8
     };
 
-    const ease_out = (t, d) => {
-        t /= d; // normalize
-        return t * t * (3.0 - 2.0 * t);
+    const ease_out = (e, d) => {
+        const t = e / d;
+        return 1 - Math.pow(1 - t, 3);
     };
 
     const update_carousel_effect = () => {
@@ -201,10 +201,9 @@
         }
 
         const elapsed = currentTime - scroll_start_time;
-        const duration = scroll_animation_duration;
 
-        if (elapsed < duration) {
-            const t = ease_out(elapsed, duration);
+        if (elapsed < scroll_animation_duration) {
+            const t = ease_out(elapsed, scroll_animation_duration);
             const new_scroll = lerp(start_scroll, target_scroll, t);
             container.scrollTop = new_scroll;
             scroll_animation_id = requestAnimationFrame(animate_scroll);
@@ -223,10 +222,7 @@
         }
 
         // cancel existing animation
-        if (scroll_animation_id) {
-            cancelAnimationFrame(scroll_animation_id);
-            scroll_animation_id = null;
-        }
+        clear_scroll_animation();
 
         // calculate target
         target_scroll = columns_mode
@@ -261,7 +257,7 @@
     };
 
     const reset = () => {
-        element_cache.clear();
+        element_cache = new WeakMap();
         hovered_item = -1;
     };
 
@@ -370,6 +366,8 @@
         width: 100%;
         overflow-y: auto;
         overflow-x: hidden;
+        scroll-behavior: auto;
+        overscroll-behavior: contain;
     }
 
     .spacer {
@@ -387,11 +385,14 @@
         right: 0;
         will-change: transform;
         width: 100%;
+        contain: layout style paint;
+        transform: translateZ(0);
     }
 
     .item {
         cursor: pointer;
         contain: layout style paint;
+        will-change: contents;
     }
 
     .row-container {

@@ -25,15 +25,14 @@
         extra = null,
         set = false;
 
-    const LOAD_DELAY = 50;
+    const LOAD_DELAY = 30;
 
     let beatmap;
     let load_timeout;
     let card_element;
-    let image_element;
     let beatmap_loaded = false;
     let image_loaded = false;
-    let image_src = FallbackImage;
+    let image_src = "";
 
     $: is_selected = beatmap && selected ? selected == beatmap.md5 : false;
 
@@ -63,7 +62,10 @@
 
     const load_beatmap = async () => {
         try {
+            // get cached beatmap
             beatmap = await get_beatmap_data(hash);
+
+            // update beatmap image
             image_src = await get_image_source();
         } catch (err) {
             console.error("failed to load beatmap:", hash, err);
@@ -107,7 +109,9 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="card-container">
+{#if !beatmap_loaded}
+    <div style="height: 100px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
+{:else}
     <div
         class="small-card"
         class:selected={is_selected}
@@ -117,60 +121,47 @@
         bind:this={card_element}
     >
         <!-- render background image -->
-        <img
-            bind:this={image_element}
-            src={image_src}
-            onload={() => (image_loaded = true)}
-            onerror={() => {
-                image_loaded = true;
-                image_element.src = FallbackImage;
-            }}
-            class="bg-img"
-            alt=""
-        />
+        <img src={image_src} loading="lazy" onload={() => (image_loaded = true)} onerror={() => (image_loaded = true)} class="bg-img" alt="" />
 
-        {#if beatmap_loaded}
-            <!-- render audio control -->
-            {#if show_control}
-                <PreviewControl {beatmap} on_right={control} />
-            {/if}
+        <!-- render audio control -->
+        {#if show_control}
+            <PreviewControl {beatmap} on_right={control} />
         {/if}
+
         <!-- render set information -->
         <div class={set ? "set-info" : "info"} onclick={handle_extra} class:centered={center}>
-            {#if beatmap_loaded}
-                <div class="title">{beatmap?.title ?? "unknown"}</div>
-                <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
-                <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
-                {#if show_status}
-                    <div class="stats">
-                        <span class="stat">{beatmap[set ? "status" : "status_text"] ?? "unknown"}</span>
-                        <div class="right-stats">
-                            {#if set}
-                                <!-- render favorites / playcount on set -->
-                                <div class="favorites">
-                                    <HeartFill />
-                                    <span>{beatmap.favourite_count}</span>
-                                </div>
-                                <div class="play-count">
-                                    <PlayCircle />
-                                    <span>{beatmap.play_count}</span>
-                                </div>
-                            {:else}
-                                <!-- render bpm / star rating on normal card -->
-                                {#if show_bpm}
-                                    <span class="stars">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
-                                {/if}
-                                {#if show_star_rating}
-                                    <span class="stars">★ {beatmap?.star_rating?.[beatmap?.mode].nm ?? 0}</span>
-                                {/if}
+            <div class="title">{beatmap?.title ?? "unknown"}</div>
+            <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
+            <div class="mapper">mapped by {beatmap.creator ?? "unknown"}</div>
+            {#if show_status}
+                <div class="stats">
+                    <span class="stat">{beatmap[set ? "status" : "status_text"] ?? "unknown"}</span>
+                    <div class="right-stats">
+                        {#if set}
+                            <!-- render favorites / playcount on set -->
+                            <div class="favorites">
+                                <HeartFill />
+                                <span>{beatmap.favourite_count}</span>
+                            </div>
+                            <div class="play-count">
+                                <PlayCircle />
+                                <span>{beatmap.play_count}</span>
+                            </div>
+                        {:else}
+                            <!-- render bpm / star rating on normal card -->
+                            {#if show_bpm}
+                                <span class="stars">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
                             {/if}
-                        </div>
+                            {#if show_star_rating}
+                                <span class="stars">★ {beatmap?.star_rating?.[beatmap?.mode].nm ?? 0}</span>
+                            {/if}
+                        {/if}
                     </div>
-                {/if}
+                </div>
             {/if}
         </div>
     </div>
-</div>
+{/if}
 
 <style>
     .small-card {
@@ -223,10 +214,6 @@
         pointer-events: none;
         background: rgba(17, 20, 31, 0.65);
         transition: background 0.15s ease;
-    }
-
-    .small-card:hover::after {
-        background: rgba(17, 20, 31, 0.45);
     }
 
     .small-card .info,
