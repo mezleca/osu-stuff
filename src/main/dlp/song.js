@@ -42,45 +42,52 @@ export class SongDownloader {
             "-x",
             "--audio-format",
             "mp3",
-            "-N",
-            "6",
             "--http-chunk-size",
             "10M",
-            "--paths",
-            `temp:${this.temp_location}`,
-            "--paths",
-            `home:${this.downloaded_location}`,
+            "--external-downloader",
+            "aria2c",
+            "-P",
+            this.downloaded_location,
+            "-o",
+            "%(title)s.%(ext)s",
             url
         ];
+
+        console.log("dlp: using args:", download_args.join(" "));
 
         const result = await this.dlp.exec(download_args);
 
         if (!result || result.code != 0) {
+            console.log("dlp: failed to exec:", result);
             return false;
         }
 
-        // get file location from stdout
-        const lines = result.stdout
-            .split("\n")
-            .map((l) => l.trim())
-            .filter((l) => l);
-        const move_line = lines.find((l) => l.includes("[MoveFiles]"));
+        const info_args = ["--print", "title=%(title)s\ncreator=%(uploader)s\nthumb=%(thumbnail)s", url];
 
-        if (!move_line) {
+        const info_result = await this.dlp.exec(info_args);
+
+        if (!info_result || info_result.code != 0) {
             return false;
         }
 
-        // Use a regular expression to robustly extract the file path from the [MoveFiles] line
-        const moveFilesRegex = /\[MoveFiles\].* to (["']?)(.+?)\1$/;
-        const match = move_line.match(moveFilesRegex);
-        const audio_location = match ? match[2] : null;
+        // get metadata from result
+        const data = info_result.stdout.split("\n");
+        const metadata = new Map(
+            data
+                .map((line) => line.trim())
+                .filter((line) => line.includes("="))
+                .map((line) => {
+                    let [key, ...rest] = line.split("=");
+                    let value = rest.join("=");
+                    return [key.trim(), value.trim()];
+                })
+        );
 
-        if (!audio_location) {
-            return false;
-        }
+        // @TODO: consider custom extension later
+        const file_location = path.resolve(this.downloaded_location, `${metadata.get("title")}.mp3`);
+        metadata.set("location", file_location);
 
-        const audio_name = path.basename(audio_location);
-        return { name: audio_name, location: audio_location };
+        return metadata;
     }
 }
 

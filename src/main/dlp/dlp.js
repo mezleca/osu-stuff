@@ -173,7 +173,8 @@ export class YTdlp {
         }
 
         // build base args with common configurations
-        const base_args = [];
+        // @TODO: disable verbose on prod
+        const base_args = ["--verbose"];
 
         // add custom ffmpeg PATH on windows
         if (is_windows) {

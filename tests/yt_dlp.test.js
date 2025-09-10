@@ -85,19 +85,24 @@ describe("song downloader", () => {
             // check if result is not false/null
             expect(result).not.toBe(false);
             expect(result).not.toBe(null);
-            expect(result).toBeObject();
+
+            const obj = Object.fromEntries(result);
+
+            console.log("result:", obj);
 
             // check if result has expected properties
-            expect(result).toHaveProperty("name");
-            expect(result).toHaveProperty("location");
-            expect(typeof result.name).toBe("string");
-            expect(typeof result.location).toBe("string");
+            expect(obj).toHaveProperty("title");
+            expect(obj).toHaveProperty("creator");
+            expect(obj).toHaveProperty("location");
+            expect(typeof obj.title).toBe("string");
+            expect(typeof obj.creator).toBe("string");
+            expect(typeof obj.location).toBe("string");
 
             // check if downloaded file exists
-            expect(fs.existsSync(result.location)).toBe(true);
+            expect(fs.existsSync(obj.location)).toBe(true);
 
             // check if file has some content
-            const stats = fs.statSync(result.location);
+            const stats = fs.statSync(obj.location);
             expect(stats.size).toBeGreaterThan(0);
         },
         { timeout: 30000 }

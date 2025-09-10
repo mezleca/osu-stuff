@@ -1,9 +1,9 @@
 <script>
+    import { onMount } from "svelte";
     import { collections } from "../../lib/store/collections";
     import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
-    import { onMount } from "svelte";
     import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
     import { downloader } from "../../lib/store/downloader";

@@ -7,17 +7,21 @@
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap_data } from "../../lib/utils/beatmaps";
     import { input } from "../../lib/store/input";
+    import { get_popup_manager, PopupAddon } from "../../lib/store/popup";
 
     // components
     import Search from "../utils/basic/search.svelte";
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Beatmaps from "../beatmaps.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
+    import Popup from "../utils/popup/popup.svelte";
+    import Add from "../utils/add.svelte";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
 
     const { selected, query, sort } = list;
+    const popup_manager = get_popup_manager("radio");
 
     $: selected_beatmap = null;
     $: all_collections = collections.all_collections;
@@ -47,6 +51,20 @@
 
         list.set_beatmaps(beatmaps, $selected_collection, true);
         list.update_list_id($selected_collection.name);
+    };
+
+    const handle_new_beatmap = (data) => {
+        console.log(data);
+    };
+
+    const create_new_beatmap_popup = () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "video_url", type: "input", label: "url" });
+        addon.add({ id: "use_thumbnail", type: "checkbox", label: "use thumbnail as background" });
+        addon.set_callback(handle_new_beatmap);
+
+        popup_manager.register("new-beatmap", addon);
     };
 
     // update selected map when hash changes
@@ -94,6 +112,9 @@
         });
 
         update_background_image();
+
+        // popups
+        create_new_beatmap_popup();
     });
 
     onDestroy(() => {
@@ -103,6 +124,8 @@
 </script>
 
 <div class="content tab-content">
+    <Popup key="radio" on />
+    <Add callback={() => popup_manager.show("new-beatmap")} />
     <div class="radio-container" style="--radio-bg: {bg};">
         <div class="sidebar">
             <div class="sidebar-header">

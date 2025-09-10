@@ -311,6 +311,7 @@ export class PopupAddon extends BaseAddon {
         super();
     }
 
+    /** @param {PopupElement} options  */
     add(options = {}) {
         const element = { ...DEFAULT_OPTIONS, ...options };
 

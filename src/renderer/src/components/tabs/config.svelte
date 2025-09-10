@@ -163,7 +163,6 @@
                 <Checkbox bind:value={$config.lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
             </div>
 
-            <!-- @TODO: confirmation -->
             <button type="button" onclick={() => reload_files()}>reload files</button>
             <!-- keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
             <button type="button" onclick={() => window.extra.dev_tools()}>open dev tools</button>

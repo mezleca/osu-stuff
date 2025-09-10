@@ -1,5 +1,5 @@
 <script>
-    import { fade, slide } from "svelte/transition";
+    import { slide } from "svelte/transition";
     import { convert_special_key } from "../../../lib/store/other";
 
     // props
