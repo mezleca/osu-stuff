@@ -16,6 +16,7 @@
     import Dropdown from "../utils/basic/dropdown.svelte";
     import Popup from "../utils/popup/popup.svelte";
     import Add from "../utils/add.svelte";
+    import { show_notification } from "../../lib/store/notifications";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
@@ -53,8 +54,67 @@
         list.update_list_id($selected_collection.name);
     };
 
-    const handle_new_beatmap = (data) => {
-        console.log(data);
+    // https://www.youtube.com/watch?v=N_uXVrMnbFQ
+    // https://www.youtube.com/watch?v=wuO4_P_8p-Q
+
+    const handle_new_beatmap = async (data) => {
+        // ensure url is pvalid
+        if (!data.video_url || data.video_url == "") {
+            show_notification({ type: "error", text: "wheres the url bro" });
+            return;
+        }
+
+        const is_initialized = await window.dlp.is_initialized();
+
+        // @TODO: get dlp error
+        if (!is_initialized) {
+            show_notification({ type: "error", text: "yt-dlp is not initialized yet" });
+            return;
+        }
+
+        // get data from the download song
+        const metadata = await window.dlp.download_song(data.video_url);
+
+        if (!metadata) {
+            show_notification({ type: "error", text: "failed to download song..." });
+            return;
+        }
+
+        // @TODO: GARBAGE CODE
+        const beatmap_metadata = {
+            title: metadata.get("title"),
+            artist: metadata.get("creator")
+        };
+
+        const beatmap_files = {
+            audio_location: metadata.get("location")
+        };
+
+        if (data.use_thumbnail) {
+            beatmap_files.image_location = metadata.get("thumb");
+        }
+
+        const file_options = {
+            ...beatmap_metadata,
+            ...beatmap_files
+        };
+
+        const osu_file = await window.beatmap_builder.build(file_options);
+
+        if (!osu_file.success) {
+            show_notification({ type: "error", text: osu_file.reason });
+            return;
+        }
+
+        const builder_options = [osu_file.location, ...Array.from(Object.values(beatmap_files))];
+
+        const result = await window.beatmap_builder.add(beatmap_metadata, builder_options);
+
+        if (!result) {
+            return;
+        }
+
+        show_notification({ type: "success", text: `added ${metadata.get("title")} successfuly!` });
     };
 
     const create_new_beatmap_popup = () => {

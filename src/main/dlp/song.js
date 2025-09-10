@@ -27,6 +27,10 @@ export class SongDownloader {
         }
     }
 
+    is_initialized() {
+        return this.dlp.initialized;
+    }
+
     async initialize() {
         await this.dlp.initialize();
     }
@@ -63,7 +67,6 @@ export class SongDownloader {
         }
 
         const info_args = ["--print", "title=%(title)s\ncreator=%(uploader)s\nthumb=%(thumbnail)s", url];
-
         const info_result = await this.dlp.exec(info_args);
 
         if (!info_result || info_result.code != 0) {
@@ -82,6 +85,21 @@ export class SongDownloader {
                     return [key.trim(), value.trim()];
                 })
         );
+
+        // also get thumbnail if available
+        const thumbnail_url = metadata.get("thumb");
+
+        if (thumbnail_url && thumbnail_url != "") {
+            const thumbnail_response = await fetch(thumbnail_url);
+
+            // save the file on downloaded dir
+            const buffer = await thumbnail_response.arrayBuffer();
+            const image_location = path.resolve(this.downloaded_location, `${metadata.get("title")}.png`);
+            fs.writeFileSync(image_location, Buffer.from(buffer));
+
+            // update metadata
+            metadata.set("thumb", image_location);
+        }
 
         // @TODO: consider custom extension later
         const file_location = path.resolve(this.downloaded_location, `${metadata.get("title")}.mp3`);

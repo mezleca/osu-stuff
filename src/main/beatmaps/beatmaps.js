@@ -1,12 +1,17 @@
+import { createHash } from "crypto";
 import { config } from "../database/config";
 import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
-import fs from "fs";
+import fs, { createReadStream } from "fs";
 import path from "path";
+import Realm from "realm";
 
 export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
 export const MAX_STAR_RATING_VALUE = 10; // lazer
+
+const TEXT_SORT_KEYS = ["title", "artist"];
+const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
 
 let osu_data = null;
 
@@ -219,9 +224,6 @@ export const get_beatmap_data = (id, query, is_unique_id) => {
     return result;
 };
 
-const TEXT_SORT_KEYS = ["title", "artist"];
-const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
-
 const normalize_text = (text) => {
     if (!text) {
         return "";
@@ -424,13 +426,183 @@ export const get_beatmaps_from_database = async (force) => {
 
     const result = await reader.get_osu_data(file_path);
 
-    if (result == null) {
+    if (!result) {
         console.error("[get beatmaps] failed to read osu file");
         return false;
     }
 
     osu_data = result;
     osu_data.beatmaps = await process_beatmaps(osu_data.beatmaps);
+
+    return true;
+};
+
+const get_md5_hash = (file_path) => {
+    const content = fs.readFileSync(file_path);
+    return createHash("md5").update(content).digest("hex");
+};
+
+const get_md5_from_content = (content) => {
+    return createHash("md5").update(content, "utf8").digest("hex");
+};
+
+const create_lazer_beatmap = (metadata, beatmapset_files) => {
+    const realm = reader.instance;
+
+    if (!realm) {
+        console.error("realm instance not found");
+        return null;
+    }
+
+    // find or create ruleset
+    let ruleset = realm.objectForPrimaryKey("Ruleset", "osu");
+
+    if (!ruleset) {
+        console.error("ruleset osu not found");
+        return null;
+    }
+
+    let beatmap_result = null;
+
+    realm.write(() => {
+        const files = [];
+
+        let beatmap_hash = null;
+        let beatmap_md5 = null;
+        let audio_file = null;
+        let background_file = null;
+        let osu_file_path = null;
+
+        // process files
+        for (const file of beatmapset_files) {
+            let realm_file = realm.objectForPrimaryKey("File", file.hash);
+
+            if (!realm_file) {
+                realm_file = realm.create("File", {
+                    Hash: file.hash
+                });
+            }
+
+            const ext = path.extname(file.name).toLowerCase();
+
+            if (ext == ".osu") {
+                beatmap_hash = file.hash;
+                osu_file_path = file.location;
+            } else if ([".mp3", ".ogg", ".wav"].includes(ext)) {
+                audio_file = file.name;
+            } else if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+                background_file = file.name;
+            }
+
+            // update
+            files.push({
+                File: realm_file,
+                Filename: file.name
+            });
+        }
+
+        // calculate proper md5 hash from .osu file content
+        if (osu_file_path && fs.existsSync(osu_file_path)) {
+            beatmap_md5 = get_md5_hash(osu_file_path);
+            console.log("calculated md5 hash:", beatmap_md5);
+        } else {
+            console.warn("osu file not found, using sha256 as fallback");
+            beatmap_md5 = beatmap_hash;
+        }
+
+        // create beatmap set
+        const beatmap_set = realm.create("BeatmapSet", {
+            ID: new Realm.BSON.UUID(),
+            OnlineID: -1,
+            Files: files,
+            Hash: beatmap_hash,
+            DateAdded: new Date(),
+            Status: -3,
+            DeletePending: false,
+            Protected: false
+        });
+
+        // create metadata
+        const beatmap_metadata = realm.create("BeatmapMetadata", {
+            Title: metadata.title || "Untitled",
+            Artist: metadata.artist || "osu-stuff",
+            TitleUnicode: metadata.title || "Untitled",
+            ArtistUnicode: metadata.artist || "osu-stuff",
+            AudioFile: audio_file,
+            BackgroundFile: background_file,
+            Author: { OnlineID: 1, Username: "mzle", CountryCode: "Unknown" },
+            Tags: "",
+            Source: "",
+            PreviewTime: 0
+        });
+
+        // create the beatmap
+        const beatmap = realm.create("Beatmap", {
+            ID: new Realm.BSON.UUID(),
+            DifficultyName: "Normal",
+            Ruleset: ruleset,
+            Difficulty: {
+                DrainRate: 5.0,
+                CircleSize: 4.0,
+                OverallDifficulty: 5.0,
+                ApproachRate: 5.0,
+                SliderMultiplier: 1.4,
+                SliderTickRate: 1.0
+            },
+            Metadata: beatmap_metadata,
+            UserSettings: {
+                Offset: 0.0
+            },
+            Hash: beatmap_hash, // thats prob not what its supossed to be
+            MD5Hash: beatmap_md5,
+            BeatmapSet: beatmap_set,
+            OnlineID: -1,
+            Length: 0.0,
+            BPM: 120.0,
+            StarRating: -1.0,
+            Status: -3,
+            Hidden: false,
+            EndTimeObjectCount: -1,
+            TotalObjectCount: -1,
+            BeatDivisor: 4
+        });
+
+        beatmap_set.Beatmaps.push(beatmap);
+        beatmap_result = beatmap;
+    });
+
+    return beatmap_result;
+};
+
+export const add_local_beatmap = async (metadata, files) => {
+    if (config.lazer_mode) {
+        if (!reader.instance) {
+            console.error("realm instace not found");
+            return false;
+        }
+
+        const files_data = [];
+
+        // get hashes
+        for (const file of files) {
+            const hash = get_md5_hash(file);
+            const name = path.basename(file);
+
+            // move files to lazer
+            const destination = path.resolve(config.lazer_path, "files", hash.substring(0, 1), hash.substring(0, 2), hash);
+            fs.cpSync(file, destination);
+
+            console.log(`copied ${file} to ${destination}`);
+
+            // add
+            files_data.push({ hash, name, location: file });
+        }
+
+        // create new lazer beatmap
+        create_lazer_beatmap(metadata, files_data);
+    } else {
+        return false;
+    }
 
     return true;
 };

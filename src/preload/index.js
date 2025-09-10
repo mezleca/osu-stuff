@@ -24,6 +24,16 @@ contextBridge.exposeInMainWorld("osu", {
     export_beatmap: (beatmap) => ipcRenderer.invoke("export-beatmap", beatmap)
 });
 
+contextBridge.exposeInMainWorld("dlp", {
+    is_initialized: () => ipcRenderer.invoke("dlp:initialized"),
+    download_song: (url) => ipcRenderer.invoke("dlp:download-song", url)
+});
+
+contextBridge.exposeInMainWorld("beatmap_builder", {
+    add: (metadata, files) => ipcRenderer.invoke("builder:add", metadata, files),
+    build: (metadata) => ipcRenderer.invoke("builder:build", metadata)
+});
+
 contextBridge.exposeInMainWorld("indexer", {
     on_process: (callback) => {
         ipcRenderer.on("process", (_, data) => callback(data));

@@ -2,6 +2,10 @@ import AdmZip from "adm-zip";
 import fs from "fs";
 import path from "path";
 
+import { get_app_path } from "../database/utils";
+
+const TEMP_LOCATION = path.resolve(get_app_path(), "temp");
+
 // @TODO: video support
 class LegacyBeatmapFile {
     constructor() {
@@ -57,7 +61,7 @@ class LegacyBeatmapFile {
                     { key: "SliderTickRate", value: 1 }
                 ]
             ],
-            ["Events", [{ key: "Background", value: "// not specified" }]],
+            ["Events", [{ key: "Background", is_array: true }]],
             ["HitObject", []]
         ]);
     }
@@ -141,6 +145,11 @@ export class BeatmapBuilder {
                 let value = "";
                 const has_custom_value = file.has(property.key);
 
+                // skip array properties that dont have values
+                if (property.is_array && !has_custom_value) {
+                    continue;
+                }
+
                 // throws if we dont have a required key
                 if (property.required && !has_custom_value) {
                     throw new Error(`builder: missing ${property.key}`);
@@ -175,8 +184,11 @@ export class BeatmapBuilder {
                     }
                 }
 
+                // check if this should be treated as array
+                const should_be_array = property.is_array || Array.isArray(value);
+
                 // handle array values
-                if (Array.isArray(value)) {
+                if (should_be_array && value) {
                     let new_value = "";
 
                     for (let i = 0; i < value.length; i++) {
@@ -194,7 +206,7 @@ export class BeatmapBuilder {
                     }
 
                     buffer.push(new_value);
-                } else {
+                } else if (!property.is_array) {
                     // fallback to default value if available
                     if (!value) {
                         value = property.value;
@@ -245,4 +257,39 @@ export class BeatmapBuilder {
     }
 }
 
-export const beatmap_builder = new BeatmapBuilder();
+const beatmap_builder = new BeatmapBuilder();
+
+export const build_beatmap = (options = {}) => {
+    const beatmap = beatmap_builder.create();
+
+    if (!options?.title || !options?.artist || !options?.audio_location) {
+        return { success: false, reason: "missing required properties" };
+    }
+
+    // add required properties
+    beatmap.set("Artist", options.artist);
+    beatmap.set("Title", options.title);
+    beatmap.set_audio(options.audio_location);
+
+    // add background if present
+    if (options.background) {
+        beatmap.set_image(IMAGE_LOCATION);
+    }
+
+    // create .osu file
+    const file_content = beatmap_builder.write(beatmap);
+
+    if (!file_content) {
+        return { success: false, reason: "failed to create .osu file" };
+    }
+
+    // save file to temp location
+    if (!fs.existsSync(TEMP_LOCATION)) {
+        fs.mkdirSync(TEMP_LOCATION);
+    }
+
+    const file_location = path.resolve(TEMP_LOCATION, `${options.title}.osu`);
+    fs.writeFileSync(file_location, file_content, "utf-8");
+
+    return { success: true, location: file_location };
+};

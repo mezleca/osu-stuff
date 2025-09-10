@@ -1,11 +1,15 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
+import { reader } from "./reader/reader";
 import { downloader } from "./beatmaps/downloader";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
 import { get_mirrors, initialize_mirrors } from "./database/mirrors";
+import { build_beatmap } from "./beatmaps/builder";
+import { song_downloader } from "./dlp/song";
 import {
     add_beatmap,
+    add_local_beatmap,
     filter_beatmaps,
     get_beatmap_by_md5,
     get_beatmap_by_set_id,
@@ -107,6 +111,14 @@ async function createWindow() {
     ipcMain.handle("get-config", () => config);
     ipcMain.handle("update-config", (_, values) => update_config_database(values));
 
+    // dlp related stuff
+    ipcMain.handle("dlp:initialized", () => song_downloader.is_initialized());
+    ipcMain.handle("dlp:download-song", (_, url) => song_downloader.download(url));
+
+    // beatmap builder related stuff
+    ipcMain.handle("builder:build", (_, metadata) => build_beatmap(metadata));
+    ipcMain.handle("builder:add", (_, metadata, files) => add_local_beatmap(metadata, files));
+
     // since we're using vite for dev, cors happen
     ipcMain.handle("http-request", async (_, options) => {
         return await fetch_manager.request(options);
@@ -127,8 +139,14 @@ async function createWindow() {
     ipcMain.handle("export-beatmaps", (_, beatmaps) => downloader.export_beatmaps(beatmaps));
     ipcMain.handle("export-beatmap", (_, beatmap) => downloader.export_single_beatmap(beatmap));
 
+    // load config from database
     await initialize_config();
+
+    // load mirrors from database
     initialize_mirrors();
+
+    // initialize yt-dlp stuff on background
+    song_downloader.initialize();
 
     // initialize downloader handlers
     downloader.main(ipcMain, mainWindow);
@@ -211,4 +229,7 @@ app.on("window-all-closed", () => {
     if (process.platform != "darwin") {
         app.quit();
     }
+
+    // cleanup
+    if (reader.instance) reader.instance.close();
 });
