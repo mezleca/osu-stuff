@@ -8,6 +8,10 @@ import path from "path";
 export const GAMEMODES = ["osu!", "taiko", "ctb", "mania"];
 export const MAX_STAR_RATING_VALUE = 10; // lazer
 
+// sort shit
+const TEXT_SORT_KEYS = ["title", "artist"];
+const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
+
 let osu_data = null;
 
 // get nm star rating based on gamemode
@@ -168,8 +172,33 @@ export const get_playername = () => {
     return osu_data.player_name;
 };
 
+export const minify_beatmap_result = (result) => {
+    return {
+        md5: result.md5,
+        title: result.title,
+        artist: result.title,
+        creator: result.creator,
+        beatmapset_id: result.beatmapset_id,
+        difficulty_id: result.difficulty_id,
+        bpm: result?.bpm,
+        star_rating: result.star_rating,
+        status_text: result.status_text,
+        audio_path: result.audio_path,
+        image_path: result.image_path,
+        mode: result.mode,
+        local: result.local,
+        downloaded: result.downloaded
+    };
+};
+
 export const get_beatmap_by_md5 = (md5) => {
-    return osu_data.beatmaps.get(md5);
+    const result = osu_data.beatmaps.get(md5);
+
+    if (!result) {
+        return false;
+    }
+
+    return minify_beatmap_result(result);
 };
 
 export const get_beatmaps_by_id = (id) => {
@@ -185,7 +214,7 @@ export const get_beatmaps_by_id = (id) => {
 export const get_beatmap_by_set_id = (id) => {
     for (const [_, beatmap] of osu_data.beatmaps) {
         if (beatmap.beatmapset_id == id) {
-            return beatmap;
+            return minify_beatmap_result(beatmap);
         }
     }
     return false;
@@ -216,9 +245,6 @@ export const get_beatmap_data = (id, query, is_unique_id) => {
 
     return result;
 };
-
-const TEXT_SORT_KEYS = ["title", "artist"];
-const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
 
 const normalize_text = (text) => {
     if (!text) {
