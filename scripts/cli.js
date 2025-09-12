@@ -102,8 +102,16 @@ const build_electron_files = async () => {
     if (!fs.existsSync(MAIN_PATH)) show_error("main folder not found at: " + MAIN_PATH);
     if (!fs.existsSync(PRELOAD_PATH)) show_error("preload folder not found at: " + PRELOAD_PATH);
 
-    await build(MAIN_CONFIG);
-    await build(PRELOAD_CONFIG);
+    try {
+        await build(MAIN_CONFIG);
+    } catch (err) {
+        show_error("main build failed: " + err.message);
+    }
+    try {
+        await build(PRELOAD_CONFIG);
+    } catch (err) {
+        show_error("preload build failed: " + err.message);
+    }
 };
 
 const build_renderer_files = async () => {
