@@ -21,6 +21,8 @@ export const stable_beatmap_status = {
     [7]: "loved"
 };
 
+const MAX_CACHE_SIZE = 100;
+
 export class Reader extends BinaryReader {
     constructor() {
         super();
@@ -29,12 +31,27 @@ export class Reader extends BinaryReader {
         this.image_cache = new Map();
         this.audio_cache = new Map();
         this.beatmap_offset_start = 0;
+        /** @type {Realm} */
         this.instance = null;
     }
 
     cleanup() {
         this.buffer = null;
         this.offset = 0;
+
+        if (this.image_cache.size > MAX_CACHE_SIZE) {
+            this.image_cache.clear();
+        }
+
+        if (this.audio_cache.size > MAX_CACHE_SIZE) {
+            this.audio_cache.clear();
+        }
+
+        // close realm instance if we dont need it
+        if (this.instance && !config.lazer_mode) {
+            this.instance.close();
+        }
+
         if (global.gc) {
             global.gc();
         }
@@ -367,17 +384,18 @@ export class Reader extends BinaryReader {
         // get timing points
         const timing_points_length = this.int();
         data.timing_points_length = timing_points_length;
-        data.timing_points = new Array(timing_points_length);
+
+        const timing_points = new Array({ length: timing_points_length });
 
         for (let i = 0; i < timing_points_length; i++) {
-            data.timing_points[i] = {
+            timing_points[i] = {
                 beat_length: this.double(),
                 offset: this.double(),
                 inherited: this.bool()
             };
         }
 
-        data.bpm = get_common_bpm(data);
+        data.bpm = get_common_bpm(timing_points, data.length);
 
         // read rest of the metadata
         data.difficulty_id = this.int();

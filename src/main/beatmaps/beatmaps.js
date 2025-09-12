@@ -28,15 +28,13 @@ export const get_beatmap_sr = (beatmap, gamemode = 0) => {
 };
 
 // https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
-export const get_common_bpm = (beatmap) => {
-    if (!beatmap?.timing_points || beatmap?.timing_points.length == 0) {
+export const get_common_bpm = (timing_points, length) => {
+    if (!timing_points || timing_points?.length == 0) {
         return 0;
     }
 
     const beat_length_map = new Map();
-
-    const timing_points = beatmap.timing_points;
-    const last_time = beatmap.length > 0 ? beatmap.length : timing_points[timing_points.length - 1].offset;
+    const last_time = length > 0 ? length : timing_points[timing_points.length - 1].offset;
 
     for (let i = 0; i < timing_points.length; i++) {
         const point = timing_points[i];
