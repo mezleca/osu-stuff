@@ -220,7 +220,7 @@ const main = async () => {
         DEPENDENCIES.push(...deps_from_package);
     }
 
-    // add bultin modules
+    // add builtin modules
     DEPENDENCIES.push(...builtinModules);
 
     switch (mode) {
