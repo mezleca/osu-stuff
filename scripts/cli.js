@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 
 import { builtinModules } from "module";
-import { spawn } from "child_process";
+import { ChildProcess, spawn } from "child_process";
 import { build, createServer } from "vite";
 import { dependencies } from "../package.json";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
@@ -12,7 +12,9 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 const args = process.argv;
 
 let IS_SHUTTING_DOWN = false;
+/** @type {ChildProcess} */
 let ACTIVE_ELECTRON_PROCESS = null;
+/** @type {import("vite").ViteDevServer} */
 let DEV_SERVER = null;
 
 // FOLDERS
@@ -202,7 +204,6 @@ const cleanup = async () => {
 
     console.log("cli: cleaning up...");
     await Promise.all(cleanup_promises);
-    console.log("cli: cleanup done");
 };
 
 const main = async () => {
