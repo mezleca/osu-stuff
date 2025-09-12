@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
 import { downloader } from "./beatmaps/downloader";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { initialize_config, config, update_config_database } from "./database/config";
 import { initialize_indexer } from "./database/indexer";
 import { get_mirrors, initialize_mirrors } from "./database/mirrors";
@@ -30,7 +30,7 @@ const additionalArguments = [
     "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
 ];
 
-const is_dev_mode = is.dev && process.env["ELECTRON_RENDERER_URL"];
+const is_dev_mode = process.env["IS_DEV"] && process.env["ELECTRON_RENDERER_URL"];
 
 // protocol to get images / stuff from osu!
 protocol.registerSchemesAsPrivileged([
