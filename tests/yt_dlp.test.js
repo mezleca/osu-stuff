@@ -88,8 +88,6 @@ describe("song downloader", () => {
 
             const obj = Object.fromEntries(result);
 
-            console.log("result:", obj);
-
             // check if result has expected properties
             expect(obj).toHaveProperty("title");
             expect(obj).toHaveProperty("creator");

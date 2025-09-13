@@ -25,6 +25,7 @@ export class YTdlp {
             fs.mkdirSync(this.temp_location);
         }
 
+        this.initialized = false;
         this.ext = is_windows ? "_x86.exe" : "_linux";
         this.name = `yt-dlp${this.ext}`;
         this.version = "";
@@ -47,6 +48,7 @@ export class YTdlp {
                 // check if we're on the latest version
                 if (saved_version == latest_version) {
                     this.update_version(latest_version);
+                    this.initialized = true;
                     return true;
                 }
 
@@ -75,8 +77,7 @@ export class YTdlp {
             }
 
             this.update_version(version);
-            console.log(`dlp: downloaded ${version} succesfully`);
-
+            this.initialized = true;
             return true;
         } catch (err) {
             console.error(err);
