@@ -3,7 +3,7 @@ import { config } from "../database/config";
 import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
 
-import fs, { createReadStream } from "fs";
+import fs from "fs";
 import path from "path";
 import Realm from "realm";
 
@@ -464,10 +464,6 @@ export const get_beatmaps_from_database = async (force) => {
 const get_md5_hash = (file_path) => {
     const content = fs.readFileSync(file_path);
     return createHash("md5").update(content).digest("hex");
-};
-
-const get_md5_from_content = (content) => {
-    return createHash("md5").update(content, "utf8").digest("hex");
 };
 
 const create_lazer_beatmap = (metadata, beatmapset_files) => {
