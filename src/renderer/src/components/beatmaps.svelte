@@ -234,7 +234,7 @@
     <!-- render beatmaps virtual list-->
     <VirtualList
         items={$beatmaps}
-        key={$list_id}
+        key={`${$list_id}-${$beatmaps?.length ?? 0}`}
         count={$beatmaps?.length ?? 0}
         width="100%"
         height="100%"

@@ -70,13 +70,6 @@
             return;
         }
 
-        const scroll_changed = scroll_top != last_scroll_top;
-        const hover_changed = hovered_item != last_hovered_item;
-
-        if (!scroll_changed && !hover_changed) {
-            return;
-        }
-
         const center_y = scroll_top + container_height / 2;
         const elements = [...container.querySelectorAll(".item")];
 
@@ -195,6 +188,10 @@
     };
 
     const animate_scroll = (currentTime) => {
+        if (!container) {
+            return;
+        }
+
         if (!scroll_start_time) {
             scroll_start_time = currentTime;
             start_scroll = container.scrollTop;
@@ -214,10 +211,14 @@
     };
 
     export const scroll_to_item = async (index) => {
+        if (index < 0) {
+            return;
+        }
+
         await tick();
 
-        if (index < 0 || !container) {
-            console.log("container not found");
+        if (!container) {
+            console.log("fukcing container not found...");
             return;
         }
 
