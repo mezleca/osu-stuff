@@ -1,10 +1,8 @@
 @font-face {
-    font-family: "Torus Bold";
+    font-family: "Torus";
+    src: url("./Torus.woff2") format("woff2");
+    font-weight: 700;
     font-style: normal;
-    font-weight: bold;
-    src:
-        local("Torus Bold"),
-        url("./Torus.otf") format("opentype");
 }
 
 :root {
@@ -53,7 +51,7 @@
     box-sizing: border-box;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    font-family: "Torus Bold";
+    font-family: "Torus";
     user-select: none;
     -webkit-user-select: none;
     scroll-behavior: smooth;
