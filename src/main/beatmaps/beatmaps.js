@@ -176,17 +176,19 @@ export const minify_beatmap_result = (result) => {
     return {
         md5: result.md5,
         title: result.title,
-        artist: result.title,
-        creator: result.creator,
+        artist: result.artist,
+        mapper: result.mapper,
         beatmapset_id: result.beatmapset_id,
         difficulty_id: result.difficulty_id,
-        bpm: result?.bpm,
+        bpm: Math.floor(result?.bpm),
         star_rating: result.star_rating,
         status_text: result.status_text,
         audio_path: result.audio_path,
         image_path: result.image_path,
         mode: result.mode,
         local: result.local,
+        duration: result.duration ?? 0,
+        unique_id: result.unique_id,
         downloaded: result.downloaded
     };
 };

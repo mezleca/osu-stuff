@@ -204,15 +204,22 @@ const cleanup = async () => {
 
     console.log("cli: cleaning up...");
     await Promise.all(cleanup_promises);
+
+    process.exit(0);
 };
 
-const main = async () => {
+(async () => {
     const mode = args[2]?.split("--")[1];
 
     if (!mode) {
         console.log("cli: expected an argument");
         return;
     }
+
+    // handle shutdown
+    process.on("SIGINT", () => {
+        cleanup();
+    });
 
     // add project dependencies
     const deps_from_package = Object.keys(dependencies);
@@ -236,19 +243,4 @@ const main = async () => {
     }
 
     console.log("cli: exiting");
-};
-
-// handle shutdown
-process.on("SIGINT", async () => {
-    console.log("\ncli: received SIGINT, shutting down...");
-    await cleanup();
-    process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-    console.log("cli: received SIGTERM, shutting down...");
-    await cleanup();
-    process.exit(0);
-});
-
-main();
+})();

@@ -41,6 +41,7 @@ const create_star_rating = (rating) => {
 };
 
 export const get_lazer_file_location = (name) => {
+    if (!name) return "";
     const lazer_files_path = path.resolve(config.lazer_path, "files");
     return path.resolve(lazer_files_path, `${name.substring(0, 1)}/${name.substring(0, 2)}/${name}`);
 };
