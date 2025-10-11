@@ -176,12 +176,10 @@ const cleanup = async () => {
         cleanup_promises.push(
             new Promise((resolve) => {
                 console.log("cli: killing electron process");
-
-                // try sigint first
-                ACTIVE_ELECTRON_PROCESS.kill("SIGINT");
+                ACTIVE_ELECTRON_PROCESS.kill("SIGTERM");
 
                 const timeout = setTimeout(() => {
-                    if (ACTIVE_ELECTRON_PROCESS && !ACTIVE_ELECTRON_PROCESS.killed) {
+                    if (!ACTIVE_ELECTRON_PROCESS.killed) {
                         ACTIVE_ELECTRON_PROCESS.kill("SIGKILL");
                     }
                     resolve();
@@ -191,8 +189,6 @@ const cleanup = async () => {
                     clearTimeout(timeout);
                     resolve();
                 });
-
-                ACTIVE_ELECTRON_PROCESS.kill("SIGTERM");
             })
         );
     }
@@ -230,6 +226,9 @@ const cleanup = async () => {
 
     // add builtin modules
     DEPENDENCIES.push(...builtinModules);
+
+    // always clean before building
+    fs.rmSync(path.resolve("out"), { recursive: true, force: true });
 
     switch (mode) {
         case "build":
