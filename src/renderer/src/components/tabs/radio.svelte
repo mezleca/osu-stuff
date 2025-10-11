@@ -124,8 +124,8 @@
 </script>
 
 <div class="content tab-content">
-    <Popup key="radio" on />
-    <Add callback={() => popup_manager.show("new-beatmap")} />
+    <!-- <Popup key="radio" on />
+    <Add callback={() => popup_manager.show("new-beatmap")} /> -->
     <div class="radio-container" style="--radio-bg: {bg};">
         <div class="sidebar">
             <div class="sidebar-header">
