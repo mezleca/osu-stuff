@@ -1,5 +1,5 @@
 import { config } from "../database/config";
-import { delete_mirror, get_mirrors, insert_mirror, update_mirrors } from "../database/mirrors";
+import { delete_mirror, get_mirrors, insert_mirror } from "../database/mirrors";
 import { get_lazer_file_location } from "../reader/realm.js";
 import { get_and_update_collections } from "./collections.js";
 import { get_beatmap_by_md5 } from "./beatmaps.js";
@@ -16,6 +16,8 @@ const downloads = [];
 const beatmap_cache = new Map();
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MINUTES = 5;
+
+const is_dev_mode = process.env["IS_DEV"] && process.env["ELECTRON_RENDERER_URL"];
 
 // send updated list
 const send_downloads_update = (reason = "") => {
@@ -103,9 +105,11 @@ const start_processing = async (name) => {
 
     const mirrors = get_mirrors();
 
-    console.log("mirrors:", mirrors);
+    if (is_dev_mode) {
+        console.log("mirrors:", mirrors);
+    }
 
-    if (!mirrors || mirrors?.length == 0) {
+    if (!mirrors) {
         download.paused = true;
         send_downloads_update("please add at least one mirror");
         console.log("[downloader] no mirrors to use");
