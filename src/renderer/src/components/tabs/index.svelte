@@ -11,7 +11,8 @@
     const mirrors = [
         { name: "beatconnect", url: "https://beatconnect.io/d/" },
         { name: "catboy", url: "https://catboy.best/d/" },
-        { name: "sayobot", url: "https://dl.sayobot.cn/beatmaps/download/" }
+        { name: "sayobot", url: "https://dl.sayobot.cn/beatmaps/download/" },
+        { name: "nerinyan", url: "https://api.nerinyan.moe/d/" }
     ];
 
     onMount(() => {
