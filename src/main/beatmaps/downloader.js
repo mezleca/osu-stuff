@@ -1,5 +1,5 @@
 import { config } from "../database/config";
-import { delete_mirror, insert_mirror, update_mirrors } from "../database/mirrors";
+import { delete_mirror, get_mirrors, insert_mirror, update_mirrors } from "../database/mirrors";
 import { get_lazer_file_location } from "../reader/realm.js";
 import { get_and_update_collections } from "./collections.js";
 import { get_beatmap_by_md5 } from "./beatmaps.js";
@@ -101,7 +101,11 @@ const start_processing = async (name) => {
         return false;
     }
 
-    if (config.mirrors.length == 0) {
+    const mirrors = get_mirrors();
+
+    console.log("mirrors:", mirrors);
+
+    if (!mirrors || mirrors?.length == 0) {
         download.paused = true;
         send_downloads_update("please add at least one mirror");
         console.log("[downloader] no mirrors to use");
@@ -315,8 +319,10 @@ const get_beatmap_info = async (beatmap) => {
 };
 
 const get_osz = async (beatmap_id) => {
-    for (let i = 0; i < config.mirrors.length; i++) {
-        const mirror = config.mirrors[i];
+    const mirrors = get_mirrors();
+
+    for (let i = 0; i < mirrors.length; i++) {
+        const mirror = mirrors[i];
 
         if (mirror.cooldown && mirror.cooldown > Date.now()) {
             continue;
