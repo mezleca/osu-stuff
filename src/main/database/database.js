@@ -5,16 +5,30 @@ import path from "path";
 export class BaseDatabase {
     constructor(database_name, app_path) {
         this.database_name = database_name;
+        this.app_path = app_path;
         this.database_path = path.resolve(app_path, database_name);
         this.database = null;
         this.statements = {};
     }
 
     initialize() {
+        if (!this.app_path || this.app_path == "") {
+            throw new Error("BaseDatabase -> intialize(): missing app_path bro")
+        }
+
+        console.log(this.app_path, this.database_path);
+
+        // create empty dir shit to prevent error
+        if (!fs.existsSync(this.app_path)) {
+            fs.mkdirSync(this.app_path, { recursive: true });
+        }
+
+        // create empty shit to prevent more errors
         if (!fs.existsSync(this.database_path)) {
             fs.writeFileSync(this.database_path, "");
         }
 
+        // actually initialize
         this.database = new Database(this.database_path);
         this.create_tables();
         this.prepare_statements();
