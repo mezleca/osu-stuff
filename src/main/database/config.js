@@ -123,7 +123,6 @@ export class ConfigDatabase extends BaseDatabase {
     }
 
     update(values) {
-        console.log("updating", values);
         const keys = Object.keys(values).filter((k) => CONFIG_KEYS.includes(k));
 
         if (keys.length == 0) {
