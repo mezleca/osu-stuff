@@ -16,10 +16,8 @@ export class BaseDatabase {
             throw new Error("BaseDatabase -> intialize(): missing app_path bro")
         }
 
-        // create empty dir shit to prevent error
-        if (!fs.existsSync(this.app_path)) {
-            fs.mkdirSync(this.app_path, { recursive: true });
-        }
+        // ensure app_path dir exists so write dont fail :)
+        fs.mkdirSync(this.app_path, { recursive: true });
 
         // create empty shit to prevent more errors
         if (!fs.existsSync(this.database_path)) {
