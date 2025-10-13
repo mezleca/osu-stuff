@@ -164,6 +164,7 @@
 
     const handle_context_menu = async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         await show(event);
     };
 
