@@ -115,9 +115,14 @@ export const export_collection = async (collections, type) => {
         return result;
     }
 
+    // create export if doesn't already exist
     if (!fs.existsSync(config.export_path)) {
-        result.reason = "invalid export path";
-        return result;
+        try {
+            fs.mkdirSync(config.export_path, { recursive: true });
+        } catch (err) {
+            result.reason = "failed to create export path: " + err.message;
+            return result;
+        }
     }
 
     const final_name = data.collections.map((c) => c.name).join("-") + `.${type}`;
