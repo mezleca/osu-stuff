@@ -267,7 +267,6 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         {#if show_missing && $missing_beatmaps.length != 0}
-            {console.log($missing_beatmaps)}
             <div class="missing-button" onclick={() => show_popup("missing", "beatmaps")}>missing beatmaps</div>
         {/if}
     </div>

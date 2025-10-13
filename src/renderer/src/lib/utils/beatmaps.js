@@ -46,17 +46,22 @@ export const get_by_unique_id = async (id) => {
 export const get_missing_beatmaps = async () => {
     const invalid_beatmaps = [];
 
-    for (const collection of get(collections.all_collections)) {
-        // check if theres any missing beatmap on this collection
-        const invalid = await window.osu.missing_beatmaps(collection.maps);
+    try { 
+        for (const collection of get(collections.all_collections)) {
+            // search for missing beatmaps on the current collection
+            const invalid = await window.osu.missing_beatmaps(collection.maps);
 
-        if (invalid.length > 0) {
-            invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
+            if (invalid.length > 0) {
+                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
+            }
         }
-    }
 
-    // update missing data
-    collections.missing_beatmaps.set(invalid_beatmaps);
+        // update missing data
+        collections.missing_beatmaps.set(invalid_beatmaps);
+    } catch(err) {
+        show_notification({ type: "error", text: "failed to get missing beatmaps..."});
+        console.error(err);
+    }
 };
 
 export const convert_beatmap_keys = (beatmap) => {
