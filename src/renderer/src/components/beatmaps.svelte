@@ -5,12 +5,14 @@
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data } from "../lib/utils/beatmaps";
+    import { get_popup_manager, PopupAddon, show_popup } from "../lib/store/popup";
     import { input } from "../lib/store/input";
 
     // components
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
     import ContextMenu from "./utils/context-menu.svelte";
+    import Popup from "./utils/popup/popup.svelte";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
@@ -22,6 +24,7 @@
     export let show_status = true;
     export let center = false;
     export let show_context = true;
+    export let show_missing = false;
     export let max_width;
     export let height = 100;
     export let columns = 0;
@@ -33,11 +36,14 @@
     export let on_update = () => {};
 
     const list = list_manager || get_beatmap_list(tab_id);
+    const popup_manager = get_popup_manager("beatmaps");
     const { beatmaps, selected, list_id, index } = list;
 
     let context_menu;
     let current_beatmap_hash = null; // store the current beatmap hash for context actions
 
+    $: missing_collections = collections.missing_collections;
+    $: missing_beatmaps = collections.missing_beatmaps;
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
 
@@ -182,7 +188,6 @@
         return result;
     };
 
-    // not a great name...
     const handle_move_beatmap = async (direction) => {
         const new_index = direction == "previous" ? $index - 1 : $index + 1;
 
@@ -193,6 +198,54 @@
 
         const hash = $beatmaps[new_index];
         list.select_beatmap(hash, new_index);
+    };
+
+    const handle_missing_beatmaps = async (data) => {
+        const invalid = [];
+
+        for (const missing of $missing_beatmaps) {
+            // only include the beatmaps from the selected collection
+            if (data.collections.includes(missing.name)) {
+                invalid.push(...missing.beatmaps);
+            }
+        }
+
+        downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
+    };
+
+    const get_missing_beatmaps = async () => {
+        if ($missing_beatmaps.length != 0) {
+            $missing_beatmaps = [];
+        }
+
+        if ($missing_collections.length != 0) {
+            $missing_collections = [];
+        }
+
+        const collections = [],
+            invalid_beatmaps = [];
+
+        for (const collection of $all_collections) {
+            // check if theres any missing beatmap on this collection
+            const invalid = await window.osu.missing_beatmaps(collection.maps);
+
+            if (invalid.length > 0) {
+                collections.push(collection.name);
+                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
+            }
+        }
+
+        $missing_beatmaps = invalid_beatmaps;
+        $missing_collections = collections;
+    };
+
+    const create_missing_beatmaps_popup = async () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "collections", type: "buttons", label: "collections to download", multiple: true, data: () => $missing_collections });
+        addon.set_callback(handle_missing_beatmaps);
+
+        popup_manager.register("missing", addon);
     };
 
     const on_context = async (event, hash) => {
@@ -210,8 +263,14 @@
     };
 
     onMount(() => {
+        // setup beatmap navigation
         input.on("ArrowLeft", () => handle_move_beatmap("previous"));
         input.on("ArrowRight", () => handle_move_beatmap("next"));
+
+        // setup popups
+        create_missing_beatmaps_popup();
+
+        if (show_missing) get_missing_beatmaps();
 
         // on destroy
         return () => {
@@ -221,9 +280,17 @@
 </script>
 
 <div class="beatmaps-container">
+    <Popup key="beatmaps" />
+
     <!-- render beatmap matches-->
     <div class="beatmaps-header">
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
+        <!-- @TODO: move this to somewhere -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        {#if show_missing && $missing_beatmaps.length != 0}
+            <div class="missing-button" onclick={() => show_popup("missing", "beatmaps")}>missing beatmaps</div>
+        {/if}
     </div>
 
     <!-- render context menu -->
@@ -273,5 +340,18 @@
     .results-count {
         color: var(--accent-color);
         font-size: 13px;
+    }
+
+    .missing-button {
+        border: none;
+        padding: 6px 8px;
+        transition: all 0.2s;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .missing-button:hover {
+        background-color: var(--accent-color);
+        transform: scale(1.02);
     }
 </style>

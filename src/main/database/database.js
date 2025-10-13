@@ -13,7 +13,7 @@ export class BaseDatabase {
 
     initialize() {
         if (!this.app_path || this.app_path == "") {
-            throw new Error("BaseDatabase -> intialize(): missing app_path bro")
+            throw new Error("BaseDatabase -> intialize(): missing app_path bro");
         }
 
         // ensure app_path dir exists so write dont fail :)
