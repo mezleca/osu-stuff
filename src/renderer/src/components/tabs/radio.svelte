@@ -70,6 +70,7 @@
     // update selected map when hash changes
     $: if ($selected) {
         get_beatmap_data($selected).then((bm) => {
+            console.log(bm);
             selected_beatmap = bm;
             update_background_image();
         });
@@ -86,7 +87,7 @@
 
     onMount(() => {
         // always reset state if no beatmaps are selected
-        if (!selected_beatmap) {
+        if (!$selected) {
             audio.clean_audio();
         }
 
