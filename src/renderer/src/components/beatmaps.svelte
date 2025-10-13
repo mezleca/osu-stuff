@@ -4,7 +4,7 @@
     import { show_notification } from "../lib/store/notifications";
     import { get_beatmap_list, osu_beatmaps } from "../lib/store/beatmaps";
     import { downloader } from "../lib/store/downloader";
-    import { get_beatmap_data } from "../lib/utils/beatmaps";
+    import { get_beatmap_data, get_missing_beatmaps } from "../lib/utils/beatmaps";
     import { get_popup_manager, PopupAddon, show_popup } from "../lib/store/popup";
     import { input } from "../lib/store/input";
 
@@ -42,7 +42,6 @@
     let context_menu;
     let current_beatmap_hash = null; // store the current beatmap hash for context actions
 
-    $: missing_collections = collections.missing_collections;
     $: missing_beatmaps = collections.missing_beatmaps;
     $: all_collections = collections.all_collections;
     $: should_hide_remove = list.hide_remove;
@@ -213,36 +212,16 @@
         downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
     };
 
-    const get_missing_beatmaps = async () => {
-        if ($missing_beatmaps.length != 0) {
-            $missing_beatmaps = [];
-        }
-
-        if ($missing_collections.length != 0) {
-            $missing_collections = [];
-        }
-
-        const collections = [],
-            invalid_beatmaps = [];
-
-        for (const collection of $all_collections) {
-            // check if theres any missing beatmap on this collection
-            const invalid = await window.osu.missing_beatmaps(collection.maps);
-
-            if (invalid.length > 0) {
-                collections.push(collection.name);
-                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
-            }
-        }
-
-        $missing_beatmaps = invalid_beatmaps;
-        $missing_collections = collections;
-    };
-
     const create_missing_beatmaps_popup = async () => {
         const addon = new PopupAddon();
 
-        addon.add({ id: "collections", type: "buttons", label: "collections to download", multiple: true, data: () => $missing_collections });
+        addon.add({
+            id: "collections",
+            type: "buttons",
+            label: "collections to download",
+            multiple: true,
+            data: () => $missing_beatmaps.map((m) => m.name)
+        });
         addon.set_callback(handle_missing_beatmaps);
 
         popup_manager.register("missing", addon);
@@ -285,10 +264,10 @@
     <!-- render beatmap matches-->
     <div class="beatmaps-header">
         <div class="results-count">{$beatmaps?.length ?? 0} matches</div>
-        <!-- @TODO: move this to somewhere -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         {#if show_missing && $missing_beatmaps.length != 0}
+            {console.log($missing_beatmaps)}
             <div class="missing-button" onclick={() => show_popup("missing", "beatmaps")}>missing beatmaps</div>
         {/if}
     </div>

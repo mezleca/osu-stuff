@@ -4,10 +4,9 @@
     import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
-    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
-    import { downloader } from "../../lib/store/downloader";
-    import { convert_beatmap_keys, get_player_data } from "../../lib/utils/beatmaps";
+    import { convert_beatmap_keys, get_missing_beatmaps, get_player_data } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
 
@@ -164,6 +163,10 @@
         }
 
         collections.add({ name: new_name, maps: hashes });
+
+        // check for missing beatmaps
+        await get_missing_beatmaps();
+
         show_notification({ type: "success", text: "added " + new_name });
     };
 
@@ -282,6 +285,9 @@
                 collections.add(collection);
             }
 
+            // check for missing beatmaps
+            await get_missing_beatmaps();
+
             show_notification({ type: "success", text: `added ${collection.name}` });
         }
     };
@@ -360,6 +366,10 @@
 
         // add new collection
         collections.add({ name: collection_name, maps: hashes });
+
+        // check for missing beatmaps
+        await get_missing_beatmaps();
+
         show_notification({ type: "success", text: "added " + collection_name });
     };
 
