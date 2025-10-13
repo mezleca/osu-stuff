@@ -86,7 +86,7 @@
 
     onMount(() => {
         // always reset state if no beatmaps are selected
-        if (!selected_beatmap) {
+        if (!$selected) {
             audio.clean_audio();
         }
 
