@@ -115,7 +115,7 @@ export const export_collection = async (collections, type) => {
         return result;
     }
 
-    // create export if doenst already exists
+    // create export if doesn't already exist
     if (!fs.existsSync(config.export_path)) {
         fs.mkdirSync(config.export_path, { recursive: true });
     }
