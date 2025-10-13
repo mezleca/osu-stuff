@@ -136,11 +136,18 @@ export const search_filter = (beatmap, query, search_filters) => {
         }
 
         const key = get_key(filter.k);
+        const gamemode = beatmap.mode;
 
-        // hack
-        // also need global gamemode variable
+        // @TOFIX: still kinda hacky
         if (key == "star_rating") {
-            if (!validate_filter(beatmap?.[key][0]?.nm, filter.o, thing)) {
+            const star_rating = beatmap?.[key];
+
+            // shouldn't happen
+            // but since i cant trust my shitty ass code
+            // check anyways
+            if (!star_rating) break;
+
+            if (!validate_filter(star_rating[gamemode].nm, filter.o, thing)) {
                 valid = false;
                 break;
             }
