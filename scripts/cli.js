@@ -7,8 +7,6 @@ import { build, createServer } from "vite";
 import { dependencies } from "../package.json";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
-// @TODO: for some reason i need 2 sigints in order to kill this process...
-
 const args = process.argv;
 
 let IS_SHUTTING_DOWN = false;

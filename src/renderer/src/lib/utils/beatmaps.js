@@ -2,6 +2,7 @@ import { get } from "svelte/store";
 import { get_beatmap_status_code, get_code_by_mode, osu_beatmaps } from "../store/beatmaps";
 import { access_token } from "../store/config";
 import { show_notification } from "../store/notifications";
+import { collections } from "../store/collections";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 
@@ -40,6 +41,27 @@ export const get_beatmap_data = async (md5) => {
 
 export const get_by_unique_id = async (id) => {
     return await get_beatmap(id, true);
+};
+
+export const get_missing_beatmaps = async () => {
+    const invalid_beatmaps = [];
+
+    try { 
+        for (const collection of get(collections.all_collections)) {
+            // search for missing beatmaps on the current collection
+            const invalid = await window.osu.missing_beatmaps(collection.maps);
+
+            if (invalid.length > 0) {
+                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
+            }
+        }
+
+        // update missing data
+        collections.missing_beatmaps.set(invalid_beatmaps);
+    } catch(err) {
+        show_notification({ type: "error", text: "failed to get missing beatmaps..."});
+        console.error(err);
+    }
 };
 
 export const convert_beatmap_keys = (beatmap) => {

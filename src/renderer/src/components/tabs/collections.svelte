@@ -4,10 +4,9 @@
     import { get_from_osu_collector, get_db_data, get_osdb_data, export_collection } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
     import { beatmap_status, get_beatmap_list, osu_beatmaps } from "../../lib/store/beatmaps";
-    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon } from "../../lib/store/popup";
+    import { get_popup_manager, show_popup, PopupAddon } from "../../lib/store/popup";
     import { show_notification } from "../../lib/store/notifications";
-    import { downloader } from "../../lib/store/downloader";
-    import { convert_beatmap_keys, get_player_data } from "../../lib/utils/beatmaps";
+    import { convert_beatmap_keys, get_missing_beatmaps, get_player_data } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
 
@@ -37,8 +36,6 @@
     $: all_collections = collections.all_collections;
     $: should_update = collections.needs_update;
     $: pending_collections = collections.pending_collections;
-    $: missing_beatmaps = collections.missing_beatmaps;
-    $: missing_collections = collections.missing_collections;
 
     const filter_beatmaps = async (extra = {}) => {
         // check if the length matches, if not force
@@ -81,19 +78,6 @@
     };
 
     /* --- HANDLERS --- */
-
-    const handle_extra_options = async (option) => {
-        switch (option) {
-            case "new collection":
-                show_popup("new", "collections");
-                break;
-            case "missing beatmaps":
-                // update missing beatmaps data
-                await get_missing_beatmaps();
-                show_popup("missing", "collections");
-                break;
-        }
-    };
 
     const handle_merge_collections = (data) => {
         if (data.collections.length < 2) {
@@ -179,20 +163,11 @@
         }
 
         collections.add({ name: new_name, maps: hashes });
+
+        // check for missing beatmaps
+        await get_missing_beatmaps();
+
         show_notification({ type: "success", text: "added " + new_name });
-    };
-
-    const handle_missing_beatmaps = async (data) => {
-        const invalid = [];
-
-        for (const missing of $missing_beatmaps) {
-            // only include the beatmaps from the selected collection
-            if (data.collections.includes(missing.name)) {
-                invalid.push(...missing.beatmaps);
-            }
-        }
-
-        downloader.add({ name: `missing: ${data.collections.join("-")}`, beatmaps: invalid });
     };
 
     const enable_edit_mode = (name) => {
@@ -310,6 +285,9 @@
                 collections.add(collection);
             }
 
+            // check for missing beatmaps
+            await get_missing_beatmaps();
+
             show_notification({ type: "success", text: `added ${collection.name}` });
         }
     };
@@ -388,6 +366,10 @@
 
         // add new collection
         collections.add({ name: collection_name, maps: hashes });
+
+        // check for missing beatmaps
+        await get_missing_beatmaps();
+
         show_notification({ type: "success", text: "added " + collection_name });
     };
 
@@ -418,53 +400,7 @@
         }
     };
 
-    const get_missing_beatmaps = async () => {
-        if ($missing_beatmaps.length != 0) {
-            $missing_beatmaps = [];
-        }
-
-        if ($missing_collections.length != 0) {
-            $missing_collections = [];
-        }
-
-        const collections = [],
-            invalid_beatmaps = [];
-
-        for (const collection of $all_collections) {
-            // check if theres any missing beatmap on this collection
-            const invalid = await window.osu.missing_beatmaps(collection.maps);
-
-            if (invalid.length > 0) {
-                collections.push(collection.name);
-                invalid_beatmaps.push({ name: collection.name, beatmaps: invalid });
-            }
-        }
-
-        $missing_beatmaps = invalid_beatmaps;
-        $missing_collections = collections;
-    };
-
     /* --- POPUP FUNCTIONS --- */
-
-    const create_extra_options_popup = async () => {
-        const addon = new ConfirmAddon();
-
-        addon.add_title("collection options");
-        addon.add_button("new collection", "new collection");
-        addon.add_button("get missing beatmaps", "missing beatmaps");
-
-        addon.set_callback(handle_extra_options);
-        popup_manager.register("extra", addon);
-    };
-
-    const create_missing_beatmaps_popup = async () => {
-        const addon = new PopupAddon();
-
-        addon.add({ id: "collections", type: "buttons", label: "collections to download", multiple: true, data: () => $missing_collections });
-        addon.set_callback(handle_missing_beatmaps);
-
-        popup_manager.register("missing", addon);
-    };
 
     // @TODO: use collection-card buttons_type so i can show the ammount of beatmaps
     const create_pending_collection_select = async () => {
@@ -634,14 +570,13 @@
     }
 
     onMount(() => {
+        // "artist" as default sort
         if ($sort == "") $sort = "artist";
 
-        // initialize popups lol
-        create_extra_options_popup();
+        // setup popups
         create_pending_collection_select();
         create_new_collection_popup();
         create_merge_collections_popup();
-        create_missing_beatmaps_popup();
         create_export_collections_popup();
         create_export_beatmaps_popup();
     });
@@ -649,7 +584,7 @@
 
 <div class="content tab-content">
     <!-- more options -->
-    <Add callback={() => show_popup("extra", "collections")} />
+    <Add callback={() => show_popup("new", "collections")} />
     <Popup key="collections" />
     <div class="sidebar">
         <div class="sidebar-header">
@@ -690,7 +625,7 @@
             </ExpandableMenu>
         </div>
         <!-- render beatmap list -->
-        <Beatmaps carousel={true} tab_id={"collections"} {remove_callback} direction={"right"} {selected_collection} />
+        <Beatmaps carousel={true} show_missing={true} tab_id={"collections"} {remove_callback} direction={"right"} {selected_collection} />
     </div>
 </div>
 

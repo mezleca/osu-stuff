@@ -24,7 +24,6 @@ class CollectionManager {
         this.all_collections = writable([]);
         this.pending_collections = writable(DEFAULT_PENDING_DATA); // temp added via popup
         this.missing_beatmaps = writable([]); // temp added via popup
-        this.missing_collections = writable([]); // temp added via popup
         this.version = writable(0);
         this.query = writable("");
         this.selected = writable(DEFAULT_SELECTED_COLLECTION);
