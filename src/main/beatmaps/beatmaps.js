@@ -147,7 +147,12 @@ export const search_filter = (beatmap, query, search_filters) => {
             // check anyways
             if (!star_rating) break;
 
-            if (!validate_filter(star_rating[gamemode].nm, filter.o, thing)) {
+            // also shouldn't happen...
+            const nomod_star_rating = star_rating[gamemode];
+
+            if (!nomod_star_rating) break;
+
+            if (!validate_filter(nomod_star_rating.nm, filter.o, thing)) {
                 valid = false;
                 break;
             }
