@@ -313,7 +313,11 @@
     class="beatmaps-container"
     onmouseenter={() => (is_hovering = true)}
     onmouseleave={() => (is_hovering = false)}
-    onclick={() => list.clear_multi_selected()}
+    onclick={(event) => {
+        if (event.target === event.currentTarget) {
+            list.clear_multi_selected();
+        }
+    }}
 >
     <Popup key="beatmaps" />
 
