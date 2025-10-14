@@ -67,7 +67,11 @@
         collections.filter();
     };
 
-    const get_context_options = (collection) => {
+    const get_collections_options = () => {
+        return [{ id: "empty", text: "create collection" }];
+    };
+
+    const get_collection_options = (collection) => {
         return [
             { id: "merge", text: "merge collections" },
             { id: `rename${context_separator}${collection.name}`, text: "rename collection" },
@@ -108,7 +112,23 @@
         collections.add({ name: data.name, maps: new_beatmaps });
     };
 
-    const handle_context_menu = async (event) => {
+    const handle_collections_menu = async (event) => {
+        if (!event.detail) {
+            return;
+        }
+
+        const id = event.detail.id;
+
+        switch (id) {
+            case "empty":
+                show_popup("empty", "collections");
+                break;
+            default:
+                break;
+        }
+    };
+
+    const handle_collection_menu = async (event) => {
         if (!event.detail) {
             return;
         }
@@ -386,16 +406,11 @@
             return;
         }
 
-        if (data.empty_collection) {
-            collections.add({ name: data.name, maps: [] });
-            return;
-        }
-
-        if (type == "from file") {
+        if (type == "file") {
             handle_import_collections(data);
-        } else if (type == "from osu! collector") {
+        } else if (type == "osu! collector") {
             handle_from_osu_collector(data);
-        } else if (type == "from player") {
+        } else if (type == "player") {
             handle_from_player(data);
         }
     };
@@ -454,6 +469,17 @@
         popup_manager.register("merge", addon);
     };
 
+    const create_empty_collection_popup = () => {
+        const addon = new PopupAddon();
+
+        addon.add({ id: "name", type: "input", label: "name", value: "" });
+        addon.set_callback((data) => {
+            collections.add({ name: data.name, maps: [] });
+        });
+
+        popup_manager.register("empty", addon);
+    };
+
     const create_new_collection_popup = () => {
         const addon = new PopupAddon();
 
@@ -464,30 +490,24 @@
         addon.add({
             id: "player_container",
             type: "container",
-            show_when: [
-                { id: "collection_type", equals: "from player" },
-                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
-            ]
+            label: "player options",
+            show_when: [{ id: "collection_type", equals: "player" }]
         });
 
         // import collections container
         addon.add({
             id: "import_container",
             type: "container",
-            show_when: [
-                { id: "collection_type", equals: "from file" },
-                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
-            ]
+            label: "import options",
+            show_when: [{ id: "collection_type", equals: "file" }]
         });
 
         // osu! collector container
         addon.add({
             id: "collector_container",
             type: "container",
-            show_when: [
-                { id: "collection_type", equals: "from osu! collector" },
-                { id: "empty_collection", equals: false } // dont show if we're creatin a empty collection
-            ]
+            label: "collector options",
+            show_when: [{ id: "collection_type", equals: "osu! collector" }]
         });
 
         // file dialog
@@ -546,15 +566,10 @@
         addon.add({
             id: "collection_type",
             type: "dropdown",
-            label: "collection type",
-            text: "select collection type",
-            value: "",
-            data: ["from player", "from osu! collector", "from file"],
-            show_when: { id: "empty_collection", equals: false }
+            label: "from",
+            value: "osu! collector",
+            data: ["player", "osu! collector", "file"]
         });
-
-        // empty collection toggle
-        addon.add({ id: "empty_collection", type: "checkbox", label: "empty collection", value: true });
 
         addon.set_callback(handle_new_collection_popup);
         popup_manager.register("new", addon);
@@ -575,6 +590,7 @@
 
         // setup popups
         create_pending_collection_select();
+        create_empty_collection_popup();
         create_new_collection_popup();
         create_merge_collections_popup();
         create_export_collections_popup();
@@ -593,25 +609,27 @@
                 <button class="update-btn" onclick={() => collections.update()}>update</button>
             {/if}
         </div>
-        <div class="collections">
-            <!-- show collections -->
-            {#if $filtered_collections.length == 0}
-                <p>{$filtered_collections.length} results</p>
-            {:else}
-                {#each $filtered_collections as collection}
-                    <ContextMenu onclick={handle_context_menu} options={get_context_options(collection)} at="point">
-                        <CollectionCard
-                            name={collection.name}
-                            count={collection.maps.length ?? 0}
-                            edit={collection.edit}
-                            selected={$selected_collection?.name == collection.name}
-                            select_callback={() => collections.select(collection.name, false)}
-                            rename_callback={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
-                        />
-                    </ContextMenu>
-                {/each}
-            {/if}
-        </div>
+        <ContextMenu style={"height: 100%;"} options={get_collections_options()} onclick={handle_collections_menu} at="point">
+            <div class="collections">
+                <!-- show collections -->
+                {#if $filtered_collections.length == 0}
+                    <p>{$filtered_collections.length} results</p>
+                {:else}
+                    {#each $filtered_collections as collection}
+                        <ContextMenu onclick={handle_collection_menu} options={get_collection_options(collection)} at="point">
+                            <CollectionCard
+                                name={collection.name}
+                                count={collection.maps.length ?? 0}
+                                edit={collection.edit}
+                                selected={$selected_collection?.name == collection.name}
+                                select_callback={() => collections.select(collection.name, false)}
+                                rename_callback={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
+                            />
+                        </ContextMenu>
+                    {/each}
+                {/if}
+            </div>
+        </ContextMenu>
     </div>
     <div class="manager-content">
         <div class="content-header">
@@ -630,7 +648,14 @@
 </div>
 
 <style>
-    .collections p {
+    :global(.collections) {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 10px 70px 10px;
+        height: 100%;
+    }
+
+    :global(.collections p) {
         text-align: center;
     }
 

@@ -6,6 +6,7 @@
     import MenuItem from "./menu-item.svelte";
 
     export let options = [];
+    export let style = "";
     export let onclick = () => {};
     export let at = "point";
 
@@ -18,6 +19,8 @@
     let leave_timeout;
     let last_menu = null;
     let mouse_entered_menu = false;
+
+    const PADDING = 10;
 
     const resolve_options = async (options) => {
         try {
@@ -85,7 +88,6 @@
         const menu_rect = menu_element.getBoundingClientRect();
         const viewport_width = window.innerWidth;
         const viewport_height = window.innerHeight;
-        const PADDING = 10;
 
         let adjusted_x = position.x;
         let adjusted_y = position.y;
@@ -189,7 +191,7 @@
 
 {#if $$slots.default}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div oncontextmenu={handle_context_menu}>
+    <div {style} oncontextmenu={handle_context_menu}>
         <slot />
     </div>
 {/if}

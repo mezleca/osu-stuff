@@ -105,29 +105,36 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div bind:this={container} class="popup-container" class:show={is_active} onclick={close_on_backdrop}>
     {#if $active_popup}
-        <div class="popup-content">
-            {#each active_elements as element}
-                {#if element.type == "container" || is_confirm}
-                    <PopupRenderer {element} value={element.value} on_update={is_confirm ? handle_submit : update_element} on_toggle={toggle_button}>
+        <div class="popup">
+            <div class="content">
+                {#each active_elements as element}
+                    {#if element.type == "container" || is_confirm}
+                        <PopupRenderer
+                            {element}
+                            value={element.value}
+                            on_update={is_confirm ? handle_submit : update_element}
+                            on_toggle={toggle_button}
+                        >
+                            {#if element.children?.length > 0}
+                                {#each element.children as child}
+                                    <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
+                                {/each}
+                            {/if}
+                        </PopupRenderer>
+                    {:else}
+                        <PopupRenderer {element} value={element.value} on_update={update_element} on_toggle={toggle_button} />
                         {#if element.children?.length > 0}
-                            {#each element.children as child}
-                                <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
-                            {/each}
+                            <div class="children-container">
+                                {#each element.children as child}
+                                    <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
+                                {/each}
+                            </div>
                         {/if}
-                    </PopupRenderer>
-                {:else}
-                    <PopupRenderer {element} value={element.value} on_update={update_element} on_toggle={toggle_button} />
-                    {#if element.children?.length > 0}
-                        <div class="children-container">
-                            {#each element.children as child}
-                                <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
-                            {/each}
-                        </div>
                     {/if}
-                {/if}
-            {/each}
+                {/each}
+            </div>
             {#if $active_popup.popup.custom_action || !is_confirm}
-                <div class="popup-actions actions-separator">
+                <div class="actions actions-separator">
                     {#if $active_popup.popup.custom_action}
                         <button class="submit-btn" onclick={() => handle_submit($active_popup.popup.custom_submit)}
                             >{$active_popup.popup.custom_submit}</button
@@ -153,39 +160,52 @@
         left: 0;
         width: 100%;
         height: 100%;
-        justify-content: center;
-        align-items: center;
         z-index: 1000;
         background-color: #20202067;
         animation: smooth-appear 0.15s ease forwards;
     }
 
     .popup-container.show {
-        display: flex;
+        display: block;
     }
 
-    :global(.popup-content) {
+    .popup {
+        position: absolute;
+        display: grid;
+        grid-template-rows: 1fr 3.5em;
         padding: 20px;
         border-radius: 6px;
         background-color: var(--bg-tertiary);
         border: 1px solid rgb(90, 90, 90, 0.5);
-        min-width: 500px;
-        max-height: 85%;
-        max-width: 80%;
         overflow: hidden;
-        overflow-y: scroll;
-        margin-top: 50px;
+        width: 40%;
+        max-width: 70%;
+        max-height: 85%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 
-    .popup-actions {
+    .content::-webkit-scrollbar {
+        display: none;
+    }
+
+    .content {
+        overflow: hidden;
+        overflow-y: visible;
+        flex-direction: column;
+        background: var(--bg-tertiary);
+    }
+
+    .actions {
         display: flex;
         gap: 10px;
         justify-content: center;
     }
 
     .actions-separator {
-        margin-top: 20px;
-        padding-top: 15px;
+        margin-top: 10px;
+        padding-top: 10px;
         border-top: 1px solid #333;
     }
 

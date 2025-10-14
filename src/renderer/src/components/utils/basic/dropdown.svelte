@@ -5,6 +5,7 @@
     // props
     export let options = [];
     export let selected_value;
+    export let is_static = false;
     export let on_update;
     export let placeholder = "select an option";
 
@@ -47,7 +48,7 @@
         <div class="dropdown_arrow" class:active={is_open}></div>
     </button>
     {#if is_open}
-        <div class="dropdown_menu" transition:slide={{ duration: 100 }}>
+        <div class="dropdown_menu" class:static={is_static} transition:slide={{ duration: 100 }}>
             {#each options as option}
                 <button class="dropdown_item" onclick={() => select_option(option)} type="button">
                     {option.label || convert_special_key(option)}
@@ -108,16 +109,19 @@
     }
 
     .dropdown_menu {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
         background: #1a1a1a;
         border: 1px solid #333;
         border-radius: 4px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        z-index: 1000;
         overflow: hidden;
+    }
+
+    .dropdown_menu:not(.static) {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 1000;
     }
 
     .dropdown_item {

@@ -37,7 +37,7 @@
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
-        <Dropdown options={data} selected_value={value} placeholder={element.text} on_update={(val) => on_update(element.id, val)} />
+        <Dropdown is_static={true} options={data} selected_value={value} placeholder={element.text} on_update={(val) => on_update(element.id, val)} />
     {:else if element.type == "file-dialog"}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
@@ -137,7 +137,6 @@
         border-radius: 4px;
         background: #1a1a1a;
         transition: all 0.2s ease;
-        margin-bottom: 15px;
     }
 
     .container.inactive {
