@@ -37,7 +37,7 @@
 
     const list = list_manager || get_beatmap_list(tab_id);
     const popup_manager = get_popup_manager("beatmaps");
-    const { beatmaps, selected, list_id } = list;
+    const { beatmaps, selected, multi_selected, list_id } = list;
 
     let context_menu;
     let current_beatmap_hash = null; // store the current beatmap hash for context actions
@@ -89,16 +89,33 @@
 
     const move_to = (name, hash) => {
         const collection = collections.get(name);
+        const is_multiple = $multi_selected.length > 1;
 
         if (!collection) {
             show_notification({ type: "error", text: `failed to get ${name}` });
             return;
         }
 
-        if (!collection.maps.includes(hash)) {
-            collection.maps.push(hash);
+        let moved_something = false;
+
+        if (is_multiple) {
+            for (const map of $multi_selected) {
+                const actual_hash = map.md5;
+                if (collection.maps.includes(actual_hash)) continue;
+                collection.maps.push(actual_hash);
+                moved_something = true;
+            }
+        } else {
+            if (!collection.maps.includes(hash)) {
+                collection.maps.push(hash);
+                moved_something = true;
+            }
+        }
+
+        if (moved_something) {
             collections.replace(collection);
             collections.needs_update.set(true);
+            list.clear_multi_selected();
         }
     };
 
@@ -110,7 +127,13 @@
             return;
         }
 
-        list.select(hash, index);
+        // multi selecting
+        if (input.is_pressed("control")) {
+            list.multi_select(hash, index);
+        } else {
+            list.clear_multi_selected();
+            list.select(hash, index);
+        }
     };
 
     const open_on_browser = (beatmap) => {
@@ -132,24 +155,38 @@
         const action = event.detail;
         const id_parts = action.id.split("-");
         const type = id_parts[0];
+        const is_multiple = $multi_selected.length > 1;
 
         switch (type) {
             case "browser":
                 open_on_browser(beatmap);
                 break;
             case "export":
-                // single beatmap export
-                if (beatmap && beatmap.md5) {
-                    window.osu.export_beatmap(beatmap);
+                if (is_multiple) {
+                    for (const map of $multi_selected) {
+                        if (map.downloaded) {
+                            window.osu.export_beatmap(map);
+                        }
+                    }
+                } else {
+                    if (beatmap && beatmap.md5) {
+                        window.osu.export_beatmap(beatmap);
+                    }
                 }
                 break;
             case "move":
-                // move-CollectionName-BeatmapHash
                 const collection_name = id_parts.slice(1, -1).join("-"); // handle collection names with dashes
                 move_to(collection_name, beatmap.md5);
                 break;
             case "delete":
-                remove_beatmap(beatmap.md5);
+                if (is_multiple) {
+                    for (const map of $multi_selected) {
+                        remove_beatmap(map.md5);
+                    }
+                    list.clear_multi_selected();
+                } else {
+                    remove_beatmap(beatmap.md5);
+                }
                 break;
         }
     };
@@ -166,6 +203,8 @@
             return [];
         }
 
+        const suffix = $multi_selected.length > 1 ? "s" : "";
+
         const collections_name = $all_collections
             .filter((c) => ($selected_collection ? c.name != $selected_collection.name : true))
             .map((c) => ({ id: `move-${c.name}-${beatmap.md5}`, text: c.name }));
@@ -173,15 +212,15 @@
         const result = [{ id: "browser", text: "open in browser" }];
 
         if (collections_name.length > 0) {
-            result.push({ id: "move", text: "move beatmap to", data: collections_name });
+            result.push({ id: "move", text: `move beatmap${suffix} to`, data: collections_name });
         }
 
         if (!$should_hide_remove) {
-            result.push({ id: "delete", text: "delete beatmap" });
+            result.push({ id: "delete", text: `delete beatmap${suffix}` });
         }
 
         if (beatmap?.downloaded) {
-            result.push({ id: "export", text: "export beatmap" });
+            result.push({ id: "export", text: `export beatmap${suffix}` });
         }
 
         return result;
@@ -243,6 +282,15 @@
     };
 
     onMount(() => {
+        // select everything :D
+        input.on("control+a", () => {
+            for (let i = 0; i < $beatmaps.length; i++) {
+                const beatmap = $beatmaps[i];
+                if (!beatmap) continue;
+                list.multi_select(beatmap, i);
+            }
+        });
+
         // setup beatmap navigation
         input.on("ArrowLeft", () => handle_move_beatmap("previous"));
         input.on("ArrowRight", () => handle_move_beatmap("next"));
@@ -254,7 +302,7 @@
 
         // on destroy
         return () => {
-            input.remove("ArrowLeft", "ArrowRight");
+            input.remove("ArrowLeft", "ArrowRight", "control+a");
         };
     });
 </script>
@@ -296,10 +344,13 @@
     >
         <!-- get current md5 hash -->
         {@const hash = $beatmaps[index]}
+        {@const selected = hash && $selected.index != -1 ? $selected.md5 == hash : false}
+        {@const highlighted = hash && $multi_selected.length > 0 ? $multi_selected.some((i) => i.md5 == hash) : false}
 
         <!-- render beatmap card -->
         <BeatmapCard
-            selected={$selected}
+            {selected}
+            {highlighted}
             {hash}
             {show_bpm}
             {show_star_rating}

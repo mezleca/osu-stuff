@@ -51,6 +51,8 @@
             list.set_beatmaps(result, $query, false);
             list.update_list_id($selected_collection.name);
         }
+
+        list.clear_multi_selected();
     };
 
     // force list update

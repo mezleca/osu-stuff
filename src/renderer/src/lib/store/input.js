@@ -28,12 +28,10 @@ class InputManager {
         }
 
         // sort so we dont have order issues
-        const current_comb = Array.from(this.keys.values()).sort().join("+");
+        const current_comb = this._normalize_keys(Array.from(this.keys));
+        const callback = this.handlers.get(current_comb);
 
-        if (this.handlers.has(current_comb)) {
-            const comb_callback = this.handlers.get(current_comb);
-            if (typeof comb_callback == "function") comb_callback();
-        }
+        if (callback) callback();
     }
 
     /** @param {KeyboardEvent} event */
@@ -44,6 +42,12 @@ class InputManager {
         }
     }
 
+    is_pressed(keys) {
+        const normalized = this._normalize_keys(keys.split("+"));
+        const current = this._normalize_keys(Array.from(this.keys));
+        return normalized == current;
+    }
+
     on(keys, callback) {
         if (typeof keys != "string") {
             console.log("[input] expected string on keys paramater");
@@ -51,23 +55,28 @@ class InputManager {
         }
 
         // sort so we dont have order issues
-        const normalized_keys = keys.toLowerCase().split("+").sort().join("+");
+        const normalized_keys = this._normalize_keys(keys.split("+"));
         this.handlers.set(normalized_keys, callback);
     }
 
-    unregister(...comb) {
-        for (const keys of comb) {
+    unregister(...combinations) {
+        for (const keys of combinations) {
             // sort so we dont have order issues
-            const normalized_keys = keys.toLowerCase().split("+").sort().join("+");
-            if (this.handlers.has(normalized_keys)) {
-                this.handlers.delete(normalized_keys);
-            }
+            const normalized_keys = this._normalize_keys(keys.split("+"));
+            this.handlers.delete(normalized_keys);
         }
     }
 
     reset() {
         this.keys.clear();
         this.last_clicked_element = null;
+    }
+
+    _normalize_keys(keys) {
+        return keys
+            .map((k) => k.toLowerCase().trim())
+            .sort()
+            .join("+");
     }
 }
 
