@@ -82,10 +82,6 @@ class DiscoverManager extends BeatmapListBase {
         // theres no reason to enable beatmap selection here so lets leave it empty
     }
 
-    select_beatmap() {
-        // prevents beatmaps component error
-    }
-
     async find_item(beatmapsets, target_id) {
         return beatmapsets.find((set) => set.id == target_id) || null;
     }
@@ -100,7 +96,7 @@ class DiscoverManager extends BeatmapListBase {
     }
 
     select_beatmapset(beatmapset, index) {
-        this.select_item(beatmapset, index);
+        this.select(beatmapset, index);
     }
 
     bake_url(normalized_data) {

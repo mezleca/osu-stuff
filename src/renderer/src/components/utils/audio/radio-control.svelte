@@ -22,7 +22,7 @@
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
-    const { beatmaps, index, selected, invalid_selected } = radio_list;
+    const { beatmaps, selected, invalid_selected } = radio_list;
 
     let current_beatmap = null;
 
@@ -36,8 +36,8 @@
     $: repeat_active = audio_manager.repeat;
     $: should_force_random = audio_manager.force_random;
 
-    $: if ($selected) {
-        get_beatmap_data($selected).then((bm) => {
+    $: if ($selected.index != -1) {
+        get_beatmap_data($selected.md5).then((bm) => {
             current_beatmap = bm;
         });
     } else {
@@ -64,7 +64,7 @@
             return null;
         }
 
-        const current_index = $index;
+        const current_index = $selected.index;
         let next_idx = current_index;
 
         if ($invalid_selected) {
@@ -91,7 +91,7 @@
 
         // update selection (if changed)
         if (next_idx != current_index) {
-            radio_list.select_beatmap(beatmap_id, next_idx);
+            radio_list.select(beatmap_id, next_idx);
         }
 
         return beatmap_id;

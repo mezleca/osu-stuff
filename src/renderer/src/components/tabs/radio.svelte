@@ -68,8 +68,8 @@
     };
 
     // update selected map when hash changes
-    $: if ($selected) {
-        get_beatmap_data($selected).then((bm) => {
+    $: if ($selected.index != -1) {
+        get_beatmap_data($selected.md5).then((bm) => {
             selected_beatmap = bm;
             update_background_image();
         });
@@ -86,7 +86,7 @@
 
     onMount(() => {
         // always reset state if no beatmaps are selected
-        if (!$selected) {
+        if ($selected.index == -1) {
             audio.clean_audio();
         }
 
@@ -107,7 +107,7 @@
                 return;
             }
 
-            list.select_beatmap(data.hash, data.index);
+            list.select(data.hash, data.index);
             $previous_songs.pop();
         });
 

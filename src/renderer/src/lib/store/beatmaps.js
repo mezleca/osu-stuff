@@ -2,7 +2,7 @@ import { writable, get } from "svelte/store";
 import { get_beatmap_data, get_by_unique_id } from "../utils/beatmaps";
 import { collections } from "./collections";
 import { show_notification } from "./notifications";
-import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
+import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY, DEFAULT_SELECTED_MAP } from "./other";
 import { config } from "./config";
 
 export const mode_code = {
@@ -47,9 +47,9 @@ export class BeatmapListBase {
         this.last_options = null;
         this.last_result = null; // last beatmap array or something
         this.hide_remove = writable(false); // hide remove beatmap option from context menu
-        this.index = writable(-1); // index of selected?
         this.items = writable([]);
-        this.selected = writable(null);
+        this.selected = writable(DEFAULT_SELECTED_MAP);
+        this.multi_selected = writable([]);
         this.query = writable("");
         this.sort = writable("");
         this.current_key = null;
@@ -83,22 +83,27 @@ export class BeatmapListBase {
         throw new Error("find_item is not implement yet");
     }
 
-    select_item(item, index) {
+    select(md5, index) {
         const old_selected = get(this.selected);
 
-        if (old_selected && this.is_same_item(item, old_selected)) {
-            this.selected.set(null);
-            this.index.set(-1);
+        if (old_selected && this.is_same_item(md5, old_selected)) {
+            this.selected.set(DEFAULT_SELECTED_MAP);
             return;
         }
 
-        this.selected.set(item);
-        this.index.set(index);
+        this.selected.set({ index, md5 });
     }
 
-    remove_selected() {
-        this.selected.set(null);
-        this.index.set(-1);
+    multi_select(item, index) {
+        this.multi_selected.update((old) => [...old, { item, index }]);
+    }
+
+    clear_selected() {
+        this.selected.set(DEFAULT_SELECTED_MAP);
+    }
+
+    clear_multi_selected() {
+        this.multi_selected.set([]);
     }
 
     is_same_item(item1, item2) {
@@ -126,8 +131,7 @@ export class BeatmapListBase {
     clear() {
         // clear stores
         this.items.set([]);
-        this.selected.set(null);
-        this.index.set(-1);
+        this.selected.set(DEFAULT_SELECTED_MAP);
 
         // clear normal values
         this.last_options = null;
@@ -174,7 +178,7 @@ class BeatmapList extends BeatmapListBase {
             }
         } catch (error) {
             console.log(error);
-            this.selected.set(null);
+            this.selected.set(DEFAULT_SELECTED_MAP);
         }
     }
 
@@ -329,10 +333,6 @@ class BeatmapList extends BeatmapListBase {
         }
 
         return null;
-    }
-
-    select_beatmap(beatmap, index) {
-        this.select_item(beatmap, index);
     }
 
     update_range(data) {
