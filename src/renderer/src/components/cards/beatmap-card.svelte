@@ -12,7 +12,8 @@
     import HeartFill from "../icon/heart-fill.svelte";
     import PlayCircle from "../icon/play-circle.svelte";
 
-    export let selected = null,
+    export let selected = false,
+        highlighted = false,
         hash = null,
         show_bpm = true,
         show_star_rating = true,
@@ -33,8 +34,6 @@
     let beatmap_loaded = false;
     let image_loaded = false;
     let image_src = "";
-
-    $: is_selected = beatmap && selected.index != -1 ? selected.md5 == beatmap.md5 : false;
 
     const get_image_source = async () => {
         if (!beatmap) {
@@ -114,7 +113,8 @@
 {:else}
     <div
         class="small-card"
-        class:selected={is_selected}
+        class:selected
+        class:highlighted
         class:loaded={image_loaded}
         onclick={handle_click}
         oncontextmenu={handle_context}
@@ -195,6 +195,10 @@
 
     .selected {
         border-color: var(--accent-color);
+    }
+
+    .highlighted {
+        border-color: var(--accent-hover);
     }
 
     .bg-img:not([src]),

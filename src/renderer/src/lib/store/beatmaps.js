@@ -94,8 +94,15 @@ export class BeatmapListBase {
         this.selected.set({ index, md5 });
     }
 
-    multi_select(item, index) {
-        this.multi_selected.update((old) => [...old, { item, index }]);
+    multi_select(md5, index) {
+        this.multi_selected.update((old) => {
+            const has_beatmap = old.some((beatmap) => beatmap.md5 == md5);
+            if (has_beatmap) {
+                return old.filter((beatmap) => beatmap.md5 != md5);
+            } else {
+                return [...old, { index, md5 }];
+            }
+        });
     }
 
     clear_selected() {
