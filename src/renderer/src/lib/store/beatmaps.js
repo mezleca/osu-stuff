@@ -98,12 +98,12 @@ export class BeatmapListBase {
         this.multi_selected.update((old) => {
             const has_beatmap = old.some((beatmap) => beatmap.md5 == md5);
             if (has_beatmap) {
-                return old.filter((beatmap) => beatmap.md5 == md5);
+                return old.filter((beatmap) => beatmap.md5 != md5);
             } else {
                 return [...old, { index, md5 }];
             }
-        });
-    }
+    });
+}
 
     clear_selected() {
         this.selected.set(DEFAULT_SELECTED_MAP);
