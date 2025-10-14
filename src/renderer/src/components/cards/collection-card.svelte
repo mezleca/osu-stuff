@@ -71,5 +71,6 @@
         color: #666;
         font-size: 12px;
         white-space: nowrap;
+        margin-left: 5px;
     }
 </style>

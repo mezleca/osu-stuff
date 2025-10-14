@@ -142,12 +142,6 @@ main {
     flex-shrink: 0;
 }
 
-.collections {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 10px 70px 10px;
-}
-
 .content {
     flex: 1;
     display: flex;
