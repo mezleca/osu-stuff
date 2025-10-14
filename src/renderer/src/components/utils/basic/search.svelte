@@ -1,4 +1,6 @@
 <script>
+    import { is_typing } from "../../../lib/store/other";
+
     // search svg
     import Search from "../../icon/search-icon.svelte";
 
@@ -13,7 +15,7 @@
 
 <div class="search-container">
     <Search />
-    <input type="text" class="search-input" {placeholder} bind:value />
+    <input {placeholder} type="text" class="search-input" onfocus={() => is_typing.set(true)} onblur={() => is_typing.set(false)} bind:value />
 </div>
 
 <style>

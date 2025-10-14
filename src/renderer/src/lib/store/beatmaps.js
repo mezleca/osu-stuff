@@ -98,13 +98,13 @@ export class BeatmapListBase {
         this.multi_selected.update((old) => {
             const hash_set = new Set(hashes);
             const filtered = should_toggle ? old.filter((md5) => !hash_set.has(md5)) : old;
-            
+
             for (const hash of hashes) {
                 if (!old.includes(hash)) {
                     filtered.push(hash);
                 }
             }
-            
+
             return filtered;
         });
     }

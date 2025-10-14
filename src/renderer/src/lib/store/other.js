@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 
+export const is_typing = writable(false);
 export const is_maximized = writable(false);
 export const active_tab = writable("");
 

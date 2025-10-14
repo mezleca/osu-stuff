@@ -13,6 +13,7 @@
     import BeatmapCard from "./cards/beatmap-card.svelte";
     import ContextMenu from "./utils/context-menu.svelte";
     import Popup from "./utils/popup/popup.svelte";
+    import { is_typing } from "../lib/store/other";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
@@ -40,6 +41,7 @@
     const { beatmaps, selected, multi_selected, list_id } = list;
 
     let context_menu;
+    let is_hovering = false;
     let current_beatmap_hash = null; // store the current beatmap hash for context actions
 
     $: missing_beatmaps = collections.missing_beatmaps;
@@ -283,6 +285,9 @@
     onMount(() => {
         // select everything :D
         input.on("control+a", () => {
+            // prevent selection on other place
+            // ex: selecting all chars on the input field
+            if (!is_hovering || $is_typing) return;
             list.multi_select($beatmaps, false);
         });
 
@@ -302,7 +307,14 @@
     });
 </script>
 
-<div class="beatmaps-container">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+    class="beatmaps-container"
+    onmouseenter={() => (is_hovering = true)}
+    onmouseleave={() => (is_hovering = false)}
+    onclick={() => list.clear_multi_selected()}
+>
     <Popup key="beatmaps" />
 
     <!-- render beatmap matches-->
@@ -355,7 +367,7 @@
             {show_control}
             {show_remove}
             control={(type) => handle_control(type, hash)}
-            on_click={() => handle_click(hash, index)}
+            on_click={(event) => handle_click(hash, index)}
             on_context={(e) => on_context(e, hash)}
         />
     </VirtualList>
