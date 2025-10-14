@@ -37,7 +37,7 @@
 
     const list = list_manager || get_beatmap_list(tab_id);
     const popup_manager = get_popup_manager("beatmaps");
-    const { beatmaps, selected, list_id, index } = list;
+    const { beatmaps, selected, list_id } = list;
 
     let context_menu;
     let current_beatmap_hash = null; // store the current beatmap hash for context actions
@@ -81,7 +81,7 @@
 
         // if the map has previously selected, deselect
         if ($selected == hash) {
-            list.remove_selected();
+            list.clear_selected();
         }
 
         remove_callback(hash);
@@ -110,7 +110,7 @@
             return;
         }
 
-        list.select_beatmap(hash, index);
+        list.select(hash, index);
     };
 
     const open_on_browser = (beatmap) => {
@@ -188,7 +188,8 @@
     };
 
     const handle_move_beatmap = async (direction) => {
-        const new_index = direction == "previous" ? $index - 1 : $index + 1;
+        const index = $selected.index;
+        const new_index = direction == "previous" ? index - 1 : index + 1;
 
         if ((direction == "previous" && new_index < 0) || (direction == "next" && new_index > $beatmaps.length)) {
             console.log("not updating selected beatmap (reached list limit):", new_index);
@@ -196,7 +197,7 @@
         }
 
         const hash = $beatmaps[new_index];
-        list.select_beatmap(hash, new_index);
+        list.select(hash, new_index);
     };
 
     const handle_missing_beatmaps = async (data) => {
@@ -284,7 +285,7 @@
         width="100%"
         height="100%"
         item_height={height}
-        selected={$index}
+        selected={$selected.index}
         {max_width}
         {carousel}
         {tab_id}

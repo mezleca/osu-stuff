@@ -5,6 +5,7 @@ export const active_tab = writable("");
 
 // for collections / beatmmaps filter system
 export const DEFAULT_SORT_OPTIONS = ["artist", "title", "duration"];
+export const DEFAULT_SELECTED_MAP = Object.freeze({ index: -1, md5: null });
 export const DEFAULT_STATUS_TYPES = ["graveyard", "pending", "wip", "ranked", "qualified", "loved"];
 export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
 export const ALL_STATUS_KEY = "@stuff:__all_status__";
