@@ -155,11 +155,6 @@ const start_electron_process = () => {
     });
 };
 
-const watch = async () => {
-    await start_renderer_server();
-    await start_electron_process();
-};
-
 const cleanup = async () => {
     // prevent new calls
     if (IS_SHUTTING_DOWN) {
@@ -234,8 +229,9 @@ const cleanup = async () => {
             await build_renderer_files();
             break;
         case "watch":
+            await start_renderer_server();
             await build_electron_files();
-            await watch();
+            await start_electron_process();
             break;
     }
 
