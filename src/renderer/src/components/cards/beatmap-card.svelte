@@ -73,7 +73,8 @@
         }
     };
 
-    const handle_click = () => {
+    const handle_click = (event) => {
+        event.stopPropagation();
         if (beatmap && on_click) on_click();
     };
 
@@ -116,7 +117,7 @@
         class:selected
         class:highlighted
         class:loaded={image_loaded}
-        onclick={handle_click}
+        onclick={(event) => handle_click(event)}
         oncontextmenu={handle_context}
         bind:this={card_element}
     >
