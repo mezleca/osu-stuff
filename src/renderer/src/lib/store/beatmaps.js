@@ -102,8 +102,8 @@ export class BeatmapListBase {
             } else {
                 return [...old, { index, md5 }];
             }
-    });
-}
+        });
+    }
 
     clear_selected() {
         this.selected.set(DEFAULT_SELECTED_MAP);
