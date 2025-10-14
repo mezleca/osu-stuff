@@ -94,14 +94,18 @@ export class BeatmapListBase {
         this.selected.set({ index, md5 });
     }
 
-    multi_select(md5, index) {
+    multi_select(hashes, should_toggle) {
         this.multi_selected.update((old) => {
-            const has_beatmap = old.some((beatmap) => beatmap.md5 == md5);
-            if (has_beatmap) {
-                return old.filter((beatmap) => beatmap.md5 != md5);
-            } else {
-                return [...old, { index, md5 }];
+            const hash_set = new Set(hashes);
+            const filtered = should_toggle ? old.filter((md5) => !hash_set.has(md5)) : old;
+            
+            for (const hash of hashes) {
+                if (!old.includes(hash)) {
+                    filtered.push(hash);
+                }
             }
+            
+            return filtered;
         });
     }
 

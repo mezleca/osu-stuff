@@ -99,8 +99,7 @@
         let moved_something = false;
 
         if (is_multiple) {
-            for (const map of $multi_selected) {
-                const actual_hash = map.md5;
+            for (const actual_hash of $multi_selected) {
                 if (collection.maps.includes(actual_hash)) continue;
                 collection.maps.push(actual_hash);
                 moved_something = true;
@@ -129,7 +128,7 @@
 
         // multi selecting
         if (input.is_pressed("control")) {
-            list.multi_select(hash, index);
+            list.multi_select([hash], true);
         } else {
             list.clear_multi_selected();
             list.select(hash, index);
@@ -163,9 +162,9 @@
                 break;
             case "export":
                 if (is_multiple) {
-                    for (const map of $multi_selected) {
+                    for (const md5 of $multi_selected) {
                         if (map.downloaded) {
-                            window.osu.export_beatmap(map);
+                            window.osu.export_beatmap({ md5 });
                         }
                     }
                 } else {
@@ -180,8 +179,8 @@
                 break;
             case "delete":
                 if (is_multiple) {
-                    for (const map of $multi_selected) {
-                        remove_beatmap(map.md5);
+                    for (const md5 of $multi_selected) {
+                        remove_beatmap(md5);
                     }
                     list.clear_multi_selected();
                 } else {
@@ -284,11 +283,7 @@
     onMount(() => {
         // select everything :D
         input.on("control+a", () => {
-            for (let i = 0; i < $beatmaps.length; i++) {
-                const beatmap = $beatmaps[i];
-                if (!beatmap) continue;
-                list.multi_select(beatmap, i);
-            }
+            list.multi_select($beatmaps, false);
         });
 
         // setup beatmap navigation
@@ -345,7 +340,7 @@
         <!-- get current md5 hash -->
         {@const hash = $beatmaps[index]}
         {@const selected = hash && $selected.index != -1 ? $selected.md5 == hash : false}
-        {@const highlighted = hash && $multi_selected.length > 0 ? $multi_selected.some((i) => i.md5 == hash) : false}
+        {@const highlighted = hash && $multi_selected.length > 0 ? $multi_selected.includes(hash) : false}
 
         <!-- render beatmap card -->
         <BeatmapCard
