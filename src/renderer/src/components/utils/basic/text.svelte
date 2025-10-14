@@ -19,7 +19,7 @@
 
     // automatically focus on edit
     $: if (element && edit) {
-        input.on("mouse1", () => release(true));
+        input.on("escape", () => release(true));
         input.on("enter", () => release(false));
         element.focus();
     }
@@ -41,7 +41,7 @@
     });
 
     onDestroy(() => {
-        input.unregister("mouse1", "enter");
+        input.unregister("enter", "escape");
     });
 </script>
 
