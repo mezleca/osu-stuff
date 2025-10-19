@@ -21,6 +21,7 @@ export const stable_beatmap_status = {
     [7]: "loved"
 };
 
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const MAX_CACHE_SIZE = 100;
 
 export class Reader extends BinaryReader {
@@ -527,23 +528,35 @@ export class Reader extends BinaryReader {
                 return result;
             }
 
+            if (!Number.isInteger(data.version)) {
+                result.reason = "invalid or missing version";
+                return result;
+            }
+
             const buffer = [];
 
             buffer.push(this.writeInt(data.version));
             buffer.push(this.writeInt(data.collections.length));
 
             for (const collection of data.collections) {
-                buffer.push(this.writeString(collection.name));
-                buffer.push(this.writeInt(collection.maps.length));
+                buffer.push(this.writeString(collection?.name || ""));
+                const maps = Array.isArray(collection?.maps) ? collection.maps : null;
+
+                if (!maps) {
+                    result.reason = `invalid collection maps for: ${collection?.name ?? "<unknown>"}`;
+                    return result;
+                }
+
+                buffer.push(this.writeInt(maps.length));
 
                 // validate and write in a single pass
-                for (let i = 0; i < collection.maps.length; i++) {
-                    const map = collection.maps[i];
-                    if (!map) {
-                        result.reason = `invalid hash in collection: ${collection.name}`;
+                for (let i = 0; i < maps.length; i++) {
+                    const hash = maps[i];
+                    if (!hash || typeof hash != "string") {
+                        result.reason = `invalid hash in collection: ${collection?.name ?? "<unknown>"} (index ${i})`;
                         return result;
                     }
-                    buffer.push(this.writeString(map));
+                    buffer.push(this.writeString(hash));
                 }
             }
 
@@ -610,7 +623,7 @@ export class Reader extends BinaryReader {
     };
 
     parse_osu_section = (content, section_name) => {
-        const section_regex = new RegExp(`\\[${section_name}\\]([^[]*)`);
+        const section_regex = new RegExp(`^\\[${escapeRegExp(section_name)}\\][\\r\\n]+([\\s\\S]*?)(?=^\\[|\\Z)`, "m");
         const match = content.match(section_regex);
 
         if (!match) {
@@ -626,19 +639,28 @@ export class Reader extends BinaryReader {
         return KEY_VALUE_SECTIONS.includes(section_name);
     };
 
-    parse_key_value_section = (section_content) =>
-        section_content.split("\n").reduce((result, line) => {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith("//")) {
-                return result;
-            }
+    parse_key_value_section = (section_content) => {
+        const result = {};
+        const lines = section_content.split(/\r?\n/);
 
-            const [key, value] = trimmed.split(":").map((str) => str.trim());
-            if (key && value) {
-                result[key] = value;
-            }
-            return result;
-        }, {});
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // skip empty lines and comments
+            if (!line || line.startsWith("//")) continue;
+
+            const colon_idx = line.indexOf(":");
+            if (colon_idx === -1) continue;
+
+            const key = line.slice(0, colon_idx).trim();
+            if (!key) continue;
+
+            const value = line.slice(colon_idx + 1).trim();
+            result[key] = value;
+        }
+
+        return result;
+    };
 
     parse_section = (section_content) =>
         section_content.split("\n").filter((line) => {

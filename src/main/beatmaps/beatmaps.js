@@ -282,7 +282,7 @@ export const sort_beatmaps = (beatmaps, type) => {
         }
 
         // only normalize if both values exist
-        return normalize_text(a_val).localeCompare(normalize_text(b_val));
+        return normalize_text(b_val).localeCompare(normalize_text(b_val));
     };
 
     const compare_number = (a_val, b_val) => {
