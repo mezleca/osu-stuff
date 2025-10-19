@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 
 // notifications
 export const notifications_store = writable([]);
-const timeouts = new Set();
+const timeouts = new Map();
 
 const DEFAULT_NOTIFICATION = Object.freeze({
     type: "info",
@@ -11,8 +11,8 @@ const DEFAULT_NOTIFICATION = Object.freeze({
 });
 
 const start_timeout = (id, duration) => {
-    timeouts.add(n.id);
-    setTimeout(() => remove_notification(id), duration);
+    const timeout = setTimeout(() => remove_notification(id), duration);
+    timeouts.add(n.id, timeout);
 };
 
 /** @param {{ id: string, type: string, duration: number, text: string}} data */
@@ -71,5 +71,5 @@ export const finish_notification = (id) => {
 // remove notification without caring about timeout / persist
 export const remove_notification = (id) => {
     notifications_store.update((all) => all.filter((n) => n.id != id));
-    timeouts.remove(id);
+    timeouts.delete(id);
 };
