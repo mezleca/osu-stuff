@@ -465,6 +465,12 @@ export const get_beatmaps_from_database = async (force) => {
     // process beatmaps with indexer for additional data
     const processed_beatmaps = await process_beatmaps(result.beatmaps);
 
+    // ensure we have a valid map
+    if (!processed_beatmaps) {
+        console.error("[get beatmaps] failed to process beatmaps");
+        return false;
+    }
+
     // update beatmap manager with processed data
     beatmap_manager.process_beatmaps(processed_beatmaps);
 
