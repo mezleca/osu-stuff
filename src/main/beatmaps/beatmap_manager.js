@@ -180,64 +180,77 @@ export class BeatmapManager {
     }
 
     filter_beatmaps(criteria = {}) {
+        // return all beatmaps if no criteria
+        if (Object.keys(criteria).length === 0) {
+            return Array.from(this.beatmaps.keys());
+        }
+
         const results = [];
-
         for (const beatmap of this.beatmaps.values()) {
-            let matches = true;
-
-            if (criteria.status && beatmap.status_text != criteria.status) {
-                matches = false;
+            if (criteria.status && beatmap.status_text !== criteria.status) {
+                continue;
             }
 
-            if (criteria.mode != undefined && beatmap.mode != criteria.mode) {
-                matches = false;
+            if (criteria.mode !== undefined && beatmap.mode !== criteria.mode) {
+                continue;
             }
 
-            if (criteria.downloaded != undefined && beatmap.downloaded != criteria.downloaded) {
-                matches = false;
+            if (criteria.downloaded !== undefined && beatmap.downloaded !== criteria.downloaded) {
+                continue;
             }
 
-            if (criteria.beatmapset_id && beatmap.beatmapset_id != criteria.beatmapset_id) {
-                matches = false;
+            if (criteria.beatmapset_id && beatmap.beatmapset_id !== criteria.beatmapset_id) {
+                continue;
             }
 
-            if (matches) {
-                results.push(beatmap.md5);
-            }
+            results.push(beatmap.md5);
         }
 
         return results;
     }
 
     filter_beatmapsets(criteria = {}) {
-        const results = [];
-
-        for (const beatmapset of this.beatmapsets.values()) {
-            let matches = true;
-
-            if (criteria?.artist && !(beatmapset.artist ?? "").toLowerCase().includes(criteria.artist.toLowerCase())) {
-                matches = false;
-            }
-
-            if (criteria?.title && !(beatmapset.title ?? "").toLowerCase().includes(criteria.title.toLowerCase())) {
-                matches = false;
-            }
-
-            if (criteria?.mapper && !(beatmapset.mapper ?? "").toLowerCase().includes(criteria.mapper.toLowerCase())) {
-                matches = false;
-            }
-
-            if (criteria?.downloaded != undefined && beatmapset.downloaded != criteria.downloaded) {
-                matches = false;
-            }
-
-            if (matches) {
+        // if we dont have any criteria, just process them without checking
+        if (Object.keys(criteria).length == 0) {
+            const results = [];
+            for (const beatmapset of this.beatmapsets.values()) {
                 results.push({
                     beatmapset_id: beatmapset.beatmapset_id,
                     md5: beatmapset.md5,
                     beatmaps: beatmapset.beatmaps.map((b) => b.md5)
                 });
             }
+            return results;
+        }
+
+        // pre-process text criteria to avoid repeated toLowerCase calls
+        const artist_query = criteria.artist?.toLowerCase();
+        const title_query = criteria.title?.toLowerCase();
+        const mapper_query = criteria.mapper?.toLowerCase();
+
+        const results = [];
+        for (const beatmapset of this.beatmapsets.values()) {
+            if (artist_query && !(beatmapset.artist || "").toLowerCase().includes(artist_query)) {
+                continue;
+            }
+
+            if (title_query && !(beatmapset.title || "").toLowerCase().includes(title_query)) {
+                continue;
+            }
+
+            if (mapper_query && !(beatmapset.mapper || "").toLowerCase().includes(mapper_query)) {
+                continue;
+            }
+
+            if (criteria.downloaded !== undefined && beatmapset.downloaded !== criteria.downloaded) {
+                continue;
+            }
+
+            results.push({
+                beatmapset_id: beatmapset.beatmapset_id,
+                md5: beatmapset.md5,
+                beatmaps: beatmapset.beatmaps.map((b) => b.md5)
+            });
         }
 
         return results;
