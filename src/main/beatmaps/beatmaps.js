@@ -137,7 +137,6 @@ export const search_filter = (beatmap, query, search_filters) => {
         const key = get_key(filter.k);
         const gamemode = beatmap.mode;
 
-        // @TOFIX: still kinda hacky
         if (key == "star_rating") {
             const star_rating = beatmap?.[key];
 
@@ -270,36 +269,31 @@ const normalize_text = (text) => {
 
 // sort beatmaps by type (descending)
 export const sort_beatmaps = (beatmaps, type) => {
-    // mhm
     if (!TEXT_SORT_KEYS.includes(type) && !NUMBER_SORT_KEYS.includes(type)) {
         return beatmaps;
     }
 
-    const result = beatmaps.sort((a, b) => {
-        if (TEXT_SORT_KEYS.includes(type)) {
-            const a_val = normalize_text(a[type]);
-            const b_val = normalize_text(b[type]);
+    const compare_text = (a_val, b_val) => {
+        const a_empty = !a_val;
+        const b_empty = !b_val;
 
-            // push empty/invalid values to the end
-            if (!a_val && b_val) return 1;
-            if (a_val && !b_val) return -1;
-            if (!a_val && !b_val) return 0;
-
-            return a_val.localeCompare(b_val);
-        } else {
-            const a_val = a[type] || 0;
-            const b_val = b[type] || 0;
-
-            // push null/undefined values to the end
-            if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
-            if (a_val != null && a_val != undefined && (b_val == null || b_val == undefined)) return -1;
-            if ((a_val == null || a_val == undefined) && (b_val == null || b_val == undefined)) return 0;
-
-            return b_val - a_val;
+        if (a_empty || b_empty) {
+            return a_empty && b_empty ? 0 : a_empty ? 1 : -1;
         }
-    });
 
-    return result;
+        // only normalize if both values exist
+        return normalize_text(a_val).localeCompare(normalize_text(b_val));
+    };
+
+    const compare_number = (a_val, b_val) => {
+        const a_num = Number(a_val) || 0;
+        const b_num = Number(b_val) || 0;
+        return b_num - a_num;
+    };
+
+    const comparator = TEXT_SORT_KEYS.includes(type) ? (a, b) => compare_text(a[type], b[type]) : (a, b) => compare_number(a[type], b[type]);
+
+    return beatmaps.sort(comparator);
 };
 
 export const filter_by_sr = (beatmap, min, max) => {
@@ -357,7 +351,7 @@ export const get_missing_beatmaps = (beatmaps) => {
 };
 
 export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
-    if (!beatmap_manager.has_beatmaps()) {
+    if (!beatmap_manager.has_beatmaps() || !list) {
         return [];
     }
 
