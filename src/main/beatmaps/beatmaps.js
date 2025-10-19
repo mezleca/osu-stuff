@@ -357,7 +357,7 @@ export const get_missing_beatmaps = (beatmaps) => {
 };
 
 export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
-    if (!beatmap_manager.beatmaps || beatmap_manager.beatmaps.size === 0) {
+    if (!beatmap_manager.has_beatmaps()) {
         return [];
     }
 

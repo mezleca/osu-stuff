@@ -37,6 +37,10 @@ export class BeatmapManager {
         return true;
     }
 
+    has_beatmaps() {
+        return this.beatmaps && this.beatmaps.size > 0;
+    }
+
     process_beatmaps(beatmaps_map) {
         this.beatmaps.clear();
         this.beatmapsets.clear();
@@ -129,6 +133,7 @@ export class BeatmapManager {
             // create new beatmapset
             this.beatmapsets.set(beatmapset_id, {
                 beatmapset_id: beatmapset_id,
+                md5: md5,
                 artist: beatmap.artist,
                 artist_unicode: beatmap.artist_unicode,
                 title: beatmap.title,
@@ -210,15 +215,15 @@ export class BeatmapManager {
         for (const beatmapset of this.beatmapsets.values()) {
             let matches = true;
 
-            if (criteria?.artist && !beatmapset.artist.toLowerCase().includes(criteria.artist.toLowerCase())) {
+            if (criteria?.artist && !(beatmapset.artist ?? "").toLowerCase().includes(criteria.artist.toLowerCase())) {
                 matches = false;
             }
 
-            if (criteria?.title && !beatmapset.title.toLowerCase().includes(criteria.title.toLowerCase())) {
+            if (criteria?.title && !(beatmapset.title ?? "").toLowerCase().includes(criteria.title.toLowerCase())) {
                 matches = false;
             }
 
-            if (criteria?.mapper && !beatmapset.mapper.toLowerCase().includes(criteria.mapper.toLowerCase())) {
+            if (criteria?.mapper && !(beatmapset.mapper ?? "").toLowerCase().includes(criteria.mapper.toLowerCase())) {
                 matches = false;
             }
 

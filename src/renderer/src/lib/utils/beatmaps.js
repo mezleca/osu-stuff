@@ -48,7 +48,7 @@ const get_beatmapset = async (id) => {
     }
 
     osu_beatmaps.add(id, result);
-    return result.beatmap;
+    return result;
 };
 
 export const get_beatmap_data = async (md5) => {
