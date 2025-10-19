@@ -4,7 +4,6 @@ import { writable } from "svelte/store";
 export const notifications_store = writable([]);
 
 const DEFAULT_NOTIFICATION = Object.freeze({
-    id: crypto.randomUUID(),
     type: "info",
     persist: false,
     duration: 5000
@@ -16,7 +15,7 @@ const start_timeout = (id, duration) => {
 
 /** @param {{ id: string, type: string, duration: number, text: string}} data */
 export const show_notification = (data) => {
-    const notification = Object.assign({ ...DEFAULT_NOTIFICATION }, data);
+    const notification = Object.assign({ ...DEFAULT_NOTIFICATION, id: crypto.randomUUID() }, data);
 
     // use default object for text only data
     if (typeof data == "string") {
@@ -30,7 +29,7 @@ export const show_notification = (data) => {
 
     // only show timeout if we're not persisting
     if (!notification.persist) {
-        start_timeout(notification.id);
+        start_timeout(notification.id, notification.duration);
     }
 };
 
