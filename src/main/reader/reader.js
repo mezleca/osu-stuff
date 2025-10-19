@@ -272,7 +272,9 @@ export class Reader extends BinaryReader {
             console.log("[reader] reading lazer data...");
             try {
                 await this.get_instance(file_path, ALL_SCHEMAS);
-                return lazer_to_osu_db(this.instance);
+                const lazer_data = lazer_to_osu_db(this.instance);
+
+                return lazer_data;
             } catch (err) {
                 this.instance = null;
                 console.log(err);

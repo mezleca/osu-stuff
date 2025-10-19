@@ -256,7 +256,9 @@ class BeatmapList extends BeatmapListBase {
             return this.last_result;
         }
 
-        const result = await window.osu.filter_beatmaps(beatmaps, query, options);
+        const result = options.set
+            ? await window.osu.filter_beatmapsets(beatmaps, query, options)
+            : await window.osu.filter_beatmaps(beatmaps, query, options);
 
         if (!result) {
             show_notification({ type: "error", text: "failed to filter beatmaps" });

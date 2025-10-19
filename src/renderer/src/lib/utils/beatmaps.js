@@ -34,9 +34,30 @@ const get_beatmap = async (id, is_unique_id) => {
     return result.beatmap;
 };
 
+const get_beatmapset = async (id) => {
+    const cached = osu_beatmaps.get(id);
+
+    if (cached) {
+        return cached;
+    }
+
+    const result = await window.osu.get_beatmapset_by_id(id);
+
+    if (!result) {
+        return {};
+    }
+
+    osu_beatmaps.add(id, result);
+    return result.beatmap;
+};
+
 export const get_beatmap_data = async (md5) => {
     if (typeof md5 == "object") return md5; // discover
     return await get_beatmap(md5, false);
+};
+
+export const get_beatmapset_data = async (id) => {
+    return await get_beatmapset(id);
 };
 
 export const get_by_unique_id = async (id) => {

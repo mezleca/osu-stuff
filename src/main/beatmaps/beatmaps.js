@@ -1,6 +1,7 @@
 import { config } from "../database/config";
 import { process_beatmaps } from "../database/indexer";
 import { reader } from "../reader/reader";
+import { beatmap_manager } from "./beatmap_manager.js";
 
 import fs from "fs";
 import path from "path";
@@ -11,8 +12,6 @@ export const MAX_STAR_RATING_VALUE = 10; // lazer
 // sort shit
 const TEXT_SORT_KEYS = ["title", "artist"];
 const NUMBER_SORT_KEYS = ["duration", "length", "ar", "cs", "od", "hp"];
-
-let osu_data = null;
 
 // get nm star rating based on gamemode
 export const get_beatmap_sr = (beatmap, gamemode = 0) => {
@@ -181,7 +180,7 @@ export const filter_beatmap = (beatmap, query) => {
 };
 
 export const get_playername = () => {
-    return osu_data.player_name;
+    return beatmap_manager.player_name;
 };
 
 export const minify_beatmap_result = (result) => {
@@ -206,7 +205,7 @@ export const minify_beatmap_result = (result) => {
 };
 
 export const get_beatmap_by_md5 = (md5) => {
-    const result = osu_data.beatmaps.get(md5);
+    const result = beatmap_manager.get_beatmap_by_md5(md5);
 
     if (!result) {
         return false;
@@ -216,20 +215,13 @@ export const get_beatmap_by_md5 = (md5) => {
 };
 
 export const get_beatmaps_by_id = (id) => {
-    const beatmaps = [];
-    for (const [_, beatmap] of osu_data.beatmaps) {
-        if (beatmap.unique_id == id) {
-            beatmaps.push(beatmap);
-        }
-    }
-    return beatmaps;
+    return beatmap_manager.get_beatmaps_by_unique_id(id);
 };
 
 export const get_beatmap_by_set_id = (id) => {
-    for (const [_, beatmap] of osu_data.beatmaps) {
-        if (beatmap.beatmapset_id == id) {
-            return minify_beatmap_result(beatmap);
-        }
+    const beatmaps = beatmap_manager.get_beatmaps_from_set(id);
+    if (beatmaps.length > 0) {
+        return minify_beatmap_result(beatmaps[0]);
     }
     return false;
 };
@@ -243,7 +235,12 @@ export const get_beatmap_data = (id, query, is_unique_id) => {
         return result;
     }
 
-    result.beatmap = is_unique_id ? get_beatmaps_by_id(id) : get_beatmap_by_md5(id);
+    if (is_unique_id) {
+        const beatmaps = get_beatmaps_by_id(id);
+        result.beatmap = beatmaps.length > 0 ? beatmaps[0] : null;
+    } else {
+        result.beatmap = get_beatmap_by_md5(id);
+    }
 
     // ignore unknown maps if we dont have a query yet
     if (!result.beatmap && query == "") {
@@ -345,7 +342,7 @@ export const get_missing_beatmaps = (beatmaps) => {
 
     for (let i = 0; i < beatmaps.length; i++) {
         const md5 = beatmaps[i];
-        const beatmap = osu_data.beatmaps.get(md5) || {};
+        const beatmap = beatmap_manager.get_beatmap_by_md5(md5) || {};
 
         // if you download something from osu!Collector, the function will add basic metadata to reader object such as: title, artist, etc...
         // so we need to make sure this variable is false
@@ -360,11 +357,11 @@ export const get_missing_beatmaps = (beatmaps) => {
 };
 
 export const filter_beatmaps = (list, query, extra = { unique: false, invalid: false, sort: null, sr: null, status: null }) => {
-    if (!osu_data) {
+    if (!beatmap_manager.beatmaps || beatmap_manager.beatmaps.size === 0) {
         return [];
     }
 
-    const beatmaps = list ? list : Array.from(osu_data.beatmaps.keys());
+    const beatmaps = list ? list : Array.from(beatmap_manager.beatmaps.keys());
     const seen_unique_ids = new Set();
 
     if (!beatmaps) {
@@ -429,20 +426,15 @@ export const filter_beatmaps = (list, query, extra = { unique: false, invalid: f
 };
 
 export const add_beatmap = (hash, beatmap) => {
-    if (!hash || !beatmap) {
-        console.log("failed to add beatmap (missing shit)");
-        return false;
-    }
-
-    osu_data.beatmaps.set(hash, beatmap);
+    return beatmap_manager.add_beatmap(hash, beatmap);
 };
 
 export const get_beatmaps_from_database = async (force) => {
     if (force) {
-        osu_data = null;
+        beatmap_manager.clear();
     }
 
-    if (osu_data) {
+    if (beatmap_manager.beatmaps && beatmap_manager.beatmaps.size > 0) {
         return true;
     }
 
@@ -467,8 +459,34 @@ export const get_beatmaps_from_database = async (force) => {
         return false;
     }
 
-    osu_data = result;
-    osu_data.beatmaps = await process_beatmaps(osu_data.beatmaps);
+    // initialize beatmap manager with raw data
+    beatmap_manager.initialize(result);
+
+    // process beatmaps with indexer for additional data
+    const processed_beatmaps = await process_beatmaps(result.beatmaps);
+
+    // update beatmap manager with processed data
+    beatmap_manager.process_beatmaps(processed_beatmaps);
 
     return true;
+};
+
+export const get_beatmapset_by_id = (beatmapset_id) => {
+    return beatmap_manager.get_beatmapset_by_id(beatmapset_id);
+};
+
+export const get_beatmaps_from_beatmapset = (beatmapset_id) => {
+    return beatmap_manager.get_beatmaps_from_set(beatmapset_id);
+};
+
+export const get_all_beatmapsets = () => {
+    return beatmap_manager.get_all_beatmapsets();
+};
+
+export const filter_beatmapsets = (criteria = {}) => {
+    return beatmap_manager.filter_beatmapsets(criteria);
+};
+
+export const get_beatmap_manager_stats = () => {
+    return beatmap_manager.get_stats();
 };
