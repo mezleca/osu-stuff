@@ -44,7 +44,7 @@
             await get_osu_data(false);
         } catch (err) {
             console.log(err);
-            show_notification({ type: "error", timeout: 5000, text: `failed to initialize\n${err}` });
+            show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
         } finally {
             initialized = true;
         }

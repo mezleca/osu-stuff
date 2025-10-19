@@ -3,6 +3,7 @@
     import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon, quick_confirm } from "../../lib/store/popup";
     import { show_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
+    import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
 
     // components
     import Popup from "../utils/popup/popup.svelte";
@@ -31,6 +32,7 @@
         return items;
     };
 
+    const notification_id = crypto.randomUUID();
     const random_options = generate_nested_array(5);
 
     function get_random_shit(max = 5) {
@@ -80,6 +82,11 @@
         popup_manager.register("test", addon);
     };
 
+    const close_notification = () => {
+        edit_notification(notification_id, { type: "success" });
+        finish_notification(notification_id);
+    };
+
     onMount(() => {
         create_test_addon();
         create_confirm_addon();
@@ -98,6 +105,10 @@
 </script>
 
 <div class="test">
+    <button onclick={() => show_notification({ id: notification_id, type: "error", text: "Hello Bro", duration: 1000, persist: true })}
+        >notification persist</button
+    >
+    <button onclick={() => close_notification()}>end notification</button>
     <button onclick={() => show_popup("test", "index")}>open popup addon</button>
     <button onclick={() => show_popup("aids", "index")}>open confirmation addon</button>
     <button onclick={() => show_yes_no_addon()}>open yes/no confirmation addon</button>
