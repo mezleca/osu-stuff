@@ -21,7 +21,12 @@ contextBridge.exposeInMainWorld("osu", {
     filter_beatmaps: (...args) => ipcRenderer.invoke("filter-beatmaps", ...args),
     update_collections: (data) => ipcRenderer.invoke("update-collections", data),
     export_beatmaps: (beatmaps) => ipcRenderer.invoke("export-beatmaps", beatmaps),
-    export_beatmap: (beatmap) => ipcRenderer.invoke("export-beatmap", beatmap)
+    export_beatmap: (beatmap) => ipcRenderer.invoke("export-beatmap", beatmap),
+    get_beatmapset_by_id: (beatmapset_id) => ipcRenderer.invoke("get-beatmapset-by-id", beatmapset_id),
+    get_beatmaps_from_beatmapset: (beatmapset_id) => ipcRenderer.invoke("get-beatmaps-from-beatmapset", beatmapset_id),
+    get_all_beatmapsets: () => ipcRenderer.invoke("get-all-beatmapsets"),
+    filter_beatmapsets: (criteria) => ipcRenderer.invoke("filter-beatmapsets", criteria),
+    get_beatmap_manager_stats: () => ipcRenderer.invoke("get-beatmap-manager-stats")
 });
 
 contextBridge.exposeInMainWorld("indexer", {

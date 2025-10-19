@@ -11,7 +11,12 @@ import {
     get_beatmap_by_set_id,
     get_beatmap_data,
     get_beatmaps_from_database,
-    get_missing_beatmaps
+    get_missing_beatmaps,
+    get_beatmapset_by_id,
+    get_beatmaps_from_beatmapset,
+    get_all_beatmapsets,
+    filter_beatmapsets,
+    get_beatmap_manager_stats
 } from "./beatmaps/beatmaps";
 import { get_and_update_collections, update_collections, get_collection_data, export_collection } from "./beatmaps/collections";
 import { FetchManager } from "./fetch";
@@ -126,6 +131,11 @@ async function createWindow() {
     ipcMain.handle("update-collections", (_, data) => update_collections(data));
     ipcMain.handle("export-beatmaps", (_, beatmaps) => downloader.export_beatmaps(beatmaps));
     ipcMain.handle("export-beatmap", (_, beatmap) => downloader.export_single_beatmap(beatmap));
+    ipcMain.handle("get-beatmapset-by-id", (_, beatmapset_id) => get_beatmapset_by_id(beatmapset_id));
+    ipcMain.handle("get-beatmaps-from-beatmapset", (_, beatmapset_id) => get_beatmaps_from_beatmapset(beatmapset_id));
+    ipcMain.handle("get-all-beatmapsets", () => get_all_beatmapsets());
+    ipcMain.handle("filter-beatmapsets", (_, criteria) => filter_beatmapsets(criteria));
+    ipcMain.handle("get-beatmap-manager-stats", () => get_beatmap_manager_stats());
 
     await initialize_config();
     initialize_mirrors();

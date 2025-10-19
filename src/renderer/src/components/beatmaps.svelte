@@ -6,6 +6,7 @@
     import { downloader } from "../lib/store/downloader";
     import { get_beatmap_data, get_missing_beatmaps } from "../lib/utils/beatmaps";
     import { get_popup_manager, PopupAddon, show_popup } from "../lib/store/popup";
+    import { is_typing } from "../lib/store/other";
     import { input } from "../lib/store/input";
 
     // components
@@ -13,7 +14,6 @@
     import BeatmapCard from "./cards/beatmap-card.svelte";
     import ContextMenu from "./utils/context-menu.svelte";
     import Popup from "./utils/popup/popup.svelte";
-    import { is_typing } from "../lib/store/other";
 
     // props
     export let tab_id; // fallback in case the user dont pass the list directly
