@@ -20,6 +20,7 @@
     import Header from "./components/header.svelte";
     import Notifications from "./components/utils/notifications.svelte";
     import ExportProgress from "./components/utils/export-progress.svelte";
+    import Spinner from "./components/icon/spinner.svelte";
 
     $: initialized = false;
     $: indexing_status = $indexing_data?.status ?? "doing something";
@@ -65,7 +66,7 @@
     <!-- loading screen -->
     {#if !initialized}
         <div class="loading-screen">
-            <div class="spinner"></div>
+            <Spinner width={48} height={48} />
             <h1 class="loading-status" style="color: white;">loading...</h1>
         </div>
     {/if}

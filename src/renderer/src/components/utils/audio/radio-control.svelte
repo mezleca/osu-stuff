@@ -15,6 +15,7 @@
     import PreviousIcon from "../../icon/previous-icon.svelte";
     import Volume from "../../icon/volume.svelte";
     import VolumeMuted from "../../icon/volume-muted.svelte";
+    import Spinner from "../../icon/spinner.svelte";
 
     // components
     import ControlBar from "../basic/control-bar.svelte";
@@ -204,7 +205,7 @@
 
                 <button class="control-btn play-pause" onclick={handle_play_pause} disabled={is_loading}>
                     {#if is_loading}
-                        <div class="spinner" style="width: 25px; height: 25px;"></div>
+                        <Spinner width={24} height={24} />
                     {:else if is_playing}
                         <Pause />
                     {:else}
