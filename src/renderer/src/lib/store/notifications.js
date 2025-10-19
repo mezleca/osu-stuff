@@ -15,7 +15,7 @@ const start_timeout = (id, duration) => {
 
 /** @param {{ id: string, type: string, duration: number, text: string}} data */
 export const show_notification = (data) => {
-    const notification = Object.assign({ ...DEFAULT_NOTIFICATION, id: crypto.randomUUID() }, data);
+    const notification = { ...DEFAULT_NOTIFICATION, id: crypto.randomUUID() };
 
     // use default object for text only data
     if (typeof data == "string") {
@@ -36,8 +36,7 @@ export const show_notification = (data) => {
 export const edit_notification = (id, data) => {
     notifications_store.update((all) => {
         return all.map((n) => {
-            if (n.id != id) return n;
-            return Object.assign(n, data);
+            return n.id === id ? { ...n, ...data } : n;
         });
     });
 };
@@ -46,10 +45,9 @@ export const edit_notification = (id, data) => {
 export const finish_notification = (id) => {
     notifications_store.update((all) => {
         return all.map((n) => {
-            if (n.id != id || !n.persist) return n;
-            n.persist = false;
+            if (n.id !== id || !n.persist) return n;
             start_timeout(n.id, n.duration);
-            return n;
+            return { ...n, persist: false };
         });
     });
 };
