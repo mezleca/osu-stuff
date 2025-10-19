@@ -12,7 +12,7 @@ const DEFAULT_NOTIFICATION = Object.freeze({
 
 const start_timeout = (id, duration) => {
     const timeout = setTimeout(() => remove_notification(id), duration);
-    timeouts.add(n.id, timeout);
+    timeouts.set(id, timeout);
 };
 
 /** @param {{ id: string, type: string, duration: number, text: string}} data */
