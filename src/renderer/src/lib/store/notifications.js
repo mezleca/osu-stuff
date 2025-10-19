@@ -11,6 +11,7 @@ const DEFAULT_NOTIFICATION = Object.freeze({
 });
 
 const start_timeout = (id, duration) => {
+    timeouts.add(n.id);
     setTimeout(() => remove_notification(id), duration);
 };
 
@@ -31,7 +32,6 @@ export const show_notification = (data) => {
     // only show timeout if we're not persisting
     if (!notification.persist) {
         start_timeout(notification.id, notification.duration);
-        timeouts.add(notification.id);
     }
 };
 
@@ -63,7 +63,6 @@ export const finish_notification = (id) => {
         return all.map((n) => {
             if (n.id !== id || !n.persist) return n;
             start_timeout(n.id, n.duration);
-            timeouts.add(n.id);
             return { ...n, persist: false };
         });
     });
