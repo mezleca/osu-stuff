@@ -59,7 +59,7 @@ jobs:
               run: bun run build:linux
 
             - name: upload linux artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: linux-build
                   path: |
@@ -97,7 +97,7 @@ jobs:
               run: bun run build:win
 
             - name: upload windows artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: windows-build
                   path: |
