@@ -122,14 +122,14 @@ jobs:
 
             - name: download linux artifacts
               if: ${{ needs.build-linux.result == 'success' }}
-              uses: actions/download-artifact@v5
+              uses: actions/download-artifact@v6
               with:
                   name: linux-build
                   path: artifacts/
 
             - name: download windows artifacts
               if: ${{ needs.build-windows.result == 'success' }}
-              uses: actions/download-artifact@v5
+              uses: actions/download-artifact@v6
               with:
                   name: windows-build
                   path: artifacts/
