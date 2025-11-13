@@ -13,7 +13,7 @@ export enum Permissions {
     Friend = 8,
     Peppy = 16,
     WorldCupStaff = 32
-};
+}
 
 export enum BeatmapStatus {
     All = -1,
@@ -25,7 +25,7 @@ export enum BeatmapStatus {
     Approved = 5,
     Qualified = 6,
     Loved = 7
-};
+}
 
 export enum OsdbVersion {
     O_DM = 1,
@@ -38,14 +38,14 @@ export enum OsdbVersion {
     O_DM8 = 8,
     O_DM7_MIN = 1007,
     O_DM8_MIN = 1008
-};
+}
 
 export enum GameMode {
     Osu = 0,
     Taiko = 1,
     Catch = 2,
     Mania = 3
-};
+}
 
 export const STABLE_STATUS = {
     ALL: -1,
@@ -67,7 +67,7 @@ export interface IStableTimingPoint {
     beat_length: number;
     offset: number;
     inherited: boolean;
-};
+}
 
 export interface IStableBeatmap {
     entry: number;
@@ -125,7 +125,7 @@ export interface IStableBeatmap {
     unique_id: string;
     file_path: string;
     temp: boolean;
-};
+}
 
 export interface ILegacyDatabase {
     version: number;
@@ -135,20 +135,20 @@ export interface ILegacyDatabase {
     player_name: string;
     beatmaps_count: number;
     beatmaps: Map<string, IStableBeatmap>;
-};
+}
 
 export interface IStableCollection {
     bpm_max?: number;
     sr_max?: number;
     name: string;
     maps: Set<string>;
-};
+}
 
 export interface ILegacyCollectionDatabase {
     version: number;
     length: number;
     collections: IStableCollection[];
-};
+}
 
 /* OSU DRIVER RELATED STUFF */
 
@@ -171,7 +171,7 @@ export interface IBeatmapFilter {
     // web only
     language?: string;
     mode?: any;
-};
+}
 
 export interface IBeatmapResult {
     md5: string;
@@ -199,24 +199,24 @@ export interface IBeatmapResult {
     image_path?: string;
     audio_path?: string;
     last_played?: Date;
-};
+}
 
 export interface IBeatmapSetResultMetadata {
     artist: string;
     title: string;
     creator: string;
-};
+}
 
 export interface BeatmapSetResult {
     online_id: number;
     metadata: IBeatmapSetResultMetadata;
     beatmaps: IBeatmapResult[];
-};
+}
 
 export interface ICollectionResult {
     name: string;
     beatmaps: string[];
-};
+}
 
 export interface IProcessorInput {
     md5: string;
@@ -224,7 +224,7 @@ export interface IProcessorInput {
     file_path: string;
     audio_path?: string;
     image_path?: string;
-};
+}
 
 export interface IProcesedBeatmap {
     md5: string;
@@ -232,84 +232,38 @@ export interface IProcesedBeatmap {
     audio_path: string;
     image_path: string;
     duration: number;
-};
+}
 
 export interface IProcessedData {
     audio_path: string;
     image_path: string;
     duration: number;
-};
+}
 
 export type BeatmapFile = {
     name: string;
     location: string;
 };
 
-export interface IAddCollectionParams {
-    name: string; 
-    beatmaps: string[];
-};
-
-export interface IUpdateCollectionParams {
-    collections: ICollectionResult[];
-};
-
-export interface IExportCollectionsParams {
-    collections: ICollectionResult[];
-    type: string;
-};
-
-export interface IGetBeatmapByMd5Params {
-    md5: string;
-};
-
-export interface IGetBeatmapByIdParams {
-    id: number;
-};
-
-export interface IGetBeatmapsetParams {
-    set_id: number;
-};
-
-export interface IGetBeatmapsetFilesParams {
-    id: number;
-};
-
-export interface IFetchBeatmapsParams {
-    checksums: string[];
-};
-
-export interface IAddBeatmapParams {
-    beatmap: IBeatmapResult;
-};
-
-export interface IDeleteCollectionParams {
-    name: string;
-};
-
-export interface IGetCollectionParams {
-    name: string;
-};
-
 export interface IOsuDriver {
     initialize(): Promise<void>;
     get_player_name(): string;
-    add_collection(params: IAddCollectionParams): boolean;
-    delete_collection(params: IDeleteCollectionParams): boolean;
-    get_collection(params: IGetCollectionParams): ICollectionResult | undefined;
+    add_collection(name: string, beatmaps: string[]): boolean;
+    delete_collection(name: string): boolean;
+    get_collection(name: string): ICollectionResult | undefined;
     get_collections(): ICollectionResult[];
-    update_collection(params: IUpdateCollectionParams): boolean;
-    export_collections(params: IExportCollectionsParams): Promise<boolean>;
-    add_beatmap(params: IAddBeatmapParams): boolean;
-    get_beatmap_by_md5(params: IGetBeatmapByMd5Params): Promise<IBeatmapResult | undefined>;
-    get_beatmap_by_id(params: IGetBeatmapByIdParams): Promise<IBeatmapResult | undefined>;
-    get_beatmapset(params: IGetBeatmapsetParams): Promise<BeatmapSetResult | undefined>;
+    update_collection(collections: ICollectionResult[]): boolean;
+    export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
+    add_beatmap(beatmap: IBeatmapResult): boolean;
+    get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
+    get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
+    get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined>;
     search_beatmaps(params: IBeatmapFilter): Promise<string[]>;
     get_all_beatmaps(): Promise<string[]>;
-    get_beatmapset_files(params: IGetBeatmapsetFilesParams): Promise<BeatmapFile[]>;
-    fetch_beatmaps(params: IFetchBeatmapsParams): Promise<IBeatmapResult[]>;
+    get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
+    fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]>;
     dispose(): Promise<void>;
-};
+}
 
 /* OSDB */
 
@@ -323,21 +277,21 @@ export interface IOSDBBeatmap {
     user_comment?: string;
     mode?: number;
     difficulty_rating?: number;
-};
+}
 
 export interface IOSDBCollection {
     name: string;
     online_id?: number;
     beatmaps: IOSDBBeatmap[];
     hash_only_beatmaps: string[];
-};
+}
 
 export interface IOSDBData {
     save_date: bigint;
     last_editor: string;
     count: number;
     collections: IOSDBCollection[];
-};
+}
 
 /* BEATMAP DOWNLOADER */
 
@@ -345,30 +299,30 @@ export interface IDownloadProgress {
     current: number;
     size: number;
     failed: number;
-};
+}
 
 export interface IDownloadData {
     progress: IDownloadProgress;
     finished: boolean;
     processing: boolean;
     paused: boolean;
-};
+}
 
 export interface IDownloadUpdate {
     queue: IDownloadData[];
-};
+}
 
 export interface ExportBeatmapParams {
     md5: string;
-};
+}
 
 export interface ExportBeatmapsParams {
     md5_list: string[];
-};
+}
 
 export interface ExportCollectionParams {
     collection_names: string[];
-};
+}
 
 export interface IExportUpdatePayload {
     status: "start" | "done" | "exists" | "linked" | "missing" | "error" | "complete";
@@ -379,13 +333,13 @@ export interface IExportUpdatePayload {
     path?: string;
     reason?: string;
     written?: number;
-};
+}
 
 export interface ExportResult {
     success: boolean;
     written: string[];
     reason: string;
-};
+}
 
 /* ENUMERATOR HELPERS */
 

@@ -8,7 +8,7 @@ import { config } from "../../src/main/database/config";
 export const TEMP_DIR = path.resolve(__dirname, "..", ".temp");
 
 const DATA_DIR = path.resolve("tests", ".data");
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 export const generate_random_string = (size: number) => {
     let result = "";

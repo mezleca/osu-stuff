@@ -5,17 +5,7 @@ import {
     BeatmapSetResult,
     ICollectionResult,
     LAZER_DATABASE_VERSION,
-    BeatmapFile,
-    IAddCollectionParams,
-    IGetCollectionParams,
-    IUpdateCollectionParams,
-    IDeleteCollectionParams,
-    IAddBeatmapParams,
-    IFetchBeatmapsParams,
-    IGetBeatmapByMd5Params,
-    IGetBeatmapByIdParams,
-    IGetBeatmapsetParams,
-    IGetBeatmapsetFilesParams
+    BeatmapFile
 } from "@shared/types/osu";
 import {
     BeatmapCollectionSchema,
@@ -31,10 +21,10 @@ import {
 } from "./schemas/lazer";
 import { BaseDriver } from "./base";
 import { config } from "../database/config";
+import { get_lazer_file_location } from "../beatmaps/beatmaps";
 
 import Realm from "realm";
 import path from "path";
-import { get_lazer_file_location } from "../beatmaps/beatmaps";
 
 const build_beatmap = (beatmap: BeatmapSchema, temp: boolean = false): IBeatmapResult => {
     return {
@@ -110,13 +100,13 @@ class LazerBeatmapDriver extends BaseDriver {
         return "lazer";
     };
 
-    add_collection = (params: IAddCollectionParams): boolean => {
+    add_collection = (name: string, beatmaps: string[]): boolean => {
         this.instance.write(() => {
             const uuid = new Realm.BSON.UUID();
             this.instance.create<BeatmapCollectionSchema>("BeatmapCollection", {
                 ID: uuid,
-                Name: params.name,
-                BeatmapMD5Hashes: params.beatmaps,
+                Name: name,
+                BeatmapMD5Hashes: beatmaps,
                 LastModified: new Date()
             });
         });
@@ -131,18 +121,18 @@ class LazerBeatmapDriver extends BaseDriver {
         }));
     };
 
-    get_collection = (params: IGetCollectionParams): ICollectionResult | undefined => {
-        return this.get_collections().find((c) => c.name == params.name);
+    get_collection = (name: string): ICollectionResult | undefined => {
+        return this.get_collections().find((c) => c.name == name);
     };
 
-    update_collection = (params: IUpdateCollectionParams): boolean => {
+    update_collection = (collections: ICollectionResult[]): boolean => {
         if (!this.instance) {
             return false;
         }
 
         const saved_collections = Array.from(this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection"));
 
-        for (const collection of params.collections) {
+        for (const collection of collections) {
             const existing_collection = saved_collections.find((c) => c.Name == collection.name);
             if (existing_collection) {
                 this.instance.write(() => {
@@ -151,22 +141,18 @@ class LazerBeatmapDriver extends BaseDriver {
                     existing_collection.LastModified = new Date();
                 });
             } else {
-                this.add_collection({ 
-                    name: collection.name, 
-                    beatmaps: collection.beatmaps
-                });
+                this.add_collection(collection.name, collection.beatmaps);
             }
         }
 
         return true;
     };
 
-    delete_collection = (params: IDeleteCollectionParams): boolean => {
-        const desired = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection")
-            .find((c) => c.Name == params.name);
+    delete_collection = (name: string): boolean => {
+        const desired = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == name);
 
         if (!desired) {
-            console.log("failed to find:", params.name);
+            console.log("failed to find:", name);
             return false;
         }
 
@@ -180,22 +166,22 @@ class LazerBeatmapDriver extends BaseDriver {
     // TOFIX: yeah, right its only possible to add temp beatmaps
     // in the near future i will also allow to build the beatmap based on files, etc using the beatmap builder system
     // (still wip)
-    add_beatmap = (params: IAddBeatmapParams): boolean => {
-        this.add_to_temp(params.beatmap);
+    add_beatmap = (beatmap: IBeatmapResult): boolean => {
+        this.add_to_temp(beatmap);
         return true;
     };
 
-    fetch_beatmaps = (params: IFetchBeatmapsParams): Promise<IBeatmapResult[]> => {
+    fetch_beatmaps = (checksums: string[]): Promise<IBeatmapResult[]> => {
         // get stored beatmaps
         const beatmaps = this.instance
             .objects<BeatmapSchema>("Beatmap")
-            .filtered("MD5Hash IN $0", params.checksums)
+            .filtered("MD5Hash IN $0", checksums)
             .map((b) => build_beatmap(b));
 
         // get temp beatmaps
         // temp shouldnt be that big so just loop over then
         for (const temp of this.temp_beatmaps.values()) {
-            if (params.checksums.includes(temp.md5)) {
+            if (checksums.includes(temp.md5)) {
                 beatmaps.push(temp);
             }
         }
@@ -203,17 +189,16 @@ class LazerBeatmapDriver extends BaseDriver {
         return Promise.resolve(beatmaps);
     };
 
-    get_beatmap_by_md5 = (params: IGetBeatmapByMd5Params): Promise<IBeatmapResult | undefined> => {
+    get_beatmap_by_md5 = (md5: string): Promise<IBeatmapResult | undefined> => {
         // check we its sitting on temp
-        const temp = this.get_from_temp_by_md5(params.md5);
+        const temp = this.get_from_temp_by_md5(md5);
 
         if (temp) {
             return Promise.resolve(temp);
         }
 
         // otherwise check on db
-        const result = this.instance.objects<BeatmapSchema>("Beatmap")
-            .find((b) => b.MD5Hash == params.md5);
+        const result = this.instance.objects<BeatmapSchema>("Beatmap").find((b) => b.MD5Hash == md5);
 
         if (!result) {
             return Promise.resolve(undefined);
@@ -222,17 +207,16 @@ class LazerBeatmapDriver extends BaseDriver {
         return Promise.resolve(build_beatmap(result));
     };
 
-    get_beatmap_by_id = (params: IGetBeatmapByIdParams): Promise<IBeatmapResult | undefined> => {
+    get_beatmap_by_id = (id: number): Promise<IBeatmapResult | undefined> => {
         // check we its sitting on temp
-        const temp = this.get_from_temp_by_id(params.id);
+        const temp = this.get_from_temp_by_id(id);
 
         if (temp) {
             return Promise.resolve(temp);
         }
 
         // otherwise check on db
-        const result = this.instance.objects<BeatmapSchema>("Beatmap")
-            .find((b) => b.OnlineID == params.id);
+        const result = this.instance.objects<BeatmapSchema>("Beatmap").find((b) => b.OnlineID == id);
 
         if (!result) {
             return Promise.resolve(undefined);
@@ -241,9 +225,8 @@ class LazerBeatmapDriver extends BaseDriver {
         return Promise.resolve(build_beatmap(result));
     };
 
-    get_beatmapset = (params: IGetBeatmapsetParams): Promise<BeatmapSetResult | undefined> => {
-        const result = this.instance.objects<BeatmapSetSchema>("BeatmapSet")
-            .find((b) => b.OnlineID == params.set_id);
+    get_beatmapset = (set_id: number): Promise<BeatmapSetResult | undefined> => {
+        const result = this.instance.objects<BeatmapSetSchema>("BeatmapSet").find((b) => b.OnlineID == set_id);
 
         if (!result) {
             return Promise.resolve(undefined);
@@ -253,39 +236,33 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 
     search_beatmaps = async (options: IBeatmapFilter): Promise<string[]> => {
-        const checksums = new Set(options.collection ?
-            this.get_collection({ name: options.collection })?.beatmaps || [] :
-            await this.get_all_beatmaps()
-        );
+        const checksums = new Set(options.collection ? this.get_collection(options.collection)?.beatmaps || [] : await this.get_all_beatmaps());
 
         if (checksums.size == 0) {
             return Promise.resolve([]);
         }
 
         // get beatmaps on storage
-        const beatmaps = await this.fetch_beatmaps({ checksums: Array.from(checksums) });
+        const beatmaps = await this.fetch_beatmaps(Array.from(checksums));
 
         // return filtered beatmaps
         return this.filter_beatmaps(beatmaps, options);
     };
 
     get_all_beatmaps = (): Promise<string[]> => {
-        const beatmaps = this.instance
-            .objects<BeatmapSchema>("Beatmap")
-            .map((b) => b.MD5Hash);
+        const beatmaps = this.instance.objects<BeatmapSchema>("Beatmap").map((b) => b.MD5Hash);
 
         // also add temp beatmaps
         for (const [key, _] of this.temp_beatmaps) {
             beatmaps.push(key);
         }
-        
+
         return Promise.resolve(beatmaps.filter((b) => b != undefined));
     };
 
-    get_beatmapset_files = (params: IGetBeatmapsetFilesParams): Promise<BeatmapFile[]> => {
+    get_beatmapset_files = (id: number): Promise<BeatmapFile[]> => {
         const files: BeatmapFile[] = [];
-        const beatmapset = this.instance.objects<BeatmapSetSchema>("BeatmapSet")
-            .find((b) => b.OnlineID == params.id);
+        const beatmapset = this.instance.objects<BeatmapSetSchema>("BeatmapSet").find((b) => b.OnlineID == id);
 
         if (!beatmapset) {
             return Promise.resolve(files);

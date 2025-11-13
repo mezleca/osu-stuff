@@ -17,7 +17,7 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: add_collection():`, async () => {
-        const result = driver.add_collection({name: temp_collection_name, beatmaps: ["123", "321"] });
+        const result = driver.add_collection(temp_collection_name, ["123", "321"]);
         expect(result).toBe(true);
     });
 
@@ -30,14 +30,14 @@ const test_driver = (type: string) => {
 
     test(`${type}: get_collection(generated):`, async () => {
         // TOFIX: use the same name for both drivers (need to generate shit again)...
-        const result = await driver.get_collection({ name: "glass beach" });
+        const result = await driver.get_collection("glass beach");
         expect(result).toBeDefined();
     });
 
     test(`${type}: delete_collection(temp):`, () => {
-        const result = driver.delete_collection({ name: temp_collection_name});
+        const result = driver.delete_collection(temp_collection_name);
         expect(result).toBe(true);
-        const find_result = driver.get_collection({ name: temp_collection_name });
+        const find_result = driver.get_collection(temp_collection_name);
         expect(find_result).toBeUndefined();
     });
 
@@ -47,12 +47,12 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: add_beatmap(temp):`, async () => {
-        const result = driver.add_beatmap({ beatmap: temp_beatmap });
+        const result = driver.add_beatmap(temp_beatmap);
         expect(result).toBe(true);
     });
 
     test(`${type}: get_beatmap(temp):`, async () => {
-        const result = await driver.get_beatmap_by_md5({ md5: temp_beatmap.md5 });
+        const result = await driver.get_beatmap_by_md5(temp_beatmap.md5);
         expect(result).toBe(temp_beatmap);
     });
 
@@ -65,18 +65,18 @@ const test_driver = (type: string) => {
     test(`${type}: remove_beatmap(temp):`, async () => {});
 
     test(`${type}: get_beatmapset():`, async () => {
-        const result = await driver.get_beatmapset({ set_id: test_beatmapset_id });
+        const result = await driver.get_beatmapset(test_beatmapset_id);
         expect(result).toBeDefined();
         expect(result.metadata.title).toBe("dallas");
     });
 
-    test(`${type}: get_beatmap_by_id`, async () => {
-        const result = await driver.get_beatmap_by_id({ id: test_beatmap_id });
+    test(`${type}: get_beatmap_by_id()):`, async () => {
+        const result = await driver.get_beatmap_by_id(test_beatmap_id);
         expect(result).toBeDefined();
         expect(result.difficulty).toBe("height of the summer");
     });
 
-    test(`${type}: search_beatmaps`, async () => {
+    test(`${type}: search_beatmaps():`, async () => {
         if (type == "web") {
             // TODO
         } else {
@@ -85,20 +85,18 @@ const test_driver = (type: string) => {
             });
 
             expect(result.length).toBe(18);
-        } 
+        }
     });
 
     test(`${type}: get_beatmap_files():`, async () => {
-        const result = await driver.get_beatmapset_files({ id: test_beatmapset_id });
+        const result = await driver.get_beatmapset_files(test_beatmapset_id);
         expect(result.length).toBeGreaterThan(1);
     });
 
-    test(`${type}: fetch_beatmaps`, async () => {
+    test(`${type}: fetch_beatmaps():`, async () => {
         const beatmaps = await driver.get_all_beatmaps();
-        const result = await driver.fetch_beatmaps({ checksums: beatmaps });
-        expect(
-            result.some((b) => b.md5 == undefined)
-        ).toBe(false);
+        const result = await driver.fetch_beatmaps(beatmaps);
+        expect(result.some((b) => b.md5 == undefined)).toBe(false);
     });
 };
 

@@ -1,6 +1,6 @@
 import { StuffConfig } from "./config";
 import { FetchOptions } from "./fetch";
-import { ExportBeatmapParams, ExportResult, IExportUpdatePayload, IDownloadData, IDownloadUpdate, IGetPlayerNameParams, IAddCollectionParams, IGetCollectionParams, ICollectionResult, IUpdateCollectionParams, IExportCollectionsParams, IAddBeatmapParams, IGetBeatmapByMd5Params, IGetBeatmapsetParams, IBeatmapResult, BeatmapSetResult, ISearchBeatmapsParams, IFetchBeatmapsParams, IGetBeatmapByIdParams } from "./osu";
+import { IDownloadData, IDownloadUpdate, IExportUpdatePayload, IOsuDriver } from "./osu";
 
 export type IFetchResponse = {
     success: boolean;
@@ -10,7 +10,7 @@ export type IFetchResponse = {
     headers: Record<string, string>;
 };
 
-export type ConfigSaveParams = Partial<StuffConfig>; 
+export type ConfigSaveParams = Partial<StuffConfig>;
 
 export interface IpcSchema {
     invoke: {
@@ -30,64 +30,60 @@ export interface IpcSchema {
         };
         // drivers
         "driver:get_player_name": {
-            params: [IGetPlayerNameParams, string?];
+            params: [string?];
             result: string;
         };
         "driver:add_collection": {
-            params: [IAddCollectionParams, string?];
-            result: boolean;
+            params: [Parameters<IOsuDriver["add_collection"]>, string?];
+            result: ReturnType<IOsuDriver["add_collection"]>;
         };
         "driver:delete_collection": {
-            params: [IAddCollectionParams, string?];
-            result: boolean;
+            params: [Parameters<IOsuDriver["delete_collection"]>, string?];
+            result: ReturnType<IOsuDriver["delete_collection"]>;
         };
         "driver:get_collection": {
-            params: [IGetCollectionParams, string?];
-            result: ICollectionResult | undefined;
+            params: [Parameters<IOsuDriver["get_collection"]>, string?];
+            result: ReturnType<IOsuDriver["get_collection"]>;
         };
         "driver:get_collections": {
             params: [string?];
-            result: ICollectionResult[];
+            result: ReturnType<IOsuDriver["get_collections"]>;
         };
         "driver:update_collection": {
-            params: [IUpdateCollectionParams, string?];
-            result: boolean;
+            params: [Parameters<IOsuDriver["update_collection"]>, string?];
+            result: ReturnType<IOsuDriver["update_collection"]>;
         };
         "driver:export_collections": {
-            params: [IExportCollectionsParams, string?];
-            result: Promise<boolean>;
+            params: [Parameters<IOsuDriver["export_collections"]>, string?];
+            result: ReturnType<IOsuDriver["export_collections"]>;
         };
         "driver:add_beatmap": {
-            params: [IAddBeatmapParams, string?];
-            result: boolean;
+            params: [Parameters<IOsuDriver["add_beatmap"]>, string?];
+            result: ReturnType<IOsuDriver["add_beatmap"]>;
         };
         "driver:get_beatmap_by_md5": {
-            params: [IGetBeatmapByMd5Params, string?];
-            result: Promise<IBeatmapResult | undefined>;
+            params: [Parameters<IOsuDriver["get_beatmap_by_md5"]>, string?];
+            result: ReturnType<IOsuDriver["get_beatmap_by_md5"]>;
         };
         "driver:get_beatmap_by_id": {
-            params: [IGetBeatmapByIdParams, string?];
-            result: Promise<IBeatmapResult | undefined>;
+            params: [Parameters<IOsuDriver["get_beatmap_by_id"]>, string?];
+            result: ReturnType<IOsuDriver["get_beatmap_by_id"]>;
         };
         "driver:get_beatmapset": {
-            params: [IGetBeatmapsetParams, string?];
-            result: Promise<BeatmapSetResult | undefined>;
+            params: [Parameters<IOsuDriver["get_beatmapset"]>, string?];
+            result: ReturnType<IOsuDriver["get_beatmapset"]>;
         };
         "driver:search_beatmaps": {
-            params: [ISearchBeatmapsParams, string?];
-            result: Promise<string[]>;
+            params: [Parameters<IOsuDriver["search_beatmaps"]>, string?];
+            result: ReturnType<IOsuDriver["search_beatmaps"]>;
         };
         "driver:get_all_beatmaps": {
             params: [string?];
-            result: string[];
+            result: ReturnType<IOsuDriver["get_all_beatmaps"]>;
         };
         "driver:fetch_beatmaps": {
-            params: [IFetchBeatmapsParams, string?];
-            result: IBeatmapResult[];
-        };
-        "driver:export_beatmap": {
-            params: [ExportBeatmapParams, string?];
-            result: ExportResult;
+            params: [Parameters<IOsuDriver["fetch_beatmaps"]>, string?];
+            result: ReturnType<IOsuDriver["fetch_beatmaps"]>;
         };
     };
     send: {
@@ -96,7 +92,7 @@ export interface IpcSchema {
         "export:update": IExportUpdatePayload;
     };
     on: IpcSchema["send"];
-};
+}
 
 export type InvokeChannels = keyof IpcSchema["invoke"];
 export type SendChannels = keyof IpcSchema["send"];
@@ -109,11 +105,7 @@ export type OnPayload<T extends OnChannels> = IpcSchema["on"][T];
 export interface ElectronApi {
     invoke: <T extends InvokeChannels>(
         channel: T,
-        ...args: InvokeParams<T> extends undefined 
-            ? [] 
-            : InvokeParams<T> extends any[] 
-                ? InvokeParams<T> 
-                : [InvokeParams<T>]
+        ...args: InvokeParams<T> extends undefined ? [] : InvokeParams<T> extends any[] ? InvokeParams<T> : [InvokeParams<T>]
     ) => Promise<InvokeResult<T>>;
     on: <T extends OnChannels>(channel: T, callback: (payload: OnPayload<T>) => void) => () => void;
-};
+}

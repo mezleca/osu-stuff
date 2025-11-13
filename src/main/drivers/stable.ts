@@ -1,4 +1,4 @@
-import { IBeatmapFilter, IBeatmapResult, BeatmapSetResult, ICollectionResult, BeatmapFile, IAddBeatmapParams, IAddCollectionParams, IDeleteCollectionParams, IFetchBeatmapsParams, IGetBeatmapByIdParams, IGetBeatmapByMd5Params, IGetBeatmapsetFilesParams, IGetBeatmapsetParams, IGetCollectionParams, IUpdateCollectionParams } from "@shared/types/osu";
+import { ICollectionResult, IBeatmapResult, BeatmapSetResult, IBeatmapFilter, BeatmapFile } from "@shared/types";
 import { BaseDriver } from "./base";
 
 class StableBeatmapDriver extends BaseDriver {
@@ -12,17 +12,17 @@ class StableBeatmapDriver extends BaseDriver {
 
     get_player_name(): string {
         throw new Error("Method not implemented.");
-}
+    }
 
-    add_collection(params: IAddCollectionParams): boolean {
+    add_collection(name: string, beatmaps: string[]): boolean {
         throw new Error("Method not implemented.");
     }
 
-    delete_collection(params: IDeleteCollectionParams): boolean {
+    delete_collection(name: string): boolean {
         throw new Error("Method not implemented.");
     }
 
-    get_collection(params: IGetCollectionParams): ICollectionResult | undefined {
+    get_collection(name: string): ICollectionResult | undefined {
         throw new Error("Method not implemented.");
     }
 
@@ -30,27 +30,27 @@ class StableBeatmapDriver extends BaseDriver {
         throw new Error("Method not implemented.");
     }
 
-    update_collection(params: IUpdateCollectionParams): boolean {
+    update_collection(collections: ICollectionResult[]): boolean {
         throw new Error("Method not implemented.");
     }
 
-    add_beatmap(params: IAddBeatmapParams): boolean {
+    add_beatmap(beatmap: IBeatmapResult): boolean {
         throw new Error("Method not implemented.");
     }
 
-    get_beatmap_by_md5(params: IGetBeatmapByMd5Params): Promise<IBeatmapResult | undefined> {
+    get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined> {
         throw new Error("Method not implemented.");
     }
 
-    get_beatmap_by_id(params: IGetBeatmapByIdParams): Promise<IBeatmapResult | undefined> {
+    get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined> {
         throw new Error("Method not implemented.");
     }
 
-    get_beatmapset(params: IGetBeatmapsetParams): Promise<BeatmapSetResult | undefined> {
+    get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined> {
         throw new Error("Method not implemented.");
     }
 
-    search_beatmaps(options: IBeatmapFilter): Promise<string[]> {
+    search_beatmaps(params: IBeatmapFilter): Promise<string[]> {
         throw new Error("Method not implemented.");
     }
 
@@ -58,11 +58,11 @@ class StableBeatmapDriver extends BaseDriver {
         throw new Error("Method not implemented.");
     }
 
-    get_beatmapset_files(params: IGetBeatmapsetFilesParams): Promise<BeatmapFile[]> {
+    get_beatmapset_files(id: number): Promise<BeatmapFile[]> {
         throw new Error("Method not implemented.");
     }
 
-    fetch_beatmaps(params: IFetchBeatmapsParams): Promise<IBeatmapResult[]> {
+    fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]> {
         throw new Error("Method not implemented.");
     }
 
