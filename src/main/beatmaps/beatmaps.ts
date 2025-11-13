@@ -194,7 +194,7 @@ export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRati
     return true;
 };
 
-export const get_missing_beatmaps = (beatmaps: string[]): string[] => {
+export const get_missing_beatmaps = async (beatmaps: string[]): Promise<string[]> => {
     const driver = get_driver();
     const missing_beatmaps: string[] = [];
 
@@ -204,7 +204,7 @@ export const get_missing_beatmaps = (beatmaps: string[]): string[] => {
 
     for (let i = 0; i < beatmaps.length; i++) {
         const md5 = beatmaps[i];
-        const beatmap = driver.get_beatmap_by_md5(md5);
+        const beatmap = await driver.get_beatmap_by_md5(md5);
 
         if (!beatmap?.temp) {
             continue;

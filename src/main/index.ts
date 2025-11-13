@@ -1,13 +1,31 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, protocol, session, net } from "electron";
+import { app, shell, ipcMain, dialog, protocol, session, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
 import { beatmap_processor } from "./database/processor";
+import { get_window } from "./database/utils";
+import { fetch_manager } from "./fetch";
+import { handle_ipc } from "./ipc";
 
 import path from "path";
 // @ts-ignore
 import icon from "../../resources/icon.png?asset";
-import { get_window } from "./database/utils";
+import { 
+    get_player_name,
+    add_collection,
+    delete_collection,
+    get_collection,
+    get_collections,
+    update_collection,
+    export_collections,
+    add_beatmap,
+    get_beatmap_by_md5,
+    get_beatmap_by_id,
+    get_beatmapset,
+    search_beatmaps,
+    get_all_beatmaps,
+    fetch_beatmaps
+} from "./drivers/driver";
 
 // testing
 const additionalArguments = [
@@ -74,7 +92,23 @@ async function createWindow() {
     mirrors.initialize();
     beatmap_processor.initialize();
 
-    // downloader.main(ipcMain, mainWindow);
+    handle_ipc("fetch:get", (_, params) => fetch_manager.execute(params));
+    handle_ipc("config:save", (_, params) => config.update(params));
+    handle_ipc("config:load", (_) => config.load());
+    handle_ipc("driver:get_player_name", (_, [driver]) => get_player_name(driver));
+    handle_ipc("driver:add_collection", (_, [params, driver]) => add_collection(params, driver));
+    handle_ipc("driver:delete_collection", (_, [params, driver]) => delete_collection(params, driver));
+    handle_ipc("driver:get_collection", (_, [params, driver]) => get_collection(params, driver));
+    handle_ipc("driver:get_collections", (_, [driver]) => get_collections(driver));
+    handle_ipc("driver:update_collection", (_, [params, driver]) => update_collection(params, driver));
+    handle_ipc("driver:export_collections", (_, [params, driver]) => export_collections(params, driver));
+    handle_ipc("driver:add_beatmap", (_, [params, driver]) => add_beatmap(params, driver));
+    handle_ipc("driver:get_beatmap_by_md5", (_, [params, driver]) => get_beatmap_by_md5(params, driver));
+    handle_ipc("driver:get_beatmap_by_id", (_, [params, driver]) => get_beatmap_by_id(params, driver));
+    handle_ipc("driver:get_beatmapset", (_, [params, driver]) => get_beatmapset(params, driver));
+    handle_ipc("driver:search_beatmaps", (_, [params, driver]) => search_beatmaps(params, driver));
+    handle_ipc("driver:get_all_beatmaps", (_, [driver]) => get_all_beatmaps(driver));
+    handle_ipc("driver:fetch_beatmaps", (_, [params, driver]) => fetch_beatmaps(params, driver));
 
     // file dialog
     ipcMain.handle("dialog", async (_, options = {}) => {
@@ -103,7 +137,7 @@ async function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
     }
-}
+};
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

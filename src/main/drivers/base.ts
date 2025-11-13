@@ -11,7 +11,18 @@ import {
     LEGACY_DATABASE_VERSION,
     IStableCollection,
     BeatmapFile,
-    gamemode_to_code
+    gamemode_to_code,
+    IExportCollectionsParams,
+    IAddCollectionParams,
+    IDeleteCollectionParams,
+    IGetCollectionParams,
+    IUpdateCollectionParams,
+    IAddBeatmapParams,
+    IGetBeatmapByMd5Params,
+    IGetBeatmapByIdParams,
+    IGetBeatmapsetParams,
+    IGetBeatmapsetFilesParams,
+    IFetchBeatmapsParams
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps } from "../beatmaps/beatmaps";
 import { osdb_parser } from "../binary/osdb";
@@ -25,19 +36,19 @@ export abstract class BaseDriver implements IOsuDriver {
     protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
     protected initialized: boolean = false;
 
-    protected add_to_temp(beatmap: IBeatmapResult): void {
+    protected add_to_temp = (beatmap: IBeatmapResult): void => {
         this.temp_beatmaps.set(beatmap.md5, beatmap);
     }
 
-    protected remove_from_temp(md5: string): boolean {
+    protected remove_from_temp = (md5: string): boolean => {
         return this.temp_beatmaps.delete(md5);
     }
 
-    protected get_from_temp_by_md5(md5: string): IBeatmapResult | null {
+    protected get_from_temp_by_md5 = (md5: string): IBeatmapResult | null => {
         return this.temp_beatmaps.get(md5) || null;
     }
 
-    protected get_from_temp_by_id(id: number): IBeatmapResult | null {
+    protected get_from_temp_by_id = (id: number): IBeatmapResult | null => {
         for (const beatmap of this.temp_beatmaps.values()) {
             if (beatmap.online_id == id) {
                 return beatmap;
@@ -46,11 +57,11 @@ export abstract class BaseDriver implements IOsuDriver {
         return null;
     }
 
-    protected clear_temp(): void {
+    protected clear_temp = (): void => {
         this.temp_beatmaps.clear();
     }
 
-    protected filter_beatmaps(beatmaps: IBeatmapResult[], options: IBeatmapFilter): string[] {
+    protected filter_beatmaps = (beatmaps: IBeatmapResult[], options: IBeatmapFilter): string[] => {
         const unique = new Set<string>();
 
         const filtered = beatmaps.filter((beatmap) => {
@@ -82,7 +93,7 @@ export abstract class BaseDriver implements IOsuDriver {
         return sort_beatmaps(filtered, options.sort).map((b) => b.md5);
     }
 
-    private write_osdb_collection(collections: ICollectionResult[]) {
+    private write_osdb_collection = async (collections: ICollectionResult[]) => {
         const osdb_data: IOSDBData = {
             collections: [],
             count: 0,
@@ -100,7 +111,7 @@ export abstract class BaseDriver implements IOsuDriver {
 
             // add data from previous collection
             for (const hash of collection.beatmaps) {
-                const beatmap = this.get_beatmap_by_md5(hash);
+                const beatmap = await this.get_beatmap_by_md5({ md5: hash });
 
                 if (!beatmap) {
                     continue;
@@ -181,24 +192,26 @@ export abstract class BaseDriver implements IOsuDriver {
         return true;
     }
 
-    export_collections(collections: ICollectionResult[], type: string): boolean {
-        return type == "osdb" ? this.write_osdb_collection(collections) : this.write_stable_collection(collections);
+    export_collections = async (params: IExportCollectionsParams): Promise<boolean> => {
+        return params.type == "osdb" ? 
+            this.write_osdb_collection(params.collections) : 
+            this.write_stable_collection(params.collections);
     }
 
     abstract initialize(): Promise<void>;
     abstract get_player_name(): string;
-    abstract add_collection(name: string, beatmaps: string[]): boolean;
-    abstract delete_collection(name: string): boolean;
-    abstract get_collection(name: string): ICollectionResult | undefined;
+    abstract add_collection(params: IAddCollectionParams): boolean;
+    abstract delete_collection(params: IDeleteCollectionParams): boolean;
+    abstract get_collection(params: IGetCollectionParams): ICollectionResult | undefined;
     abstract get_collections(): ICollectionResult[];
-    abstract update_collection(collections: ICollectionResult[]): boolean;
-    abstract add_beatmap(beatmap: IBeatmapResult): boolean;
-    abstract get_beatmap_by_md5(md5: string): IBeatmapResult | undefined;
-    abstract get_beatmap_by_id(id: number): IBeatmapResult | undefined;
-    abstract get_beatmapset(set_id: number): BeatmapSetResult | undefined;
-    abstract search_beatmaps(options: IBeatmapFilter): string[];
-    abstract get_all_beatmaps(): string[];
-    abstract get_beatmapset_files(id: number): BeatmapFile[];
-    abstract fetch_beatmaps(checksums: string[]): IBeatmapResult[];
+    abstract update_collection(params: IUpdateCollectionParams): boolean;
+    abstract add_beatmap(params: IAddBeatmapParams): boolean;
+    abstract get_beatmap_by_md5(params: IGetBeatmapByMd5Params): Promise<IBeatmapResult | undefined>;
+    abstract get_beatmap_by_id(params: IGetBeatmapByIdParams): Promise<IBeatmapResult | undefined>;
+    abstract get_beatmapset(params: IGetBeatmapsetParams): Promise<BeatmapSetResult | undefined>;
+    abstract search_beatmaps(options: IBeatmapFilter): Promise<string[]>;
+    abstract get_all_beatmaps(): Promise<string[]>;
+    abstract get_beatmapset_files(params: IGetBeatmapsetFilesParams): Promise<BeatmapFile[]>;
+    abstract fetch_beatmaps(params: IFetchBeatmapsParams): Promise<IBeatmapResult[]>;
     abstract dispose(): Promise<void>;
-}
+};

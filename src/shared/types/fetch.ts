@@ -1,3 +1,5 @@
+import { IFetchResponse } from "./ipc";
+
 export enum FetchError {
     UNKNOWN = -1,
     MISSING_URL = 1,
@@ -11,14 +13,6 @@ export type FetchOptions = {
     headers: Record<string, string>;
     body?: any;
     form_data?: Record<string, string>;
-};
-
-export type FetchResponse = {
-    success: boolean;
-    status: number;
-    error?: string;
-    data?: any;
-    headers: Record<string, string>;
 };
 
 export const get_fetch_error = (level: FetchError): string => {
@@ -43,7 +37,7 @@ export const build_fetch_options = (options: Partial<FetchOptions> = {}): FetchO
     };
 };
 
-export const build_fetch_result = (result: Partial<FetchResponse> = {}): FetchResponse => {
+export const build_fetch_result = (result: Partial<IFetchResponse> = {}): IFetchResponse => {
     return {
         success: false,
         status: 0,

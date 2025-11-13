@@ -65,7 +65,7 @@ export class ConfigDatabase extends BaseDatabase {
 
     post_initialize() {
         this.ensure_config_row();
-        this.load_config();
+        this.load();
     }
 
     ensure_config_row() {
@@ -76,15 +76,13 @@ export class ConfigDatabase extends BaseDatabase {
         }
     }
 
-    load_config() {
+    async load() {
         // TOFIX: types...
         const config_obj = this.get_statement("get_config").get() as StuffConfig;
 
         if (!config_obj) {
-            return;
+            return false;
         }
-
-        console.log(this.data, config_obj);
 
         // load values from db into config object
         Object.assign(this.data, config_obj);
@@ -93,6 +91,8 @@ export class ConfigDatabase extends BaseDatabase {
         if (!this.data.export_path || this.data.export_path == "") {
             this.update({ export_path: path.resolve(this.app_path, "exports") });
         }
+
+        return true;
     }
 
     async setup_default_paths() {
@@ -127,12 +127,11 @@ export class ConfigDatabase extends BaseDatabase {
         }
     }
 
-    // TODO: types...
     update(data: Partial<StuffConfig>) {
         const keys = Object.keys(data).filter((k) => CONFIG_KEYS.includes(k)) as Array<keyof StuffConfig>;
 
-        if (keys.length === 0) {
-            return;
+        if (keys.length == 0) {
+            return false;
         }
 
         const placeholders = keys.map(() => "?").join(", ");
@@ -153,6 +152,8 @@ export class ConfigDatabase extends BaseDatabase {
         });
 
         statement.run(...params);
+
+        return true;
     }
 
     get() {

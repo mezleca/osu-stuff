@@ -1,10 +1,11 @@
 import { net } from "electron";
-import { build_fetch_options, build_fetch_result, FetchError, FetchOptions, FetchResponse, get_fetch_error } from "../shared/types";
+import { build_fetch_options, build_fetch_result, FetchError, FetchOptions, get_fetch_error } from "../shared/types";
+import { IFetchResponse } from "../shared/types";
 
 export class FetchManager {
     constructor() {}
 
-    validate_options(options: FetchOptions): FetchResponse {
+    validate_options(options: FetchOptions): IFetchResponse {
         const result = build_fetch_result();
 
         if (!options.url) {
@@ -66,7 +67,7 @@ export class FetchManager {
         }
     }
 
-    async handle_media_protocol(url: string): Promise<FetchResponse> {
+    async handle_media_protocol(url: string): Promise<IFetchResponse> {
         const result = build_fetch_result();
 
         try {
@@ -86,7 +87,7 @@ export class FetchManager {
         return result;
     }
 
-    async execute(options: FetchOptions): Promise<FetchResponse> {
+    async execute(options: FetchOptions): Promise<IFetchResponse> {
         const result = build_fetch_result();
 
         try {
@@ -108,7 +109,7 @@ export class FetchManager {
         }
     }
 
-    async request(params: FetchOptions): Promise<FetchResponse> {
+    async request(params: FetchOptions): Promise<IFetchResponse> {
         const options = build_fetch_options(params);
         const validate_result = this.validate_options(options);
 
