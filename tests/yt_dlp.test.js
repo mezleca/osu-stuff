@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 
 import { describe, expect, test } from "bun:test";
-import { TEST_TARGET_PATH, clean_test_path } from "./utils/utils";
+import { TEMP_DIR, clean_test_path } from "./utils/utils";
 import { YTdlp } from "../src/main/dlp/dlp";
 import { SongDownloader } from "../src/main/dlp/song";
 
 const TARGET_YT_SONG = "https://www.youtube.com/watch?v=KJotmmDJWAg";
 
 // create new yt_dlp instance
-const new_instance = new YTdlp(TEST_TARGET_PATH);
+const new_instance = new YTdlp(TEMP_DIR);
 
 describe("yt-dlp", async () => {
     // ensure we initialize with a empty test path
@@ -26,7 +26,7 @@ describe("yt-dlp", async () => {
 
     test("check downloaded binaries", () => {
         const target_binary = new_instance.name;
-        const file_exists = fs.existsSync(path.resolve(TEST_TARGET_PATH, target_binary));
+        const file_exists = fs.existsSync(path.resolve(TEMP_DIR, target_binary));
 
         expect(file_exists).toBe(true);
 
@@ -34,11 +34,11 @@ describe("yt-dlp", async () => {
         if (process.platform == "win32") {
             let target_binaries = ["ffmpeg.exe", "ffplay.exe", "ffprobe.exe"];
 
-            const ffmpeg_folder_exists = fs.existsSync(path.resolve(TEST_TARGET_PATH, "ffmpeg"));
+            const ffmpeg_folder_exists = fs.existsSync(path.resolve(TEMP_DIR, "ffmpeg"));
             expect(ffmpeg_folder_exists).toBe(true);
 
             if (ffmpeg_folder_exists) {
-                const ffmpeg_binaries = fs.readdirSync(path.resolve(TEST_TARGET_PATH, "ffmpeg"));
+                const ffmpeg_binaries = fs.readdirSync(path.resolve(TEMP_DIR, "ffmpeg"));
 
                 // vheck if all required binaries exist
                 const all_binaries_exist = target_binaries.every((target) => ffmpeg_binaries.some((b) => b.includes(target.replace(".exe", ""))));
@@ -63,7 +63,7 @@ describe("yt-dlp", async () => {
 
 describe("song downloader", () => {
     // create new instance
-    const song_downloader = new SongDownloader(TEST_TARGET_PATH, new_instance);
+    const song_downloader = new SongDownloader(TEMP_DIR, new_instance);
 
     test(
         "initialize new song download instance",

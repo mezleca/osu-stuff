@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "bun:test";
-import { TEST_TARGET_PATH, clean_test_path } from "./utils/utils";
+import { TEMP_DIR, clean_test_path } from "./utils/utils";
 import { BeatmapBuilder } from "../src/main/beatmaps/builder";
 
 const AUDIO_LOCATION = path.resolve(__dirname, "utils", "audio.mp3");
@@ -31,7 +31,7 @@ describe("builder", async () => {
         const osu_content = builder.write(beatmap);
 
         // temp
-        const test_osu_file = path.join(TEST_TARGET_PATH, "test_beatmap.osu");
+        const test_osu_file = path.join(TEMP_DIR, "test_beatmap.osu");
         fs.writeFileSync(test_osu_file, osu_content, "utf-8");
 
         // check if contains required sections
@@ -75,7 +75,7 @@ describe("builder", async () => {
         expect(zip_buffer.length).toBeGreaterThan(0);
 
         // optionally save and verify zip contents
-        const test_zip_path = path.join(TEST_TARGET_PATH, "test_beatmap.osz");
+        const test_zip_path = path.join(TEMP_DIR, "test_beatmap.osz");
         fs.writeFileSync(test_zip_path, zip_buffer);
         expect(fs.existsSync(test_zip_path)).toBe(true);
 
