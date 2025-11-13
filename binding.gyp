@@ -2,7 +2,7 @@
   "targets": [
     {
       "target_name": "processor",
-      "sources": [ "./src/modules/processor.cpp" ],
+      "sources": [ "./src/main/modules/processor.cpp" ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
       ],
