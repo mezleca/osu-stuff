@@ -1,3 +1,5 @@
+import { v2 } from "osu-api-extended";
+
 /* USEFUL CONSTANTS */
 
 export const LEGACY_DATABASE_VERSION: number = 20251102;
@@ -164,10 +166,6 @@ export interface IBeatmapFilter {
 
     // will be used if available on filter
     collection?: string;
-
-    // web only
-    language?: string;
-    mode?: any;
 }
 
 export interface IBeatmapResult {
@@ -244,6 +242,10 @@ export type BeatmapFile = {
     location: string;
 };
 
+export interface ISearchResponse {
+    beatmaps: string[];
+}
+
 export interface IOsuDriver {
     initialize(): Promise<void>;
     get_player_name(): string;
@@ -257,7 +259,7 @@ export interface IOsuDriver {
     get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
     get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined>;
-    search_beatmaps(params: IBeatmapFilter): Promise<string[]>;
+    search_beatmaps(params: IBeatmapFilter): Promise<ISearchResponse>;
     get_all_beatmaps(): Promise<string[]>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]>;

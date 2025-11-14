@@ -26,6 +26,7 @@ import {
     get_all_beatmaps,
     fetch_beatmaps
 } from "./drivers/driver";
+import { auth, v2 } from "osu-api-extended";
 
 // testing
 const additionalArguments = [
@@ -92,9 +93,14 @@ async function createWindow() {
     mirrors.initialize();
     beatmap_processor.initialize();
 
+    // fetch manager
     handle_ipc("fetch:get", (_, params) => fetch_manager.execute(params));
+
+    // config
     handle_ipc("config:save", (_, params) => config.update(params));
     handle_ipc("config:load", (_) => config.load());
+
+    // drivers
     handle_ipc("driver:get_player_name", (_, [driver]) => get_player_name(driver));
     handle_ipc("driver:add_collection", (_, [params, driver]) => add_collection(...params, driver));
     handle_ipc("driver:delete_collection", (_, [params, driver]) => delete_collection(...params, driver));
@@ -109,6 +115,12 @@ async function createWindow() {
     handle_ipc("driver:search_beatmaps", (_, [params, driver]) => search_beatmaps(...params, driver));
     handle_ipc("driver:get_all_beatmaps", (_, [driver]) => get_all_beatmaps(driver));
     handle_ipc("driver:fetch_beatmaps", (_, [params, driver]) => fetch_beatmaps(...params, driver));
+
+    // osu-extended-api
+    handle_ipc("web:authenticate", (_, params) => auth.login(params));
+    handle_ipc("web:get_beatmap", (_, params) => v2.beatmaps.lookup(params));
+    handle_ipc("web:get_beatmapset", (_, params) => v2.beatmaps.lookup(params));
+    handle_ipc("web:search", (_, params) => v2.search(params));
 
     // file dialog
     ipcMain.handle("dialog", async (_, options = {}) => {

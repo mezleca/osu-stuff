@@ -1,4 +1,4 @@
-import { ICollectionResult, IBeatmapResult, BeatmapSetResult, BeatmapFile, IBeatmapFilter } from "@shared/types/osu";
+import { ICollectionResult, IBeatmapResult, BeatmapSetResult, BeatmapFile, IBeatmapFilter, ISearchResponse } from "@shared/types/osu";
 
 import { BaseDriver } from "./base";
 import { config } from "../database/config";
@@ -80,7 +80,7 @@ export const get_beatmapset = (id: number, custom_driver: string = ""): Promise<
     return driver.get_beatmapset(id);
 };
 
-export const search_beatmaps = (options: IBeatmapFilter, custom_driver: string = ""): Promise<string[]> => {
+export const search_beatmaps = (options: IBeatmapFilter, custom_driver: string = ""): Promise<ISearchResponse> => {
     const driver = get_driver(custom_driver);
     return driver.search_beatmaps(options);
 };

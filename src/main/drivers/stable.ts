@@ -8,7 +8,8 @@ import {
     IStableBeatmap,
     beatmap_status_from_code,
     gamemode_from_code,
-    IStableBeatmapset
+    IStableBeatmapset,
+    ISearchResponse
 } from "@shared/types";
 import { BaseDriver } from "./base";
 import { stable_parser } from "../binary/stable";
@@ -175,18 +176,18 @@ class StableBeatmapDriver extends BaseDriver {
         return build_beamapset(beatmapset);
     };
 
-    search_beatmaps = async (options: IBeatmapFilter): Promise<string[]> => {
+    search_beatmaps = async (options: IBeatmapFilter): Promise<ISearchResponse> => {
         const checksums = new Set(options.collection ? this.get_collection(options.collection)?.beatmaps || [] : await this.get_all_beatmaps());
 
         if (checksums.size == 0) {
-            return [];
+            return { beatmaps: [] };
         }
 
         // get beatmaps on storage
         const beatmaps = await this.fetch_beatmaps(Array.from(checksums));
 
         // return filtered beatmaps
-        return this.filter_beatmaps(beatmaps, options);
+        return { beatmaps: this.filter_beatmaps(beatmaps, options) };
     };
 
     get_all_beatmaps = async (): Promise<string[]> => {

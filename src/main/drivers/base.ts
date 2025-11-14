@@ -7,11 +7,9 @@ import {
     IOSDBData,
     OsdbVersion,
     IOSDBCollection,
-    ILegacyCollectionDatabase,
-    LEGACY_DATABASE_VERSION,
-    IStableCollection,
     BeatmapFile,
-    gamemode_to_code
+    gamemode_to_code,
+    ISearchResponse
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps } from "../beatmaps/beatmaps";
 import { osdb_parser } from "../binary/osdb";
@@ -143,27 +141,10 @@ export abstract class BaseDriver implements IOsuDriver {
     };
 
     private write_stable_collection(collections: ICollectionResult[]): boolean {
-        const collection_data: ILegacyCollectionDatabase = {
-            collections: [],
-            version: LEGACY_DATABASE_VERSION,
-            length: 0
-        };
-
         const output_name = collections.map((c) => c.name).join("-") + `.db`;
 
-        for (const collection of collections) {
-            // create new osdb collection
-            const stable_collection = {
-                name: collection.name,
-                maps: new Set(...collection.beatmaps)
-            } as IStableCollection;
-
-            collection_data.collections.push(stable_collection);
-            collection_data.length++;
-        }
-
         // get buffer
-        const result = stable_parser.write_collections_data(collection_data);
+        const result = stable_parser.write_collections_data(collections);
 
         if (!result.success) {
             console.log(result.reason);
@@ -196,7 +177,7 @@ export abstract class BaseDriver implements IOsuDriver {
     abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
     abstract get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined>;
-    abstract search_beatmaps(options: IBeatmapFilter): Promise<string[]>;
+    abstract search_beatmaps(options: IBeatmapFilter): Promise<ISearchResponse>;
     abstract get_all_beatmaps(): Promise<string[]>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     abstract fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]>;

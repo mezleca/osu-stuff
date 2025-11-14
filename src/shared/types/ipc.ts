@@ -1,3 +1,4 @@
+import { auth, v2 } from "osu-api-extended";
 import { StuffConfig } from "./config";
 import { FetchOptions } from "./fetch";
 import { IDownloadData, IDownloadUpdate, IExportUpdatePayload, IOsuDriver } from "./osu";
@@ -11,6 +12,14 @@ export type IFetchResponse = {
 };
 
 export type ConfigSaveParams = Partial<StuffConfig>;
+
+// osu-api-extended
+type BeatmapsSearchParams = Extract<Parameters<typeof v2.search>[0], { type: "beatmaps" }>;
+type BeatmapsSearchResult = Awaited<ReturnType<typeof v2.search<BeatmapsSearchParams>>>;
+type BeatmapsetSearchParams = Extract<Parameters<typeof v2.beatmaps.lookup>[0], { type: "set" }>;
+type BeatmapsetSearchResult = Awaited<ReturnType<typeof v2.beatmaps.lookup<BeatmapsetSearchParams>>>;
+type DifficultySearchParams = Extract<Parameters<typeof v2.beatmaps.lookup>[0], { type: "difficulty" }>;
+type DifficultySearchResult = Awaited<ReturnType<typeof v2.beatmaps.lookup<DifficultySearchParams>>>;
 
 export interface IpcSchema {
     invoke: {
@@ -84,6 +93,22 @@ export interface IpcSchema {
         "driver:fetch_beatmaps": {
             params: [Parameters<IOsuDriver["fetch_beatmaps"]>, string?];
             result: ReturnType<IOsuDriver["fetch_beatmaps"]>;
+        };
+        "web:authenticate": {
+            params: Parameters<typeof auth.login>[0];
+            result: Awaited<ReturnType<typeof auth.login>>;
+        };
+        "web:get_beatmapset": {
+            params: BeatmapsetSearchParams;
+            result: BeatmapsetSearchResult;
+        };
+        "web:get_beatmap": {
+            params: DifficultySearchParams;
+            result: DifficultySearchResult;
+        };
+        "web:search": {
+            params: BeatmapsSearchParams;
+            result: BeatmapsSearchResult;
         };
     };
     send: {

@@ -78,15 +78,11 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: search_beatmaps():`, async () => {
-        if (type == "web") {
-            // TODO
-        } else {
-            const result = await driver.search_beatmaps({
-                query: `artist="glass beach"`
-            });
+        const result = await driver.search_beatmaps({
+            query: `artist="glass beach"`
+        });
 
-            expect(result.length).toBe(18);
-        }
+        expect(result.length).toBe(18);
     });
 
     test(`${type}: get_beatmap_files():`, async () => {
