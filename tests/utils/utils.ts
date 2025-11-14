@@ -43,9 +43,7 @@ export const create_temp_beatmap = (): IBeatmapResult => {
 };
 
 export const create_temp_path = () => {
-    if (!fs.existsSync(TEMP_DIR)) {
-        fs.mkdirSync(TEMP_DIR);
-    }
+    fs.mkdirSync(TEMP_DIR);
 };
 
 export const run_sh = (command: string) => {
@@ -68,6 +66,7 @@ export const clean_test_path = async () => {
 };
 
 export const setup_config = () => {
+    clean_test_path();
     config.initialize();
 
     const config_data: Partial<StuffConfig> = {

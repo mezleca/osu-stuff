@@ -78,11 +78,11 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: search_beatmaps():`, async () => {
-        const result = await driver.search_beatmaps({
+        const { beatmaps } = await driver.search_beatmaps({
             query: `artist="glass beach"`
         });
 
-        expect(result.length).toBe(18);
+        expect(beatmaps.length).toBe(18);
     });
 
     test(`${type}: get_beatmap_files():`, async () => {
@@ -94,6 +94,13 @@ const test_driver = (type: string) => {
         const beatmaps = await driver.get_all_beatmaps();
         const result = await driver.fetch_beatmaps(beatmaps);
         expect(result.some((b) => b.md5 == undefined)).toBe(false);
+    });
+
+    // NOTE: tbh, we're not really testing anythign lol
+    // REMEMBER: check integrity when i finish the beatmap parser
+    test(`${type} export_beatmapset():`, async () => {
+        const result = await driver.export_beatmapset(test_beatmapset_id);
+        expect(result).toBe(true);
     });
 };
 

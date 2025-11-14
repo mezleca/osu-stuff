@@ -17,6 +17,7 @@ import { stable_parser } from "../binary/stable";
 import { config } from "../database/config";
 
 import path from "path";
+import JSzip from "jszip";
 import fs from "fs";
 
 export abstract class BaseDriver implements IOsuDriver {
@@ -165,6 +166,42 @@ export abstract class BaseDriver implements IOsuDriver {
     export_collections = async (collections: ICollectionResult[], type: string): Promise<boolean> => {
         return type == "osdb" ? this.write_osdb_collection(collections) : this.write_stable_collection(collections);
     };
+
+    // TODO: renderer progress
+    // TOFIX: slow asf but works for now so idc
+    export_beatmapset = async (id: number): Promise<boolean> => {
+        const files = await this.get_beatmapset_files(id);
+
+        if (files.length == 0) {
+            console.error("export_beatmapset: couldn't get beatmap files...");
+            return false;
+        }
+
+        const zip = new JSzip();
+
+        for (const file of files) {
+            const buffer = fs.readFileSync(file.location);
+            
+            if (!buffer) {
+                console.error("export_beatmapset: failed to get buffer from", file);
+                return false;
+            }
+
+            zip.file(file.name, buffer);
+        }
+
+        const buffer = await zip.generateAsync({
+            type: "nodebuffer",
+            compression: "DEFLATE",
+            compressionOptions: { level: 9 }
+        });
+
+        const target_name = path.resolve(config.get().export_path, `${id}.osz`);
+        console.log("export_beatmapset: writing into", target_name);
+        fs.writeFileSync(target_name, buffer);
+
+        return true;
+    }
 
     abstract initialize(): Promise<void>;
     abstract get_player_name(): string;

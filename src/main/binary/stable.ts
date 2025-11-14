@@ -211,7 +211,8 @@ export class StableParser extends BinaryReader {
 
         // unique audio id
         data.unique_id = `${data.beatmapset_id}_${data.audio_file_name}`;
-        data.file_path = `${data.folder_name}/${data.file}`;
+        data.audio_path = path.join(data.folder_name, data.audio_file_name);
+        data.file_path = path.join(data.folder_name, data.file);
 
         return data;
     };

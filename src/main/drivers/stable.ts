@@ -215,15 +215,18 @@ class StableBeatmapDriver extends BaseDriver {
             if (!beatmap) {
                 continue;
             }
-
-            beatmap.audio_file_name;
-            beatmap.file_path;
-
-            // TOFIX: obviously missing audio and background from processor
-            files.push({
-                name: beatmap.file,
-                location: beatmap.file_path
-            });
+            
+            // TOFIX: missing background from processor
+            files.push(
+                {
+                    name: beatmap.file,
+                    location: path.join(config.get().stable_songs_path, beatmap.file_path)
+                },
+                {
+                    name: beatmap.audio_file_name,
+                    location: path.join(config.get().stable_songs_path, beatmap.audio_path)
+                }
+            );
         }
 
         return files;
@@ -232,14 +235,20 @@ class StableBeatmapDriver extends BaseDriver {
     fetch_beatmaps = async (checksums: string[]): Promise<IBeatmapResult[]> => {
         const beatmaps: IBeatmapResult[] = [];
 
-        // add temp beatmaps
-        for (const [_, beatmap] of this.temp_beatmaps) {
-            beatmaps.push(beatmap);
-        }
+        for (const md5 of checksums) {
+            const temp_beatmap = this.temp_beatmaps.get(md5);
 
-        // add stored beatmaps
-        for (const [_, beatmap] of this.osu.beatmaps) {
-            beatmaps.push(build_beatmap(beatmap));
+            // search on temp
+            if (temp_beatmap) {
+                beatmaps.push(temp_beatmap);
+                continue;
+            }
+
+            const beatmap = this.osu.beatmaps.get(md5);
+
+            if (beatmap) {
+                beatmaps.push(build_beatmap(beatmap));
+            }
         }
 
         return beatmaps;

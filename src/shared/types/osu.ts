@@ -125,6 +125,7 @@ export interface IStableBeatmap {
     unknown: number;
     mania_scroll_speed: number;
     unique_id: string;
+    audio_path: string;
     file_path: string;
     temp: boolean;
 }
@@ -255,6 +256,7 @@ export interface IOsuDriver {
     get_collections(): ICollectionResult[];
     update_collection(collections: ICollectionResult[]): boolean;
     export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
+    export_beatmapset(id: number): Promise<boolean>;
     add_beatmap(beatmap: IBeatmapResult): boolean;
     get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
