@@ -75,7 +75,7 @@ export interface IStableBeatmap {
     artist_unicode: string;
     title: string;
     title_unicode: string;
-    mapper: string;
+    creator: string;
     difficulty: string;
     audio_file_name: string;
     md5: string;
@@ -127,6 +127,15 @@ export interface IStableBeatmap {
     temp: boolean;
 }
 
+export interface IStableBeatmapset {
+    title: string;
+    artist: string;
+    creator: string;
+    online_id: number;
+    // NOTE: we dont need to store the beatmap object two times (LegacyDatabase should store it)
+    beatmaps: Set<string>;
+}
+
 export interface ILegacyDatabase {
     version: number;
     folders: number;
@@ -135,19 +144,7 @@ export interface ILegacyDatabase {
     player_name: string;
     beatmaps_count: number;
     beatmaps: Map<string, IStableBeatmap>;
-}
-
-export interface IStableCollection {
-    bpm_max?: number;
-    sr_max?: number;
-    name: string;
-    maps: Set<string>;
-}
-
-export interface ILegacyCollectionDatabase {
-    version: number;
-    length: number;
-    collections: IStableCollection[];
+    beatmapsets: Map<number, IStableBeatmapset>;
 }
 
 /* OSU DRIVER RELATED STUFF */
@@ -210,12 +207,14 @@ export interface IBeatmapSetResultMetadata {
 export interface BeatmapSetResult {
     online_id: number;
     metadata: IBeatmapSetResultMetadata;
-    beatmaps: IBeatmapResult[];
+    beatmaps: string[];
 }
 
 export interface ICollectionResult {
     name: string;
     beatmaps: string[];
+    bpm_min?: 0;
+    bpm_max?: 0;
 }
 
 export interface IProcessorInput {

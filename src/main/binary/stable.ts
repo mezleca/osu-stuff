@@ -7,8 +7,9 @@ import {
     stable_byte_to_status,
     IStableBeatmap,
     IStableTimingPoint,
-    IStableCollection,
-    ILegacyCollectionDatabase
+    LEGACY_DATABASE_VERSION,
+    ICollectionResult,
+    IStableBeatmapset
 } from "@shared/types.js";
 
 import path from "path";
@@ -25,7 +26,7 @@ export class StableParser extends BinaryReader {
     }
 
     cleanup(): void {
-        this.buffer.fill(0);
+        if (this.buffer) this.buffer.fill(0);
         this.offset = 0;
 
         if (this.image_cache.size > CACHE_LIMIT) {
@@ -49,6 +50,7 @@ export class StableParser extends BinaryReader {
         this.set_buffer(buffer);
 
         const beatmaps = new Map();
+        const beatmapsets: Map<number, IStableBeatmapset> = new Map();
 
         const version = this.int();
         const folders = this.int();
@@ -60,9 +62,28 @@ export class StableParser extends BinaryReader {
         for (let i = 0; i < beatmaps_count; i++) {
             const beatmap = this.read_beatmap(version);
 
-            if (beatmap.md5) {
-                beatmaps.set(beatmap.md5, beatmap);
+            // create new beatmapset
+            // otherwise add the new difficulty to the set
+            if (!beatmapsets.has(beatmap.beatmapset_id)) {
+                const beatmapset: IStableBeatmapset = {
+                    title: beatmap.title,
+                    artist: beatmap.artist,
+                    creator: beatmap.creator,
+                    online_id: beatmap.beatmapset_id,
+                    beatmaps: new Set([beatmap.md5])
+                };
+
+                beatmapsets.set(beatmap.beatmapset_id, beatmapset);
+            } else {
+                const beatmapset = beatmapsets.get(beatmap.beatmapset_id);
+
+                if (beatmapset) {
+                    beatmapset.beatmaps.add(beatmap.md5);
+                }
             }
+
+            // add to beatmaps
+            beatmaps.set(beatmap.md5, beatmap);
         }
 
         // ignore: permission
@@ -75,7 +96,8 @@ export class StableParser extends BinaryReader {
             last_unlocked_time,
             player_name,
             beatmaps_count,
-            beatmaps
+            beatmaps,
+            beatmapsets
         };
 
         return { success: true, data: db };
@@ -92,12 +114,12 @@ export class StableParser extends BinaryReader {
         data.artist_unicode = this.string();
         data.title = this.string();
         data.title_unicode = this.string();
-        data.mapper = this.string();
+        data.creator = this.string();
         data.difficulty = this.string();
         data.audio_file_name = this.string();
         data.md5 = this.string();
         data.file = this.string();
-        data.status = stable_byte_to_status(data.status);
+        data.status = stable_byte_to_status(this.byte());
         data.hitcircle = this.short();
         data.sliders = this.short();
         data.spinners = this.short();
@@ -111,6 +133,7 @@ export class StableParser extends BinaryReader {
         data.slider_velocity = this.double();
 
         const is_new_version = version >= 20250107;
+        const star_rating: number[] = Array.from({ length: 4 });
 
         // loop through each ruleset
         for (let i = 0; i < 4; i++) {
@@ -120,10 +143,10 @@ export class StableParser extends BinaryReader {
             this.int(); // mod
             this.byte(); // skip
 
-            // NOTE: as of rn theres no reason to store the actual sr pair
+            // NOTE: theres no reason to store the actual sr pair (for each mod comb)
             // so star_rating is nomod only
             const diff = is_new_version ? this.single() : this.double();
-            data.star_rating[i] = diff;
+            star_rating.push(diff);
 
             // since we dont need the rest
             // skip remaining bytes
@@ -131,6 +154,7 @@ export class StableParser extends BinaryReader {
             this.offset += skip_bytes * (length - 1);
         }
 
+        data.star_rating = star_rating;
         data.drain_time = this.int();
         data.length = this.int();
         data.audio_preview = this.int();
@@ -192,7 +216,7 @@ export class StableParser extends BinaryReader {
         return data;
     };
 
-    get_collections_data = (location: string): GenericResult<ILegacyCollectionDatabase> => {
+    get_collections_data = (location: string): GenericResult<Map<string, ICollectionResult>> => {
         if (!fs.existsSync(location)) {
             return { success: false, reason: `collections file not found at ${location}` };
         }
@@ -202,32 +226,28 @@ export class StableParser extends BinaryReader {
         this.cleanup();
         this.set_buffer(buffer);
 
-        const collections: IStableCollection[] = [];
-        const version = this.int();
+        const collections: Map<string, ICollectionResult> = new Map();
+        this.int(); // version
         const count = this.int();
 
         for (let i = 0; i < count; i++) {
             const name = this.string();
             const bm_count = this.int();
-            const checksums: Set<string> = new Set();
+            const checksums: string[] = [];
 
             for (let j = 0; j < bm_count; j++) {
-                checksums.add(this.string());
+                checksums.push(this.string());
             }
 
-            collections.push({
+            const collection: ICollectionResult = {
                 name: name,
-                maps: checksums
-            });
+                beatmaps: checksums
+            };
+
+            collections.set(name, collection);
         }
 
-        const db: ILegacyCollectionDatabase = {
-            version: version,
-            length: count,
-            collections: collections
-        };
-
-        return { success: true, data: db };
+        return { success: true, data: collections };
     };
 
     create_collection_backup = () => {
@@ -242,19 +262,19 @@ export class StableParser extends BinaryReader {
         fs.renameSync(old_collection_path, new_collection_path);
     };
 
-    write_collections_data = (data: ILegacyCollectionDatabase): GenericResult<Buffer> => {
+    write_collections_data = (collections: ICollectionResult[]): GenericResult<Buffer> => {
         const buffer = [];
 
-        buffer.push(this.writeInt(data.version));
-        buffer.push(this.writeInt(data.collections.length));
+        buffer.push(this.writeInt(LEGACY_DATABASE_VERSION));
+        buffer.push(this.writeInt(collections.length));
 
-        for (const collection of data.collections) {
+        for (const collection of collections) {
             const name = collection.name;
 
             buffer.push(this.writeString(name));
-            buffer.push(this.writeInt(collection.maps.size));
+            buffer.push(this.writeInt(collection.beatmaps.length));
 
-            for (const map of collection.maps) {
+            for (const map of collection.beatmaps) {
                 if (!map) {
                     return { success: false, reason: `one of the hashes from ${name} is invalid` };
                 }
@@ -266,8 +286,8 @@ export class StableParser extends BinaryReader {
         return { success: true, data: this.join_buffer(buffer) };
     };
 
-    update_collections_data = (data: ILegacyCollectionDatabase): GenericResult<string> => {
-        const write_result = this.write_collections_data(data);
+    update_collections_data = (collections: ICollectionResult[]): GenericResult<string> => {
+        const write_result = this.write_collections_data(collections);
 
         if (!write_result.success) {
             return { success: false, reason: "failed to write collection data..." };

@@ -4,7 +4,7 @@ export class BinaryReader {
     offset: number = 0;
 
     set_buffer = (buffer: Buffer) => {
-        this.buffer = buffer;
+        this.buffer = Buffer.from(buffer);
         this.offset = 0;
     };
 

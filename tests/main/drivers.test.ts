@@ -2,15 +2,16 @@ import { describe, expect, test } from "vitest";
 import { get_driver } from "../../src/main/drivers/driver";
 import { create_temp_beatmap, setup_config } from "../utils/utils";
 
-// TODO: 100 on both
-const BEATMAP_COUNT = 48;
-
 const test_driver = (type: string) => {
     const driver = get_driver(type);
     const temp_collection_name = String(Date.now());
     const temp_beatmap = create_temp_beatmap();
     const test_beatmapset_id = 1326501; // title: dallas
     const test_beatmap_id = 2953473; // diff: height of the summer
+
+    // NOTE: both lazer and stable test files include the same beatmaps
+    // however lazer seems to count the intro as a beatmap? idk
+    const BEATMAP_COUNT = type == "lazer" ? 48 : 47;
 
     test(`${type}: initialize():`, async () => {
         expect(driver.initialize).not.throw();
@@ -103,4 +104,5 @@ const test_driver = (type: string) => {
 describe("osu!drivers", async () => {
     setup_config();
     test_driver("lazer");
+    test_driver("stable");
 });
