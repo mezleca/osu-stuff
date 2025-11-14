@@ -28,6 +28,7 @@ import {
     export_beatmapset
 } from "./drivers/driver";
 import { auth, v2 } from "osu-api-extended";
+import { beatmap_downloader } from "./beatmaps/downloader";
 
 // testing
 const additionalArguments = [
@@ -93,6 +94,7 @@ async function createWindow() {
     config.initialize();
     mirrors.initialize();
     beatmap_processor.initialize();
+    beatmap_downloader.initialize();
 
     // fetch manager
     handle_ipc("fetch:get", (_, params) => fetch_manager.execute(params));
@@ -123,6 +125,13 @@ async function createWindow() {
     handle_ipc("web:get_beatmap", (_, params) => v2.beatmaps.lookup(params));
     handle_ipc("web:get_beatmapset", (_, params) => v2.beatmaps.lookup(params));
     handle_ipc("web:search", (_, params) => v2.search(params));
+
+    // downloader
+    handle_ipc("downloader:add", (_, [params]) => beatmap_downloader.add_to_queue(params));
+    handle_ipc("downloader:single", (_, [params]) => beatmap_downloader.add_single(params));
+    handle_ipc("downloader:pause", (_, [params]) => beatmap_downloader.pause(params));
+    handle_ipc("downloader:resume", (_, [params]) => beatmap_downloader.resume(params));
+    handle_ipc("downloader:get", (_) => beatmap_downloader.get_queue());
 
     // file dialog
     ipcMain.handle("dialog", async (_, options = {}) => {

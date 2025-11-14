@@ -52,15 +52,15 @@ export class MirrorsDatabase extends BaseDatabase {
         }
     }
 
-    insert(name: string, url: string) {
-        const result = this.get_statement("insert").run(name, url);
+    delete(name: string) {
+        const result = this.get_statement("delete").run(name);
         this.load(); // refresh mirrors
         return result;
     }
 
-    delete(name: string) {
-        const result = this.get_statement("delete").run(name);
-        this.load(); // refresh mirrors
+    update(name: string, url: string) {
+        const result = this.get_statement("insert").run(name, url);
+        this.load();
         return result;
     }
 

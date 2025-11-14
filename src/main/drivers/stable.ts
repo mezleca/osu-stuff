@@ -215,7 +215,7 @@ class StableBeatmapDriver extends BaseDriver {
             if (!beatmap) {
                 continue;
             }
-            
+
             // TOFIX: missing background from processor
             files.push(
                 {

@@ -1,7 +1,8 @@
 import { auth, v2 } from "osu-api-extended";
 import { StuffConfig } from "./config";
 import { FetchOptions } from "./fetch";
-import { IDownloadData, IDownloadUpdate, IExportUpdatePayload, IOsuDriver } from "./osu";
+import { IOsuDriver } from "./osu";
+import { IBeatmapDownloader, IDownloadData, IDownloadProgress } from "./downloader";
 
 export type IFetchResponse = {
     success: boolean;
@@ -98,6 +99,7 @@ export interface IpcSchema {
             params: [Parameters<IOsuDriver["export_beatmapset"]>, string?];
             result: ReturnType<IOsuDriver["export_beatmapset"]>;
         };
+        // osu-api-exnteded
         "web:authenticate": {
             params: Parameters<typeof auth.login>[0];
             result: Awaited<ReturnType<typeof auth.login>>;
@@ -114,11 +116,30 @@ export interface IpcSchema {
             params: BeatmapsSearchParams;
             result: BeatmapsSearchResult;
         };
+        // downloader-update
+        "downloader:resume": {
+            params: Parameters<IBeatmapDownloader["resume"]>;
+            result: ReturnType<IBeatmapDownloader["resume"]>;
+        };
+        "downloader:single": {
+            params: Parameters<IBeatmapDownloader["add_single"]>;
+            result: ReturnType<IBeatmapDownloader["add_single"]>;
+        };
+        "downloader:add": {
+            params: Parameters<IBeatmapDownloader["add_to_queue"]>;
+            result: ReturnType<IBeatmapDownloader["add_to_queue"]>;
+        };
+        "downloader:pause": {
+            params: Parameters<IBeatmapDownloader["pause"]>;
+            result: ReturnType<IBeatmapDownloader["pause"]>;
+        };
+        "downloader:get": {
+            params: Parameters<IBeatmapDownloader["get_queue"]>;
+            result: ReturnType<IBeatmapDownloader["get_queue"]>;
+        };
     };
     send: {
-        "downloader:get": { data: IDownloadUpdate };
-        "downloader:update": { data: IDownloadData; type: string };
-        "export:update": IExportUpdatePayload;
+        "downloader:update": { data: IDownloadProgress; type: string };
     };
     on: IpcSchema["send"];
 }

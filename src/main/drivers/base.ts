@@ -181,7 +181,7 @@ export abstract class BaseDriver implements IOsuDriver {
 
         for (const file of files) {
             const buffer = fs.readFileSync(file.location);
-            
+
             if (!buffer) {
                 console.error("export_beatmapset: failed to get buffer from", file);
                 return false;
@@ -201,7 +201,7 @@ export abstract class BaseDriver implements IOsuDriver {
         fs.writeFileSync(target_name, buffer);
 
         return true;
-    }
+    };
 
     abstract initialize(): Promise<void>;
     abstract get_player_name(): string;

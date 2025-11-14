@@ -296,54 +296,6 @@ export interface IOSDBData {
     collections: IOSDBCollection[];
 }
 
-/* BEATMAP DOWNLOADER */
-
-export interface IDownloadProgress {
-    current: number;
-    size: number;
-    failed: number;
-}
-
-export interface IDownloadData {
-    progress: IDownloadProgress;
-    finished: boolean;
-    processing: boolean;
-    paused: boolean;
-}
-
-export interface IDownloadUpdate {
-    queue: IDownloadData[];
-}
-
-export interface ExportBeatmapParams {
-    md5: string;
-}
-
-export interface ExportBeatmapsParams {
-    md5_list: string[];
-}
-
-export interface ExportCollectionParams {
-    collection_names: string[];
-}
-
-export interface IExportUpdatePayload {
-    status: "start" | "done" | "exists" | "linked" | "missing" | "error" | "complete";
-    md5?: string;
-    collection?: string;
-    total?: number;
-    beatmapset_id?: string;
-    path?: string;
-    reason?: string;
-    written?: number;
-}
-
-export interface ExportResult {
-    success: boolean;
-    written: string[];
-    reason: string;
-}
-
 /* ENUMERATOR HELPERS */
 
 export const gamemode_to_code = (mode: string) => {

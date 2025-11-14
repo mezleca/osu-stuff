@@ -77,7 +77,6 @@ export class ConfigDatabase extends BaseDatabase {
     }
 
     async load() {
-        // TOFIX: types...
         const config_obj = this.get_statement("get_config").get() as StuffConfig;
 
         if (!config_obj) {

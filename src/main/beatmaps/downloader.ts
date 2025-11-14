@@ -1,264 +1,433 @@
-import { BrowserWindow } from "electron";
+import { GenericResult, IBeatmapDownloader, IDownloadData, IMinimalBeatmap } from "@shared/types";
 import { config } from "../database/config";
-import { BeatmapFile, ExportResult, GenericResult, IBeatmapResult, IExportUpdatePayload } from "@shared/types";
-import { get_driver } from "../drivers/driver";
+import { mirrors } from "../database/mirrors";
+import { send_to_renderer } from "../ipc";
+import { get_window } from "../database/utils";
+import { v2 } from "osu-api-extended";
 
-import fs from "fs";
 import path from "path";
-// @ts-ignore
-import AdmZip from "adm-zip";
+import fs from "fs";
 
-export class BeatmapExporter {
-    private window: BrowserWindow | null = null;
+const MAX_PARALLEL_DOWNLOADS = 3;
+const COOLDOWN_MS = 5 * 60 * 1000;
 
-    initialize(window: BrowserWindow) {
-        this.window = window;
+interface IMirrorWithCooldown {
+    name: string;
+    url: string;
+    cooldown: number | null;
+}
+
+interface ICachedBeatmapSetInfo {
+    id: number;
+    title: string;
+    artist: string;
+}
+
+const get_save_path = (): string => {
+    const lazer_mode = config.get().lazer_mode;
+
+    if (lazer_mode) {
+        return config.get().export_path;
     }
 
-    private emit_update(data: IExportUpdatePayload) {
-        try {
-            if (this.window) {
-                this.window.webContents.send("export:update", data);
-            }
-        } catch (err) {
-            const error = err as string;
-            console.log("[export] failed to emit update:", error);
-        }
+    if (!lazer_mode && config.get().stable_songs_path) {
+        return config.get().stable_songs_path;
     }
 
-    private ensure_directory(dir_path: string): boolean {
-        try {
-            if (!fs.existsSync(dir_path)) {
-                fs.mkdirSync(dir_path, { recursive: true });
-            }
-            return true;
-        } catch (err) {
-            const error = err as string;
-            console.log(`[export] failed to create directory ${dir_path}:`, error);
-            return false;
-        }
-    }
+    // fallback to export path
+    return config.get().export_path;
+};
 
-    private create_zip_from_files(files: BeatmapFile[], target_path: string): boolean {
-        try {
-            const zip = new AdmZip();
+const parallel_map = async <T, R>(array: T[], mapper: (item: T, index: number) => Promise<R | { stop: true }>, concurrency: number): Promise<R[]> => {
+    const results: R[] = [];
+    let index = 0;
+    let should_stop = false;
 
-            for (const file of files) {
-                try {
-                    zip.addLocalFile(file.location, file.name, file.name);
-                } catch (err) {
-                    const error = err as { message: string };
-                    console.log(`[export] failed to add file ${file.location}:`, error.message);
+    const run = async (): Promise<void> => {
+        while (index < array.length && !should_stop) {
+            const current_index = index++;
+
+            try {
+                const result = await mapper(array[current_index], current_index);
+
+                if (result && typeof result === "object" && "stop" in result) {
+                    should_stop = true;
+                    return;
                 }
-            }
 
-            zip.writeZip(target_path);
-            return true;
-        } catch (err) {
-            const error = err as string;
-            console.log(`[export] failed to create zip:`, error);
+                results[current_index] = result as R;
+            } catch (error) {
+                console.log(`[downloader] error at index ${current_index}:`, error);
+            }
+        }
+    };
+
+    await Promise.all(
+        Array(Math.min(concurrency, array.length))
+            .fill(null)
+            .map(() => run())
+    );
+
+    return results;
+};
+
+class BeatmapDownloader implements IBeatmapDownloader {
+    private static mirrors_with_cooldown: Map<string, IMirrorWithCooldown> = new Map();
+
+    private queue: Map<string, IDownloadData> = new Map();
+    private current_download_id: string | null = null;
+
+    static update_mirrors(): void {
+        const db_mirrors = mirrors.get();
+
+        for (const mirror of db_mirrors) {
+            if (!BeatmapDownloader.mirrors_with_cooldown.has(mirror.name)) {
+                BeatmapDownloader.mirrors_with_cooldown.set(mirror.name, {
+                    name: mirror.name,
+                    url: mirror.url,
+                    cooldown: null
+                });
+            } else {
+                const existing = BeatmapDownloader.mirrors_with_cooldown.get(mirror.name)!;
+                existing.url = mirror.url;
+            }
+        }
+
+        // remove mirrors that dont exist in db anymore
+        const db_names = new Set(db_mirrors.map((m) => m.name));
+
+        for (const [name] of BeatmapDownloader.mirrors_with_cooldown) {
+            if (!db_names.has(name)) {
+                BeatmapDownloader.mirrors_with_cooldown.delete(name);
+            }
+        }
+    }
+
+    initialize(): void {
+        console.log("[downloader] initializing");
+        BeatmapDownloader.update_mirrors();
+    }
+
+    get_queue(): IDownloadData[] {
+        return Array.from(this.queue.values());
+    }
+
+    add_single(data: IMinimalBeatmap): boolean {
+        console.log("[downloader] single download started");
+
+        this.process_single_beatmap(data).then((success) => {
+            console.log(`[downloader] single download ${success ? "completed" : "failed"}`);
+        });
+
+        return true;
+    }
+
+    add_to_queue(data: IDownloadData): boolean {
+        if (!data.progress) {
+            data.progress = {
+                id: data.id,
+                paused: this.current_download_id !== null,
+                length: data.beatmaps.length,
+                current: 0
+            };
+        }
+
+        this.queue.set(data.id, data);
+        console.log("[downloader] added to queue:", data.id);
+
+        if (!this.current_download_id) {
+            setTimeout(() => this.start_next_download(), 100);
+        }
+
+        return true;
+    }
+
+    resume(id: string): boolean {
+        const download = this.queue.get(id);
+
+        if (!download) {
+            console.log("[downloader] download not found:", id);
             return false;
         }
+
+        // pause current if different
+        if (this.current_download_id && this.current_download_id !== id) {
+            this.pause(this.current_download_id);
+        }
+
+        if (download.progress) {
+            download.progress.paused = false;
+        }
+
+        this.start_download(id);
+        return true;
     }
 
-    private async export_beatmap_to_path(beatmap: IBeatmapResult, target: string): Promise<GenericResult<string>> {
-        if (fs.existsSync(target)) {
-            return { success: true, data: "" };
+    pause(id: string): boolean {
+        const download = this.queue.get(id);
+
+        if (!download) {
+            console.log("[downloader] download not found:", id);
+            return false;
         }
 
-        try {
-            const driver = get_driver();
-            const files = driver.get_beatmapset_files(beatmap.beatmapset_id);
-
-            if (files.length == 0) {
-                return { success: false, reason: "found 0 files to export..." };
-            }
-
-            const success = this.create_zip_from_files(files, target);
-
-            if (!success) {
-                return { success: false, reason: "failed to create zip file" };
-            }
-
-            return { success: true, data: target };
-        } catch (err) {
-            const error = err as string;
-            console.log(`[export] failed to export beatmap:`, error);
-            return { success: false, reason: error };
+        if (download.progress) {
+            download.progress.paused = true;
         }
+
+        console.log("[downloader] paused:", id);
+        this.notify_update("paused");
+
+        return true;
     }
 
-    async export_single(md5: string): Promise<GenericResult<string>> {
-        if (!md5) {
-            return { success: false, reason: "invalid md5" };
+    remove_from_queue(id: string): boolean {
+        const download = this.queue.get(id);
+
+        if (!download) {
+            console.log("[downloader] download not found:", id);
+            return false;
         }
 
-        try {
-            this.emit_update({ md5, status: "start" });
+        if (this.current_download_id === id) {
+            this.pause(id);
+            this.current_download_id = null;
+        }
 
-            if (!config.get().export_path) {
-                const reason = "no export path configured";
-                this.emit_update({ md5, status: "error", reason });
-                return { success: false, reason };
+        this.queue.delete(id);
+        console.log("[downloader] removed from queue:", id);
+
+        if (!this.current_download_id) {
+            setTimeout(() => this.start_next_download(), 100);
+        }
+
+        return true;
+    }
+
+    // TOFIX: handle auth errors
+    private start_download(id: string): void {
+        if (this.current_download_id) {
+            console.log("[downloader] another download is processing");
+            return;
+        }
+
+        const download = this.queue.get(id);
+
+        if (!download) {
+            console.log("[downloader] download not found:", id);
+            return;
+        }
+
+        if (BeatmapDownloader.mirrors_with_cooldown.size === 0) {
+            console.log("[downloader] no mirrors available");
+            if (download.progress) {
+                download.progress.paused = true;
+            }
+            this.notify_update("no_mirrors");
+            return;
+        }
+
+        console.log("[downloader] processing:", id);
+
+        this.current_download_id = id;
+
+        if (download.progress) {
+            download.progress.paused = false;
+        }
+
+        this.notify_update("started");
+
+        this.process_download(download).then((stopped) => {
+            this.current_download_id = null;
+
+            if (stopped) {
+                console.log("[downloader] download stopped:", id);
+                this.notify_update("stopped");
+                return;
             }
 
-            if (!this.ensure_directory(config.get().export_path)) {
-                const reason = "failed to create export directory";
-                this.emit_update({ md5, status: "error", reason });
-                return { success: false, reason };
+            console.log("[downloader] download completed:", id);
+            this.queue.delete(id);
+            this.notify_update("completed");
+
+            setTimeout(() => this.start_next_download(), 100);
+        });
+    }
+
+    private async process_download(download: IDownloadData): Promise<boolean> {
+        let stopped = false;
+
+        await parallel_map(
+            download.beatmaps,
+            async (beatmap, index) => {
+                if (download.progress?.paused) {
+                    stopped = true;
+                    return { stop: true };
+                }
+
+                if (!this.queue.has(download.id)) {
+                    return { stop: true };
+                }
+
+                await this.process_beatmap(beatmap);
+
+                if (download.progress) {
+                    download.progress.current = index + 1;
+                    this.notify_update("progress");
+                }
+
+                return true;
+            },
+            MAX_PARALLEL_DOWNLOADS
+        );
+
+        return stopped;
+    }
+
+    // TOFIX: ugly
+    private async get_beatmap_info(beatmap: IMinimalBeatmap): Promise<GenericResult<ICachedBeatmapSetInfo>> {
+        if (beatmap.beatmapset_id) {
+            const result = await v2.beatmaps.lookup({ type: "set", id: beatmap.beatmapset_id });
+
+            if (result.error) {
+                return { success: false, reason: result.error.message };
             }
-
-            const driver = get_driver();
-            const beatmap_data = driver.get_beatmap_by_md5(md5);
-
-            if (!beatmap_data) {
-                const reason = "beatmap not found";
-                this.emit_update({ md5, status: "error", reason });
-                return { success: false, reason };
-            }
-
-            const id = beatmap_data.beatmapset_id || beatmap_data.online_id || md5 || Date.now();
-            const filename = `${id}.osz`;
-            const target_path = path.join(config.get().export_path, filename);
-            const export_result = await this.export_beatmap_to_path(beatmap_data, target_path);
-
-            if (!export_result.success) {
-                return { success: false, reason: export_result.reason };
-            }
-
-            this.emit_update({
-                md5: md5,
-                status: export_result.data != "" ? "exists" : "done",
-                path: export_result.data
-            });
 
             return {
                 success: true,
-                data: export_result.data
-            };
-        } catch (err) {
-            const error = err as { message: string };
-            console.log(`[export] error:`, error);
-            this.emit_update({ md5, status: "error" });
-            return { success: false, reason: error.message };
-        }
-    }
-
-    async export_batch(md5_list: string[], export_path: string, get_beatmap: (md5: string) => Promise<any>): Promise<ExportResult> {
-        if (!Array.isArray(md5_list) || md5_list.length == 0) {
-            const reason = "invalid md5 list";
-            this.emit_update({ status: "error", reason });
-            return { success: false, written: [], reason };
-        }
-
-        try {
-            if (!export_path || !this.ensure_directory(export_path)) {
-                const reason = "export path not configured or failed to create";
-                this.emit_update({ status: "error", reason });
-                return { success: false, written: [], reason };
-            }
-
-            const exported_cache = new Map();
-            const written_files = [];
-
-            this.emit_update({ status: "start", total: md5_list.length });
-
-            for (const md5 of md5_list) {
-                try {
-                    const beatmap_data = await get_beatmap(md5);
-
-                    if (!beatmap_data?.beatmapset_id) {
-                        this.emit_update({ status: "missing", md5 });
-                        continue;
-                    }
-
-                    const id = String(beatmap_data.beatmapset_id);
-                    const target_path = path.join(export_path, `${id}.osz`);
-
-                    if (exported_cache.has(id)) {
-                        await this.handle_cached_beatmap(id, target_path, exported_cache);
-                    } else {
-                        await this.handle_new_beatmap(beatmap_data, id, target_path, exported_cache);
-                    }
-
-                    written_files.push(target_path);
-                } catch (err) {
-                    const error = err as { message: string };
-                    console.log(`[export] error processing beatmap ${md5}:`, error);
-                    this.emit_update({ status: "missing", md5 });
+                data: {
+                    title: result.title,
+                    artist: result.artist,
+                    id: result.id
                 }
+            };
+        } else {
+            const result = await v2.beatmaps.lookup({ type: "difficulty", checksum: beatmap.md5 });
+
+            if (result.error) {
+                return { success: false, reason: result.error.message };
             }
 
-            const success = written_files.length > 0;
-
-            if (success) {
-                console.log(`[export] batch finished, exported ${written_files.length} files`);
-                this.emit_update({ status: "complete", written: written_files.length });
-            } else {
-                const reason = "no files were exported";
-                console.log(`[export] batch finished with zero exports`);
-                this.emit_update({ status: "error", reason });
-            }
-
-            return { success, written: written_files, reason: success ? "" : "no files were exported" };
-        } catch (err) {
-            const error = err as { message: string };
-            const reason = `export failed: ${error.message}`;
-            this.emit_update({ status: "error", reason });
-            return { success: false, written: [], reason };
+            return {
+                success: true,
+                data: {
+                    title: result.beatmapset.title,
+                    artist: result.beatmapset.artist,
+                    id: result.beatmapset_id
+                }
+            };
         }
     }
 
-    private async handle_cached_beatmap(id: string, target_path: string, exported_cache: Map<string, string>) {
-        if (fs.existsSync(target_path)) {
-            this.emit_update({
-                beatmapset_id: id,
-                status: "exists",
-                path: target_path
-            });
-            return;
+    private async process_beatmap(beatmap: IMinimalBeatmap): Promise<boolean> {
+        const result = await this.get_beatmap_info(beatmap);
+
+        // TODO: notify :3
+        if (!result.success) {
+            console.log("[downloader] failed to process beatmap:", result.reason);
+            return false;
         }
 
-        const existing_path = exported_cache.get(id);
+        const id = String(result.data.id);
+        const save_path = get_save_path();
+        const folder_path = path.resolve(save_path, id);
+        const file_path = path.resolve(save_path, `${id}.osz`);
 
-        if (!existing_path) {
-            return;
+        if (fs.existsSync(folder_path) || fs.existsSync(file_path)) {
+            console.log("[downloader] file already exists:", id);
+            return true;
         }
 
-        try {
+        const buffer = await this.download_from_mirrors(id);
+
+        if (!buffer) {
+            console.log("[downloader] failed to download:", id);
+            return false;
+        }
+
+        await this.save_beatmap(buffer, file_path);
+        return true;
+    }
+
+    private async process_single_beatmap(beatmap: IMinimalBeatmap): Promise<boolean> {
+        return await this.process_beatmap(beatmap);
+    }
+
+    private async download_from_mirrors(beatmap_id: string): Promise<ArrayBuffer | null> {
+        const mirrors = Array.from(BeatmapDownloader.mirrors_with_cooldown.values());
+
+        for (const mirror of mirrors) {
+            if (mirror.cooldown && mirror.cooldown > Date.now()) {
+                continue;
+            }
+
+            if (mirror.cooldown && mirror.cooldown <= Date.now()) {
+                mirror.cooldown = null;
+                console.log("[downloader] cooldown removed:", mirror.name);
+            }
+
+            let url = mirror.url;
+            if (url.endsWith("/")) {
+                url = url.slice(0, -1);
+            }
+
             try {
-                fs.linkSync(existing_path, target_path);
-            } catch (link_err) {
-                fs.copyFileSync(existing_path, target_path);
-            }
+                const response = await fetch(`${url}/${beatmap_id}`);
 
-            this.emit_update({
-                beatmapset_id: id,
-                status: "linked",
-                path: target_path
-            });
-        } catch (err) {
-            const error = err as { message: string };
-            console.log(`[export] failed to link/copy for ${id}:`, error.message);
+                if (response.status === 429) {
+                    mirror.cooldown = Date.now() + COOLDOWN_MS;
+                    console.log("[downloader] rate limited:", mirror.name);
+                    continue;
+                }
+
+                if (response.ok) {
+                    return await response.arrayBuffer();
+                }
+            } catch (error) {
+                console.log("[downloader] error downloading from", mirror.name, error);
+            }
+        }
+
+        return null;
+    }
+
+    private async save_beatmap(buffer: ArrayBuffer, file_path: string): Promise<void> {
+        try {
+            fs.mkdirSync(path.dirname(file_path), { recursive: true });
+            fs.writeFileSync(file_path, Buffer.from(buffer));
+        } catch (error) {
+            console.log("[downloader] error saving file:", error);
         }
     }
 
-    private async handle_new_beatmap(beatmap_data: any, id: string, target_path: string, exported_cache: Map<string, string>) {
-        const export_result = await this.export_beatmap_to_path(beatmap_data, target_path);
-        exported_cache.set(id, target_path);
+    private start_next_download(): void {
+        for (const [id, download] of this.queue) {
+            if (!download.progress?.paused) {
+                this.start_download(id);
+                return;
+            }
+        }
+    }
 
-        if (!export_result.success) {
+    private notify_update(type: string): void {
+        if (!this.current_download_id) {
             return;
         }
 
-        const status = export_result.data ? "exists" : "done";
+        const window = get_window("main");
+        const download = this.queue.get(this.current_download_id);
 
-        this.emit_update({
-            beatmapset_id: id,
-            status,
-            path: target_path
-        });
+        if (!download) {
+            return;
+        }
+
+        if (!download.progress) {
+            console.warn("skipping notify update, missing progress shit");
+            return;
+        }
+
+        send_to_renderer(window.webContents, "downloader:update", { data: download.progress, type });
     }
 }
 
-export const beatmap_exporter = new BeatmapExporter();
+export const beatmap_downloader = new BeatmapDownloader();
