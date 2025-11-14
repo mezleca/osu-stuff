@@ -94,6 +94,10 @@ export interface IpcSchema {
             params: [Parameters<IOsuDriver["fetch_beatmaps"]>, string?];
             result: ReturnType<IOsuDriver["fetch_beatmaps"]>;
         };
+        "driver:export_beatmapset": {
+            params: [Parameters<IOsuDriver["export_beatmapset"]>, string?];
+            result: ReturnType<IOsuDriver["export_beatmapset"]>;
+        };
         "web:authenticate": {
             params: Parameters<typeof auth.login>[0];
             result: Awaited<ReturnType<typeof auth.login>>;

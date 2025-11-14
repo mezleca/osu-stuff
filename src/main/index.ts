@@ -24,7 +24,8 @@ import {
     get_beatmapset,
     search_beatmaps,
     get_all_beatmaps,
-    fetch_beatmaps
+    fetch_beatmaps,
+    export_beatmapset
 } from "./drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 
@@ -112,6 +113,7 @@ async function createWindow() {
     handle_ipc("driver:get_beatmap_by_md5", (_, [params, driver]) => get_beatmap_by_md5(...params, driver));
     handle_ipc("driver:get_beatmap_by_id", (_, [params, driver]) => get_beatmap_by_id(...params, driver));
     handle_ipc("driver:get_beatmapset", (_, [params, driver]) => get_beatmapset(...params, driver));
+    handle_ipc("driver:export_beatmapset", (_, [params, driver]) => export_beatmapset(...params, driver));
     handle_ipc("driver:search_beatmaps", (_, [params, driver]) => search_beatmaps(...params, driver));
     handle_ipc("driver:get_all_beatmaps", (_, [driver]) => get_all_beatmaps(driver));
     handle_ipc("driver:fetch_beatmaps", (_, [params, driver]) => fetch_beatmaps(...params, driver));

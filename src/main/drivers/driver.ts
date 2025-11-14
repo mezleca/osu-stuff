@@ -99,3 +99,8 @@ export const fetch_beatmaps = (checksums: string[], custom_driver: string = ""):
     const driver = get_driver(custom_driver);
     return driver.fetch_beatmaps(checksums);
 };
+
+export const export_beatmapset = (id: number, custom_driver: string = ""): Promise<boolean> => {
+    const driver = get_driver(custom_driver);
+    return driver.export_beatmapset(id);
+};
