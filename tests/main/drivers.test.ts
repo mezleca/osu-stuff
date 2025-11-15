@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { get_driver } from "../../src/main/drivers/driver";
-import { create_temp_beatmap, setup_config } from "../utils/utils";
+import { create_temp_beatmap } from "../utils/utils";
+
+// NOTE:
+// these are the tests for osu! driver
+// no mock shit, real files, real beatmaps
+// theres still a lot to be done here
+// especially because most of the tests dont really test anything other than return type?
 
 const test_driver = (type: string) => {
     const driver = get_driver(type);
@@ -96,8 +102,7 @@ const test_driver = (type: string) => {
         expect(result.some((b) => b.md5 == undefined)).toBe(false);
     });
 
-    // NOTE: tbh, we're not really testing anythign lol
-    // REMEMBER: check integrity when i finish the beatmap parser
+    // REMEMBER: check structure / integrity when i finish the beatmap parser
     test(`${type} export_beatmapset():`, async () => {
         const result = await driver.export_beatmapset(test_beatmapset_id);
         expect(result).toBe(true);
@@ -105,7 +110,6 @@ const test_driver = (type: string) => {
 };
 
 describe("osu!drivers", async () => {
-    setup_config();
     test_driver("lazer");
     test_driver("stable");
 });

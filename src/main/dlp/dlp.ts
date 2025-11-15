@@ -1,16 +1,33 @@
 import path from "path";
 import fs from "fs";
-import AdmZip from "adm-zip";
+import JSZip, { JSZipObject } from "jszip";
 
 import { get_app_path } from "../database/utils";
 import { spawn } from "child_process";
+import { GenericResult } from "@shared/types";
 
 // @TODO: send notification to main process on success, error, etc...
 
 const is_windows = process.platform == "win32";
 
+// ...
+interface IYTDlpResult {
+    code: number;
+    stdout: string;
+    stderr: string;
+}
+
 export class YTdlp {
-    constructor(location) {
+    temp_location: string;
+    ext: string;
+    name: string;
+    version: string;
+    repository: string;
+    custom_ffmpeg_location: string;
+    binary_location: string;
+    version_location: string;
+
+    constructor(location: string) {
         if (!location) {
             throw new Error("missing location");
         }
@@ -108,7 +125,7 @@ export class YTdlp {
 
         // loop through assets until we find the correct binary
         const target_name = is_windows ? "yt-dlp_x86.exe" : "yt-dlp_linux";
-        const target_asset = data.assets.find((a) => a.name == target_name);
+        const target_asset = data.assets.find((a: { name: string }) => a.name == target_name);
 
         if (!target_asset) {
             console.log("dlp: unable to find target name:", target_name);
@@ -126,7 +143,7 @@ export class YTdlp {
         return { version: data.name, buffer };
     }
 
-    update_version(version) {
+    update_version(version: string) {
         this.version = version;
         fs.writeFileSync(this.version_location, version, "utf-8");
     }
@@ -152,24 +169,38 @@ export class YTdlp {
         }
 
         const buffer = Buffer.from(await response.arrayBuffer());
-        const zip = new AdmZip(buffer);
-        const entries = zip.getEntries();
+        const zip = new JSZip();
 
-        for (const entry of entries) {
-            if (entry.entryName.includes("/bin/") && !entry.isDirectory) {
-                const file_name = path.basename(entry.entryName);
-                const final_path = path.resolve(this.custom_ffmpeg_location, file_name);
-                const content = entry.getData();
-                fs.writeFileSync(final_path, content);
-            }
-        }
+        await zip.loadAsync(buffer);
+
+        zip.forEach(async (_, file: JSZipObject) => {
+            const final_path = path.resolve(this.custom_ffmpeg_location, file.name);
+
+            await new Promise((res, rej) => {
+                const read_stream = file.nodeStream("nodebuffer", () => {});
+                const write_stream = fs.createWriteStream(final_path);
+                read_stream.pipe(write_stream);
+
+                read_stream.on("error", (err) => {
+                    console.error(err);
+                    rej();
+                });
+
+                write_stream.on("error", (err) => {
+                    console.error(err);
+                    rej();
+                });
+
+                write_stream.on("finish", () => res(0));
+            });
+        });
     }
 
-    async exec(additional_args = []) {
+    async exec(additional_args: string[] = []): Promise<GenericResult<IYTDlpResult>> {
         // check if the binary exists
         if (!this.is_binary_available()) {
             console.log("dlp: binary is not available");
-            return false;
+            return { success: false, reason: "binary is not available" };
         }
 
         // build base args with common configurations
@@ -184,20 +215,17 @@ export class YTdlp {
         // combine base args with additional args
         const args = [...base_args, ...additional_args];
 
-        const result = await new Promise((r) => {
+        const result: IYTDlpResult = await new Promise((r) => {
             const proc = spawn(this.binary_location, args);
+
             let stdout_buffer = "";
             let stderr_buffer = "";
 
-            proc.stdout.on("data", (d) => {
-                stdout_buffer += d.toString();
-            });
-
-            proc.stderr.on("data", (d) => {
-                stderr_buffer += d.toString();
-            });
+            proc.stdout.on("data", (d) => (stdout_buffer += d.toString()));
+            proc.stderr.on("data", (d) => (stderr_buffer += d.toString()));
 
             proc.on("close", (code) => {
+                if (code == null) code = 0;
                 r({
                     code,
                     stdout: stdout_buffer,
@@ -206,7 +234,11 @@ export class YTdlp {
             });
         });
 
-        return result ?? false;
+        if (result.code != 0) {
+            return { success: false, reason: "exited with " + result.code };
+        }
+
+        return { success: true, data: result };
     }
 
     get_binary_location() {
@@ -218,6 +250,7 @@ export class YTdlp {
     }
 
     is_binary_available() {
+        if (process.platform != "win32") return true;
         return fs.existsSync(this.binary_location);
     }
 }

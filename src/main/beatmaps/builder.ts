@@ -1,7 +1,8 @@
 // @ts-ignore
-import AdmZip from "adm-zip";
+import JSZip from "jszip";
 import fs from "fs";
 import path from "path";
+import { GenericResult } from "@shared/types";
 
 // @TODO: video support
 class LegacyBeatmapFile {
@@ -213,9 +214,9 @@ export class BeatmapBuilder {
         return buffer.join("\n");
     }
 
-    zip(file: LegacyBeatmapFile) {
+    async zip(file: LegacyBeatmapFile): Promise<GenericResult<Buffer>> {
         const buffer = this.write(file);
-        const zip = new AdmZip();
+        const zip = new JSZip();
 
         const audio_prop = file.properties.get("AudioFilename");
         const audio_location = audio_prop && audio_prop.path ? audio_prop.value : null;
@@ -228,22 +229,28 @@ export class BeatmapBuilder {
         // ensure audio file exists
         if (!audio_location || !fs.existsSync(audio_location)) {
             console.error("builder: failed to find audio file");
-            return false;
+            return { success: false, reason: "failed to find audio file" };
         }
 
         // add audio file with correct name in zip
         const audio_filename = path.basename(audio_location);
-        zip.addLocalFile(audio_location, "", audio_filename);
+        zip.file(audio_filename, fs.readFileSync(audio_location));
 
         // add background if present
-        if (background_location && fs.existsSync(background_location)) {
-            zip.addLocalFile(background_location, "", background_filename);
+        if (background_filename && background_location && fs.existsSync(background_location)) {
+            zip.file(background_filename, fs.readFileSync(background_location));
         }
 
         // add .osu file
-        zip.addFile(`${file_name}.osu`, Buffer.from(buffer));
+        zip.file(`${file_name}.osu`, Buffer.from(buffer));
 
-        return zip.toBuffer();
+        const target_buffer = await zip.generateAsync({
+            type: "nodebuffer",
+            compression: "DEFLATE",
+            compressionOptions: { level: 9 }
+        });
+
+        return { success: true, data: target_buffer };
     }
 }
 

@@ -1,11 +1,12 @@
+import { describe, expect, test } from "vitest";
+import { TEMP_DIR, clean_test_path } from "../utils/utils";
+import { BeatmapBuilder } from "../../src/main/beatmaps/builder";
+
 import fs from "fs";
 import path from "path";
-import { describe, expect, test } from "bun:test";
-import { TEMP_DIR, clean_test_path } from "./utils/utils";
-import { BeatmapBuilder } from "../src/main/beatmaps/builder";
 
-const AUDIO_LOCATION = path.resolve(__dirname, "utils", "audio.mp3");
-const IMAGE_LOCATION = path.resolve(__dirname, "utils", "bg.jpg");
+const AUDIO_LOCATION = path.resolve("tests", "utils", "audio.mp3");
+const IMAGE_LOCATION = path.resolve("tests", "utils", "bg.jpg");
 
 describe("builder", async () => {
     await clean_test_path();
@@ -67,16 +68,15 @@ describe("builder", async () => {
         }).toThrow();
     });
 
-    test("create zip with all files", () => {
-        const zip_buffer = builder.zip(beatmap);
+    test("create zip with all files", async () => {
+        const zip_buffer = await builder.zip(beatmap);
 
-        expect(zip_buffer).toBeTruthy();
-        expect(Buffer.isBuffer(zip_buffer)).toBe(true);
-        expect(zip_buffer.length).toBeGreaterThan(0);
+        expect(zip_buffer.success).toBe(true);
+        expect(Buffer.isBuffer(zip_buffer.data)).toBe(true);
 
         // optionally save and verify zip contents
         const test_zip_path = path.join(TEMP_DIR, "test_beatmap.osz");
-        fs.writeFileSync(test_zip_path, zip_buffer);
+        fs.writeFileSync(test_zip_path, zip_buffer.data);
         expect(fs.existsSync(test_zip_path)).toBe(true);
 
         // cleanup

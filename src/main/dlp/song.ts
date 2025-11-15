@@ -3,11 +3,18 @@ import fs from "fs";
 
 import { yt_dlp, YTdlp } from "./dlp";
 import { get_app_path } from "../database/utils";
+import { GenericResult } from "@shared/types";
 
 // @TODO: send notification to main process on success, error, etc...
 
+type MetadataResult = Map<string, string>;
+
 export class SongDownloader {
-    constructor(location, dlp) {
+    downloaded_location: string;
+    temp_location: string;
+    dlp: YTdlp;
+
+    constructor(location: string, dlp: YTdlp) {
         if (!dlp) {
             throw new Error("missing yt-dlp instance");
         }
@@ -31,10 +38,9 @@ export class SongDownloader {
         await this.dlp.initialize();
     }
 
-    async download(url) {
-        // check if url is provided
+    async download(url: string): Promise<GenericResult<MetadataResult>> {
         if (!url) {
-            return false;
+            return { success: false, reason: "missing url" };
         }
 
         // build args
@@ -57,22 +63,21 @@ export class SongDownloader {
 
         const result = await this.dlp.exec(download_args);
 
-        if (!result || result.code != 0) {
-            console.log("dlp: failed to exec:", result);
-            return false;
+        if (!result.success) {
+            console.log("dlp: failed to exec:", result.reason);
+            return { success: false, reason: "failed to exec" };
         }
 
         const info_args = ["--print", "title=%(title)s\ncreator=%(uploader)s\nthumb=%(thumbnail)s", url];
-
         const info_result = await this.dlp.exec(info_args);
 
-        if (!info_result || info_result.code != 0) {
-            return false;
+        if (!info_result.success) {
+            return { success: false, reason: "failed to exec" };
         }
 
         // get metadata from result
-        const data = info_result.stdout.split("\n");
-        const metadata = new Map(
+        const data = info_result.data.stdout.split("\n");
+        const metadata: MetadataResult = new Map(
             data
                 .map((line) => line.trim())
                 .filter((line) => line.includes("="))
@@ -87,7 +92,7 @@ export class SongDownloader {
         const file_location = path.resolve(this.downloaded_location, `${metadata.get("title")}.mp3`);
         metadata.set("location", file_location);
 
-        return metadata;
+        return { success: true, data: metadata };
     }
 }
 

@@ -3,17 +3,24 @@ import fs from "fs";
 import path from "path";
 
 export abstract class BaseDatabase {
-    database_name: string;
-    app_path: string;
-    database_path: string;
+    initialized: boolean = false;
+    database_name: string = "";
+    app_path: string = "";
+    database_path: string = "";
     instance: any;
     statements: any;
 
     constructor(database_name: string, app_path: string) {
+        if (this.initialized) {
+            return;
+        }
+
         this.database_name = database_name;
         this.app_path = app_path;
         this.database_path = path.resolve(app_path, database_name);
         this.statements = {};
+
+        console.log(database_name, app_path);
 
         if (!this.app_path || this.app_path == "") {
             throw new Error("BaseDatabase -> initialize(): 'app_path' is required but was not provided.");
@@ -34,6 +41,8 @@ export abstract class BaseDatabase {
         this.prepare_statements();
         this.initialize();
         this.post_initialize();
+
+        this.initialized = true;
     }
 
     abstract initialize(): void;

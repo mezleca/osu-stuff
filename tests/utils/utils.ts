@@ -3,7 +3,8 @@ import path from "path";
 
 import { exec } from "child_process";
 import { IBeatmapResult, StuffConfig } from "../../src/shared/types";
-import { config } from "../../src/main/database/config";
+import { config as _config } from "../../src/main/database/config";
+import { mirrors as _mirrors } from "../../src/main/database/mirrors";
 
 export const TEMP_DIR = path.resolve(__dirname, "..", ".temp");
 
@@ -67,7 +68,8 @@ export const clean_test_path = async () => {
 
 export const setup_config = () => {
     clean_test_path();
-    config.initialize();
+    _config.initialize();
+    _mirrors.initialize();
 
     const config_data: Partial<StuffConfig> = {
         stable_path: path.resolve(DATA_DIR, "osu"),
@@ -76,5 +78,13 @@ export const setup_config = () => {
         export_path: TEMP_DIR
     };
 
-    config.update(config_data);
+    _config.update(config_data);
+    _mirrors.update("nery", "https://api.nerinyan.moe/d/");
 };
+
+(() => {
+    setup_config();
+})();
+
+export const config = _config;
+export const mirrors = _mirrors;

@@ -410,7 +410,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
     }
 
     private notify_update(type: string): void {
-        if (!this.current_download_id) {
+        if (!this.current_download_id || process.env.NODE_ENV == "test") {
             return;
         }
 
