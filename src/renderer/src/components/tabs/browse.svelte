@@ -24,8 +24,8 @@
         const missing_ids = ids.filter((id) => !cached_beatmapsets.has(id));
 
         if (missing_ids.length > 0) {
-            const beatmapsets = await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
-            for (const bs of beatmapsets) {
+            const result = await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
+            for (const bs of result.beatmaps) {
                 cached_beatmapsets.set(bs.online_id, bs);
             }
         }

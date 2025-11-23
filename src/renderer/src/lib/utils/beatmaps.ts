@@ -8,7 +8,14 @@ import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult } from "@s
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 
+const invalid_beatmaps: Set<string> = new Set();
+const invalid_beatmapsets: Set<number> = new Set();
+
 export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefined> => {
+    if (invalid_beatmaps.has(id)) {
+        return undefined;
+    }
+
     const cached = cached_beatmaps.get(id);
 
     if (cached) {
@@ -18,6 +25,8 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
 
     if (!beatmap) {
+        // TODO: remove invalid beatmap on download
+        invalid_beatmaps.add(id);
         return undefined;
     }
 
@@ -26,6 +35,10 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
 };
 
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
+    if (invalid_beatmapsets.has(id)) {
+        return undefined;
+    }
+
     const cached = cached_beatmapsets.get(id);
 
     if (cached) {
@@ -35,6 +48,8 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
     const beatmapset = await window.api.invoke("driver:get_beatmapset", id);
 
     if (!beatmapset) {
+        // TODO: remove invalid beatmapset on download
+        invalid_beatmapsets.add(id);
         return undefined;
     }
 

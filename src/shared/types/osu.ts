@@ -160,7 +160,6 @@ export interface IBeatmapFilter {
     query: string;
     sort: keyof IBeatmapResult;
     status?: string;
-    show_invalid: boolean;
     difficulty_range?: StarRatingFilter;
 
     // make sure we keep 1 diff per beatmap (unless its a set with different music files)
@@ -174,7 +173,6 @@ export interface IBeatmapSetFilter {
     query: string;
     sort: keyof BeatmapSetResult["metadata"];
     status?: string;
-    show_invalid: boolean;
     difficulty_range?: StarRatingFilter;
 }
 
@@ -295,10 +293,12 @@ export type BeatmapFile = {
 
 export interface ISearchResponse {
     beatmaps: IFilteredBeatmap[];
+    invalid: string[];
 }
 
 export interface ISearchSetResponse {
     beatmapsets: IFilteredBeatmapSet[];
+    invalid: number[];
 }
 
 export interface IFilteredBeatmapSet {
@@ -310,7 +310,7 @@ export interface IFilteredBeatmap {
     md5: string;
 }
 
-// TODO: get_beatmap_by<T>, remove_beatmap(temp)
+// TODO: get_beatmap_by<T>
 export interface IOsuDriver {
     initialize(): Promise<void>;
     get_player_name(): string;
@@ -334,8 +334,8 @@ export interface IOsuDriver {
     get_beatmaps(): Promise<IFilteredBeatmap[]>;
     get_beatmapsets(): Promise<IFilteredBeatmapSet[]>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
-    fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]>;
-    fetch_beatmapsets(ids: number[]): Promise<BeatmapSetResult[]>;
+    fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
+    fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;
     dispose(): Promise<void>;
 }
 

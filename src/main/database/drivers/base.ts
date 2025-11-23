@@ -60,10 +60,10 @@ export abstract class BaseDriver implements IOsuDriver {
         const result: BeatmapSetResult[] = [];
 
         for (const beatmapset of sets) {
-            const beatmaps_array = await this.fetch_beatmaps(beatmapset.beatmaps);
+            const fetched = await this.fetch_beatmaps(beatmapset.beatmaps);
             const filtered_diffs: string[] = [];
 
-            for (const beatmap of beatmaps_array) {
+            for (const beatmap of fetched.beatmaps) {
                 if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) {
                     continue;
                 }
@@ -263,8 +263,8 @@ export abstract class BaseDriver implements IOsuDriver {
     abstract get_beatmaps(): Promise<IFilteredBeatmap[]>;
     abstract get_beatmapsets(): Promise<IFilteredBeatmapSet[]>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
-    abstract fetch_beatmaps(checksums: string[]): Promise<IBeatmapResult[]>;
-    abstract fetch_beatmapsets(ids: number[]): Promise<BeatmapSetResult[]>;
+    abstract fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
+    abstract fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;
     abstract dispose(): Promise<void>;
     abstract has_beatmapsets(ids: number[]): boolean[];
 }

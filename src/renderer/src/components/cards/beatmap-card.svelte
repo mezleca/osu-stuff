@@ -37,10 +37,9 @@
         on_remove: (checksum: string) => {} = null;
 
     let image_element: HTMLImageElement = null;
-
     let image_src: string = "";
-
     let beatmap_loaded = false;
+    let is_invalid = false;
     let image_loaded = false;
     let visible = false;
     let visible_timeout: NodeJS.Timeout | null = null;
@@ -48,8 +47,15 @@
     const load_beatmap = async () => {
         try {
             // get cached beatmap
-            beatmap = await get_beatmap(hash);
-            image_src = await get_card_image_source(beatmap);
+            const result = await get_beatmap(hash);
+
+            if (result == undefined) {
+                is_invalid = true;
+                return;
+            }
+
+            beatmap = result;
+            image_src = get_card_image_source(beatmap);
         } catch (err) {
             console.error("failed to load beatmap:", hash, err);
         } finally {
@@ -82,7 +88,7 @@
         }
 
         if (visible) {
-            if (hash && !beatmap) {
+            if (hash && !beatmap && !is_invalid) {
                 const cached = cached_beatmaps.get(hash);
 
                 if (cached) {

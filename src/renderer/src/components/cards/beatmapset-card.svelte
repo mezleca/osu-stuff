@@ -26,6 +26,7 @@
     let image_element: HTMLImageElement = null;
     let load_timeout: NodeJS.Timeout | null = null;
 
+    let is_invalid = false;
     let beatmapset_loaded = false;
     let image_loaded = false;
     let visible = false;
@@ -33,11 +34,16 @@
 
     const load_beatmapset = async () => {
         try {
-            beatmapset = await get_beatmapset(id);
+            // get cached beatmap
+            const result = await get_beatmapset(id);
 
-            if (beatmapset) {
-                image_src = get_card_image_source(beatmapset);
+            if (result == undefined) {
+                is_invalid = true;
+                return;
             }
+
+            beatmapset = result;
+            image_src = get_card_image_source(beatmapset);
         } catch (err) {
             console.error("failed to load beatmapset:", id, err);
         } finally {
@@ -65,7 +71,7 @@
         }
 
         if (visible) {
-            if (id && id != -1) {
+            if (id && id != -1 && !is_invalid) {
                 const cached = cached_beatmapsets.get(id);
 
                 if (cached) {

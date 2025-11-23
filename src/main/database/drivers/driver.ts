@@ -118,12 +118,12 @@ export const search_beatmaps = (options: IBeatmapFilter, custom_driver: string =
     return driver.search_beatmaps(options);
 };
 
-export const fetch_beatmaps = (checksums: string[], custom_driver: string = ""): Promise<IBeatmapResult[]> => {
+export const fetch_beatmaps = (checksums: string[], custom_driver: string = ""): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> => {
     const driver = get_driver(custom_driver);
     return driver.fetch_beatmaps(checksums);
 };
 
-export const fetch_beatmapsets = (ids: number[], custom_driver: string = ""): Promise<BeatmapSetResult[]> => {
+export const fetch_beatmapsets = (ids: number[], custom_driver: string = ""): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> => {
     const driver = get_driver(custom_driver);
     return driver.fetch_beatmapsets(ids);
 };

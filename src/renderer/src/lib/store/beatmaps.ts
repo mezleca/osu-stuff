@@ -147,7 +147,6 @@ export class BeatmapList extends ListBase {
             sort: get(this.sort),
             difficulty_range: get(this.difficulty_range),
             status: get(this.status) || undefined,
-            show_invalid: get(this.show_invalid),
             unique: get(this.show_unique),
             collection: target == ALL_BEATMAPS_KEY ? undefined : target
         };
@@ -209,7 +208,7 @@ export class BeatmapList extends ListBase {
     }
 
     async find_by_unique_id_batch(hashes: string[], target_md5: string): Promise<ISelectedBeatmap | null> {
-        const beatmaps = await window.api.invoke("driver:fetch_beatmaps", hashes);
+        const { beatmaps } = await window.api.invoke("driver:fetch_beatmaps", hashes);
 
         if (!beatmaps || beatmaps.length == 0) {
             return null;
@@ -305,8 +304,7 @@ export class BeatmapSetList extends ListBase {
         return {
             query: get(this.query),
             sort: get(this.sort),
-            status: get(this.status) || undefined,
-            show_invalid: false
+            status: get(this.status) || undefined
         };
     }
 
@@ -329,7 +327,7 @@ export class BeatmapSetList extends ListBase {
             return result;
         } catch (error) {
             console.error("[beatmapset_list] search error:", error);
-            show_notification({ type: "error", text: "Failed to search beatmapsets" });
+            show_notification({ type: "error", text: "failed to search beatmapsets" });
             return null;
         }
     }

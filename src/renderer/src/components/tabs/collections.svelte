@@ -56,7 +56,6 @@
             collection: $selected_collection.name,
             query: $query,
             status: $status,
-            show_invalid: $show_invalid,
             sort: $sort,
             difficulty_range: $difficulty_range,
             unique: false
@@ -66,6 +65,12 @@
 
         for (const beatmap of result.beatmaps) {
             hashes.add(beatmap.md5);
+        }
+
+        if ($show_invalid) {
+            for (const hash of result.invalid) {
+                hashes.add(hash);
+            }
         }
 
         if (result) {

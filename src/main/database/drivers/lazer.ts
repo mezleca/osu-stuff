@@ -208,7 +208,7 @@ class LazerBeatmapDriver extends BaseDriver {
         return ids.map((id) => this.has_beatmapset(id));
     }
 
-    fetch_beatmaps = async (checksums: string[]): Promise<IBeatmapResult[]> => {
+    fetch_beatmaps = async (checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> => {
         const hashes: Set<string> = new Set();
 
         // get stored beatmaps
@@ -220,6 +220,8 @@ class LazerBeatmapDriver extends BaseDriver {
                 return build_beatmap(b);
             });
 
+        const invalid = checksums.filter((c) => !hashes.has(c));
+
         // get temp beatmaps
         for (const [_, cached] of cached_beatmaps) {
             if (!hashes.has(cached.md5) && checksums.includes(cached.md5)) {
@@ -227,14 +229,22 @@ class LazerBeatmapDriver extends BaseDriver {
             }
         }
 
-        return beatmaps;
+        return { beatmaps, invalid };
     };
 
-    fetch_beatmapsets = async (ids: number[]): Promise<BeatmapSetResult[]> => {
-        return this.instance
+    fetch_beatmapsets = async (ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> => {
+        const valid_ids: Set<number> = new Set();
+        const beatmaps = this.instance
             .objects<BeatmapSetSchema>("BeatmapSet")
             .filtered("OnlineID IN $0", ids)
-            .map((b) => build_beamapset(b));
+            .map((b) => {
+                valid_ids.add(b.OnlineID);
+                return build_beamapset(b);
+            });
+
+        const invalid = ids.filter((i) => !valid_ids.has(i));
+
+        return { beatmaps, invalid };
     };
 
     get_beatmap_by_md5 = async (md5: string): Promise<IBeatmapResult | undefined> => {
@@ -297,15 +307,15 @@ class LazerBeatmapDriver extends BaseDriver {
         );
 
         if (checksums.size == 0) {
-            return { beatmaps: [] };
+            return { beatmaps: [], invalid: [] };
         }
 
         // get beatmaps on storage
-        const beatmaps = await this.fetch_beatmaps(Array.from(checksums));
+        const { beatmaps, invalid } = await this.fetch_beatmaps(Array.from(checksums));
         const result = this.filter_beatmaps(beatmaps, options);
 
         // return filtered beatmaps
-        return { beatmaps: result };
+        return { beatmaps: result, invalid };
     };
 
     search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
@@ -321,34 +331,35 @@ class LazerBeatmapDriver extends BaseDriver {
                 );
 
             const matching_set_ids = new Set<number>();
+
             for (const beatmap of matching_beatmaps) {
                 matching_set_ids.add(beatmap.BeatmapSet.OnlineID);
             }
 
             if (matching_set_ids.size == 0) {
-                return { beatmapsets: [] };
+                return { beatmapsets: [], invalid: [] };
             }
 
             const ids = Array.from(matching_set_ids);
-            const beatmapsets = await this.fetch_beatmapsets(ids);
-            const result = await this.filter_beatmapsets(beatmapsets, options);
+            const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
+            const result = await this.filter_beatmapsets(beatmaps, options);
 
-            return { beatmapsets: result };
+            return { beatmapsets: result, invalid };
         }
 
         // no query filter, process all beatmapsets
         const ids = beatmapset_query.map((b) => b.OnlineID);
 
         if (ids.length == 0) {
-            return { beatmapsets: [] };
+            return { beatmapsets: [], invalid: [] };
         }
 
         // get beatmaps on storage
-        const beatmapsets = await this.fetch_beatmapsets(ids);
-        const result = await this.filter_beatmapsets(beatmapsets, options);
+        const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
+        const result = await this.filter_beatmapsets(beatmaps, options);
 
         // return filtered beatmaps
-        return { beatmapsets: result };
+        return { beatmapsets: result, invalid };
     };
 
     get_beatmaps = async (): Promise<IFilteredBeatmap[]> => {

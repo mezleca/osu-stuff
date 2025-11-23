@@ -209,28 +209,27 @@ class StableBeatmapDriver extends BaseDriver {
     };
 
     search_beatmaps = async (options: IBeatmapFilter): Promise<ISearchResponse> => {
-        // TOFIX: ABSOLUTE PIECE OF GARBAGE
         const checksums = new Set(
             options.collection ? this.get_collection(options.collection)?.beatmaps || [] : (await this.get_beatmaps()).map((b) => b.md5)
         );
 
         if (checksums.size == 0) {
-            return { beatmaps: [] };
+            return { beatmaps: [], invalid: [] };
         }
 
         // get beatmaps on storage
-        const beatmaps = await this.fetch_beatmaps(Array.from(checksums));
+        const { beatmaps, invalid } = await this.fetch_beatmaps(Array.from(checksums));
         const result = this.filter_beatmaps(beatmaps, options);
 
         // return filtered beatmaps
-        return { beatmaps: result };
+        return { beatmaps: result, invalid: invalid };
     };
 
     search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
         let ids = Array.from(this.osu.beatmapsets.keys());
 
         if (ids.length == 0) {
-            return { beatmapsets: [] };
+            return { beatmapsets: [], invalid: [] };
         }
 
         if (options.query && options.query.trim() != "") {
@@ -272,16 +271,16 @@ class StableBeatmapDriver extends BaseDriver {
             ids = filtered_ids;
 
             if (ids.length == 0) {
-                return { beatmapsets: [] };
+                return { beatmapsets: [], invalid: [] };
             }
         }
 
         // get beatmaps on storage
-        const beatmapsets = await this.fetch_beatmapsets(ids);
-        const result = await this.filter_beatmapsets(beatmapsets, options);
+        const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
+        const result = await this.filter_beatmapsets(beatmaps, options);
 
         // return filtered beatmaps
-        return { beatmapsets: result };
+        return { beatmapsets: result, invalid };
     };
 
     get_beatmaps = async (): Promise<IFilteredBeatmap[]> => {
@@ -336,8 +335,9 @@ class StableBeatmapDriver extends BaseDriver {
         return files;
     };
 
-    fetch_beatmaps = async (checksums: string[]): Promise<IBeatmapResult[]> => {
+    fetch_beatmaps = async (checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> => {
         const beatmaps: IBeatmapResult[] = [];
+        const invalid: string[] = [];
 
         for (const md5 of checksums) {
             const beatmap = this.osu.beatmaps.get(md5);
@@ -352,22 +352,28 @@ class StableBeatmapDriver extends BaseDriver {
             // search on temp
             if (temp_beatmap) {
                 beatmaps.push(temp_beatmap);
+            } else {
+                invalid.push(md5);
             }
         }
 
-        return beatmaps;
+        return { beatmaps, invalid };
     };
 
-    fetch_beatmapsets = async (ids: number[]): Promise<BeatmapSetResult[]> => {
+    fetch_beatmapsets = async (ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> => {
         const beatmapsets: BeatmapSetResult[] = [];
+        const invalid: number[] = [];
 
         for (const id of ids) {
             const beatmapset = this.osu.beatmapsets.get(id);
-            if (!beatmapset) continue;
+            if (!beatmapset) {
+                invalid.push(id);
+                continue;
+            }
             beatmapsets.push(build_beamapset(beatmapset));
         }
 
-        return beatmapsets;
+        return { beatmaps: beatmapsets, invalid };
     };
 
     dispose = async (): Promise<void> => {
