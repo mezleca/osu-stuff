@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import { active_tab, is_maximized } from "./lib/store/other";
     import { show_notification } from "./lib/store/notifications";
-    import { indexing, indexing_data } from "./lib/store/indexer";
+    import { processing, processing_data } from "./lib/store/processor";
     import { debounce, is_dev_mode } from "./lib/utils/utils";
     import { config } from "./lib/store/config";
     import { get_osu_data } from "./lib/utils/collections";
@@ -21,16 +21,17 @@
     import Notifications from "./components/utils/notifications.svelte";
     import ExportProgress from "./components/utils/export-progress.svelte";
     import Spinner from "./components/icon/spinner.svelte";
+    import ContextMenu from "./components/utils/context-menu.svelte";
 
     $: initialized = false;
-    $: indexing_status = $indexing_data?.status ?? "doing something";
-    $: indexing_width = $indexing_data?.length ? ($indexing_data.index / $indexing_data.length) * 100 : 0;
-    $: indexing_progress = $indexing_data?.text ?? "";
-    $: indexing_small = $indexing_data?.small ?? "";
+    $: processing_status = $processing_data?.status ?? "doing something";
+    $: processing_width = $processing_data?.length ? ($processing_data.index / $processing_data.length) * 100 : 0;
+    $: processing_progress = $processing_data?.large_text ?? "";
+    $: processing_small = $processing_data?.small_text ?? "";
 
     const toggle_maximized = async () => {
-        const result = await window.extra.is_maximized();
-        $is_maximized = result;
+        const state = await window.api.invoke("window:state");
+        $is_maximized = state == "maximized";
     };
 
     onMount(async () => {
@@ -39,10 +40,10 @@
             await config.load();
 
             // check if we're on dev mode
-            is_dev_mode.set(await window.extra.is_dev_mode());
+            is_dev_mode.set(await window.api.invoke("env:dev_mode"));
 
-            // then lets get beatmaps from database
-            await get_osu_data(false);
+            // then initialize
+            await get_osu_data();
         } catch (err) {
             console.log(err);
             show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
@@ -62,6 +63,7 @@
     <!-- notification container -->
     <Notifications />
     <ExportProgress />
+    <ContextMenu />
 
     <!-- loading screen -->
     {#if !initialized}
@@ -71,28 +73,29 @@
         </div>
     {/if}
 
-    <!-- indexing screen -->
-    {#if $indexing}
-        <div class="indexing-overlay">
-            <div class="indexing-center">
-                <div class="indexing-title">{indexing_status}</div>
-                <div class="indexing-bar-container">
-                    <div class="indexing-bar" style="width: {indexing_width}%;"></div>
+    <!-- processing screen -->
+    {#if $processing}
+        <div class="processing-overlay">
+            <div class="processing-center">
+                <div class="processing-title">{processing_status}</div>
+                <div class="processing-bar-container">
+                    <div class="processing-bar" style="width: {processing_width}%;"></div>
                 </div>
-                <div class="indexing-text">{indexing_progress}</div>
+                <div class="processing-text">{processing_progress}</div>
             </div>
-            {#if indexing_data}
-                <div class="indexing-bottom-text">{indexing_small}</div>
+            {#if processing_data}
+                <div class="processing-bottom-text">{processing_small}</div>
             {/if}
         </div>
     {/if}
 
     <!-- show tabs header -->
-    <Header active={initialized && !$indexing} />
+    <Header active={initialized && !$processing} />
 
-    <!-- render active tab -->
     <div class="main-container">
-        {#if $active_tab == "collections"}
+        {#if $active_tab == "index"}
+            <Index />
+        {:else if $active_tab == "collections"}
             <Collections />
         {:else if $active_tab == "browse"}
             <Browse />
@@ -104,14 +107,12 @@
             <Config />
         {:else if $active_tab == "status"}
             <Status />
-        {:else}
-            <Index />
         {/if}
     </div>
 </main>
 
 <style>
-    .indexing-overlay {
+    .processing-overlay {
         position: fixed;
         top: 0;
         left: 0;
@@ -125,7 +126,7 @@
         align-items: center;
     }
 
-    .indexing-center {
+    .processing-center {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -133,14 +134,14 @@
         flex: 1;
     }
 
-    .indexing-title {
+    .processing-title {
         color: #fff;
         font-size: 1.5em;
         margin-bottom: 1.4em;
         text-align: center;
     }
 
-    .indexing-bar-container {
+    .processing-bar-container {
         width: 320px;
         height: 14px;
         background: #333;
@@ -149,13 +150,13 @@
         margin-bottom: 1em;
     }
 
-    .indexing-bar {
+    .processing-bar {
         height: 100%;
         background: var(--accent-color);
         transition: width 0.1s;
     }
 
-    .indexing-text {
+    .processing-text {
         color: #fff;
         font-size: 1em;
         text-align: center;
@@ -165,7 +166,7 @@
         overflow: hidden;
     }
 
-    .indexing-bottom-text {
+    .processing-bottom-text {
         color: #aaa;
         font-size: 1.1em;
         position: absolute;
@@ -173,5 +174,10 @@
         left: 0;
         width: 100vw;
         text-align: center;
+    }
+
+    .main-container {
+        width: 100%;
+        height: 100%;
     }
 </style>

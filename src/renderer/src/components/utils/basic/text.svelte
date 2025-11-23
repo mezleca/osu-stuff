@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { input } from "../../../lib/store/input";
 
     // props
     export let value = "";
-    export let update_callback = null;
+    export let update_callback: (a: string, b: string) => void = null;
     export let edit = false;
 
     let id = crypto.randomUUID();
@@ -19,8 +19,8 @@
 
     // automatically focus on edit
     $: if (element && edit) {
-        input.on("escape", () => release(true));
-        input.on("enter", () => release(false));
+        input.on("escape", () => release());
+        input.on("enter", () => release());
         element.focus();
     }
 
@@ -30,7 +30,6 @@
         target.style.height = target.scrollHeight + "px";
     };
 
-    // @TODO: check if we clicked on an parent or something
     const release = () => {
         if (!edit) return;
         update_value();

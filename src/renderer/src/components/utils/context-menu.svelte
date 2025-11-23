@@ -1,87 +1,36 @@
-<script>
+<script lang="ts">
     import { onMount, tick } from "svelte";
     import { fade } from "svelte/transition";
-    import { mouse_position } from "../../lib/utils/utils";
-
+    import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
     import MenuItem from "./menu-item.svelte";
+    import type { ContextMenuOption } from "@shared/types";
 
-    export let options = [];
-    export let style = "";
-    export let onclick = () => {};
-    export let at = "point";
-
-    let is_visible = false;
-    let menu_element;
-    let position = { x: 0, y: 0 };
-    let current_target = null;
-    let resolved_options = [];
-    let active_path = [];
-    let leave_timeout;
-    let last_menu = null;
+    let active_context: ActiveContextMenu | null = null;
+    let menu_element: HTMLDivElement;
+    let active_path: ContextMenuOption[] = [];
+    let leave_timeout: any;
     let mouse_entered_menu = false;
 
     const PADDING = 10;
 
-    const resolve_options = async (options) => {
-        try {
-            if (typeof options == "function") {
-                return await options();
-            } else {
-                return options;
-            }
-        } catch (err) {
-            return [{ id: "error", text: "failed to load options" }];
+    // subscribe to store
+    context_menu_manager.active.subscribe(async (value) => {
+        active_context = value;
+
+        if (active_context) {
+            active_path = [];
+            mouse_entered_menu = false;
+            await tick();
+            adjust_position();
         }
-    };
+    });
 
-    export const show = async (target_or_event) => {
-        resolved_options = await resolve_options(options);
-
-        // determine position based on target type
-        if (target_or_event instanceof MouseEvent) {
-            current_target = target_or_event.target;
-        } else if (target_or_event instanceof Element) {
-            current_target = target_or_event;
-        }
-
-        position = get_position(current_target);
-        is_visible = true;
-        active_path = [];
-        mouse_entered_menu = false;
-
-        await tick();
-        adjust_position();
-
-        // auto close if we're not hovering
-        setTimeout(() => {
-            if (is_visible && !mouse_entered_menu) {
-                hide();
-            }
-        }, 2000);
-    };
-
-    export const hide = () => {
-        is_visible = false;
-        active_path = [];
-        mouse_entered_menu = false;
-        clearTimeout(leave_timeout);
-    };
-
-    const get_position = (element) => {
-        const rect = element.getBoundingClientRect();
-
-        if (at == "below") {
-            return { x: rect.left, y: rect.bottom };
-        } else if (at == "top") {
-            return { x: rect.left, y: rect.top - 10 }; // small offset
-        } else {
-            // defaults to cursor position
-            return mouse_position;
-        }
+    const hide = () => {
+        context_menu_manager.hide();
     };
 
     const adjust_position = () => {
-        if (!menu_element) {
+        if (!menu_element || !active_context) {
             return;
         }
 
@@ -89,60 +38,64 @@
         const viewport_width = window.innerWidth;
         const viewport_height = window.innerHeight;
 
-        let adjusted_x = position.x;
-        let adjusted_y = position.y;
+        let adjusted_x = active_context.position.x;
+        let adjusted_y = active_context.position.y;
 
-        // adjust horizontal
+        // prevent overflow on right edge
         if (adjusted_x + menu_rect.width > viewport_width - PADDING) {
             adjusted_x = viewport_width - menu_rect.width - PADDING;
         }
 
-        // ensure menu doesnt go off left edge
+        // prevent overflow on left edge
         if (adjusted_x < PADDING) {
             adjusted_x = PADDING;
         }
 
-        // adjust vertical
+        // prevent overflow on bottom edge
         if (adjusted_y + menu_rect.height > viewport_height - PADDING) {
-            if (at == "below" && current_target) {
-                // flip to top if showing below
-                const rect = current_target.getBoundingClientRect();
-                adjusted_y = rect.top - menu_rect.height - 5;
+            // try to position above if it overflows bottom
+            const new_y = adjusted_y - menu_rect.height;
+            if (new_y > PADDING) {
+                adjusted_y = new_y;
             } else {
                 adjusted_y = viewport_height - menu_rect.height - PADDING;
             }
         }
 
-        // ensure menu doesn't go off top edge
+        // prevent overflow on top edge
         if (adjusted_y < PADDING) {
             adjusted_y = PADDING;
         }
+
+        menu_element.style.left = `${adjusted_x}px`;
+        menu_element.style.top = `${adjusted_y}px`;
     };
 
-    const handle_item_click = (item, event) => {
+    const handle_item_click = (item: ContextMenuOption, event: MouseEvent) => {
         event.stopPropagation();
 
-        // if has submenu, dont close
+        // dont close if has submenu
         if (item.data && Array.isArray(item.data)) {
             return;
         }
 
+        if (active_context) {
+            active_context.on_click(item);
+        }
+
         hide();
-        onclick({ detail: item });
     };
 
-    const handle_submenu_enter = (item, depth) => {
+    const handle_submenu_enter = (item: ContextMenuOption, depth: number) => {
         clearTimeout(leave_timeout);
         mouse_entered_menu = true;
         active_path = [...active_path.slice(0, depth), item];
-        last_menu = item;
     };
 
-    const handle_submenu_leave = (depth) => {
+    const handle_submenu_leave = (depth: number) => {
         clearTimeout(leave_timeout);
         leave_timeout = setTimeout(() => {
             active_path = active_path.slice(0, depth);
-            last_menu = null;
         }, 150);
     };
 
@@ -155,22 +108,16 @@
         clearTimeout(leave_timeout);
         leave_timeout = setTimeout(() => {
             hide();
-        }, 200);
+        }, 500);
     };
 
-    const handle_outside_click = (event) => {
-        if (!menu_element || !menu_element.contains(event.target)) {
+    const handle_outside_click = (event: MouseEvent) => {
+        if (active_context && menu_element && !menu_element.contains(event.target as Node)) {
             hide();
         }
     };
 
-    const handle_context_menu = async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        await show(event);
-    };
-
-    const handle_keydown = (event) => {
+    const handle_keydown = (event: KeyboardEvent) => {
         if (event.key == "Escape") {
             hide();
         }
@@ -180,7 +127,6 @@
         document.addEventListener("click", handle_outside_click);
         document.addEventListener("keydown", handle_keydown);
 
-        // on destroy
         return () => {
             document.removeEventListener("click", handle_outside_click);
             document.removeEventListener("keydown", handle_keydown);
@@ -189,24 +135,16 @@
     });
 </script>
 
-{#if $$slots.default}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div {style} oncontextmenu={handle_context_menu}>
-        <slot />
-    </div>
-{/if}
-
-{#if is_visible}
+{#if active_context}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         bind:this={menu_element}
         class="context-menu"
-        style="left: {position.x}px; top: {position.y}px;"
         onmouseenter={handle_menu_enter}
         onmouseleave={handle_menu_leave}
         transition:fade={{ delay: 0, duration: 100 }}
     >
-        {#each resolved_options as item}
+        {#each active_context.options as item}
             <MenuItem
                 {item}
                 {active_path}

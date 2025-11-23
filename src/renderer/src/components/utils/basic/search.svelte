@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import { is_typing } from "../../../lib/store/other";
 
     // search svg
@@ -6,10 +6,10 @@
 
     export let value = "";
     export let placeholder = "";
-    export let callback = (value) => {};
+    export let callback: (value: string) => void = null;
 
     $: if (value != undefined) {
-        callback(value);
+        if (callback) callback(value);
     }
 </script>
 

@@ -1,15 +1,22 @@
-<script>
+<script lang="ts">
     // props
-    export let id;
-    export let onchange = () => {};
-    export let value;
-    export let label;
-    export let desc;
+    export let id: string = crypto.randomUUID();
+    export let onchange: (id: string, value: boolean) => void = null;
+    export let value: boolean = false;
+    export let label: string = "";
+    export let desc: string = "";
 </script>
 
 <div class="checkbox-wrapper">
     <div class="checkbox">
-        <input type="checkbox" id="lazer_checkbox" bind:checked={value} onchange={() => onchange(id, value)} />
+        <input
+            type="checkbox"
+            id="lazer_checkbox"
+            bind:checked={value}
+            onchange={() => {
+                if (onchange) onchange(id, value);
+            }}
+        />
         <div class="checkbox-custom"></div>
     </div>
     <label class="checkbox-text" for="lazer_checkbox">{label}</label>

@@ -311,6 +311,213 @@ main {
     gap: 16px;
 }
 
+/* CARDS */
+
+.beatmap-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    transition:
+        height 0.2s ease-in-out,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    will-change: transform, filter;
+    transform: translateZ(0);
+    contain: layout style paint;
+}
+
+.beatmap-card.selected,
+.beatmap-card.expanded {
+    border-color: var(--accent-color);
+}
+
+.beatmap-card.highlighted {
+    border-color: var(--accent-hover);
+}
+
+.beatmap-card-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    display: block;
+    min-height: 100px;
+    z-index: 1;
+}
+
+.beatmap-card-background:not([src]),
+.beatmap-card-background[src=""] {
+    opacity: 0 !important;
+}
+
+.beatmap-card-background.loaded {
+    opacity: 1;
+}
+
+.beatmap-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: rgba(17, 20, 31, 0.65);
+    transition: background 0.15s ease;
+}
+
+.beatmap-card-metadata {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    justify-content: center;
+}
+
+.beatmap-card-extra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.beatmap-card-extra * {
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.beatmap-card-extra > *:nth-child(2) {
+    margin-left: auto;
+}
+
+.beatmap-card-extra > .status {
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 4px 6px;
+}
+
+.beatmap-card .stat {
+    background: rgba(23, 23, 23, 0.75);
+    text-transform: uppercase;
+}
+
+.beatmap-card .stars {
+    color: var(--text-color);
+    font-size: 11px;
+}
+
+.beatmap-card .title {
+    font-size: 14px;
+    color: #fff;
+    margin: 0 0 2px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 280px;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+.beatmap-card .artist {
+    font-size: 13px;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+.beatmap-card .creator {
+    font-size: 11px;
+    color: var(--text-secondary, #bbb);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+    line-height: 1.2;
+}
+
+.beatmap-difficulties {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(17, 20, 31);
+    border: none;
+    z-index: 999;
+}
+
+.minimal-card {
+    display: flex;
+}
+
+.minimal-card > * {
+    font-size: 13px;
+}
+
+.minimal-card > span {
+    background-color: var(--accent-color);
+    padding: 0 4px;
+    border-radius: 6px;
+    margin-right: 6px;
+}
+
+.small-card:hover .preview-btn {
+    opacity: 1;
+}
+
+.card-control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    opacity: 1;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.control-btn {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 3;
+    opacity: 0;
+    padding: 6px;
+}
+
+.beatmap-card:hover .control-btn {
+    opacity: 1;
+}
+
+.card-control .control-btn > * {
+    color: white;
+}
+
+.control-btn:hover {
+    transform: scale(1.05);
+    background-color: var(--header-bg-color);
+}
+
 /* GLOBAL SCROLLBAR CONFIG */
 
 ::-webkit-scrollbar {
@@ -325,8 +532,6 @@ main {
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
-
-/* ----------------------- */
 
 .manager-content {
     flex: 1;
@@ -558,16 +763,20 @@ input[type="range"]::-moz-range-track {
 .unsubmitted {
     background-color: white;
 }
+
 .ranked,
 .approved {
     background-color: #6bfb70;
 }
+
 .pending {
     background-color: rgb(233, 227, 67);
 }
+
 .qualified {
     background-color: rgb(67, 181, 233);
 }
+
 .loved {
     background-color: rgb(228, 67, 233);
 }
@@ -576,24 +785,29 @@ input[type="range"]::-moz-range-track {
 .sr1 {
     background-color: #3eb5e1 !important;
 }
+
 .sr2 {
     background-color: #c0e13e !important;
 }
+
 .sr3 {
     background-color: #d03163 !important;
 }
+
 .sr4 {
     background-color: #5c18b0 !important;
 }
+
 .sr5 {
     background-color: #011275 !important;
 }
+
 .sr6 {
     background-color: #222222 !important;
 }
 
 @media (max-width: 1200px) {
-    .small-card {
+    .beatmap-card {
         width: 100%;
     }
 }
@@ -616,9 +830,11 @@ input[type="range"]::-moz-range-track {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }
@@ -628,6 +844,7 @@ input[type="range"]::-moz-range-track {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -637,6 +854,7 @@ input[type="range"]::-moz-range-track {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }

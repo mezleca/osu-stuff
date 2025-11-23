@@ -1,5 +1,6 @@
-<script>
-    import { ConfirmAddon, get_popup_manager, hide_popup } from "../../../lib/store/popup";
+<script lang="ts">
+    import { get_popup_manager, hide_popup } from "../../../lib/store/popup/store";
+    import type { PopupElement } from "../../../lib/store/popup/types";
 
     // props
     export let key = "default";
@@ -11,17 +12,14 @@
     let active_popup = manager.active;
     let container = null;
 
-    $: active_elements = get_visible_elements();
+    $: active_elements = get_visible_elements($active_popup);
     $: is_active = $active_popup != null;
-    $: is_confirm = $active_popup?.popup instanceof ConfirmAddon;
+    $: hide_actions = $active_popup?.popup?.hide_actions ?? false;
 
-    // update active on popup change
-    $: if ($active_popup?.popup) {
-        active_elements = get_visible_elements();
-    }
-
-    const handle_submit = (value) => {
-        const values = value ? value : $active_popup.popup.get_values();
+    const handle_submit = (value?: any) => {
+        // if value is provided (from custom button), use it directly
+        // otherwise get all values from visible elements
+        const values = value !== undefined ? value : manager.get_values($active_popup.popup);
         const callback = $active_popup.popup.callback;
 
         // close popup first
@@ -31,7 +29,7 @@
         if (callback) callback(values);
     };
 
-    const handle_cancel = (value) => {
+    const handle_cancel = (value?: any) => {
         // if we have and value, submit it
         if (value) {
             handle_submit(value);
@@ -52,25 +50,24 @@
     };
 
     const update_element = (element_id, value) => {
-        $active_popup?.popup?.update(element_id, value);
-
-        // update active elements
-        active_elements = get_visible_elements();
+        manager.update_element($active_popup.popup, element_id, value);
     };
 
     const toggle_button = (id, value, is_multiple) => {
-        const element = $active_popup.popup.get_element(id);
+        const element = $active_popup.popup.elements.get(id);
 
         if (!element) {
             console.log("toggle_button(): failed to get", id);
             return;
         }
 
+        // @ts-ignore
+        const current_value = element.value || [];
         let new_value;
-        const is_selected = element.value.includes(value);
+        const is_selected = current_value.includes(value);
 
         if (is_multiple) {
-            new_value = is_selected ? element.value.filter((v) => v != value) : [...element.value, value];
+            new_value = is_selected ? current_value.filter((v) => v != value) : [...current_value, value];
         } else {
             new_value = is_selected ? [] : [value];
         }
@@ -78,26 +75,25 @@
         update_element(id, new_value);
     };
 
-    const get_visible_elements = () => {
-        if (!$active_popup?.popup) {
+    const get_visible_elements = (active): PopupElement[] => {
+        if (!active?.popup) {
             return [];
         }
 
-        const elements = $active_popup.popup.get_elements();
+        const elements = Array.from(active.popup.elements.values()) as PopupElement[];
+        const visible = elements.filter((el) => manager.should_show_element(el, active.popup.elements));
 
-        // skip bs if we have ConfirmAddon
-        if ($active_popup.popup instanceof ConfirmAddon) {
-            return elements;
-        }
+        // return only root elements
+        return visible.filter((el) => !el.parent);
+    };
 
-        const all_elements = elements.filter((el) => $active_popup.popup.should_show_element(el));
-        const root_elements = all_elements.filter((el) => !el.parent);
+    const get_children = (parent_id): PopupElement[] => {
+        if (!$active_popup?.popup) return [];
 
-        // build element hierarchy
-        return root_elements.map((element) => ({
-            ...element,
-            children: all_elements.filter((child) => child.parent == element.id)
-        }));
+        const elements = Array.from($active_popup.popup.elements.values()) as PopupElement[];
+        const visible = elements.filter((el) => manager.should_show_element(el, $active_popup.popup.elements));
+
+        return visible.filter((el) => el.parent == parent_id);
     };
 </script>
 
@@ -108,44 +104,37 @@
         <div class="popup">
             <div class="content">
                 {#each active_elements as element}
-                    {#if element.type == "container" || is_confirm}
+                    {#if element.type == "container"}
+                        <PopupRenderer {element} value={element.value} on_update={update_element} on_toggle={toggle_button} on_submit={handle_submit}>
+                            {#each get_children(element.id) as child}
+                                <PopupRenderer
+                                    element={child}
+                                    value={child.value}
+                                    on_update={update_element}
+                                    on_toggle={toggle_button}
+                                    on_submit={handle_submit}
+                                />
+                            {/each}
+                        </PopupRenderer>
+                    {:else}
                         <PopupRenderer
                             {element}
                             value={element.value}
-                            on_update={is_confirm ? handle_submit : update_element}
+                            on_update={update_element}
                             on_toggle={toggle_button}
-                        >
-                            {#if element.children?.length > 0}
-                                {#each element.children as child}
-                                    <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
-                                {/each}
-                            {/if}
-                        </PopupRenderer>
-                    {:else}
-                        <PopupRenderer {element} value={element.value} on_update={update_element} on_toggle={toggle_button} />
-                        {#if element.children?.length > 0}
-                            <div class="children-container">
-                                {#each element.children as child}
-                                    <PopupRenderer element={child} value={child.value} on_update={update_element} on_toggle={toggle_button} />
-                                {/each}
-                            </div>
-                        {/if}
+                            on_submit={handle_submit}
+                        />
                     {/if}
                 {/each}
             </div>
-            {#if $active_popup.popup.custom_action || !is_confirm}
+            {#if !hide_actions}
                 <div class="actions actions-separator">
-                    {#if $active_popup.popup.custom_action}
-                        <button class="submit-btn" onclick={() => handle_submit($active_popup.popup.custom_submit)}
-                            >{$active_popup.popup.custom_submit}</button
-                        >
-                        <button class="cancel-btn" onclick={() => handle_cancel($active_popup.popup.custom_cancel)}
-                            >{$active_popup.popup.custom_cancel}</button
-                        >
-                    {:else if !is_confirm}
-                        <button class="cancel-btn" onclick={() => handle_cancel()}>cancel</button>
-                        <button class="submit-btn" onclick={() => handle_submit()}>submit</button>
-                    {/if}
+                    <button class="submit-btn" onclick={() => handle_submit()}>
+                        {$active_popup.popup.custom_action ? $active_popup.popup.custom_submit : "submit"}
+                    </button>
+                    <button class="cancel-btn" onclick={() => handle_cancel()}>
+                        {$active_popup.popup.custom_action ? $active_popup.popup.custom_cancel : "cancel"}
+                    </button>
                 </div>
             {/if}
         </div>
@@ -172,7 +161,7 @@
     .popup {
         position: absolute;
         display: grid;
-        grid-template-rows: 1fr 3.5em;
+        grid-template-rows: 1fr auto;
         padding: 20px;
         border-radius: 6px;
         background-color: var(--bg-tertiary);
@@ -207,10 +196,5 @@
         margin-top: 10px;
         padding-top: 10px;
         border-top: 1px solid #333;
-    }
-
-    .children-container {
-        margin-left: 20px;
-        margin-top: 10px;
     }
 </style>

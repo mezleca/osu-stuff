@@ -1,13 +1,11 @@
-<script>
+<script lang="ts">
     export let location = "";
-    export let type = "folder";
-    export let callback = null;
+    export let title: string = "uhh";
+    export let type: "openDirectory" | "openFile" = "openDirectory";
+    export let callback: (location: string) => {} = null;
 
     const show_dialog = async () => {
-        const dialog = await window.extra.dialog({
-            title: "get file",
-            properties: [type == "folder" ? "openDirectory" : "openFile"]
-        });
+        const dialog = await window.api.invoke("window:dialog", { title, properties: [type] });
 
         if (dialog.canceled) {
             return;

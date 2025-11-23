@@ -1,19 +1,24 @@
-<script>
+<script lang="ts">
     import { discover } from "../../lib/store/discover";
 
     // components
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import Search from "../utils/basic/search.svelte";
     import Tags from "../utils/basic/tags.svelte";
-    import Beatmaps from "../beatmaps.svelte";
+    import BeatmapSetList from "../beatmapset-list.svelte";
 
-    const languages = discover.get_values("languages"); // l
-    const categories = discover.get_values("categories"); // s
-    const genres = discover.get_values("genres"); // g
-    const modes = discover.get_values("modes"); // m
+    const languages = discover.get_values("languages").map((name) => ({ label: name, value: name }));
+    const categories = discover.get_values("categories").map((name) => ({ label: name, value: name }));
+    const genres = discover.get_values("genres").map((name) => ({ label: name, value: name }));
+    const modes = discover.get_values("modes").map((name) => ({ label: name, value: name }));
 
     $: query = discover.query;
     $: data = discover.data;
+
+    $: language = $data.language;
+    $: category = $data.category;
+    $: genre = $data.genre;
+    $: mode = $data.mode;
 </script>
 
 <div class="content tab-content">
@@ -24,43 +29,41 @@
                 <Tags
                     options={languages}
                     multiple={false}
-                    selected_values={$data.languages}
-                    on_update={(value) => discover.update("languages", value)}
+                    selected_values={language ? [language] : []}
+                    on_update={(value) => discover.update("language", value[0])}
                     placeholder={"languages"}
                 />
 
                 <Tags
                     options={categories}
                     multiple={false}
-                    selected_values={$data.categories}
-                    on_update={(value) => discover.update("categories", value)}
+                    selected_values={category ? [category] : []}
+                    on_update={(value) => discover.update("category", value[0])}
                     placeholder={"categories"}
                 />
 
                 <Tags
                     options={genres}
                     multiple={false}
-                    selected_values={$data.genres}
-                    on_update={(value) => discover.update("genres", value)}
+                    selected_values={genre ? [genre] : []}
+                    on_update={(value) => discover.update("genre", value[0])}
                     placeholder={"genres"}
                 />
 
                 <Tags
                     options={modes}
                     multiple={false}
-                    selected_values={$data.modes}
-                    on_update={(value) => discover.update("modes", value)}
+                    selected_values={mode ? [mode] : []}
+                    on_update={(value) => discover.update("mode", value[0])}
                     placeholder={"modes"}
                 />
             </ExpandableMenu>
         </div>
 
-        <!-- render beatmap list -->
-        <Beatmaps
-            show_context={false}
-            set={true}
-            columns={2}
+        <!-- render beatmapset list -->
+        <BeatmapSetList
             list_manager={discover}
+            columns={2}
             on_update={(i) => {
                 // update list on last index
                 if (discover.can_load_more() && discover.get_list_length() - i <= 2) {

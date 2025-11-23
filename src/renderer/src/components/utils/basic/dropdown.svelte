@@ -1,19 +1,16 @@
-<script>
+<script lang="ts">
     import { slide } from "svelte/transition";
     import { convert_special_key } from "../../../lib/store/other";
 
     // props
-    export let options = [];
-    export let selected_value;
+    export let options: { label: string | number; value: string | number }[] = [];
+    export let selected_value: string | number;
     export let is_static = false;
-    export let on_update;
+    export let on_update: (value: string | number) => {} = null;
     export let placeholder = "select an option";
 
     let is_open = false;
-    let dropdown_ref;
-
-    // convert_special_key will convert shit from "@stuff:__something__" to "original name idk"
-    $: display_text = convert_special_key(selected_value) || placeholder;
+    let dropdown: HTMLDivElement;
 
     const toggle_dropdown = () => (is_open = !is_open);
 
@@ -21,14 +18,13 @@
         const result = option.value || option;
         if (result != selected_value) {
             selected_value = result;
-            display_text = result;
             if (on_update) on_update(selected_value);
         }
         is_open = false;
     };
 
     const handle_click_outside = (event) => {
-        if (dropdown_ref && !dropdown_ref.contains(event.target)) {
+        if (dropdown && !dropdown.contains(event.target)) {
             is_open = false;
         }
     };
@@ -42,16 +38,16 @@
 
 <svelte:window onclick={handle_click_outside} on:keydown={handle_keydown} />
 
-<div class="dropdown_container" bind:this={dropdown_ref}>
+<div class="dropdown_container" bind:this={dropdown}>
     <button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
-        <span class="dropdown_text">{display_text}</span>
+        <span class="dropdown_text">{convert_special_key(String(selected_value))}</span>
         <div class="dropdown_arrow" class:active={is_open}></div>
     </button>
     {#if is_open}
         <div class="dropdown_menu" class:static={is_static} transition:slide={{ duration: 100 }}>
             {#each options as option}
                 <button class="dropdown_item" onclick={() => select_option(option)} type="button">
-                    {option.label || convert_special_key(option)}
+                    {option.label}
                 </button>
             {/each}
         </div>

@@ -1,9 +1,10 @@
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import { config } from "../../lib/store/config";
-    import { get_osu_data } from "../../lib/utils/collections";
     import { show_notification } from "../../lib/store/notifications";
-    import { get_popup_manager, show_popup, PopupAddon, quick_confirm } from "../../lib/store/popup";
+    import { PopupBuilder } from "../../lib/store/popup/builder";
+    import { get_popup_manager, show_popup, quick_confirm } from "../../lib/store/popup/store";
+    import { get_osu_data } from "../../lib/utils/collections";
 
     // components
     import Add from "../utils/add.svelte";
@@ -15,6 +16,7 @@
     let last_config = {};
 
     const popup_manager = get_popup_manager("config");
+    const { mirrors } = config;
 
     const handle_config_change = async (new_config) => {
         if (!initialized || !last_config) {
@@ -36,8 +38,7 @@
 
         // save changes to backend
         for (const change of changes) {
-            await window.config.update({ [change.key]: change.value });
-            console.log(`updated ${change.key}: ${change.old_value} -> ${change.value}`);
+            await window.api.invoke("config:save", { [change.key]: change.value });
         }
 
         // update access token if credentials changed
@@ -61,11 +62,18 @@
             return;
         }
 
+        // check for duplicates
+        const existing_mirror = $mirrors.find((m) => m.name == name);
+        if (existing_mirror) {
+            show_notification({ text: "mirror with this name already exists", type: "error" });
+            return;
+        }
+
         // add new mirror to database
-        await window.downloader.add_mirror({ name, url });
+        await window.api.invoke("mirrors:save", { name, url });
 
         // force update
-        await config.reload();
+        await config.load();
     };
 
     const remove_mirror = async (name) => {
@@ -76,10 +84,10 @@
         }
 
         // remove mirror from database
-        await window.downloader.remove_mirror(name);
+        await window.api.invoke("mirrors:delete", { name });
 
         // sync config data
-        await config.reload();
+        await config.load();
     };
 
     const reload_files = async () => {
@@ -89,17 +97,21 @@
             return;
         }
 
-        get_osu_data(true);
+        await config.load();
+        await get_osu_data();
+
+        show_notification({ text: "reloaded successfully" });
     };
 
     const create_mirror_popup = () => {
-        const new_mirror_popup = new PopupAddon();
+        const new_mirror_popup = new PopupBuilder();
 
-        new_mirror_popup.add({ id: "name", type: "input", label: "name", text: "ex: beatconnect" });
-        new_mirror_popup.add({ id: "url", type: "input", label: "url", text: "ex: https://beatconnect.io/d/" });
+        new_mirror_popup.add_input("name", "name", { text: "ex: beatconnect" });
+        new_mirror_popup.add_input("url", "url", { text: "ex: https://beatconnect.io/d/" });
         new_mirror_popup.set_callback(add_mirror);
 
-        popup_manager.register("new-mirror", new_mirror_popup);
+        const built_popup = new_mirror_popup.build();
+        popup_manager.register("new-mirror", built_popup);
     };
 
     onMount(() => {
@@ -142,21 +154,21 @@
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu stable path</label>
                 <div class="field-description">click to select your osu! stable path</div>
-                <InputDialog bind:location={$config.stable_path} type="folder" />
+                <InputDialog bind:location={$config.stable_path} title={"stable directory"} type="openDirectory" />
             </div>
 
             <div class="field-group" id="lazer_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu lazer path</label>
                 <div class="field-description">click to select your osu! lazer path</div>
-                <InputDialog bind:location={$config.lazer_path} type="folder" />
+                <InputDialog bind:location={$config.lazer_path} title={"lazer directory"} type="openDirectory" />
             </div>
 
             <div class="field-group" id="stable_songs_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">songs folder</label>
                 <div class="field-description">click to select your osu! songs folder</div>
-                <InputDialog bind:location={$config.stable_songs_path} type="folder" />
+                <InputDialog bind:location={$config.stable_songs_path} title={"stable songs directory"} type="openDirectory" />
             </div>
 
             <div class="field-group">
@@ -165,7 +177,7 @@
 
             <button type="button" onclick={() => reload_files()}>reload files</button>
             <!-- keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
-            <button type="button" onclick={() => window.extra.dev_tools()}>open dev tools</button>
+            <button type="button" onclick={() => window.api.invoke("window:dev_tools")}>open dev tools</button>
         </div>
         <div class="info-box">
             <div class="info-box-header">
@@ -173,7 +185,7 @@
                 <div class="info-box-subtitle"></div>
             </div>
             <div class="info-box-stats">
-                {#each $config.mirrors as mirror}
+                {#each $mirrors as mirror}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="stat-item" onclick={() => remove_mirror(mirror.name)}>

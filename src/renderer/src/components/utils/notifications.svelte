@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import { fade } from "svelte/transition";
     import { notifications_store, remove_notification } from "../../lib/store/notifications";
 
@@ -8,7 +8,7 @@
     import SuccessIcon from "../icon/checkmark-icon.svelte";
     import Spinner from "../icon/spinner.svelte";
 
-    const get_icon = (type, is_persist) => {
+    const get_icon = (type: string, is_persist: boolean) => {
         if (is_persist) return Spinner;
 
         // fallback to icon

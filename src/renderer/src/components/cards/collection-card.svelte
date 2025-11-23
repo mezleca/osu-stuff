@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
     // props
-    export let name,
-        count,
-        selected,
-        edit,
-        select_callback = () => {},
-        rename_callback = () => {};
+    export let name = "",
+        count = 0,
+        selected = false,
+        edit = false,
+        on_select: () => void = null,
+        on_rename: (old_name: string, new_name: string) => void = null;
 
     // components
     import Text from "../utils/basic/text.svelte";
@@ -14,10 +14,10 @@
     import Music from "../icon/music.svelte";
 </script>
 
-<button class="collection-item" onclick={select_callback} class:active={selected} class:editing={edit}>
+<button class="collection-item" onclick={on_select} class:active={selected} class:editing={edit}>
     <div class="collection-info">
         <Music />
-        <Text value={name} {edit} update_callback={rename_callback} />
+        <Text value={name} {edit} update_callback={on_rename} />
     </div>
     <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
 </button>

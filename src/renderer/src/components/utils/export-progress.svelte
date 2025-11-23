@@ -1,6 +1,6 @@
 <script>
     import { export_progress, hide_export_progress } from "../../lib/store/export_progress";
-    import { fade } from "svelte/transition";
+    // import { fade } from "svelte/transition";
 
     let timer = null;
 
@@ -15,7 +15,7 @@
     }
 </script>
 
-{#if state.active}
+<!-- {#if state.active}
     <div class="export-progress" transition:fade>
         <div class="left">
             <div class="title">exporting</div>
@@ -35,7 +35,7 @@
             {/if}
         </div>
     </div>
-{/if}
+{/if} -->
 
 <style>
     .export-progress {

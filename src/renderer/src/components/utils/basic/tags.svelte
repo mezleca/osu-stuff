@@ -1,15 +1,15 @@
-<script>
-    export let options = [];
-    export let selected_values = [];
+<script lang="ts">
+    export let options: { label: any; value: any }[] = [];
+    export let selected_values: any[] = [];
     export let placeholder = "";
     export let multiple = true;
-    export let on_update;
+    export let on_update: (label: any) => void = null;
 
     $: actual_options = options.map((option) => {
         if (typeof option == "string") {
             return { key: option, text: option };
         }
-        return { key: option.key || option.label, text: option.text || option.value };
+        return { label: option.label, value: option.value };
     });
 
     const toggle_tag = (key) => {
@@ -43,7 +43,7 @@
 
     <div class="tags">
         {#each actual_options as option}
-            <button class="tag" class:selected={selected_values.includes(option.key)} onclick={() => toggle_tag(option.key)}>
+            <button class="tag" class:selected={selected_values.includes(String(option.label))} onclick={() => toggle_tag(option.key)}>
                 {option.text}
             </button>
         {/each}

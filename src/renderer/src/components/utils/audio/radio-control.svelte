@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
-    import { get_beatmap_data } from "../../../lib/utils/beatmaps";
+    import { get_beatmap } from "../../../lib/utils/beatmaps";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
 
@@ -23,7 +23,7 @@
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
-    const { beatmaps, selected, invalid_selected } = radio_list;
+    const { items: beatmaps, selected } = radio_list;
 
     let current_beatmap = null;
 
@@ -38,7 +38,7 @@
     $: should_force_random = audio_manager.force_random;
 
     $: if ($selected.index != -1) {
-        get_beatmap_data($selected.md5).then((bm) => {
+        get_beatmap($selected.md5).then((bm) => {
             current_beatmap = bm;
         });
     } else {
@@ -68,10 +68,7 @@
         const current_index = $selected.index;
         let next_idx = current_index;
 
-        if ($invalid_selected) {
-            invalid_selected.set(false);
-            next_idx = 0;
-        } else if (direction == 0) {
+        if (direction == 0) {
             next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
         } else {
             next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
@@ -81,14 +78,7 @@
 
         // get next beatmap id
         const beatmap_id = $beatmaps[next_idx];
-
-        // save beatmap information so we can use it later
-        audio_manager.previous_random_songs.update((old) => {
-            if (old.includes(beatmap_id)) {
-                return old;
-            }
-            return [...old, { hash: beatmap_id, index: next_idx }];
-        });
+        radio_list.previous_buffer.update((old) => [...old, { md5: beatmap_id, index: next_idx }]);
 
         // update selection (if changed)
         if (next_idx != current_index) {
@@ -98,8 +88,8 @@
         return beatmap_id;
     };
 
-    const get_beatmap_data_callback = async (beatmap_id) => {
-        return await get_beatmap_data(beatmap_id);
+    const get_beatmap_callback = async (beatmap_id: string) => {
+        return await get_beatmap(beatmap_id);
     };
 
     const handle_selection_change = async () => {
@@ -158,7 +148,7 @@
         // set up callbacks for the audio manager
         audio_manager.set_callbacks({
             get_next_id: get_next_id_callback,
-            get_beatmap_data: get_beatmap_data_callback
+            get_beatmap: get_beatmap_callback
         });
 
         // restore volume from config

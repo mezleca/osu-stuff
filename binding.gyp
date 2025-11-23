@@ -2,14 +2,14 @@
   "targets": [
     {
       "target_name": "processor",
-      "sources": [ "./src/modules/processor.cpp" ],
+      "sources": [ "./src/main/modules/processor.cpp" ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
       ],
       "dependencies": [
         "<!(node -p \"require('node-addon-api').gyp\")"
       ],
-      "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS"],
+      "defines": [],
       "conditions": [
         ["OS=='win'", {
           "conditions": [
@@ -46,12 +46,15 @@
 			],
 			"cflags_cc": [
 				"-std=c++17",
+				"-fexceptions",
+				"-O3",
 				"<!@(pkg-config --cflags sndfile)"
 			]
         }]
       ],
       "cflags_cc": [
         "-std=c++17",
+        "-fexceptions",
         "-O3"
       ],
       "msvs_settings": {

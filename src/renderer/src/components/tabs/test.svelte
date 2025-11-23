@@ -1,6 +1,7 @@
 <script>
     import { onDestroy, onMount } from "svelte";
-    import { get_popup_manager, show_popup, PopupAddon, ConfirmAddon, quick_confirm } from "../../lib/store/popup";
+    import { PopupBuilder } from "../../lib/store/popup/builder";
+    import { get_popup_manager, show_popup, quick_confirm } from "../../lib/store/popup/store";
     import { show_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
@@ -46,14 +47,15 @@
     }
 
     const create_confirm_addon = () => {
-        const addon = new ConfirmAddon();
+        const addon = new PopupBuilder();
 
-        addon.add_title("select and option");
+        addon.add_text("select an option", { class: "title", font_size: 16 });
         addon.add_button("123", "button 1");
         addon.add_button("1253", "button 2");
+        addon.set_hide_actions();
 
         addon.set_callback((v) => console.log("selected option: ", v));
-        popup_manager.register("aids", addon);
+        popup_manager.register("aids", addon.build());
     };
 
     const show_yes_no_addon = async () => {
@@ -62,24 +64,46 @@
     };
 
     const create_test_addon = () => {
-        const addon = new PopupAddon();
+        const addon = new PopupBuilder();
 
-        addon.add({ id: "something", type: "text", text: "ts is a text", font_size: 20 });
-        addon.add({ id: "range-test", type: "range", label: "range test", min: 0, max: 105 });
-        addon.add({ id: "dialog-test", type: "file-dialog", label: "select a file" });
-        // shoud enable container 1 on checked
-        addon.add({ id: "mhm", type: "checkbox", label: "checkbox to enable da container" });
-        // should enable container 2 on "active"
-        addon.add({ id: "mhm2", type: "dropdown", text: "dropdown to enable container2", data: ["not active", "active", "test"] });
-        addon.add({ id: "container", type: "container", show_when: { id: "mhm", equals: true } });
-        addon.add({ id: "container2", type: "container", show_when: { id: "mhm2", equals: "active" } });
-        addon.add({ id: "drop", type: "dropdown", text: "items", data: ["123", "321", "1", "aaaaaaa"] });
-        addon.add({ id: "cool", type: "buttons", label: "cool (row)", class: "row", multiple: true, data: () => ["abc", "bcd", "efg"] });
-        addon.add({ id: "cool2", type: "buttons", label: "cool2", multiple: false, parent: "container", data: () => get_random_shit(10) });
-        addon.add({ id: "cool3", type: "buttons", label: "cool3", multiple: true, parent: "container2", data: ["321", "123"] });
+        addon.add_text("ts is a text", { id: "something", font_size: 20 });
+        addon.add_range("range-test", "range test", 0, 105);
+        addon.add_file_dialog("dialog-test", "select a file");
+        addon.add_checkbox("mhm", "checkbox to enable da container");
+        addon.add_dropdown(
+            "mhm2",
+            "dropdown to enable container2",
+            ["not active", "active", "test"].map((v) => ({ label: v, value: v }))
+        );
+        addon.add_container("container", { show_when: { id: "mhm", equals: true } });
+        addon.add_container("container2", { show_when: { id: "mhm2", equals: "active" } });
+        addon.add_dropdown(
+            "drop",
+            "items",
+            ["123", "321", "1", "aaaaaaa"].map((v) => ({ label: v, value: v })),
+            { value: "321" }
+        );
+        addon.add_buttons(
+            "cool",
+            "cool (row)",
+            ["abc", "bcd", "efg"].map((v) => ({ label: v, value: v })),
+            { class: "row", multiple: true }
+        );
+        addon.add_buttons(
+            "cool2",
+            "cool2",
+            get_random_shit(10).map((v) => ({ label: v, value: v })),
+            { multiple: false, parent: "container" }
+        );
+        addon.add_buttons(
+            "cool3",
+            "cool3",
+            ["321", "123"].map((v) => ({ label: v, value: v })),
+            { multiple: true, parent: "container2" }
+        );
 
         addon.set_callback((data) => console.log(data));
-        popup_manager.register("test", addon);
+        popup_manager.register("test", addon.build());
     };
 
     const close_notification = () => {

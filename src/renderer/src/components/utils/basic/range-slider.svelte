@@ -1,14 +1,16 @@
-<script>
+<script lang="ts">
     import { onMount, tick } from "svelte";
     import { debounce } from "../../../lib/utils/utils";
+
+    type RangeOnUpdate = [number, number]; // min, max
 
     export let min = 0;
     export let max = 10;
     export let min_bound = 0;
     export let max_bound = 10;
-    export let on_update = () => {};
+    export let on_update: (data: RangeOnUpdate) => {} = null;
 
-    let container;
+    let container: any;
 
     const update = () => {
         if (!container) {
@@ -53,9 +55,12 @@
         update_fill();
     };
 
-    const on_update_debounce = debounce(() => on_update({ min, max }), 50);
+    const on_update_debounce = debounce(() => {
+        if (isNaN(min) || isNaN(min)) return;
+        if (on_update) on_update([min, max]);
+    }, 50);
 
-    const update_fill = (event) => {
+    const update_fill = (event?: UIEvent) => {
         tick().then(() => {
             update();
             if (!event) on_update_debounce();
@@ -64,7 +69,7 @@
 
     onMount(() => {
         update_fill();
-        window.addEventListener("resize", update_fill);
+        window.addEventListener("resize", (event) => event);
         return () => window.removeEventListener("resize", update_fill);
     });
 </script>

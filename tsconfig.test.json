@@ -1,0 +1,12 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": ["tests/**/*", "src/shared/**/*", "src/main/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@main/*": ["./src/main/*"]
+    },
+    "types": ["vitest/globals", "node"]
+  }
+}

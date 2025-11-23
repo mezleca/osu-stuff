@@ -1,9 +1,12 @@
-<script>
+<script lang="ts">
+    import type { PopupElement, DropdownElement, FileDialogElement, ButtonsElement } from "../../../lib/store/popup/types";
+
     // props
-    export let element;
-    export let value;
-    export let on_update;
-    export let on_toggle;
+    export let element: PopupElement;
+    export let value: any;
+    export let on_update: (id: string, value: any) => any;
+    export let on_toggle: (id: string, value: any, multiple?: boolean) => void;
+    export let on_submit: (value: any) => void = null;
 
     // components
     import Dropdown from "../basic/dropdown.svelte";
@@ -11,7 +14,7 @@
     import InputDialog from "../input-dialog.svelte";
     import RangeSlider from "../basic/range-slider.svelte";
 
-    $: range = element?.value ?? { min: element?.min ?? 0, max: element?.max ?? 10 };
+    $: range = element.type == "range" ? (value ?? [element.min, element.max]) : [0, 10];
 </script>
 
 <div class="field-group">
@@ -27,24 +30,26 @@
             type="text"
             placeholder={element.text}
             value={value || ""}
-            oninput={(e) => on_update(element.id, e.target.value)}
+            oninput={(e) => on_update(element.id, e.currentTarget.value)}
         />
     {:else if element.type == "checkbox"}
         <Checkbox id={element.id} bind:value label={element.label || element.text} onchange={(id, val) => on_update(id, val)} />
     {:else if element.type == "dropdown"}
-        {@const data = typeof element.data == "function" ? element.data() : element.data}
+        {@const dropdown_element = element as DropdownElement}
+        {@const data = typeof dropdown_element.data == "function" ? dropdown_element.data() : dropdown_element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
         <Dropdown is_static={true} options={data} selected_value={value} placeholder={element.text} on_update={(val) => on_update(element.id, val)} />
     {:else if element.type == "file-dialog"}
+        {@const dialog_element = element as FileDialogElement}
+        {@const dialog_type = dialog_element.dialog_type == "folder" ? "openDirectory" : "openFile"}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
-        <InputDialog type={element.dialog_type || "file"} location={value} callback={(val) => on_update(element.id, val)} />
-        <!-- @TODO: button is only supported on ConfirmAddon -->
+        <InputDialog type={dialog_type} location={value} callback={(val) => on_update(element.id, val)} />
     {:else if element.type == "button"}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
@@ -52,23 +57,24 @@
         {/if}
 
         <div class="button-container">
-            <!-- @NOTE: on_update will call submit on ConfirmAddon -->
-            <button class="select-button {element.class || ''}" onclick={() => on_update(element.text)}>{element.text}</button>
+            <button
+                class="select-button {element.class || ''}"
+                onclick={() => (on_submit ? on_submit(element.id) : on_update(element.id, element.id))}>{element.text}</button
+            >
         </div>
     {:else if element.type == "buttons"}
-        {@const data = typeof element.data == "function" ? element.data() : element.data}
+        {@const buttons_element = element as ButtonsElement}
+        {@const data = typeof buttons_element.data == "function" ? buttons_element.data() : buttons_element.data}
         {#if element.label}
             <!-- svelte-ignore a11y_label_has_associated_control -->
             <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
         <div class="buttons-container {element.class || ''}" style={element.style}>
             {#each data as option}
-                {@const option_value = option.value || option}
-                {@const option_label = option.label || option}
-                {@const is_selected = (value || []).includes(option_value)}
+                {@const is_selected = (value || []).includes(option.value)}
 
-                <button class="select-button" class:selected={is_selected} onclick={() => on_toggle(element.id, option_value, element.multiple)}>
-                    {option_label}
+                <button class="select-button" class:selected={is_selected} onclick={() => on_toggle(element.id, option.value, element.multiple)}>
+                    {option.label}
                 </button>
             {/each}
         </div>
@@ -91,8 +97,8 @@
             <label class="field-label {element.class || ''}">{element.label}</label>
         {/if}
         <RangeSlider
-            min={+range.min}
-            max={+range.max}
+            min={range[0]}
+            max={range[1]}
             min_bound={element.min ?? 0}
             max_bound={element.max ?? 10}
             on_update={(data) => on_update(element.id, data)}

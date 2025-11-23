@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import { active_tab } from "../lib/store/other";
 
     // icons
@@ -9,7 +9,7 @@
     // props
     export let active = false;
 
-    const set_active_tab = (tab) => {
+    const set_active_tab = (tab: string) => {
         if (!active) return;
         $active_tab = tab;
     };
@@ -19,7 +19,7 @@
 
 <div class="header">
     <div class="header-left">
-        <button class="app-title" onclick={() => set_active_tab("")}>osu-stuff</button>
+        <button class="app-title" onclick={() => set_active_tab("index")}>osu-stuff</button>
         <div class="tabs">
             {#each tabs as tab}
                 <button class="tab" onclick={() => set_active_tab(tab)} class:active={$active_tab == tab}>
@@ -30,15 +30,15 @@
     </div>
     <div class="window-controls">
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn minimize" onclick={() => window.extra.minimize()}>
+        <button class="control-btn minimize" onclick={() => window.api.invoke("window:minimize")}>
             <Line />
         </button>
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn maximize" onclick={() => window.extra.maximize()}>
+        <button class="control-btn maximize" onclick={() => window.api.invoke("window:minimize")}>
             <Square />
         </button>
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn close" onclick={() => window.extra.close()}>
+        <button class="control-btn close" onclick={() => window.api.invoke("window:maximize")}>
             <X />
         </button>
     </div>

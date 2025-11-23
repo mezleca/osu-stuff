@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
     // props
     export let value = 0;
     export let full = true;
-    export let callback = () => {};
+    export let callback: (pos: number) => void = null;
 
     const update = (event) => {
         const rect = event.currentTarget.getBoundingClientRect();

@@ -1,6 +1,8 @@
-<script>
-    export let item;
-    export let depth;
+<script lang="ts">
+    import type { ContextMenuOption } from "@shared/types";
+
+    export let item: ContextMenuOption;
+    export let depth: number;
     export let active_path;
     export let onclick;
     export let on_submenu_enter;

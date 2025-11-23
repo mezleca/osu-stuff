@@ -5,14 +5,14 @@
     import { format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
-    import { get_beatmap_data } from "../../lib/utils/beatmaps";
+    import { get_beatmap } from "../../lib/utils/beatmaps";
     import { input } from "../../lib/store/input";
-    import { get_popup_manager, PopupAddon } from "../../lib/store/popup";
+    import { PopupBuilder } from "../../lib/store/popup/builder";
+    import { get_popup_manager } from "../../lib/store/popup/store";
 
     // components
     import Search from "../utils/basic/search.svelte";
     import RadioControl from "../utils/audio/radio-control.svelte";
-    import Beatmaps from "../beatmaps.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
     import Popup from "../utils/popup/popup.svelte";
     import Add from "../utils/add.svelte";
@@ -58,18 +58,18 @@
     };
 
     const create_new_beatmap_popup = () => {
-        const addon = new PopupAddon();
+        const builder = new PopupBuilder();
 
-        addon.add({ id: "video_url", type: "input", label: "url" });
-        addon.add({ id: "use_thumbnail", type: "checkbox", label: "use thumbnail as background" });
-        addon.set_callback(handle_new_beatmap);
+        builder.add_input("video_url", "url");
+        builder.add_checkbox("use_thumbnail", "use thumbnail as background");
+        builder.set_callback(handle_new_beatmap);
 
-        popup_manager.register("new-beatmap", addon);
+        popup_manager.register("new-beatmap", builder.build());
     };
 
     // update selected map when hash changes
     $: if ($selected.index != -1) {
-        get_beatmap_data($selected.md5).then((bm) => {
+        get_beatmap($selected.md5).then((bm) => {
             selected_beatmap = bm;
             update_background_image();
         });
@@ -81,6 +81,12 @@
 
     // update beatmap list
     $: if ($selected_collection.name || $query || $sort) {
+        // TODO: debounce this
+        // let debounce_timer: NodeJS.Timeout;
+        // clearTimeout(debounce_timer);
+        // debounce_timer = setTimeout(() => {
+        //     update_beatmaps();
+        // }, 200);
         update_beatmaps();
     }
 
@@ -175,7 +181,7 @@
                     </div>
                     <div class="stat">
                         <div class="stat-label">MAPPED BY</div>
-                        <div class="stat-value">{selected_beatmap?.mapper || "---"}</div>
+                        <div class="stat-value">{selected_beatmap?.creator || "---"}</div>
                     </div>
                 </div>
 
