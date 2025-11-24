@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { TEMP_DIR, clean_test_path } from "../utils/utils";
+import { TEMP_DIR, setup_config } from "../utils/utils";
 import { BeatmapBuilder } from "@main/beatmaps/builder";
 
 import fs from "fs";
@@ -9,7 +9,7 @@ const AUDIO_LOCATION = path.resolve("tests", "utils", "audio.mp3");
 const IMAGE_LOCATION = path.resolve("tests", "utils", "bg.jpg");
 
 describe("builder", async () => {
-    await clean_test_path();
+    setup_config();
 
     // create new builder instance
     const builder = new BeatmapBuilder();
@@ -80,9 +80,6 @@ describe("builder", async () => {
         const test_zip_path = path.join(TEMP_DIR, "test_beatmap.osz");
         fs.writeFileSync(test_zip_path, zip_buffer.data);
         expect(fs.existsSync(test_zip_path)).toBe(true);
-
-        // cleanup
-        // clean_test_path();
     });
 
     test("should throw on missing required fields", () => {

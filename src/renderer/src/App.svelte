@@ -36,6 +36,9 @@
 
     onMount(async () => {
         try {
+            // update maximzed state
+            await toggle_maximized();
+
             // initialize config system
             await config.load();
 
@@ -52,12 +55,11 @@
         }
     });
 
-    // disable window border on fullscreen
+    // check for maximized state on resize
     window.addEventListener("resize", debounce(toggle_maximized, 50));
 </script>
 
 <main>
-    <!-- @NOTE: if the app opens on fullscreen ts is still visible -->
     <div class="window-border" class:show={!$is_maximized}></div>
 
     <!-- notification container -->
@@ -89,7 +91,7 @@
         </div>
     {/if}
 
-    <!-- show tabs header -->
+    <!-- app header -->
     <Header active={initialized && !$processing} />
 
     <div class="main-container">

@@ -312,17 +312,20 @@ export interface IFilteredBeatmap {
 
 // TODO: get_beatmap_by<T>
 export interface IOsuDriver {
-    initialize(): Promise<void>;
+    initialize(force: boolean): Promise<void>;
     get_player_name(): string;
     add_collection(name: string, beatmaps: string[]): boolean;
+    rename_collection(old_name: string, new_name: string): boolean;
     delete_collection(name: string): boolean;
     delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
     get_collection(name: string): ICollectionResult | undefined;
     get_collections(): ICollectionResult[];
-    update_collection(collections: ICollectionResult[]): boolean;
+    update_collection(): boolean;
     export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
     export_beatmapset(id: number): Promise<boolean>;
     add_beatmap(beatmap: IBeatmapResult): boolean;
+    get_actions(): DriverAction[];
+    remove_action(index: number): boolean;
     has_beatmap(md5: string): boolean;
     has_beatmapset(id: number): boolean;
     get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
@@ -676,3 +679,24 @@ export const enum_to_stable_status = (status: BeatmapStatus): number => {
             return STABLE_STATUS.UNKNOWN;
     }
 };
+
+export enum DriverActionType {
+    Add = 0,
+    Delete = 1,
+    Rename = 2
+}
+
+export interface ICollectionAction {
+    type: DriverActionType;
+    name: string;
+    new_name?: string;
+    beatmaps?: string[];
+}
+
+export interface ICollectionBeatmapAction {
+    type: DriverActionType;
+    collection: string;
+    md5: string;
+}
+
+export type DriverAction = ICollectionAction | ICollectionBeatmapAction;

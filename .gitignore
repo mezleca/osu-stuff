@@ -9,3 +9,4 @@ build/*
 *.lock
 bin
 .temp
+tests/.temp_data

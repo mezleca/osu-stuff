@@ -56,7 +56,7 @@ class CollectionManager {
         this.filter();
     }
 
-    replace(data: ICollectionResult): void {
+    replace(data: ICollectionResult, ignore_update: boolean = false): void {
         this.all_collections.update((collections) => {
             return collections.map((collection) => {
                 if (collection.name == data.name) {
@@ -66,7 +66,10 @@ class CollectionManager {
             });
         });
 
-        this.needs_update.set(true);
+        if (!ignore_update) {
+            this.needs_update.set(true);
+        }
+
         this.filter();
     }
 
@@ -106,7 +109,7 @@ class CollectionManager {
         this.collections.set(filtered);
     }
 
-    rename(old_name: string, new_name: string): void {
+    async rename(old_name: string, new_name: string): Promise<boolean> {
         this.all_collections.update((collections) => {
             return collections.map((collection) => {
                 if (collection.name == old_name) {
@@ -117,17 +120,31 @@ class CollectionManager {
         });
 
         const current = get(this.selected);
+
+        // update current select if necessary
         if (current.name == old_name) {
             this.selected.set({ ...current, name: new_name });
         }
 
+        // update radio selected if necessary
         const current_radio = get(this.selected_radio);
+
         if (current_radio.name == old_name) {
             this.selected_radio.set({ ...current_radio, name: new_name });
         }
 
         this.needs_update.set(true);
         this.filter();
+
+        // update main process
+        const result = await window.api.invoke("driver:rename_collection", old_name, new_name);
+
+        if (!result) {
+            console.error("failed to rename collection");
+            return false;
+        }
+
+        return true;
     }
 
     remove(name: string): void {
@@ -203,13 +220,8 @@ class CollectionManager {
             return;
         }
 
-        const collections_data: ICollectionResult[] = current_collections.map((c) => ({
-            name: c.name,
-            beatmaps: c.beatmaps
-        }));
-
         try {
-            const result = await window.api.invoke("driver:update_collection", collections_data);
+            const result = await window.api.invoke("driver:update_collection");
 
             if (!result) {
                 show_notification({ type: "error", text: "failed to update collections" });

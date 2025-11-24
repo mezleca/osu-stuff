@@ -8,7 +8,8 @@ import {
     IFilteredBeatmap,
     IFilteredBeatmapSet,
     ISearchSetResponse,
-    IBeatmapSetFilter
+    IBeatmapSetFilter,
+    DriverAction
 } from "@shared/types/osu";
 
 import { BaseDriver } from "./base";
@@ -31,8 +32,8 @@ export const get_driver = (custom_driver: string = ""): BaseDriver => {
     }
 };
 
-export const initialize_driver = async (driver: string = ""): Promise<void> => {
-    return get_driver(driver).initialize();
+export const initialize_driver = async (force: boolean = false, driver: string = ""): Promise<void> => {
+    return get_driver(driver).initialize(force);
 };
 
 export const get_player_name = (custom_driver: string = ""): string => {
@@ -50,6 +51,11 @@ export const delete_collection = (name: string, custom_driver: string = ""): boo
     return driver.delete_collection(name);
 };
 
+export const rename_collection = (old_name: string, new_name: string, custom_driver: string = ""): boolean => {
+    const driver = get_driver(custom_driver);
+    return driver.rename_collection(old_name, new_name);
+};
+
 export const delete_beatmap = (options: { md5: string; collection?: string }, custom_driver: string = ""): Promise<boolean> => {
     const driver = get_driver(custom_driver);
     return driver.delete_beatmap(options);
@@ -65,9 +71,19 @@ export const get_collections = (custom_driver: string = ""): ICollectionResult[]
     return driver.get_collections();
 };
 
-export const update_collection = (collections: ICollectionResult[], custom_driver: string = ""): boolean => {
+export const update_collection = (custom_driver: string = ""): boolean => {
     const driver = get_driver(custom_driver);
-    return driver.update_collection(collections);
+    return driver.update_collection();
+};
+
+export const get_actions = (custom_driver: string = ""): DriverAction[] => {
+    const driver = get_driver(custom_driver);
+    return driver.get_actions();
+};
+
+export const remove_action = (index: number, custom_driver: string = ""): boolean => {
+    const driver = get_driver(custom_driver);
+    return driver.remove_action(index);
 };
 
 export const export_collections = async (collections: ICollectionResult[], type: string, custom_driver: string = ""): Promise<boolean> => {

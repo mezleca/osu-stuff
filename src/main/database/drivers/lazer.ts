@@ -10,7 +10,8 @@ import {
     ISearchSetResponse,
     IFilteredBeatmap,
     IFilteredBeatmapSet,
-    IBeatmapSetFilter
+    IBeatmapSetFilter,
+    DriverActionType
 } from "@shared/types";
 import {
     BeatmapCollectionSchema,
@@ -78,32 +79,58 @@ class LazerBeatmapDriver extends BaseDriver {
         super();
     }
 
-    initialize = async (): Promise<void> => {
-        const lazer_location = path.resolve(config.get().lazer_path, "client.realm");
-
-        if (this.instance) {
-            console.warn("skipping lazer driver initialiation");
+    initialize = async (force: boolean = false): Promise<void> => {
+        if (this.instance && !force) {
             return;
         }
 
-        this.instance = new Realm({
-            path: lazer_location,
-            schema: [
-                BeatmapDifficultySchema,
-                BeatmapMetadataSchema,
-                BeatmapUserSettingsSchema,
-                BeatmapCollectionSchema,
-                BeatmapSetSchema,
-                BeatmapSchema,
-                RealmUserSchema,
-                RulesetSchema,
-                FileSchema,
-                RealmNamedFileUsageSchema
-            ] as any,
-            schemaVersion: LAZER_DATABASE_VERSION
-        });
+        const lazer_location = path.resolve(config.get().lazer_path, "client.realm");
 
-        // TODO: now process everything :)
+        if (!this.instance) {
+            this.instance = new Realm({
+                path: lazer_location,
+                schema: [
+                    BeatmapDifficultySchema,
+                    BeatmapMetadataSchema,
+                    BeatmapUserSettingsSchema,
+                    BeatmapCollectionSchema,
+                    BeatmapSetSchema,
+                    BeatmapSchema,
+                    RealmUserSchema,
+                    RulesetSchema,
+                    FileSchema,
+                    RealmNamedFileUsageSchema
+                ] as any,
+                schemaVersion: LAZER_DATABASE_VERSION
+            });
+        }
+
+        // populate base driver maps
+        this.collections.clear();
+        this.beatmaps.clear();
+        this.beatmapsets.clear();
+
+        const collections = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection");
+        for (const collection of collections) {
+            this.collections.set(collection.Name || "", {
+                name: collection.Name || "",
+                beatmaps: collection.BeatmapMD5Hashes
+            });
+        }
+
+        const beatmaps = this.instance.objects<BeatmapSchema>("Beatmap");
+        for (const beatmap of beatmaps) {
+            if (beatmap.MD5Hash) {
+                this.beatmaps.set(beatmap.MD5Hash, build_beatmap(beatmap));
+            }
+        }
+
+        const beatmapsets = this.instance.objects<BeatmapSetSchema>("BeatmapSet");
+        for (const beatmapset of beatmapsets) {
+            this.beatmapsets.set(beatmapset.OnlineID, build_beamapset(beatmapset));
+        }
+
+        this.initialized = true;
     };
 
     // TODO: does lazer even save that information?
@@ -112,81 +139,117 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 
     add_collection = (name: string, beatmaps: string[]): boolean => {
-        this.instance.write(() => {
-            const uuid = new Realm.BSON.UUID();
-            this.instance.create<BeatmapCollectionSchema>("BeatmapCollection", {
-                ID: uuid,
-                Name: name,
-                BeatmapMD5Hashes: beatmaps,
-                LastModified: new Date()
-            });
-        });
+        if (this.collections.has(name)) return false;
+
+        this.collections.set(name, { name, beatmaps });
+        this.actions.push({ type: DriverActionType.Add, name, beatmaps });
 
         return true;
     };
 
     get_collections = (): ICollectionResult[] => {
-        return this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").map((a) => {
-            const pending = this.pending_collection_removals.get(a.Name || "") || new Set();
-            return {
-                name: a.Name || "",
-                beatmaps: a.BeatmapMD5Hashes.filter((h) => !pending.has(h))
-            };
-        });
+        return Array.from(this.collections.values());
     };
 
     get_collection = (name: string): ICollectionResult | undefined => {
-        return this.get_collections().find((c) => c.name == name);
+        return this.collections.get(name);
     };
 
-    update_collection = (collections: ICollectionResult[]): boolean => {
+    update_collection = (): boolean => {
         if (!this.instance) {
             return false;
         }
 
-        const saved_collections = Array.from(this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection"));
-
-        for (const collection of collections) {
-            const existing_collection = saved_collections.find((c) => c.Name == collection.name);
-            if (existing_collection) {
-                this.instance.write(() => {
-                    existing_collection.Name = collection.name;
-                    existing_collection.BeatmapMD5Hashes = collection.beatmaps || [];
-                    existing_collection.LastModified = new Date();
-                });
-                this.pending_collection_removals.delete(collection.name);
-            } else {
-                this.add_collection(collection.name, collection.beatmaps);
+        this.instance.write(() => {
+            // process actions
+            for (const action of this.actions) {
+                if (action.type == DriverActionType.Add) {
+                    // check if it's a collection action
+                    if ("beatmaps" in action) {
+                        const uuid = new Realm.BSON.UUID();
+                        this.instance.create<BeatmapCollectionSchema>("BeatmapCollection", {
+                            ID: uuid,
+                            Name: action.name,
+                            BeatmapMD5Hashes: action.beatmaps || [],
+                            LastModified: new Date()
+                        });
+                    }
+                } else if (action.type == DriverActionType.Rename) {
+                    if ("new_name" in action && action.new_name) {
+                        const collection = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == action.name);
+                        if (collection) {
+                            collection.Name = action.new_name;
+                            collection.LastModified = new Date();
+                        }
+                    }
+                } else if (action.type == DriverActionType.Delete) {
+                    if ("collection" in action) {
+                        // delete beatmap from collection
+                        const collection = this.instance
+                            .objects<BeatmapCollectionSchema>("BeatmapCollection")
+                            .find((c) => c.Name == action.collection);
+                        if (collection) {
+                            collection.BeatmapMD5Hashes = collection.BeatmapMD5Hashes.filter((h) => h !== action.md5);
+                            collection.LastModified = new Date();
+                        }
+                    } else {
+                        // delete collection
+                        const collection = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == action.name);
+                        if (collection) {
+                            this.instance.delete(collection);
+                        }
+                    }
+                }
             }
+        });
+
+        // clear actions
+        this.actions = [];
+
+        return true;
+    };
+
+    rename_collection = (old_name: string, new_name: string): boolean => {
+        const collection = this.collections.get(old_name);
+
+        if (!collection) {
+            return false;
         }
+
+        if (this.collections.has(new_name)) {
+            return false;
+        }
+
+        this.collections.delete(old_name);
+        this.collections.set(new_name, { ...collection, name: new_name });
+
+        this.actions.push({ type: DriverActionType.Rename, name: old_name, new_name });
 
         return true;
     };
 
     delete_collection = (name: string): boolean => {
-        const desired = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == name);
+        const result = this.collections.delete(name);
 
-        if (!desired) {
-            console.log("failed to find:", name);
-            return false;
+        if (result) {
+            this.actions.push({ type: DriverActionType.Delete, name });
         }
 
-        this.instance.write(() => {
-            this.instance.delete(desired);
-        });
-
-        return true;
+        return result;
     };
 
     delete_beatmap = async (options: { md5: string; collection?: string }): Promise<boolean> => {
         if (options.collection) {
-            if (!this.pending_collection_removals.has(options.collection)) {
-                this.pending_collection_removals.set(options.collection, new Set());
+            const collection = this.collections.get(options.collection);
+            if (collection) {
+                collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
+                this.actions.push({ type: DriverActionType.Delete, collection: options.collection, md5: options.md5 });
+                return true;
             }
-            this.pending_collection_removals.get(options.collection)!.add(options.md5);
-            return true;
+            return false;
         }
 
+        // TODO: handle global beatmap deletion in actions if needed
         this.pending_deletion.add(options.md5);
         return true;
     };
@@ -197,11 +260,11 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 
     has_beatmap(md5: string): boolean {
-        return !!this.instance.objects<BeatmapSchema>("Beatmap").find((b) => b.MD5Hash == md5);
+        return this.beatmaps.has(md5);
     }
 
     has_beatmapset(id: number): boolean {
-        return !!this.instance.objects<BeatmapSetSchema>("BeatmapSet").find((b) => b.OnlineID == id);
+        return this.beatmapsets.has(id);
     }
 
     has_beatmapsets(ids: number[]): boolean[] {

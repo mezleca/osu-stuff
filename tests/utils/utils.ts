@@ -6,9 +6,9 @@ import { IBeatmapResult, StuffConfig } from "@shared/types";
 import { config as _config } from "@main/database/config";
 import { mirrors as _mirrors } from "@main/database/mirrors";
 
-export const TEMP_DIR = path.resolve(__dirname, "..", ".temp");
+export const TEMP_DIR = path.resolve("tests", ".temp_data");
+export const DATA_DIR = path.resolve("tests", ".data");
 
-const DATA_DIR = path.resolve("tests", ".data");
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 export const generate_random_string = (size: number) => {
@@ -54,38 +54,34 @@ export const run_sh = (command: string) => {
     });
 };
 
-export const clean_test_path = async () => {
-    if (!fs.existsSync(TEMP_DIR)) {
-        create_temp_path();
-        return;
+export const copy_test_stuff = () => {
+    if (fs.existsSync(TEMP_DIR)) {
+        fs.rmSync(TEMP_DIR, { recursive: true, force: true });
     }
 
-    if (process.platform == "win32") {
-        await run_sh(`powershell -Command "Remove-Item '${TEMP_DIR}\\*' -Force -Recurse -ErrorAction SilentlyContinue"`);
-    } else {
-        await run_sh(`rm -rf ${TEMP_DIR}/*`);
-    }
+    // create temp directory with write permissions
+    fs.mkdirSync(TEMP_DIR, { recursive: true, mode: 0o777 });
+
+    // copy files
+    fs.cpSync(DATA_DIR, TEMP_DIR, {
+        recursive: true,
+        force: true
+    });
 };
 
 export const setup_config = () => {
-    clean_test_path();
-    _config.initialize();
-    _mirrors.initialize();
+    copy_test_stuff();
+
+    _config.reinitialize();
+    _mirrors.reinitialize();
 
     const config_data: Partial<StuffConfig> = {
-        stable_path: path.resolve(DATA_DIR, "osu"),
-        stable_songs_path: path.resolve(DATA_DIR, "osu", "Songs"),
-        lazer_path: path.resolve(DATA_DIR, "lazer"),
+        stable_path: path.resolve(TEMP_DIR, "osu"),
+        stable_songs_path: path.resolve(TEMP_DIR, "osu", "Songs"),
+        lazer_path: path.resolve(TEMP_DIR, "lazer"),
         export_path: TEMP_DIR
     };
 
     _config.update(config_data);
     _mirrors.update("nery", "https://api.nerinyan.moe/d/");
 };
-
-(() => {
-    setup_config();
-})();
-
-export const config = _config;
-export const mirrors = _mirrors;

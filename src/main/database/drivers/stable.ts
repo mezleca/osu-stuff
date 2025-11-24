@@ -13,7 +13,8 @@ import {
     IBeatmapSetFilter,
     IFilteredBeatmapSet,
     ISearchSetResponse,
-    IFilteredBeatmap
+    IFilteredBeatmap,
+    DriverActionType
 } from "@shared/types";
 import { BaseDriver } from "./base";
 import { stable_parser } from "../../binary/stable";
@@ -64,13 +65,16 @@ const build_beamapset = (beatmapset: IStableBeatmapset, temp: boolean = false): 
 
 class StableBeatmapDriver extends BaseDriver {
     osu!: ILegacyDatabase;
-    collections!: Map<string, ICollectionResult>;
 
     constructor() {
         super();
     }
 
-    initialize = async (): Promise<void> => {
+    initialize = async (force: boolean = false): Promise<void> => {
+        if (this.initialized && !force) {
+            return;
+        }
+
         const osu_database_file = path.resolve(config.get().stable_path, "osu!.db");
         const collection_database_file = path.resolve(config.get().stable_path, "collection.db");
 
@@ -94,7 +98,21 @@ class StableBeatmapDriver extends BaseDriver {
         }
 
         this.osu = osu_result.data;
+
+        // populate base driver maps
         this.collections = collection_result.data;
+        this.beatmaps.clear();
+        this.beatmapsets.clear();
+
+        for (const [md5, beatmap] of this.osu.beatmaps) {
+            this.beatmaps.set(md5, build_beatmap(beatmap));
+        }
+
+        for (const [id, beatmapset] of this.osu.beatmapsets) {
+            this.beatmapsets.set(id, build_beamapset(beatmapset));
+        }
+
+        this.initialized = true;
     };
 
     get_player_name = (): string => {
@@ -103,12 +121,40 @@ class StableBeatmapDriver extends BaseDriver {
 
     add_collection = (name: string, beatmaps: string[]): boolean => {
         if (this.collections.has(name)) return false;
+
         this.collections.set(name, { name, beatmaps });
+        this.actions.push({ type: DriverActionType.Add, name, beatmaps });
+
+        return true;
+    };
+
+    rename_collection = (old_name: string, new_name: string): boolean => {
+        const collection = this.collections.get(old_name);
+
+        if (!collection) {
+            return false;
+        }
+
+        if (this.collections.has(new_name)) {
+            return false;
+        }
+
+        this.collections.delete(old_name);
+        this.collections.set(new_name, { ...collection, name: new_name });
+
+        this.actions.push({ type: DriverActionType.Rename, name: old_name, new_name });
+
         return true;
     };
 
     delete_collection = (name: string): boolean => {
-        return this.collections.delete(name);
+        const result = this.collections.delete(name);
+
+        if (result) {
+            this.actions.push({ type: DriverActionType.Delete, name });
+        }
+
+        return result;
     };
 
     delete_beatmap = async (options: { md5: string; collection?: string }): Promise<boolean> => {
@@ -116,11 +162,13 @@ class StableBeatmapDriver extends BaseDriver {
             const collection = this.collections.get(options.collection);
             if (collection) {
                 collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
+                this.actions.push({ type: DriverActionType.Delete, collection: options.collection, md5: options.md5 });
                 return true;
             }
             return false;
         }
 
+        // TODO: handle global beatmap deletion in actions if needed
         this.pending_deletion.add(options.md5);
         return this.osu.beatmaps.delete(options.md5);
     };
@@ -133,13 +181,18 @@ class StableBeatmapDriver extends BaseDriver {
         return Array.from(this.collections.values());
     };
 
-    update_collection = (collections: ICollectionResult[]): boolean => {
-        if (collections.length == 0) {
-            console.warn("skipped collection update, length == 0");
+    update_collection = (): boolean => {
+        const result = stable_parser.write_collections_data(Array.from(this.collections.values()));
+
+        if (!result.success) {
+            console.error("failed to write shit:", result.reason);
             return false;
         }
 
-        const result = stable_parser.write_collections_data(collections);
+        const target = path.resolve(config.get().stable_path, "collection.db");
+        console.log("updating collection file at:", target);
+        fs.writeFileSync(target, result.data);
+
         return result.success;
     };
 

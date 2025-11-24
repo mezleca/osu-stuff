@@ -118,7 +118,7 @@ export interface IpcSchema {
         };
         // drivers
         "driver:initialize": {
-            params: [string?];
+            params: [boolean?, string?];
             result: ReturnType<IOsuDriver["initialize"]>;
         };
         "driver:get_player_name": {
@@ -133,6 +133,10 @@ export interface IpcSchema {
             params: [string, string?];
             result: ReturnType<IOsuDriver["delete_collection"]>;
         };
+        "driver:rename_collection": {
+            params: [string, string, string?];
+            result: ReturnType<IOsuDriver["rename_collection"]>;
+        };
         "driver:get_collection": {
             params: [string, string?];
             result: ReturnType<IOsuDriver["get_collection"]>;
@@ -142,12 +146,20 @@ export interface IpcSchema {
             result: ReturnType<IOsuDriver["get_collections"]>;
         };
         "driver:update_collection": {
-            params: [ICollectionResult[], string?];
+            params: [];
             result: ReturnType<IOsuDriver["update_collection"]>;
         };
         "driver:export_collections": {
             params: [ICollectionResult[], string, string?];
             result: ReturnType<IOsuDriver["export_collections"]>;
+        };
+        "driver:get_actions": {
+            params: [string?];
+            result: ReturnType<IOsuDriver["get_actions"]>;
+        };
+        "driver:remove_action": {
+            params: [number, string?];
+            result: ReturnType<IOsuDriver["remove_action"]>;
         };
         "driver:add_beatmap": {
             params: [IBeatmapResult, string?];
@@ -286,6 +298,10 @@ export interface IpcSchema {
             result: void;
         };
         "window:maximize": {
+            params: undefined;
+            result: void;
+        };
+        "window:unmaximize": {
             params: undefined;
             result: void;
         };

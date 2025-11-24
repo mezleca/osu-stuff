@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { active_tab } from "../lib/store/other";
+    import { active_tab, is_maximized } from "../lib/store/other";
 
     // icons
     import Line from "./icon/line.svelte";
@@ -28,18 +28,63 @@
             {/each}
         </div>
     </div>
-    <div class="window-controls">
+    <div class="window-decorations">
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn minimize" onclick={() => window.api.invoke("window:minimize")}>
+        <button class="window-btn minimize" onclick={() => window.api.invoke("window:minimize")}>
             <Line />
         </button>
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn maximize" onclick={() => window.api.invoke("window:minimize")}>
+        <button
+            class="window-btn maximize"
+            onclick={() => ($is_maximized ? window.api.invoke("window:unmaximize") : window.api.invoke("window:maximize"))}
+        >
             <Square />
         </button>
         <!-- svelte-ignore a11y_consider_explicit_label -->
-        <button class="control-btn close" onclick={() => window.api.invoke("window:maximize")}>
+        <button class="window-btn close" onclick={() => window.api.invoke("window:close")}>
             <X />
         </button>
     </div>
 </div>
+
+<style>
+    .window-decorations {
+        display: flex;
+        height: 30px;
+        margin-right: 25px;
+        gap: 5px;
+        -webkit-app-region: no-drag;
+    }
+
+    :global(.window-border) {
+        visibility: hidden;
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 99999;
+        border: 1px solid rgb(120, 120, 120, 0.6);
+        transition: all 0.1s ease;
+    }
+
+    :global(.window-border.show) {
+        visibility: visible;
+    }
+
+    .window-btn {
+        display: flex;
+        border: none;
+        border-radius: 4px;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        background-color: var(--bg-secondary);
+        color: var(--text-muted);
+    }
+
+    .window-btn:hover {
+        color: var(--accent-color);
+        background: none;
+    }
+</style>

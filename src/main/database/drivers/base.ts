@@ -13,7 +13,8 @@ import {
     ISearchSetResponse,
     IFilteredBeatmapSet,
     IFilteredBeatmap,
-    IBeatmapSetFilter
+    IBeatmapSetFilter,
+    DriverAction
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../../beatmaps/beatmaps";
 import { osdb_parser } from "../../binary/osdb";
@@ -27,12 +28,19 @@ import fs from "fs";
 export abstract class BaseDriver implements IOsuDriver {
     protected initialized: boolean = false;
 
+    beatmaps: Map<string, IBeatmapResult> = new Map();
+    beatmapsets: Map<number, BeatmapSetResult> = new Map();
+    collections: Map<string, ICollectionResult> = new Map();
+    actions: DriverAction[] = [];
+    pending_deletion: Set<string> = new Set();
+    pending_collection_removals: Map<string, Set<string>> = new Map();
+
     protected filter_beatmaps = (beatmaps: IBeatmapResult[], options: IBeatmapFilter): IFilteredBeatmap[] => {
         const unique = new Set<string>();
         const result: IBeatmapResult[] = [];
 
         for (const beatmap of beatmaps) {
-            if (options.status && beatmap.status != options.status) {
+            if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) {
                 continue;
             }
 
@@ -241,17 +249,29 @@ export abstract class BaseDriver implements IOsuDriver {
         return missing_beatmaps;
     };
 
-    abstract initialize(): Promise<void>;
-    pending_deletion: Set<string> = new Set();
-    pending_collection_removals: Map<string, Set<string>> = new Map();
+    get_actions(): DriverAction[] {
+        return this.actions;
+    }
+
+    remove_action(index: number): boolean {
+        if (index < 0 || index >= this.actions.length) {
+            return false;
+        }
+
+        this.actions.splice(index, 1);
+        return true;
+    }
+
+    abstract initialize(force?: boolean): Promise<void>;
 
     abstract get_player_name(): string;
     abstract add_collection(name: string, beatmaps: string[]): boolean;
+    abstract rename_collection(old_name: string, new_name: string): boolean;
     abstract delete_collection(name: string): boolean;
     abstract delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
     abstract get_collection(name: string): ICollectionResult | undefined;
     abstract get_collections(): ICollectionResult[];
-    abstract update_collection(collections: ICollectionResult[]): boolean;
+    abstract update_collection(): boolean;
     abstract has_beatmap(md5: string): boolean;
     abstract has_beatmapset(id: number): boolean;
     abstract add_beatmap(beatmap: IBeatmapResult): boolean;

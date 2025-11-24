@@ -22,7 +22,6 @@ import {
     get_beatmap_by_id,
     get_beatmap_by_md5,
     get_beatmapset,
-    get_beatmapset_files,
     get_beatmaps,
     get_beatmapsets,
     get_collection,
@@ -33,9 +32,12 @@ import {
     has_beatmapset,
     has_beatmapsets,
     initialize_driver,
+    rename_collection,
     search_beatmaps,
     search_beatmapsets,
-    update_collection
+    update_collection,
+    get_actions,
+    remove_action
 } from "./database/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./beatmaps/downloader";
@@ -107,6 +109,7 @@ async function createWindow() {
     handle_ipc("window:state", () => (mainWindow.isMaximized() ? "maximized" : "minimized"));
     handle_ipc("window:minimize", () => mainWindow.minimize());
     handle_ipc("window:maximize", () => mainWindow.maximize());
+    handle_ipc("window:unmaximize", () => mainWindow.unmaximize());
     handle_ipc("window:dialog", (_, args) => dialog.showOpenDialog(mainWindow, args[0]));
     handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools());
     handle_ipc("window:close", () => app.quit());
@@ -132,10 +135,13 @@ async function createWindow() {
     handle_ipc("driver:initialize", (_, args) => initialize_driver(...args));
     handle_ipc("driver:get_player_name", (_, args) => get_player_name(...args));
     handle_ipc("driver:add_collection", (_, args) => add_collection(...args));
+    handle_ipc("driver:rename_collection", (_, args) => rename_collection(...args));
     handle_ipc("driver:delete_collection", (_, args) => delete_collection(...args));
     handle_ipc("driver:get_collection", (_, args) => get_collection(...args));
     handle_ipc("driver:get_collections", (_, args) => get_collections(...args));
     handle_ipc("driver:update_collection", (_, args) => update_collection(...args));
+    handle_ipc("driver:get_actions", (_, args) => get_actions(...args));
+    handle_ipc("driver:remove_action", (_, args) => remove_action(...args));
     handle_ipc("driver:export_collections", (_, args) => export_collections(...args));
     handle_ipc("driver:add_beatmap", (_, args) => add_beatmap(...args));
     handle_ipc("driver:delete_beatmap", (_, args) => delete_beatmap(...args));

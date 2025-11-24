@@ -1,6 +1,6 @@
 import { writable, get, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
-import { ALL_BEATMAPS_KEY } from "./other";
+import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
 import type {
     BeatmapSetResult,
     IBeatmapFilter,
@@ -10,6 +10,7 @@ import type {
     ISearchSetResponse,
     StarRatingFilter
 } from "@shared/types";
+import { config } from "./config";
 
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
@@ -140,13 +141,19 @@ export class BeatmapList extends ListBase {
     }
 
     build_filter(): IBeatmapFilter {
-        const target = get(this.target);
+        let target = get(this.target);
+        let status = get(this.status);
+
+        // stable classifies "graveyard / WIP" as pending
+        if (!config.get("lazer_mode") && ["graveyard", "wip"].includes(status)) {
+            status = "pending";
+        }
 
         return {
             query: get(this.query),
             sort: get(this.sort),
             difficulty_range: get(this.difficulty_range),
-            status: get(this.status) || undefined,
+            status: status == ALL_STATUS_KEY ? undefined : status,
             unique: get(this.show_unique),
             collection: target == ALL_BEATMAPS_KEY ? undefined : target
         };

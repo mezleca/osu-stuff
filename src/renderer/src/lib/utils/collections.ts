@@ -6,7 +6,7 @@ import { custom_fetch, string_is_valid } from "./utils";
 import type { GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
 import { get_beatmap } from "./beatmaps";
 
-export const get_osu_data = async () => {
+export const get_osu_data = async (force_load: boolean = false) => {
     const stable_path = config.get("stable_path");
     const lazer_path = config.get("lazer_path");
 
@@ -19,7 +19,7 @@ export const get_osu_data = async () => {
     const driver = config.get("lazer_mode") == true ? "lazer" : "stable";
 
     // TOFIX: return generic result instead of void
-    await window.api.invoke("driver:initialize", driver);
+    await window.api.invoke("driver:initialize", force_load, driver);
 
     // reset stuff
     reset_beatmap_lists();

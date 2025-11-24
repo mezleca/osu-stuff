@@ -14,7 +14,7 @@ describe("processor", () => {
     const TARGET_BEATMAP_HASH = "77b7eaacef5dda52466009b08673861f";
     const TARGET_BEATMAP_PATH = path.resolve(
         "tests",
-        ".data",
+        ".temp_data",
         "osu",
         "Songs",
         "2403850 FRAM - Step for Joy",
@@ -31,10 +31,12 @@ describe("processor", () => {
 
         const result = await beatmap_processor.process_beatmaps([data]);
 
+        console.log("processor result:", result);
         expect(result.success).toBe(true);
         if (!result.success) return;
         const processed_data = result.data.get("77b7eaacef5dda52466009b08673861f");
         expect(processed_data?.duration).toBeGreaterThan(1);
-        expect(processed_data?.background).toBe("/home/rel/stuff/personal/osu-stuff-ts/tests/.data/osu/Songs/2403850 FRAM - Step for Joy/bg.jpg");
+        const expected_bg_path = path.resolve("tests/.temp_data/osu/Songs/2403850 FRAM - Step for Joy/bg.jpg");
+        expect(processed_data?.background).toBe(expected_bg_path);
     });
 });

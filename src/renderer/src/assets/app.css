@@ -254,29 +254,6 @@ main {
     transform: translateY(-1px);
 }
 
-.window-controls {
-    display: flex;
-    height: 30px;
-    margin-right: 25px;
-    gap: 5px;
-    -webkit-app-region: no-drag;
-}
-
-.window-border {
-    visibility: hidden;
-    pointer-events: none;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    z-index: 99999;
-    border: 1px solid rgb(120, 120, 120, 0.6);
-    transition: all 0.1s ease;
-}
-
-.window-border.show {
-    visibility: visible;
-}
-
 .control-btn {
     display: flex;
     border: none;

@@ -27,7 +27,14 @@ export abstract class BaseDatabase {
         }
 
         // ensure app_path dir exists so write dont fail :)
-        fs.mkdirSync(this.app_path, { recursive: true });
+        fs.mkdirSync(this.app_path, { recursive: true, mode: 0o777 });
+
+        // explicitly ensure write permissions (mode in mkdirSync doesn't always work with recursive)
+        try {
+            fs.chmodSync(this.app_path, 0o777);
+        } catch (err) {
+            console.warn(`failed to chmod ${this.app_path}:`, err);
+        }
 
         try {
             this.connect_and_initialize();
@@ -49,6 +56,8 @@ export abstract class BaseDatabase {
         // create empty shit to prevent more errors
         if (!fs.existsSync(this.database_path)) {
             fs.writeFileSync(this.database_path, "");
+            // ensure write permissions for sqlite
+            fs.chmodSync(this.database_path, 0o666);
         }
 
         // create new sqlite instance
@@ -82,5 +91,26 @@ export abstract class BaseDatabase {
         if (this.instance) {
             this.instance.close();
         }
+    }
+
+    reinitialize() {
+        this.close();
+        this.initialized = false;
+        this.statements = {};
+
+        try {
+            this.connect_and_initialize();
+        } catch (error) {
+            console.error(`[${this.database_name}] failed to reinitialize database, resetting...`, error);
+            this.close();
+
+            if (fs.existsSync(this.database_path)) {
+                fs.unlinkSync(this.database_path);
+            }
+
+            this.connect_and_initialize();
+        }
+
+        this.initialized = true;
     }
 }

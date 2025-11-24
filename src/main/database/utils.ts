@@ -6,8 +6,6 @@ import { exec } from "child_process";
 import { GenericResult } from "@shared/types";
 import { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 
-const TEST_DATA_PATH = path.resolve("tests/.data");
-
 interface PathResult {
     stable_path: string;
     lazer_path: string;
@@ -15,7 +13,7 @@ interface PathResult {
 
 export const get_app_path = (): string => {
     if (process.env["NODE_ENV"] == "test") {
-        return TEST_DATA_PATH;
+        return path.resolve("tests", ".temp_data");
     }
 
     switch (process.platform) {

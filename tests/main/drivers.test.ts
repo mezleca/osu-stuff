@@ -2,12 +2,11 @@ import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { get_driver } from "@main/database/drivers/driver";
 import { create_temp_beatmap } from "../utils/utils";
 import { cached_beatmaps } from "@main/beatmaps/beatmaps";
+import { DriverActionType } from "@shared/types";
+import { read_legacy_collection } from "../../src/main/binary/stable";
+import { setup_config } from "../utils/utils";
 
-// NOTE:
-// these are the tests for osu! driver
-// no mock shit, real files, real beatmaps
-// theres still a lot to be done here
-// especially because most of the tests dont really test anything other than return type?
+import path from "path";
 
 const temp_beatmap = create_temp_beatmap();
 
@@ -31,13 +30,21 @@ const test_driver = (type: string) => {
         // TODO: driver.remove_beatmap(temp_beatmap.md5);
     });
 
-    test(`${type}: initialize():`, () => {
-        expect(driver.initialize).not.throw();
+    test(`${type}: initialize():`, async () => {
+        await driver.initialize(true);
+        // @ts-ignore: accessing protected property for testing
+        expect(driver.initialized).toBe(true);
     });
 
     test(`${type}: add_collection():`, () => {
         const result = driver.add_collection(temp_collection_name, ["123", "321"]);
         expect(result).toBe(true);
+        // verify its in memory
+        const collection = driver.get_collection(temp_collection_name);
+        expect(collection).toBeDefined();
+        // verify action
+        const action = driver.actions.find((a) => a.type == 0 && "name" in a && a.name == temp_collection_name);
+        expect(action).toBeDefined();
     });
 
     test(`${type}: get_collections():`, () => {
@@ -58,6 +65,9 @@ const test_driver = (type: string) => {
         expect(result).toBe(true);
         const find_result = driver.get_collection(temp_collection_name);
         expect(find_result).toBeUndefined();
+        // verify action
+        const action = driver.actions.find((a) => a.type == 1 && "name" in a && a.name == temp_collection_name);
+        expect(action).toBeDefined();
     });
 
     test(`${type}: get_all_beatmaps():`, async () => {
@@ -101,7 +111,6 @@ const test_driver = (type: string) => {
         const { beatmaps } = await driver.search_beatmaps({
             query: `artist="glass beach"`,
             sort: "title",
-            show_invalid: true,
             unique: false
         });
 
@@ -116,13 +125,13 @@ const test_driver = (type: string) => {
     test(`${type}: fetch_beatmaps():`, async () => {
         const beatmaps = await driver.get_beatmaps();
         const result = await driver.fetch_beatmaps(beatmaps.map((b) => b.md5));
-        expect(result.some((b) => b.md5 == undefined)).toBe(false);
+        expect(result.beatmaps.some((b) => b.md5 == undefined)).toBe(false);
     });
 
     test(`${type}: fetch_beatmapsets():`, async () => {
         const beatmapsets = await driver.get_beatmapsets();
         const result = await driver.fetch_beatmapsets(beatmapsets.map((b) => b.id));
-        expect(result.some((b) => b.online_id == undefined)).toBe(false);
+        expect(result.beatmaps.some((b) => b.online_id == undefined)).toBe(false);
     });
 
     // REMEMBER: check structure / integrity when i finish the beatmap parser
@@ -132,7 +141,103 @@ const test_driver = (type: string) => {
     });
 };
 
-describe("osu!drivers", () => {
+const test_actions = (type: string) => {
+    const driver = get_driver(type);
+    const test_collection_name = "action_test_collection";
+
+    test(`${type} actions are logged on add_collection`, () => {
+        const initial_actions_count = driver.get_actions().length;
+        driver.add_collection(test_collection_name, []);
+
+        const actions = driver.get_actions();
+        expect(actions.length).toBe(initial_actions_count + 1);
+
+        const last_action = actions[actions.length - 1] as any;
+        expect(last_action.type).toBe(DriverActionType.Add);
+        expect(last_action.name).toBe(test_collection_name);
+    });
+
+    test(`${type} actions are logged on rename_collection`, () => {
+        const new_name = "renamed_action_test";
+        const initial_actions_count = driver.get_actions().length;
+
+        driver.rename_collection(test_collection_name, new_name);
+
+        const actions = driver.get_actions();
+        expect(actions.length).toBe(initial_actions_count + 1);
+
+        const last_action = actions[actions.length - 1] as any;
+        expect(last_action.type).toBe(DriverActionType.Rename);
+        expect(last_action.name).toBe(test_collection_name);
+        expect(last_action.new_name).toBe(new_name);
+    });
+
+    test(`${type} actions are logged on delete_collection`, () => {
+        const initial_actions_count = driver.get_actions().length;
+
+        driver.delete_collection("renamed_action_test");
+
+        const actions = driver.get_actions();
+        expect(actions.length).toBe(initial_actions_count + 1);
+
+        const last_action = actions[actions.length - 1] as any;
+        expect(last_action.type).toBe(DriverActionType.Delete);
+        expect(last_action.name).toBe("renamed_action_test");
+    });
+
+    test(`${type} remove_action works correctly`, () => {
+        const actions_before = driver.get_actions().length;
+
+        // remove last action
+        const removed = driver.remove_action(actions_before - 1);
+        expect(removed).toBe(true);
+
+        const actions_after = driver.get_actions();
+        expect(actions_after.length).toBe(actions_before - 1);
+
+        // test invalid index
+        const invalid_removal = driver.remove_action(999);
+        expect(invalid_removal).toBe(false);
+    });
+
+    if (type === "stable") {
+        test(`${type} update_collection persists changes to disk`, async () => {
+            // create a new collection and update
+            const persist_test_name = "persist_test_collection";
+
+            expect(driver.add_collection(persist_test_name, [])).toBe(true);
+            expect(driver.update_collection()).toBe(true);
+
+            // check file integrity after write
+            const temp_data_path = path.resolve("tests", ".temp_data", "osu", "collection.db");
+            const collections_from_disk = read_legacy_collection(temp_data_path);
+
+            console.log(collections_from_disk);
+
+            expect(collections_from_disk.success).toBe(true);
+
+            if (collections_from_disk.success) {
+                const collection_names = Array.from(collections_from_disk.data.keys());
+                expect(collection_names).toContain(persist_test_name);
+            }
+
+            // cleanup
+            driver.delete_collection(persist_test_name);
+            driver.update_collection();
+        });
+    }
+};
+
+describe("osu!driver", () => {
+    beforeAll(() => {
+        setup_config();
+    });
+
     describe("lazer", () => test_driver("lazer"));
     describe("stable", () => test_driver("stable"));
+
+    describe("actions", () => {
+        describe("lazer", () => test_actions("lazer"));
+        describe("stable", () => test_actions("stable"));
+    });
 });

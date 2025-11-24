@@ -40,14 +40,14 @@
 
 <div class="dropdown_container" bind:this={dropdown}>
     <button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
-        <span class="dropdown_text">{convert_special_key(String(selected_value))}</span>
+        <span class="dropdown_text">{convert_special_key(String(selected_value)) || placeholder}</span>
         <div class="dropdown_arrow" class:active={is_open}></div>
     </button>
     {#if is_open}
         <div class="dropdown_menu" class:static={is_static} transition:slide={{ duration: 100 }}>
             {#each options as option}
                 <button class="dropdown_item" onclick={() => select_option(option)} type="button">
-                    {option.label}
+                    {convert_special_key(String(option.label))}
                 </button>
             {/each}
         </div>

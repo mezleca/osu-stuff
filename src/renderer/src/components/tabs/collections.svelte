@@ -52,15 +52,9 @@
             return;
         }
 
-        const result = await window.api.invoke("driver:search_beatmaps", {
-            collection: $selected_collection.name,
-            query: $query,
-            status: $status,
-            sort: $sort,
-            difficulty_range: $difficulty_range,
-            unique: false
-        });
+        list.target.set($selected_collection.name);
 
+        const result = await list.search();
         const hashes: Set<string> = new Set();
 
         for (const beatmap of result.beatmaps) {
@@ -81,7 +75,6 @@
         list.clear_multi_selected();
     }, 10);
 
-    // force list update
     const update_sr = async (data: StarRatingFilter) => {
         list.set_difficulty_range(data);
         filter_beatmaps();
@@ -214,7 +207,7 @@
         show_notification({ type: "success", text: "added " + new_name });
     };
 
-    const enable_edit_mode = (name) => {
+    const enable_edit_mode = (name: string) => {
         // get selected collection from context menu
         const collection = collections.get(name);
 
@@ -225,10 +218,10 @@
 
         // update item
         collection.edit = true;
-        collections.replace(collection);
+        collections.replace(collection, true);
     };
 
-    const handle_rename_collection = (old_name, new_name) => {
+    const handle_rename_collection = async (old_name: string, new_name: string) => {
         // get selected collection from context menu
         const collection = collections.get(old_name);
 
@@ -237,14 +230,17 @@
             return;
         }
 
-        if (old_name != new_name) {
-            $should_update = true;
+        if (old_name == new_name) {
+            collection.edit = false;
+            collections.replace(collection, true);
+            return;
         }
 
-        // update item
-        collection.name = new_name;
-        collection.edit = false;
-        collections.replace(collection);
+        const result = await collections.rename(old_name, new_name);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to rename collection" });
+        }
     };
 
     const handle_legacy_import = async (location: string): Promise<boolean> => {

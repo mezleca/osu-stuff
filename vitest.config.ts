@@ -21,6 +21,7 @@ export default defineConfig({
     ],
     test: {
         globals: true,
-        environment: "node"
+        environment: "node",
+        maxWorkers: 1
     }
 });
