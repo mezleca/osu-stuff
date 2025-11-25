@@ -5,8 +5,6 @@ import path from "path";
 
 export const MAX_STAR_RATING_VALUE = 10;
 export const ALLOWED_SORT_KEYS = ["title", "artist", "duration", "length", "ar", "cs", "od", "hp"];
-export const cached_beatmaps: Map<string, IBeatmapResult> = new Map();
-export const cached_beatmapsets: Map<number, BeatmapSetResult> = new Map();
 
 // https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
 export const get_common_bpm = (timing_points: IStableTimingPoint[], length: number) => {

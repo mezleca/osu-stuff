@@ -1,5 +1,6 @@
 <script lang="ts">
     import { discover } from "../../lib/store/discover";
+    import { config } from "../../lib/store/config";
 
     // components
     import ExpandableMenu from "../utils/expandable-menu.svelte";
@@ -12,6 +13,8 @@
     const genres = discover.get_values("genres").map((name) => ({ label: name, value: name }));
     const modes = discover.get_values("modes").map((name) => ({ label: name, value: name }));
 
+    const authenticated = config.authenticated;
+
     $: query = discover.query;
     $: data = discover.data;
 
@@ -22,54 +25,60 @@
 </script>
 
 <div class="content tab-content">
-    <div class="manager-content">
-        <div class="content-header">
-            <Search placeholder="search beatmaps" value={$query} callback={(q) => discover.update_query(q)} />
-            <ExpandableMenu>
-                <Tags
-                    options={languages}
-                    multiple={false}
-                    selected_values={language ? [language] : []}
-                    on_update={(value) => discover.update("language", value[0])}
-                    placeholder={"languages"}
-                />
-
-                <Tags
-                    options={categories}
-                    multiple={false}
-                    selected_values={category ? [category] : []}
-                    on_update={(value) => discover.update("category", value[0])}
-                    placeholder={"categories"}
-                />
-
-                <Tags
-                    options={genres}
-                    multiple={false}
-                    selected_values={genre ? [genre] : []}
-                    on_update={(value) => discover.update("genre", value[0])}
-                    placeholder={"genres"}
-                />
-
-                <Tags
-                    options={modes}
-                    multiple={false}
-                    selected_values={mode ? [mode] : []}
-                    on_update={(value) => discover.update("mode", value[0])}
-                    placeholder={"modes"}
-                />
-            </ExpandableMenu>
+    {#if !$authenticated}
+        <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
+            <h1>not authenticated bro</h1>
         </div>
+    {:else}
+        <div class="manager-content">
+            <div class="content-header">
+                <Search placeholder="search beatmaps" value={$query} callback={(q) => discover.update_query(q)} />
+                <ExpandableMenu>
+                    <Tags
+                        options={languages}
+                        multiple={false}
+                        selected_values={language ? [language] : []}
+                        on_update={(value) => discover.update("language", value[0])}
+                        placeholder={"languages"}
+                    />
 
-        <!-- render beatmapset list -->
-        <BeatmapSetList
-            list_manager={discover}
-            columns={2}
-            on_update={(i) => {
-                // update list on last index
-                if (discover.can_load_more() && discover.get_list_length() - i <= 2) {
-                    discover.search();
-                }
-            }}
-        />
-    </div>
+                    <Tags
+                        options={categories}
+                        multiple={false}
+                        selected_values={category ? [category] : []}
+                        on_update={(value) => discover.update("category", value[0])}
+                        placeholder={"categories"}
+                    />
+
+                    <Tags
+                        options={genres}
+                        multiple={false}
+                        selected_values={genre ? [genre] : []}
+                        on_update={(value) => discover.update("genre", value[0])}
+                        placeholder={"genres"}
+                    />
+
+                    <Tags
+                        options={modes}
+                        multiple={false}
+                        selected_values={mode ? [mode] : []}
+                        on_update={(value) => discover.update("mode", value[0])}
+                        placeholder={"modes"}
+                    />
+                </ExpandableMenu>
+            </div>
+
+            <!-- render beatmapset list -->
+            <BeatmapSetList
+                list_manager={discover}
+                columns={2}
+                on_update={(i) => {
+                    // update list on last index
+                    if (discover.can_load_more() && discover.get_list_length() - i <= 2) {
+                        discover.search();
+                    }
+                }}
+            />
+        </div>
+    {/if}
 </div>

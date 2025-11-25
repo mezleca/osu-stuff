@@ -3,8 +3,8 @@
     import type { IBeatmapResult } from "@shared/types";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { cached_beatmaps } from "../../lib/store/beatmaps";
     import { open_on_browser } from "../../lib/utils/utils";
+    import { show_context_menu } from "../../lib/store/context-menu";
     import { get_audio_manager, toggle_beatmap_preview } from "../../lib/store/audio";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
 
@@ -13,7 +13,6 @@
     import Pause from "../icon/pause.svelte";
     import Cross from "../icon/cross.svelte";
     import X from "../icon/x.svelte";
-    import { show_context_menu } from "../../lib/store/context-menu";
 
     const audio_manager = get_audio_manager("preview");
 
@@ -39,25 +38,31 @@
     let image_element: HTMLImageElement = null;
     let image_src: string = "";
     let beatmap_loaded = false;
-    let is_invalid = false;
     let image_loaded = false;
     let visible = false;
     let visible_timeout: NodeJS.Timeout | null = null;
 
+    // track loading state to prevent infinite loops
+    let loading_hash: string | null = null;
+    let failed_hashes = new Set<string>();
+
     const load_beatmap = async () => {
+        beatmap_loaded = false;
+
         try {
-            // get cached beatmap
-            const result = await get_beatmap(hash);
+            const result = await get_beatmap(loading_hash);
 
-            if (result == undefined) {
-                is_invalid = true;
-                return;
+            if (result === undefined) {
+                failed_hashes.add(loading_hash);
+                beatmap = null;
+            } else {
+                beatmap = result;
+                image_src = get_card_image_source(beatmap);
             }
-
-            beatmap = result;
-            image_src = get_card_image_source(beatmap);
         } catch (err) {
-            console.error("failed to load beatmap:", hash, err);
+            console.error("failed to load beatmap:", loading_hash, err);
+            failed_hashes.add(loading_hash);
+            beatmap = null;
         } finally {
             beatmap_loaded = true;
         }
@@ -87,27 +92,14 @@
             image_element.onload = () => (image_loaded = true);
         }
 
-        if (visible) {
-            if (hash && !beatmap && !is_invalid) {
-                const cached = cached_beatmaps.get(hash);
-
-                if (cached) {
-                    beatmap = cached;
-                    beatmap_loaded = true;
-                    image_src = get_card_image_source(cached);
-                } else {
-                    // prevent svelte from reusing shit
-                    beatmap = null;
-                    beatmap_loaded = false;
-                    image_loaded = false;
-
-                    // load updated beatmap
-                    load_beatmap();
-                }
-            } else if (beatmap) {
-                beatmap_loaded = true;
-                image_src = get_card_image_source(beatmap);
-            }
+        // only load if hash changed and we havent tried this hash before
+        if (visible && hash && hash != loading_hash && !failed_hashes.has(hash)) {
+            loading_hash = hash;
+            load_beatmap();
+        } else if (beatmap && !visible) {
+            // if beatmap already loaded but not visible, just set image
+            beatmap_loaded = true;
+            image_src = get_card_image_source(beatmap);
         }
     }
 

@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { IBeatmapResult, StuffConfig } from "@shared/types";
 import { config as _config } from "@main/database/config";
 import { mirrors as _mirrors } from "@main/database/mirrors";
+import { beatmap_processor as _processor } from "@main/database/processor";
 
 export const TEMP_DIR = path.resolve("tests", ".temp_data");
 export const DATA_DIR = path.resolve("tests", ".data");
@@ -73,6 +74,7 @@ export const setup_config = () => {
     copy_test_stuff();
 
     _config.reinitialize();
+    _processor.reinitialize();
     _mirrors.reinitialize();
 
     const config_data: Partial<StuffConfig> = {

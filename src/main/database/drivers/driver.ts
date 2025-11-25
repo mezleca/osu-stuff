@@ -8,8 +8,7 @@ import {
     IFilteredBeatmap,
     IFilteredBeatmapSet,
     ISearchSetResponse,
-    IBeatmapSetFilter,
-    DriverAction
+    IBeatmapSetFilter
 } from "@shared/types/osu";
 
 import { BaseDriver } from "./base";
@@ -76,14 +75,9 @@ export const update_collection = (custom_driver: string = ""): boolean => {
     return driver.update_collection();
 };
 
-export const get_actions = (custom_driver: string = ""): DriverAction[] => {
+export const add_beatmaps_to_collection = (collection_name: string, hashes: string[], custom_driver: string = ""): boolean => {
     const driver = get_driver(custom_driver);
-    return driver.get_actions();
-};
-
-export const remove_action = (index: number, custom_driver: string = ""): boolean => {
-    const driver = get_driver(custom_driver);
-    return driver.remove_action(index);
+    return driver.add_beatmaps_to_collection(collection_name, hashes);
 };
 
 export const export_collections = async (collections: ICollectionResult[], type: string, custom_driver: string = ""): Promise<boolean> => {

@@ -13,8 +13,7 @@ import {
     ISearchSetResponse,
     IFilteredBeatmapSet,
     IFilteredBeatmap,
-    IBeatmapSetFilter,
-    DriverAction
+    IBeatmapSetFilter
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../../beatmaps/beatmaps";
 import { osdb_parser } from "../../binary/osdb";
@@ -31,11 +30,14 @@ export abstract class BaseDriver implements IOsuDriver {
     beatmaps: Map<string, IBeatmapResult> = new Map();
     beatmapsets: Map<number, BeatmapSetResult> = new Map();
     collections: Map<string, ICollectionResult> = new Map();
-    actions: DriverAction[] = [];
     pending_deletion: Set<string> = new Set();
     pending_collection_removals: Map<string, Set<string>> = new Map();
 
-    protected filter_beatmaps = (beatmaps: IBeatmapResult[], options: IBeatmapFilter): IFilteredBeatmap[] => {
+    // temp storage for beatmaps
+    protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
+    protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
+
+    filter_beatmaps = (beatmaps: IBeatmapResult[], options: IBeatmapFilter): IFilteredBeatmap[] => {
         const unique = new Set<string>();
         const result: IBeatmapResult[] = [];
 
@@ -64,7 +66,7 @@ export abstract class BaseDriver implements IOsuDriver {
         return sort_beatmaps(result, options.sort).map((b) => ({ md5: b.md5 }));
     };
 
-    protected filter_beatmapsets = async (sets: BeatmapSetResult[], options: IBeatmapSetFilter): Promise<IFilteredBeatmapSet[]> => {
+    filter_beatmapsets = async (sets: BeatmapSetResult[], options: IBeatmapSetFilter): Promise<IFilteredBeatmapSet[]> => {
         const result: BeatmapSetResult[] = [];
 
         for (const beatmapset of sets) {
@@ -249,16 +251,15 @@ export abstract class BaseDriver implements IOsuDriver {
         return missing_beatmaps;
     };
 
-    get_actions(): DriverAction[] {
-        return this.actions;
-    }
-
-    remove_action(index: number): boolean {
-        if (index < 0 || index >= this.actions.length) {
+    add_beatmaps_to_collection(collection_name: string, hashes: string[]): boolean {
+        const collection = this.collections.get(collection_name);
+        if (!collection) {
             return false;
         }
 
-        this.actions.splice(index, 1);
+        const all_hashes = new Set([...collection.beatmaps, ...hashes]);
+        collection.beatmaps = Array.from(all_hashes);
+
         return true;
     }
 

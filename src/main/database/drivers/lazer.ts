@@ -10,8 +10,7 @@ import {
     ISearchSetResponse,
     IFilteredBeatmap,
     IFilteredBeatmapSet,
-    IBeatmapSetFilter,
-    DriverActionType
+    IBeatmapSetFilter
 } from "@shared/types";
 import {
     BeatmapCollectionSchema,
@@ -27,7 +26,7 @@ import {
 } from "./schemas/lazer";
 import { BaseDriver } from "./base";
 import { config } from "../config";
-import { cached_beatmaps, cached_beatmapsets, get_lazer_file_location } from "../../beatmaps/beatmaps";
+import { get_lazer_file_location } from "../../beatmaps/beatmaps";
 
 import Realm from "realm";
 import path from "path";
@@ -142,8 +141,6 @@ class LazerBeatmapDriver extends BaseDriver {
         if (this.collections.has(name)) return false;
 
         this.collections.set(name, { name, beatmaps });
-        this.actions.push({ type: DriverActionType.Add, name, beatmaps });
-
         return true;
     };
 
@@ -160,53 +157,42 @@ class LazerBeatmapDriver extends BaseDriver {
             return false;
         }
 
-        this.instance.write(() => {
-            // process actions
-            for (const action of this.actions) {
-                if (action.type == DriverActionType.Add) {
-                    // check if it's a collection action
-                    if ("beatmaps" in action) {
-                        const uuid = new Realm.BSON.UUID();
+        try {
+            this.instance.write(() => {
+                const existing = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection");
+
+                // remove collections that no longer exist in memory
+                for (const realm_collection of existing) {
+                    if (realm_collection.Name && !this.collections.has(realm_collection.Name)) {
+                        this.instance.delete(realm_collection);
+                    }
+                }
+
+                // add or update collections from memory
+                for (const [name, collection] of this.collections) {
+                    const realm_collection = existing.filtered(`Name == $0`, name)[0];
+
+                    if (realm_collection) {
+                        // update existing
+                        realm_collection.BeatmapMD5Hashes = collection.beatmaps;
+                        realm_collection.LastModified = new Date();
+                    } else {
+                        // create new
                         this.instance.create<BeatmapCollectionSchema>("BeatmapCollection", {
-                            ID: uuid,
-                            Name: action.name,
-                            BeatmapMD5Hashes: action.beatmaps || [],
+                            ID: new Realm.BSON.UUID(),
+                            Name: name,
+                            BeatmapMD5Hashes: collection.beatmaps,
                             LastModified: new Date()
                         });
                     }
-                } else if (action.type == DriverActionType.Rename) {
-                    if ("new_name" in action && action.new_name) {
-                        const collection = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == action.name);
-                        if (collection) {
-                            collection.Name = action.new_name;
-                            collection.LastModified = new Date();
-                        }
-                    }
-                } else if (action.type == DriverActionType.Delete) {
-                    if ("collection" in action) {
-                        // delete beatmap from collection
-                        const collection = this.instance
-                            .objects<BeatmapCollectionSchema>("BeatmapCollection")
-                            .find((c) => c.Name == action.collection);
-                        if (collection) {
-                            collection.BeatmapMD5Hashes = collection.BeatmapMD5Hashes.filter((h) => h !== action.md5);
-                            collection.LastModified = new Date();
-                        }
-                    } else {
-                        // delete collection
-                        const collection = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection").find((c) => c.Name == action.name);
-                        if (collection) {
-                            this.instance.delete(collection);
-                        }
-                    }
                 }
-            }
-        });
+            });
 
-        // clear actions
-        this.actions = [];
-
-        return true;
+            return true;
+        } catch (error) {
+            console.error("[LazerDriver] update_collection error:", error);
+            return false;
+        }
     };
 
     rename_collection = (old_name: string, new_name: string): boolean => {
@@ -223,18 +209,11 @@ class LazerBeatmapDriver extends BaseDriver {
         this.collections.delete(old_name);
         this.collections.set(new_name, { ...collection, name: new_name });
 
-        this.actions.push({ type: DriverActionType.Rename, name: old_name, new_name });
-
         return true;
     };
 
     delete_collection = (name: string): boolean => {
         const result = this.collections.delete(name);
-
-        if (result) {
-            this.actions.push({ type: DriverActionType.Delete, name });
-        }
-
         return result;
     };
 
@@ -243,7 +222,6 @@ class LazerBeatmapDriver extends BaseDriver {
             const collection = this.collections.get(options.collection);
             if (collection) {
                 collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
-                this.actions.push({ type: DriverActionType.Delete, collection: options.collection, md5: options.md5 });
                 return true;
             }
             return false;
@@ -255,7 +233,7 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 
     add_beatmap = (beatmap: IBeatmapResult): boolean => {
-        cached_beatmaps.set(beatmap.md5, beatmap);
+        this.temp_beatmaps.set(beatmap.md5, beatmap);
         return true;
     };
 
@@ -286,7 +264,7 @@ class LazerBeatmapDriver extends BaseDriver {
         const invalid = checksums.filter((c) => !hashes.has(c));
 
         // get temp beatmaps
-        for (const [_, cached] of cached_beatmaps) {
+        for (const [_, cached] of this.temp_beatmaps) {
             if (!hashes.has(cached.md5) && checksums.includes(cached.md5)) {
                 beatmaps.push(cached);
             }
@@ -319,7 +297,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         // now, attempt to get from cached beatmaps (temp)
-        const cached = cached_beatmaps.get(md5);
+        const cached = this.temp_beatmaps.get(md5);
 
         if (cached) {
             return cached;
@@ -337,7 +315,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         // now, attempt to get from cached beatmaps (temp)
-        for (const [_, cached] of cached_beatmaps) {
+        for (const [_, cached] of this.temp_beatmaps) {
             if (cached.online_id == id) {
                 return cached;
             }
@@ -354,7 +332,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         // now, attempt to get from cached beatmaps (temp)
-        const cached = cached_beatmapsets.get(id);
+        const cached = this.temp_beatmapsets.get(id);
 
         if (cached) {
             return cached;
@@ -430,7 +408,7 @@ class LazerBeatmapDriver extends BaseDriver {
         const filtered: IFilteredBeatmap[] = [];
 
         // also add temp beatmaps
-        for (const [key, _] of cached_beatmaps) {
+        for (const [key, _] of this.temp_beatmaps) {
             beatmaps.add(key);
         }
 

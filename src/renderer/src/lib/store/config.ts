@@ -18,6 +18,7 @@ class ConfigStore {
     data: Writable<StuffConfig>;
     mirrors: Writable<StuffMirror[]>;
     fetching_token: Writable<boolean>;
+    authenticated: Writable<boolean>;
 
     constructor() {
         this.data = writable({ ...DEFAULT_CONFIG_FIELDS });
@@ -48,6 +49,10 @@ class ConfigStore {
         return get(this.data)[key] ?? null;
     }
 
+    is_authenticated(): boolean {
+        return get(this.authenticated);
+    }
+
     get_all() {
         return get(this.data);
     }
@@ -68,12 +73,24 @@ class ConfigStore {
                 return;
             }
 
-            await window.api.invoke("web:authenticate", {
+            const result = await window.api.invoke("web:authenticate", {
                 type: "v2",
                 client_id: id,
                 client_secret: secret,
                 scopes: ["public"]
             });
+
+            if (typeof result == "string") {
+                this.authenticated.set(true);
+                return;
+            }
+
+            if (result.error) {
+                this.authenticated.set(false);
+                return;
+            }
+
+            this.authenticated.set(true);
         } catch (err) {
             console.error("failed to login:", err as string);
         } finally {

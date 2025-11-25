@@ -4,7 +4,6 @@
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmapset, get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { cached_beatmapsets } from "../../lib/store/beatmaps";
     import { slide } from "svelte/transition";
 
     // components
@@ -26,26 +25,32 @@
     let image_element: HTMLImageElement = null;
     let load_timeout: NodeJS.Timeout | null = null;
 
-    let is_invalid = false;
     let beatmapset_loaded = false;
     let image_loaded = false;
     let visible = false;
     let visible_timeout: NodeJS.Timeout | null = null;
 
+    // track loading state to prevent infinite loops
+    let loading_id: number | null = null;
+    let failed_ids = new Set<number>();
+
     const load_beatmapset = async () => {
+        beatmapset_loaded = false;
+
         try {
-            // get cached beatmap
-            const result = await get_beatmapset(id);
+            const result = await get_beatmapset(loading_id);
 
-            if (result == undefined) {
-                is_invalid = true;
-                return;
+            if (result === undefined) {
+                failed_ids.add(loading_id);
+                beatmapset = null;
+            } else {
+                beatmapset = result;
+                image_src = get_card_image_source(beatmapset);
             }
-
-            beatmapset = result;
-            image_src = get_card_image_source(beatmapset);
         } catch (err) {
-            console.error("failed to load beatmapset:", id, err);
+            console.error("failed to load beatmapset:", loading_id, err);
+            failed_ids.add(loading_id);
+            beatmapset = null;
         } finally {
             beatmapset_loaded = true;
         }
@@ -70,24 +75,10 @@
             image_element.onload = () => (image_loaded = true);
         }
 
-        if (visible) {
-            if (id && id != -1 && !is_invalid) {
-                const cached = cached_beatmapsets.get(id);
-
-                if (cached) {
-                    beatmapset = cached;
-                    beatmapset_loaded = true;
-                    image_src = get_card_image_source(cached);
-                } else {
-                    // prevent svelte from reusing old data
-                    beatmapset = null;
-                    beatmapset_loaded = false;
-                    image_loaded = false;
-
-                    // load updated beatmapset
-                    load_beatmapset();
-                }
-            }
+        // only load if id changed AND we haven't tried this id before
+        if (visible && id > 0 && id !== loading_id && !failed_ids.has(id)) {
+            loading_id = id;
+            load_beatmapset();
         }
     }
 

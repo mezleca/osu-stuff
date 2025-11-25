@@ -197,7 +197,7 @@ class CollectionManager {
         this.filter();
     }
 
-    add_beatmaps(name: string, hashes: string[]): void {
+    async add_beatmaps(name: string, hashes: string[]): Promise<void> {
         this.all_collections.update((collections) => {
             return collections.map((collection) => {
                 if (collection.name != name) {
@@ -207,6 +207,8 @@ class CollectionManager {
                 return { ...collection, beatmaps: Array.from(beatmaps_set) };
             });
         });
+
+        await window.api.invoke("driver:add_beatmaps_to_collection", name, hashes);
 
         this.needs_update.set(true);
         this.filter();
@@ -269,16 +271,17 @@ class CollectionManager {
         }
     }
 
-    async create_collection(name: string): Promise<void> {
+    async create_collection(name: string): Promise<boolean> {
         if (!name || name.trim() == "") {
             show_notification({ type: "error", text: "invalid collection name" });
-            return;
+            return false;
         }
 
         const existing = this.get(name);
+
         if (existing) {
             show_notification({ type: "error", text: "collection already exists" });
-            return;
+            return false;
         }
 
         try {
@@ -286,14 +289,17 @@ class CollectionManager {
 
             if (!result) {
                 show_notification({ type: "error", text: "failed to create collection" });
-                return;
+                return false;
             }
 
             this.add({ name, beatmaps: [] });
             show_notification({ text: `collection "${name}" created` });
+
+            return true;
         } catch (error) {
             console.error("[collections] create error:", error);
             show_notification({ type: "error", text: "failed to create collection" });
+            return false;
         }
     }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { get_beatmapset_list, cached_beatmapsets } from "../../lib/store/beatmaps";
+    import { get_beatmapset_list } from "../../lib/store/beatmaps";
     import type { StarRatingFilter } from "@shared/types";
     import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
     import { debounce } from "../../lib/utils/utils";
@@ -17,17 +17,16 @@
 
     const update_beatmaps = debounce(async () => {
         const result = await list.search();
+
         if (!result) return;
 
         const ids = result.beatmapsets.map((b) => b.id);
 
-        const missing_ids = ids.filter((id) => !cached_beatmapsets.has(id));
+        // fetch missing beatmapsets from driver
+        const missing_ids = ids.filter((id) => id > 0); // always fetch all to ensure fresh data
 
         if (missing_ids.length > 0) {
-            const result = await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
-            for (const bs of result.beatmaps) {
-                cached_beatmapsets.set(bs.online_id, bs);
-            }
+            await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
         }
 
         list.set_items(ids, undefined, false);

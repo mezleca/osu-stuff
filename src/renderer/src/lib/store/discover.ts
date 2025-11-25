@@ -51,10 +51,8 @@ class DiscoverManager extends BeatmapSetList {
     // query store for search input
     query: Writable<string> = writable("");
 
-    // beatmapset cache
+    // beatmaps
     beatmapsets_cache: Map<number, BeatmapSetResult> = new Map();
-
-    // expose items as beatmapsets for clarity
     beatmapsets: Writable<number[]> = this.items;
 
     // state

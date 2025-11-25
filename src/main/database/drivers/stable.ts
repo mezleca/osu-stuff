@@ -12,13 +12,11 @@ import {
     ISearchResponse,
     IBeatmapSetFilter,
     IFilteredBeatmapSet,
-    ISearchSetResponse,
     IFilteredBeatmap,
-    DriverActionType
+    ISearchSetResponse
 } from "@shared/types";
 import { BaseDriver } from "./base";
 import { stable_parser } from "../../binary/stable";
-import { cached_beatmaps, cached_beatmapsets } from "../../beatmaps/beatmaps";
 import { config } from "../config";
 
 import fs from "fs";
@@ -120,11 +118,11 @@ class StableBeatmapDriver extends BaseDriver {
     };
 
     add_collection = (name: string, beatmaps: string[]): boolean => {
+        console.log("adding", name);
         if (this.collections.has(name)) return false;
 
         this.collections.set(name, { name, beatmaps });
-        this.actions.push({ type: DriverActionType.Add, name, beatmaps });
-
+        console.log(this.collections);
         return true;
     };
 
@@ -142,8 +140,6 @@ class StableBeatmapDriver extends BaseDriver {
         this.collections.delete(old_name);
         this.collections.set(new_name, { ...collection, name: new_name });
 
-        this.actions.push({ type: DriverActionType.Rename, name: old_name, new_name });
-
         return true;
     };
 
@@ -151,7 +147,7 @@ class StableBeatmapDriver extends BaseDriver {
         const result = this.collections.delete(name);
 
         if (result) {
-            this.actions.push({ type: DriverActionType.Delete, name });
+            return true;
         }
 
         return result;
@@ -162,13 +158,11 @@ class StableBeatmapDriver extends BaseDriver {
             const collection = this.collections.get(options.collection);
             if (collection) {
                 collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
-                this.actions.push({ type: DriverActionType.Delete, collection: options.collection, md5: options.md5 });
                 return true;
             }
             return false;
         }
 
-        // TODO: handle global beatmap deletion in actions if needed
         this.pending_deletion.add(options.md5);
         return this.osu.beatmaps.delete(options.md5);
     };
@@ -197,7 +191,7 @@ class StableBeatmapDriver extends BaseDriver {
     };
 
     add_beatmap = (beatmap: IBeatmapResult): boolean => {
-        cached_beatmaps.set(beatmap.md5, beatmap);
+        this.temp_beatmaps.set(beatmap.md5, beatmap);
         return true;
     };
 
@@ -220,7 +214,7 @@ class StableBeatmapDriver extends BaseDriver {
             return build_beatmap(beatmap);
         }
 
-        const temp_beatmap = cached_beatmaps.get(md5);
+        const temp_beatmap = this.temp_beatmaps.get(md5);
 
         if (temp_beatmap) {
             return temp_beatmap;
@@ -236,7 +230,7 @@ class StableBeatmapDriver extends BaseDriver {
             }
         }
 
-        for (const [_, beatmap] of cached_beatmaps) {
+        for (const [_, beatmap] of this.temp_beatmaps) {
             if (beatmap.online_id == id) {
                 return beatmap;
             }
@@ -252,7 +246,7 @@ class StableBeatmapDriver extends BaseDriver {
             return build_beamapset(beatmapset);
         }
 
-        for (const [_, cached] of cached_beatmapsets) {
+        for (const [_, cached] of this.temp_beatmapsets) {
             if (cached.online_id == set_id) {
                 return cached;
             }
@@ -339,7 +333,7 @@ class StableBeatmapDriver extends BaseDriver {
     get_beatmaps = async (): Promise<IFilteredBeatmap[]> => {
         const beatmaps = Array.from(this.osu.beatmaps.keys());
 
-        for (const [md5, _] of cached_beatmaps) {
+        for (const [md5, _] of this.temp_beatmaps) {
             if (md5) beatmaps.push(md5);
         }
 
@@ -400,7 +394,7 @@ class StableBeatmapDriver extends BaseDriver {
                 continue;
             }
 
-            const temp_beatmap = cached_beatmaps.get(md5);
+            const temp_beatmap = this.temp_beatmaps.get(md5);
 
             // search on temp
             if (temp_beatmap) {

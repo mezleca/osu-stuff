@@ -141,6 +141,10 @@ export interface IpcSchema {
             params: [string, string?];
             result: ReturnType<IOsuDriver["get_collection"]>;
         };
+        "driver:add_beatmaps_to_collection": {
+            params: [string, string[], string?];
+            result: boolean;
+        };
         "driver:get_collections": {
             params: [string?];
             result: ReturnType<IOsuDriver["get_collections"]>;
@@ -152,14 +156,6 @@ export interface IpcSchema {
         "driver:export_collections": {
             params: [ICollectionResult[], string, string?];
             result: ReturnType<IOsuDriver["export_collections"]>;
-        };
-        "driver:get_actions": {
-            params: [string?];
-            result: ReturnType<IOsuDriver["get_actions"]>;
-        };
-        "driver:remove_action": {
-            params: [number, string?];
-            result: ReturnType<IOsuDriver["remove_action"]>;
         };
         "driver:add_beatmap": {
             params: [IBeatmapResult, string?];

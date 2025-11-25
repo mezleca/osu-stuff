@@ -36,8 +36,7 @@ import {
     search_beatmaps,
     search_beatmapsets,
     update_collection,
-    get_actions,
-    remove_action
+    add_beatmaps_to_collection
 } from "./database/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./beatmaps/downloader";
@@ -140,8 +139,7 @@ async function createWindow() {
     handle_ipc("driver:get_collection", (_, args) => get_collection(...args));
     handle_ipc("driver:get_collections", (_, args) => get_collections(...args));
     handle_ipc("driver:update_collection", (_, args) => update_collection(...args));
-    handle_ipc("driver:get_actions", (_, args) => get_actions(...args));
-    handle_ipc("driver:remove_action", (_, args) => remove_action(...args));
+    handle_ipc("driver:add_beatmaps_to_collection", (_, args) => add_beatmaps_to_collection(...args));
     handle_ipc("driver:export_collections", (_, args) => export_collections(...args));
     handle_ipc("driver:add_beatmap", (_, args) => add_beatmap(...args));
     handle_ipc("driver:delete_beatmap", (_, args) => delete_beatmap(...args));

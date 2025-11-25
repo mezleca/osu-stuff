@@ -413,6 +413,3 @@ export const get_beatmapset_list = (tab_id: string): BeatmapSetList => {
 
     return beatmapset_managers.get(tab_id)!;
 };
-
-export const cached_beatmaps: Map<string, IBeatmapResult> = new Map();
-export const cached_beatmapsets: Map<number, BeatmapSetResult> = new Map();

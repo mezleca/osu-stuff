@@ -324,8 +324,7 @@ export interface IOsuDriver {
     export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
     export_beatmapset(id: number): Promise<boolean>;
     add_beatmap(beatmap: IBeatmapResult): boolean;
-    get_actions(): DriverAction[];
-    remove_action(index: number): boolean;
+    add_beatmaps_to_collection(collection_name: string, hashes: string[]): boolean;
     has_beatmap(md5: string): boolean;
     has_beatmapset(id: number): boolean;
     get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;

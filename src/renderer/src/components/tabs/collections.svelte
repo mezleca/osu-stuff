@@ -9,7 +9,7 @@
         export_beatmaps
     } from "../../lib/utils/collections";
     import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
-    import { get_beatmap_list, cached_beatmaps } from "../../lib/store/beatmaps";
+    import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_popup_manager, show_popup } from "../../lib/store/popup/store";
     import { PopupBuilder } from "../../lib/store/popup/builder";
     import { show_notification } from "../../lib/store/notifications";
@@ -108,7 +108,7 @@
 
     /* --- HANDLERS --- */
 
-    const handle_merge_collections = (data) => {
+    const handle_merge_collections = async (data) => {
         if (data.collections.length < 2) {
             show_notification({ type: "error", text: "you need at least 2 or more collections my guy" });
             return;
@@ -133,8 +133,13 @@
             }
         }
 
-        const new_beatmaps = Array.from(beatmaps.values());
-        collections.add({ name: data.name, beatmaps: new_beatmaps });
+        const create_result = await collections.create_collection(data.name);
+
+        if (!create_result) {
+            return;
+        }
+
+        collections.add_beatmaps(data.name, Array.from(beatmaps.values()));
     };
 
     const handle_collections_menu = async (item) => {
@@ -195,16 +200,22 @@
         }
 
         // temp add to osu beatmaps store
-        for (const beatmap of beatmaps) {
-            cached_beatmaps.set(beatmap.md5, beatmap);
+        for (const _ of beatmaps) {
+            await Promise.all(beatmaps.map((b) => window.api.invoke("driver:add_beatmap", b)));
         }
 
-        collections.add({ name: new_name, beatmaps: checksums });
+        const create_result = await collections.create_collection(new_name);
 
-        // check for missing beatmaps
-        await get_missing_beatmaps();
+        if (!create_result) {
+            return;
+        }
+
+        collections.add_beatmaps(new_name, checksums);
 
         show_notification({ type: "success", text: "added " + new_name });
+
+        // check for missing beatmaps
+        get_missing_beatmaps();
     };
 
     const enable_edit_mode = (name: string) => {
@@ -324,7 +335,7 @@
         }
 
         // loop through each collection from pending (from the previous file on the previous popup)
-        for (const collection of $pending_collections) {
+        for await (const collection of $pending_collections) {
             // check if we selected it on this popup
             if (!data.collections.includes(collection.name)) {
                 continue;
@@ -336,9 +347,13 @@
                 continue;
             }
 
-            collections.add(collection);
+            const create_result = await collections.create_collection(collection.name);
 
-            show_notification({ type: "success", text: `added ${collection.name}` });
+            if (!create_result) {
+                return;
+            }
+
+            await collections.add_beatmaps(collection.name, collection.beatmaps);
         }
     };
 
@@ -417,12 +432,16 @@
         const collection_name = `${data.name} - ${joined_options} (${joined_status})`.substring(0, 64);
 
         // add new collection
-        collections.add({ name: collection_name, beatmaps: hashes });
+        const create_result = await collections.create_collection(collection_name);
 
-        show_notification({ type: "success", text: "added " + collection_name });
+        if (!create_result) {
+            return;
+        }
+
+        await collections.add_beatmaps(collection_name, hashes);
 
         // check for missing beatmaps
-        await get_missing_beatmaps();
+        get_missing_beatmaps();
     };
 
     const handle_new_collection_popup = (data) => {
@@ -519,7 +538,7 @@
 
         builder.add_input("name", "name", { value: "" });
         builder.set_callback((data) => {
-            collections.add({ name: data.name, beatmaps: [] });
+            collections.create_collection(data.name);
         });
 
         popup_manager.register("empty", builder.build());

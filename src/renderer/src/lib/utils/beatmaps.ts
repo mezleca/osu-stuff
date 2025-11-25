@@ -1,5 +1,4 @@
 import { get } from "svelte/store";
-import { cached_beatmaps, cached_beatmapsets } from "../store/beatmaps";
 import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
 import { quick_confirm } from "../store/popup/store";
@@ -16,12 +15,6 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
         return undefined;
     }
 
-    const cached = cached_beatmaps.get(id);
-
-    if (cached) {
-        return cached;
-    }
-
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
 
     if (!beatmap) {
@@ -30,19 +23,12 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
         return undefined;
     }
 
-    cached_beatmaps.set(id, beatmap);
     return beatmap;
 };
 
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
     if (invalid_beatmapsets.has(id)) {
         return undefined;
-    }
-
-    const cached = cached_beatmapsets.get(id);
-
-    if (cached) {
-        return cached;
     }
 
     const beatmapset = await window.api.invoke("driver:get_beatmapset", id);
@@ -53,7 +39,6 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
         return undefined;
     }
 
-    cached_beatmapsets.set(id, beatmapset);
     return beatmapset;
 };
 
