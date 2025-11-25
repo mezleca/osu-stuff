@@ -27,11 +27,15 @@ import fs from "fs";
 export abstract class BaseDriver implements IOsuDriver {
     protected initialized: boolean = false;
 
+    // in memory shit
     beatmaps: Map<string, IBeatmapResult> = new Map();
     beatmapsets: Map<number, BeatmapSetResult> = new Map();
     collections: Map<string, ICollectionResult> = new Map();
     pending_deletion: Set<string> = new Set();
     pending_collection_removals: Map<string, Set<string>> = new Map();
+
+    // main state
+    should_update: boolean = false;
 
     // temp storage for beatmaps
     protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();

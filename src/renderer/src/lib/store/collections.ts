@@ -147,22 +147,32 @@ class CollectionManager {
         return true;
     }
 
-    remove(name: string): void {
+    async remove(name: string): Promise<void> {
         const current = get(this.selected);
 
+        // remove from selected if necessary
         if (current.name == name) {
             this.selected.set({ ...DEFAULT_SELECTED });
         }
 
         const current_radio = get(this.selected_radio);
 
+        // remove from selected (radio tab) if necessary
         if (current_radio.name == name) {
             this.selected_radio.set({ ...DEFAULT_SELECTED });
         }
 
+        // remove from the crrent map
         this.all_collections.update((collections) => {
             return collections.filter((c) => c.name != name);
         });
+
+        // remove from main process
+        const result = await window.api.invoke("driver:delete_collection", name);
+
+        if (!result) {
+            console.warn("failed to remove from main process!!!");
+        }
 
         this.needs_update.set(true);
         this.filter();
@@ -293,7 +303,7 @@ class CollectionManager {
             }
 
             this.add({ name, beatmaps: [] });
-            show_notification({ text: `collection "${name}" created` });
+            show_notification({ type: "success", text: `created "${name}"` });
 
             return true;
         } catch (error) {

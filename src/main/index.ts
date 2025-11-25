@@ -36,7 +36,8 @@ import {
     search_beatmaps,
     search_beatmapsets,
     update_collection,
-    add_beatmaps_to_collection
+    add_beatmaps_to_collection,
+    should_update
 } from "./database/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./beatmaps/downloader";
@@ -132,6 +133,7 @@ async function createWindow() {
 
     // drivers
     handle_ipc("driver:initialize", (_, args) => initialize_driver(...args));
+    handle_ipc("driver:should_update", (_, args) => should_update(...args));
     handle_ipc("driver:get_player_name", (_, args) => get_player_name(...args));
     handle_ipc("driver:add_collection", (_, args) => add_collection(...args));
     handle_ipc("driver:rename_collection", (_, args) => rename_collection(...args));

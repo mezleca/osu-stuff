@@ -118,11 +118,13 @@ class StableBeatmapDriver extends BaseDriver {
     };
 
     add_collection = (name: string, beatmaps: string[]): boolean => {
-        console.log("adding", name);
-        if (this.collections.has(name)) return false;
+        if (this.collections.has(name)) {
+            return false;
+        }
 
         this.collections.set(name, { name, beatmaps });
-        console.log(this.collections);
+        this.should_update = true;
+
         return true;
     };
 
@@ -139,6 +141,7 @@ class StableBeatmapDriver extends BaseDriver {
 
         this.collections.delete(old_name);
         this.collections.set(new_name, { ...collection, name: new_name });
+        this.should_update = true;
 
         return true;
     };
@@ -146,11 +149,12 @@ class StableBeatmapDriver extends BaseDriver {
     delete_collection = (name: string): boolean => {
         const result = this.collections.delete(name);
 
-        if (result) {
-            return true;
+        if (!result) {
+            return false;
         }
 
-        return result;
+        this.should_update = true;
+        return true;
     };
 
     delete_beatmap = async (options: { md5: string; collection?: string }): Promise<boolean> => {
@@ -158,12 +162,12 @@ class StableBeatmapDriver extends BaseDriver {
             const collection = this.collections.get(options.collection);
             if (collection) {
                 collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
+                this.should_update = true;
                 return true;
             }
             return false;
         }
 
-        this.pending_deletion.add(options.md5);
         return this.osu.beatmaps.delete(options.md5);
     };
 
@@ -184,9 +188,9 @@ class StableBeatmapDriver extends BaseDriver {
         }
 
         const target = path.resolve(config.get().stable_path, "collection.db");
-        console.log("updating collection file at:", target);
         fs.writeFileSync(target, result.data);
 
+        this.should_update = false;
         return result.success;
     };
 

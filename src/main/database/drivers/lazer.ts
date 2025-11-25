@@ -138,9 +138,12 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 
     add_collection = (name: string, beatmaps: string[]): boolean => {
-        if (this.collections.has(name)) return false;
+        if (this.collections.has(name)) {
+            return false;
+        }
 
         this.collections.set(name, { name, beatmaps });
+        this.should_update = true;
         return true;
     };
 
@@ -188,6 +191,7 @@ class LazerBeatmapDriver extends BaseDriver {
                 }
             });
 
+            this.should_update = false;
             return true;
         } catch (error) {
             console.error("[LazerDriver] update_collection error:", error);
@@ -209,6 +213,7 @@ class LazerBeatmapDriver extends BaseDriver {
         this.collections.delete(old_name);
         this.collections.set(new_name, { ...collection, name: new_name });
 
+        this.should_update = true;
         return true;
     };
 
@@ -222,12 +227,12 @@ class LazerBeatmapDriver extends BaseDriver {
             const collection = this.collections.get(options.collection);
             if (collection) {
                 collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
+                this.should_update = true;
                 return true;
             }
             return false;
         }
 
-        // TODO: handle global beatmap deletion in actions if needed
         this.pending_deletion.add(options.md5);
         return true;
     };

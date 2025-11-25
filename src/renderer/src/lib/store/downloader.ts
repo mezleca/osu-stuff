@@ -1,6 +1,7 @@
 import { type Writable, writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import type { IBeatmapResult, IDownloadData, IDownloadProgress, IDownloadEvent } from "@shared/types";
+import { config } from "./config";
 
 class Downloader {
     data: Writable<IDownloadData[]>;
@@ -18,6 +19,11 @@ class Downloader {
     }
 
     async add(download: IDownloadData) {
+        if (!config.authenticated) {
+            show_notification({ type: "error", text: "not authenticated bro" });
+            return;
+        }
+
         if (!download.id || download.id == "") {
             show_notification({ type: "error", text: "invalid download name" });
             return;
@@ -31,6 +37,11 @@ class Downloader {
     }
 
     async single_download(beatmap: IBeatmapResult) {
+        if (!config.authenticated) {
+            show_notification({ type: "error", text: "not authenticated bro" });
+            return false;
+        }
+
         if (!beatmap.online_id && !beatmap.md5) {
             show_notification({ type: "error", text: "missing md5 / id" });
             return false;

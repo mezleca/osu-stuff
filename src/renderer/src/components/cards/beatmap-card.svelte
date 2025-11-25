@@ -147,6 +147,7 @@
         style="height: {height}px;"
         class:selected
         class:highlighted
+        class:temp={beatmap?.temp}
         class:loaded={image_loaded}
         onclick={(event) => handle_click(event)}
         oncontextmenu={handle_context}
@@ -224,5 +225,9 @@
     .minimal-card:hover {
         background: rgba(255, 255, 255, 0.1);
         cursor: pointer;
+    }
+
+    .beatmap-card.temp {
+        border: 2px solid red;
     }
 </style>

@@ -121,6 +121,10 @@ export interface IpcSchema {
             params: [boolean?, string?];
             result: ReturnType<IOsuDriver["initialize"]>;
         };
+        "driver:should_update": {
+            params: [string?];
+            result: boolean;
+        };
         "driver:get_player_name": {
             params: [string?];
             result: ReturnType<IOsuDriver["get_player_name"]>;

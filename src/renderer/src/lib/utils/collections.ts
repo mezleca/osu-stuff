@@ -30,6 +30,10 @@ export const get_osu_data = async (force_load: boolean = false) => {
 
     // add new collections
     collections.set(result);
+
+    // get update state
+    const update_state = await window.api.invoke("driver:should_update", driver);
+    collections.needs_update.set(update_state);
 };
 
 const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapResult[]>> => {
@@ -89,7 +93,7 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
     const beatmapsets = new Map(data.beatmapsets.map((set) => [set.id, set]));
 
     for (const beatmap of data.beatmaps) {
-        const set_data = beatmapsets.get(beatmap.id);
+        const set_data = beatmapsets.get(beatmap.beatmapset_id);
 
         if (!set_data) {
             console.warn(`skipping: ${beatmap.beatmapset_id} (beatmapset not fond)`);

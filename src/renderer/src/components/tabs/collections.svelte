@@ -212,8 +212,6 @@
 
         collections.add_beatmaps(new_name, checksums);
 
-        show_notification({ type: "success", text: "added " + new_name });
-
         // check for missing beatmaps
         get_missing_beatmaps();
     };
