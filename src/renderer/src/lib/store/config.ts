@@ -1,6 +1,7 @@
 import { writable, get, type Writable } from "svelte/store";
 import type { StuffConfig, StuffMirror } from "@shared/types";
-import { string_is_valid } from "../utils/utils";
+import { debounce, string_is_valid } from "../utils/utils";
+import { show_notification } from "./notifications";
 
 const DEFAULT_CONFIG_FIELDS = {
     osu_id: "",
@@ -14,6 +15,10 @@ const DEFAULT_CONFIG_FIELDS = {
     radio_volume: 50
 };
 
+const show_failed_auth_warn = debounce(() => {
+    show_notification({ type: "error", text: "failed to authenticate (invalid id / secret)" });
+}, 1000);
+
 class ConfigStore {
     data: Writable<StuffConfig>;
     mirrors: Writable<StuffMirror[]>;
@@ -24,6 +29,7 @@ class ConfigStore {
         this.data = writable({ ...DEFAULT_CONFIG_FIELDS });
         this.mirrors = writable([]);
         this.fetching_token = writable(false);
+        this.authenticated = writable(false);
         this.load();
     }
 
@@ -93,6 +99,7 @@ class ConfigStore {
             this.authenticated.set(true);
         } catch (err) {
             console.error("failed to login:", err as string);
+            show_failed_auth_warn();
         } finally {
             this.fetching_token.set(false);
         }

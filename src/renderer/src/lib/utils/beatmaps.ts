@@ -1,7 +1,7 @@
 import { get } from "svelte/store";
 import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
-import { quick_confirm } from "../store/popup/store";
+import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
 import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult } from "@shared/types";
 
@@ -85,7 +85,7 @@ export const validate_star_rating = (sr, min, max) => {
     return sr <= max;
 };
 
-interface IPlayerOptions {
+export interface IPlayerOptions {
     player_name: string;
     options: Set<string>;
     statuses: Set<string>;

@@ -221,6 +221,10 @@ main {
     color: var(--accent-color);
 }
 
+.tab.disabled {
+    cursor: not-allowed;
+}
+
 .tab.active::after {
     content: "";
     position: absolute;
@@ -309,7 +313,7 @@ main {
 
 .beatmap-card.selected,
 .beatmap-card.expanded {
-    border-color: var(--accent-color);
+    border-color: var(--accent-color) !important;
 }
 
 .beatmap-card.highlighted {
@@ -495,7 +499,74 @@ main {
     background-color: var(--header-bg-color);
 }
 
-/* GLOBAL SCROLLBAR CONFIG */
+.field-group:last-child {
+    margin-bottom: 0;
+}
+
+.field-label {
+    display: block;
+    color: #ffffff;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.field-description {
+    color: #999999;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.field-description > a {
+    color: var(--accent-color);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* MODAL */
+
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    background-color: #20202067;
+    animation: smooth-appear 0.15s ease forwards;
+}
+
+.modal {
+    position: absolute;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 25px;
+    border-radius: 6px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid rgb(90, 90, 90, 0.5);
+    overflow-y: scroll;
+    width: 40%;
+    max-width: 70%;
+    max-height: 85%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    gap: 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.actions-separator {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+}
+
+/* SCROLLBAR CONFIG */
 
 ::-webkit-scrollbar {
     width: 12px;
@@ -535,12 +606,15 @@ main {
 }
 
 .config-fields {
+    display: flex;
+    flex-direction: column;
     border-right: 1px solid var(--header-border-color);
     padding: 24px;
     height: 100%;
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    gap: 20px;
 }
 
 button {

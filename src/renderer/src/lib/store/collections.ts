@@ -3,7 +3,7 @@ import { show_notification } from "./notifications";
 import { is_special_key } from "./other";
 import type { ICollectionResult } from "@shared/types";
 
-interface ICollectionWithEdit extends ICollectionResult {
+export interface ICollectionWithEdit extends ICollectionResult {
     edit: boolean;
 }
 
@@ -25,7 +25,7 @@ class CollectionManager {
     selected: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
     selected_radio: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
     missing_beatmaps: Writable<any[]> = writable([]);
-    pending_collections: Writable<ICollectionWithEdit[]> = writable();
+    pending_collections: Writable<ICollectionWithEdit[]> = writable([]);
 
     set(collections: ICollectionResult[]): void {
         const with_edit: ICollectionWithEdit[] = collections.map((c) => ({
@@ -314,7 +314,10 @@ class CollectionManager {
     }
 
     add_pending(collection: ICollectionWithEdit) {
-        this.pending_collections.update((c) => [...c, collection]);
+        this.pending_collections.update((c) => {
+            c.push(collection);
+            return c;
+        });
     }
 
     clear_pending_collections(): void {

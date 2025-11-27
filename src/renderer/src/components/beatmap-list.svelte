@@ -15,6 +15,21 @@
     const selected = list_manager.selected;
     const selected_buffer = list_manager.selected_buffer;
     const list_id = list_manager.list_id;
+
+    const handle_card_click = (event: MouseEvent, hash: string, index: number) => {
+        const is_selected = $selected?.md5 == hash;
+
+        if (event.ctrlKey) {
+            list_manager.multi_select([hash]);
+        } else {
+            list_manager.clear_multi_selected();
+            if (is_selected) {
+                list_manager.clear_selected();
+            } else {
+                list_manager.select(hash, index);
+            }
+        }
+    };
 </script>
 
 <div class="beatmap-list-container">
@@ -48,19 +63,7 @@
             {on_remove}
             {hash}
             {height}
-            on_click={(event) => {
-                if (event.ctrlKey) {
-                    list_manager.multi_select([hash]);
-                } else {
-                    list_manager.clear_multi_selected();
-                    if (is_selected) {
-                        list_manager.clear_selected();
-                    } else {
-                        list_manager.select(hash, index);
-                    }
-                }
-                return {};
-            }}
+            on_click={(event) => handle_card_click(event, hash, index)}
         />
     </VirtualList>
 </div>

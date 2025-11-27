@@ -7,21 +7,17 @@
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { input } from "../../lib/store/input";
-    import { PopupBuilder } from "../../lib/store/popup/builder";
-    import { get_popup_manager } from "../../lib/store/popup/store";
 
     // components
     import Search from "../utils/basic/search.svelte";
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
-    import Popup from "../utils/popup/popup.svelte";
     import Add from "../utils/add.svelte";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
 
     const { selected, query, sort } = list;
-    const popup_manager = get_popup_manager("radio");
 
     $: selected_beatmap = null;
     $: all_collections = collections.all_collections;
@@ -55,16 +51,6 @@
 
     const handle_new_beatmap = (data) => {
         console.log(data);
-    };
-
-    const create_new_beatmap_popup = () => {
-        const builder = new PopupBuilder();
-
-        builder.add_input("video_url", "url");
-        builder.add_checkbox("use_thumbnail", "use thumbnail as background");
-        builder.set_callback(handle_new_beatmap);
-
-        popup_manager.register("new-beatmap", builder.build());
     };
 
     // update selected map when hash changes

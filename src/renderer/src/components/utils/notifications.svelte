@@ -22,6 +22,11 @@
                 return SuccessIcon;
         }
     };
+
+    const handle_on_click = (event: MouseEvent, id: string) => {
+        event.stopPropagation();
+        remove_notification(id);
+    };
 </script>
 
 <div class="notification-container">
@@ -31,7 +36,7 @@
                 <svelte:component this={get_icon(notification.type, notification.persist)} />
                 <h2>{notification.text}</h2>
             </div>
-            <button class="notification close" id={notification.id} onclick={() => remove_notification(notification.id)}>
+            <button class="notification close" id={notification.id} onclick={(event) => handle_on_click(event, notification.id)}>
                 <X />
             </button>
         </div>

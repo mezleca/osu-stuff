@@ -4,10 +4,12 @@
 
     type RangeOnUpdate = [number, number]; // min, max
 
+    export let label = "";
     export let min = 0;
     export let max = 10;
     export let min_bound = 0;
     export let max_bound = 10;
+    export let value: RangeOnUpdate = [0, 0];
     export let on_update: (data: RangeOnUpdate) => {} = null;
 
     let container: any;
@@ -58,6 +60,8 @@
     const on_update_debounce = debounce(() => {
         if (isNaN(min) || isNaN(min)) return;
         if (on_update) on_update([min, max]);
+
+        value = [min, max];
     }, 50);
 
     const update_fill = (event?: UIEvent) => {
@@ -74,17 +78,23 @@
     });
 </script>
 
-<div bind:this={container} class="slider-container">
-    <div class="track"></div>
-    <div class="fill"></div>
-    <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
-    <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
-    <div class="min-thumb">{min.toFixed(1)}</div>
-    <div class="max-thumb">{max.toFixed(1)}</div>
+<div class="field-group" style="width: 100%;">
+    {#if label != ""}
+        <!-- svelte-ignore a11y_label_has_associated_control -->
+        <label class="field-label">{label}</label>
+    {/if}
+    <div bind:this={container} class="slider-body">
+        <div class="track"></div>
+        <div class="fill"></div>
+        <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
+        <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
+        <div class="min-thumb">{min.toFixed(1)}</div>
+        <div class="max-thumb">{max.toFixed(1)}</div>
+    </div>
 </div>
 
 <style>
-    .slider-container {
+    .slider-body {
         position: relative;
         width: 100%;
         height: 32px;

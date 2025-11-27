@@ -2,20 +2,19 @@
     import { onMount } from "svelte";
     import { config } from "../../lib/store/config";
     import { show_notification } from "../../lib/store/notifications";
-    import { PopupBuilder } from "../../lib/store/popup/builder";
-    import { get_popup_manager, show_popup, quick_confirm } from "../../lib/store/popup/store";
+    import { quick_confirm, show_modal, ModalType } from "../../lib/utils/modal";
     import { get_osu_data } from "../../lib/utils/collections";
 
     // components
     import Add from "../utils/add.svelte";
-    import InputDialog from "../utils/input-dialog.svelte";
-    import Popup from "../utils/popup/popup.svelte";
+    import InputDialog from "../utils/basic/input-dialog.svelte";
     import Checkbox from "../utils/basic/checkbox.svelte";
+    import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
+    import NewMirrorModal from "./modal/new-mirror-modal.svelte";
 
     let initialized = false;
     let last_config = {};
 
-    const popup_manager = get_popup_manager("config");
     const { mirrors } = config;
 
     const handle_config_change = async (new_config) => {
@@ -54,32 +53,10 @@
     // watch for config changes
     $: handle_config_change($config);
 
-    const add_mirror = async (data) => {
-        const { name, url } = data;
+    const remove_mirror = async (name: string) => {
+        const confirm_result = await quick_confirm(`delete ${name}?`, { submit: "delete", cancel: "cancel" });
 
-        if (name == "" || url == "") {
-            show_notification({ text: "missing name/url dumbass", type: "error" });
-            return;
-        }
-
-        // check for duplicates
-        const existing_mirror = $mirrors.find((m) => m.name == name);
-        if (existing_mirror) {
-            show_notification({ text: "mirror with this name already exists", type: "error" });
-            return;
-        }
-
-        // add new mirror to database
-        await window.api.invoke("mirrors:save", { name, url });
-
-        // force update
-        await config.load();
-    };
-
-    const remove_mirror = async (name) => {
-        const confirm_result = await quick_confirm(`delete ${name}?`, { key: "config" });
-
-        if (confirm_result != "yes") {
+        if (!confirm_result) {
             return;
         }
 
@@ -91,9 +68,9 @@
     };
 
     const reload_files = async () => {
-        const confirm_result = await quick_confirm("are you sure?", { key: "config" });
+        const confirm_result = await quick_confirm("are you sure?", { submit: "mhm", cancel: "cancel" });
 
-        if (confirm_result != "yes") {
+        if (!confirm_result) {
             return;
         }
 
@@ -103,27 +80,16 @@
         show_notification({ text: "reloaded successfully" });
     };
 
-    const create_mirror_popup = () => {
-        const new_mirror_popup = new PopupBuilder();
-
-        new_mirror_popup.add_input("name", "name", { text: "ex: beatconnect" });
-        new_mirror_popup.add_input("url", "url", { text: "ex: https://beatconnect.io/d/" });
-        new_mirror_popup.set_callback(add_mirror);
-
-        const built_popup = new_mirror_popup.build();
-        popup_manager.register("new-mirror", built_popup);
-    };
-
     onMount(() => {
         last_config = { ...$config };
         initialized = true;
-        create_mirror_popup();
     });
 </script>
 
 <div class="content tab-content">
-    <Add callback={() => show_popup("new-mirror", "config")} />
-    <Popup key={"config"} />
+    <Add callback={() => show_modal(ModalType.new_mirror)} />
+    <QuickConfirmModal />
+    <NewMirrorModal />
     <div class="config-content">
         <div class="config-fields">
             <div class="field-group" id="osu_id">
@@ -175,9 +141,11 @@
                 <Checkbox bind:value={$config.lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
             </div>
 
-            <button type="button" onclick={() => reload_files()}>reload files</button>
-            <!-- keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
-            <button type="button" onclick={() => window.api.invoke("window:dev_tools")}>open dev tools</button>
+            <div class="config-buttons">
+                <button type="button" onclick={() => reload_files()}>reload files</button>
+                <!-- NOTE: keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
+                <button type="button" onclick={() => window.api.invoke("window:dev_tools")}>open dev tools</button>
+            </div>
         </div>
         <div class="info-box">
             <div class="info-box-header">
@@ -199,34 +167,6 @@
 </div>
 
 <style>
-    .field-group {
-        margin-bottom: 24px;
-    }
-
-    .field-group:last-child {
-        margin-bottom: 0;
-    }
-
-    .field-label {
-        display: block;
-        color: #ffffff;
-        margin-bottom: 5px;
-        font-size: 15px;
-        color: var(--text-primary);
-    }
-
-    .field-description {
-        color: #999999;
-        font-size: 13px;
-        margin-bottom: 10px;
-    }
-
-    .field-description > a {
-        color: var(--accent-color);
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
     .info-box {
         padding: 24px;
         height: 100%;

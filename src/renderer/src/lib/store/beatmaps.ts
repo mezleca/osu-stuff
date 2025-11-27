@@ -203,7 +203,7 @@ export class BeatmapList extends ListBase {
         await this.load();
     }
 
-    async find_item(md5: string): Promise<ISelectedBeatmap | null> {
+    find_item(md5: string): ISelectedBeatmap | null {
         const hashes = get(this.items);
         const index = hashes.indexOf(md5);
 

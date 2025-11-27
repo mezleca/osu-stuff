@@ -31,9 +31,9 @@
         centered = false,
         minimal = false,
         height = 100,
-        on_click: (event: MouseEvent) => {} = null,
-        on_add: (checksum: string) => {} = null,
-        on_remove: (checksum: string) => {} = null;
+        on_click: (event: MouseEvent) => void = null,
+        on_add: (checksum: string) => void = null,
+        on_remove: (checksum: string) => void = null;
 
     let image_element: HTMLImageElement = null;
     let image_src: string = "";
