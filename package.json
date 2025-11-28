@@ -44,7 +44,7 @@
         "@types/node": "^24.10.1",
         "cross-env": "^10.1.0",
         "electron": "^39.2.3",
-        "electron-builder": "^25.1.8",
+        "electron-builder": "^26.0.12",
         "electron-vite": "^4.0.1",
         "eslint": "^9.36.0",
         "eslint-plugin-svelte": "^3.12.4",
