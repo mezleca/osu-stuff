@@ -44,6 +44,7 @@ import { beatmap_downloader } from "./beatmaps/downloader";
 import { read_legacy_collection, read_legacy_db, write_legacy_collection } from "./binary/stable";
 import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./utils";
+import { beatmap_processor } from "./database/processor";
 
 const additionalArguments = [
     "--enable-smooth-scrolling",
@@ -100,6 +101,7 @@ async function createWindow() {
     }
 
     await config.setup_default_paths();
+    beatmap_processor.set_window(mainWindow);
     beatmap_downloader.initialize();
 
     // env

@@ -92,6 +92,10 @@
             image_element.onload = () => (image_loaded = true);
         }
 
+        if (beatmap) {
+            console.log(beatmap);
+        }
+
         // only load if hash changed and we havent tried this hash before
         if (visible && hash && hash != loading_hash && !failed_hashes.has(hash)) {
             loading_hash = hash;

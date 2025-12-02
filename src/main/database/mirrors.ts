@@ -22,23 +22,11 @@ export class MirrorsDatabase extends BaseDatabase {
     }
 
     prepare_statements() {
-        this.prepare_statement("get_all", "SELECT * FROM mirrors");
+        if (!this.prepare_statement("get_all", "SELECT * FROM mirrors")) return false;
+        if (!this.prepare_statement("insert", `INSERT OR REPLACE INTO mirrors (name, url) VALUES(?, ?)`)) return false;
+        if (!this.prepare_statement("delete", `DELETE FROM mirrors WHERE name = ?`)) return false;
 
-        this.prepare_statement(
-            "insert",
-            `
-            INSERT OR REPLACE INTO mirrors
-            (name, url)
-            VALUES(?, ?)
-        `
-        );
-
-        this.prepare_statement(
-            "delete",
-            `
-            DELETE FROM mirrors WHERE name = ?    
-        `
-        );
+        return true;
     }
 
     post_initialize() {}

@@ -26,6 +26,7 @@
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
+        "@rel-packages/osu-beatmap-parser": "^0.1.9",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "better-sqlite3": "^12.4.6",
         "jszip": "^3.10.1",

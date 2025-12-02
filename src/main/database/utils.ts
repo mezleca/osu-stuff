@@ -116,3 +116,18 @@ const create_new_window = (name: string, options: BrowserWindowConstructorOption
 export const get_window = (name: string, options: BrowserWindowConstructorOptions = {}): BrowserWindow => {
     return created_windows.get(name) ?? create_new_window(name, options);
 };
+
+export const throttle = (func: (...args: any[]) => void, duration: number) => {
+    let last_exec = 0;
+
+    return (...args: any[]) => {
+        const current = performance.now();
+
+        if (current - last_exec < duration) {
+            return;
+        }
+
+        last_exec = current;
+        func(...args);
+    };
+};

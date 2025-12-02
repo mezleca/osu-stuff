@@ -1,5 +1,6 @@
 /* USEFUL CONSTANTS */
 
+import { OsuInput } from "@rel-packages/osu-beatmap-parser";
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
 
 export const LEGACY_DATABASE_VERSION: number = 20251102;
@@ -201,9 +202,9 @@ export interface IBeatmapResult {
 
     // processor
     unique_id?: string;
+    background: string;
     duration?: number;
-    image_path?: string;
-    audio_path?: string;
+    audio?: string;
 }
 
 export interface IMinimalBeatmapResult {
@@ -241,25 +242,23 @@ export interface ICollectionResult {
 
 export type ExtractType = "duration" | "background" | "video";
 
-export interface ProcessorInput {
-    md5: string;
-    unique_id?: string;
-    file_path: string;
+export interface ProcessorInput extends OsuInput {
     last_modified?: string;
-    extract: ExtractType[];
 }
 
 export interface ExtractedData {
     duration?: number;
     background?: string;
+    audio?: string;
     video?: string;
 }
 
 export interface ProcessorResult {
     md5: string;
-    unique_id: string;
     last_modified: string;
-    data: ExtractedData;
+    duration?: number;
+    background?: string;
+    video?: string;
 }
 
 export type ProcessorEvent = "start" | "finish" | "update";
@@ -280,10 +279,11 @@ export interface IProcessorEvent {
 // TODO: video :)
 export interface BeatmapRow {
     md5: string;
-    unique_id: string;
     last_modified: string;
     duration: number;
     background: string;
+    audio: string;
+    video: string;
 }
 
 export type BeatmapFile = {

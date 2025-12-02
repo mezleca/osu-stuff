@@ -55,9 +55,11 @@ export class ConfigDatabase extends BaseDatabase {
     }
 
     prepare_statements() {
-        this.prepare_statement("get_config", "SELECT * FROM config WHERE id = 1");
-        this.prepare_statement("count_rows", "SELECT COUNT(*) as count FROM config");
-        this.prepare_statement("insert_default", "INSERT INTO config (id) VALUES (1)");
+        if (!this.prepare_statement("get_config", "SELECT * FROM config WHERE id = 1")) return false;
+        if (!this.prepare_statement("count_rows", "SELECT COUNT(*) as count FROM config")) return false;
+        if (!this.prepare_statement("insert_default", "INSERT INTO config (id) VALUES (1)")) return false;
+
+        return true;
     }
 
     post_initialize() {

@@ -4,6 +4,7 @@ import path from "path";
 
 export abstract class BaseDatabase {
     initialized: boolean = false;
+    recreated: boolean = false;
     database_name: string = "";
     app_path: string = "";
     database_path: string = "";
@@ -52,31 +53,53 @@ export abstract class BaseDatabase {
         this.initialized = true;
     }
 
+    private create_db_file = () => {
+        fs.writeFileSync(this.database_path, "");
+        fs.chmodSync(this.database_path, 0o666);
+    };
+
     connect_and_initialize() {
         // create empty shit to prevent more errors
         if (!fs.existsSync(this.database_path)) {
-            fs.writeFileSync(this.database_path, "");
-            // ensure write permissions for sqlite
-            fs.chmodSync(this.database_path, 0o666);
+            this.create_db_file();
         }
 
         // create new sqlite instance
         this.instance = new Database(this.database_path);
 
         this.create_tables();
-        this.prepare_statements();
+
+        // TODO: rn if we find anything related to statements error, we just delete the old one
+        // in the near future, migration or something would be cool (if its a column update issue)
+        const statements_result = this.prepare_statements();
+
+        // TOFIx: too hacky
+        if (!statements_result && !this.recreated) {
+            console.log("attempting to recreate db file");
+            fs.rmSync(this.database_path, { force: true });
+
+            this.recreated = true;
+
+            this.create_db_file();
+            this.connect_and_initialize();
+        }
+
         this.initialize();
         this.post_initialize();
     }
 
     abstract initialize(): void;
     abstract create_tables(): void;
-    abstract prepare_statements(): void;
+    abstract prepare_statements(): boolean;
     abstract post_initialize(): void;
 
     prepare_statement(name: string, sql: string) {
-        this.statements[name] = this.instance.prepare(sql);
-        return this.statements[name];
+        try {
+            this.statements[name] = this.instance.prepare(sql);
+            return this.statements[name];
+        } catch (err) {
+            console.log("failed to prepare statment:", err);
+        }
     }
 
     get_statement(name: string) {

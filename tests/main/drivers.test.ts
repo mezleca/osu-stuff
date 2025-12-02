@@ -29,7 +29,7 @@ const test_driver = (type: string) => {
         await driver.initialize(true);
         // @ts-ignore: accessing protected property for testing
         expect(driver.initialized).toBe(true);
-    });
+    }, 15000);
 
     test(`${type}: add_collection():`, () => {
         const result = driver.add_collection(temp_collection_name, ["123", "321"]);

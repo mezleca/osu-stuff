@@ -154,8 +154,8 @@ export const sort_beatmaps = (beatmaps: IBeatmapResult[], property: keyof IBeatm
     }
 
     const result = beatmaps.sort((a, b) => {
-        // yeah, threat everything that isnt number as string...
-        const is_text_comparission = typeof property != "number";
+        const a_val_check = a[property];
+        const is_text_comparission = typeof a_val_check == "string";
 
         if (is_text_comparission) {
             const a_val = normalize_text(String(a[property]));
@@ -168,8 +168,8 @@ export const sort_beatmaps = (beatmaps: IBeatmapResult[], property: keyof IBeatm
 
             return a_val.localeCompare(b_val);
         } else {
-            const a_val = a[property] || 0;
-            const b_val = b[property] || 0;
+            const a_val = (a[property] as number) || 0;
+            const b_val = (b[property] as number) || 0;
 
             // push null/undefined values to the end
             if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
@@ -190,8 +190,8 @@ export const sort_beatmapset = (beatmaps: BeatmapSetResult[], property: keyof Be
     }
 
     const result = beatmaps.sort((a, b) => {
-        // yeah, threat everything that isnt number as string...
-        const is_text_comparission = typeof property != "number";
+        const a_val_check = a[property];
+        const is_text_comparission = typeof a_val_check == "string";
 
         if (is_text_comparission) {
             const a_val = normalize_text(String(a[property]));
@@ -204,8 +204,8 @@ export const sort_beatmapset = (beatmaps: BeatmapSetResult[], property: keyof Be
 
             return a_val.localeCompare(b_val);
         } else {
-            const a_val = a[property] || 0;
-            const b_val = b[property] || 0;
+            const a_val = (a[property] as number) || 0;
+            const b_val = (b[property] as number) || 0;
 
             // push null/undefined values to the end
             if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
@@ -230,7 +230,7 @@ export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRati
 };
 
 export const get_lazer_file_location = (name: string) => {
-    if (!name) return "";
+    if (!name || name == "") return "";
     const lazer_files_path = path.resolve(config.get().lazer_path, "files");
     return path.resolve(lazer_files_path, `${name.substring(0, 1)}/${name.substring(0, 2)}/${name}`);
 };
