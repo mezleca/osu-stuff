@@ -182,6 +182,10 @@
     onMount(() => {
         // "artist" as default sort
         if (!$sort) $sort = "artist";
+
+        if ($selected_collection.name && list.get_items().length == 0) {
+            filter_beatmaps();
+        }
     });
 </script>
 
