@@ -24,7 +24,7 @@ export abstract class ListBase {
     key: string = crypto.randomUUID();
     list_id: Writable<string> = writable(this.key);
     query: Writable<string> = writable("");
-    status: Writable<string> = writable("");
+    status: Writable<string> = writable("ranked");
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
     show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
@@ -308,10 +308,18 @@ export class BeatmapSetList extends ListBase {
     }
 
     build_filter(): IBeatmapSetFilter {
+        let status = get(this.status);
+
+        // stable classifies "graveyard / WIP" as pending
+        if (!config.get("lazer_mode") && ["graveyard", "wip"].includes(status)) {
+            status = "pending";
+        }
+
         return {
             query: get(this.query),
             sort: get(this.sort),
-            status: get(this.status) || undefined
+            difficulty_range: get(this.difficulty_range),
+            status: status == ALL_STATUS_KEY ? undefined : status
         };
     }
 

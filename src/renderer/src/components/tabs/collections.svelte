@@ -6,7 +6,6 @@
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap } from "../../lib/utils/beatmaps";
     import { context_separator, debounce, string_is_valid } from "../../lib/utils/utils";
-    import { type StarRatingFilter } from "@shared/types";
     import { show_modal, ModalType } from "../../lib/utils/modal";
     import { show_context_menu } from "../../lib/store/context-menu";
 

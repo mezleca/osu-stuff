@@ -86,6 +86,10 @@ export abstract class BaseDriver implements IOsuDriver {
                     continue;
                 }
 
+                if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) {
+                    continue;
+                }
+
                 filtered_diffs.push(beatmap.md5);
             }
 

@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
     import { get_beatmapset_list } from "../../lib/store/beatmaps";
-    import type { StarRatingFilter } from "@shared/types";
     import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
     import { debounce } from "../../lib/utils/utils";
 
@@ -13,7 +12,7 @@
     import BeatmapsetList from "../beatmapset-list.svelte";
 
     const list = get_beatmapset_list("browse");
-    const { query, status, sort } = list;
+    const { query, status, sort, difficulty_range } = list;
 
     const update_beatmaps = debounce(async () => {
         const result = await list.search();
@@ -32,12 +31,7 @@
         list.set_items(ids, undefined, false);
     }, 20);
 
-    const update_sr = async (data: StarRatingFilter) => {
-        list.difficulty_range.set(data);
-        update_beatmaps();
-    };
-
-    $: if ($query != undefined || $status || $sort) {
+    $: if ($query != undefined || $status || $sort || $difficulty_range) {
         update_beatmaps();
     }
 
@@ -57,7 +51,7 @@
             <ExpandableMenu>
                 <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
                 <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
-                <RangeSlider on_update={(data) => update_sr(data)} />
+                <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>
         </div>
         <BeatmapsetList list_manager={list} show_context={true} carousel={true} width={"100%"} />
