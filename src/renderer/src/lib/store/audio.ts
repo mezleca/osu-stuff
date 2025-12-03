@@ -2,7 +2,6 @@ import { writable, get, type Writable } from "svelte/store";
 import { custom_fetch, format_time, get_from_media } from "../utils/utils";
 
 const DEFAULT_VOLUME = 50;
-const MAX_RETRY_ATTEMPTS = 3;
 
 interface IAudioState {
     audio: HTMLAudioElement | null;
@@ -14,7 +13,6 @@ interface IAudioState {
     duration: string;
     progress_bar_width: number;
     is_loading: boolean;
-    is_changing_selection: boolean;
 }
 
 interface IAudioCallbacks {
@@ -33,14 +31,12 @@ const DEFAULT_STATE: IAudioState = {
     progress: "0:00",
     duration: "0:00",
     progress_bar_width: 0,
-    is_loading: false,
-    is_changing_selection: false
+    is_loading: false
 };
 
 class AudioManager {
     id: string;
     is_preview: boolean;
-    attempts: number = 0;
 
     random: Writable<boolean> = writable(false);
     repeat: Writable<boolean> = writable(false);
@@ -120,7 +116,7 @@ class AudioManager {
         }));
 
         if (!this.is_preview) {
-            await this.play_next();
+            await this.navigate(0);
         }
     };
 
@@ -185,12 +181,6 @@ class AudioManager {
     };
 
     load_and_setup_audio = async (beatmap_id: string): Promise<{ beatmap: any; audio: HTMLAudioElement } | null> => {
-        if (this.attempts >= MAX_RETRY_ATTEMPTS) {
-            console.log(`[${this.id}] max retry attempts reached`);
-            this.attempts = 0;
-            return null;
-        }
-
         if (!this.callbacks?.get_beatmap) {
             console.error(`[${this.id}] no get_beatmap callback set`);
             return null;
@@ -199,42 +189,22 @@ class AudioManager {
         try {
             const beatmap = await this.callbacks.get_beatmap(beatmap_id);
 
-            if (!beatmap?.audio_path) {
-                console.log(`[${this.id}] invalid beatmap or no audio path`);
-
-                if (!this.is_preview && this.callbacks.get_next_id) {
-                    this.attempts++;
-                    const next_id = await this.callbacks.get_next_id(0);
-                    if (next_id) {
-                        return await this.load_and_setup_audio(next_id);
-                    }
-                }
-
+            if (!beatmap?.audio) {
+                console.log(`[${this.id}] beatmap ${beatmap_id} has no audio path`);
                 return null;
             }
 
-            const audio = await get_local_audio(beatmap.audio_path);
+            const audio = await get_local_audio(beatmap.audio);
 
             if (!audio) {
-                console.log(`[${this.id}] failed to create audio`);
-
-                if (!this.is_preview && this.callbacks.get_next_id) {
-                    this.attempts++;
-                    const next_id = await this.callbacks.get_next_id(0);
-                    if (next_id) {
-                        return await this.load_and_setup_audio(next_id);
-                    }
-                }
-
+                console.log(`[${this.id}] failed to create audio for ${beatmap_id}`);
                 return null;
             }
 
-            this.attempts = 0;
-            await this.setup_audio(beatmap.md5, audio);
-
+            this.setup_audio(beatmap.md5, audio);
             return { beatmap, audio };
         } catch (error) {
-            console.error(`[${this.id}] error loading audio:`, error);
+            console.error(`[${this.id}] error loading audio for ${beatmap_id}:`, error);
             return null;
         }
     };
@@ -374,87 +344,39 @@ class AudioManager {
         this.callbacks = callbacks;
     };
 
-    play_next = async (): Promise<void> => {
+    navigate = async (direction: Direction): Promise<boolean> => {
         if (this.is_preview || !this.callbacks?.get_next_id) {
-            return;
+            return false;
         }
 
-        console.log(`[${this.id}] getting next song`);
+        const direction_label = direction === -1 ? "previous" : direction === 1 ? "next (manual)" : "next (auto)";
+        console.log(`[${this.id}] navigating to ${direction_label} song`);
 
-        this.store.update((obj) => ({ ...obj, is_loading: true, is_changing_selection: true }));
+        this.store.update((obj) => ({ ...obj, is_loading: true }));
 
         try {
-            const next_id = await this.callbacks.get_next_id(0);
+            const next_id = await this.callbacks.get_next_id(direction);
 
             if (!next_id) {
-                console.log(`[${this.id}] no next id returned`);
-                return;
+                console.log(`[${this.id}] no ${direction_label} id returned`);
+                this.store.update((obj) => ({ ...obj, is_loading: false }));
+                return false;
             }
 
             const result = await this.load_and_setup_audio(next_id);
 
-            if (result) {
-                await this.play();
+            if (!result) {
+                this.store.update((obj) => ({ ...obj, is_loading: false }));
+                return false;
             }
+
+            await this.play();
+            this.store.update((obj) => ({ ...obj, is_loading: false }));
+            return true;
         } catch (error) {
-            console.error(`[${this.id}] error getting next song:`, error);
-        } finally {
-            this.store.update((obj) => ({ ...obj, is_loading: false, is_changing_selection: false }));
-        }
-    };
-
-    play_previous = async (): Promise<void> => {
-        if (this.is_preview || !this.callbacks?.get_next_id) {
-            return;
-        }
-
-        console.log(`[${this.id}] getting previous song`);
-        this.store.update((obj) => ({ ...obj, is_changing_selection: true }));
-
-        try {
-            const prev_id = await this.callbacks.get_next_id(-1);
-
-            if (!prev_id) {
-                return;
-            }
-
-            const result = await this.load_and_setup_audio(prev_id);
-
-            if (result) {
-                await this.play();
-            }
-        } catch (error) {
-            console.error(`[${this.id}] error getting previous song:`, error);
-        } finally {
-            this.store.update((obj) => ({ ...obj, is_changing_selection: false }));
-        }
-    };
-
-    play_next_song = async (): Promise<void> => {
-        if (this.is_preview || !this.callbacks?.get_next_id) {
-            return;
-        }
-
-        console.log(`[${this.id}] getting next song (manual)`);
-
-        this.store.update((obj) => ({ ...obj, is_changing_selection: true }));
-
-        try {
-            const next_id = await this.callbacks.get_next_id(1);
-
-            if (!next_id) {
-                return;
-            }
-
-            const result = await this.load_and_setup_audio(next_id);
-
-            if (result) {
-                await this.play();
-            }
-        } catch (error) {
-            console.error(`[${this.id}] error getting next song:`, error);
-        } finally {
-            this.store.update((obj) => ({ ...obj, is_changing_selection: false }));
+            console.error(`[${this.id}] error navigating:`, error);
+            this.store.update((obj) => ({ ...obj, is_loading: false }));
+            return false;
         }
     };
 
@@ -539,13 +461,20 @@ export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElem
             return null;
         }
 
-        const blob = new Blob([new Uint8Array(data)], { type: "audio/ogg" });
+        const extension = audio_path.split(".").pop()?.toLowerCase();
+        let mime_type = "audio/mpeg";
+
+        if (extension == "ogg") mime_type = "audio/ogg";
+        else if (extension == "mp3") mime_type = "audio/mpeg";
+        else if (extension == "wav") mime_type = "audio/wav";
+
+        const blob = new Blob([new Uint8Array(data)], { type: mime_type });
         const audio = new Audio(window.URL.createObjectURL(blob));
 
         audio.preload = "auto";
         return audio;
     } catch (error) {
-        console.log("error creating local audio:", error);
+        console.log("error creating local audio:", audio_path, error);
         return null;
     }
 };

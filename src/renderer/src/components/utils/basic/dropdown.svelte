@@ -99,9 +99,8 @@
 
 <style>
     .dropdown_container {
+        display: flex;
         position: relative;
-        display: inline-block;
-        flex: 1;
         min-width: 64px;
     }
 

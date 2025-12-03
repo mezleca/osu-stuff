@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { collections } from "../../lib/store/collections";
-    import { ALL_BEATMAPS_KEY, DEFAULT_SORT_OPTIONS } from "../../lib/store/other";
-    import { format_time, get_image_url } from "../../lib/utils/utils";
+    import { ALL_BEATMAPS_KEY, FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
+    import { debounce, format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap } from "../../lib/utils/beatmaps";
@@ -12,49 +12,78 @@
     import Search from "../utils/basic/search.svelte";
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
-    import Add from "../utils/add.svelte";
+    import BeatmapList from "../beatmap-list.svelte";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
 
-    const { selected, query, sort } = list;
+    const { selected, query, sort, target, status } = list;
 
     $: selected_beatmap = null;
-    $: all_collections = collections.all_collections;
     $: selected_collection = collections.selected_radio;
-    $: previous_songs = audio.previous_random_songs;
-    $: beatmap_options = [{ label: "all beatmaps", value: ALL_BEATMAPS_KEY }, ...$all_collections.map((c) => ({ label: c.name, value: c.name }))];
+    $: previous_songs = list.previous_buffer;
     $: bg = "";
 
     const update_background_image = async () => {
-        if (selected_beatmap?.image_path) {
-            const url = await get_image_url(selected_beatmap.image_path);
+        if (selected_beatmap?.md5 && selected_beatmap?.background) {
+            const url = await get_image_url(selected_beatmap.background);
             bg = `url(${url})`;
         } else {
             bg = "";
         }
     };
 
-    const update_beatmaps = async (removed) => {
-        // hide remove beatmap option if we're showing all beatmaps
-        list.hide_remove.set($selected_collection.name == ALL_BEATMAPS_KEY);
+    const update_beatmaps = debounce(async () => {
+        list.show_remove.set($target == ALL_BEATMAPS_KEY);
 
-        const beatmaps = await list.get_beatmaps($selected_collection.name, { unique: true, sort: $sort, force: !!removed });
+        const result = await list.search();
 
-        if (!beatmaps) {
+        if (!result) {
             return;
         }
 
-        list.set_beatmaps(beatmaps, $selected_collection, true);
-        list.update_list_id($selected_collection.name);
+        const beatmaps = result.beatmaps.map((b) => b.md5);
+
+        list.set_items(beatmaps, undefined, false);
+    }, 100);
+
+    const get_next_id_callback = async (direction) => {
+        const beatmaps = list.get_items();
+
+        if (beatmaps.length == 0) {
+            console.log("radio: no beatmaps available");
+            return null;
+        }
+
+        const current_index = $selected.index;
+        const next_idx = audio.calculate_next_index(current_index, beatmaps.length, direction);
+
+        audio.force_random.set(false);
+
+        const beatmap_id = beatmaps[next_idx];
+        list.previous_buffer.update((old) => [...old, { md5: beatmap_id, index: next_idx }]);
+
+        if (next_idx != current_index) {
+            list.select(beatmap_id, next_idx);
+        }
+
+        return beatmap_id;
     };
 
-    const handle_new_beatmap = (data) => {
-        console.log(data);
+    const get_beatmap_callback = async (beatmap_id: string) => {
+        return await get_beatmap(beatmap_id);
     };
 
-    // update selected map when hash changes
-    $: if ($selected.index != -1) {
+    $: if ($selected?.md5 && $selected.index != -1 && audio.get_state().id != $selected.md5 && !audio.get_state().is_loading) {
+        const beatmap_id = $selected.md5;
+        audio.load_and_setup_audio(beatmap_id).then(async (result) => {
+            if (result) {
+                await audio.play();
+            }
+        });
+    }
+
+    $: if ($selected && $selected?.index != -1) {
         get_beatmap($selected.md5).then((bm) => {
             selected_beatmap = bm;
             update_background_image();
@@ -67,18 +96,19 @@
 
     // update beatmap list
     $: if ($selected_collection.name || $query || $sort) {
-        // TODO: debounce this
-        // let debounce_timer: NodeJS.Timeout;
-        // clearTimeout(debounce_timer);
-        // debounce_timer = setTimeout(() => {
-        //     update_beatmaps();
-        // }, 200);
         update_beatmaps();
     }
 
     onMount(() => {
+        list.show_unique.set(true);
+
+        audio.set_callbacks({
+            get_next_id: get_next_id_callback,
+            get_beatmap: get_beatmap_callback
+        });
+
         // always reset state if no beatmaps are selected
-        if ($selected.index == -1) {
+        if ($selected?.index == -1) {
             audio.clean_audio();
         }
 
@@ -99,19 +129,16 @@
                 return;
             }
 
-            list.select(data.hash, data.index);
+            list.select(data.md5, data.index);
             $previous_songs.pop();
         });
 
         update_background_image();
-
-        // popups
-        create_new_beatmap_popup();
     });
 
     onDestroy(() => {
         input.unregister("f2", "shift+f2");
-        list.hide_remove.set(false);
+        list.show_remove.set(true);
     });
 </script>
 
@@ -123,25 +150,11 @@
             <div class="sidebar-header">
                 <Search bind:value={$query} placeholder="search beatmaps" />
                 <div class="filter-container">
-                    <Dropdown placeholder={"mode"} bind:selected_value={$selected_collection.name} options={beatmap_options} />
-                    <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={DEFAULT_SORT_OPTIONS} />
+                    <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                    <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
                 </div>
             </div>
-            <Beatmaps
-                {selected_collection}
-                selected={$selected}
-                unique={list.is_unique}
-                tab_id={"radio"}
-                show_invalid={false}
-                key={$selected_collection.name}
-                show_bpm={false}
-                show_star_rating={false}
-                show_status={false}
-                center={true}
-                max_width={true}
-                show_control={false}
-                remove_callback={update_beatmaps}
-            />
+            <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />
         </div>
 
         <div class="radio-data">
@@ -198,8 +211,9 @@
 
     .filter-container {
         display: flex;
-        justify-content: space-around;
         gap: 10px;
+        position: relative;
+        z-index: 99999;
     }
 
     .radio-data {

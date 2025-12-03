@@ -49,6 +49,7 @@ class ConfigStore {
 
     async set<K extends keyof StuffConfig>(key: K, value: StuffConfig[K]) {
         this.data.update((config) => ({ ...config, [key]: value }));
+        await window.api.invoke("config:save", { [key]: value });
     }
 
     get<K extends keyof StuffConfig>(key: K): StuffConfig[K] {

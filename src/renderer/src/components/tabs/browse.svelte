@@ -21,12 +21,12 @@
 
         const ids = result.beatmapsets.map((b) => b.id);
 
-        // fetch missing beatmapsets from driver
-        const missing_ids = ids.filter((id) => id > 0); // always fetch all to ensure fresh data
+        // // fetch missing beatmapsets from driver
+        // const missing_ids = ids.filter((id) => id > 0); // always fetch all to ensure fresh data
 
-        if (missing_ids.length > 0) {
-            await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
-        }
+        // if (missing_ids.length > 0) {
+        //     await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
+        // }
 
         list.set_items(ids, undefined, false);
     }, 20);

@@ -3,14 +3,20 @@ import { writable } from "svelte/store";
 
 export const get_from_media = async (file: string): Promise<ArrayBuffer | undefined> => {
     const url = "media://" + encodeURI(file);
-    const result = await custom_fetch({ url, method: "GET" });
 
-    if (!result.success) {
-        console.error("failed to get media", result.error);
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            console.error("failed to get media", file, response.statusText);
+            return undefined;
+        }
+
+        return await response.arrayBuffer();
+    } catch (error) {
+        console.error("failed to get media", file, error);
         return undefined;
     }
-
-    return result.data as ArrayBuffer;
 };
 
 export const get_image_url = async (file: string): Promise<string | undefined> => {

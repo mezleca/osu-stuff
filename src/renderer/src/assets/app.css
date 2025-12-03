@@ -129,6 +129,7 @@ main {
 
 .sidebar {
     width: 340px;
+    min-width: 260px;
     background: transparent;
     border-right: 1px solid var(--header-border-color);
     display: flex;
@@ -362,6 +363,10 @@ main {
     height: 100%;
     width: 100%;
     justify-content: center;
+}
+
+.beatmap-card-metadata.centered {
+    align-items: center;
 }
 
 .beatmap-card-extra {

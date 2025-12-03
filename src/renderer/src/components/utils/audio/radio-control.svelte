@@ -1,9 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { get_audio_manager, get_local_audio } from "../../../lib/store/audio";
+    import { get_audio_manager } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
-    import { get_beatmap } from "../../../lib/utils/beatmaps";
-    import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
 
     // icons
@@ -23,94 +21,25 @@
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
-    const { items: beatmaps, selected } = radio_list;
+    const { selected } = radio_list;
 
-    let current_beatmap = null;
-
-    const get_current_id = () => current_beatmap?.md5;
+    const get_current_id = () => $selected?.md5;
 
     $: audio_state = $audio_manager;
     $: is_playing = audio_state.playing && audio_state.id == get_current_id();
     $: is_loading = audio_state.is_loading;
-    $: is_changing_selection = audio_state.is_changing_selection;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
     $: should_force_random = audio_manager.force_random;
 
-    $: if ($selected.index != -1) {
-        get_beatmap($selected.md5).then((bm) => {
-            current_beatmap = bm;
-        });
-    } else {
-        current_beatmap = null;
-    }
-
-    // auto play when selected beatmap changes changes
-    $: if (current_beatmap && current_beatmap.md5 && audio_state.id != current_beatmap.md5 && !is_loading && !is_changing_selection) {
-        handle_selection_change();
-    }
-
     $: if ($should_force_random) {
         if (audio_state.audio && audio_state.audio.currentTime > 0.1) {
             if (is_playing) audio_manager.pause();
-            audio_manager.play_next().then(() => audio_manager.force_random.set(false));
+            audio_manager.navigate(0).then(() => audio_manager.force_random.set(false));
         } else {
             audio_manager.force_random.set(false);
         }
     }
-
-    const get_next_id_callback = async (direction) => {
-        if ($beatmaps.length == 0) {
-            console.log("radio: no beatmaps available");
-            return null;
-        }
-
-        const current_index = $selected.index;
-        let next_idx = current_index;
-
-        if (direction == 0) {
-            next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
-        } else {
-            next_idx = audio_manager.calculate_next_index(current_index, $beatmaps.length, direction);
-        }
-
-        audio_manager.force_random.set(false);
-
-        // get next beatmap id
-        const beatmap_id = $beatmaps[next_idx];
-        radio_list.previous_buffer.update((old) => [...old, { md5: beatmap_id, index: next_idx }]);
-
-        // update selection (if changed)
-        if (next_idx != current_index) {
-            radio_list.select(beatmap_id, next_idx);
-        }
-
-        return beatmap_id;
-    };
-
-    const get_beatmap_callback = async (beatmap_id: string) => {
-        return await get_beatmap(beatmap_id);
-    };
-
-    const handle_selection_change = async () => {
-        if (!current_beatmap?.audio_path) {
-            console.log("invalid beatmap:", current_beatmap);
-            show_notification({ type: "error", text: "invalid beatmap: couldn't be processed" });
-            return;
-        }
-
-        const audio = await get_local_audio(current_beatmap.audio_path);
-
-        // handle invalid audio
-        if (!audio) {
-            console.log("radio: failed to create local audio");
-            await audio_manager.play_next();
-            return;
-        }
-
-        await audio_manager.setup_audio(get_current_id(), audio);
-        await audio_manager.play();
-    };
 
     const handle_play_pause = async () => {
         if (!get_current_id()) {
@@ -120,19 +49,12 @@
 
         const state = audio_state;
 
-        // toggle if same track
         if (state.id == get_current_id() && state.audio) {
             if (state.playing) {
                 audio_manager.pause();
             } else {
                 await audio_manager.play();
             }
-            return;
-        }
-
-        // play current selection
-        if (state.id == get_current_id()) {
-            await audio_manager.play();
         }
     };
 
@@ -145,13 +67,6 @@
     onMount(() => {
         const saved_volume = config.get("radio_volume");
 
-        // set up callbacks for the audio manager
-        audio_manager.set_callbacks({
-            get_next_id: get_next_id_callback,
-            get_beatmap: get_beatmap_callback
-        });
-
-        // restore volume from config
         if (saved_volume != null) {
             audio_manager.set_volume(saved_volume);
         }
@@ -184,16 +99,16 @@
         </div>
 
         <div class="controls-section">
-            <button class="control-btn random" class:active={$random_active} onclick={audio_manager.toggle_random}>
+            <button class="radio-btn random" class:active={$random_active} onclick={audio_manager.toggle_random}>
                 <RandomIcon />
             </button>
 
             <div class="main-controls">
-                <button class="control-btn previous" onclick={() => audio_manager.play_previous()}>
+                <button class="radio-btn previous" onclick={() => audio_manager.navigate(-1)}>
                     <PreviousIcon />
                 </button>
 
-                <button class="control-btn play-pause" onclick={handle_play_pause} disabled={is_loading}>
+                <button class="radio-btn play-pause" onclick={handle_play_pause} disabled={is_loading}>
                     {#if is_loading}
                         <Spinner width={24} height={24} />
                     {:else if is_playing}
@@ -203,12 +118,12 @@
                     {/if}
                 </button>
 
-                <button class="control-btn next" onclick={() => audio_manager.play_next_song()}>
+                <button class="radio-btn next" onclick={() => audio_manager.navigate(1)}>
                     <NextIcon />
                 </button>
             </div>
 
-            <button class="control-btn repeat" class:active={$repeat_active} onclick={audio_manager.toggle_repeat}>
+            <button class="radio-btn repeat" class:active={$repeat_active} onclick={audio_manager.toggle_repeat}>
                 <RepeatIcon />
             </button>
         </div>
@@ -277,7 +192,7 @@
         gap: 8px;
     }
 
-    .control-btn {
+    .radio-btn {
         background: transparent;
         border: none;
         color: rgba(255, 255, 255, 0.7);
@@ -290,18 +205,18 @@
         transition: all 0.2s ease;
     }
 
-    .control-btn:hover {
+    .radio-btn:hover {
         transform: scale(1.05);
         color: white;
         background: rgba(255, 255, 255, 0.1);
     }
 
-    .control-btn:disabled {
+    .radio-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
 
-    .control-btn.active {
+    .radio-btn.active {
         background-color: var(--bg-tertiary);
     }
 

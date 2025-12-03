@@ -51,9 +51,17 @@ export abstract class BaseDriver implements IOsuDriver {
             }
 
             if (options.unique) {
-                if (!beatmap.unique_id || beatmap.unique_id == "") continue;
-                if (unique.has(beatmap.unique_id)) continue;
-                unique.add(beatmap.unique_id);
+                let uid = beatmap.unique_id;
+
+                if (!uid || uid == "") {
+                    if (beatmap.audio && beatmap.beatmapset_id) {
+                        uid = `${beatmap.audio}_${beatmap.beatmapset_id}`;
+                    }
+                }
+
+                if (!uid || uid == "") continue;
+                if (unique.has(uid)) continue;
+                unique.add(uid);
             }
 
             if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) {

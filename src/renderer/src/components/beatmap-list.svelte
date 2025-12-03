@@ -7,6 +7,8 @@
     export let list_manager: BeatmapList;
     export let height = 100;
     export let carousel = true;
+    export let max_card_width = false;
+    export let simplified = false;
     export let direction: "left" | "right" = "right";
     export let on_update: (index: number) => any = null;
     export let on_remove: (checksum: string) => any = null;
@@ -45,6 +47,7 @@
         count={$items?.length ?? 0}
         height="100%"
         item_height={height}
+        max_width={max_card_width}
         {carousel}
         {direction}
         {on_update}
@@ -60,6 +63,11 @@
         <BeatmapCard
             selected={is_selected}
             highlighted={is_highlighted}
+            show_remove={!simplified}
+            show_bpm={!simplified}
+            show_star_rating={!simplified}
+            show_status={!simplified}
+            centered={simplified}
             {on_remove}
             {hash}
             {height}
