@@ -11,6 +11,7 @@
     import Checkbox from "../utils/basic/checkbox.svelte";
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
     import NewMirrorModal from "./modal/new-mirror-modal.svelte";
+    import { string_is_valid } from "../../lib/utils/utils";
 
     let initialized = false;
     let last_config = {};
@@ -138,7 +139,17 @@
             </div>
 
             <div class="field-group">
-                <Checkbox bind:value={$config.lazer_mode} label={"lazer mode"} desc="enable to use your lazer collections / beatmaps" />
+                <Checkbox
+                onchange={() => {
+                	if (!string_is_valid($config.lazer_path)) {
+                 		show_notification({ type: "warning", text: "missing lazer path!!" });
+                   		$config.lazer_mode = false;
+                 		return;
+                 	}
+                }}
+                bind:value={$config.lazer_mode}
+                label={"lazer mode"}
+                desc="enable to use your lazer collections / beatmaps" />
             </div>
 
             <div class="config-buttons">
