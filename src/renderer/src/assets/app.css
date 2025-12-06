@@ -1,8 +1,8 @@
 @font-face {
     font-family: "Torus";
-    src: url("./Torus.woff2") format("woff2");
+    src: url("./Torus-SemiBold.otf") format("opentype");
     font-weight: 700;
-    font-style: normal;
+    font-style: semibold;
 }
 
 :root {
