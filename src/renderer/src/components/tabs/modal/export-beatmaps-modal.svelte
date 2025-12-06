@@ -16,7 +16,7 @@
         const result = await export_beatmaps(selected_collections);
 
         if (!result.success) {
-            // NOTE: FUCK SVELTE
+            // FUCK SVELTE
             show_notification({ type: "error", text: (result as any).reason || "failed to export beatmaps" });
             return;
         }

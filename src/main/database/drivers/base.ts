@@ -232,8 +232,13 @@ export abstract class BaseDriver implements IOsuDriver {
             compressionOptions: { level: 9 }
         });
 
-        const target_name = path.resolve(config.get().export_path, `${id}.osz`);
-        fs.writeFileSync(target_name, buffer);
+        const location = path.resolve(config.get().export_path, `${id}.osz`);
+
+        if (!fs.existsSync(path.dirname(location))) {
+            fs.mkdirSync(path.dirname(location));
+        }
+
+        fs.writeFileSync(location, buffer);
 
         return true;
     };

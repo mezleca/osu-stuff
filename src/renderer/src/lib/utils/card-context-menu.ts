@@ -1,6 +1,8 @@
 import type { ContextMenuOption, IBeatmapResult, BeatmapSetResult } from "@shared/types";
 import { collections } from "../store/collections";
 import { open_on_browser } from "./utils";
+import { show_notification } from "../store/notifications";
+import { config } from "../store/config";
 
 export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show_remove: boolean): ContextMenuOption[] => {
     const all_collections = collections.get_all();
@@ -56,7 +58,7 @@ export const get_beatmapset_context_options = (show_remove: boolean): ContextMen
     return options;
 };
 
-export const handle_card_context_action = (
+export const handle_card_context_action = async (
     action: string,
     id: string,
     beatmap: IBeatmapResult | BeatmapSetResult,
@@ -75,9 +77,15 @@ export const handle_card_context_action = (
             collections.add_beatmaps(collection, hashes);
             break;
         }
-        case "export":
-            window.api.invoke("driver:export_beatmapset", beatmapsed_id);
+        case "export": {
+            const result = await window.api.invoke("driver:export_beatmapset", beatmapsed_id);
+
+            if (result) {
+                show_notification({ type: "success", text: `finished exporting at ${config.get("export_path")}` });
+            }
+
             break;
+        }
         case "remove":
             on_remove(is_set ? beatmapsed_id : (beatmap as IBeatmapResult).md5);
             break;

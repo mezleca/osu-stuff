@@ -445,33 +445,41 @@ class StableBeatmapDriver extends BaseDriver {
     };
 
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {
-        const beatmapset = this.osu.beatmapsets.get(id);
+        const beatmapset = this.beatmapsets.get(id);
 
         if (!beatmapset) {
             return [];
         }
 
-        const files: BeatmapFile[] = [];
+        const get_file_location = (): string => {
+            for (const md5 of beatmapset.beatmaps) {
+                const beatmap = this.osu.beatmaps.get(md5);
 
-        for (const md5 of beatmapset.beatmaps) {
-            const beatmap = this.osu.beatmaps.get(md5);
+                if (!beatmap) {
+                    continue;
+                }
 
-            if (!beatmap) {
-                continue;
+                const full_file_path = path.join(config.get().stable_songs_path, beatmap.file_path);
+
+                if (!fs.existsSync(full_file_path)) {
+                    continue;
+                }
+
+                return path.dirname(full_file_path);
             }
 
-            // TOFIX: missing background from processor
-            files.push(
-                {
-                    name: beatmap.file,
-                    location: path.join(config.get().stable_songs_path, beatmap.file_path)
-                },
-                {
-                    name: beatmap.audio_file_name,
-                    location: path.join(config.get().stable_songs_path, beatmap.audio_path)
-                }
-            );
+            return "";
+        };
+
+        const files: BeatmapFile[] = [];
+        const full_dir_data = get_file_location();
+        const all_set_files = fs.readdirSync(full_dir_data);
+
+        for (const file of all_set_files) {
+            files.push({ name: path.basename(file), location: path.join(full_dir_data, file) });
         }
+
+        console.log(files);
 
         return files;
     };

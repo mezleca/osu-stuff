@@ -123,7 +123,7 @@
 </script>
 
 {#if minimal}
-<!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <span
         role="button"
         tabindex="0"
@@ -132,9 +132,11 @@
             open_on_browser(beatmap?.beatmapset_id);
         }}
         oncontextmenu={handle_context}
-        class="star-rating">
-        ★ {get_beatmap_star_rating(beatmap)}</span>
-        <p>{beatmap?.difficulty ?? "unknown"}</p>
+        class="star-rating"
+    >
+        ★ {get_beatmap_star_rating(beatmap)}</span
+    >
+    <p>{beatmap?.difficulty ?? "unknown"}</p>
 {:else if !visible || !beatmap_loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
 {:else}
