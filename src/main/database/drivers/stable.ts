@@ -133,7 +133,7 @@ class StableBeatmapDriver extends BaseDriver {
                 return processed.last_modified != String(b.last_modification);
             });
 
-        console.log("processing", beatmaps_array.length, "beatmaps");
+        console.log("[stable] processing", beatmaps_array.length, "beatmaps");
 
         await this.process_beatmap_chunks(beatmaps_array, processed_map, to_insert);
 

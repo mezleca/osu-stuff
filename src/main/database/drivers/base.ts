@@ -81,28 +81,20 @@ export abstract class BaseDriver implements IOsuDriver {
     filter_beatmapsets = async (sets: BeatmapSetResult[], options: IBeatmapSetFilter): Promise<IFilteredBeatmapSet[]> => {
         const result: BeatmapSetResult[] = [];
 
-        console.log("sets count:", sets.length);
-
         for (const beatmapset of sets) {
-            console.log("attempting to fetch:", beatmapset.beatmaps.length, "maps");
             const fetched = await this.fetch_beatmaps(beatmapset.beatmaps);
             const filtered_diffs: string[] = [];
 
-            console.log("fetched count:", fetch.length);
-
             for (const beatmap of fetched.beatmaps) {
                 if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) {
-                    console.log("ignoring due to difficulty:", beatmap.star_rating, options.difficulty_range);
                     continue;
                 }
 
                 if (options.query && !filter_beatmap_by_query(beatmap, options.query)) {
-                    console.log("ignore due to query");
                     continue;
                 }
 
                 if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) {
-                    console.log("ignore due to status", options.status.toLowerCase(), beatmap.status.toLowerCase());
                     continue;
                 }
 
@@ -173,7 +165,6 @@ export abstract class BaseDriver implements IOsuDriver {
         const result = osdb_parser.write(OsdbVersion.O_DM8_MIN, osdb_data);
 
         if (!result.success) {
-            console.log(result.reason);
             return false;
         }
 
@@ -195,7 +186,6 @@ export abstract class BaseDriver implements IOsuDriver {
         const result = stable_parser.write_collections_data(collections);
 
         if (!result.success) {
-            console.log(result.reason);
             return false;
         }
 

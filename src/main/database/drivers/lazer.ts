@@ -153,6 +153,8 @@ class LazerBeatmapDriver extends BaseDriver {
             return processed.last_modified != (b.LastLocalUpdate?.toString() ?? "");
         });
 
+        console.log("[lazer] processing", to_process.length, "beatmaps");
+
         await this.process_beatmap_chunks(to_process, processed_map, to_insert);
 
         if (to_insert.length > 0) {
@@ -164,7 +166,6 @@ class LazerBeatmapDriver extends BaseDriver {
         // populate in-memory map with processed data
         for (const beatmap of beatmaps) {
             if (beatmap.MD5Hash) {
-                console.log(beatmap.Status);
                 const processed = processed_map.get(beatmap.MD5Hash);
                 this.beatmaps.set(beatmap.MD5Hash, build_beatmap(beatmap, processed));
             }
