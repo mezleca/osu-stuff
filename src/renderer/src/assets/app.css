@@ -437,28 +437,34 @@ main {
 }
 
 .beatmap-difficulties {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px;
     padding: 8px;
     background: rgba(17, 20, 31);
     border: none;
     z-index: 999;
 }
 
-.minimal-card {
-    display: flex;
-}
-
-.minimal-card > * {
+.beatmap-difficulties > * {
     font-size: 13px;
 }
 
-.minimal-card > span {
+.beatmap-difficulties > span {
     background-color: var(--accent-color);
-    padding: 0 4px;
+    padding: 0 6px;
     border-radius: 6px;
     margin-right: 6px;
+    color: black;
+}
+
+.beatmap-difficulties > p {
+    transition: all 0.3s;
+}
+
+.beatmap-difficulties > p:hover {
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
 }
 
 .small-card:hover .preview-btn {

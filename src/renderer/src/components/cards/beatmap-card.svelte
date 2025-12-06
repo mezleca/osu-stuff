@@ -123,9 +123,8 @@
 </script>
 
 {#if minimal}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div
-        class="minimal-card"
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+    <span
         role="button"
         tabindex="0"
         onclick={(e) => {
@@ -133,10 +132,9 @@
             open_on_browser(beatmap?.beatmapset_id);
         }}
         oncontextmenu={handle_context}
-    >
-        <span class="star-rating">★ {get_beatmap_star_rating(beatmap)}</span>
+        class="star-rating">
+        ★ {get_beatmap_star_rating(beatmap)}</span>
         <p>{beatmap?.difficulty ?? "unknown"}</p>
-    </div>
 {:else if !visible || !beatmap_loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
 {:else}
@@ -222,11 +220,6 @@
 {/if}
 
 <style>
-    .minimal-card:hover {
-        background: rgba(255, 255, 255, 0.1);
-        cursor: pointer;
-    }
-
     .beatmap-card.temp {
         border: 2px solid red;
     }
