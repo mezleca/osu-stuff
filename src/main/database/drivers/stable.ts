@@ -90,12 +90,14 @@ class StableBeatmapDriver extends BaseDriver {
         }
 
         const osu_result = stable_parser.get_osu_data(osu_database_file);
+
         if (!osu_result.success) {
             console.error("failed to parse osu!.db:", osu_result.reason);
             return;
         }
 
         const collection_result = stable_parser.get_collections_data(collection_database_file);
+
         if (!collection_result.success) {
             console.error("failed to parse collection.db:", collection_result.reason);
             return;
@@ -121,8 +123,14 @@ class StableBeatmapDriver extends BaseDriver {
             processed_map.set(row.md5, row);
         }
 
-        const beatmaps_array = Array.from(this.osu.beatmaps.values());
         const to_insert: BeatmapRow[] = [];
+        const beatmaps_array = Array.from(this.osu.beatmaps.values())
+            // only process beatmaps that we havent processed yet or modified ones
+            .filter((b) => {
+                const processed = processed_map.get(b.md5);
+                if (!processed) return true;
+                return processed.last_modified != String(b.last_modification);
+            });
 
         console.log("processing", beatmaps_array.length, "beatmaps");
 
