@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { config } from "../../lib/store/config";
     import { show_notification } from "../../lib/store/notifications";
     import { quick_confirm, show_modal, ModalType } from "../../lib/utils/modal";
+    import type { StuffConfig } from "@shared/types";
     import { get_osu_data } from "../../lib/utils/collections";
 
     // components
@@ -11,51 +11,26 @@
     import Checkbox from "../utils/basic/checkbox.svelte";
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
     import NewMirrorModal from "./modal/new-mirror-modal.svelte";
-    import { string_is_valid } from "../../lib/utils/utils";
-
-    let initialized = false;
-    let last_config = {};
 
     const { mirrors } = config;
 
-    const handle_config_change = async (new_config) => {
-        if (!initialized || !last_config) {
-            return;
-        }
-
-        const changes = [];
-
-        // check what changed
-        for (const [key, value] of Object.entries(new_config)) {
-            if (last_config[key] != value) {
-                changes.push({ key, value, old_value: last_config[key] });
-            }
-        }
-
-        if (changes.length == 0) {
-            return;
-        }
-
-        // save changes to backend
-        for (const change of changes) {
-            await window.api.invoke("config:save", { [change.key]: change.value });
-        }
-
-        // update access token if credentials changed
-        const credential_changes = changes.filter((c) => c.key == "osu_id" || c.key == "osu_secret");
-
-        if (credential_changes.length > 0) {
-            await config.update_access_token();
-        }
-
-        last_config = { ...new_config };
+    const handle_text_change = async (key: keyof StuffConfig, value: string) => {
+        await config.set(key, value);
     };
 
-    // watch for config changes
-    $: handle_config_change($config);
+    const handle_lazer_mode_toggle = async () => {
+        const success = await config.set("lazer_mode", !$config.lazer_mode);
+
+        if (!success) {
+            $config.lazer_mode = $config.lazer_mode;
+        }
+    };
 
     const remove_mirror = async (name: string) => {
-        const confirm_result = await quick_confirm(`delete ${name}?`, { submit: "delete", cancel: "cancel" });
+        const confirm_result = await quick_confirm(`delete ${name}?`, {
+            submit: "delete",
+            cancel: "cancel"
+        });
 
         if (!confirm_result) {
             return;
@@ -69,7 +44,21 @@
     };
 
     const reload_files = async () => {
-        const confirm_result = await quick_confirm("are you sure?", { submit: "mhm", cancel: "cancel" });
+        const validation = config.validate_paths();
+
+        if (!validation.valid) {
+            const missing = validation.missing.join(", ");
+            show_notification({
+                type: "error",
+                text: `missing required paths: ${missing}`
+            });
+            return;
+        }
+
+        const confirm_result = await quick_confirm("are you sure?", {
+            submit: "mhm",
+            cancel: "cancel"
+        });
 
         if (!confirm_result) {
             return;
@@ -80,11 +69,6 @@
 
         show_notification({ text: "reloaded successfully" });
     };
-
-    onMount(() => {
-        last_config = { ...$config };
-        initialized = true;
-    });
 </script>
 
 <div class="content tab-content">
@@ -102,7 +86,14 @@
                         rel="noopener noreferrer">here</a
                     > and paste the ID below
                 </div>
-                <input id="osu_id_input" type="password" class="text-input" placeholder="ex: 123" bind:value={$config.osu_id} />
+                <input
+                    id="osu_id_input"
+                    type="password"
+                    class="text-input"
+                    placeholder="ex: 123"
+                    value={$config.osu_id}
+                    onchange={(e) => handle_text_change("osu_id", e.target.value)}
+                />
             </div>
 
             <div class="field-group" id="osu_secret">
@@ -114,48 +105,64 @@
                         rel="noopener noreferrer">here</a
                     > and paste the SECRET below
                 </div>
-                <input id="osu_secret_input" type="password" class="text-input" placeholder="ex: 123" bind:value={$config.osu_secret} />
+                <input
+                    id="osu_secret_input"
+                    type="password"
+                    class="text-input"
+                    placeholder="ex: 123"
+                    value={$config.osu_secret}
+                    onchange={(e) => handle_text_change("osu_secret", e.target.value)}
+                />
             </div>
 
             <div class="field-group" id="stable_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu stable path</label>
                 <div class="field-description">click to select your osu! stable path</div>
-                <InputDialog bind:location={$config.stable_path} title={"stable directory"} type="openDirectory" />
+                <InputDialog
+                    location={$config.stable_path}
+                    callback={(path) => handle_text_change("stable_path", path)}
+                    title={"stable directory"}
+                    type="openDirectory"
+                />
             </div>
 
             <div class="field-group" id="lazer_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">osu lazer path</label>
                 <div class="field-description">click to select your osu! lazer path</div>
-                <InputDialog bind:location={$config.lazer_path} title={"lazer directory"} type="openDirectory" />
+                <InputDialog
+                    location={$config.lazer_path}
+                    callback={(path) => handle_text_change("lazer_path", path)}
+                    title={"lazer directory"}
+                    type="openDirectory"
+                />
             </div>
 
             <div class="field-group" id="stable_songs_path">
                 <!-- svelte-ignore a11y_label_has_associated_control -->
                 <label class="field-label">songs folder</label>
                 <div class="field-description">click to select your osu! songs folder</div>
-                <InputDialog bind:location={$config.stable_songs_path} title={"stable songs directory"} type="openDirectory" />
+                <InputDialog
+                    location={$config.stable_songs_path}
+                    callback={(path) => handle_text_change("stable_songs_path", path)}
+                    title={"stable songs directory"}
+                    type="openDirectory"
+                />
             </div>
 
             <div class="field-group">
                 <Checkbox
-                onchange={() => {
-                	if (!string_is_valid($config.lazer_path)) {
-                 		show_notification({ type: "warning", text: "missing lazer path!!" });
-                   		$config.lazer_mode = false;
-                 		return;
-                 	}
-                }}
-                bind:value={$config.lazer_mode}
-                label={"lazer mode"}
-                desc="enable to use your lazer collections / beatmaps" />
+                    onchange={handle_lazer_mode_toggle}
+                    value={$config.lazer_mode}
+                    label={"lazer mode"}
+                    desc="enable to use your lazer collections / beatmaps"
+                />
             </div>
 
             <div class="config-buttons">
-                <button type="button" onclick={() => reload_files()}>reload files</button>
-                <!-- NOTE: keybinds dont seem to work on linux (pretty sure is a wayland problem) -->
-                <button type="button" onclick={() => window.api.invoke("window:dev_tools")}>open dev tools</button>
+                <button type="button" onclick={reload_files}>reload files</button>
+                <button type="button" onclick={() => window.api.invoke("window:dev_tools")}> open dev tools </button>
             </div>
         </div>
         <div class="info-box">

@@ -24,6 +24,7 @@ class ConfigStore {
     mirrors: Writable<StuffMirror[]>;
     fetching_token: Writable<boolean>;
     authenticated: Writable<boolean>;
+    private is_loading: boolean = false;
 
     constructor() {
         this.data = writable({ ...DEFAULT_CONFIG_FIELDS });
@@ -38,6 +39,8 @@ class ConfigStore {
     }
 
     async load() {
+        this.is_loading = true;
+
         const config_data = await window.api.invoke("config:get");
         const mirrors_data = await window.api.invoke("mirrors:get");
 
@@ -45,11 +48,35 @@ class ConfigStore {
         this.mirrors.set(mirrors_data);
 
         await this.update_access_token();
+
+        this.is_loading = false;
     }
 
-    async set<K extends keyof StuffConfig>(key: K, value: StuffConfig[K]) {
+    async set<K extends keyof StuffConfig>(key: K, value: StuffConfig[K]): Promise<boolean> {
+        if (this.is_loading) {
+            return false;
+        }
+
+        if (key == "lazer_mode" && value == true) {
+            const lazer_path = this.get("lazer_path");
+            if (!string_is_valid(lazer_path)) {
+                show_notification({ type: "warning", text: "missing lazer path!!" });
+                return false;
+            }
+        }
+
+        // update store
         this.data.update((config) => ({ ...config, [key]: value }));
+
+        // update main process data
         await window.api.invoke("config:save", { [key]: value });
+
+        // update access token if credentials changed
+        if (key == "osu_id" || key == "osu_secret") {
+            await this.update_access_token();
+        }
+
+        return true;
     }
 
     get<K extends keyof StuffConfig>(key: K): StuffConfig[K] {
@@ -62,6 +89,26 @@ class ConfigStore {
 
     get_all() {
         return get(this.data);
+    }
+
+    validate_paths(): { valid: boolean; missing: string[] } {
+        const missing: string[] = [];
+        const current_config = get(this.data);
+
+        if (current_config.lazer_mode) {
+            if (!string_is_valid(current_config.lazer_path)) {
+                missing.push("lazer path");
+            }
+        } else {
+            if (!string_is_valid(current_config.stable_path)) {
+                missing.push("stable path");
+            }
+        }
+
+        return {
+            valid: missing.length == 0,
+            missing
+        };
     }
 
     async update_access_token() {
@@ -77,6 +124,7 @@ class ConfigStore {
 
             if (!string_is_valid(id) || !string_is_valid(secret)) {
                 console.warn("skipping auth (invalid id / secret)");
+                this.authenticated.set(false);
                 return;
             }
 
@@ -94,6 +142,7 @@ class ConfigStore {
 
             if (result.error) {
                 this.authenticated.set(false);
+                show_failed_auth_warn();
                 return;
             }
 
@@ -101,6 +150,7 @@ class ConfigStore {
         } catch (err) {
             console.error("failed to login:", err as string);
             show_failed_auth_warn();
+            this.authenticated.set(false);
         } finally {
             this.fetching_token.set(false);
         }
