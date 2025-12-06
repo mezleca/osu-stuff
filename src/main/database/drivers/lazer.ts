@@ -1,5 +1,4 @@
 import {
-    beatmap_status_from_code,
     IBeatmapFilter,
     IBeatmapResult,
     BeatmapSetResult,
@@ -11,7 +10,8 @@ import {
     IFilteredBeatmap,
     IFilteredBeatmapSet,
     IBeatmapSetFilter,
-    BeatmapRow
+    BeatmapRow,
+    lazer_status_from_code
 } from "@shared/types";
 import {
     BeatmapCollectionSchema,
@@ -56,7 +56,7 @@ const build_beatmap = (beatmap: BeatmapSchema, processed?: BeatmapRow, temp: boo
         cs: beatmap.Difficulty.CircleSize,
         hp: beatmap.Difficulty.DrainRate,
         od: beatmap.Difficulty.OverallDifficulty,
-        status: beatmap_status_from_code(beatmap.Status),
+        status: lazer_status_from_code(beatmap.Status),
         mode: beatmap.Ruleset.Name || "",
         local: true,
         temp: temp,
@@ -144,18 +144,16 @@ class LazerBeatmapDriver extends BaseDriver {
 
         const collections = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection");
         const beatmapsets = this.instance.objects<BeatmapSetSchema>("BeatmapSet");
-        // TODO: use filtered?
-        const beatmaps = this.instance
-            .objects<BeatmapSchema>("Beatmap")
-            // only process beatmaps that we havent processed yet or modified ones
-            .filter((b) => {
-                if (!b.MD5Hash) return false;
-                const processed = processed_map.get(b.MD5Hash);
-                if (!processed) return true;
-                return processed.last_modified != (b.LastLocalUpdate?.toString() ?? "");
-            });
+        const beatmaps = this.instance.objects<BeatmapSchema>("Beatmap");
 
-        await this.process_beatmap_chunks(beatmaps, processed_map, to_insert);
+        const to_process = beatmaps.filter((b) => {
+            if (!b.MD5Hash) return false;
+            const processed = processed_map.get(b.MD5Hash);
+            if (!processed) return true;
+            return processed.last_modified != (b.LastLocalUpdate?.toString() ?? "");
+        });
+
+        await this.process_beatmap_chunks(to_process, processed_map, to_insert);
 
         if (to_insert.length > 0) {
             beatmap_processor.insert_beatmaps(to_insert);
@@ -166,6 +164,7 @@ class LazerBeatmapDriver extends BaseDriver {
         // populate in-memory map with processed data
         for (const beatmap of beatmaps) {
             if (beatmap.MD5Hash) {
+                console.log(beatmap.Status);
                 const processed = processed_map.get(beatmap.MD5Hash);
                 this.beatmaps.set(beatmap.MD5Hash, build_beatmap(beatmap, processed));
             }
@@ -384,12 +383,14 @@ class LazerBeatmapDriver extends BaseDriver {
 
         for (const md5 of checksums) {
             const beatmap = this.beatmaps.get(md5);
+
             if (beatmap) {
                 beatmaps.push(beatmap);
                 continue;
             }
 
             const temp_beatmap = this.temp_beatmaps.get(md5);
+
             if (temp_beatmap) {
                 beatmaps.push(temp_beatmap);
             } else {
@@ -468,6 +469,8 @@ class LazerBeatmapDriver extends BaseDriver {
     search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
         let ids = Array.from(this.beatmapsets.keys());
 
+        console.log("have", ids.length, "beatmapsets");
+
         if (ids.length == 0) {
             return { beatmapsets: [], invalid: [] };
         }
@@ -481,7 +484,12 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
+
+        console.log("fetched", beatmaps.length, "beatmapsets");
+
         const result = await this.filter_beatmapsets(beatmaps, options);
+
+        console.log("after filtering:", result.length);
 
         return { beatmapsets: result, invalid };
     };

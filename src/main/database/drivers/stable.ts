@@ -6,14 +6,14 @@ import {
     BeatmapFile,
     ILegacyDatabase,
     IStableBeatmap,
-    beatmap_status_from_code,
     gamemode_from_code,
     IStableBeatmapset,
     ISearchResponse,
     IBeatmapSetFilter,
     IFilteredBeatmapSet,
     IFilteredBeatmap,
-    ISearchSetResponse
+    ISearchSetResponse,
+    stable_status_from_code
 } from "@shared/types";
 import { BaseDriver } from "./base";
 import { stable_parser } from "../../binary/stable";
@@ -46,7 +46,7 @@ const build_beatmap = (beatmap: IStableBeatmap, processed?: BeatmapRow, temp: bo
         cs: beatmap.cs,
         hp: beatmap.hp,
         od: beatmap.od,
-        status: beatmap_status_from_code(beatmap.status),
+        status: stable_status_from_code(beatmap.status),
         mode: gamemode_from_code(beatmap.mode),
         local: true,
         temp: temp,

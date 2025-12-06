@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { collections } from "../../lib/store/collections";
-    import { ALL_STATUS_KEY, DEFAULT_SORT_OPTIONS, DEFAULT_STATUS_TYPES } from "../../lib/store/other";
+    import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap } from "../../lib/utils/beatmaps";
@@ -28,9 +28,6 @@
     import ExportBeatmapsModal from "./modal/export-beatmaps-modal.svelte";
     import EmptyCollectionModal from "./modal/empty-collection-modal.svelte";
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
-
-    const FILTER_TYPES = [...DEFAULT_SORT_OPTIONS, "length"];
-    const STATUS_TYPES = [ALL_STATUS_KEY, ...DEFAULT_STATUS_TYPES];
 
     const list = get_beatmap_list("collections");
 
@@ -242,8 +239,8 @@
             <!-- current beatmap search -->
             <Search bind:value={$query} placeholder="search beatmaps" />
             <ExpandableMenu>
-                <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES.map((t) => ({ label: t, value: t }))} />
-                <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES.map((t) => ({ label: t, value: t }))} />
+                <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
                 <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>

@@ -54,7 +54,7 @@ export const FILTER_TYPES = [
 ];
 
 export const STATUS_TYPES = [
-    { label: "all beatmaps", value: ALL_BEATMAPS_KEY },
+    { label: "all status", value: ALL_STATUS_KEY },
     ...DEFAULT_STATUS_TYPES.map((b) => {
         return { label: b, value: b };
     })

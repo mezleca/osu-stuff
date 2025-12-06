@@ -4,7 +4,6 @@ import { config } from "../database/config.js";
 import { GenericResult } from "@shared/types/basic.js";
 import {
     ILegacyDatabase,
-    stable_byte_to_status,
     IStableBeatmap,
     IStableTimingPoint,
     LEGACY_DATABASE_VERSION,
@@ -107,7 +106,7 @@ export class StableParser extends BinaryReader {
         data.audio_file_name = this.string();
         data.md5 = this.string();
         data.file = this.string();
-        data.status = stable_byte_to_status(this.byte());
+        data.status = this.byte();
         data.hitcircle = this.short();
         data.sliders = this.short();
         data.spinners = this.short();

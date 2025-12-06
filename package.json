@@ -8,7 +8,7 @@
     "author": "rel",
     "scripts": {
         "format": "prettier --plugin prettier-plugin-svelte --write .",
-        "lint": "eslint --cache .",
+        "lint": "bunx tsc --noEmit",
         "svelte-check": "svelte-check --tsconfig ./tsconfig.json",
         "start": "bun rebuild && electron-vite preview",
         "dev": "bun rebuild && cross-env NODE_ENV=dev electron-vite dev",

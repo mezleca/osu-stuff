@@ -18,7 +18,7 @@ export enum Permissions {
     WorldCupStaff = 32
 }
 
-export enum BeatmapStatus {
+export enum StableBeatmapStatus {
     All = -1,
     Unknown = 0,
     Unsubmitted = 1,
@@ -28,6 +28,18 @@ export enum BeatmapStatus {
     Approved = 5,
     Qualified = 6,
     Loved = 7
+}
+
+export enum LazerBeatmapStatus {
+    LocacllyModified = -4,
+    Unsubmitted = -3,
+    Graveyard = -2,
+    Wip = -1,
+    Pending = 0,
+    Ranked = 1,
+    Approved = 2,
+    Qualified = 3,
+    Loved = 4
 }
 
 export enum OsdbVersion {
@@ -83,7 +95,7 @@ export interface IStableBeatmap {
     audio_file_name: string;
     md5: string;
     file: string;
-    status: BeatmapStatus;
+    status: StableBeatmapStatus;
     hitcircle: number;
     sliders: number;
     spinners: number;
@@ -503,79 +515,97 @@ export const gamemode_from_code = (mode: GameMode) => {
     }
 };
 
-// pretty sure i will only use this on the binary reader
-export const stable_byte_to_status = (byte: number): BeatmapStatus => {
-    switch (byte) {
-        case -1:
-            return BeatmapStatus.All;
-        case 0:
-            return BeatmapStatus.Unknown;
-        case 1:
-            return BeatmapStatus.Unsubmitted;
-        case 2:
-            return BeatmapStatus.Pending;
-        case 3:
-            return BeatmapStatus.Unused;
-        case 4:
-            return BeatmapStatus.Ranked;
-        case 5:
-            return BeatmapStatus.Approved;
-        case 6:
-            return BeatmapStatus.Qualified;
-        case 7:
-            return BeatmapStatus.Loved;
-        default:
-            return BeatmapStatus.Unknown;
-    }
-};
-
-export const beatmap_status_to_code = (status: string): BeatmapStatus => {
+export const stable_status_to_code = (status: string): StableBeatmapStatus => {
     switch (status.toLowerCase()) {
         case "all":
-            return BeatmapStatus.All;
+            return StableBeatmapStatus.All;
         case "unsubmitted":
-            return BeatmapStatus.Unsubmitted;
+            return StableBeatmapStatus.Unsubmitted;
         case "unused":
-            return BeatmapStatus.Unused;
+            return StableBeatmapStatus.Unused;
         case "ranked":
-            return BeatmapStatus.Ranked;
+            return StableBeatmapStatus.Ranked;
         case "approved":
-            return BeatmapStatus.Approved;
+            return StableBeatmapStatus.Approved;
         case "qualified":
-            return BeatmapStatus.Qualified;
+            return StableBeatmapStatus.Qualified;
         case "loved":
-            return BeatmapStatus.Loved;
+            return StableBeatmapStatus.Loved;
         // stable classifies these 3 as "pending..."
         case "pending":
         case "graveyard":
         case "wip":
-            return BeatmapStatus.Pending;
+            return StableBeatmapStatus.Pending;
         default:
-            return BeatmapStatus.Unknown;
+            return StableBeatmapStatus.Unknown;
     }
 };
 
-export const beatmap_status_from_code = (status: BeatmapStatus) => {
+export const stable_status_from_code = (status: StableBeatmapStatus) => {
     switch (status) {
-        case BeatmapStatus.All:
+        case StableBeatmapStatus.All:
             return "All";
-        case BeatmapStatus.Unsubmitted:
+        case StableBeatmapStatus.Unsubmitted:
             return "Unsubmitted";
-        case BeatmapStatus.Pending:
+        case StableBeatmapStatus.Pending:
             return "Pending";
-        case BeatmapStatus.Unused:
+        case StableBeatmapStatus.Unused:
             return "Unused";
-        case BeatmapStatus.Ranked:
+        case StableBeatmapStatus.Ranked:
             return "Ranked";
-        case BeatmapStatus.Approved:
+        case StableBeatmapStatus.Approved:
             return "Approved";
-        case BeatmapStatus.Qualified:
+        case StableBeatmapStatus.Qualified:
             return "Qualified";
-        case BeatmapStatus.Loved:
+        case StableBeatmapStatus.Loved:
             return "Loved";
     }
 
     return "Unknown";
+};
+
+export const lazer_status_to_code = (status: string): LazerBeatmapStatus => {
+    switch (status.toLowerCase()) {
+        case "locally modified":
+            return LazerBeatmapStatus.LocacllyModified;
+        case "not submitted":
+        case "unsubmitted":
+            return LazerBeatmapStatus.Unsubmitted;
+        case "pending":
+        case "graveyard":
+        case "wip":
+            return LazerBeatmapStatus.Pending;
+        case "ranked":
+            return LazerBeatmapStatus.Ranked;
+        case "approved":
+            return LazerBeatmapStatus.Approved;
+        case "qualified":
+            return LazerBeatmapStatus.Qualified;
+        case "loved":
+            return LazerBeatmapStatus.Loved;
+        default:
+            return LazerBeatmapStatus.Unsubmitted;
+    }
+};
+
+export const lazer_status_from_code = (status: LazerBeatmapStatus) => {
+    switch (status) {
+        case LazerBeatmapStatus.LocacllyModified:
+            return "locally modified";
+        case LazerBeatmapStatus.Unsubmitted:
+            return "not submitted";
+        case LazerBeatmapStatus.Pending:
+            return "pending";
+        case LazerBeatmapStatus.Ranked:
+            return "ranked";
+        case LazerBeatmapStatus.Approved:
+            return "approved";
+        case LazerBeatmapStatus.Qualified:
+            return "qualified";
+        case LazerBeatmapStatus.Loved:
+            return "loved";
+    }
+    return "notsubmitted";
 };
 
 export const osdb_version_to_code = (version: string) => {
@@ -629,53 +659,51 @@ export const osdb_version_from_code = (version: OsdbVersion) => {
     }
 };
 
-export const stable_status_to_enum = (status: number): BeatmapStatus => {
+// aka stable status code to lazer status code...
+export const stable_status_to_enum = (status: StableBeatmapStatus): LazerBeatmapStatus => {
     switch (status) {
-        case -1:
-            return BeatmapStatus.All;
-        case 0:
-            return BeatmapStatus.Unknown;
-        case 1:
-            return BeatmapStatus.Unsubmitted;
-        case 2:
-            return BeatmapStatus.Pending; // graveyard/wip/pending todos mapeiam pra pending
-        case 3:
-            return BeatmapStatus.Unused;
-        case 4:
-            return BeatmapStatus.Ranked;
-        case 5:
-            return BeatmapStatus.Approved;
-        case 6:
-            return BeatmapStatus.Qualified;
-        case 7:
-            return BeatmapStatus.Loved;
+        case StableBeatmapStatus.All:
+        case StableBeatmapStatus.Unknown:
+            return LazerBeatmapStatus.Unsubmitted; // idk vro
+        case StableBeatmapStatus.Unsubmitted:
+            return LazerBeatmapStatus.Unsubmitted;
+        case StableBeatmapStatus.Pending:
+        case StableBeatmapStatus.Unused: // the fuck is unused lol
+            return LazerBeatmapStatus.Pending;
+        case StableBeatmapStatus.Ranked:
+            return LazerBeatmapStatus.Ranked;
+        case StableBeatmapStatus.Approved:
+            return LazerBeatmapStatus.Approved;
+        case StableBeatmapStatus.Qualified:
+            return LazerBeatmapStatus.Qualified;
+        case StableBeatmapStatus.Loved:
+            return LazerBeatmapStatus.Loved;
         default:
-            return BeatmapStatus.Unknown;
+            return LazerBeatmapStatus.Unsubmitted;
     }
 };
 
-export const enum_to_stable_status = (status: BeatmapStatus): number => {
+// aka lazer status code to stable status code
+export const enum_to_stable_status = (status: LazerBeatmapStatus): number => {
     switch (status) {
-        case BeatmapStatus.All:
-            return STABLE_STATUS.ALL;
-        case BeatmapStatus.Unknown:
-            return STABLE_STATUS.UNKNOWN;
-        case BeatmapStatus.Unsubmitted:
-            return STABLE_STATUS.UNSUBMITTED;
-        case BeatmapStatus.Pending:
-            return STABLE_STATUS.PENDING;
-        case BeatmapStatus.Unused:
-            return STABLE_STATUS.UNUSED;
-        case BeatmapStatus.Ranked:
-            return STABLE_STATUS.RANKED;
-        case BeatmapStatus.Approved:
-            return STABLE_STATUS.APPROVED;
-        case BeatmapStatus.Qualified:
-            return STABLE_STATUS.QUALIFIED;
-        case BeatmapStatus.Loved:
-            return STABLE_STATUS.LOVED;
+        case LazerBeatmapStatus.LocacllyModified:
+            return StableBeatmapStatus.Pending;
+        case LazerBeatmapStatus.Unsubmitted:
+            return StableBeatmapStatus.Unsubmitted;
+        case LazerBeatmapStatus.Graveyard:
+        case LazerBeatmapStatus.Wip:
+        case LazerBeatmapStatus.Pending:
+            return StableBeatmapStatus.Pending;
+        case LazerBeatmapStatus.Ranked:
+            return StableBeatmapStatus.Ranked;
+        case LazerBeatmapStatus.Approved:
+            return StableBeatmapStatus.Approved;
+        case LazerBeatmapStatus.Qualified:
+            return StableBeatmapStatus.Qualified;
+        case LazerBeatmapStatus.Loved:
+            return StableBeatmapStatus.Loved;
         default:
-            return STABLE_STATUS.UNKNOWN;
+            return StableBeatmapStatus.Unsubmitted;
     }
 };
 
