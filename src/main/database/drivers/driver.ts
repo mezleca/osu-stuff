@@ -31,7 +31,7 @@ export const get_driver = (custom_driver: string = ""): BaseDriver => {
     }
 };
 
-export const initialize_driver = async (force: boolean = false, driver: string = ""): Promise<void> => {
+export const initialize_driver = async (force: boolean = false, driver: string = ""): Promise<boolean> => {
     return get_driver(driver).initialize(force);
 };
 

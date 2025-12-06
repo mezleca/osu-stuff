@@ -32,6 +32,7 @@ import { beatmap_processor } from "../processor";
 
 import beatmap_parser from "@rel-packages/osu-beatmap-parser";
 import Realm from "realm";
+import fs from "fs";
 import path from "path";
 
 const CHUNK_SIZE = 100;
@@ -86,16 +87,22 @@ class LazerBeatmapDriver extends BaseDriver {
         super();
     }
 
-    initialize = async (force: boolean = false): Promise<void> => {
+    initialize = async (force: boolean = false): Promise<boolean> => {
         if (this.instance && !force) {
-            return;
+            return true;
         }
 
-        const lazer_location = path.resolve(config.get().lazer_path, "client.realm");
+        const lazer_path = config.get().lazer_path ?? "";
+        const realm_location = path.resolve(lazer_path, "client.realm");
+
+        if (!fs.existsSync(realm_location)) {
+            console.warn("failed to find:", realm_location);
+            return false;
+        }
 
         if (!this.instance) {
             this.instance = new Realm({
-                path: lazer_location,
+                path: realm_location,
                 schema: [
                     BeatmapDifficultySchema,
                     BeatmapMetadataSchema,
@@ -117,29 +124,13 @@ class LazerBeatmapDriver extends BaseDriver {
         this.beatmaps.clear();
         this.beatmapsets.clear();
 
-        const collections = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection");
-        const beatmaps = this.instance.objects<BeatmapSchema>("Beatmap");
-        const beatmapsets = this.instance.objects<BeatmapSetSchema>("BeatmapSet");
-
-        await this.process_beatmaps(beatmaps);
-
-        // build in-memory collections
-        for (const collection of collections) {
-            this.collections.set(collection.Name || "", {
-                name: collection.Name || "",
-                beatmaps: collection.BeatmapMD5Hashes
-            });
-        }
-
-        // build in-memory sets
-        for (const beatmapset of beatmapsets) {
-            this.beatmapsets.set(beatmapset.OnlineID, build_beatmapset(beatmapset));
-        }
-
+        await this.process_beatmaps();
         this.initialized = true;
+
+        return true;
     };
 
-    private process_beatmaps = async (beatmaps: Realm.Results<BeatmapSchema>): Promise<void> => {
+    private process_beatmaps = async (): Promise<void> => {
         beatmap_processor.show_on_renderer();
 
         const processed_rows = beatmap_processor.get_all_beatmaps();
@@ -150,6 +141,19 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         const to_insert: BeatmapRow[] = [];
+
+        const collections = this.instance.objects<BeatmapCollectionSchema>("BeatmapCollection");
+        const beatmapsets = this.instance.objects<BeatmapSetSchema>("BeatmapSet");
+        // TODO: use filtered?
+        const beatmaps = this.instance
+            .objects<BeatmapSchema>("Beatmap")
+            // only process beatmaps that we havent processed yet or modified ones
+            .filter((b) => {
+                if (!b.MD5Hash) return false;
+                const processed = processed_map.get(b.MD5Hash);
+                if (!processed) return true;
+                return processed.last_modified != (b.LastLocalUpdate?.toString() ?? "");
+            });
 
         await this.process_beatmap_chunks(beatmaps, processed_map, to_insert);
 
@@ -166,10 +170,24 @@ class LazerBeatmapDriver extends BaseDriver {
                 this.beatmaps.set(beatmap.MD5Hash, build_beatmap(beatmap, processed));
             }
         }
+
+        // populate in-memory collections
+        for (const collection of collections) {
+            const name = collection.Name || "";
+            this.collections.set(name, {
+                name,
+                beatmaps: Array.from(collection.BeatmapMD5Hashes)
+            });
+        }
+
+        // populate in-memory sets
+        for (const beatmapset of beatmapsets) {
+            this.beatmapsets.set(beatmapset.OnlineID, build_beatmapset(beatmapset));
+        }
     };
 
     private process_beatmap_chunks = async (
-        beatmaps: Realm.Results<BeatmapSchema>,
+        beatmaps: (Realm.Object<BeatmapSchema, never> & BeatmapSchema)[],
         processed_map: Map<string, BeatmapRow>,
         to_insert: BeatmapRow[]
     ): Promise<void> => {
@@ -308,6 +326,7 @@ class LazerBeatmapDriver extends BaseDriver {
 
     rename_collection = (old_name: string, new_name: string): boolean => {
         const collection = this.collections.get(old_name);
+
         if (!collection || this.collections.has(new_name)) {
             return false;
         }

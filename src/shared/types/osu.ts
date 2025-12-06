@@ -312,7 +312,7 @@ export interface IFilteredBeatmap {
 
 // TODO: get_beatmap_by<T>
 export interface IOsuDriver {
-    initialize(force: boolean): Promise<void>;
+    initialize(force: boolean): Promise<boolean>;
     get_player_name(): string;
     add_collection(name: string, beatmaps: string[]): boolean;
     rename_collection(old_name: string, new_name: string): boolean;

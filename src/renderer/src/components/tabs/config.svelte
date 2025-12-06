@@ -67,7 +67,7 @@
         await config.load();
         await get_osu_data(true);
 
-        show_notification({ text: "reloaded successfully" });
+        show_notification({ type: "success", text: "reloaded successfully" });
     };
 </script>
 

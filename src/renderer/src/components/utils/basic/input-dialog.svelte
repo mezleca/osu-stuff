@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { string_is_valid } from "../../../lib/utils/utils";
+
     export let location = "";
     export let title: string = "uhh";
     export let type: "openDirectory" | "openFile" = "openDirectory";
@@ -19,7 +21,7 @@
 <div class="file-input-wrapper">
     <input type="custom-file" class="file-input" onclick={show_dialog} />
     <div class="file-input-display">
-        <div class="text">{location == "" ? "click to select" : location}</div>
+        <div class="text">{!string_is_valid(location) ? "click to select" : location}</div>
     </div>
 </div>
 

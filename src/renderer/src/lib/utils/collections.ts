@@ -5,6 +5,7 @@ import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
 import type { GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
 import { get_beatmap } from "./beatmaps";
+import { show_notification } from "../store/notifications";
 
 export const get_osu_data = async (force_load: boolean = false) => {
     const stable_path = config.get("stable_path");
@@ -17,9 +18,12 @@ export const get_osu_data = async (force_load: boolean = false) => {
 
     // initialize driver based on mode
     const driver = config.get("lazer_mode") == true ? "lazer" : "stable";
+    const init_result = await window.api.invoke("driver:initialize", force_load, driver);
 
-    // TOFIX: return generic result instead of void
-    await window.api.invoke("driver:initialize", force_load, driver);
+    if (!init_result) {
+        show_notification({ type: "error", text: "failed to initialize..." });
+        return;
+    }
 
     // reset stuff
     reset_beatmap_lists();

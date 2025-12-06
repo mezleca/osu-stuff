@@ -279,7 +279,7 @@ export abstract class BaseDriver implements IOsuDriver {
         return true;
     }
 
-    abstract initialize(force?: boolean): Promise<void>;
+    abstract initialize(force?: boolean): Promise<boolean>;
 
     abstract get_player_name(): string;
     abstract add_collection(name: string, beatmaps: string[]): boolean;

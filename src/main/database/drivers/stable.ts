@@ -76,9 +76,9 @@ class StableBeatmapDriver extends BaseDriver {
         super();
     }
 
-    initialize = async (force: boolean = false): Promise<void> => {
+    initialize = async (force: boolean = false): Promise<boolean> => {
         if (this.initialized && !force) {
-            return;
+            return true;
         }
 
         const osu_database_file = path.resolve(config.get().stable_path, "osu!.db");
@@ -86,21 +86,21 @@ class StableBeatmapDriver extends BaseDriver {
 
         if (!fs.existsSync(osu_database_file) || !fs.existsSync(collection_database_file)) {
             console.error("failed to initialize stable driver (missing database files)");
-            return;
+            return false;
         }
 
         const osu_result = stable_parser.get_osu_data(osu_database_file);
 
         if (!osu_result.success) {
             console.error("failed to parse osu!.db:", osu_result.reason);
-            return;
+            return false;
         }
 
         const collection_result = stable_parser.get_collections_data(collection_database_file);
 
         if (!collection_result.success) {
             console.error("failed to parse collection.db:", collection_result.reason);
-            return;
+            return false;
         }
 
         this.osu = osu_result.data;
@@ -109,8 +109,9 @@ class StableBeatmapDriver extends BaseDriver {
         this.beatmapsets.clear();
 
         await this.process_beatmaps();
-
         this.initialized = true;
+
+        return true;
     };
 
     private process_beatmaps = async (): Promise<void> => {
