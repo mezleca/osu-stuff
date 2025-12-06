@@ -326,6 +326,11 @@ export interface IpcSchema {
             params: undefined;
             result: boolean;
         };
+        // media
+        "media:get": {
+            params: string;
+            result: GenericResult<ArrayBuffer>;
+        };
     };
     send: {
         "downloader:events": IDownloadEvent;

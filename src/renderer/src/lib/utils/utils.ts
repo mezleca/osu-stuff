@@ -2,17 +2,16 @@ import type { FetchOptions, IFetchResponse } from "@shared/types";
 import { writable } from "svelte/store";
 
 export const get_from_media = async (file: string): Promise<ArrayBuffer | undefined> => {
-    const url = "media://" + encodeURI(file);
-
     try {
-        const response = await fetch(url);
+        const result = await window.api.invoke("media:get", file);
 
-        if (!response.ok) {
-            console.error("failed to get media", file, response.statusText);
+        if (!result.success) {
+            // @ts-ignore
+            console.error("failed to get media", file, result.reason);
             return undefined;
         }
 
-        return await response.arrayBuffer();
+        return result.data;
     } catch (error) {
         console.error("failed to get media", file, error);
         return undefined;

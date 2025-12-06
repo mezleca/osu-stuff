@@ -1,6 +1,24 @@
 import { net } from "electron";
-import { build_fetch_options, build_fetch_result, FetchError, FetchOptions, get_fetch_error } from "../shared/types";
+import { build_fetch_options, build_fetch_result, FetchError, FetchOptions, GenericResult, get_fetch_error } from "../shared/types";
 import { IFetchResponse } from "../shared/types";
+
+import fs from "fs";
+import path from "path";
+
+export class MediaManager {
+    constructor() {}
+
+    get(location: string): GenericResult<ArrayBuffer> {
+        const resolved = path.resolve(location);
+
+        if (!fs.existsSync(resolved)) {
+            return { success: false, reason: "invalid path" };
+        }
+
+        const buffer = fs.readFileSync(resolved);
+        return { success: true, data: buffer.buffer };
+    }
+}
 
 export class FetchManager {
     constructor() {}
@@ -142,4 +160,5 @@ export class FetchManager {
     }
 }
 
+export const media_manager = new MediaManager();
 export const fetch_manager = new FetchManager();

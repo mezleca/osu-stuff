@@ -1,15 +1,16 @@
-import { app, shell, ipcMain, dialog, protocol, session, net } from "electron";
+import { app, shell, ipcMain, dialog, session } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
 import { get_window } from "./database/utils";
-import { fetch_manager } from "./fetch";
+import { fetch_manager, media_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
 
 import path from "path";
 
-// @ts-ignore
-import icon from "../../resources/icon.png?asset";
+import linux_icon from "../../resources/icon.png?asset";
+import win_icon from "../../resources/icon.png?asset";
+
 import {
     add_beatmap,
     add_collection,
@@ -56,19 +57,6 @@ const additionalArguments = [
     "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
 ];
 
-// protocol to get images / stuff from osu!
-protocol.registerSchemesAsPrivileged([
-    {
-        scheme: "media",
-        privileges: {
-            secure: true,
-            stream: true,
-            supportFetchAPI: true,
-            bypassCSP: true
-        }
-    }
-]);
-
 async function createWindow() {
     // create the browser window.
     const mainWindow = get_window("main", {
@@ -79,7 +67,7 @@ async function createWindow() {
         show: false,
         frame: false,
         autoHideMenuBar: true,
-        ...(process.platform == "linux" ? { icon } : {}),
+        icon: process.platform == "win32" ? win_icon : linux_icon,
         webPreferences: {
             additionalArguments,
             preload: path.join(__dirname, "../preload/index.js"),
@@ -190,6 +178,9 @@ async function createWindow() {
     handle_ipc("reader:read_osdb", (_, args) => read_osdb(args[0]));
     handle_ipc("reader:write_osdb", (_, args) => write_osdb(args[0]));
 
+    // media
+    handle_ipc("media:get", (_, args) => media_manager.get(args[0]));
+
     mainWindow.on("ready-to-show", mainWindow.show);
 
     mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -225,23 +216,6 @@ app.whenReady().then(async () => {
     // dont remember why i use this but it seems to cause some problems without it
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
         callback({ requestHeaders: { ...details.requestHeaders } });
-    });
-
-    // TOFIX: too dangerous
-    protocol.handle("media", (req) => {
-        try {
-            let location = decodeURI(req.url.replace("media://", ""));
-
-            // stupid windows needs file:/// and C:/ instead of C/
-            if (process.platform == "win32" && !location.includes(":/")) {
-                location = location.replace(/^([A-Z])\//, "$1:/");
-            }
-
-            return net.fetch(process.platform == "win32" ? `file:///${location}` : `file://${location}`);
-        } catch (err) {
-            console.error("protocol error:", err);
-            return new Response("not found", { status: 404 });
-        }
     });
 
     // initialize electron window
