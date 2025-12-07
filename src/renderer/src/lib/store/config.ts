@@ -24,6 +24,7 @@ class ConfigStore {
     mirrors: Writable<StuffMirror[]>;
     fetching_token: Writable<boolean>;
     authenticated: Writable<boolean>;
+    is_exporting: Writable<boolean>;
     private is_loading: boolean = false;
 
     constructor() {
@@ -31,6 +32,7 @@ class ConfigStore {
         this.mirrors = writable([]);
         this.fetching_token = writable(false);
         this.authenticated = writable(false);
+        this.is_exporting = writable(false);
         this.load();
     }
 

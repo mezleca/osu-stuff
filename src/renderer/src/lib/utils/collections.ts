@@ -1,11 +1,13 @@
 import { reset_beatmap_lists } from "../store/beatmaps";
 import { reset_audio_manager } from "../store/audio";
-import { collections } from "../store/collections";
+import { collections, type ICollectionWithEdit } from "../store/collections";
 import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
 import type { GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
 import { get_beatmap } from "./beatmaps";
 import { show_notification } from "../store/notifications";
+import { hide_export_progress, update_export_progress } from "../store/export_progress";
+import { get } from "svelte/store";
 
 export const get_osu_data = async (force_load: boolean = false) => {
     const stable_path = config.get("stable_path");
@@ -73,7 +75,8 @@ const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapRe
                     local: false,
                     status: beatmap.status,
                     mode: beatmap.mode,
-                    last_modified: ""
+                    last_modified: "",
+                    background: ""
                 });
             }
         }
@@ -124,7 +127,8 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
             local: false,
             status: beatmap.status,
             mode: beatmap.mode,
-            last_modified: ""
+            last_modified: "",
+            background: ""
         });
     }
 
@@ -188,34 +192,53 @@ export const export_beatmaps = async (collections_name: string[]): Promise<Gener
     }
 
     let exported = 0;
-    let found_any = false;
 
-    for await (const name of collections_name) {
+    const collections_to_export: ICollectionWithEdit[] = [];
+
+    for (const name of collections_name) {
         const collection = collections.get(name);
+
         if (!collection) {
             console.warn("failed to find", name);
             continue;
         }
 
-        found_any = true;
-
-        for (const hash of collection.beatmaps) {
-            const beatmap = await get_beatmap(hash);
-            if (!beatmap) {
-                console.warn(`skipping: ${hash} (not found)`);
-                continue;
-            }
-
-            const result = await window.api.invoke("driver:export_beatmapset", beatmap.beatmapset_id);
-            if (result) {
-                exported++;
-            }
-        }
+        collections_to_export.push(collection);
     }
 
-    if (!found_any) {
+    if (collections_to_export.length == 0) {
         return { success: false, reason: "no valid collections found" };
     }
+
+    // get the ammount of beatmaps we need to export
+    const beatmaps_to_export = collections_to_export.flatMap((c) => c.beatmaps);
+
+    for (let i = 0; i < beatmaps_to_export.length; i++) {
+        const hash = beatmaps_to_export[i];
+        const beatmap = await get_beatmap(hash);
+
+        // check if the user cancelled the export request
+        if (!get(config.is_exporting)) {
+            console.warn("cancelling export");
+            return { success: true, data: exported };
+        }
+
+        if (!beatmap) {
+            console.warn(`skipping: ${hash} (not found)`);
+            update_export_progress({ active: true, text: `skipping ${hash} (not found)`, progress: Math.floor(i / beatmaps_to_export.length * 100) });
+            continue;
+        }
+
+        const result = await window.api.invoke("driver:export_beatmapset", beatmap.beatmapset_id);
+
+        if (result) {
+            exported++;
+        }
+
+        update_export_progress({ active: true, text: `exported ${beatmap.title}`, progress: Math.floor(i / beatmaps_to_export.length * 100) });
+    }
+
+    hide_export_progress();
 
     if (exported == 0) {
         return { success: false, reason: "no beatmaps were exported" };

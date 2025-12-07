@@ -1,4 +1,5 @@
 <script>
+    import { fade } from "svelte/transition";
     import { export_progress, hide_export_progress } from "../../lib/store/export_progress";
     // import { fade } from "svelte/transition";
 
@@ -15,27 +16,14 @@
     }
 </script>
 
-<!-- {#if state.active}
+{#if state.active}
     <div class="export-progress" transition:fade>
-        <div class="left">
-            <div class="title">exporting</div>
-            <div class="meta">{state.collection ?? "-"} {state.id ? `- ${state.id}` : ""}</div>
-        </div>
-        <div class="right">
-            {#if state.status == "done"}
-                <div class="status">saved: {state.path ? state.path.split("/").pop() : "unknown"}</div>
-            {:else if state.status == "linked"}
-                <div class="status">existing: {state.beatmapset_id}</div>
-            {:else if state.status == "missing"}
-                <div class="status">missing</div>
-            {:else if state.status == "start"}
-                <div class="status">starting</div>
-            {:else}
-                <div class="status">{state.status}</div>
-            {/if}
+        <div class="export-text">{state.text ?? "..."}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {state.progress}%"></div>
         </div>
     </div>
-{/if} -->
+{/if}
 
 <style>
     .export-progress {
@@ -48,19 +36,27 @@
         padding: 12px 16px;
         border-radius: 6px;
         display: flex;
+        min-width: 200px;
+        flex-direction: column;
         gap: 16px;
-        align-items: center;
-        z-index: 1000;
+        z-index: 99999;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
     }
 
-    .left .meta {
+    .export-text {
         font-size: 0.85em;
         color: #ccc;
     }
 
-    .right .status {
-        font-size: 0.85em;
-        color: var(--accent-color);
+    .progress-bar {
+        display: inline-block;
+        width: 100%;
+        background: var(--tab-bg-color);
+    }
+
+    .progress-fill {
+        padding: 2px;
+        background-color: var(--accent-color);
+        transition: width 0.15s;
     }
 </style>

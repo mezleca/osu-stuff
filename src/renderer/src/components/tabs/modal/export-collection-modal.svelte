@@ -43,7 +43,6 @@
 
     const cleanup = () => {
         selected_collections = [];
-        type = "db";
         show_modal(ModalType.none);
     };
 </script>
@@ -56,7 +55,8 @@
             <Buttons label="collections" options={$all_collections.map((c) => c.name)} bind:selected={selected_collections} />
 
             <Dropdown
-                placeholder="collection type"
+                label="type"
+                placeholder="..."
                 bind:selected_value={type}
                 options={[
                     { label: "db", value: "db" },

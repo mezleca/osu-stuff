@@ -218,11 +218,17 @@ export abstract class BaseDriver implements IOsuDriver {
         const zip = new JSzip();
 
         for (const file of files) {
+            // TODO: only continue if the missing file is anything but a .osu one
+            if (!fs.existsSync(file.location)) {
+                console.warn("export_beatmapset: failed to find", file);
+                continue;
+            }
+
             const buffer = fs.readFileSync(file.location);
 
             if (!buffer) {
-                console.error("export_beatmapset: failed to get buffer from", file);
-                return false;
+                console.warn("export_beatmapset: failed to get buffer from", file);
+                continue;
             }
 
             zip.file(file.name, buffer);

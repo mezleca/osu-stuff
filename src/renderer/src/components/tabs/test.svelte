@@ -1,11 +1,9 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { show_export_progress } from "../../lib/store/export_progress";
+    import { update_export_progress, hide_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
     import { context_menu_manager } from "../../lib/store/context-menu";
-
-    const export_test_data = { active: true, id: 123, collection: "abc", status: "start" };
 
     interface TestItem {
         id: string;
@@ -50,10 +48,11 @@
 
     onMount(() => {
         input.on("a", () => {
-            show_export_progress(export_test_data);
+            update_export_progress({ active: true, text: "mhm", progress: Math.floor(Math.random() * 100) });
         });
+
         input.on("control+a", () => {
-            show_export_progress({ ...export_test_data, status: "missing" });
+            hide_export_progress();
         });
     });
 

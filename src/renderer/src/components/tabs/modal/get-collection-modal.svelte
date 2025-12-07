@@ -64,8 +64,6 @@
         for (const collection of result.data.collections) {
             const hashes: string[] = collection.hash_only_beatmaps;
 
-            console.log(collection);
-
             // some collections doest have that
             if (hashes.length == 0) {
                 hashes.push(...collection.beatmaps.map((b) => b.md5));

@@ -1,13 +1,25 @@
-import { writable } from "svelte/store";
+import { writable, type Writable } from "svelte/store";
 
-// export progress state: { active: bool, id, collection, status, path, last_update, progress }
-export const export_progress = writable({ active: false });
+interface IExportProgress {
+    active: boolean;
+    text: string;
+    progress: number; // 0 - 100
+    last_update: number;
+};
 
-export const show_export_progress = (obj: any) => {
-    const now = Date.now();
-    export_progress.set({ ...obj, active: true, last_update: now });
+const DEFAULT_PROGRESS_STATE: IExportProgress = {
+    active: false,
+    last_update: 0,
+    progress: 0,
+    text: ""
+};
+
+export const export_progress: Writable<IExportProgress> = writable(DEFAULT_PROGRESS_STATE);
+
+export const update_export_progress = (data: Partial<IExportProgress>) => {
+    export_progress.update((obj) => ({ ...obj, ...data }));
 };
 
 export const hide_export_progress = () => {
-    export_progress.set({ active: false });
+    export_progress.set(DEFAULT_PROGRESS_STATE);
 };

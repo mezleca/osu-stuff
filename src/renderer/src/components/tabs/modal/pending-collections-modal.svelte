@@ -3,7 +3,6 @@
     import { collections } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
     import CollectionCard from "../../cards/collection-card.svelte";
-    import { onDestroy } from "svelte";
 
     let selected_collections: string[] = [];
 
@@ -60,7 +59,6 @@
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             <h1 class="field-label">collections to import</h1>
-
             <div class="collection-list">
                 {#each $pending_collections as collection}
                     <CollectionCard

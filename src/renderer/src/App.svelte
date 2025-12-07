@@ -67,9 +67,12 @@
     <ExportProgress />
     <ContextMenu />
 
-    <!-- loading screen -->
+    <!-- show loading screen on initialization -->
     {#if !initialized}
-        <div class="loading-screen">
+        <div
+            class="loading-screen"
+            onclick={(e) => e.stopPropagation()}
+            >
             <Spinner width={48} height={48} />
             <h1 class="loading-status" style="color: white;">loading...</h1>
         </div>
