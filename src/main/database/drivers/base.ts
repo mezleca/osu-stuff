@@ -132,9 +132,11 @@ export abstract class BaseDriver implements IOsuDriver {
 
         for (const collection of collections) {
             // create new osdb collection
-            const osdb_collection = {
-                name: collection.name
-            } as IOSDBCollection;
+            const osdb_collection: IOSDBCollection = {
+                name: collection.name,
+                beatmaps: [],
+                hash_only_beatmaps: []
+            };
 
             // add data from previous collection
             for (const hash of collection.beatmaps) {

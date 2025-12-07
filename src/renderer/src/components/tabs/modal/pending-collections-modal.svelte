@@ -3,6 +3,7 @@
     import { collections } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
     import CollectionCard from "../../cards/collection-card.svelte";
+    import { onDestroy } from "svelte";
 
     let selected_collections: string[] = [];
 
@@ -34,6 +35,7 @@
 
             await collections.add_beatmaps(collection.name, collection.beatmaps);
         }
+
         cleanup();
     };
 
@@ -47,6 +49,7 @@
 
     const cleanup = () => {
         selected_collections = [];
+        pending_collections.set([]);
         show_modal(ModalType.none);
     };
 </script>
