@@ -485,12 +485,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
-
-        console.log("fetched", beatmaps.length, "beatmapsets");
-
         const result = await this.filter_beatmapsets(beatmaps, options);
-
-        console.log("after filtering:", result.length);
 
         return { beatmapsets: result, invalid };
     };

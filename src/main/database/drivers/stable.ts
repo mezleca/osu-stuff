@@ -479,8 +479,6 @@ class StableBeatmapDriver extends BaseDriver {
             files.push({ name: path.basename(file), location: path.join(full_dir_data, file) });
         }
 
-        console.log(files);
-
         return files;
     };
 
