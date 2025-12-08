@@ -33,20 +33,19 @@ jobs:
                 include:
                     - os: ubuntu-latest
                       platform: linux
+                      should_run: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'linux-only' }}
                       artifact_patterns: |
                           dist/*.AppImage
                           dist/*.deb
                     - os: windows-latest
                       platform: windows
+                      should_run: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'windows-only' }}
                       artifact_patterns: |
                           dist/*.exe
 
         runs-on: ${{ matrix.os }}
 
-        if: |
-            (github.event.inputs.build_target == 'both') ||
-            (github.event.inputs.build_target == 'linux-only' && matrix.platform == 'linux') ||
-            (github.event.inputs.build_target == 'windows-only' && matrix.platform == 'windows')
+        if: ${{ matrix.should_run == 'true' }}
 
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
