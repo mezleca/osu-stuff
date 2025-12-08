@@ -7,7 +7,6 @@ electronLanguages:
 directories:
     buildResources: resources
 files:
-    - "out/**"
     - "!**/.vscode/*"
     - "!src/*"
     - "!electron.vite.config.{js,ts,mjs,cjs}"
@@ -16,16 +15,17 @@ files:
     - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
     - "!node_modules/realm/prebuilds/android*/**"
     - "!node_modules/realm/prebuilds/apple*/**"
-    - "build/Release/**"
+    - "!tests/"
+    - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+asarUnpack:
+    - resources/**
 win:
-    executableName: stuff
+    executableName: osu-stuff
 nsis:
     artifactName: ${name}-${version}-setup.${ext}
     shortcutName: ${productName}
     uninstallDisplayName: ${productName}
     createDesktopShortcut: always
-dmg:
-    artifactName: ${name}-${version}.${ext}
 linux:
     target:
         - AppImage

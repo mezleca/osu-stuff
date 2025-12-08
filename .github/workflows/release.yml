@@ -27,11 +27,30 @@ on:
                     - "build-only"
 
 jobs:
-    build-linux:
-        runs-on: ubuntu-latest
-        if: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'linux-only' }}
+    build:
+        strategy:
+            matrix:
+                include:
+                    - os: ubuntu-latest
+                      platform: linux
+                      artifact_patterns: |
+                          dist/*.AppImage
+                          dist/*.deb
+                    - os: windows-latest
+                      platform: windows
+                      artifact_patterns: |
+                          dist/*.exe
+
+        runs-on: ${{ matrix.os }}
+
+        if: |
+            (github.event.inputs.build_target == 'both') ||
+            (github.event.inputs.build_target == 'linux-only' && matrix.platform == 'linux') ||
+            (github.event.inputs.build_target == 'windows-only' && matrix.platform == 'windows')
+
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
         steps:
             - name: checkout
               uses: actions/checkout@v6
@@ -41,7 +60,8 @@ jobs:
               with:
                   bun-version: latest
 
-            - name: install system dependencies
+            - name: install system dependencies (linux)
+              if: matrix.platform == 'linux'
               run: |
                   sudo apt-get update
                   sudo apt-get install -y dpkg-dev build-essential libsndfile1-dev libmp3lame-dev
@@ -49,93 +69,57 @@ jobs:
                   curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool
                   chmod +x /usr/local/bin/appimagetool
 
-            - name: install dependencies
-              run: bun install
-
-            - name: rebuild native modules
-              run: bun run rebuild
-
-            - name: build linux app
-              run: bun run build:linux
-
-            - name: upload linux artifacts
-              uses: actions/upload-artifact@v5
-              with:
-                  name: linux-build
-                  path: |
-                      dist/*.AppImage
-                      dist/*.deb
-
-    build-windows:
-        runs-on: windows-latest
-        if: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'windows-only' }}
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        steps:
-            - name: checkout
-              uses: actions/checkout@v6
-
-            - name: setup bun
-              uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: latest
-
             - name: setup MSVC
+              if: matrix.platform == 'windows'
               uses: ilammy/msvc-dev-cmd@v1
 
-            - name: install vcpkg dependencies
-              run: |
-                  vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
+            - name: install vcpkg dependencies (windows)
+              if: matrix.platform == 'windows'
+              run: vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
 
             - name: install dependencies
               run: bun install
 
-            - name: rebuild native modules
-              run: bun run rebuild
+            - name: build app
+              run: |
+                  if [ "${{ matrix.platform }}" == "linux" ]; then
+                    bun run build:linux
+                  else
+                    bun run build:win
+                  fi
+              shell: bash
 
-            - name: build windows app
-              run: bun run build:win
-
-            - name: upload windows artifacts
+            - name: upload artifacts
               uses: actions/upload-artifact@v5
               with:
-                  name: windows-build
-                  path: |
-                      dist/*.exe
+                  name: ${{ matrix.platform }}-build
+                  path: ${{ matrix.artifact_patterns }}
 
     create-release:
-        needs: [build-linux, build-windows]
+        needs: build
         runs-on: ubuntu-latest
+
         if: |
-            always() && 
-            (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') &&
-            (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') &&
+            always() &&
+            !cancelled() &&
             (github.event.inputs.action_type == 'draft' || github.event.inputs.action_type == 'publish')
+
         steps:
             - name: checkout
               uses: actions/checkout@v6
 
             - name: get version
               id: get_version
-              run: |
-                  echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+              run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
 
-            - name: download linux artifacts
-              if: ${{ needs.build-linux.result == 'success' }}
+            - name: download artifacts
               uses: actions/download-artifact@v6
               with:
-                  name: linux-build
                   path: artifacts/
-
-            - name: download windows artifacts
-              if: ${{ needs.build-windows.result == 'success' }}
-              uses: actions/download-artifact@v6
-              with:
-                  name: windows-build
-                  path: artifacts/
+                  merge-multiple: true
 
             - name: create draft release
-              if: ${{ github.event.inputs.action_type == 'draft' }}
+              if: github.event.inputs.action_type == 'draft'
               uses: softprops/action-gh-release@v2
               with:
                   name: ${{ steps.get_version.outputs.VERSION }}
@@ -150,7 +134,7 @@ jobs:
                   token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: create published release
-              if: ${{ github.event.inputs.action_type == 'publish' }}
+              if: github.event.inputs.action_type == 'publish'
               uses: softprops/action-gh-release@v2
               with:
                   name: ${{ steps.get_version.outputs.VERSION }}
