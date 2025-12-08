@@ -46,7 +46,7 @@
         "cross-env": "^10.1.0",
         "electron": "^39.2.3",
         "electron-builder": "^26.0.12",
-        "electron-vite": "^4.0.1",
+        "electron-vite": "^5.0.0",
         "eslint": "^9.36.0",
         "eslint-plugin-svelte": "^3.12.4",
         "node-addon-api": "^8.5.0",
