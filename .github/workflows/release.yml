@@ -77,13 +77,6 @@ jobs:
               with:
                   bun-version: latest
 
-            - name: setup MSVC
-              uses: ilammy/msvc-dev-cmd@v1
-
-            - name: install vcpkg dependencies
-              run: |
-                  vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
-
             - name: install dependencies
               run: bun install
 
