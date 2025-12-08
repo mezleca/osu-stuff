@@ -24,16 +24,11 @@
         "build:linux": "bun run build && electron-builder --linux"
     },
     "dependencies": {
-        "@electron-toolkit/preload": "^3.0.2",
-        "@electron-toolkit/utils": "^4.0.0",
         "@rel-packages/osu-beatmap-parser": "^0.1.9",
-        "@rollup/plugin-node-resolve": "^16.0.3",
         "better-sqlite3": "^12.5.0",
         "jszip": "^3.10.1",
         "osu-api-extended": "^3.1.7",
-        "realm": "^20.2.0",
-        "vite-tsconfig-paths": "^5.1.4",
-        "vitest": "^4.0.15"
+        "realm": "^20.2.0"
     },
     "devDependencies": {
         "@electron-toolkit/eslint-config-prettier": "^3.0.0",
@@ -43,19 +38,19 @@
         "@types/better-sqlite3": "^7.6.13",
         "@types/jszip": "^3.4.1",
         "@types/node": "^24.10.1",
+        "@electron-toolkit/preload": "^3.0.2",
+        "@electron-toolkit/utils": "^4.0.0",
         "cross-env": "^10.1.0",
         "electron": "^39.2.6",
         "electron-builder": "^26.0.12",
         "electron-vite": "^5.0.0",
-        "eslint": "^9.39.1",
-        "eslint-plugin-svelte": "^3.13.1",
-        "node-addon-api": "^8.5.0",
-        "node-api-headers": "^1.7.0",
         "prettier": "^3.7.4",
         "prettier-plugin-svelte": "^3.4.0",
         "svelte": "^5.45.6",
         "svelte-check": "^4.3.4",
         "typescript": "^5.9.3",
-        "vite": "^7.2.7"
+        "vite": "^7.2.7",
+        "vite-tsconfig-paths": "^5.1.4",
+        "vitest": "^4.0.15"
     }
 }
