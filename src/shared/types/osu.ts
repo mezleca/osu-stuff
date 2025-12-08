@@ -208,7 +208,6 @@ export interface IBeatmapResult {
     length: number;
     status: string;
     mode: string;
-    local: boolean;
     temp: boolean;
     last_modified: string;
 

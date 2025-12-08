@@ -6,31 +6,32 @@
 
     import { downloader } from "../../lib/store/downloader";
 
-    $: downloads = downloader.downloads;
+    $: downloads = downloader.data;
 </script>
 
 <div class="content tab-content" style="padding: 20px;">
     <div class="manager-content">
         {#each $downloads as download}
+            {@const progress = download.progress}
             <div class="download-container">
-                <div class="download-info">{download.name}</div>
+                <div class="download-info">{download.id}</div>
                 <div class="download-progress">
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {Math.floor((download.progress.index / download.beatmaps?.length) * 100)}%;"></div>
+                        <div class="progress-fill" style="width: {Math.floor((progress.current / progress.length) * 100)}%;"></div>
                     </div>
                 </div>
                 <div class="download-status">
-                    <p>downloading... <span>({download.progress.index}/{download.beatmaps?.length})</span></p>
+                    <p>downloading... <span>({progress.current}/{progress.length})</span></p>
                 </div>
                 <div class="download-actions">
-                    <button class="action" onclick={() => (download.paused ? downloader.resume(download.name) : downloader.stop(download.name))}>
-                        {#if download.paused}
+                    <button class="action" onclick={() => (progress.paused ? downloader.resume(download.id) : downloader.pause(download.id))}>
+                        {#if progress.paused}
                             <Play />
                         {:else}
                             <Pause />
                         {/if}
                     </button>
-                    <button class="action" onclick={() => downloader.remove(download.name)}>
+                    <button class="action" onclick={() => downloader.remove(download.id)}>
                         <X />
                     </button>
                 </div>

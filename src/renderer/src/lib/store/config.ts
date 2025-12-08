@@ -124,8 +124,8 @@ class ConfigStore {
             const id = this.get("osu_id");
             const secret = this.get("osu_secret");
 
-            if (!string_is_valid(id) || !string_is_valid(secret)) {
-                console.warn("skipping auth (invalid id / secret)");
+            if (!id || !string_is_valid(secret)) {
+                console.warn("skipping auth (invalid id / secret):", id, secret);
                 this.authenticated.set(false);
                 return;
             }

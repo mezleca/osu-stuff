@@ -48,7 +48,6 @@ const build_beatmap = (beatmap: IStableBeatmap, processed?: BeatmapRow, temp: bo
         od: beatmap.od,
         status: stable_status_from_code(beatmap.status),
         mode: gamemode_from_code(beatmap.mode),
-        local: true,
         temp: temp,
         duration: processed?.duration || 0,
         background: processed?.background || "",

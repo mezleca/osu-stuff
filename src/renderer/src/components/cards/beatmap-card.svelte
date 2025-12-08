@@ -5,18 +5,11 @@
     import { get_card_image_source } from "../../lib/utils/card-utils";
     import { open_on_browser } from "../../lib/utils/utils";
     import { show_context_menu } from "../../lib/store/context-menu";
-    import { get_audio_manager, toggle_beatmap_preview } from "../../lib/store/audio";
+
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
 
     // components
-    import Play from "../icon/play.svelte";
-    import Pause from "../icon/pause.svelte";
-    import Cross from "../icon/cross.svelte";
-    import X from "../icon/x.svelte";
-
-    const audio_manager = get_audio_manager("preview");
-
-    $: is_playing = $audio_manager.playing && $audio_manager.id == String(beatmap?.beatmapset_id);
+    import BeatmapControls from "./beatmap-controls.svelte";
 
     export let selected = false,
         highlighted = false,
@@ -157,48 +150,8 @@
         <img src={image_src} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
 
         <!-- render controls -->
-        {#if show_control}
-            <div class="card-control">
-                <!-- show preview control if beatmap is available -->
-                {#if beatmap}
-                    <button
-                        class="control-btn play-btn"
-                        onclick={(e) => {
-                            e.stopPropagation();
-                            toggle_beatmap_preview(beatmap.beatmapset_id);
-                        }}
-                    >
-                        {#if is_playing}
-                            <Pause />
-                        {:else}
-                            <Play />
-                        {/if}
-                    </button>
-                {/if}
-
-                <!-- show other controls (add / remove)-->
-                {#if !beatmap || !beatmap?.local}
-                    <button
-                        class="control-btn close-btn"
-                        onclick={(e) => {
-                            e.stopPropagation();
-                            on_add(hash);
-                        }}
-                    >
-                        <Cross />
-                    </button>
-                {:else}
-                    <button
-                        class="control-btn close-btn"
-                        onclick={(e) => {
-                            e.stopPropagation();
-                            on_remove(hash);
-                        }}
-                    >
-                        <X />
-                    </button>
-                {/if}
-            </div>
+        {#if show_control && beatmap}
+            <BeatmapControls beatmapset_id={beatmap.beatmapset_id} {beatmap} {hash} has_map={!beatmap.temp} {show_remove} {on_remove} />
         {/if}
 
         <!-- render set information -->

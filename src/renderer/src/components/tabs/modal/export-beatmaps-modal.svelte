@@ -29,7 +29,7 @@
             } else {
                 show_notification({ type: "success", text: `exported ${result.data ?? 0} beatmaps to ${config.get("export_path")}` });
             }
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         } finally {
             $is_exporting = false;

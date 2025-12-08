@@ -2,14 +2,15 @@
     export let options: { label: any; value: any }[] = [];
     export let selected_values: any[] = [];
     export let placeholder = "";
+    export let lowercase: boolean = true;
     export let multiple = true;
     export let on_update: (label: any) => void = null;
 
     $: actual_options = options.map((option) => {
         if (typeof option == "string") {
-            return { key: option, text: option };
+            return { key: option, label: option, value: option };
         }
-        return { label: option.label, value: option.value };
+        return { key: option.value, label: option.label, value: option.value };
     });
 
     const toggle_tag = (key) => {
@@ -43,8 +44,8 @@
 
     <div class="tags">
         {#each actual_options as option}
-            <button class="tag" class:selected={selected_values.includes(String(option.label))} onclick={() => toggle_tag(option.key)}>
-                {option.text}
+            <button class="tag" class:selected={selected_values.includes(option.value)} onclick={() => toggle_tag(option.key)}>
+                {lowercase ? String(option.value).toLowerCase() : option.value}
             </button>
         {/each}
     </div>
@@ -54,6 +55,7 @@
     .tag-container {
         display: flex;
         flex-direction: column;
+        width: 100%;
         gap: 8px;
     }
 

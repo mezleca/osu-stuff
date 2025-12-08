@@ -7,12 +7,21 @@ import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult } from "@s
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 
+// cached beatmap / beatmapsets
+export const beatmap_cache: Map<string, IBeatmapResult> = new Map();
+export const beatmapset_cache: Map<number, BeatmapSetResult> = new Map();
+
+// temp hack to prevent cards spam
 const invalid_beatmaps: Set<string> = new Set();
 const invalid_beatmapsets: Set<number> = new Set();
 
 export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefined> => {
     if (invalid_beatmaps.has(id)) {
         return undefined;
+    }
+
+    if (beatmap_cache.has(id)) {
+        return beatmap_cache.get(id);
     }
 
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
@@ -23,12 +32,17 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
         return undefined;
     }
 
+    beatmap_cache.set(id, beatmap);
     return beatmap;
 };
 
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
     if (invalid_beatmapsets.has(id)) {
         return undefined;
+    }
+
+    if (beatmapset_cache.has(id)) {
+        return beatmapset_cache.get(id);
     }
 
     const beatmapset = await window.api.invoke("driver:get_beatmapset", id);
@@ -39,6 +53,7 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
         return undefined;
     }
 
+    beatmapset_cache.set(id, beatmapset);
     return beatmapset;
 };
 

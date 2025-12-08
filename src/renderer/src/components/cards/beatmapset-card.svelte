@@ -1,15 +1,17 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
     import type { BeatmapSetResult, IBeatmapResult } from "@shared/types";
+    import type { BeatmapSetList } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmapset, get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
+    import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
+    import { get } from "svelte/store";
     import { slide } from "svelte/transition";
 
     // components
     import BeatmapCard from "./beatmap-card.svelte";
-    import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
-    import { get } from "svelte/store";
+    import BeatmapControls from "./beatmap-controls.svelte";
 
     export let id = -1;
     export let show_context = true;
@@ -19,6 +21,8 @@
     export let highlighted = false;
     export let on_remove: (id: number) => {} = null;
     export let height = 100;
+
+    export let list_manager: BeatmapSetList = null;
 
     let beatmapset: BeatmapSetResult | null = null;
     let image_src: string = "";
@@ -38,7 +42,16 @@
         beatmapset_loaded = false;
 
         try {
-            const result = await get_beatmapset(loading_id);
+            let result: BeatmapSetResult | undefined;
+
+            if (list_manager && list_manager.get_beatmapset) {
+                result = list_manager.get_beatmapset(loading_id) || undefined;
+            }
+
+            // fallback to global
+            if (!result) {
+                result = await get_beatmapset(loading_id);
+            }
 
             if (result === undefined) {
                 failed_ids.add(loading_id);
@@ -92,6 +105,7 @@
     let expanded = false;
     let sorted_beatmaps: IBeatmapResult[] = [];
     let is_hovering = false;
+    let first_beatmap: IBeatmapResult | null = null;
 
     const handle_mouseenter = async () => {
         is_hovering = true;
@@ -100,6 +114,11 @@
         if (beatmapset && beatmapset.beatmaps && sorted_beatmaps.length === 0) {
             const beatmaps = await Promise.all(beatmapset.beatmaps.map((hash) => get_beatmap(hash)));
             sorted_beatmaps = beatmaps.filter((b) => b !== undefined).sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
+
+            // set first beatmap for controls
+            if (sorted_beatmaps.length > 0) {
+                first_beatmap = sorted_beatmaps[0];
+            }
         }
 
         if (hover_timeout) clearTimeout(hover_timeout);
@@ -152,6 +171,20 @@
             <!-- svelte-ignore a11y_img_redundant_alt -->
             <img src={image_src} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
 
+            <!-- render controls -->
+            {#if first_beatmap}
+                <BeatmapControls
+                    beatmapset_id={beatmapset.online_id}
+                    beatmap={first_beatmap}
+                    hash={first_beatmap.md5}
+                    has_map={!first_beatmap.temp}
+                    {show_remove}
+                    on_remove={() => {
+                        if (on_remove) on_remove(beatmapset.online_id);
+                    }}
+                />
+            {/if}
+
             <!-- render set information -->
             <div class="beatmap-card-metadata">
                 <div class="title">{beatmapset.metadata?.title ?? "unknown"}</div>
@@ -194,6 +227,11 @@
     .beatmap-card-header {
         position: relative;
         width: 100%;
+        max-width: 100%;
         overflow: hidden;
+    }
+
+    .beatmap-card-header > .beatmap-card-background {
+        max-width: 100%;
     }
 </style>

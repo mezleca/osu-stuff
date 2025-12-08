@@ -347,7 +347,17 @@
 
             <div
                 class="row-container"
-                style="display: grid; grid-template-columns: repeat({columns}, 1fr); gap: 8px; width: 100%; position: absolute; top: {row_top_pos}px; left: 0; right: 0;"
+                style="
+                    display: grid;
+                    grid-template-columns: repeat({columns}, 1fr);
+                    gap: 8px;
+                    width: 100%;
+                    position: absolute;
+                    top: {row_top_pos}px;
+                    left: 0;
+                    right: 0;
+                    z-index: {count - row_index};
+                "
                 data-index={row_index}
             >
                 {#each column_items as item_index}
@@ -378,8 +388,8 @@
                 style="
                     position: absolute;
                     top: {top_pos}px;
-                    width: {max_width ? (carousel_enabled ? '98' : '100') : '80'}%; 
-                    transform-origin: {direction} center; 
+                    width: {max_width ? (carousel_enabled ? '98' : '100') : '80'}%;
+                    transform-origin: {direction} center;
                     z-index: {z_index};
                 "
                 on:mouseenter={() => handle_mouse_enter(actual_index)}

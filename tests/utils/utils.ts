@@ -39,9 +39,9 @@ export const create_temp_beatmap = (): IBeatmapResult => {
         length: 120,
         status: "ranked",
         mode: "osu!",
-        local: false,
         last_modified: "",
-        temp: true
+        temp: true,
+        background: ""
     };
 };
 

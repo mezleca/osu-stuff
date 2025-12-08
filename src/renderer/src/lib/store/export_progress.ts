@@ -5,7 +5,7 @@ interface IExportProgress {
     text: string;
     progress: number; // 0 - 100
     last_update: number;
-};
+}
 
 const DEFAULT_PROGRESS_STATE: IExportProgress = {
     active: false,

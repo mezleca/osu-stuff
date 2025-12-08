@@ -58,7 +58,6 @@ const build_beatmap = (beatmap: BeatmapSchema, processed?: BeatmapRow, temp: boo
         od: beatmap.Difficulty.OverallDifficulty,
         status: lazer_status_from_code(beatmap.Status),
         mode: beatmap.Ruleset.Name || "",
-        local: true,
         temp: temp,
         duration: processed?.duration || 0,
         background: processed?.background || "",

@@ -1,11 +1,12 @@
 import { get, writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { debounce } from "../utils/utils";
+import { beatmap_cache, beatmapset_cache } from "../utils/beatmaps";
 import { BeatmapSetList } from "./beatmaps";
 
 import type { Writable } from "svelte/store";
-import type { BeatmapSetResult, BeatmapsSearchParams } from "@shared/types";
-import type { Beatmapset } from "osu-api-extended/dist/types/v2/search_all";
+import type { BeatmapSetResult, BeatmapsSearchParams, IBeatmapResult } from "@shared/types";
+import type { Beatmapset, Beatmap } from "osu-api-extended/dist/types/v2/search_all";
 
 export const DISCOVER_CATEGORIES = ["converts", "featured artists", "follows", "recommend", "spotlights"];
 export const DISCOVER_LANGUAGES = [
@@ -25,34 +26,85 @@ export const DISCOVER_LANGUAGES = [
     "Unspecified",
     "Other"
 ];
+
 export const DISCOVER_MODES = ["osu", "fruits", "mania", "taiko"];
 export const DISCOVER_STATUSES = ["any", "ranked", "qualified", "loved", "favourites", "pending", "wip", "graveyard", "mine"];
 export const DISCOVER_EXTRAS = ["storyboard", "video"];
 
-const build_beatmapset = (beatmapset: Beatmapset, temp: boolean): BeatmapSetResult => {
+interface IApiBeatmapSetMetadata {
+    title: string;
+    artist: string;
+    creator: string;
+    source: string;
+    tags: string;
+}
+
+const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata): IBeatmapResult => {
+    return {
+        md5: beatmap.checksum || "",
+        online_id: beatmap.id,
+        beatmapset_id: beatmap.beatmapset_id,
+        title: metadata.title,
+        artist: metadata.artist,
+        creator: metadata.creator,
+        difficulty: beatmap.version,
+        source: metadata.source,
+        tags: metadata.tags,
+        star_rating: beatmap.difficulty_rating,
+        bpm: beatmap.bpm,
+        length: beatmap.hit_length,
+        last_modified: Date.now().toString(),
+        ar: beatmap.ar,
+        cs: beatmap.cs,
+        hp: beatmap.drain,
+        od: beatmap.accuracy,
+        status: beatmap.status,
+        mode: beatmap.mode,
+        temp: true,
+        background: ""
+    };
+};
+
+const build_beatmapset = (beatmapset: Beatmapset): BeatmapSetResult => {
+    const metadata: IApiBeatmapSetMetadata = {
+        title: beatmapset.title,
+        artist: beatmapset.artist,
+        creator: beatmapset.creator,
+        tags: beatmapset.tags,
+        source: beatmapset.source
+    };
+
+    const hashes: string[] = [];
+
+    // get hashes / save to temp cache
+    for (const beatmap of beatmapset.beatmaps) {
+        hashes.push(beatmap.checksum);
+
+        if (!beatmap_cache.has(beatmap.checksum)) {
+            beatmap_cache.set(beatmap.checksum, build_beatmap(beatmap, metadata));
+        }
+    }
+
     return {
         online_id: beatmapset.id,
         metadata: {
-            title: beatmapset.title,
-            artist: beatmapset.artist,
-            creator: beatmapset.creator
+            title: metadata.title,
+            artist: metadata.artist,
+            creator: metadata.creator
         },
-        beatmaps: [],
-        temp: temp
+        beatmaps: hashes,
+        temp: true
     };
 };
 
 class DiscoverManager extends BeatmapSetList {
     data: Writable<BeatmapsSearchParams> = writable({
         type: "beatmaps",
-        _nsfw: true
+        _nsfw: true,
+        mode: "osu"
     });
 
-    // query store for search input
-    query: Writable<string> = writable("");
-
     // beatmaps
-    beatmapsets_cache: Map<number, BeatmapSetResult> = new Map();
     beatmapsets: Writable<number[]> = this.items;
 
     // state
@@ -66,12 +118,13 @@ class DiscoverManager extends BeatmapSetList {
     }
 
     get_beatmapset(id: number): BeatmapSetResult | null {
-        return this.beatmapsets_cache.get(id) || null;
+        return beatmapset_cache.get(id);
     }
 
     get_current_search_state(): string {
         const data = get(this.data);
-        return JSON.stringify(data);
+        const { cursor_string, ...rest } = data;
+        return JSON.stringify(rest);
     }
 
     get_values(key: "languages" | "categories" | "genres" | "modes"): string[] {
@@ -90,8 +143,15 @@ class DiscoverManager extends BeatmapSetList {
     }
 
     update_query(q: string): void {
-        this.query.set(q);
-        this.data.update((data) => ({ ...data, q, cursor_string: "" }));
+        const data = get(this.data);
+        const has_items = get(this.items).length > 0;
+
+        if (q == data.query && has_items) {
+            return;
+        }
+
+        this.data.update((d) => ({ ...d, query: q, cursor_string: "" }));
+        this.items.set([]);
         this.reached_end.set(false);
         this.search();
     }
@@ -146,13 +206,18 @@ class DiscoverManager extends BeatmapSetList {
         // sync beatmap data
         const new_ids: number[] = [];
         const ids = result.beatmapsets.map((b) => b.id);
-        const exists_array = await window.api.invoke("driver:has_beatmapsets", ids);
+        const set_exists = await window.api.invoke("driver:has_beatmapsets", ids);
 
         for (let i = 0; i < result.beatmapsets.length; i++) {
             const beatmapset = result.beatmapsets[i];
-            const exists = exists_array[i];
-            const set_result = build_beatmapset(beatmapset, !exists);
-            this.beatmapsets_cache.set(beatmapset.id, set_result);
+            const exists = set_exists[i];
+
+            // if we dont have the beatmap, build and cache it
+            if (!exists) {
+                const set_result = build_beatmapset(beatmapset);
+                beatmapset_cache.set(beatmapset.id, set_result);
+            }
+
             new_ids.push(beatmapset.id);
         }
 
@@ -163,6 +228,7 @@ class DiscoverManager extends BeatmapSetList {
 
     update<T extends keyof BeatmapsSearchParams>(key: T, value: BeatmapsSearchParams[T]): void {
         this.data.update((data) => ({ ...data, [key]: value, cursor_string: "" }));
+        this.items.set([]);
         this.reached_end.set(false);
         this.search();
     }

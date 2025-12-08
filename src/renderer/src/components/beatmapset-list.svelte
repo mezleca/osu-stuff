@@ -32,7 +32,7 @@
         buffer={5}
         {carousel}
         {direction}
-        {columns}
+        columns={2}
         {on_update}
         let:index
     >
@@ -40,7 +40,7 @@
         {@const id = $items[index]}
 
         <!-- render beatmapset card -->
-        <BeatmapSetCard {id} {show_context} {height} />
+        <BeatmapSetCard {id} {show_context} {height} {list_manager} />
     </VirtualList>
 </div>
 

@@ -24,7 +24,7 @@ export abstract class ListBase {
     key: string = crypto.randomUUID();
     list_id: Writable<string> = writable(this.key);
     query: Writable<string> = writable("");
-    status: Writable<string> = writable("ranked");
+    status: Writable<string> = writable(ALL_STATUS_KEY);
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
     show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
@@ -383,6 +383,10 @@ export class BeatmapSetList extends ListBase {
 
     is_same_item(item1: ISelectedBeatmap, item2: ISelectedBeatmap) {
         return item1.md5 == item2.md5;
+    }
+
+    get_beatmapset(beatmapset_id: number): BeatmapSetResult | null {
+        return null;
     }
 
     clear() {

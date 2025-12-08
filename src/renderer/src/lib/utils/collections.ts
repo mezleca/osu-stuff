@@ -72,7 +72,6 @@ const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapRe
                     bpm: beatmap.bpm,
                     length: beatmap.hit_length,
                     temp: true,
-                    local: false,
                     status: beatmap.status,
                     mode: beatmap.mode,
                     last_modified: "",
@@ -124,7 +123,7 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
             bpm: beatmap.bpm,
             length: beatmap.hit_length,
             temp: true,
-            local: false,
+
             status: beatmap.status,
             mode: beatmap.mode,
             last_modified: "",
@@ -225,7 +224,11 @@ export const export_beatmaps = async (collections_name: string[]): Promise<Gener
 
         if (!beatmap) {
             console.warn(`skipping: ${hash} (not found)`);
-            update_export_progress({ active: true, text: `skipping ${hash} (not found)`, progress: Math.floor(i / beatmaps_to_export.length * 100) });
+            update_export_progress({
+                active: true,
+                text: `skipping ${hash} (not found)`,
+                progress: Math.floor((i / beatmaps_to_export.length) * 100)
+            });
             continue;
         }
 
@@ -235,7 +238,7 @@ export const export_beatmaps = async (collections_name: string[]): Promise<Gener
             exported++;
         }
 
-        update_export_progress({ active: true, text: `exported ${beatmap.title}`, progress: Math.floor(i / beatmaps_to_export.length * 100) });
+        update_export_progress({ active: true, text: `exported ${beatmap.title}`, progress: Math.floor((i / beatmaps_to_export.length) * 100) });
     }
 
     hide_export_progress();
