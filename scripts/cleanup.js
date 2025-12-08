@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 
 // NOTE: pretty sure you can achieve this by simply using the yml file...
-export default async (ctx: any) => {
+export default async (ctx) => {
     const dir = path.resolve(ctx.appOutDir);
     const result = fs.readdirSync(dir);
     const node_extra_folder = path.resolve(dir, "resources", "app.asar.unpacked", "node_modules");
