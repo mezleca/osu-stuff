@@ -16,6 +16,7 @@ files:
     - "!node_modules/realm/prebuilds/android*/**"
     - "!node_modules/realm/prebuilds/apple*/**"
     - "!tests/"
+    - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 asarUnpack:
     - resources/**
