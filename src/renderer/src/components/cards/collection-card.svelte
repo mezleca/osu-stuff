@@ -58,6 +58,7 @@
         align-items: center;
         gap: 10px;
         overflow: hidden;
+        font-family: "Torus SemiBold";
     }
 
     :global(.music-icon) {
@@ -72,5 +73,6 @@
         font-size: 12px;
         white-space: nowrap;
         margin-left: 5px;
+        font-family: "Torus Bold";
     }
 </style>

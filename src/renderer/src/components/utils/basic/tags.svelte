@@ -1,7 +1,7 @@
 <script lang="ts">
     export let options: { label: any; value: any }[] = [];
     export let selected_values: any[] = [];
-    export let placeholder = "";
+    export let label = "";
     export let lowercase: boolean = true;
     export let multiple = true;
     export let on_update: (label: any) => void = null;
@@ -38,8 +38,8 @@
 </script>
 
 <div class="tag-container">
-    {#if placeholder}
-        <span class="placeholder">{placeholder}</span>
+    {#if label}
+        <span class="label">{label}</span>
     {/if}
 
     <div class="tags">
@@ -59,8 +59,9 @@
         gap: 8px;
     }
 
-    .placeholder {
+    .label {
         color: var(--text-secondary);
+        font-family: "Torus Bold";
         font-size: 12px;
         margin-right: 4px;
         white-space: nowrap;
@@ -82,6 +83,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
+        font-family: "Torus SemiBold";
     }
 
     .tag:hover {

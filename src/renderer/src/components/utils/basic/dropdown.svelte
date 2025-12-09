@@ -129,6 +129,7 @@
     }
 
     .dropdown_text {
+        font-family: "Torus SemiBold";
         text-align: left;
         flex: 1;
         overflow: hidden;
@@ -178,6 +179,7 @@
         text-align: left;
         border-bottom: 1px solid #2a2a2a;
         white-space: nowrap;
+        font-family: "Torus SemiBold";
     }
 
     .dropdown_item:last-child {

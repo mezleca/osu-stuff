@@ -66,10 +66,12 @@
 
     .download-info {
         font-size: 1.3em;
+        font-family: "Torus SemiBold";
     }
 
     .download-status > p {
         font-size: 0.85em;
+        font-family: "Torus";
         color: var(--text-muted);
     }
 

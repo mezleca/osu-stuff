@@ -1,7 +1,6 @@
 <script>
     import { fade } from "svelte/transition";
     import { export_progress, hide_export_progress } from "../../lib/store/export_progress";
-    // import { fade } from "svelte/transition";
 
     let timer = null;
 

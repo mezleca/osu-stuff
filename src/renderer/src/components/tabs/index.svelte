@@ -25,7 +25,7 @@
                 const target_url = e.target.getAttribute("href");
 
                 if (target_url && target_url != "") {
-                    window.shell.open(target_url, {});
+                    window.api.invoke("shell:open", target_url);
                 }
             });
         }
@@ -36,10 +36,7 @@
     <div class="index-header">
         <div class="header-text">
             <h1>osu-stuff</h1>
-            <p class="subtitle">
-                an app designed to give you more tools to interact with your osu! installation.<br />
-                below you'll find some guides and useful info.
-            </p>
+            <p class="subtitle">yet another osu manager.</p>
         </div>
     </div>
 
@@ -60,14 +57,14 @@
                 <code>osu! id</code> and <code>osu! secret</code>.<br />
                 the process to configure this is pretty simple:
             </p>
-            <ol>
+            <ul>
                 <li>create a new OAuth application <a href="https://osu.ppy.sh/home/account/edit#new-oauth-application">here</a></li>
                 <li>open the config tab in osu-stuff</li>
                 <li>paste the 'client id' from osu! into the osu! id input</li>
                 <li>click 'show client secret' on osu!'s website</li>
                 <li>paste the 'client secret' into the osu! secret input</li>
                 <li>done!</li>
-            </ol>
+            </ul>
         </section>
 
         <section>
@@ -103,19 +100,6 @@
                 if the mirror you're adding isn't listed above, make sure the url ends with the download endpoint.
             </p>
         </section>
-
-        <section>
-            <h2>quick tips</h2>
-            <ul>
-                <li>turn on <code>lazer_mode</code> only if you use osu!lazer and want the app to work with its files.</li>
-                <li>keep your <code>osu_id</code>/<code>osu_secret</code> private. they are used only to access osu!'s API.</li>
-            </ul>
-        </section>
-
-        <section>
-            <h2>license</h2>
-            <p>this project is licensed under the MIT License.</p>
-        </section>
     </div>
 </div>
 
@@ -138,17 +122,20 @@
 
     .header-text {
         flex: 1;
+        font-family: "Torus Bold";
     }
 
     h1 {
-        font-size: 2rem;
+        font-family: "Torus Bold";
+        font-size: 1.6rem;
         color: var(--text-color);
         margin: 0 0 0.5rem 0;
     }
 
     .subtitle {
         color: var(--text-secondary);
-        font-size: 0.95rem;
+        font-family: "Torus SemiBold";
+        font-size: 0.85rem;
         margin: 0;
         line-height: 1.4;
     }
@@ -159,19 +146,21 @@
     }
 
     h2 {
+        font-size: 1.4rem;
         color: var(--text-color);
         margin: 2rem 0 0.75rem 0;
         border-bottom: 1px solid var(--border-color);
         padding-bottom: 0.5rem;
+        font-family: "Torus Bold";
     }
 
     p {
+        font-size: 1rem;
+        font-family: "Torus";
         color: var(--text-secondary);
-        line-height: 1.5;
         margin: 0.75rem 0;
     }
 
-    ol,
     ul {
         margin: 1rem 0;
         padding-left: 1.5rem;
@@ -180,7 +169,7 @@
 
     li {
         margin-bottom: 0.5rem;
-        line-height: 1.4;
+        font-family: "Torus SemiBold";
     }
 
     code {

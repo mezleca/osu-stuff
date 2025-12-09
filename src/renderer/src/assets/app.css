@@ -1,6 +1,20 @@
 @font-face {
     font-family: "Torus";
+    src: url("./Torus-Regular.otf") format("opentype");
+    font-weight: 500;
+    font-style: semibold;
+}
+
+@font-face {
+    font-family: "Torus SemiBold";
     src: url("./Torus-SemiBold.otf") format("opentype");
+    font-weight: 600;
+    font-style: semibold;
+}
+
+@font-face {
+    font-family: "Torus Bold";
+    src: url("./Torus-Bold.otf") format("opentype");
     font-weight: 700;
     font-style: semibold;
 }
@@ -51,7 +65,6 @@
     box-sizing: border-box;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    font-family: "Torus";
     user-select: none;
     -webkit-user-select: none;
     scroll-behavior: smooth;
@@ -113,6 +126,10 @@ main {
     z-index: 9999;
 }
 
+.header * {
+    font-family: "Torus Bold";
+}
+
 .header-left {
     flex-grow: 1;
     display: flex;
@@ -125,6 +142,7 @@ main {
     flex: 1;
     display: flex;
     overflow: hidden;
+    font-family: "Torus SemiBold";
 }
 
 .sidebar {
@@ -404,36 +422,37 @@ main {
 }
 
 .beatmap-card .title {
-    font-size: 14px;
+    font-size: 13px;
     color: #fff;
     margin: 0 0 2px 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 280px;
-    line-height: 1.2;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    font-family: "Torus Bold";
 }
 
 .beatmap-card .artist {
-    font-size: 13px;
+    font-size: 12px;
     color: #fff;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 300px;
-    line-height: 1.2;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    font-family: "Torus SemiBold";
+    margin-bottom: 2px;
 }
 
 .beatmap-card .creator {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary, #bbb);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 320px;
-    line-height: 1.2;
+    font-family: "Torus SemiBold";
 }
 
 .beatmap-difficulties {
@@ -448,6 +467,7 @@ main {
 
 .beatmap-difficulties > * {
     font-size: 13px;
+    font-family: "Torus SemiBold";
 }
 
 .beatmap-difficulties > span {
@@ -520,18 +540,21 @@ main {
     margin-bottom: 5px;
     font-size: 15px;
     color: var(--text-primary);
+    font-family: "Torus SemiBold";
 }
 
 .field-description {
     color: #999999;
     font-size: 13px;
     margin-bottom: 10px;
+    font-family: "Torus SemiBold";
 }
 
 .field-description > a {
     color: var(--accent-color);
     text-decoration: underline;
     cursor: pointer;
+    font-family: "Torus";
 }
 
 /* MODAL */
@@ -585,6 +608,10 @@ main {
     display: flex;
     gap: 10px;
     justify-content: center;
+}
+
+.actions > button {
+    font-family: "Torus Bold";
 }
 
 .actions-separator {
@@ -686,6 +713,7 @@ button:hover {
     color: #ffffff;
     font-size: 14px;
     transition: border-color var(--context-fade-delay) ease;
+    font-family: "Torus SemiBold";
 }
 
 .text-input:focus {

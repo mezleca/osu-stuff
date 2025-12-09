@@ -9,7 +9,6 @@
     let menu_element: HTMLDivElement;
     let active_path: ContextMenuOption[] = [];
     let leave_timeout: any;
-    let mouse_entered_menu = false;
 
     const PADDING = 10;
 
@@ -19,7 +18,6 @@
 
         if (active_context) {
             active_path = [];
-            mouse_entered_menu = false;
             await tick();
             adjust_position();
         }
@@ -88,7 +86,6 @@
 
     const handle_submenu_enter = (item: ContextMenuOption, depth: number) => {
         clearTimeout(leave_timeout);
-        mouse_entered_menu = true;
         active_path = [...active_path.slice(0, depth), item];
     };
 
@@ -101,7 +98,6 @@
 
     const handle_menu_enter = () => {
         clearTimeout(leave_timeout);
-        mouse_entered_menu = true;
     };
 
     const handle_menu_leave = () => {

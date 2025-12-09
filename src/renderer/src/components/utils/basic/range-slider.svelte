@@ -169,5 +169,6 @@
         pointer-events: none;
         transform: translateX(-50%);
         z-index: 3;
+        font-family: "Torus Bold";
     }
 </style>

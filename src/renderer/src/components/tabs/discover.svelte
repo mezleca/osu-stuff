@@ -38,7 +38,7 @@
                         multiple={false}
                         selected_values={language ? [language] : []}
                         on_update={(value) => discover.update("language", value)}
-                        placeholder={"languages"}
+                        label={"languages"}
                     />
 
                     <Tags
@@ -46,7 +46,7 @@
                         multiple={false}
                         selected_values={category ? [category] : []}
                         on_update={(value) => discover.update("category", value)}
-                        placeholder={"categories"}
+                        label={"categories"}
                     />
 
                     <Tags
@@ -54,7 +54,7 @@
                         multiple={false}
                         selected_values={genre ? [genre] : []}
                         on_update={(value) => discover.update("genre", value)}
-                        placeholder={"genres"}
+                        label={"genres"}
                     />
 
                     <Tags
@@ -62,7 +62,7 @@
                         multiple={false}
                         selected_values={mode ? [mode] : []}
                         on_update={(value) => discover.update("mode", value ?? "osu")}
-                        placeholder={"modes"}
+                        label={"modes"}
                     />
                 </ExpandableMenu>
             </div>

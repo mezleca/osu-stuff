@@ -185,6 +185,10 @@
 </div>
 
 <style>
+    .config-buttons > button {
+        font-family: "Torus Bold";
+    }
+
     .info-box {
         padding: 24px;
         height: 100%;

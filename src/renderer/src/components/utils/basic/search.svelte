@@ -20,6 +20,7 @@
 
 <style>
     .search-input {
+        font-family: "Torus SemiBold";
         width: 100%;
         padding: 12px 16px 12px 45px;
         background: var(--tab-bg-color2);

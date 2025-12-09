@@ -49,9 +49,10 @@
         background: #2a2a2a;
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 14px;
+        font-size: 13px;
         transition: all 0.15s ease;
         text-align: left;
+        font-family: "Torus SemiBold";
     }
 
     .select-button:hover {
