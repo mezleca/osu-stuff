@@ -155,10 +155,9 @@
     }
 
     p {
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-family: "Torus";
         color: var(--text-secondary);
-        margin: 0.75rem 0;
     }
 
     ul {

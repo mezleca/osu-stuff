@@ -57,7 +57,7 @@
     .window-decorations {
         display: flex;
         height: 30px;
-        margin-right: 25px;
+        margin-right: 20px;
         gap: 5px;
         -webkit-app-region: no-drag;
     }
@@ -81,16 +81,15 @@
         display: flex;
         border: none;
         border-radius: 4px;
+        padding: 6px 12px;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-        transition: all 0.2s ease;
-        background-color: var(--bg-secondary);
-        color: var(--text-muted);
+        transition: all 0.15s ease;
+        color: var(--text-color);
+        background: none;
     }
 
     .window-btn:hover {
-        color: var(--accent-color);
-        background: none;
+        background-color: var(--bg-secondary);
     }
 </style>
