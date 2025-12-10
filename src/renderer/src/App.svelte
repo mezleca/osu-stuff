@@ -5,6 +5,7 @@
     import { processing, processing_data } from "./lib/store/processor";
     import { debounce, is_dev_mode } from "./lib/utils/utils";
     import { config } from "./lib/store/config";
+    import { downloader } from "./lib/store/downloader";
     import { get_osu_data } from "./lib/utils/collections";
 
     // tabs
@@ -19,7 +20,7 @@
     // extra
     import Header from "./components/header.svelte";
     import Notifications from "./components/utils/notifications.svelte";
-    import ExportProgress from "./components/utils/export-progress.svelte";
+    import ProgressBox from "./components/utils/progress-box.svelte";
     import Spinner from "./components/icon/spinner.svelte";
     import ContextMenu from "./components/utils/context-menu.svelte";
 
@@ -45,6 +46,9 @@
             // check if we're on dev mode
             is_dev_mode.set(await window.api.invoke("env:dev_mode"));
 
+            // initialize downloader events
+            await downloader.initialize();
+
             // then initialize
             await get_osu_data();
         } catch (err) {
@@ -64,7 +68,7 @@
 
     <!-- notification container -->
     <Notifications />
-    <ExportProgress />
+    <ProgressBox />
     <ContextMenu />
 
     <!-- show loading screen on initialization -->

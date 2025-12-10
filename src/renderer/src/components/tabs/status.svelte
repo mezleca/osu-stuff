@@ -41,6 +41,12 @@
 </div>
 
 <style>
+    .manager-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
     .download-container {
         position: relative;
         display: flex;

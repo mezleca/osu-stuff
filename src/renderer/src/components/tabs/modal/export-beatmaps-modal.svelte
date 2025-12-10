@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { current_modal, ModalType, quick_confirm, show_modal } from "../../../lib/utils/modal";
+    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
-    import { show_notification } from "../../../lib/store/notifications";
     import { export_beatmaps } from "../../../lib/utils/collections";
     import { config } from "../../../lib/store/config";
+    import { cancel_export } from "../../../lib/store/export_progress";
 
     // components
     import Spinner from "../../icon/spinner.svelte";
@@ -16,25 +16,14 @@
 
     const on_submit = async () => {
         if (selected_collections.length == 0) {
-            console.warn("export_beatmaps_modal: nothing selected");
             return;
         }
 
-        try {
-            $is_exporting = true;
-            const result = await export_beatmaps(selected_collections);
+        export_beatmaps(selected_collections);
+    };
 
-            if (!result.success) {
-                show_notification({ type: "error", text: (result as any).reason || "failed to export beatmaps" });
-            } else {
-                show_notification({ type: "success", text: `exported ${result.data ?? 0} beatmaps to ${config.get("export_path")}` });
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            $is_exporting = false;
-            cleanup();
-        }
+    const on_cancel = () => {
+        cancel_export();
     };
 
     const toggle_selection = (name: string) => {
@@ -45,23 +34,9 @@
         }
     };
 
-    const cleanup = async () => {
-        if ($is_exporting) {
-            // TODO: since the modal state is shared, this will replace this one
-            const request = await quick_confirm("do you want to cancel the current export?", { submit: "yeah", cancel: "nah" });
-
-            if (!request) {
-                return;
-            }
-
-            $is_exporting = false;
-
-            // NOTE: even tough this modal is not visible, clean to prevent future issues
-            cleanup();
-        } else {
-            selected_collections = [];
-            show_modal(ModalType.none);
-        }
+    const cleanup = () => {
+        selected_collections = [];
+        show_modal(ModalType.none);
     };
 </script>
 
@@ -71,23 +46,62 @@
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             {#if $is_exporting}
-                <div class="modal-spinner" onclick={(e) => e.stopPropagation()}>
+                <div class="export-spinner-container" onclick={(e) => e.stopPropagation()}>
                     <Spinner />
+                    <span>exporting beatmaps...</span>
+                    <!-- small helper text -->
+                    <span style="font-size: 12px; opacity: 0.5;">(you can close this window)</span>
+                    <button class="cancel-btn" onclick={on_cancel}>cancel export</button>
+                </div>
+            {:else}
+                <h1 class="field-label">export from:</h1>
+                <div class="collection-list">
+                    {#each $all_collections as collection}
+                        <CollectionCard
+                            name={collection.name}
+                            count={collection.beatmaps.length}
+                            selected={selected_collections.includes(collection.name)}
+                            on_select={() => toggle_selection(collection.name)}
+                        />
+                    {/each}
+                </div>
+                <div class="actions actions-separator">
+                    <button onclick={on_submit}>export</button>
+                    <button onclick={cleanup}>close</button>
                 </div>
             {/if}
-            <h1 class="field-label">export from:</h1>
-            {#each $all_collections as collection}
-                <CollectionCard
-                    name={collection.name}
-                    count={collection.beatmaps.length}
-                    selected={selected_collections.includes(collection.name)}
-                    on_select={() => toggle_selection(collection.name)}
-                />
-            {/each}
-            <div class="actions actions-separator">
-                <button onclick={on_submit}>export</button>
-                <button onclick={cleanup}>cancel</button>
-            </div>
         </div>
     </div>
 {/if}
+
+<style>
+    .export-spinner-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        padding: 40px;
+        width: 100%;
+        height: 100%;
+        min-height: 300px;
+    }
+
+    .collection-list {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+        margin-bottom: 20px;
+    }
+
+    .cancel-btn {
+        margin-top: 10px;
+        background: rgba(255, 64, 64, 0.1);
+        color: #ff4040;
+        border: 1px solid rgba(255, 64, 64, 0.2);
+    }
+
+    .cancel-btn:hover {
+        background: rgba(255, 64, 64, 0.2);
+    }
+</style>

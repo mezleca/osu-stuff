@@ -218,9 +218,20 @@ export abstract class BaseDriver implements IOsuDriver {
         const zip = new JSzip();
 
         for (const file of files) {
-            // TODO: only continue if the missing file is anything but a .osu one
+            // skip folders to prevent "EISDIR"
+            if (fs.statSync(file.location).isDirectory()) {
+                console.warn("export_beatmapset: skipping directory:", file.location);
+                continue;
+            }
+
             if (!fs.existsSync(file.location)) {
                 console.warn("export_beatmapset: failed to find", file);
+
+                // panic if the missing file is a .osu one
+                if (path.extname(file.name) == ".osu") {
+                    return false;
+                }
+
                 continue;
             }
 

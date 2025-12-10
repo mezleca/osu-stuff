@@ -5,8 +5,10 @@
     import { export_collections } from "../../../lib/utils/collections";
     import { config } from "../../../lib/store/config";
     import type { ICollectionResult } from "@shared/types";
-    import Buttons from "../../utils/basic/buttons.svelte";
+
+    // components
     import Dropdown from "../../utils/basic/dropdown.svelte";
+    import CollectionCard from "../../cards/collection-card.svelte";
 
     let selected_collections: string[] = [];
     let type = "db";
@@ -41,6 +43,14 @@
         cleanup();
     };
 
+    const toggle_selection = (name: string) => {
+        if (selected_collections.includes(name)) {
+            selected_collections = selected_collections.filter((c) => c != name);
+        } else {
+            selected_collections = [...selected_collections, name];
+        }
+    };
+
     const cleanup = () => {
         selected_collections = [];
         show_modal(ModalType.none);
@@ -52,17 +62,30 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
-            <Buttons label="collections" options={$all_collections.map((c) => c.name)} bind:selected={selected_collections} />
+            <h1 class="field-label">collections:</h1>
 
-            <Dropdown
-                label="type"
-                placeholder="..."
-                bind:selected_value={type}
-                options={[
-                    { label: "db", value: "db" },
-                    { label: "osdb", value: "osdb" }
-                ]}
-            />
+            <div class="collection-list">
+                {#each $all_collections as collection}
+                    <CollectionCard
+                        name={collection.name}
+                        count={collection.beatmaps.length}
+                        selected={selected_collections.includes(collection.name)}
+                        on_select={() => toggle_selection(collection.name)}
+                    />
+                {/each}
+            </div>
+
+            <div class="options">
+                <Dropdown
+                    label="type"
+                    placeholder="..."
+                    bind:selected_value={type}
+                    options={[
+                        { label: "db", value: "db" },
+                        { label: "osdb", value: "osdb" }
+                    ]}
+                />
+            </div>
 
             <div class="actions actions-separator">
                 <button onclick={on_submit}>export</button>
@@ -71,3 +94,16 @@
         </div>
     </div>
 {/if}
+
+<style>
+    .collection-list {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+        margin-bottom: 20px;
+    }
+
+    .options {
+        margin-bottom: 20px;
+    }
+</style>

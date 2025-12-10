@@ -1,26 +1,40 @@
-import { type Writable, writable } from "svelte/store";
+import { get, type Writable, writable } from "svelte/store";
 import { show_notification } from "./notifications";
+import { show_progress_box, hide_progress_box } from "./progress_box";
 import type { IBeatmapResult, IDownloadData, IDownloadProgress, IDownloadEvent } from "@shared/types";
 import { config } from "./config";
+import { active_tab } from "./other";
+
+const DOWNLOAD_PROGRESS_ID = "download";
 
 class Downloader {
     data: Writable<IDownloadData[]>;
+    private unsubscribe_events: (() => void) | null = null;
 
     constructor() {
         this.data = writable([]);
     }
 
-    async initialize() {
+    initialize = async () => {
         const result = await window.api.invoke("downloader:get");
 
         if (result && result.length > 0) {
             this.data.set(result);
         }
-    }
 
-    async add(download: IDownloadData) {
+        if (!this.unsubscribe_events) {
+            this.unsubscribe_events = window.api.on("downloader:events", (event) => this.on_event(event));
+        }
+    };
+
+    add = async (download: IDownloadData) => {
         if (!config.authenticated) {
             show_notification({ type: "error", text: "not authenticated bro" });
+            return;
+        }
+
+        if (get(config.mirrors).length == 0) {
+            show_notification({ type: "error", text: "cant start a download with no mirrors..." });
             return;
         }
 
@@ -29,14 +43,39 @@ class Downloader {
             return;
         }
 
-        const result = await window.api.invoke("downloader:add", download);
+        // check if download with same id already exists
+        const existing = get(this.data).find((d) => d.id == download.id);
+
+        if (existing) {
+            show_notification({ type: "error", text: `download "${download.id}" already exists` });
+            return;
+        }
+
+        // get initial state
+        const current_downloads = get(this.data);
+        const has_active_download = current_downloads.some((d) => !d.progress?.paused);
+
+        const new_download: IDownloadData = {
+            ...download,
+            progress: {
+                id: download.id,
+                paused: has_active_download,
+                length: download.beatmaps.length,
+                current: 0
+            }
+        };
+
+        const result = await window.api.invoke("downloader:add", new_download);
 
         if (!result) {
-            show_notification({ type: "error", text: "failed to add download" });
+            show_notification({ type: "error", text: "failed to add download (unknown error)" });
+            return;
         }
-    }
 
-    async single_download(beatmap: IBeatmapResult) {
+        this.data.update((downloads) => [...downloads, new_download]);
+    };
+
+    single_download = async (beatmap: IBeatmapResult) => {
         if (!config.authenticated) {
             show_notification({ type: "error", text: "not authenticated bro" });
             return false;
@@ -53,9 +92,9 @@ class Downloader {
         });
 
         return result;
-    }
+    };
 
-    async pause(name: string) {
+    pause = async (name: string) => {
         if (!name || name == "") {
             show_notification({ type: "error", text: "failed to pause: invalid name" });
             return false;
@@ -69,9 +108,9 @@ class Downloader {
         }
 
         return true;
-    }
+    };
 
-    async resume(name: string) {
+    resume = async (name: string) => {
         if (!name || name == "") {
             show_notification({ type: "error", text: "failed to resume: invalid name" });
             return false;
@@ -84,10 +123,10 @@ class Downloader {
             return false;
         }
 
-        return false;
-    }
+        return true;
+    };
 
-    async remove(name: string) {
+    remove = async (name: string) => {
         if (!name || name == "") {
             show_notification({ type: "error", text: "failed to remove: invalid name" });
             return false;
@@ -100,49 +139,68 @@ class Downloader {
             return false;
         }
 
+        // remove from local store
+        this.data.update((downloads) => downloads.filter((d) => d.id != name));
         return true;
-    }
+    };
 
-    update(data: IDownloadProgress) {
+    update = (data: IDownloadProgress) => {
         this.data.update((downloads) =>
             downloads.map((download) => {
                 if (download.id == data.id) {
-                    download = { ...download, ...data };
+                    return { ...download, progress: data };
                 }
                 return download;
             })
         );
-    }
+    };
 
-    on_event(event: IDownloadEvent) {
+    on_event = (event: IDownloadEvent) => {
         // early return on those events
         if (event.type == "no mirrors") {
-            show_notification({ type: "error", text: "needs at least one beatmap mirror " });
+            show_notification({ type: "error", text: "the current download has been paused due to no mirrors available" });
             return;
         }
 
         const download_id = event.data.id;
 
+        // update store first
+        this.update(event.data);
+
         switch (event.type) {
-            case "started":
-                show_notification({ type: "info", text: `downloading: ${download_id}` });
-                break;
             case "finished":
-                show_notification({ type: "success", text: `finished downloading: ${download_id}` });
+                show_notification({ type: "success", text: `finished: ${download_id}` });
+                hide_progress_box(DOWNLOAD_PROGRESS_ID);
+                this.data.update((downloads) => downloads.filter((d) => d.id != download_id));
+                return;
+            case "paused":
+                hide_progress_box(DOWNLOAD_PROGRESS_ID);
                 break;
             case "resumed":
-                show_notification({ type: "info", text: `downloading: ${download_id}` });
-                break;
-            case "update":
-            case "paused":
-                break;
-        }
+            case "started":
+            case "update": {
+                // hide progress box if we are on status tab
+                if (get(active_tab) == "Status") {
+                    hide_progress_box(DOWNLOAD_PROGRESS_ID);
+                    break;
+                }
 
-        this.update(event.data);
-    }
+                const current_download = get(this.data).find((d) => d.id == download_id);
+
+                if (current_download && current_download.progress) {
+                    const { current, length } = current_download.progress;
+                    const progress = Math.floor((current / length) * 100) || 0;
+
+                    show_progress_box({
+                        id: DOWNLOAD_PROGRESS_ID,
+                        text: `${download_id} (${current}/${length})`,
+                        progress
+                    });
+                }
+                break;
+            }
+        }
+    };
 }
 
 export const downloader = new Downloader();
-
-// handle downloader events
-window.api.on("downloader:events", downloader.on_event);

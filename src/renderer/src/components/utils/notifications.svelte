@@ -82,6 +82,7 @@
         white-space: normal;
         overflow-wrap: break-word;
         font-size: 0.9em;
+        font-family: "Torus SemiBold";
         color: white;
     }
 
@@ -91,6 +92,10 @@
 
     .notification.error {
         border: 2px solid rgb(255, 66, 66);
+    }
+
+    .notification.info {
+        border: 2px solid rgb(100, 180, 255);
     }
 
     .notification.success,

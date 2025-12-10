@@ -58,6 +58,25 @@ type WriteDataParams<T> = {
 export type WriteOSDBParams = WriteDataParams<IOSDBData>;
 export type WriteCollectionParams = WriteDataParams<ICollectionResult[]>;
 
+export interface IExportState {
+    is_exporting: boolean;
+    current_index: number;
+    total: number;
+    current_beatmap: string;
+}
+
+export interface IExportUpdate {
+    current: number;
+    total: number;
+    text: string;
+}
+
+export interface IExportFinish {
+    success: boolean;
+    count?: number;
+    reason?: string;
+}
+
 export interface IpcSchema {
     invoke: {
         // binary related stuff
@@ -301,6 +320,19 @@ export interface IpcSchema {
             params: undefined;
             result: void;
         };
+        // exporter
+        "exporter:start": {
+            params: [string[]];
+            result: void;
+        };
+        "exporter:cancel": {
+            params: undefined;
+            result: void;
+        };
+        "exporter:state": {
+            params: undefined;
+            result: IExportState;
+        };
         "window:unmaximize": {
             params: undefined;
             result: void;
@@ -335,6 +367,8 @@ export interface IpcSchema {
     send: {
         "downloader:events": IDownloadEvent;
         "processor:events": IProcessorEvent;
+        "export:update": IExportUpdate;
+        "export:finish": IExportFinish;
     };
     on: IpcSchema["send"];
 }

@@ -42,6 +42,7 @@ import {
 } from "./database/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./beatmaps/downloader";
+import { beatmap_exporter } from "./beatmaps/exporter";
 import { read_legacy_collection, read_legacy_db, write_legacy_collection } from "./binary/stable";
 import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./utils";
@@ -168,6 +169,11 @@ async function createWindow() {
     handle_ipc("downloader:resume", (_, params) => beatmap_downloader.resume(...params));
     handle_ipc("downloader:get", (_) => beatmap_downloader.get_queue());
     handle_ipc("downloader:remove", (_, params) => beatmap_downloader.remove_from_queue(...params));
+
+    // exporter
+    handle_ipc("exporter:start", (_, args) => beatmap_exporter.start(args[0]));
+    handle_ipc("exporter:cancel", (_) => beatmap_exporter.cancel());
+    handle_ipc("exporter:state", (_) => beatmap_exporter.get_state());
 
     // reader (stable)
     handle_ipc("reader:read_legacy_collection", (_, args) => read_legacy_collection(args[0]));

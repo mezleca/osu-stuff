@@ -1,15 +1,24 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { update_export_progress, hide_export_progress } from "../../lib/store/export_progress";
     import { input } from "../../lib/store/input";
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
     import { context_menu_manager } from "../../lib/store/context-menu";
+    import { downloader } from "../../lib/store/downloader";
+
+    let beatmaps: Array<{ md5: string }> = [];
+    let download_id = 0;
 
     interface TestItem {
         id: string;
         text: string;
         data?: TestItem[];
     }
+
+    const add_download = () => {
+        const amt = Math.floor(Math.random() * 100) || 1;
+        const test_beatmaps = beatmaps.splice(0, amt);
+        downloader.add({ id: `test download (${download_id++})`, beatmaps: test_beatmaps });
+    };
 
     const generate_nested_array = (depth: number, current = 1): TestItem[] => {
         const get_id = () => Math.random().toString(36).substring(2, 8);
@@ -46,22 +55,19 @@
         });
     };
 
-    onMount(() => {
-        input.on("a", () => {
-            update_export_progress({ active: true, text: "mhm", progress: Math.floor(Math.random() * 100) });
-        });
-
-        input.on("control+a", () => {
-            hide_export_progress();
-        });
+    onMount(async () => {
+        if (beatmaps.length == 0) {
+            beatmaps = await window.api.invoke("driver:get_beatmaps");
+        }
     });
 
-    onDestroy(() => {
-        input.unregister("a", "control+a");
-    });
+    onDestroy(() => {});
 </script>
 
 <div class="test">
+    {#if beatmaps.length > 0}
+        <button onclick={() => add_download()}>download</button>
+    {/if}
     <button onclick={() => show_notification({ id: notification_id, type: "error", text: "Hello Bro", duration: 1000, persist: true })}
         >notification persist</button
     >

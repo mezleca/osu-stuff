@@ -1,6 +1,7 @@
 import { StuffMirror } from "@shared/types.js";
 import { BaseDatabase } from "./database.js";
 import { get_app_path } from "./utils.js";
+import { beatmap_downloader } from "../beatmaps/downloader.js";
 
 export class MirrorsDatabase extends BaseDatabase {
     data: StuffMirror[] = [];
@@ -36,6 +37,10 @@ export class MirrorsDatabase extends BaseDatabase {
 
         if (mirrors) {
             this.data = mirrors;
+        }
+
+        if (beatmap_downloader.is_initialized()) {
+            beatmap_downloader.update_mirrors();
         }
 
         return true;

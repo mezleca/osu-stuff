@@ -68,24 +68,24 @@ const parallel_map = async <T, R>(array: T[], mapper: (item: T, index: number) =
 };
 
 class BeatmapDownloader implements IBeatmapDownloader {
-    private static mirrors_with_cooldown: Map<string, IMirrorWithCooldown> = new Map();
+    private mirrors_with_cooldown: Map<string, IMirrorWithCooldown> = new Map();
     private static cached: Map<number, BeatmapSetResult> = new Map();
-
+    private initialized: boolean = false;
     private queue: Map<string, IDownloadData> = new Map();
     private current_download_id: string | null = null;
 
-    static update_mirrors(): void {
+    update_mirrors(): void {
         const db_mirrors = mirrors.get();
 
         for (const mirror of db_mirrors) {
-            if (!BeatmapDownloader.mirrors_with_cooldown.has(mirror.name)) {
-                BeatmapDownloader.mirrors_with_cooldown.set(mirror.name, {
+            if (!this.mirrors_with_cooldown.has(mirror.name)) {
+                this.mirrors_with_cooldown.set(mirror.name, {
                     name: mirror.name,
                     url: mirror.url,
                     cooldown: null
                 });
             } else {
-                const existing = BeatmapDownloader.mirrors_with_cooldown.get(mirror.name)!;
+                const existing = this.mirrors_with_cooldown.get(mirror.name)!;
                 existing.url = mirror.url;
             }
         }
@@ -93,16 +93,25 @@ class BeatmapDownloader implements IBeatmapDownloader {
         // remove mirrors that dont exist in db anymore
         const db_names = new Set(db_mirrors.map((m) => m.name));
 
-        for (const [name] of BeatmapDownloader.mirrors_with_cooldown) {
+        for (const [name] of this.mirrors_with_cooldown) {
             if (!db_names.has(name)) {
-                BeatmapDownloader.mirrors_with_cooldown.delete(name);
+                this.mirrors_with_cooldown.delete(name);
             }
         }
     }
 
     initialize(): void {
         console.log("[downloader] initializing");
-        BeatmapDownloader.update_mirrors();
+        this.update_mirrors();
+        this.initialized = true;
+    }
+
+    is_initialized(): boolean {
+        return this.initialized;
+    }
+
+    has_mirrors(): boolean {
+        return this.mirrors_with_cooldown.size > 0;
     }
 
     get_queue(): IDownloadData[] {
@@ -115,6 +124,17 @@ class BeatmapDownloader implements IBeatmapDownloader {
     }
 
     add_to_queue(data: IDownloadData): boolean {
+        if (!this.has_mirrors()) {
+            console.log("[downloader] no mirrors");
+            return false;
+        }
+
+        // check for duplicate
+        if (this.queue.has(data.id)) {
+            console.log("[downloader] download already exists:", data.id);
+            return false;
+        }
+
         if (!data.progress) {
             data.progress = {
                 id: data.id,
@@ -125,7 +145,6 @@ class BeatmapDownloader implements IBeatmapDownloader {
         }
 
         this.queue.set(data.id, data);
-        console.log("[downloader] added to queue:", data.id);
 
         if (!this.current_download_id) {
             setTimeout(() => this.start_next_download(), 100);
@@ -184,14 +203,11 @@ class BeatmapDownloader implements IBeatmapDownloader {
         if (this.current_download_id === id) {
             this.pause(id);
             this.current_download_id = null;
+            setTimeout(() => this.start_next_download(), 100);
         }
 
         this.queue.delete(id);
         console.log("[downloader] removed from queue:", id);
-
-        if (!this.current_download_id) {
-            setTimeout(() => this.start_next_download(), 100);
-        }
 
         return true;
     }
@@ -210,11 +226,11 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return;
         }
 
-        if (BeatmapDownloader.mirrors_with_cooldown.size === 0) {
+        // if the user for some reason deleted all of the mirrors while downloading
+        // pause the current download and notify the renderer
+        if (!this.has_mirrors()) {
+            if (download.progress) download.progress.paused = true;
             console.log("[downloader] no mirrors available");
-            if (download.progress) {
-                download.progress.paused = true;
-            }
             this.notify_update("no mirrors");
             return;
         }
@@ -227,21 +243,27 @@ class BeatmapDownloader implements IBeatmapDownloader {
             download.progress.paused = false;
         }
 
-        this.notify_update("started");
+        this.notify_update("resumed");
 
         this.process_download(download).then((stopped) => {
-            this.current_download_id = null;
-
             if (stopped) {
                 console.log("[downloader] download paused:", id);
                 this.notify_update("paused");
+                if (this.current_download_id == id) {
+                    this.current_download_id = null;
+                }
                 return;
             }
 
             console.log("[downloader] download completed:", id);
 
-            this.queue.delete(id);
+            // notify before cleanup so the event actually gets sent
             this.notify_update("finished");
+
+            this.queue.delete(id);
+            if (this.current_download_id == id) {
+                this.current_download_id = null;
+            }
 
             setTimeout(() => this.start_next_download(), 100);
         });
@@ -249,9 +271,12 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
     private async process_download(download: IDownloadData): Promise<boolean> {
         let stopped = false;
+        const start_index = download.progress?.current ?? 0;
+        const remaining_beatmaps = download.beatmaps.slice(start_index);
+        let completed_count = start_index;
 
         await parallel_map(
-            download.beatmaps,
+            remaining_beatmaps,
             async (beatmap, index) => {
                 if (download.progress?.paused) {
                     stopped = true;
@@ -265,7 +290,8 @@ class BeatmapDownloader implements IBeatmapDownloader {
                 await this.process_beatmap(beatmap);
 
                 if (download.progress) {
-                    download.progress.current = index + 1;
+                    completed_count++;
+                    download.progress.current = completed_count;
                     this.notify_update("update");
                 }
 
@@ -330,7 +356,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
     }
 
     private async download_from_mirrors(beatmap_id: number): Promise<ArrayBuffer | null> {
-        const mirrors = Array.from(BeatmapDownloader.mirrors_with_cooldown.values());
+        const mirrors = Array.from(this.mirrors_with_cooldown.values());
 
         for (const mirror of mirrors) {
             if (mirror.cooldown && mirror.cooldown > Date.now()) {
@@ -377,11 +403,13 @@ class BeatmapDownloader implements IBeatmapDownloader {
     }
 
     private start_next_download(): void {
+        // get the next download in the queue (first one that's paused or any remaining)
         for (const [id, download] of this.queue) {
-            if (!download.progress?.paused) {
-                this.start_download(id);
-                return;
+            if (download.progress) {
+                download.progress.paused = false;
             }
+            this.start_download(id);
+            return;
         }
     }
 
