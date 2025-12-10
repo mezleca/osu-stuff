@@ -11,12 +11,13 @@
     import RepeatIcon from "../../icon/repeat-icon.svelte";
     import NextIcon from "../../icon/next-icon.svelte";
     import PreviousIcon from "../../icon/previous-icon.svelte";
-    import Volume from "../../icon/volume.svelte";
-    import VolumeMuted from "../../icon/volume-muted.svelte";
+    import Speaker from "../../icon/speaker.svelte";
+    import SpeakerMuted from "../../icon/speaker-muted.svelte";
     import Spinner from "../../icon/spinner.svelte";
 
     // components
     import ControlBar from "../basic/control-bar.svelte";
+    import SpeakerLow from "../../icon/speaker-low.svelte";
 
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
@@ -79,10 +80,12 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="volume-icon" onclick={() => audio_manager.toggle_mute()}>
-            {#if audio_state.volume != 0}
-                <Volume />
+            {#if audio_state.volume == 0}
+                <SpeakerMuted />
+            {:else if audio_state.volume < 50}
+                <SpeakerLow />
             {:else}
-                <VolumeMuted />
+                <Speaker />
             {/if}
         </div>
 
@@ -145,7 +148,6 @@
         display: flex;
         align-items: center;
         padding: 8px;
-        gap: 8px;
         background-color: rgba(19, 19, 19, 0.8);
         border-radius: 6px;
         width: fit-content;
