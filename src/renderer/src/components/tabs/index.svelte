@@ -9,10 +9,11 @@
     let show_test = false;
 
     const mirrors = [
-        { name: "beatconnect", url: "https://beatconnect.io/d/" },
+        { name: "nerinyan", url: "https://api.nerinyan.moe/d/" },
+        { name: "osu.direct", url: "https://osu.direct/api/d/" }
+        { name: "nekoha", url: "https://mirror.nekoha.moe/api4/beatmap/" },
         { name: "catboy", url: "https://catboy.best/d/" },
         { name: "sayobot", url: "https://dl.sayobot.cn/beatmaps/download/" },
-        { name: "nerinyan", url: "https://api.nerinyan.moe/d/" }
     ];
 
     onMount(() => {
