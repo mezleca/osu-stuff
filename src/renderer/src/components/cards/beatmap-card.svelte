@@ -50,7 +50,7 @@
                 beatmap = null;
             } else {
                 beatmap = result;
-                get_card_image_source(beatmap).then((img) => (image_src = img));
+                if (!minimal) get_card_image_source(beatmap).then((img) => (image_src = img));
             }
         } catch (err) {
             console.error("failed to load beatmap:", loading_hash, err);
@@ -92,7 +92,7 @@
         } else if (beatmap && !visible) {
             // if beatmap already loaded but not visible, just set image
             beatmap_loaded = true;
-            get_card_image_source(beatmap).then((img) => (image_src = img));
+            if (!minimal) get_card_image_source(beatmap).then((img) => (image_src = img));
         }
     }
 
