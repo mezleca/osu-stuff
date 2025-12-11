@@ -457,20 +457,25 @@ main {
 
 .beatmap-difficulties {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 2px;
     padding: 8px;
     background: rgba(17, 20, 31);
     border: none;
     z-index: 999;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .beatmap-difficulties > * {
     font-size: 13px;
     font-family: "Torus SemiBold";
+    min-width: 0;
 }
 
 .beatmap-difficulties > span {
+    height: max-content;
     background-color: var(--accent-color);
     padding: 0 6px;
     border-radius: 6px;
@@ -480,6 +485,9 @@ main {
 
 .beatmap-difficulties > p {
     transition: all 0.3s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .beatmap-difficulties > p:hover {
