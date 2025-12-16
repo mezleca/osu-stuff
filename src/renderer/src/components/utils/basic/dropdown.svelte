@@ -1,7 +1,6 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
     import { convert_special_key } from "../../../lib/store/other";
-    import { onMount, tick } from "svelte";
 
     // props
     export let options: { label: string | number; value: string | number }[] = [];
@@ -13,7 +12,6 @@
 
     let is_open = false;
     let dropdown: HTMLDivElement;
-    let container_width = "auto";
 
     const toggle_dropdown = () => (is_open = !is_open);
 
@@ -37,85 +35,66 @@
             is_open = false;
         }
     };
-
-    const calculate_width = async () => {
-        await tick();
-
-        const temp_span = document.createElement("span");
-        temp_span.style.visibility = "hidden";
-        temp_span.style.position = "absolute";
-        temp_span.style.fontSize = "14px";
-        temp_span.style.whiteSpace = "nowrap";
-        document.body.appendChild(temp_span);
-
-        let max_width = 0;
-
-        // check placeholder
-        temp_span.innerText = placeholder;
-        max_width = Math.max(max_width, temp_span.getBoundingClientRect().width);
-
-        // check options
-        for (const option of options) {
-            temp_span.innerText = convert_special_key(String(option.label));
-            max_width = Math.max(max_width, temp_span.getBoundingClientRect().width);
-        }
-
-        document.body.removeChild(temp_span);
-
-        // padding (12px * 2) + arrow (8px) + arrow margin (8px) + extra buffer (4px)
-        const total_padding = 24 + 8 + 8 + 4;
-        container_width = `${max_width + total_padding}px`;
-    };
-
-    $: (options, calculate_width());
-
-    onMount(() => {
-        calculate_width();
-    });
 </script>
 
 <svelte:window onclick={handle_click_outside} on:keydown={handle_keydown} />
 
-<div class="field-group">
-    {#if label != ""}
-        <div class="field-label">{label}</div>
-    {/if}
-    <div class="dropdown_container" bind:this={dropdown} style="width: {container_width}">
-        <button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
-            <span class="dropdown_text">{convert_special_key(String(selected_value)) || placeholder}</span>
-            <div class="dropdown_arrow" class:active={is_open}></div>
-        </button>
-        {#if is_open}
-            <div class="dropdown_menu" class:static={is_static} transition:slide={{ duration: 100 }}>
-                {#each options as option}
-                    <button class="dropdown_item" onclick={() => select_option(option)} type="button">
-                        {convert_special_key(String(option.label))}
-                    </button>
-                {/each}
-            </div>
-        {/if}
+{#if label != ""}
+    <div class="field-label">
+        {label}
     </div>
+{/if}
+
+<div class="dropdown_container" bind:this={dropdown}>
+    <button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button">
+        <span class="dropdown_text">{convert_special_key(String(selected_value)) || placeholder}</span>
+        <div class="dropdown_arrow" class:active={is_open}></div>
+    </button>
+
+    {#if is_open}
+        <div class="dropdown_menu" class:static={is_static} transition:slide={{ duration: 100 }}>
+            {#each options as option}
+                <button class="dropdown_item" onclick={() => select_option(option)} type="button">
+                    {convert_special_key(String(option.label))}
+                </button>
+            {/each}
+        </div>
+    {/if}
+
+    <!-- hidden sizer to calculate proper width when menu is absolute -->
+    {#if !is_static}
+        <div class="dropdown_sizer" aria-hidden="true">
+            <div class="sizer_item">{placeholder}</div>
+            {#each options as option}
+                <div class="sizer_item">{convert_special_key(String(option.label))}</div>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <style>
     .dropdown_container {
         display: flex;
+        flex-direction: column;
         position: relative;
-        min-width: 64px;
+        width: fit-content;
+        max-width: 50%;
     }
 
     .dropdown_trigger {
         background: #1a1a1a;
         padding: 8px 12px;
+        padding-right: 32px;
         width: 100%;
         display: flex;
         align-items: center;
-        justify-content: space-between;
         cursor: pointer;
         transition: all 0.15s ease;
         font-size: 14px;
         color: var(--text-secondary);
         white-space: nowrap;
+        border: 1px solid #333;
+        border-radius: 4px;
     }
 
     .dropdown_trigger:hover {
@@ -130,8 +109,6 @@
 
     .dropdown_text {
         font-family: "Torus SemiBold";
-        text-align: left;
-        flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -143,8 +120,8 @@
         border-right: 4px solid transparent;
         border-top: 4px solid #888;
         transition: transform 0.2s ease;
-        margin-left: 8px;
-        flex-shrink: 0;
+        position: absolute;
+        right: 12px;
     }
 
     .dropdown_arrow.active {
@@ -179,6 +156,8 @@
         text-align: left;
         border-bottom: 1px solid #2a2a2a;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-family: "Torus SemiBold";
     }
 
@@ -193,5 +172,23 @@
     .dropdown_item:focus {
         outline: none;
         background: #252525;
+    }
+
+    .dropdown_sizer {
+        height: 0;
+        overflow: hidden;
+        pointer-events: none;
+        max-width: 100%;
+    }
+
+    .sizer_item {
+        padding: 8px 12px;
+        padding-right: 32px;
+        font-size: 14px;
+        font-family: "Torus SemiBold";
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 </style>

@@ -7,11 +7,11 @@ export interface IDownloadProgress {
 
 export interface IDownloadData {
     id: string;
-    beatmaps: IMinimalBeatmap[];
+    beatmaps: IDownloadedBeatmap[];
     progress?: IDownloadProgress;
 }
 
-export interface IMinimalBeatmap {
+export interface IDownloadedBeatmap {
     md5?: string;
     beatmapset_id?: number;
 }
@@ -32,7 +32,7 @@ export interface IMirrorWithCooldown {
 export interface IBeatmapDownloader {
     initialize(): void;
     resume(id: string): boolean;
-    add_single(data: IMinimalBeatmap): Promise<boolean>;
+    add_single(data: IDownloadedBeatmap): Promise<boolean>;
     add_to_queue(data: IDownloadData): boolean;
     remove_from_queue(id: string): boolean;
     pause(id: string): boolean;

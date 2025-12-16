@@ -1,15 +1,9 @@
 import {
-    IBeatmapFilter,
     IBeatmapResult,
     BeatmapSetResult,
     ICollectionResult,
     LAZER_DATABASE_VERSION,
     BeatmapFile,
-    ISearchResponse,
-    ISearchSetResponse,
-    IFilteredBeatmap,
-    IFilteredBeatmapSet,
-    IBeatmapSetFilter,
     BeatmapRow,
     lazer_status_from_code
 } from "@shared/types";
@@ -360,11 +354,6 @@ class LazerBeatmapDriver extends BaseDriver {
         return true;
     };
 
-    add_beatmap = (beatmap: IBeatmapResult): boolean => {
-        this.temp_beatmaps.set(beatmap.md5, beatmap);
-        return true;
-    };
-
     has_beatmap = (md5: string): boolean => {
         return this.beatmaps.has(md5);
     };
@@ -435,123 +424,6 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         return undefined;
-    };
-
-    get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
-        const result = this.beatmapsets.get(id);
-        if (result) {
-            return result;
-        }
-
-        const cached = this.temp_beatmapsets.get(id);
-        if (cached) {
-            return cached;
-        }
-
-        return undefined;
-    };
-
-    search_beatmaps = async (options: IBeatmapFilter): Promise<ISearchResponse> => {
-        const checksums = new Set(
-            options.collection ? this.get_collection(options.collection)?.beatmaps || [] : (await this.get_beatmaps()).map((b) => b.md5)
-        );
-
-        if (checksums.size == 0) {
-            return { beatmaps: [], invalid: [] };
-        }
-
-        const { beatmaps, invalid } = await this.fetch_beatmaps(Array.from(checksums));
-        const result = this.filter_beatmaps(beatmaps, options);
-
-        return { beatmaps: result, invalid };
-    };
-
-    search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
-        let ids = Array.from(this.beatmapsets.keys());
-
-        console.log("have", ids.length, "beatmapsets");
-
-        if (ids.length == 0) {
-            return { beatmapsets: [], invalid: [] };
-        }
-
-        if (options.query && options.query.trim() != "") {
-            ids = this.filter_beatmapset_ids_by_query(ids, options.query);
-
-            if (ids.length == 0) {
-                return { beatmapsets: [], invalid: [] };
-            }
-        }
-
-        const { beatmaps, invalid } = await this.fetch_beatmapsets(ids);
-        const result = await this.filter_beatmapsets(beatmaps, options);
-
-        return { beatmapsets: result, invalid };
-    };
-
-    private filter_beatmapset_ids_by_query = (ids: number[], query: string): number[] => {
-        const query_lower = query.toLowerCase();
-        const filtered_ids: number[] = [];
-
-        for (const id of ids) {
-            const beatmapset = this.beatmapsets.get(id);
-            if (!beatmapset) {
-                continue;
-            }
-
-            const matches_metadata =
-                beatmapset.metadata.artist.toLowerCase().includes(query_lower) ||
-                beatmapset.metadata.title.toLowerCase().includes(query_lower) ||
-                beatmapset.metadata.creator.toLowerCase().includes(query_lower);
-
-            let matches_beatmap = false;
-            for (const md5 of beatmapset.beatmaps) {
-                const beatmap = this.beatmaps.get(md5);
-                if (!beatmap) {
-                    continue;
-                }
-
-                if (
-                    beatmap.difficulty.toLowerCase().includes(query_lower) ||
-                    beatmap.tags.toString().toLowerCase().includes(query_lower) ||
-                    beatmap.source?.toLowerCase().includes(query_lower)
-                ) {
-                    matches_beatmap = true;
-                    break;
-                }
-            }
-
-            if (matches_metadata || matches_beatmap) {
-                filtered_ids.push(id);
-            }
-        }
-
-        return filtered_ids;
-    };
-
-    get_beatmaps = async (): Promise<IFilteredBeatmap[]> => {
-        const beatmaps = Array.from(this.beatmaps.keys());
-
-        for (const md5 of this.temp_beatmaps.keys()) {
-            if (md5) {
-                beatmaps.push(md5);
-            }
-        }
-
-        return beatmaps.map((md5) => ({ md5 }));
-    };
-
-    get_beatmapsets = async (): Promise<IFilteredBeatmapSet[]> => {
-        const beatmapsets: IFilteredBeatmapSet[] = [];
-
-        for (const beatmapset of this.beatmapsets.values()) {
-            beatmapsets.push({
-                id: beatmapset.online_id,
-                beatmaps: beatmapset.beatmaps
-            });
-        }
-
-        return beatmapsets;
     };
 
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {

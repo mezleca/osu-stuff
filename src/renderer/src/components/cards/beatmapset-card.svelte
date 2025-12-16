@@ -175,7 +175,6 @@
             {#if first_beatmap}
                 <BeatmapControls
                     beatmapset_id={beatmapset.online_id}
-                    beatmap={first_beatmap}
                     hash={first_beatmap.md5}
                     has_map={!first_beatmap.temp}
                     {show_remove}

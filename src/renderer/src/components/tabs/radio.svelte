@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { collections } from "../../lib/store/collections";
-    import { ALL_BEATMAPS_KEY, FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
+    import { ALL_BEATMAPS_KEY, FILTER_TYPES } from "../../lib/store/other";
     import { debounce, format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
@@ -17,12 +17,17 @@
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
 
-    const { selected, query, sort, target, status } = list;
+    const { selected, query, sort, target, should_update } = list;
 
     $: selected_beatmap = null;
     $: selected_collection = collections.selected_radio;
     $: previous_songs = list.previous_buffer;
     $: bg = "";
+
+    const collection_target_options = [
+        { label: "all beatmaps", value: ALL_BEATMAPS_KEY },
+        ...collections.get_all().map((c) => ({ label: c.name, value: c.name }))
+    ];
 
     const update_background_image = async () => {
         if (selected_beatmap?.md5 && selected_beatmap?.background) {
@@ -33,21 +38,20 @@
         }
     };
 
-    const update_beatmaps = debounce(async () => {
+    const update_beatmaps = debounce(async (force: boolean = false) => {
         list.show_remove.set($target == ALL_BEATMAPS_KEY);
 
-        const result = await list.search();
+        const result = await list.search(force);
 
         if (!result) {
             return;
         }
 
         const beatmaps = result.beatmaps.map((b) => b.md5);
-
         list.set_items(beatmaps, undefined, false);
     }, 100);
 
-    const get_next_id_callback = async (direction) => {
+    const get_next_id_callback = async (direction: any) => {
         const beatmaps = list.get_items();
 
         if (beatmaps.length == 0) {
@@ -94,9 +98,8 @@
         audio.clean_audio();
     }
 
-    // update beatmap list
-    $: if ($selected_collection.name || $query || $sort) {
-        update_beatmaps();
+    $: if ($selected_collection.name || $query || $sort || $target || $should_update) {
+        update_beatmaps($should_update);
     }
 
     onMount(() => {
@@ -151,7 +154,7 @@
                 <Search bind:value={$query} placeholder="search beatmaps" />
                 <div class="filter-container">
                     <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                    <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                    <Dropdown placeholder={"target"} bind:selected_value={$target} options={collection_target_options} />
                 </div>
             </div>
             <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />
@@ -214,6 +217,7 @@
         gap: 10px;
         position: relative;
         z-index: 99999;
+        max-width: 100%;
     }
 
     .radio-data {

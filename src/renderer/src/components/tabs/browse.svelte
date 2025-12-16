@@ -12,27 +12,19 @@
     import BeatmapsetList from "../beatmapset-list.svelte";
 
     const list = get_beatmapset_list("browse");
-    const { query, status, sort, difficulty_range } = list;
+    const { query, status, sort, difficulty_range, should_update } = list;
 
-    const update_beatmaps = debounce(async () => {
-        const result = await list.search();
-
+    const update_beatmaps = debounce(async (force: boolean = true) => {
+        const result = await list.search(force);
         if (!result) return;
 
-        const ids = result.beatmapsets.map((b) => b.id);
-
-        // // fetch missing beatmapsets from driver
-        // const missing_ids = ids.filter((id) => id > 0); // always fetch all to ensure fresh data
-
-        // if (missing_ids.length > 0) {
-        //     await window.api.invoke("driver:fetch_beatmapsets", missing_ids);
-        // }
+        const ids = result.beatmapsets.map((b) => b.online_id);
 
         list.set_items(ids, undefined, false);
     }, 20);
 
-    $: if ($query != undefined || $status || $sort || $difficulty_range) {
-        update_beatmaps();
+    $: if ($query != undefined || $status || $sort || $difficulty_range || $should_update) {
+        update_beatmaps($should_update);
     }
 
     onMount(() => {

@@ -1,25 +1,28 @@
 <script lang="ts">
     import { get_audio_manager, toggle_beatmap_preview } from "../../lib/store/audio";
     import { downloader } from "../../lib/store/downloader";
-    import type { IBeatmapResult } from "@shared/types";
+    import { update_beatmap_lists } from "../../lib/store/beatmaps";
+    import { string_is_valid } from "../../lib/utils/utils";
 
     // components
     import Play from "../icon/play.svelte";
     import Pause from "../icon/pause.svelte";
     import Cross from "../icon/cross.svelte";
     import X from "../icon/x.svelte";
+    import Spinner from "../icon/spinner.svelte";
 
     const audio_manager = get_audio_manager("preview");
 
     // check if the current beatmap is playing
     $: is_playing = $audio_manager.playing && $audio_manager.id == String(beatmapset_id);
 
-    export let beatmapset_id: number = null;
-    export let beatmap: IBeatmapResult = null;
+    export let beatmapset_id: number = -1;
     export let hash: string = "";
     export let has_map = false;
     export let show_remove = true;
     export let on_remove: (checksum: string) => void = null;
+
+    const { active_singles } = downloader;
 
     const handle_preview = (e: MouseEvent) => {
         e.stopPropagation();
@@ -35,20 +38,21 @@
     const handle_download = async (e: MouseEvent) => {
         e.stopPropagation();
 
-        if (!beatmap) {
-            console.warn("no beatmap provided for download");
+        if (!string_is_valid(hash)) {
+            console.warn("cant download beatmap (invalid hash)", hash);
             return;
         }
 
         // start download
-        const result = await downloader.single_download(beatmap);
+        const result = await downloader.single_download({ beatmapset_id, md5: hash });
 
         if (!result) {
-            console.error("download failed for:", beatmap.md5);
+            console.error("download failed for:", hash);
             return;
         }
 
-        console.log("download started for:", beatmap.md5);
+        // if we succesfully downloaded a new beatmap, ensure to update all lists when possible
+        update_beatmap_lists();
     };
 
     const handle_remove = (e: MouseEvent) => {
@@ -83,8 +87,14 @@
         </button>
     {:else if !has_map}
         <!-- user doesn't have the map, show download -->
-        <button class="control-btn close-btn" onclick={handle_download}>
-            <Cross />
-        </button>
+        {#if $active_singles.has(hash)}
+            <button class="control-btn">
+                <Spinner width={16} height={16} />
+            </button>
+        {:else}
+            <button class="control-btn close-btn" onclick={handle_download}>
+                <Cross />
+            </button>
+        {/if}
     {/if}
 </div>

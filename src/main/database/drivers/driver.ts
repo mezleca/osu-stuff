@@ -5,8 +5,6 @@ import {
     BeatmapFile,
     IBeatmapFilter,
     ISearchResponse,
-    IFilteredBeatmap,
-    IFilteredBeatmapSet,
     ISearchSetResponse,
     IBeatmapSetFilter
 } from "@shared/types/osu";
@@ -95,6 +93,11 @@ export const add_beatmap = (beatmap: IBeatmapResult, custom_driver: string = "")
     return driver.add_beatmap(beatmap);
 };
 
+export const add_beatmapset = (beatmapset: BeatmapSetResult, custom_driver: string = ""): boolean => {
+    const driver = get_driver(custom_driver);
+    return driver.add_beatmapset(beatmapset);
+};
+
 export const has_beatmap = (md5: string, custom_driver: string = ""): boolean => {
     const driver = get_driver(custom_driver);
     return driver.has_beatmap(md5);
@@ -146,16 +149,6 @@ export const fetch_beatmapsets = (ids: number[], custom_driver: string = ""): Pr
 export const search_beatmapsets = (options: IBeatmapSetFilter, custom_driver: string = ""): Promise<ISearchSetResponse> => {
     const driver = get_driver(custom_driver);
     return driver.search_beatmapsets(options);
-};
-
-export const get_beatmaps = (custom_driver: string = ""): Promise<IFilteredBeatmap[]> => {
-    const driver = get_driver(custom_driver);
-    return driver.get_beatmaps();
-};
-
-export const get_beatmapsets = (custom_driver: string = ""): Promise<IFilteredBeatmapSet[]> => {
-    const driver = get_driver(custom_driver);
-    return driver.get_beatmapsets();
 };
 
 export const get_beatmapset_files = (id: number, custom_driver: string = ""): Promise<BeatmapFile[]> => {

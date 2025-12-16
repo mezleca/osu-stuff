@@ -1,7 +1,7 @@
 import { get, type Writable, writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { show_progress_box, hide_progress_box } from "./progress_box";
-import type { IBeatmapResult, IDownloadData, IDownloadProgress, IDownloadEvent } from "@shared/types";
+import type { IBeatmapResult, IDownloadData, IDownloadProgress, IDownloadEvent, IMinimalBeatmap, IDownloadedBeatmap } from "@shared/types";
 import { config } from "./config";
 import { active_tab } from "./other";
 
@@ -9,6 +9,7 @@ const DOWNLOAD_PROGRESS_ID = "download";
 
 class Downloader {
     data: Writable<IDownloadData[]>;
+    active_singles: Writable<Set<String>> = writable(new Set());
     private unsubscribe_events: (() => void) | null = null;
 
     constructor() {
@@ -75,20 +76,28 @@ class Downloader {
         this.data.update((downloads) => [...downloads, new_download]);
     };
 
-    single_download = async (beatmap: IBeatmapResult) => {
+    single_download = async (beatmap: IDownloadedBeatmap) => {
         if (!config.authenticated) {
             show_notification({ type: "error", text: "not authenticated bro" });
             return false;
         }
 
-        if (!beatmap.online_id && !beatmap.md5) {
+        if (!beatmap.beatmapset_id && !beatmap.md5) {
             show_notification({ type: "error", text: "missing md5 / id" });
             return false;
         }
 
-        const result = await window.api.invoke("downloader:single", {
-            beatmapset_id: beatmap.online_id,
-            md5: beatmap.md5
+        // TODO: this might be too much but maybe some way to get the actual kb progress would be cool
+        this.active_singles.update((s) => {
+            s.add(beatmap.md5);
+            return s;
+        });
+
+        const result = await window.api.invoke("downloader:single", beatmap);
+
+        this.active_singles.update((s) => {
+            s.delete(beatmap.md5);
+            return s;
         });
 
         return result;

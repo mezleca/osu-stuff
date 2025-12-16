@@ -29,6 +29,7 @@ export abstract class ListBase {
     show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
     selected: Writable<ISelectedBeatmap | null> = writable(null);
+    should_update: Writable<boolean> = writable(false);
 
     constructor(id: string) {
         this.list_id.set(id);
@@ -52,6 +53,10 @@ export abstract class ListBase {
 
     set_status(value: string): void {
         this.status.set(value);
+    }
+
+    set_update(value: boolean): void {
+        this.should_update.set(value);
     }
 
     abstract search(): Promise<any>;
@@ -159,11 +164,11 @@ export class BeatmapList extends ListBase {
         };
     }
 
-    async search() {
+    async search(force: boolean = false) {
         const filter = this.build_filter();
         const filter_json = JSON.stringify(filter);
 
-        if (this.last_filter && JSON.stringify(this.last_filter) == filter_json) {
+        if (!force && this.last_filter && JSON.stringify(this.last_filter) == filter_json) {
             if (this.last_result) {
                 return this.last_result;
             }
@@ -180,6 +185,8 @@ export class BeatmapList extends ListBase {
             console.error("[beatmap_list] search error:", error);
             show_notification({ type: "error", text: "Failed to search beatmaps" });
             return null;
+        } finally {
+            this.set_update(false);
         }
     }
 
@@ -323,11 +330,11 @@ export class BeatmapSetList extends ListBase {
         };
     }
 
-    async search() {
+    async search(force: boolean = false) {
         const filter = this.build_filter();
         const filter_json = JSON.stringify(filter);
 
-        if (this.last_filter && JSON.stringify(this.last_filter) == filter_json) {
+        if (!force && this.last_filter && JSON.stringify(this.last_filter) == filter_json) {
             if (this.last_result) {
                 return this.last_result;
             }
@@ -344,6 +351,8 @@ export class BeatmapSetList extends ListBase {
             console.error("[beatmapset_list] search error:", error);
             show_notification({ type: "error", text: "failed to search beatmapsets" });
             return null;
+        } finally {
+            this.set_update(false);
         }
     }
 
@@ -354,7 +363,7 @@ export class BeatmapSetList extends ListBase {
             return false;
         }
 
-        const ids = result.beatmapsets.map((bs) => bs.id);
+        const ids = result.beatmapsets.map((bs) => bs.online_id);
         const key = JSON.stringify(this.build_filter());
 
         this.set_items(ids, key);
@@ -400,13 +409,29 @@ export class BeatmapSetList extends ListBase {
 
 export const reset_beatmap_lists = () => {
     const beatmap_lists = Array.from(beatmap_managers.values());
+
     for (const list of beatmap_lists) {
         list.clear();
     }
 
     const beatmapset_lists = Array.from(beatmapset_managers.values());
+
     for (const list of beatmapset_lists) {
         list.clear();
+    }
+};
+
+export const update_beatmap_lists = () => {
+    const beatmap_lists = Array.from(beatmap_managers.values());
+
+    for (const list of beatmap_lists) {
+        list.set_update(true);
+    }
+
+    const beatmapset_lists = Array.from(beatmapset_managers.values());
+
+    for (const list of beatmapset_lists) {
+        list.set_update(true);
     }
 };
 

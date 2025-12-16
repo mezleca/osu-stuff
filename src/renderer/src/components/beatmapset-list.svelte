@@ -8,9 +8,9 @@
     export let width = "100%";
     export let height = 100;
     export let direction: "left" | "right" | "center" = "center";
-    export let columns = 1;
     export let carousel = false;
     export let show_context = false;
+    export let show_remove = false;
     export let on_update: (index: number) => void = null;
 
     const items = list_manager.items;
@@ -30,9 +30,9 @@
         height={"100%"}
         item_height={height}
         buffer={5}
+        columns={2}
         {carousel}
         {direction}
-        columns={2}
         {on_update}
         let:index
     >
@@ -40,7 +40,7 @@
         {@const id = $items[index]}
 
         <!-- render beatmapset card -->
-        <BeatmapSetCard {id} {show_context} {height} {list_manager} />
+        <BeatmapSetCard {id} {show_context} {show_remove} {height} {list_manager} />
     </VirtualList>
 </div>
 

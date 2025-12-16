@@ -57,7 +57,7 @@
     };
 
     let container: HTMLDivElement;
-    let hovered_item: number = -1;
+    let hovered_item: number = 0;
     let container_height: number = 0;
     let scroll_top: number = 0;
     let animation_frame_id: number | null = null;
@@ -199,8 +199,8 @@
     };
 
     const handle_mouse_leave = (): void => {
-        if (hovered_item == -1) return;
-        hovered_item = -1;
+        if (!hovered_item) return;
+        hovered_item = 0;
         if (carousel_enabled && !is_scrolling) {
             carousel_update();
         }
@@ -290,7 +290,7 @@
 
     const reset = (): void => {
         element_cache = new WeakMap();
-        hovered_item = -1;
+        hovered_item = 0;
     };
 
     $: if (selected != -1) {

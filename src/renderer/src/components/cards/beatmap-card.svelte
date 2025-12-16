@@ -25,7 +25,6 @@
         minimal = false,
         height = 100,
         on_click: (event: MouseEvent) => void = null,
-        on_add: (checksum: string) => void = null,
         on_remove: (checksum: string) => void = null;
 
     let image_element: HTMLImageElement = null;
@@ -38,6 +37,8 @@
     // track loading state to prevent infinite loops
     let loading_hash: string | null = null;
     let failed_hashes = new Set<string>();
+
+    $: has_map = beatmap && beatmap?.temp == false;
 
     const load_beatmap = async () => {
         beatmap_loaded = false;
@@ -150,8 +151,8 @@
         <img src={image_src} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
 
         <!-- render controls -->
-        {#if show_control && beatmap}
-            <BeatmapControls beatmapset_id={beatmap.beatmapset_id} {beatmap} {hash} has_map={!beatmap.temp} {show_remove} {on_remove} />
+        {#if show_control}
+            <BeatmapControls beatmapset_id={beatmap?.beatmapset_id ?? -1} {hash} {has_map} {show_remove} {on_remove} />
         {/if}
 
         <!-- render set information -->

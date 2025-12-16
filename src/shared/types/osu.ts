@@ -302,23 +302,17 @@ export type BeatmapFile = {
     location: string;
 };
 
+export type IMinimalBeatmapset = Omit<BeatmapSetResult, "metadata">;
+export type IMinimalBeatmap = { md5: string };
+
 export interface ISearchResponse {
-    beatmaps: IFilteredBeatmap[];
+    beatmaps: IMinimalBeatmap[];
     invalid: string[];
 }
 
 export interface ISearchSetResponse {
-    beatmapsets: IFilteredBeatmapSet[];
+    beatmapsets: IMinimalBeatmapset[];
     invalid: number[];
-}
-
-export interface IFilteredBeatmapSet {
-    id: number;
-    beatmaps: string[];
-}
-
-export interface IFilteredBeatmap {
-    md5: string;
 }
 
 // TODO: get_beatmap_by<T>
@@ -335,6 +329,7 @@ export interface IOsuDriver {
     export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
     export_beatmapset(id: number): Promise<boolean>;
     add_beatmap(beatmap: IBeatmapResult): boolean;
+    add_beatmapset(beatmapset: BeatmapSetResult): boolean;
     add_beatmaps_to_collection(collection_name: string, hashes: string[]): boolean;
     has_beatmap(md5: string): boolean;
     has_beatmapset(id: number): boolean;
@@ -344,8 +339,6 @@ export interface IOsuDriver {
     get_missing_beatmaps(name: string | null): Promise<string[]>;
     search_beatmaps(params: IBeatmapFilter): Promise<ISearchResponse>;
     search_beatmapsets(params: IBeatmapSetFilter): Promise<ISearchSetResponse>;
-    get_beatmaps(): Promise<IFilteredBeatmap[]>;
-    get_beatmapsets(): Promise<IFilteredBeatmapSet[]>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

@@ -31,15 +31,15 @@
 
     const list = get_beatmap_list("collections");
 
-    const { sort, query, status, show_invalid, difficulty_range } = list;
+    const { sort, query, status, show_invalid, difficulty_range, should_update } = list;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
     $: collection_search = collections.query;
     $: all_collections = collections.all_collections;
-    $: should_update = collections.needs_update;
+    $: collection_should_update = collections.needs_update;
 
-    const filter_beatmaps = debounce(async () => {
+    const filter_beatmaps = debounce(async (force: boolean = false) => {
         // only filter if we selected something
         if (!string_is_valid($selected_collection.name)) {
             return;
@@ -47,7 +47,7 @@
 
         list.target.set($selected_collection.name);
 
-        const result = await list.search();
+        const result = await list.search(force);
         const hashes: Set<string> = new Set();
 
         for (const beatmap of result.beatmaps) {
@@ -172,12 +172,11 @@
         collections.filter();
     }
 
-    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $difficulty_range)) {
-        filter_beatmaps();
+    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $difficulty_range || $should_update)) {
+        filter_beatmaps($should_update);
     }
 
     onMount(() => {
-        // "artist" as default sort
         if (!$sort) $sort = "artist";
 
         if ($selected_collection.name && list.get_items().length == 0) {
@@ -201,7 +200,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <Search bind:value={$collection_search} placeholder="search collections" />
-            {#if $should_update}
+            {#if $collection_should_update}
                 <button class="update-btn" onclick={() => collections.update()}>update</button>
             {/if}
         </div>
@@ -236,7 +235,6 @@
     </div>
     <div class="manager-content">
         <div class="content-header">
-            <!-- current beatmap search -->
             <Search bind:value={$query} placeholder="search beatmaps" />
             <ExpandableMenu>
                 <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
@@ -247,7 +245,6 @@
         </div>
 
         <!-- render beatmap list -->
-        <!-- TODO: show_missing, etc... -->
         <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} />
     </div>
 </div>

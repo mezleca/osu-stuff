@@ -27,13 +27,17 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
 
     if (!beatmap) {
-        // TODO: remove invalid beatmap on download
         invalid_beatmaps.add(id);
         return undefined;
     }
 
     beatmap_cache.set(id, beatmap);
     return beatmap;
+};
+
+export const invalidate_beatmap = (id: string) => {
+    beatmap_cache.delete(id);
+    invalid_beatmaps.delete(id);
 };
 
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {

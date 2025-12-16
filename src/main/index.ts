@@ -23,8 +23,6 @@ import {
     get_beatmap_by_id,
     get_beatmap_by_md5,
     get_beatmapset,
-    get_beatmaps,
-    get_beatmapsets,
     get_collection,
     get_collections,
     get_missing_beatmaps,
@@ -48,15 +46,7 @@ import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./utils";
 import { beatmap_processor } from "./database/processor";
 
-const additionalArguments = [
-    "--enable-smooth-scrolling",
-    "--enable-zero-copy",
-    "--enable-gpu-rasterization", // improved animations on virtual list (not by much tbh)
-    "--disable-features=TranslateUI",
-    "--disable-renderer-backgrounding", // fixed some stuterring on my shitty ass pc (while playing heavy games)
-    "--disable-ipc-flooding-protection",
-    "--disable-background-timer-throttling" // improved animations on virtual list (not by much tbh)
-];
+const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
 
 async function createWindow() {
     // create the browser window.
@@ -145,8 +135,6 @@ async function createWindow() {
     handle_ipc("driver:export_beatmapset", (_, args) => export_beatmapset(...args));
     handle_ipc("driver:search_beatmaps", (_, args) => search_beatmaps(...args));
     handle_ipc("driver:search_beatmapsets", (_, args) => search_beatmapsets(...args));
-    handle_ipc("driver:get_beatmaps", (_, args) => get_beatmaps(...args));
-    handle_ipc("driver:get_beatmapsets", (_, args) => get_beatmapsets(...args));
     handle_ipc("driver:get_missing_beatmaps", (_, args) => get_missing_beatmaps(...args));
     handle_ipc("driver:fetch_beatmaps", (_, args) => fetch_beatmaps(...args));
     handle_ipc("driver:fetch_beatmapsets", (_, args) => fetch_beatmapsets(...args));

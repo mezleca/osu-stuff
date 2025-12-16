@@ -1,16 +1,17 @@
 import {
-    BeatmapSetResult,
     DownloadUpdate,
     GenericResult,
     IBeatmapDownloader,
     IDownloadData,
-    IMinimalBeatmap,
-    IMirrorWithCooldown
+    IDownloadedBeatmap,
+    IMirrorWithCooldown,
+    IBeatmapResult
 } from "@shared/types";
 import { config } from "../database/config";
 import { mirrors } from "../database/mirrors";
 import { send_to_renderer } from "../ipc";
 import { get_window } from "../database/utils";
+import { get_driver } from "../database/drivers/driver";
 import { v2 } from "osu-api-extended";
 
 import path from "path";
@@ -69,7 +70,6 @@ const parallel_map = async <T, R>(array: T[], mapper: (item: T, index: number) =
 
 class BeatmapDownloader implements IBeatmapDownloader {
     private mirrors_with_cooldown: Map<string, IMirrorWithCooldown> = new Map();
-    private static cached: Map<number, BeatmapSetResult> = new Map();
     private initialized: boolean = false;
     private queue: Map<string, IDownloadData> = new Map();
     private current_download_id: string | null = null;
@@ -118,7 +118,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
         return Array.from(this.queue.values());
     }
 
-    async add_single(data: IMinimalBeatmap): Promise<boolean> {
+    async add_single(data: IDownloadedBeatmap): Promise<boolean> {
         console.log("[downloader] single download started");
         return this.process_beatmap(data);
     }
@@ -277,7 +277,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
         await parallel_map(
             remaining_beatmaps,
-            async (beatmap, index) => {
+            async (beatmap) => {
                 if (download.progress?.paused) {
                     stopped = true;
                     return { stop: true };
@@ -303,27 +303,45 @@ class BeatmapDownloader implements IBeatmapDownloader {
         return stopped;
     }
 
-    private async get_beatmap_info(beatmap: IMinimalBeatmap): Promise<GenericResult<number>> {
-        if (beatmap.beatmapset_id) {
-            const result = await v2.beatmaps.lookup({ type: "set", id: beatmap.beatmapset_id });
+    private async get_beatmap_info(beatmap: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>> {
+        try {
+            const result = await v2.beatmaps.lookup({ type: "difficulty", checksum: beatmap.md5 });
 
             if (result.error) {
                 return { success: false, reason: result.error.message };
             }
 
-            return { success: true, data: beatmap.beatmapset_id };
+            const mapped: IBeatmapResult = {
+                md5: result.checksum,
+                online_id: result.id,
+                beatmapset_id: result.beatmapset_id,
+                title: result.beatmapset?.title || "",
+                artist: result.beatmapset?.artist || "",
+                creator: result.beatmapset?.creator || "",
+                difficulty: result.version,
+                status: result.status,
+                mode: result.mode,
+                temp: false,
+                ar: result.ar,
+                cs: result.cs,
+                hp: result.drain,
+                od: result.accuracy,
+                star_rating: result.difficulty_rating,
+                bpm: result.bpm,
+                length: result.total_length,
+                last_modified: new Date().toISOString(),
+                background: "",
+                audio: "",
+                tags: result.beatmapset?.tags || ""
+            };
+
+            return { success: true, data: mapped };
+        } catch (err) {
+            return { success: false, reason: err as string };
         }
-
-        const result = await v2.beatmaps.lookup({ type: "difficulty", checksum: beatmap.md5 });
-
-        if (result.error) {
-            return { success: false, reason: result.error.message };
-        }
-
-        return { success: true, data: result.beatmapset_id };
     }
 
-    private async process_beatmap(beatmap: IMinimalBeatmap): Promise<boolean> {
+    private async process_beatmap(beatmap: IDownloadedBeatmap): Promise<boolean> {
         const result = await this.get_beatmap_info(beatmap);
 
         // TODO: notify :3
@@ -332,7 +350,8 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return false;
         }
 
-        const id = result.data;
+        const beatmap_info = result.data;
+        const id = beatmap_info.beatmapset_id;
         const save_path = get_save_path();
         const folder_path = path.resolve(save_path, String(id));
         const file_path = path.resolve(save_path, `${id}.osz`);
@@ -349,9 +368,14 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return false;
         }
 
-        // TODO: add to global cache
+        const driver = get_driver();
 
+        // write beatmap data
         await this.save_beatmap(buffer, file_path);
+
+        // add beatmap to static temp beatmaps
+        driver.add_beatmap(beatmap_info);
+
         return true;
     }
 

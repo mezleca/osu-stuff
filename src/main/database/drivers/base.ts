@@ -11,8 +11,6 @@ import {
     gamemode_to_code,
     ISearchResponse,
     ISearchSetResponse,
-    IFilteredBeatmapSet,
-    IFilteredBeatmap,
     IBeatmapSetFilter
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../../beatmaps/beatmaps";
@@ -41,83 +39,110 @@ export abstract class BaseDriver implements IOsuDriver {
     protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
     protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
 
-    filter_beatmaps = (beatmaps: IBeatmapResult[], options: IBeatmapFilter): IFilteredBeatmap[] => {
-        const unique = new Set<string>();
-        const result: IBeatmapResult[] = [];
-
-        for (const beatmap of beatmaps) {
-            if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) {
-                continue;
-            }
-
-            if (options.unique) {
-                let uid = beatmap.unique_id;
-
-                if (!uid || uid == "") {
-                    if (beatmap.audio && beatmap.beatmapset_id) {
-                        uid = `${beatmap.audio}_${beatmap.beatmapset_id}`;
-                    }
-                }
-
-                if (!uid || uid == "") continue;
-                if (unique.has(uid)) continue;
-                unique.add(uid);
-            }
-
-            if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) {
-                continue;
-            }
-
-            if (options.query && !filter_beatmap_by_query(beatmap, options.query)) {
-                continue;
-            }
-
-            result.push(beatmap);
-        }
-
-        return sort_beatmaps(result, options.sort).map((b) => ({ md5: b.md5 }));
+    filter_beatmap = (beatmap: IBeatmapResult, options: IBeatmapFilter): boolean => {
+        if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
+        if (options.query && !filter_beatmap_by_query(beatmap, options.query)) return false;
+        if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) return false;
+        return true;
     };
 
-    filter_beatmapsets = async (sets: BeatmapSetResult[], options: IBeatmapSetFilter): Promise<IFilteredBeatmapSet[]> => {
-        const result: BeatmapSetResult[] = [];
+    search_beatmaps = async (options: IBeatmapFilter): Promise<ISearchResponse> => {
+        // unify both database beatmaps / recently download in a single map
+        // TODO: the fact that we still need to get hashes to then get the actual beatmap data pmo
+        const beatmaps = options?.collection ? this.collections.get(options.collection)?.beatmaps : this.get_beatmaps().map((b) => b.md5);
 
-        for (const beatmapset of sets) {
-            const fetched = await this.fetch_beatmaps(beatmapset.beatmaps);
-            const filtered_diffs: string[] = [];
+        if (!beatmaps || beatmaps?.length == 0) {
+            return { beatmaps: [], invalid: [] };
+        }
 
-            for (const beatmap of fetched.beatmaps) {
-                if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) {
-                    continue;
-                }
+        const unique_ids: Set<string> = new Set();
+        const valid_beatmaps: IBeatmapResult[] = [];
+        const invalid_beatmaps: string[] = [];
 
-                if (options.query && !filter_beatmap_by_query(beatmap, options.query)) {
-                    continue;
-                }
+        for (const checksum of beatmaps) {
+            const beatmap = await this.get_beatmap_by_md5(checksum);
 
-                if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) {
-                    continue;
-                }
-
-                filtered_diffs.push(beatmap.md5);
-            }
-
-            // dont send empty sets
-            if (filtered_diffs.length == 0) {
+            if (!beatmap) {
+                invalid_beatmaps.push(checksum);
                 continue;
             }
 
-            result.push({
-                online_id: beatmapset.online_id,
-                metadata: beatmapset.metadata,
-                beatmaps: filtered_diffs,
-                temp: false
-            });
+            // get unique id (or creator a new one if not available)
+            const unique_id = beatmap?.unique_id ? beatmap.unique_id : `${beatmap.beatmapset_id}_${beatmap?.audio ?? "unknown"}`;
+
+            // first, check if we already have that unique beatmap stored
+            if (options.unique && unique_ids.has(unique_id)) {
+                continue;
+            }
+
+            // now check for the other filters
+            const is_valid_beatmap = this.filter_beatmap(beatmap, options);
+
+            if (!is_valid_beatmap) {
+                invalid_beatmaps.push(checksum);
+                continue;
+            }
+
+            valid_beatmaps.push(beatmap);
+            unique_ids.add(unique_id);
         }
 
-        return sort_beatmapset(result, options.sort).map((b) => ({
-            beatmaps: b.beatmaps,
-            id: b.online_id
-        }));
+        const minified_result = options.sort
+            ? sort_beatmaps(valid_beatmaps, options.sort).map((b) => ({ md5: b.md5 }))
+            : valid_beatmaps.map((b) => ({ md5: b.md5 }));
+
+        return {
+            beatmaps: minified_result,
+            invalid: invalid_beatmaps
+        };
+    };
+
+    search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
+        // unify both database sets / recently download in a single map
+        const unified_maps = new Map([...this.beatmapsets, ...this.temp_beatmapsets]);
+
+        if (unified_maps.size == 0) {
+            return { beatmapsets: [], invalid: [] };
+        }
+
+        // if a beatmapset has any diff that matches the current
+        // add it here
+        const valid_beatmapsets: BeatmapSetResult[] = [];
+        // also store the invalid ones for later
+        const invalid_beatmapsets: number[] = [];
+
+        for (const [id, beatmapset] of unified_maps) {
+            // fetch stored beatmaps from beatmapset
+            const { beatmaps } = await this.fetch_beatmaps(beatmapset.beatmaps);
+
+            // add as invalid if we didn't find anything
+            if (beatmaps.length == 0) {
+                invalid_beatmapsets.push(id);
+                continue;
+            }
+
+            // also store valid beatmaps to check later
+            const valid_beatmaps: string[] = [];
+
+            for (const beatmap of beatmaps) {
+                const is_valid_beatmap = this.filter_beatmap(beatmap, { query: options.query, sort: options.sort, unique: false });
+                if (!is_valid_beatmap) continue;
+
+                valid_beatmaps.push(beatmap.md5);
+            }
+
+            // add as invalid if all of the beatmaps dont match
+            if (valid_beatmaps.length == 0) {
+                invalid_beatmapsets.push(id);
+            } else {
+                valid_beatmapsets.push({ ...beatmapset, beatmaps: valid_beatmaps });
+            }
+        }
+
+        return {
+            beatmapsets: options.sort ? sort_beatmapset(valid_beatmapsets, options.sort) : valid_beatmapsets,
+            invalid: invalid_beatmapsets
+        };
     };
 
     private write_osdb_collection = async (collections: ICollectionResult[]) => {
@@ -267,7 +292,7 @@ export abstract class BaseDriver implements IOsuDriver {
             (name
                 ? this.get_collection(name)?.beatmaps
                 : // if null, use stored beatmaps
-                  (await this.get_beatmaps()).map((b) => b.md5)) ?? [];
+                  this.get_beatmaps().map((b) => b.md5)) ?? [];
 
         if (!beatmaps) {
             return [];
@@ -301,8 +326,76 @@ export abstract class BaseDriver implements IOsuDriver {
         return true;
     }
 
-    abstract initialize(force?: boolean): Promise<boolean>;
+    add_beatmap(beatmap: IBeatmapResult): boolean {
+        this.temp_beatmaps.set(beatmap.md5, beatmap);
 
+        const set_id = beatmap.beatmapset_id;
+        let set = this.temp_beatmapsets.get(set_id);
+
+        if (!set) {
+            // check if we already have the set in memory
+            const real_set = this.beatmapsets.get(set_id);
+
+            if (real_set) {
+                // if we have, clone it to add the new difficulty
+                set = {
+                    ...real_set,
+                    beatmaps: [...real_set.beatmaps],
+                    temp: true
+                };
+
+                this.temp_beatmapsets.set(set_id, set);
+            } else {
+                // otherwise, create a new one
+                set = {
+                    online_id: set_id,
+                    metadata: {
+                        artist: beatmap.artist,
+                        title: beatmap.title,
+                        creator: beatmap.creator
+                    },
+                    beatmaps: [],
+                    temp: true
+                };
+
+                this.temp_beatmapsets.set(set_id, set);
+            }
+        }
+
+        console.log(`has ${beatmap.md5}: ${set.beatmaps.includes(beatmap.md5)}`);
+
+        if (!set.beatmaps.includes(beatmap.md5)) {
+            set.beatmaps.push(beatmap.md5);
+        }
+
+        return true;
+    }
+
+    add_beatmapset(beatmapset: BeatmapSetResult): boolean {
+        this.temp_beatmapsets.set(beatmapset.online_id, beatmapset);
+        return true;
+    }
+
+    get_beatmaps(): IBeatmapResult[] {
+        return [...this.temp_beatmaps.values(), ...this.beatmaps.values()];
+    }
+
+    get_beatmapsets(): BeatmapSetResult[] {
+        return [...this.temp_beatmapsets.values(), ...this.beatmapsets.values()];
+    }
+
+    async get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined> {
+        let set = this.temp_beatmapsets.get(set_id);
+
+        if (set) {
+            return set;
+        }
+
+        return this.beatmapsets.get(set_id);
+    }
+
+    // driver based implementation
+    abstract initialize(force?: boolean): Promise<boolean>;
     abstract get_player_name(): string;
     abstract add_collection(name: string, beatmaps: string[]): boolean;
     abstract rename_collection(old_name: string, new_name: string): boolean;
@@ -313,14 +406,8 @@ export abstract class BaseDriver implements IOsuDriver {
     abstract update_collection(): boolean;
     abstract has_beatmap(md5: string): boolean;
     abstract has_beatmapset(id: number): boolean;
-    abstract add_beatmap(beatmap: IBeatmapResult): boolean;
     abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
-    abstract get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined>;
-    abstract search_beatmaps(options: IBeatmapFilter): Promise<ISearchResponse>;
-    abstract search_beatmapsets(params: IBeatmapSetFilter): Promise<ISearchSetResponse>;
-    abstract get_beatmaps(): Promise<IFilteredBeatmap[]>;
-    abstract get_beatmapsets(): Promise<IFilteredBeatmapSet[]>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     abstract fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     abstract fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

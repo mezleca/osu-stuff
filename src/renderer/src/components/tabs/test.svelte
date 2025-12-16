@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { input } from "../../lib/store/input";
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
     import { context_menu_manager } from "../../lib/store/context-menu";
     import { downloader } from "../../lib/store/downloader";

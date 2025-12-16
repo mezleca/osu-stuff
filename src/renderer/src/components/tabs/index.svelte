@@ -10,10 +10,10 @@
 
     const mirrors = [
         { name: "nerinyan", url: "https://api.nerinyan.moe/d/" },
-        { name: "osu.direct", url: "https://osu.direct/api/d/" }
+        { name: "osu.direct", url: "https://osu.direct/api/d/" },
         { name: "nekoha", url: "https://mirror.nekoha.moe/api4/beatmap/" },
         { name: "catboy", url: "https://catboy.best/d/" },
-        { name: "sayobot", url: "https://dl.sayobot.cn/beatmaps/download/" },
+        { name: "sayobot", url: "https://dl.sayobot.cn/beatmaps/download/" }
     ];
 
     onMount(() => {
@@ -169,6 +169,7 @@
 
     li {
         margin-bottom: 0.5rem;
+        font-size: 0.95em;
         font-family: "Torus SemiBold";
     }
 
