@@ -4,7 +4,8 @@ import fs from "fs";
 import path from "path";
 import { GenericResult } from "@shared/types";
 
-// @TODO: video support
+// NOTE: this is just a placeholder
+// soon i will move this to github/mezleca/beatmap-parser
 class LegacyBeatmapFile {
     properties: Map<string, any> = new Map();
     version: string = "osu file format v14\n";

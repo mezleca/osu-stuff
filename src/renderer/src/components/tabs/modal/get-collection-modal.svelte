@@ -294,15 +294,8 @@
                     <label class="field-label">player(s)</label>
 
                     <div class="player-input-row">
-                        <Input
-                            placeholder={"username"}
-                            bind:value={player_input_value}
-                            on_submit={() => add_player()}
-                        />
-                        <div
-                            class="add-button"
-                            onclick={() => add_player()}
-                            >
+                        <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
+                        <div class="add-button" onclick={() => add_player()}>
                             <CrossIcon />
                         </div>
                     </div>
@@ -365,9 +358,9 @@
         cursor: pointer;
     }
 
-    .add-button:hover, .player-chip:hover {
+    .add-button:hover,
+    .player-chip:hover {
         background-color: var(--accent-color);
-
     }
 
     .added-players {

@@ -8,7 +8,7 @@
         if (event.key == "Enter" && on_submit) {
             on_submit();
         }
-    ;}
+    };
 </script>
 
 <div class="field-group">

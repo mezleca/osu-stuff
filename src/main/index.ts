@@ -8,8 +8,7 @@ import { handle_ipc } from "./ipc";
 
 import path from "path";
 
-import linux_icon from "../../resources/icon.png?asset";
-import win_icon from "../../resources/icon.png?asset";
+const icon_path = path.resolve(__dirname, "../../resources/icon.png");
 
 import {
     add_beatmap,
@@ -58,10 +57,10 @@ async function createWindow() {
         show: false,
         frame: false,
         autoHideMenuBar: true,
-        icon: process.platform == "win32" ? win_icon : linux_icon,
+        icon: icon_path,
         webPreferences: {
             additionalArguments,
-            preload: path.join(__dirname, "../preload/index.js"),
+            preload: path.resolve(app.getAppPath(), "out/preload/index.js"),
             sandbox: false,
             nodeIntegration: true,
             contextIsolation: true,
@@ -189,7 +188,7 @@ async function createWindow() {
     if (is_dev_mode && renderer_url) {
         mainWindow.loadURL(renderer_url);
     } else {
-        mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+        mainWindow.loadFile(path.resolve(app.getAppPath(), "out/renderer/index.html"));
     }
 }
 

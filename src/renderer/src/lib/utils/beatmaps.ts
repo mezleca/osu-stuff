@@ -158,7 +158,6 @@ const build_user_beatmaps = (beatmap: any): IMinimalBeatmapResult[] => {
     ];
 };
 
-
 export const get_player_data = async (data: IPlayerOptions) => {
     let { player_name, options, statuses, star_rating } = data;
 
@@ -168,8 +167,11 @@ export const get_player_data = async (data: IPlayerOptions) => {
     }
 
     // handle multiple players
-    const player_names = player_name.split(",").map((p) => p.trim()).filter((p) => p.length > 0);
-    
+    const player_names = player_name
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+
     // lookup all players
     const lookup_result = await window.api.invoke("web:players_lookup", { ids: player_names });
 
@@ -195,15 +197,17 @@ export const get_player_data = async (data: IPlayerOptions) => {
             }> = [];
 
             // Helper to fetch all pages
-            const fetch_all_user_beatmaps = async (type: "ranked" | "loved" | "pending" | "graveyard" | "favourite" | "guest" | "most_played" | "nominated"): Promise<IMinimalBeatmapResult[]> => {
+            const fetch_all_user_beatmaps = async (
+                type: "ranked" | "loved" | "pending" | "graveyard" | "favourite" | "guest" | "most_played" | "nominated"
+            ): Promise<IMinimalBeatmapResult[]> => {
                 let all_beatmaps: IMinimalBeatmapResult[] = [];
                 let offset = 0;
                 const limit = 100; // API usually allows up to 100
                 let has_more = true;
 
                 while (has_more) {
-                    const result = await window.api.invoke("web:user_beatmaps", { 
-                        type, 
+                    const result = await window.api.invoke("web:user_beatmaps", {
+                        type,
                         id: player.id,
                         limit,
                         offset
@@ -216,7 +220,7 @@ export const get_player_data = async (data: IPlayerOptions) => {
 
                     const built_maps = result.flatMap(build_user_beatmaps);
                     all_beatmaps = [...all_beatmaps, ...built_maps];
-                    
+
                     if (result.length < limit) {
                         has_more = false;
                     } else {
@@ -285,12 +289,11 @@ export const get_player_data = async (data: IPlayerOptions) => {
 
             // execute all promises for this player
             const beatmap_results = await Promise.all(beatmap_promises.map((p) => p.promise));
-            
+
             // combine results given filter
-            beatmap_results.forEach(maps => {
+            beatmap_results.forEach((maps) => {
                 all_found_maps.push(...maps);
             });
-
         } catch (error) {
             console.error(`[get_player_data] error processing player ${player.username}:`, error);
         }
@@ -323,13 +326,15 @@ export const get_player_data = async (data: IPlayerOptions) => {
 
     return {
         // Return first player metadata if available, or a generic placeholder
-        player: lookup_result[0] ? {
-            id: lookup_result[0].id,
-            username: lookup_result.map(p => p.username).join(", "),
-            country: lookup_result[0].country_code,
-            avatar: lookup_result[0].avatar_url,
-            cover: lookup_result[0].cover.url
-        } : null,
+        player: lookup_result[0]
+            ? {
+                  id: lookup_result[0].id,
+                  username: lookup_result.map((p) => p.username).join(", "),
+                  country: lookup_result[0].country_code,
+                  avatar: lookup_result[0].avatar_url,
+                  cover: lookup_result[0].cover.url
+              }
+            : null,
         counts: {
             firsts: 0, // Stats are hard to aggregate meaningfully without complex logic, so we omit specific counts
             bests: 0,
@@ -348,7 +353,6 @@ export const get_player_data = async (data: IPlayerOptions) => {
         }
     };
 };
-
 
 export const remove_beatmap = async (md5: string, collection_name?: string) => {
     if (collection_name) {
