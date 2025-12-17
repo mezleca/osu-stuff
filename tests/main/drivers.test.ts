@@ -49,7 +49,7 @@ const test_driver = (type: string) => {
 
     test(`${type}: get_collection(generated):`, async () => {
         // TOFIX: use the same name for both drivers (need to generate shit again)...
-        const result = await driver.get_collection("glass beach");
+        const result = driver.get_collection("glass beach");
         expect(result).toBeDefined();
     });
 
@@ -61,7 +61,7 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: get_all_beatmaps():`, async () => {
-        const result = await driver.get_beatmaps();
+        const result = driver.get_beatmaps();
         expect(result.length).toBe(BEATMAP_COUNT);
     });
 
@@ -76,7 +76,7 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: get_all_beatmaps(including temp):`, async () => {
-        const result = await driver.get_beatmaps();
+        const result = driver.get_beatmaps();
         expect(result.length).toBe(BEATMAP_COUNT + 1);
     });
 
@@ -119,14 +119,14 @@ const test_driver = (type: string) => {
     });
 
     test(`${type}: fetch_beatmaps():`, async () => {
-        const beatmaps = await driver.get_beatmaps();
+        const beatmaps = driver.get_beatmaps();
         const result = await driver.fetch_beatmaps(beatmaps.map((b) => b.md5));
         expect(result.beatmaps.some((b) => b.md5 == undefined)).toBe(false);
     });
 
     test(`${type}: fetch_beatmapsets():`, async () => {
-        const beatmapsets = await driver.get_beatmapsets();
-        const result = await driver.fetch_beatmapsets(beatmapsets.map((b) => b.id));
+        const beatmapsets = driver.get_beatmapsets();
+        const result = await driver.fetch_beatmapsets(beatmapsets.map((b) => b.online_id));
         expect(result.beatmaps.some((b) => b.online_id == undefined)).toBe(false);
     });
 
