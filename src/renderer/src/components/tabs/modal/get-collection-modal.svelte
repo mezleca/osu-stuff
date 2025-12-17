@@ -10,21 +10,27 @@
     import Input from "../../utils/basic/input.svelte";
     import Dropdown from "../../utils/basic/dropdown.svelte";
     import InputDialog from "../../utils/basic/input-dialog.svelte";
-    import Buttons from "../../utils/basic/buttons.svelte";
+    import ChipSelect from "../../utils/basic/chip-select.svelte";
     import RangeSlider from "../../utils/basic/range-slider.svelte";
+
+    // icons
+    import CrossIcon from "../../../components/icon/cross.svelte";
+
     import { config } from "../../../lib/store/config";
 
-    // general
     let collection_type = "osu!collector";
     let collection_input = "";
 
-    // from osu!collector options
+    // osu!collector
     let collection_url = "";
 
-    // from file options
+    // file
     let collection_location = "";
 
-    // from player options
+    // player
+    let added_players: string[] = [];
+    let player_input_value = "";
+
     let selected_bm_status: string[] = [];
     let selected_bm_options: string[] = [];
     let bm_difficulty_range: StarRatingFilter = [0, 10];
@@ -32,16 +38,28 @@
     let { authenticated } = config;
 
     const collection_options = ["osu!collector", "file", "player"].map((option) => ({ label: option, value: option }));
-    // TOFIX:
+
     $: collection_label =
         collection_type == "player" ? "player name" : collection_type == "osu!collector" ? "collection name (optional)" : "collection name";
+
+    const add_player = () => {
+        if (!player_input_value || player_input_value.trim().length == 0) return;
+
+        const name = player_input_value.trim();
+        if (!added_players.includes(name)) {
+            added_players = [...added_players, name];
+        }
+        player_input_value = "";
+    };
+
+    const remove_player = (name: string) => {
+        added_players = added_players.filter((p) => p !== name);
+    };
 
     const handle_legacy_import = async (location: string): Promise<boolean> => {
         const result = await get_legacy_collection_data(location);
 
-        // TOFIX: why cant i access reason?
         if (!result.success) {
-            //console.error(result.reason);
             return false;
         }
 
@@ -55,16 +73,13 @@
     const handle_osdb_import = async (location: string): Promise<boolean> => {
         const result = await get_osdb_data(location);
 
-        // TOFIX: why cant i access reason?
         if (!result.success) {
-            //console.error(result.reason);
             return false;
         }
 
         for (const collection of result.data.collections) {
             const hashes: string[] = collection.hash_only_beatmaps;
 
-            // some collections doest have that
             if (hashes.length == 0) {
                 hashes.push(...collection.beatmaps.map((b) => b.md5));
             }
@@ -85,11 +100,22 @@
             return;
         }
 
+        // if user typed name but forgot to add, or just wants single user
+        if (added_players.length == 0 && player_input_value.trim().length > 0) {
+            added_players = [player_input_value.trim()];
+        }
+
+        if (added_players.length == 0) {
+            show_notification({ type: "error", text: "add at least one player!" });
+            return;
+        }
+
         const joined_options = selected_bm_options.join(", ");
         const joined_status = selected_bm_status.join(", ");
+        const joined_players = added_players.join(",");
 
         const player_options: IPlayerOptions = {
-            player_name: collection_input,
+            player_name: joined_players,
             options: new Set(selected_bm_options),
             statuses: new Set(selected_bm_status),
             star_rating: { min: bm_difficulty_range[0], max: bm_difficulty_range[1] }
@@ -98,25 +124,22 @@
         const result = await get_player_data(player_options);
 
         if (!result) {
-            show_notification({ type: "error", text: "failed to get beatmap..." });
+            show_notification({ type: "error", text: "failed to get beatmaps..." });
             return;
         }
 
         if (result.maps.length == 0) {
-            show_notification({ type: "error", text: "found 0 beatmaps lol" });
+            show_notification({ type: "error", text: "found 0 beatmaps" });
             return;
         }
 
-        // get hash list
         const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
 
-        // get collection name
         const collection_name = string_is_valid(collection_input)
             ? collection_input
-            : // fallback to custom collection name (64 char limit)
-              `${collection_input} - ${joined_options} (${joined_status})`.substring(0, 64);
+            : // fallback to generated name
+              `${result.player ? result.player.username : "Multi-User"} - ${joined_options} (${joined_status})`.substring(0, 64);
 
-        // add new collection
         const create_result = await collections.create_collection(collection_name);
 
         if (!create_result) {
@@ -134,7 +157,6 @@
             return;
         }
 
-        // get file type
         const splitted = collection_location.split(".");
         const type = splitted[splitted.length - 1];
 
@@ -174,7 +196,7 @@
 
     const handle_from_collector = async () => {
         if (collection_url == "") {
-            show_notification({ type: "error", text: "url vro..." });
+            show_notification({ type: "error", text: "url is empty" });
             return;
         }
 
@@ -193,7 +215,6 @@
             return;
         }
 
-        // temp add to osu beatmaps store
         for (const _ of beatmaps) {
             await Promise.all(beatmaps.map((b) => window.api.invoke("driver:add_beatmap", b)));
         }
@@ -220,7 +241,7 @@
                 handle_from_collector();
                 break;
             default:
-                show_notification({ type: "error", text: "unknown type :(" });
+                show_notification({ type: "error", text: "unknown type" });
                 break;
         }
     };
@@ -230,20 +251,18 @@
     };
 
     const cleanup = () => {
-        // restore local shit
         collection_type = "osu!collector";
-        collection_input = "";
         collection_input = "";
         collection_location = "";
         selected_bm_status = [];
         selected_bm_options = [];
         bm_difficulty_range = [0, 10];
+        added_players = [];
+        player_input_value = "";
 
-        // restore stores
         current_modal.set(ModalType.none);
     };
 
-    // ensure we are authenticated
     $: if (collection_type == "player" && !$authenticated) {
         show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
         collection_type = "osu!collector";
@@ -255,7 +274,7 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
-            {#if collection_type != "file"}
+            {#if collection_type != "file" && collection_type != "player"}
                 <Input label={collection_label} bind:value={collection_input} />
             {/if}
 
@@ -270,18 +289,47 @@
             {/if}
 
             {#if collection_type == "player"}
-                <Buttons
-                    row={true}
+                <div class="field-group">
+                    <!-- svelte-ignore a11y_label_has_associated_control -->
+                    <label class="field-label">player(s)</label>
+
+                    <div class="player-input-row">
+                        <Input
+                            placeholder={"username"}
+                            bind:value={player_input_value}
+                            on_submit={() => add_player()}
+                        />
+                        <div
+                            class="add-button"
+                            onclick={() => add_player()}
+                            >
+                            <CrossIcon />
+                        </div>
+                    </div>
+
+                    {#if added_players.length > 0}
+                        <div class="added-players">
+                            {#each added_players as player}
+                                <div class="player-chip">
+                                    <span onclick={() => remove_player(player)}>{player}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+
+                <ChipSelect
                     label="beatmap options"
                     options={["best performance", "first place", "favourites", "created maps"]}
                     bind:selected={selected_bm_options}
+                    columns={2}
                 />
 
-                <Buttons
-                    row={true}
+                <ChipSelect
                     label="beatmap status"
                     options={["graveyard", "wip", "pending", "ranked", "approved", "qualified", "loved"]}
                     bind:selected={selected_bm_status}
+                    columns={4}
                 />
 
                 <RangeSlider label={"difficulty range"} min={0} max={10} value={bm_difficulty_range} />
@@ -294,3 +342,50 @@
         </div>
     </div>
 {/if}
+
+<style>
+    .player-input-row {
+        display: grid;
+        grid-template-columns: 85% 1fr;
+        gap: 6px;
+    }
+
+    .add-button {
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        justify-content: center;
+        padding: 8px 12px;
+        background-color: #2a2a2a;
+        border: 1px solid #444;
+        width: 100%;
+        height: 100%;
+        border-radius: 6px;
+        transition: all 0.15s;
+        cursor: pointer;
+    }
+
+    .add-button:hover, .player-chip:hover {
+        background-color: var(--accent-color);
+
+    }
+
+    .added-players {
+        margin-top: 4px;
+    }
+
+    .player-chip {
+        display: flex;
+        width: max-content;
+        flex-direction: row;
+        justify-content: center;
+        padding: 4px 6px;
+        background-color: rgb(33, 33, 33);
+        border: 1px solid #444;
+        border-radius: 6px;
+    }
+
+    .player-chip > span {
+        font-size: 13px;
+    }
+</style>

@@ -2,6 +2,8 @@
     import { slide } from "svelte/transition";
     import { convert_special_key } from "../../../lib/store/other";
 
+    import { onMount, onDestroy } from "svelte";
+
     // props
     export let options: { label: string | number; value: string | number }[] = [];
     export let label: string = "";
@@ -25,7 +27,7 @@
     };
 
     const handle_click_outside = (event) => {
-        if (dropdown && !dropdown.contains(event.target)) {
+        if (is_open && dropdown && !dropdown.contains(event.target)) {
             is_open = false;
         }
     };
@@ -35,9 +37,17 @@
             is_open = false;
         }
     };
-</script>
 
-<svelte:window onclick={handle_click_outside} on:keydown={handle_keydown} />
+    onMount(() => {
+        window.addEventListener("click", handle_click_outside, true);
+        window.addEventListener("keydown", handle_keydown);
+    });
+
+    onDestroy(() => {
+        window.removeEventListener("click", handle_click_outside, true);
+        window.removeEventListener("keydown", handle_keydown);
+    });
+</script>
 
 {#if label != ""}
     <div class="field-label">

@@ -56,7 +56,8 @@
 
     onMount(async () => {
         if (beatmaps.length == 0) {
-            beatmaps = await window.api.invoke("driver:get_beatmaps");
+            const a = await window.api.invoke("driver:search_beatmaps", { query: "", sort: "artist", unique: false });
+            beatmaps = a.beatmaps;
         }
     });
 
