@@ -25,10 +25,8 @@
     },
     "dependencies": {
         "@rel-packages/osu-beatmap-parser": "^0.1.9",
-        "@types/mime-types": "^3.0.1",
         "better-sqlite3": "^12.5.0",
         "jszip": "^3.10.1",
-        "mime-types": "^3.0.2",
         "osu-api-extended": "^3.1.7",
         "realm": "^20.2.0"
     },
