@@ -45,7 +45,9 @@ const build_beatmap = (beatmap: IStableBeatmap, processed?: BeatmapRow, temp: bo
         temp: temp,
         duration: processed?.duration || 0,
         background: processed?.background || "",
-        audio: processed?.audio || ""
+        audio: processed?.audio || "",
+        folder_name: beatmap.folder_name,
+        file_name: beatmap.file
     };
 };
 
@@ -145,6 +147,10 @@ class StableBeatmapDriver extends BaseDriver {
         for (const [id, beatmapset] of this.osu.beatmapsets) {
             this.beatmapsets.set(id, build_beatmapset(beatmapset));
         }
+
+        // clear raw storage to reduce memory usage
+        this.osu.beatmaps.clear();
+        this.osu.beatmapsets.clear();
     };
 
     private process_beatmap_chunks = async (
@@ -258,7 +264,7 @@ class StableBeatmapDriver extends BaseDriver {
             return true;
         }
 
-        return this.osu.beatmaps.delete(options.md5);
+        return this.beatmaps.delete(options.md5);
     };
 
     get_collection = (name: string): ICollectionResult | undefined => {
@@ -325,19 +331,19 @@ class StableBeatmapDriver extends BaseDriver {
 
         const get_file_location = (): string => {
             for (const md5 of beatmapset.beatmaps) {
-                const beatmap = this.osu.beatmaps.get(md5);
+                const beatmap = this.beatmaps.get(md5);
 
-                if (!beatmap) {
+                if (!beatmap || !beatmap.folder_name) {
                     continue;
                 }
 
-                const full_file_path = path.join(config.get().stable_songs_path, beatmap.file_path);
+                const full_file_path = path.join(config.get().stable_songs_path, beatmap.folder_name);
 
                 if (!fs.existsSync(full_file_path)) {
                     continue;
                 }
 
-                return path.dirname(full_file_path);
+                return full_file_path;
             }
 
             return "";

@@ -1,11 +1,13 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+
     import { collections } from "../../lib/store/collections";
     import { ALL_BEATMAPS_KEY, FILTER_TYPES } from "../../lib/store/other";
     import { debounce, format_time, get_image_url } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap } from "../../lib/utils/beatmaps";
+    import { type IBeatmapResult } from "@shared/types";
     import { input } from "../../lib/store/input";
 
     // components
@@ -19,7 +21,8 @@
 
     const { selected, query, sort, target, should_update } = list;
 
-    $: selected_beatmap = null;
+    let selected_beatmap: IBeatmapResult | null = null;
+
     $: selected_collection = collections.selected_radio;
     $: previous_songs = list.previous_buffer;
     $: bg = "";
@@ -30,11 +33,18 @@
     ];
 
     const update_background_image = async () => {
-        if (selected_beatmap?.md5 && selected_beatmap?.background) {
-            const url = await get_image_url(selected_beatmap.background);
-            bg = `url(${url})`;
-        } else {
+        if (!selected_beatmap) {
             bg = "";
+            return;
+        }
+
+        const local = selected_beatmap.background ? await get_image_url(selected_beatmap.background) : "";
+        const web = selected_beatmap.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${selected_beatmap.beatmapset_id}/covers/cover.jpg` : "";
+
+        if (local && web) {
+            bg = `url("${local}"), url("${web}")`;
+        } else {
+            bg = local ? `url("${local}")` : web ? `url("${web}")` : "";
         }
     };
 
@@ -55,7 +65,6 @@
         const beatmaps = list.get_items();
 
         if (beatmaps.length == 0) {
-            console.log("radio: no beatmaps available");
             return null;
         }
 
@@ -146,8 +155,6 @@
 </script>
 
 <div class="content tab-content">
-    <!-- <Popup key="radio" on />
-    <Add callback={() => popup_manager.show("new-beatmap")} /> -->
     <div class="radio-container" style="--radio-bg: {bg};">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -164,7 +171,7 @@
             <div class="radio-beatmap" class:no-bg={!bg}>
                 <div class="radio-beatmap-header">
                     <div class="status">playing</div>
-                    <div class="status">{selected_beatmap?.status_text ?? "unknown"}</div>
+                    <div class="status">{selected_beatmap?.status ?? "unknown"}</div>
                 </div>
 
                 <div class="song-info">

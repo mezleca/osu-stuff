@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy } from "svelte";
     import type { BeatmapSetResult, IBeatmapResult } from "@shared/types";
     import type { BeatmapSetList } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmapset, get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
     import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
+    import { debounce } from "../../lib/utils/utils";
     import { get } from "svelte/store";
     import { slide } from "svelte/transition";
 
@@ -27,18 +28,16 @@
     let beatmapset: BeatmapSetResult | null = null;
     let image_src: string = "";
     let image_element: HTMLImageElement = null;
-    let load_timeout: NodeJS.Timeout | null = null;
 
     let beatmapset_loaded = false;
     let image_loaded = false;
     let visible = false;
-    let visible_timeout: NodeJS.Timeout | null = null;
 
     // track loading state to prevent infinite loops
     let loading_id: number | null = null;
     let failed_ids = new Set<number>();
 
-    const load_beatmapset = async () => {
+    const load_beatmapset = debounce(async () => {
         beatmapset_loaded = false;
 
         try {
@@ -66,8 +65,9 @@
             beatmapset = null;
         } finally {
             beatmapset_loaded = true;
+            visible = true;
         }
-    };
+    }, 100);
 
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
@@ -89,17 +89,11 @@
         }
 
         // only load if id changed AND we haven't tried this id before
-        if (visible && id > 0 && id !== loading_id && !failed_ids.has(id)) {
+        if (id > 0 && id !== loading_id && !failed_ids.has(id)) {
             loading_id = id;
             load_beatmapset();
         }
     }
-
-    onMount(() => {
-        visible_timeout = setTimeout(() => {
-            visible = true;
-        }, 30);
-    });
 
     let hover_timeout: NodeJS.Timeout | null = null;
     let expanded = false;
@@ -144,8 +138,6 @@
 
     onDestroy(() => {
         unsubscribe_context();
-        if (load_timeout) clearTimeout(load_timeout);
-        if (visible_timeout) clearTimeout(visible_timeout);
         if (hover_timeout) clearTimeout(hover_timeout);
     });
 </script>

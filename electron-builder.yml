@@ -1,12 +1,14 @@
 appId: com.osu-stuff.app
 productName: osu-stuff
-afterPack: scripts/cleanup.js
-compression: "normal"
+compression: normal
 electronLanguages:
-    - "en-US"
+    - en-US
 directories:
     buildResources: resources
 files:
+    - out/**
+    - "!out/main/node_modules/**"
+    - "!out/preload/node_modules/**"
     - "!**/.vscode/*"
     - "!src/*"
     - "!electron.vite.config.{js,ts,mjs,cjs}"
@@ -18,8 +20,6 @@ files:
     - "!tests/"
     - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
-asarUnpack:
-    - resources/**
 win:
     executableName: osu-stuff
 nsis:

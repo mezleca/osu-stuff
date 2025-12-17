@@ -1,36 +1,42 @@
 import type { FetchOptions, IFetchResponse } from "@shared/types";
 import { writable } from "svelte/store";
 
-export const get_from_media = async (file: string): Promise<ArrayBuffer | undefined> => {
-    try {
-        const result = await window.api.invoke("media:get", file);
-
-        if (!result.success) {
-            // @ts-ignore
-            console.error("failed to get media", file, result.reason);
-            return undefined;
-        }
-
-        return result.data;
-    } catch (error) {
-        console.error("failed to get media", file, error);
-        return undefined;
-    }
-};
-
 export const get_image_url = async (file: string): Promise<string | undefined> => {
-    const buffer = await get_from_media(file);
-
-    if (!buffer) {
-        return undefined;
-    }
-
-    const blob = new Blob([buffer], { type: "image/png" });
-    return URL.createObjectURL(blob);
+    return `media://${encodeURIComponent(file)}`;
 };
 
 export const open_on_browser = (id: number): void => {
     window.api.invoke("shell:open", `https://osu.ppy.sh/beatmapsets/${id}`);
+};
+
+export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElement | null> => {
+    if (!audio_path) {
+        console.log("no audio_path provided");
+        return null;
+    }
+
+    try {
+        const result = await window.api.invoke("media:get_buffer", audio_path);
+
+        if (!result.success) {
+            return null;
+        }
+
+        const blob = new Blob([result.data as any]);
+
+        const url = URL.createObjectURL(blob);
+
+        const audio = new Audio(url);
+        audio.preload = "auto";
+
+        // store blob url on the element to revoke it later
+        (audio as any)._blob_url = url;
+
+        return audio;
+    } catch (error) {
+        console.log("error creating local audio:", audio_path, error);
+        return null;
+    }
 };
 
 export const debounce = (func: any, timeout = 100) => {
@@ -42,6 +48,10 @@ export const debounce = (func: any, timeout = 100) => {
 };
 
 export const format_time = (secs: number) => {
+    if (!isFinite(secs) || isNaN(secs)) {
+        return "0:00";
+    }
+
     const minutes = Math.floor(secs / 60);
     const seconds = Math.floor(secs % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;

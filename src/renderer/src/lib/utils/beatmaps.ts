@@ -3,13 +3,15 @@ import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
+import { CacheManager } from "./cache";
 import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDetailsResponse } from "@shared/types";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
+const BEATMAP_CACHE_SIZE = 512;
 
 // cached beatmap / beatmapsets
-export const beatmap_cache: Map<string, IBeatmapResult> = new Map();
-export const beatmapset_cache: Map<number, BeatmapSetResult> = new Map();
+export const beatmap_cache = new CacheManager<IBeatmapResult>(BEATMAP_CACHE_SIZE);
+export const beatmapset_cache = new CacheManager<BeatmapSetResult>(BEATMAP_CACHE_SIZE);
 
 // temp hack to prevent cards spam
 const invalid_beatmaps: Set<string> = new Set();
@@ -20,8 +22,10 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
         return undefined;
     }
 
-    if (beatmap_cache.has(id)) {
-        return beatmap_cache.get(id);
+    const cached = beatmap_cache.get(id);
+
+    if (cached) {
+        return cached;
     }
 
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
@@ -45,8 +49,10 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
         return undefined;
     }
 
-    if (beatmapset_cache.has(id)) {
-        return beatmapset_cache.get(id);
+    const cached = beatmapset_cache.get(id);
+
+    if (cached) {
+        return cached;
     }
 
     const beatmapset = await window.api.invoke("driver:get_beatmapset", id);

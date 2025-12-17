@@ -219,6 +219,8 @@ export interface IBeatmapResult {
     background: string;
     duration?: number;
     audio?: string;
+    folder_name?: string;
+    file_name?: string;
 }
 
 export interface IMinimalBeatmapResult {

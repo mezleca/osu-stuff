@@ -212,33 +212,39 @@
             return;
         }
 
-        const collection_data = await get_from_osu_collector(collection_url);
+        try {
+            fetching_status = "fetching collection...";
 
-        if (!collection_data.success) {
-            show_notification({ type: "error", text: "failed to get collection from: " + collection_url });
-            return;
+            const collection_data = await get_from_osu_collector(collection_url);
+
+            if (!collection_data.success) {
+                show_notification({ type: "error", text: "failed to get collection from: " + collection_url });
+                return;
+            }
+
+            const { name, checksums } = collection_data.data;
+            const new_name = string_is_valid(collection_input) ? collection_input : name;
+
+            if (collections.get(new_name)) {
+                show_notification({ type: "warning", text: new_name + " already exists!" });
+                return;
+            }
+
+            fetching_status = "creating collection...";
+
+            const create_result = await collections.create_collection(new_name);
+
+            if (!create_result) {
+                return;
+            }
+
+            await collections.add_beatmaps(new_name, checksums);
+            cleanup();
+        } catch (err) {
+            show_notification({ type: "error", text: err as string });
+        } finally {
+            fetching_status = "";
         }
-
-        const { name, beatmaps, checksums } = collection_data.data;
-        const new_name = string_is_valid(collection_input) ? collection_input : name;
-
-        if (collections.get(new_name)) {
-            show_notification({ type: "warning", text: new_name + " already exists!" });
-            return;
-        }
-
-        for (const _ of beatmaps) {
-            await Promise.all(beatmaps.map((b) => window.api.invoke("driver:add_beatmap", b)));
-        }
-
-        const create_result = await collections.create_collection(new_name);
-
-        if (!create_result) {
-            return;
-        }
-
-        await collections.add_beatmaps(new_name, checksums);
-        cleanup();
     };
 
     const on_submit = () => {

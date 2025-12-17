@@ -1,5 +1,5 @@
 import { writable, get, type Writable } from "svelte/store";
-import { custom_fetch, format_time, get_from_media } from "../utils/utils";
+import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
 
 const DEFAULT_VOLUME = 50;
 
@@ -65,7 +65,14 @@ class AudioManager {
         const state = this.get_state();
 
         if (state.audio !== target) {
-            console.log(`[${this.id}] ignoring old canplay event`);
+            return;
+        }
+
+        const duration = target.duration;
+
+        if (!isFinite(duration) || duration <= 0) {
+            target.addEventListener("durationchange", this.on_durationchange, { once: true });
+            this.store.update((obj) => ({ ...obj, is_loading: false }));
             return;
         }
 
@@ -73,11 +80,27 @@ class AudioManager {
 
         this.store.update((obj) => ({
             ...obj,
-            duration: format_time(target.duration ?? 0),
+            duration: format_time(duration),
             is_loading: false
         }));
+    };
 
-        console.log(`[${this.id}] audio ready, duration: ${format_time(target.duration)}`);
+    on_durationchange = (event: Event) => {
+        const target = event.target as HTMLAudioElement;
+        const state = this.get_state();
+
+        if (state.audio !== target) {
+            return;
+        }
+
+        const duration = target.duration;
+
+        if (isFinite(duration) && duration > 0) {
+            this.store.update((obj) => ({
+                ...obj,
+                duration: format_time(duration)
+            }));
+        }
     };
 
     on_timeupdate = (event: Event) => {
@@ -174,7 +197,14 @@ class AudioManager {
 
         audio_data.addEventListener("canplaythrough", this.on_canplay);
         audio_data.addEventListener("timeupdate", this.on_timeupdate);
+        audio_data.addEventListener("durationchange", this.on_durationchange);
         audio_data.addEventListener("ended", this.on_ended);
+
+        // check if duration is already available
+        if (isFinite(audio_data.duration) && audio_data.duration > 0) {
+            this.on_durationchange({ target: audio_data } as any);
+        }
+
         audio_data.volume = this.get_state().volume / 100;
 
         return audio_data;
@@ -185,6 +215,9 @@ class AudioManager {
             console.error(`[${this.id}] no get_beatmap callback set`);
             return null;
         }
+
+        // clean old audio immediately to avoid state leakage
+        this.clean_audio();
 
         try {
             const beatmap = await this.callbacks.get_beatmap(beatmap_id);
@@ -289,7 +322,7 @@ class AudioManager {
     seek = (percent: number): void => {
         const state = this.get_state();
 
-        if (!state.audio) {
+        if (!state.audio || !isFinite(state.audio.duration)) {
             return;
         }
 
@@ -382,34 +415,35 @@ class AudioManager {
 
     clean_audio = (): void => {
         const state = this.get_state();
-
-        if (!state.audio) {
-            return;
-        }
-
-        console.log(`[${this.id}] cleaning up current audio`);
-
         const audio = state.audio;
 
-        audio.removeEventListener("canplaythrough", this.on_canplay);
-        audio.removeEventListener("timeupdate", this.on_timeupdate);
-        audio.removeEventListener("ended", this.on_ended);
+        if (audio) {
+            console.log(`[${this.id}] cleaning up current audio`);
+            audio.pause();
+            audio.removeEventListener("canplaythrough", this.on_canplay);
+            audio.removeEventListener("timeupdate", this.on_timeupdate);
+            audio.removeEventListener("durationchange", this.on_durationchange);
+            audio.removeEventListener("ended", this.on_ended);
 
-        audio.pause();
-        audio.currentTime = 0;
+            // revoke object url if it's one of ours
+            if ((audio as any)._blob_url) {
+                URL.revokeObjectURL((audio as any)._blob_url);
+            }
 
-        if (audio.src && audio.src.startsWith("blob:")) {
-            window.URL.revokeObjectURL(audio.src);
+            audio.src = "";
+            audio.load();
         }
-
-        audio.src = "";
 
         this.store.update((obj) => ({
             ...obj,
             id: null,
             audio: null,
             playing: false,
-            is_loading: false
+            is_loading: false,
+            duration: "0:00",
+            progress: "0:00",
+            progress_bar_width: 0,
+            ended: false
         }));
     };
 }
@@ -443,38 +477,6 @@ export const get_audio_preview = async (url: string): Promise<HTMLAudioElement |
         return audio;
     } catch (error) {
         console.log("error creating preview audio:", error);
-        return null;
-    }
-};
-
-export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElement | null> => {
-    if (!audio_path) {
-        console.log("no audio_path provided");
-        return null;
-    }
-
-    try {
-        const data = await get_from_media(audio_path);
-
-        if (!data) {
-            console.log("failed to get local audio:", audio_path);
-            return null;
-        }
-
-        const extension = audio_path.split(".").pop()?.toLowerCase();
-        let mime_type = "audio/mpeg";
-
-        if (extension == "ogg") mime_type = "audio/ogg";
-        else if (extension == "mp3") mime_type = "audio/mpeg";
-        else if (extension == "wav") mime_type = "audio/wav";
-
-        const blob = new Blob([new Uint8Array(data)], { type: mime_type });
-        const audio = new Audio(window.URL.createObjectURL(blob));
-
-        audio.preload = "auto";
-        return audio;
-    } catch (error) {
-        console.log("error creating local audio:", audio_path, error);
         return null;
     }
 };

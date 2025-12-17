@@ -18,6 +18,23 @@
         await config.set(key, value);
     };
 
+    const handle_local_image_toggle = async () => {
+        const confirmation = await quick_confirm(`local images means more memory usage. are you sure?`, {
+            submit: "yeah bro idc",
+            cancel: "nah"
+        });
+
+        if (!confirmation) {
+            return;
+        }
+
+        const success = await config.set("local_images", !$config.local_images);
+
+        if (!success) {
+            $config.local_images = $config.local_images;
+        }
+    };
+
     const handle_lazer_mode_toggle = async () => {
         const success = await config.set("lazer_mode", !$config.lazer_mode);
 
@@ -148,6 +165,15 @@
                     callback={(path) => handle_text_change("stable_songs_path", path)}
                     title={"stable songs directory"}
                     type="openDirectory"
+                />
+            </div>
+
+            <div class="field-group">
+                <Checkbox
+                    onchange={handle_local_image_toggle}
+                    value={$config.local_images}
+                    label={"local images"}
+                    desc="enable local images on beatmap-cards instead of web assets"
                 />
             </div>
 

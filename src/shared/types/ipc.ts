@@ -359,6 +359,10 @@ export interface IpcSchema {
             params: string;
             result: GenericResult<ArrayBuffer>;
         };
+        "media:get_buffer": {
+            params: string;
+            result: GenericResult<Uint8Array>;
+        };
     };
     send: {
         "downloader:events": IDownloadEvent;

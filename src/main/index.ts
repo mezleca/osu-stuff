@@ -1,15 +1,10 @@
-import { app, shell, ipcMain, dialog, session } from "electron";
+import { app, shell, ipcMain, dialog, protocol, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
 import { get_window } from "./database/utils";
 import { fetch_manager, media_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
-
-import path from "path";
-
-const icon_path = path.resolve(__dirname, "../../resources/icon.png");
-
 import {
     add_beatmap,
     add_collection,
@@ -44,6 +39,23 @@ import { read_legacy_collection, read_legacy_db, write_legacy_collection } from 
 import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./utils";
 import { beatmap_processor } from "./database/processor";
+
+import fs from "fs";
+import path from "path";
+
+const icon_path = path.resolve(__dirname, "../../resources/icon.png");
+
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: "media",
+        privileges: {
+            secure: true,
+            stream: true,
+            supportFetchAPI: true,
+            bypassCSP: true
+        }
+    }
+]);
 
 const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
 
@@ -174,6 +186,25 @@ async function createWindow() {
 
     // media
     handle_ipc("media:get", (_, args) => media_manager.get(args[0]));
+    handle_ipc("media:get_buffer", (_, args) => {
+        try {
+            const file_path = args[0];
+            const app_config = config.get();
+            const allowed_paths = [app_config.stable_songs_path, app_config.lazer_path].filter(Boolean);
+            const is_allowed = allowed_paths.some((p) => file_path.startsWith(p));
+
+            if (!is_allowed) {
+                console.error(`blocking unauthorized access to: ${file_path}`);
+                return { success: false, reason: "unauthorized" };
+            }
+
+            const buffer = fs.readFileSync(file_path);
+            return { success: true, data: new Uint8Array(buffer) };
+        } catch (err) {
+            console.error(`media:get_buffer error for ${args[0]}:`, err);
+            return { success: false, reason: String(err) };
+        }
+    });
 
     mainWindow.on("ready-to-show", mainWindow.show);
 
@@ -197,19 +228,28 @@ async function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+    // register protocol handler
+    protocol.handle("media", (req) => {
+        try {
+            let location = decodeURIComponent(req.url.replace("media://", ""));
+
+            if (process.platform == "win32") {
+                location = location.replace(/\\/g, "/");
+                if (!location.includes(":/")) location = location.replace(/^([A-Z])\//, "$1:/");
+            }
+
+            return net.fetch(process.platform == "win32" ? `file:///${location}` : `file://${location}`);
+        } catch (err) {
+            console.error("protocol error:", err);
+            return new Response("not found", { status: 404 });
+        }
+    });
+
     // Set app user model id for windows
     electronApp.setAppUserModelId("com.osu-stuff");
 
-    // Default open or close DevTools by F12 in development
-    // and ignore CommandOrControl + R in production.
-    // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
     app.on("browser-window-created", (_, window) => {
         optimizer.watchWindowShortcuts(window);
-    });
-
-    // dont remember why i use this but it seems to cause some problems without it
-    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-        callback({ requestHeaders: { ...details.requestHeaders } });
     });
 
     // initialize electron window

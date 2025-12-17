@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import type { IBeatmapResult } from "@shared/types";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { open_on_browser } from "../../lib/utils/utils";
+    import { debounce, open_on_browser } from "../../lib/utils/utils";
     import { show_context_menu } from "../../lib/store/context-menu";
 
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
@@ -32,7 +31,6 @@
     let beatmap_loaded = false;
     let image_loaded = false;
     let visible = false;
-    let visible_timeout: NodeJS.Timeout | null = null;
 
     // track loading state to prevent infinite loops
     let loading_hash: string | null = null;
@@ -40,7 +38,7 @@
 
     $: has_map = beatmap && beatmap?.temp == false;
 
-    const load_beatmap = async () => {
+    const load_beatmap = debounce(async () => {
         beatmap_loaded = false;
 
         try {
@@ -59,8 +57,9 @@
             beatmap = null;
         } finally {
             beatmap_loaded = true;
+            visible = true;
         }
-    };
+    }, 100);
 
     const handle_click = (event: MouseEvent) => {
         event.stopPropagation();
@@ -87,25 +86,11 @@
         }
 
         // only load if hash changed and we havent tried this hash before
-        if (visible && hash && hash != loading_hash && !failed_hashes.has(hash)) {
+        if (hash && hash != loading_hash && !failed_hashes.has(hash)) {
             loading_hash = hash;
             load_beatmap();
-        } else if (beatmap && !visible) {
-            // if beatmap already loaded but not visible, just set image
-            beatmap_loaded = true;
-            if (!minimal) get_card_image_source(beatmap).then((img) => (image_src = img));
         }
     }
-
-    onMount(() => {
-        visible_timeout = setTimeout(() => {
-            visible = true;
-        }, 25);
-
-        return () => {
-            if (visible_timeout) clearTimeout(visible_timeout);
-        };
-    });
 
     const get_beatmap_star_rating = (beatmap: IBeatmapResult): string => {
         if (beatmap?.star_rating) {
