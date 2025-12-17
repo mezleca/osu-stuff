@@ -264,6 +264,7 @@
     .update-btn {
         background: var(--accent-color);
         border: none;
+        font-family: "Torus SemiBold";
     }
 
     .update-btn:hover {

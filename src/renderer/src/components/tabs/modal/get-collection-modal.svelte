@@ -5,6 +5,7 @@
     import { collections } from "../../../lib/store/collections";
     import { get_from_osu_collector, get_legacy_collection_data, get_osdb_data } from "../../../lib/utils/collections";
     import { get_player_data, type IPlayerOptions } from "../../../lib/utils/beatmaps";
+    import { config } from "../../../lib/store/config";
     import { string_is_valid } from "../../../lib/utils/utils";
 
     import Input from "../../utils/basic/input.svelte";
@@ -15,11 +16,12 @@
 
     // icons
     import CrossIcon from "../../../components/icon/cross.svelte";
+    import Spinner from "../../icon/spinner.svelte";
 
-    import { config } from "../../../lib/store/config";
-
+    // general
     let collection_type = "osu!collector";
     let collection_input = "";
+    let fetching_status = "";
 
     // osu!collector
     let collection_url = "";
@@ -30,8 +32,7 @@
     // player
     let added_players: string[] = [];
     let player_input_value = "";
-
-    let selected_bm_status: string[] = [];
+    let selected_bm_status: string[] = ["ranked"];
     let selected_bm_options: string[] = [];
     let bm_difficulty_range: StarRatingFilter = [0, 10];
 
@@ -110,45 +111,56 @@
             return;
         }
 
-        const joined_options = selected_bm_options.join(", ");
-        const joined_status = selected_bm_status.join(", ");
-        const joined_players = added_players.join(",");
+        try {
+            const joined_options = selected_bm_options.join(", ");
+            const joined_status = selected_bm_status.join(", ");
+            const joined_players = added_players.join(",");
 
-        const player_options: IPlayerOptions = {
-            player_name: joined_players,
-            options: new Set(selected_bm_options),
-            statuses: new Set(selected_bm_status),
-            star_rating: { min: bm_difficulty_range[0], max: bm_difficulty_range[1] }
-        };
+            const player_options: IPlayerOptions = {
+                player_name: joined_players,
+                options: new Set(selected_bm_options),
+                statuses: new Set(selected_bm_status),
+                star_rating: { min: bm_difficulty_range[0], max: bm_difficulty_range[1] }
+            };
 
-        const result = await get_player_data(player_options);
+            fetching_status = "fetching player data...";
 
-        if (!result) {
-            show_notification({ type: "error", text: "failed to get beatmaps..." });
-            return;
+            const result = await get_player_data(player_options);
+
+            if (!result) {
+                show_notification({ type: "error", text: "failed to get beatmaps..." });
+                return;
+            }
+
+            if (result.maps.length == 0) {
+                show_notification({ type: "error", text: "found 0 beatmaps" });
+                return;
+            }
+
+            fetching_status = "creating collection / adding beatmaps";
+
+            const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
+
+            const collection_name = string_is_valid(collection_input)
+                ? collection_input // fallback to generated name
+                : `${
+                      result.players.length == 1 ? result.players[0].username : result.players.map((p) => p.username).join(", ")
+                  } - ${joined_options} (${joined_status})`.substring(0, 64);
+
+            const create_result = await collections.create_collection(collection_name);
+
+            if (!create_result) {
+                return;
+            }
+
+            await collections.add_beatmaps(collection_name, hashes);
+
+            cleanup();
+        } catch (err) {
+            show_notification({ type: "error", text: err as string });
+        } finally {
+            fetching_status = "";
         }
-
-        if (result.maps.length == 0) {
-            show_notification({ type: "error", text: "found 0 beatmaps" });
-            return;
-        }
-
-        const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
-
-        const collection_name = string_is_valid(collection_input)
-            ? collection_input
-            : // fallback to generated name
-              `${result.player ? result.player.username : "Multi-User"} - ${joined_options} (${joined_status})`.substring(0, 64);
-
-        const create_result = await collections.create_collection(collection_name);
-
-        if (!create_result) {
-            return;
-        }
-
-        await collections.add_beatmaps(collection_name, hashes);
-
-        cleanup();
     };
 
     const handle_import_collections = async () => {
@@ -254,12 +266,12 @@
         collection_type = "osu!collector";
         collection_input = "";
         collection_location = "";
-        selected_bm_status = [];
+        selected_bm_status = ["ranked"];
         selected_bm_options = [];
         bm_difficulty_range = [0, 10];
         added_players = [];
         player_input_value = "";
-
+        fetching_status = "";
         current_modal.set(ModalType.none);
     };
 
@@ -274,64 +286,71 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
-            {#if collection_type != "file" && collection_type != "player"}
-                <Input label={collection_label} bind:value={collection_input} />
-            {/if}
+            {#if fetching_status != ""}
+                <div class="spinner-container" onclick={(e) => e.stopPropagation()}>
+                    <Spinner />
+                    <span>{fetching_status}</span>
+                </div>
+            {:else}
+                {#if collection_type != "file" && collection_type != "player"}
+                    <Input label={collection_label} bind:value={collection_input} />
+                {/if}
 
-            <Dropdown label={"type"} bind:selected_value={collection_type} options={collection_options} />
+                <Dropdown label={"type"} bind:selected_value={collection_type} options={collection_options} />
 
-            {#if collection_type == "osu!collector"}
-                <Input label={"url"} bind:value={collection_url} />
-            {/if}
+                {#if collection_type == "osu!collector"}
+                    <Input label={"url"} bind:value={collection_url} />
+                {/if}
 
-            {#if collection_type == "file"}
-                <InputDialog title={"collection file"} type={"openFile"} bind:location={collection_location} />
-            {/if}
+                {#if collection_type == "file"}
+                    <InputDialog title={"collection file"} type={"openFile"} bind:location={collection_location} />
+                {/if}
 
-            {#if collection_type == "player"}
-                <div class="field-group">
-                    <!-- svelte-ignore a11y_label_has_associated_control -->
-                    <label class="field-label">player(s)</label>
+                {#if collection_type == "player"}
+                    <div class="field-group">
+                        <!-- svelte-ignore a11y_label_has_associated_control -->
+                        <label class="field-label">player(s)</label>
 
-                    <div class="player-input-row">
-                        <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
-                        <div class="add-button" onclick={() => add_player()}>
-                            <CrossIcon />
+                        <div class="player-input-row">
+                            <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
+                            <div class="add-button" onclick={() => add_player()}>
+                                <CrossIcon />
+                            </div>
                         </div>
+
+                        {#if added_players.length > 0}
+                            <div class="added-players">
+                                {#each added_players as player}
+                                    <div class="player-chip">
+                                        <span onclick={() => remove_player(player)}>{player}</span>
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
                     </div>
 
-                    {#if added_players.length > 0}
-                        <div class="added-players">
-                            {#each added_players as player}
-                                <div class="player-chip">
-                                    <span onclick={() => remove_player(player)}>{player}</span>
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
+                    <ChipSelect
+                        label="beatmap options"
+                        options={["best performance", "first place", "favourites", "created maps"]}
+                        bind:selected={selected_bm_options}
+                        columns={2}
+                    />
+
+                    <ChipSelect
+                        label="beatmap status"
+                        options={["graveyard", "wip", "pending", "ranked", "approved", "qualified", "loved"]}
+                        bind:selected={selected_bm_status}
+                        columns={4}
+                    />
+
+                    <RangeSlider label={"difficulty range"} min={0} max={10} value={bm_difficulty_range} />
+                {/if}
+
+                <div class="actions actions-separator">
+                    <button onclick={on_submit}>submit</button>
+                    <button onclick={on_cancel}>cancel</button>
                 </div>
-
-                <ChipSelect
-                    label="beatmap options"
-                    options={["best performance", "first place", "favourites", "created maps"]}
-                    bind:selected={selected_bm_options}
-                    columns={2}
-                />
-
-                <ChipSelect
-                    label="beatmap status"
-                    options={["graveyard", "wip", "pending", "ranked", "approved", "qualified", "loved"]}
-                    bind:selected={selected_bm_status}
-                    columns={4}
-                />
-
-                <RangeSlider label={"difficulty range"} min={0} max={10} value={bm_difficulty_range} />
             {/if}
-
-            <div class="actions actions-separator">
-                <button onclick={on_submit}>submit</button>
-                <button onclick={on_cancel}>cancel</button>
-            </div>
         </div>
     </div>
 {/if}
@@ -364,7 +383,10 @@
     }
 
     .added-players {
+        display: flex;
+        flex-direction: row;
         margin-top: 4px;
+        gap: 8px;
     }
 
     .player-chip {

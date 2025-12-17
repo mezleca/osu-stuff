@@ -2,9 +2,12 @@
 
 import { OsuInput } from "@rel-packages/osu-beatmap-parser";
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
+import { v2 } from "osu-api-extended";
 
 export const LEGACY_DATABASE_VERSION: number = 20251102;
 export const LAZER_DATABASE_VERSION: number = 51;
+
+export type UsersDetailsResponse = Awaited<ReturnType<typeof v2.users.details>>;
 
 /* ENUMERATORS */
 

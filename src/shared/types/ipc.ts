@@ -249,6 +249,10 @@ export interface IpcSchema {
             params: UsersLookupParams;
             result: UsersLookupResult;
         };
+        "web:users_details": {
+            params: Parameters<typeof v2.users.details>[0];
+            result: Awaited<ReturnType<typeof v2.users.details>>;
+        };
         "web:score_list_leaderboard": {
             params: ScoreListLeaderboardParams;
             result: Awaited<ReturnType<typeof v2.scores.list<ScoreListLeaderboardParams>>>;

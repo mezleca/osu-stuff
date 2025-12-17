@@ -46,7 +46,7 @@
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             {#if $is_exporting}
-                <div class="export-spinner-container" onclick={(e) => e.stopPropagation()}>
+                <div class="spinner-container" onclick={(e) => e.stopPropagation()}>
                     <Spinner />
                     <span>exporting beatmaps...</span>
                     <!-- small helper text -->
@@ -75,18 +75,6 @@
 {/if}
 
 <style>
-    .export-spinner-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        padding: 40px;
-        width: 100%;
-        height: 100%;
-        min-height: 300px;
-    }
-
     .collection-list {
         max-height: 400px;
         overflow-y: auto;

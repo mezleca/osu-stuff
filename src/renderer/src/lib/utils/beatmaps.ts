@@ -3,7 +3,7 @@ import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
-import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult } from "@shared/types";
+import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDetailsResponse } from "@shared/types";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 
@@ -111,23 +111,22 @@ export interface IPlayerOptions {
     star_rating: { min: number; max: number };
 }
 
-const build_score_beatmap = (score: any): IMinimalBeatmapResult => {
-    return {
-        beatmap_id: score.beatmap?.id,
-        beatmapset_id: score.beatmapset?.id,
-        difficulty_rating: score.beatmap?.difficulty_rating,
-        status: score.beatmap?.status,
-        md5: score.beatmap?.checksum,
-        version: score.beatmap?.version,
-        artist: score.beatmapset?.artist,
-        title: score.beatmapset?.title,
-        creator: score.beatmapset?.creator,
-        _raw: score
-    };
-};
+const build_score_beatmap = (score: any): IMinimalBeatmapResult => ({
+    beatmap_id: score.beatmap?.id,
+    beatmapset_id: score.beatmapset?.id,
+    difficulty_rating: score.beatmap?.difficulty_rating,
+    status: score.beatmap?.status,
+    md5: score.beatmap?.checksum,
+    version: score.beatmap?.version,
+    artist: score.beatmapset?.artist,
+    title: score.beatmapset?.title,
+    creator: score.beatmapset?.creator,
+    _raw: score
+});
 
 const build_user_beatmaps = (beatmap: any): IMinimalBeatmapResult[] => {
     if (beatmap.beatmaps && Array.isArray(beatmap.beatmaps)) {
+        // for beatmaps that contain difficulty variants (e.g. from beatmapset lookup)
         return beatmap.beatmaps.map((diff) => ({
             beatmap_id: diff.id,
             beatmapset_id: beatmap.id,
@@ -142,14 +141,15 @@ const build_user_beatmaps = (beatmap: any): IMinimalBeatmapResult[] => {
         }));
     }
 
+    // for direct beatmap objects or single difficulty
     return [
         {
             beatmap_id: beatmap.beatmap_id || beatmap.id,
             beatmapset_id: beatmap.id,
-            difficulty_rating: beatmap.beatmap?.difficulty_rating,
+            difficulty_rating: beatmap.beatmap?.difficulty_rating ?? beatmap.difficulty_rating,
             status: beatmap.status,
-            md5: beatmap.beatmap?.checksum,
-            version: beatmap.beatmap?.version,
+            md5: beatmap.beatmap?.checksum ?? beatmap.checksum,
+            version: beatmap.beatmap?.version ?? beatmap.version,
             artist: beatmap.artist,
             title: beatmap.title,
             creator: beatmap.creator,
@@ -158,8 +158,28 @@ const build_user_beatmaps = (beatmap: any): IMinimalBeatmapResult[] => {
     ];
 };
 
-export const get_player_data = async (data: IPlayerOptions) => {
-    let { player_name, options, statuses, star_rating } = data;
+export interface IPlayerDataResult {
+    players: UsersDetailsResponse[];
+    counts: {
+        firsts: number;
+        bests: number;
+        favs: number;
+        ranked: number;
+        loved: number;
+        pending: number;
+        grave: number;
+        total: number;
+    };
+    maps: IMinimalBeatmapResult[];
+    filters: {
+        sr_range: { min: number; max: number };
+        options: string[];
+        status: string[];
+    };
+}
+
+export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerDataResult | null> => {
+    const { player_name, options, statuses, star_rating } = data;
 
     if (!player_name) {
         show_notification({ type: "error", text: "invalid player name!!!" });
@@ -172,37 +192,37 @@ export const get_player_data = async (data: IPlayerOptions) => {
         .map((p) => p.trim())
         .filter((p) => p.length > 0);
 
-    // lookup all players
-    const lookup_result = await window.api.invoke("web:players_lookup", { ids: player_names });
-
-    if (lookup_result.error || !Array.isArray(lookup_result) || lookup_result.length == 0) {
-        show_notification({ type: "error", text: "failed to find any players..." });
-        return null;
-    }
-
-    // store all found maps here
     const all_found_maps: IMinimalBeatmapResult[] = [];
+    const players_found: UsersDetailsResponse[] = [];
 
     // process each player
-    for (const player of lookup_result) {
-        if (!player) continue;
-
+    for (const name of player_names) {
         try {
+            // first fetch detailed user info to get counts
+            const player = await window.api.invoke("web:users_details", { user: name });
+
+            // basic validation properties that usually exist on a valid user object
+            if (!player || player.error || player.is_restricted) {
+                console.warn(`[get_player_data] player not found or restricted: ${name}`);
+                continue;
+            }
+
+            players_found.push(player);
+
             const has_option = (name: string) => options.has(name) || options.has("all");
             const has_status = (status: string) => statuses.has(status) || statuses.has("all");
 
-            const beatmap_promises: Array<{
-                key: string;
-                promise: Promise<IMinimalBeatmapResult[]>;
-            }> = [];
+            const beatmap_promises: Promise<IMinimalBeatmapResult[]>[] = [];
 
-            // Helper to fetch all pages
-            const fetch_all_user_beatmaps = async (
-                type: "ranked" | "loved" | "pending" | "graveyard" | "favourite" | "guest" | "most_played" | "nominated"
+            const fetch_listing_maps = async (
+                type: "ranked" | "loved" | "pending" | "graveyard" | "favourite" | "guest" | "most_played" | "nominated",
+                expected_count?: number
             ): Promise<IMinimalBeatmapResult[]> => {
+                if (expected_count !== undefined && expected_count === 0) return [];
+
                 let all_beatmaps: IMinimalBeatmapResult[] = [];
                 let offset = 0;
-                const limit = 100; // API usually allows up to 100
+                const limit = 100;
                 let has_more = true;
 
                 while (has_more) {
@@ -226,123 +246,145 @@ export const get_player_data = async (data: IPlayerOptions) => {
                     } else {
                         offset += limit;
                     }
+
+                    // stop if we reached or exceeded the expected count (if provided)
+                    if (expected_count && all_beatmaps.length >= expected_count) {
+                        has_more = false;
+                    }
                 }
                 return all_beatmaps;
             };
 
-            if (has_option("first place")) {
-                beatmap_promises.push({
-                    key: "firsts",
-                    promise: window.api
-                        .invoke("web:score_list_user_firsts", { type: "user_firsts", user_id: player.id })
-                        .then((scores) => scores.map(build_score_beatmap))
-                });
+            // 1. first places
+            if (has_option("first place") && player.scores_first_count > 0) {
+                // fetch all pages for first places
+                const fetch_firsts = async () => {
+                    let collected: any[] = [];
+                    let offset = 0;
+                    const limit = 100;
+                    const total = player.scores_first_count;
+
+                    while (collected.length < total) {
+                        const scores = await window.api.invoke("web:score_list_user_firsts", {
+                            type: "user_firsts",
+                            user_id: player.id,
+                            limit,
+                            offset
+                        });
+
+                        if (!Array.isArray(scores) || scores.length === 0) break;
+                        collected = [...collected, ...scores];
+                        if (scores.length < limit) break;
+                        offset += limit;
+                    }
+                    return collected.map(build_score_beatmap);
+                };
+
+                beatmap_promises.push(fetch_firsts());
             }
 
-            if (has_option("best performance")) {
-                beatmap_promises.push({
-                    key: "bests",
-                    promise: window.api
-                        .invoke("web:score_list_user_best", { type: "user_best", user_id: player.id })
-                        .then((scores) => scores.map(build_score_beatmap))
-                });
+            // 2. best performance
+            if (has_option("best performance") && player.scores_best_count > 0) {
+                const fetch_bests = async () => {
+                    let collected: any[] = [];
+                    let offset = 0;
+                    const limit = 100;
+                    const total = player.scores_best_count;
+
+                    while (collected.length < total) {
+                        const scores = await window.api.invoke("web:score_list_user_best", {
+                            type: "user_best",
+                            user_id: player.id,
+                            limit,
+                            offset
+                        });
+
+                        if (!Array.isArray(scores) || scores.length === 0) break;
+                        collected = [...collected, ...scores];
+
+                        if (scores.length < limit) break;
+                        offset += limit;
+                    }
+                    return collected.map(build_score_beatmap);
+                };
+
+                beatmap_promises.push(fetch_bests());
             }
 
             if (has_option("favourites")) {
-                beatmap_promises.push({
-                    key: "favs",
-                    promise: fetch_all_user_beatmaps("favourite")
-                });
+                beatmap_promises.push(fetch_listing_maps("favourite", player.favourite_beatmapset_count));
             }
 
             const should_fetch_created = has_option("created maps");
 
             if (should_fetch_created) {
                 if (has_status("ranked")) {
-                    beatmap_promises.push({
-                        key: "ranked",
-                        promise: fetch_all_user_beatmaps("ranked")
-                    });
+                    beatmap_promises.push(fetch_listing_maps("ranked", player.ranked_beatmapset_count));
                 }
 
                 if (has_status("loved")) {
-                    beatmap_promises.push({
-                        key: "loved",
-                        promise: fetch_all_user_beatmaps("loved")
-                    });
+                    beatmap_promises.push(fetch_listing_maps("loved", player.loved_beatmapset_count));
                 }
 
                 if (has_status("pending")) {
-                    beatmap_promises.push({
-                        key: "pending",
-                        promise: fetch_all_user_beatmaps("pending")
-                    });
+                    beatmap_promises.push(fetch_listing_maps("pending", player.pending_beatmapset_count));
                 }
 
                 if (has_status("graveyard")) {
-                    beatmap_promises.push({
-                        key: "graveyard",
-                        promise: fetch_all_user_beatmaps("graveyard")
-                    });
+                    beatmap_promises.push(fetch_listing_maps("graveyard", player.graveyard_beatmapset_count));
                 }
             }
 
-            // execute all promises for this player
-            const beatmap_results = await Promise.all(beatmap_promises.map((p) => p.promise));
+            const beatmap_results = await Promise.all(beatmap_promises);
 
-            // combine results given filter
             beatmap_results.forEach((maps) => {
                 all_found_maps.push(...maps);
             });
         } catch (error) {
-            console.error(`[get_player_data] error processing player ${player.username}:`, error);
+            console.error(`[get_player_data] error processing player ${name}:`, error);
         }
     }
 
-    // After processing all players, filter and unique-ify the maps
-    const filter_maps = (maps: IMinimalBeatmapResult[]) => {
-        return maps.filter((map) => {
-            if (!statuses.has("all") && !statuses.has(map.status)) {
-                return false;
-            }
+    if (players_found.length === 0) {
+        show_notification({ type: "error", text: "no players found" });
+        return null;
+    }
 
-            const sr = map.difficulty_rating;
-            return sr != undefined && validate_star_rating(sr, star_rating.min, star_rating.max);
-        });
-    };
+    // filter and deduplicate
+    const unique_maps = new Map<string, IMinimalBeatmapResult>();
 
-    const final_filtered_maps = filter_maps(all_found_maps);
-
-    // remove duplicated hashes
-    const unique_maps = final_filtered_maps.reduce((acc, map) => {
-        const key = map.md5 || map.beatmap_id;
-        if (key && !acc.has(key)) {
-            acc.set(key, map);
+    all_found_maps.forEach((map) => {
+        // status check
+        if (!statuses.has("all") && !statuses.has(map.status)) {
+            return;
         }
-        return acc;
-    }, new Map<string | number, IMinimalBeatmapResult>());
+
+        // star rating check
+        const sr = map.difficulty_rating;
+
+        if (sr != undefined && !validate_star_rating(sr, star_rating.min, star_rating.max)) {
+            return;
+        }
+
+        const key = map.md5 || String(map.beatmap_id);
+
+        if (key && !unique_maps.has(key)) {
+            unique_maps.set(key, map);
+        }
+    });
 
     const final_maps = Array.from(unique_maps.values());
 
     return {
-        // Return first player metadata if available, or a generic placeholder
-        player: lookup_result[0]
-            ? {
-                  id: lookup_result[0].id,
-                  username: lookup_result.map((p) => p.username).join(", "),
-                  country: lookup_result[0].country_code,
-                  avatar: lookup_result[0].avatar_url,
-                  cover: lookup_result[0].cover.url
-              }
-            : null,
+        players: players_found,
         counts: {
-            firsts: 0, // Stats are hard to aggregate meaningfully without complex logic, so we omit specific counts
-            bests: 0,
-            favs: 0,
-            ranked: 0,
-            loved: 0,
-            pending: 0,
-            grave: 0,
+            firsts: players_found.reduce((acc, p) => acc + (p.scores_first_count || 0), 0),
+            bests: players_found.reduce((acc, p) => acc + (p.scores_best_count || 0), 0),
+            favs: players_found.reduce((acc, p) => acc + (p.favourite_beatmapset_count || 0), 0),
+            ranked: players_found.reduce((acc, p) => acc + (p.ranked_beatmapset_count || 0), 0),
+            loved: players_found.reduce((acc, p) => acc + (p.loved_beatmapset_count || 0), 0),
+            pending: players_found.reduce((acc, p) => acc + (p.pending_beatmapset_count || 0), 0),
+            grave: players_found.reduce((acc, p) => acc + (p.graveyard_beatmapset_count || 0), 0),
             total: final_maps.length
         },
         maps: final_maps,

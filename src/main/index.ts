@@ -144,6 +144,7 @@ async function createWindow() {
     handle_ipc("web:get_beatmapset", (_, args) => v2.beatmaps.lookup(args[0]));
     handle_ipc("web:search", (_, args) => v2.search(args[0]));
     handle_ipc("web:players_lookup", (_, args) => v2.users.lookup(args[0]));
+    handle_ipc("web:users_details", (_, args) => v2.users.details(args[0]));
     handle_ipc("web:user_beatmaps", (_, args) => v2.users.beatmaps(args[0]));
     handle_ipc("web:score_list_leaderboard", (_, args) => v2.scores.list(args[0]));
     handle_ipc("web:score_list_user_best", (_, args) => v2.scores.list(args[0]));
