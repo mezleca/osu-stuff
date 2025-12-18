@@ -40,6 +40,7 @@ export abstract class BaseDriver implements IOsuDriver {
     protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
 
     filter_beatmap = (beatmap: IBeatmapResult, options: IBeatmapFilter): boolean => {
+        if (beatmap.beatmapset_id == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
         if (options.query && !filter_beatmap_by_query(beatmap, options.query)) return false;
         if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) return false;
