@@ -1,5 +1,6 @@
 import { writable, get, type Writable } from "svelte/store";
 import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
+import { config } from "./config";
 
 const DEFAULT_VOLUME = 50;
 
@@ -483,6 +484,12 @@ export const get_audio_preview = async (url: string): Promise<HTMLAudioElement |
 
 export const toggle_beatmap_preview = async (beatmapset_id: number) => {
     const manager = get_audio_manager("preview");
+
+    // use same volume as radio
+    const volume = config.get("radio_volume") ?? 50;
+    manager.set_volume(volume);
+
+    // get current preview state
     const state = manager.get_state();
     const url = `https://b.ppy.sh/preview/${beatmapset_id}.mp3`;
 
