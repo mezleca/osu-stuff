@@ -104,13 +104,7 @@
     const process_results = (results: ICollectionResult[]) => {
         // filter out collections that already exist
         const filtered = results.filter((c) => !collections.has(c.name));
-
         pending_collections = filtered;
-
-        if (filtered.length == 0 && results.length > 0) {
-            show_notification({ type: "warning", text: "all collections found already exist in your library" });
-        }
-
         fetching_status = "";
     };
 
@@ -188,6 +182,8 @@
             fetching_status = "fetching collections from client...";
             const data = await window.api.invoke("driver:get_collections", target_driver);
             process_results(data || []);
+            is_client_fetched = true;
+            is_fetching_client = false;
         } catch (err) {
             show_notification({ type: "error", text: "failed to fetch collections from client" });
         } finally {
@@ -267,6 +263,25 @@
         }
     };
 
+    const handle_driver_initialization = async () => {
+        try {
+            fetching_status = "initializing driver...";
+            const result = await window.api.invoke("driver:initialize", false, target_driver);
+
+            if (!result) {
+                show_notification({ type: "error", text: "failed to start driver..." });
+                return;
+            }
+
+            is_target_initialized = true;
+            handle_from_client();
+        } catch (err) {
+            show_notification({ type: "error", text: err as string });
+        } finally {
+            fetching_status = "";
+        }
+    };
+
     const on_submit = () => {
         switch (collection_type) {
             case "player":
@@ -288,44 +303,49 @@
     };
 
     const on_import_pending = async () => {
-        if (selected_collections.length == 0) {
-            show_notification({ type: "warning", text: "select at least one collection" });
-            return;
-        }
-
-        fetching_status = "importing collections...";
-
-        let import_count = 0;
-
-        for (const name of selected_collections) {
-            const collection = pending_collections.find((c) => c.name == name);
-
-            if (!collection) {
-                continue;
+        try {
+            if (selected_collections.length == 0) {
+                show_notification({ type: "warning", text: "select at least one collection" });
+                return;
             }
 
-            const result = await collections.create_collection(collection.name);
+            fetching_status = "importing collections...";
 
-            // if we fail, just send a notification
-            // should be enough for now
-            if (!result) {
-                show_notification({ type: "warning", text: `failed to create ${collection.name}...` });
-                continue;
+            let import_count = 0;
+
+            for (const name of selected_collections) {
+                const collection = pending_collections.find((c) => c.name == name);
+
+                if (!collection) {
+                    continue;
+                }
+
+                const result = await collections.create_collection(collection.name);
+
+                // if we fail, just send a notification
+                // should be enough for now
+                if (!result) {
+                    show_notification({ type: "warning", text: `failed to create ${collection.name}...` });
+                    continue;
+                }
+
+                // this cant fail btw
+                await collections.add_beatmaps(collection.name, collection.beatmaps);
+                import_count++;
             }
 
-            // this cant fail btw
-            await collections.add_beatmaps(collection.name, collection.beatmaps);
-            import_count++;
+            if (!import_count) {
+                show_notification({ type: "error", text: "couldn't import anything..." });
+            } else {
+                const suffix = import_count == 1 ? "" : "s";
+                show_notification({ type: "success", text: `finished importing ${import_count} collection${suffix}` });
+            }
+        } catch (err) {
+            show_notification({ type: "error", text: err as string });
+        } finally {
+            // just close the modal idc
+            cleanup();
         }
-
-        if (!import_count) {
-            show_notification({ type: "error", text: "couldn't import anything..." });
-        } else {
-            const suffix = import_count == 1 ? "" : "s";
-            show_notification({ type: "error", text: `finished importing ${import_count} collection${suffix}` });
-        }
-
-        cleanup();
     };
 
     const toggle_selection = (name: string) => {
@@ -365,10 +385,18 @@
     };
 
     let is_client_fetched = false;
-    $: if (collection_type == "client" && !is_client_fetched && !is_driver_loading && $current_modal == ModalType.get_collection) {
+    let is_fetching_client = false;
+
+    $: if (
+        collection_type == "client" &&
+        !is_client_fetched &&
+        !is_fetching_client &&
+        !is_driver_loading &&
+        $current_modal == ModalType.get_collection
+    ) {
         if (is_target_initialized) {
+            is_fetching_client = true;
             handle_from_client();
-            is_client_fetched = true;
         }
     }
 
@@ -465,25 +493,7 @@
                         {:else if !is_target_initialized}
                             <div class="driver-init">
                                 <span>{target_driver} client is not initialized yet</span>
-                                <button
-                                    class="accent-btn"
-                                    onclick={async () => {
-                                        fetching_status = "initializing driver...";
-                                        const result = await window.api.invoke("driver:initialize", false, target_driver);
-                                        fetching_status = "";
-
-                                        if (!result) {
-                                            show_notification({ type: "error", text: "failed to start driver..." });
-                                            return;
-                                        }
-
-                                        is_target_initialized = true;
-                                        handle_from_client();
-                                        is_client_fetched = true;
-                                    }}
-                                >
-                                    initialize
-                                </button>
+                                <button class="accent-btn" onclick={() => handle_driver_initialization()}>initialize</button>
                             </div>
                         {/if}
                     {/if}
