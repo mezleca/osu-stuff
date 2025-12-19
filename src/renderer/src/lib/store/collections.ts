@@ -25,7 +25,6 @@ class CollectionManager {
     selected: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
     selected_radio: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
     missing_beatmaps: Writable<any[]> = writable([]);
-    pending_collections: Writable<ICollectionWithEdit[]> = writable([]);
 
     set(collections: ICollectionResult[]): void {
         const with_edit: ICollectionWithEdit[] = collections.map((c) => ({
@@ -39,6 +38,10 @@ class CollectionManager {
 
     get(name: string): ICollectionWithEdit | undefined {
         return get(this.all_collections).find((c) => c.name == name);
+    }
+
+    has(name: string): boolean {
+        return get(this.all_collections).some((c) => c.name == name);
     }
 
     get_all(): ICollectionWithEdit[] {
@@ -303,25 +306,12 @@ class CollectionManager {
             }
 
             this.add({ name, beatmaps: [] });
-            show_notification({ type: "success", text: `created "${name}"` });
-
             return true;
         } catch (error) {
             console.error("[collections] create error:", error);
             show_notification({ type: "error", text: "failed to create collection" });
             return false;
         }
-    }
-
-    add_pending(collection: ICollectionWithEdit) {
-        this.pending_collections.update((c) => {
-            c.push(collection);
-            return c;
-        });
-    }
-
-    clear_pending_collections(): void {
-        this.pending_collections.set([]);
     }
 }
 

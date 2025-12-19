@@ -140,6 +140,10 @@ export interface IpcSchema {
             params: [boolean?, string?];
             result: ReturnType<IOsuDriver["initialize"]>;
         };
+        "driver:is_initialized": {
+            params: [string?];
+            result: boolean;
+        };
         "driver:should_update": {
             params: [string?];
             result: boolean;

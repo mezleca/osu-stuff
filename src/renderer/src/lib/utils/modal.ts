@@ -3,7 +3,6 @@ import { writable } from "svelte/store";
 export enum ModalType {
     none = 0,
     get_collection,
-    get_pending_collections,
     export_collection,
     export_beatmaps,
     merge_collection,

@@ -46,11 +46,12 @@
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             {#if $is_exporting}
-                <div class="spinner-container" onclick={(e) => e.stopPropagation()}>
+                <div class="exporting-overlay">
                     <Spinner />
-                    <span>exporting beatmaps...</span>
-                    <!-- small helper text -->
-                    <span style="font-size: 12px; opacity: 0.5;">(you can close this window)</span>
+                    <div class="exporting-info">
+                        <span>exporting beatmaps...</span>
+                        <span class="helper-text">(you can close this window)</span>
+                    </div>
                     <button class="cancel-btn" onclick={on_cancel}>cancel export</button>
                 </div>
             {:else}
@@ -66,7 +67,7 @@
                     {/each}
                 </div>
                 <div class="actions actions-separator">
-                    <button onclick={on_submit}>export</button>
+                    <button class="primary-btn" onclick={on_submit}>export</button>
                     <button onclick={cleanup}>close</button>
                 </div>
             {/if}
@@ -76,10 +77,35 @@
 
 <style>
     .collection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
         max-height: 400px;
         overflow-y: auto;
-        padding-right: 5px;
+        padding-right: 8px;
         margin-bottom: 20px;
+    }
+
+    .exporting-overlay {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 40px 0;
+    }
+
+    .exporting-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        text-align: center;
+    }
+
+    .helper-text {
+        font-size: 12px;
+        opacity: 0.5;
     }
 
     .cancel-btn {
@@ -87,9 +113,26 @@
         background: rgba(255, 64, 64, 0.1);
         color: #ff4040;
         border: 1px solid rgba(255, 64, 64, 0.2);
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: "Torus Bold";
     }
 
     .cancel-btn:hover {
         background: rgba(255, 64, 64, 0.2);
+        transform: translateY(-1px);
+    }
+
+    :global(.primary-btn) {
+        background-color: var(--accent-color) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .actions-separator {
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 </style>

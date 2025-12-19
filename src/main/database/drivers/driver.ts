@@ -33,6 +33,10 @@ export const initialize_driver = async (force: boolean = false, driver: string =
     return get_driver(driver).initialize(force);
 };
 
+export const is_initialized = (driver: string = ""): boolean => {
+    return get_driver(driver).is_initialized();
+};
+
 export const should_update = (custom_driver: string = ""): boolean => {
     const driver = get_driver(custom_driver);
     return driver.should_update;

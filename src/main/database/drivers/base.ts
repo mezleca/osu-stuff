@@ -39,6 +39,10 @@ export abstract class BaseDriver implements IOsuDriver {
     protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
     protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
 
+    is_initialized = (): boolean => {
+        return this.initialized;
+    };
+
     filter_beatmap = (beatmap: IBeatmapResult, options: IBeatmapFilter): boolean => {
         if (beatmap.beatmapset_id == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;

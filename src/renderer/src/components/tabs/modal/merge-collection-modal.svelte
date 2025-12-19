@@ -41,6 +41,7 @@
             return;
         }
 
+        show_notification({ type: "success", text: `created ${name}` });
         collections.add_beatmaps(name, Array.from(beatmaps.values()));
         cleanup();
     };

@@ -277,6 +277,21 @@ main {
     transform: translateY(-1px);
 }
 
+.text-btn {
+    font-family: "Torus SemiBold";
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.text-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .control-btn {
     display: flex;
     border: none;

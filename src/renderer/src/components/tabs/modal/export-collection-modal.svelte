@@ -88,7 +88,7 @@
             </div>
 
             <div class="actions actions-separator">
-                <button onclick={on_submit}>export</button>
+                <button class="primary-btn" onclick={on_submit}>export</button>
                 <button onclick={cleanup}>cancel</button>
             </div>
         </div>
@@ -97,13 +97,27 @@
 
 <style>
     .collection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
         max-height: 400px;
         overflow-y: auto;
-        padding-right: 5px;
+        padding-right: 8px;
         margin-bottom: 20px;
     }
 
     .options {
         margin-bottom: 20px;
+    }
+
+    :global(.primary-btn) {
+        background-color: var(--accent-color) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .actions-separator {
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 </style>
