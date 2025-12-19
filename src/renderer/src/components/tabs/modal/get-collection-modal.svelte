@@ -387,26 +387,32 @@
     let is_client_fetched = false;
     let is_fetching_client = false;
 
-    $: if (
-        collection_type == "client" &&
-        !is_client_fetched &&
-        !is_fetching_client &&
-        !is_driver_loading &&
-        $current_modal == ModalType.get_collection
-    ) {
-        if (is_target_initialized) {
-            is_fetching_client = true;
-            handle_from_client();
+    $: {
+        if (
+            collection_type == "client" &&
+            !is_client_fetched &&
+            !is_fetching_client &&
+            !is_driver_loading &&
+            $current_modal == ModalType.get_collection
+        ) {
+            if (is_target_initialized) {
+                is_fetching_client = true;
+                handle_from_client();
+            }
         }
-    }
 
-    $: if (collection_type != "client") {
-        is_client_fetched = false;
-    }
+        if (collection_type != "client") {
+            is_client_fetched = false;
+            if (pending_collections.length > 0) {
+                pending_collections = [];
+                selected_collections = [];
+            }
+        }
 
-    $: if (collection_type == "player" && !$authenticated) {
-        show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
-        collection_type = "osu!collector";
+        if (collection_type == "player" && !$authenticated) {
+            show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
+            collection_type = "osu!collector";
+        }
     }
 
     onMount(() => {
