@@ -22,7 +22,6 @@
 
     // modals
     import GetCollectionModal from "./modal/get-collection-modal.svelte";
-    import PendingCollectionsModal from "./modal/pending-collections-modal.svelte";
     import MergeCollectionModal from "./modal/merge-collection-modal.svelte";
     import ExportCollectionModal from "./modal/export-collection-modal.svelte";
     import ExportBeatmapsModal from "./modal/export-beatmaps-modal.svelte";
@@ -190,7 +189,6 @@
     <Add callback={() => show_modal(ModalType.get_collection)} />
 
     <GetCollectionModal />
-    <PendingCollectionsModal />
     <MergeCollectionModal />
     <ExportCollectionModal />
     <ExportBeatmapsModal />

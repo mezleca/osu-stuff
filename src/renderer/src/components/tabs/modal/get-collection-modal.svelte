@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { StarRatingFilter } from "@shared/types";
+    import type { StarRatingFilter, ICollectionResult } from "@shared/types";
     import { show_notification } from "../../../lib/store/notifications";
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { current_modal, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { get_from_osu_collector, get_legacy_collection_data, get_osdb_data } from "../../../lib/utils/collections";
     import { get_player_data, type IPlayerOptions } from "../../../lib/utils/beatmaps";
@@ -13,10 +13,12 @@
     import InputDialog from "../../utils/basic/input-dialog.svelte";
     import ChipSelect from "../../utils/basic/chip-select.svelte";
     import RangeSlider from "../../utils/basic/range-slider.svelte";
+    import CollectionCard from "../../cards/collection-card.svelte";
 
     // icons
     import CrossIcon from "../../../components/icon/cross.svelte";
     import Spinner from "../../icon/spinner.svelte";
+    import { onMount } from "svelte";
 
     // general
     let collection_type = "osu!collector";
@@ -29,6 +31,11 @@
     // file
     let collection_location = "";
 
+    // driver
+    let target_driver = !!config.get("lazer_mode") ? "stable" : "lazer";
+    let is_driver_loading = true;
+    let is_target_initialized = false;
+
     // player
     let added_players: string[] = [];
     let player_input_value = "";
@@ -36,15 +43,21 @@
     let selected_bm_options: string[] = [];
     let bm_difficulty_range: StarRatingFilter = [0, 10];
 
-    let { authenticated } = config;
+    // selection
+    let pending_collections: ICollectionResult[] = [];
+    let selected_collections: string[] = [];
 
-    const collection_options = ["osu!collector", "file", "player"].map((option) => ({ label: option, value: option }));
+    const { authenticated } = config;
+
+    const collection_options = ["osu!collector", "client", "file", "player"].map((option) => ({ label: option, value: option }));
 
     $: collection_label =
         collection_type == "player" ? "player name" : collection_type == "osu!collector" ? "collection name (optional)" : "collection name";
 
     const add_player = () => {
-        if (!player_input_value || player_input_value.trim().length == 0) return;
+        if (!player_input_value || player_input_value.trim().length == 0) {
+            return;
+        }
 
         const name = player_input_value.trim();
         if (!added_players.includes(name)) {
@@ -57,42 +70,48 @@
         added_players = added_players.filter((p) => p !== name);
     };
 
-    const handle_legacy_import = async (location: string): Promise<boolean> => {
+    const handle_legacy_import = async (location: string) => {
+        fetching_status = "reading collection file...";
         const result = await get_legacy_collection_data(location);
 
         if (!result.success) {
-            return false;
+            show_notification({ type: "error", text: "failed to read collection file" });
+            fetching_status = "";
+            return;
         }
 
-        for (const [_, collection] of result.data) {
-            collections.add_pending({ ...collection, edit: false });
-        }
-
-        return true;
+        process_results(Array.from(result.data.values()));
     };
 
-    const handle_osdb_import = async (location: string): Promise<boolean> => {
+    const handle_osdb_import = async (location: string) => {
+        fetching_status = "reading osdb file...";
         const result = await get_osdb_data(location);
 
         if (!result.success) {
-            return false;
+            show_notification({ type: "error", text: "failed to read osdb file" });
+            fetching_status = "";
+            return;
         }
 
-        for (const collection of result.data.collections) {
-            const hashes: string[] = collection.hash_only_beatmaps;
+        const data = result.data.collections.map((c) => {
+            const hashes = c.hash_only_beatmaps.length > 0 ? c.hash_only_beatmaps : c.beatmaps.map((b) => b.md5);
+            return { name: c.name, beatmaps: hashes };
+        });
 
-            if (hashes.length == 0) {
-                hashes.push(...collection.beatmaps.map((b) => b.md5));
-            }
+        process_results(data);
+    };
 
-            collections.add_pending({
-                name: collection.name,
-                beatmaps: collection.hash_only_beatmaps,
-                edit: false
-            });
+    const process_results = (results: ICollectionResult[]) => {
+        // filter out collections that already exist
+        const filtered = results.filter((c) => !collections.get(c.name));
+
+        pending_collections = filtered;
+
+        if (filtered.length == 0 && results.length > 0) {
+            show_notification({ type: "warning", text: "all collections found already exist in your library" });
         }
 
-        return true;
+        fetching_status = "";
     };
 
     const handle_from_player = async () => {
@@ -163,6 +182,18 @@
         }
     };
 
+    const handle_from_client = async () => {
+        try {
+            fetching_status = "fetching collections from client...";
+            const data = await window.api.invoke("driver:get_collections", target_driver);
+            process_results(data || []);
+        } catch (err) {
+            show_notification({ type: "error", text: "failed to fetch collections from client" });
+        } finally {
+            fetching_status = "";
+        }
+    };
+
     const handle_import_collections = async () => {
         if (collection_location == "") {
             show_notification({ type: "error", text: "please select a collection first" });
@@ -178,32 +209,16 @@
         }
 
         switch (type) {
-            case "db": {
-                const result = await handle_legacy_import(collection_location);
-
-                if (!result) {
-                    show_notification({ type: "error", text: "failed to import legacy collection..." });
-                    return;
-                }
-
+            case "db":
+                await handle_legacy_import(collection_location);
                 break;
-            }
             case "osdb":
-                const result = await handle_osdb_import(collection_location);
-
-                if (!result) {
-                    show_notification({ type: "error", text: "failed to import osdb collection..." });
-                    return;
-                }
-
+                await handle_osdb_import(collection_location);
                 break;
             default:
                 show_notification({ type: "error", text: "please use a valid collection file (.db or .osdb)" });
                 return;
         }
-
-        cleanup();
-        show_modal(ModalType.get_pending_collections);
     };
 
     const handle_from_collector = async () => {
@@ -258,9 +273,53 @@
             case "osu!collector":
                 handle_from_collector();
                 break;
+            case "client":
+                handle_from_client();
+                break;
             default:
                 show_notification({ type: "error", text: "unknown type" });
                 break;
+        }
+    };
+
+    const on_import_pending = async () => {
+        if (selected_collections.length == 0) {
+            show_notification({ type: "warning", text: "select at least one collection" });
+            return;
+        }
+
+        fetching_status = "importing collections...";
+
+        for (const name of selected_collections) {
+            const collection = pending_collections.find((c) => c.name == name);
+            if (!collection) {
+                continue;
+            }
+
+            const result = await collections.create_collection(collection.name);
+            if (!result) {
+                continue;
+            }
+
+            await collections.add_beatmaps(collection.name, collection.beatmaps);
+        }
+
+        cleanup();
+    };
+
+    const toggle_selection = (name: string) => {
+        if (selected_collections.includes(name)) {
+            selected_collections = selected_collections.filter((c) => c != name);
+        } else {
+            selected_collections = [...selected_collections, name];
+        }
+    };
+
+    const toggle_all_selection = () => {
+        if (selected_collections.length === pending_collections.length) {
+            selected_collections = [];
+        } else {
+            selected_collections = pending_collections.map((c) => c.name);
         }
     };
 
@@ -278,13 +337,35 @@
         added_players = [];
         player_input_value = "";
         fetching_status = "";
+        pending_collections = [];
+        selected_collections = [];
+        is_client_fetched = false;
         current_modal.set(ModalType.none);
     };
+
+    let is_client_fetched = false;
+    $: if (collection_type == "client" && !is_client_fetched && !is_driver_loading && $current_modal == ModalType.get_collection) {
+        if (is_target_initialized) {
+            handle_from_client();
+            is_client_fetched = true;
+        }
+    }
+
+    $: if (collection_type != "client") {
+        is_client_fetched = false;
+    }
 
     $: if (collection_type == "player" && !$authenticated) {
         show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
         collection_type = "osu!collector";
     }
+
+    onMount(() => {
+        window.api.invoke("driver:is_initialized", target_driver).then((value: boolean) => {
+            is_target_initialized = value;
+            is_driver_loading = false;
+        });
+    });
 </script>
 
 {#if $current_modal == ModalType.get_collection}
@@ -293,68 +374,146 @@
     <div class="modal-container" onclick={cleanup}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             {#if fetching_status != ""}
-                <div class="spinner-container" onclick={(e) => e.stopPropagation()}>
+                <div class="spinner-overlay">
                     <Spinner />
                     <span>{fetching_status}</span>
                 </div>
-            {:else}
-                {#if collection_type != "file" && collection_type != "player"}
-                    <Input label={collection_label} bind:value={collection_input} />
-                {/if}
+            {/if}
 
-                <Dropdown label={"type"} bind:selected_value={collection_type} options={collection_options} />
-
-                {#if collection_type == "osu!collector"}
-                    <Input label={"url"} bind:value={collection_url} />
-                {/if}
-
-                {#if collection_type == "file"}
-                    <InputDialog title={"collection file"} type={"openFile"} bind:location={collection_location} />
-                {/if}
-
-                {#if collection_type == "player"}
-                    <div class="field-group">
-                        <!-- svelte-ignore a11y_label_has_associated_control -->
-                        <label class="field-label">player(s)</label>
-
-                        <div class="player-input-row">
-                            <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
-                            <div class="add-button" onclick={() => add_player()}>
-                                <CrossIcon />
-                            </div>
-                        </div>
-
-                        {#if added_players.length > 0}
-                            <div class="added-players">
-                                {#each added_players as player}
-                                    <div class="player-chip">
-                                        <span onclick={() => remove_player(player)}>{player}</span>
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
+            {#if pending_collections.length > 0}
+                <div class="pending-container">
+                    <div class="header-row">
+                        <h1 class="field-label">collections found</h1>
+                        <button class="text-btn" onclick={toggle_all_selection}>
+                            {selected_collections.length === pending_collections.length ? "unselect all" : "select all"}
+                        </button>
                     </div>
 
-                    <ChipSelect
-                        label="beatmap options"
-                        options={["best performance", "first place", "favourites", "created maps"]}
-                        bind:selected={selected_bm_options}
-                        columns={2}
-                    />
+                    <div class="collection-list">
+                        {#each pending_collections as collection}
+                            <CollectionCard
+                                name={collection.name}
+                                count={collection.beatmaps.length}
+                                selected={selected_collections.includes(collection.name)}
+                                on_select={() => toggle_selection(collection.name)}
+                            />
+                        {/each}
+                    </div>
 
-                    <ChipSelect
-                        label="beatmap status"
-                        options={["graveyard", "wip", "pending", "ranked", "approved", "qualified", "loved"]}
-                        bind:selected={selected_bm_status}
-                        columns={4}
-                    />
+                    <div class="actions actions-separator">
+                        <button class="primary-btn" onclick={on_import_pending}>import ({selected_collections.length})</button>
+                        <button
+                            onclick={() => {
+                                pending_collections = [];
+                                collection_type = "osu!collector";
+                                is_client_fetched = false;
+                            }}>back</button
+                        >
+                    </div>
+                </div>
+            {:else if collection_type == "client" && is_client_fetched && pending_collections.length == 0 && fetching_status == ""}
+                <div class="empty-state">
+                    <span>0 collections found :(</span>
+                    <button
+                        class="text-btn"
+                        onclick={() => {
+                            collection_type = "osu!collector";
+                            is_client_fetched = false;
+                        }}>back</button
+                    >
+                </div>
+            {:else}
+                <div class="form-container">
+                    {#if collection_type != "file" && collection_type != "player" && collection_type != "client"}
+                        <Input label={collection_label} bind:value={collection_input} />
+                    {/if}
 
-                    <RangeSlider label={"difficulty range"} min={0} max={10} value={bm_difficulty_range} />
-                {/if}
+                    <Dropdown label={"type"} bind:selected_value={collection_type} options={collection_options} />
 
-                <div class="actions actions-separator">
-                    <button onclick={on_submit}>submit</button>
-                    <button onclick={on_cancel}>cancel</button>
+                    {#if collection_type == "client"}
+                        {#if is_driver_loading}
+                            <div class="inline-spinner">
+                                <Spinner />
+                                <span>getting data from driver...</span>
+                            </div>
+                        {:else if !is_target_initialized}
+                            <div class="driver-init">
+                                <span>{target_driver} client is not initialized yet</span>
+                                <button
+                                    class="accent-btn"
+                                    onclick={async () => {
+                                        fetching_status = "initializing driver...";
+                                        const result = await window.api.invoke("driver:initialize", false, target_driver);
+                                        fetching_status = "";
+
+                                        if (!result) {
+                                            show_notification({ type: "error", text: "failed to start driver..." });
+                                            return;
+                                        }
+
+                                        is_target_initialized = true;
+                                        handle_from_client();
+                                        is_client_fetched = true;
+                                    }}
+                                >
+                                    initialize
+                                </button>
+                            </div>
+                        {/if}
+                    {/if}
+
+                    {#if collection_type == "osu!collector"}
+                        <Input label={"url"} bind:value={collection_url} />
+                    {/if}
+
+                    {#if collection_type == "file"}
+                        <InputDialog title={"collection file"} type={"openFile"} bind:location={collection_location} />
+                    {/if}
+
+                    {#if collection_type == "player"}
+                        <div class="field-group">
+                            <!-- svelte-ignore a11y_label_has_associated_control -->
+                            <label class="field-label">player(s)</label>
+
+                            <div class="player-input-row">
+                                <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
+                                <div class="add-button" onclick={() => add_player()}>
+                                    <CrossIcon />
+                                </div>
+                            </div>
+
+                            {#if added_players.length > 0}
+                                <div class="added-players">
+                                    {#each added_players as player}
+                                        <div class="player-chip">
+                                            <span onclick={() => remove_player(player)}>{player}</span>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+
+                        <ChipSelect
+                            label="beatmap options"
+                            options={["best performance", "first place", "favourites", "created maps"]}
+                            bind:selected={selected_bm_options}
+                            columns={2}
+                        />
+
+                        <ChipSelect
+                            label="beatmap status"
+                            options={["graveyard", "wip", "pending", "ranked", "approved", "qualified", "loved"]}
+                            bind:selected={selected_bm_status}
+                            columns={4}
+                        />
+
+                        <RangeSlider label={"difficulty range"} min={0} max={10} value={bm_difficulty_range} />
+                    {/if}
+
+                    <div class="actions actions-separator">
+                        <button class="primary-btn" onclick={on_submit}>submit</button>
+                        <button onclick={on_cancel}>cancel</button>
+                    </div>
                 </div>
             {/if}
         </div>
@@ -362,51 +521,149 @@
 {/if}
 
 <style>
+    .form-container,
+    .pending-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .spinner-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+    }
+
+    .inline-spinner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+
+    .collection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
     .player-input-row {
         display: grid;
-        grid-template-columns: 85% 1fr;
-        gap: 6px;
+        grid-template-columns: 1fr 48px;
+        gap: 10px;
     }
 
     .add-button {
         display: flex;
-        flex-wrap: wrap;
-        align-content: center;
+        align-items: center;
         justify-content: center;
-        padding: 8px 12px;
-        background-color: #2a2a2a;
-        border: 1px solid #444;
-        width: 100%;
-        height: 100%;
-        border-radius: 6px;
-        transition: all 0.15s;
+        background-color: var(--bg-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        transition: all 0.2s;
         cursor: pointer;
     }
 
-    .add-button:hover,
-    .player-chip:hover {
+    .add-button:hover {
         background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        transform: scale(1.05);
     }
 
     .added-players {
         display: flex;
-        flex-direction: row;
-        margin-top: 4px;
+        flex-wrap: wrap;
+        margin-top: 10px;
         gap: 8px;
     }
 
     .player-chip {
         display: flex;
-        width: max-content;
-        flex-direction: row;
-        justify-content: center;
-        padding: 4px 6px;
-        background-color: rgb(33, 33, 33);
-        border: 1px solid #444;
-        border-radius: 6px;
+        padding: 6px 14px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .player-chip > span {
-        font-size: 13px;
+    .player-chip:hover {
+        background-color: #ff4444;
+        border-color: #ff4444;
+        transform: translateY(-1px);
+    }
+
+    .driver-init {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+    }
+
+    .accent-btn {
+        background-color: var(--accent-color);
+        border: none;
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: "Torus Bold";
+        transition: all 0.2s;
+    }
+
+    .accent-btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
+
+    :global(.primary-btn) {
+        background-color: var(--accent-color) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    :global(.primary-btn:hover) {
+        filter: brightness(1.1) !important;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 40px;
+        text-align: center;
+    }
+
+    .empty-state span {
+        font-size: 18px;
+        opacity: 0.7;
+        font-family: "Torus Bold";
+    }
+
+    .actions-separator {
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 </style>
