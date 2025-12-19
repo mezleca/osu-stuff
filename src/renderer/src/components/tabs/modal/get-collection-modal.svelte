@@ -103,7 +103,7 @@
 
     const process_results = (results: ICollectionResult[]) => {
         // filter out collections that already exist
-        const filtered = results.filter((c) => !collections.get(c.name));
+        const filtered = results.filter((c) => !collections.has(c.name));
 
         pending_collections = filtered;
 
@@ -172,6 +172,7 @@
                 return;
             }
 
+            show_notification({ type: "success", text: `created ${collection_name}` });
             await collections.add_beatmaps(collection_name, hashes);
 
             cleanup();
@@ -253,7 +254,11 @@
                 return;
             }
 
+            show_notification({ type: "success", text: `created ${new_name}` });
+
+            // this will not fail
             await collections.add_beatmaps(new_name, checksums);
+
             cleanup();
         } catch (err) {
             show_notification({ type: "error", text: err as string });
@@ -290,18 +295,34 @@
 
         fetching_status = "importing collections...";
 
+        let import_count = 0;
+
         for (const name of selected_collections) {
             const collection = pending_collections.find((c) => c.name == name);
+
             if (!collection) {
                 continue;
             }
 
             const result = await collections.create_collection(collection.name);
+
+            // if we fail, just send a notification
+            // should be enough for now
             if (!result) {
+                show_notification({ type: "warning", text: `failed to create ${collection.name}...` });
                 continue;
             }
 
+            // this cant fail btw
             await collections.add_beatmaps(collection.name, collection.beatmaps);
+            import_count++;
+        }
+
+        if (!import_count) {
+            show_notification({ type: "error", text: "couldn't import anything..." });
+        } else {
+            const suffix = import_count == 1 ? "" : "s";
+            show_notification({ type: "error", text: `finished importing ${import_count} collection${suffix}` });
         }
 
         cleanup();
@@ -361,10 +382,15 @@
     }
 
     onMount(() => {
-        window.api.invoke("driver:is_initialized", target_driver).then((value: boolean) => {
-            is_target_initialized = value;
+        try {
+            window.api.invoke("driver:is_initialized", target_driver).then((value: boolean) => {
+                is_target_initialized = value;
+            });
+        } catch (err) {
+            show_notification({ type: "error", text: err as string });
+        } finally {
             is_driver_loading = false;
-        });
+        }
     });
 </script>
 

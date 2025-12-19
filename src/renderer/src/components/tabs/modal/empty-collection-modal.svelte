@@ -2,6 +2,7 @@
     import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import Input from "../../utils/basic/input.svelte";
+    import { show_notification } from "../../../lib/store/notifications";
 
     let name = "";
 
@@ -12,6 +13,7 @@
             return;
         }
 
+        show_notification({ type: "success", text: `created ${name}` });
         cleanup();
     };
 

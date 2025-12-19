@@ -306,8 +306,6 @@ class CollectionManager {
             }
 
             this.add({ name, beatmaps: [] });
-            show_notification({ type: "success", text: `created "${name}"` });
-
             return true;
         } catch (error) {
             console.error("[collections] create error:", error);

@@ -34,7 +34,6 @@ export const initialize_driver = async (force: boolean = false, driver: string =
 };
 
 export const is_initialized = (driver: string = ""): boolean => {
-    console.log(driver);
     return get_driver(driver).is_initialized();
 };
 
