@@ -31,6 +31,7 @@ const kill_process_tree = async (proc: Subprocess | null) => {
     }
 
     const pid = proc.pid;
+
     if (!pid) {
         proc.kill("SIGKILL");
         return;
@@ -40,11 +41,11 @@ const kill_process_tree = async (proc: Subprocess | null) => {
         if (process.platform === "win32") {
             execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore" });
         } else {
-            process.kill(-pid, "SIGTERM");
+            proc.kill("SIGTERM");
             await Promise.race([proc.exited, new Promise((r) => setTimeout(r, 1500))]);
-            try {
-                process.kill(-pid, "SIGKILL");
-            } catch {}
+            if (proc.exitCode === null) {
+                proc.kill("SIGKILL");
+            }
         }
     } catch (e) {
         console.log(`[cli] process ${pid} probably already dead`);
