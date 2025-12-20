@@ -9,7 +9,9 @@ const AUDIO_LOCATION = path.resolve("tests", "utils", "audio.mp3");
 const IMAGE_LOCATION = path.resolve("tests", "utils", "bg.jpg");
 
 describe("builder", async () => {
-    setup_config();
+    beforeAll(async () => {
+        await setup_config();
+    });
 
     // create new builder instance
     const builder = new BeatmapBuilder();

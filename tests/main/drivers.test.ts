@@ -22,7 +22,6 @@ const test_driver = (type: string) => {
     afterAll(() => {
         // cleanup: remove temp beatmap and collection
         driver.delete_collection(temp_collection_name);
-        // TODO: driver.remove_beatmap(temp_beatmap.md5);
     });
 
     test(`${type}: initialize():`, async () => {
@@ -138,8 +137,8 @@ const test_driver = (type: string) => {
 };
 
 describe("osu!driver", () => {
-    beforeAll(() => {
-        setup_config();
+    beforeAll(async () => {
+        await setup_config();
     });
 
     describe("lazer", () => test_driver("lazer"));

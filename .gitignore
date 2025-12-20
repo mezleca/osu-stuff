@@ -10,3 +10,4 @@ build/*
 bin
 .temp
 tests/.temp_data
+tests/.data

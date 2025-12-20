@@ -1,12 +1,12 @@
 import fs from "fs";
 import path from "path";
-
 import { exec } from "child_process";
 import { IBeatmapResult, StuffConfig } from "@shared/types";
 import { config as _config } from "@main/database/config";
 import { mirrors as _mirrors } from "@main/database/mirrors";
 import { beatmap_processor as _processor } from "@main/database/processor";
 
+export const DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz";
 export const TEMP_DIR = path.resolve("tests", ".temp_data");
 export const DATA_DIR = path.resolve("tests", ".data");
 
@@ -14,7 +14,7 @@ const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 export const generate_random_string = (size: number) => {
     let result = "";
-    for (var i = 0; i < size; i++) {
+    for (let i = 0; i < size; i++) {
         result += CHARS.charAt(Math.floor(Math.random() * CHARS.length));
     }
     return result;
@@ -45,45 +45,112 @@ export const create_temp_beatmap = (): IBeatmapResult => {
     };
 };
 
-export const create_temp_path = () => {
-    fs.mkdirSync(TEMP_DIR);
-};
-
-export const run_sh = (command: string) => {
-    return new Promise((res) => {
-        exec(command, res);
+export const run_sh = (command: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        console.log(`[EXEC] running: ${command}`);
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`[EXEC ERROR] ${error.message}`);
+                reject(error);
+                return;
+            }
+            if (stderr) {
+                console.warn(`[EXEC STDERR] ${stderr}`);
+            }
+            if (stdout) {
+                console.log(`[EXEC STDOUT] ${stdout}`);
+            }
+            resolve();
+        });
     });
 };
 
-export const copy_test_stuff = () => {
-    if (fs.existsSync(TEMP_DIR)) {
-        fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+export const download_data = async (): Promise<void> => {
+    console.log(`[DOWNLOAD] starting data download from ${DATA_URL}`);
+
+    try {
+        // create data dir if not exists
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+
+        const command = `curl -L ${DATA_URL} | tar -xz --strip-components=3 -C ${DATA_DIR}`;
+        await run_sh(command);
+
+        console.log("[DOWNLOAD] data downloaded successfully");
+
+        // verify extraction worked
+        const files = fs.readdirSync(DATA_DIR);
+        console.log(`[DOWNLOAD] extracted files: ${files.join(", ")}`);
+    } catch (error) {
+        console.error("[DOWNLOAD ERROR] failed to download data:", error);
+        throw error;
     }
-
-    // create temp directory with write permissions
-    fs.mkdirSync(TEMP_DIR, { recursive: true, mode: 0o777 });
-
-    // copy files
-    fs.cpSync(DATA_DIR, TEMP_DIR, {
-        recursive: true,
-        force: true
-    });
 };
 
-export const setup_config = () => {
-    copy_test_stuff();
+export const setup_test_env = async (): Promise<void> => {
+    console.log("[SETUP] initializing test environment");
+    console.log(`[SETUP] temp dir: ${TEMP_DIR}`);
+    console.log(`[SETUP] data dir: ${DATA_DIR}`);
 
-    _config.reinitialize();
-    _processor.reinitialize();
-    _mirrors.reinitialize();
+    try {
+        // remove temp dir if exists
+        if (fs.existsSync(TEMP_DIR)) {
+            console.log("[SETUP] removing existing temp directory");
+            fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+        }
 
-    const config_data: Partial<StuffConfig> = {
-        stable_path: path.resolve(TEMP_DIR, "osu"),
-        stable_songs_path: path.resolve(TEMP_DIR, "osu", "Songs"),
-        lazer_path: path.resolve(TEMP_DIR, "lazer"),
-        export_path: TEMP_DIR
-    };
+        // download data if doesnt exist
+        if (!fs.existsSync(DATA_DIR)) {
+            console.log("[SETUP] data directory not found, downloading...");
+            await download_data();
+        } else {
+            console.log("[SETUP] data directory found, skipping download");
+        }
 
-    _config.update(config_data);
-    _mirrors.update("nery", "https://api.nerinyan.moe/d/");
+        // create temp directory
+        console.log("[SETUP] creating temp directory");
+        fs.mkdirSync(TEMP_DIR, { recursive: true, mode: 0o777 });
+
+        // copy files
+        console.log("[SETUP] copying files to temp directory");
+        fs.cpSync(DATA_DIR, TEMP_DIR, {
+            recursive: true,
+            force: true
+        });
+
+        console.log("[SETUP] test environment ready");
+    } catch (error) {
+        console.error("[SETUP ERROR] failed to setup test environment:", error);
+        throw error;
+    }
+};
+
+export const setup_config = async (): Promise<void> => {
+    console.log("[CONFIG] starting configuration setup");
+
+    try {
+        await setup_test_env();
+
+        console.log("[CONFIG] reinitializing modules");
+        _config.reinitialize();
+        _processor.reinitialize();
+        _mirrors.reinitialize();
+
+        const config_data: Partial<StuffConfig> = {
+            stable_path: path.resolve(TEMP_DIR, "osu"),
+            stable_songs_path: path.resolve(TEMP_DIR, "osu", "Songs"),
+            lazer_path: path.resolve(TEMP_DIR, "lazer"),
+            export_path: TEMP_DIR
+        };
+
+        console.log("[CONFIG] updating config:", config_data);
+        _config.update(config_data);
+        _mirrors.update("nery", "https://api.nerinyan.moe/d/");
+
+        console.log("[CONFIG] configuration setup complete");
+    } catch (error) {
+        console.error("[CONFIG ERROR] failed to setup config:", error);
+        throw error;
+    }
 };
