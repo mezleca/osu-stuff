@@ -77,8 +77,8 @@
 
             <div class="options">
                 <Dropdown
+                    inline={false}
                     label="type"
-                    placeholder="..."
                     bind:selected_value={type}
                     options={[
                         { label: "db", value: "db" },

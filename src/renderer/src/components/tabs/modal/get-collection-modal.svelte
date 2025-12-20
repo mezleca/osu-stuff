@@ -488,16 +488,7 @@
                         <Input label={collection_label} bind:value={collection_input} />
                     {/if}
 
-                    <!--
-                        yeah, i could use the dropdown label, however, form-container has an gap of 16px which makes
-                        the label be 16px separated from the dropdown. and i currently cant have the dropdown label inside
-                        a field-group on the component (it makes dropdown overflows on radio tab...)
-                        so for now, this is necessary
-                      -->
-                    <div class="field-group">
-                        <span class="field-label">type</span>
-                        <Dropdown bind:selected_value={collection_type} options={collection_options} />
-                    </div>
+                    <Dropdown label={"type"} inline={false} bind:selected_value={collection_type} options={collection_options} />
 
                     {#if collection_type == "client"}
                         {#if is_driver_loading}

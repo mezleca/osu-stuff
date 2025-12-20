@@ -85,7 +85,7 @@ export class BeatmapList extends ListBase {
     selected_buffer: Writable<string[]> = writable([]);
 
     // filter options
-    target: Writable<string> = writable("");
+    target: Writable<string> = writable(ALL_BEATMAPS_KEY);
     sort: Writable<keyof IBeatmapResult> = writable("title");
     show_invalid: Writable<boolean> = writable(false);
     show_unique: Writable<boolean> = writable(false);

@@ -237,8 +237,8 @@
         <div class="content-header">
             <Search bind:value={$query} placeholder="search beatmaps" />
             <ExpandableMenu>
-                <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
                 <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>

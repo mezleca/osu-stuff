@@ -38,11 +38,11 @@
 
 <div class="content tab-content">
     <div class="manager-content">
-        <div class="content-header">
+        <div class="content-header" style="z-index: 99999;">
             <Search placeholder="search local beatmaps" value={$query} callback={(q) => list.set_query(q)} />
             <ExpandableMenu>
-                <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                <Dropdown placeholder={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>
         </div>

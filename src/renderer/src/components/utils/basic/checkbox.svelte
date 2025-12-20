@@ -66,7 +66,7 @@
 
     .checkbox-text {
         display: block;
-        color: #ffffff;
+        color: var(--text-secondary);
         font-size: 15px;
         margin-bottom: 4px;
         cursor: pointer;
@@ -75,7 +75,7 @@
 
     .checkbox-description {
         font-size: 13px;
-        color: #999999;
+        color: var(--text-muted);
         line-height: 1.3;
         width: 100%;
     }

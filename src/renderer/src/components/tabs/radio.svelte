@@ -15,6 +15,7 @@
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
     import BeatmapList from "../beatmap-list.svelte";
+    import ExpandableMenu from "../utils/expandable-menu.svelte";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
@@ -157,12 +158,10 @@
 <div class="content tab-content">
     <div class="radio-container" style="--radio-bg: {bg};">
         <div class="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" style="z-index: 999999;">
                 <Search bind:value={$query} placeholder="search beatmaps" />
-                <div class="filter-container">
-                    <Dropdown placeholder={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                    <Dropdown placeholder={"target"} bind:selected_value={$target} options={collection_target_options} />
-                </div>
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                <Dropdown label={"target"} bind:selected_value={$target} options={collection_target_options} />
             </div>
             <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />
         </div>
@@ -221,6 +220,7 @@
 
     .filter-container {
         display: flex;
+        flex-wrap: nowrap;
         gap: 10px;
         position: relative;
         z-index: 99999;

@@ -211,6 +211,14 @@
 </div>
 
 <style>
+    .field-label {
+        color: var(--text-secondary);
+    }
+
+    .field-description {
+        color: var(--text-muted);
+    }
+
     .config-buttons > button {
         font-family: "Torus Bold";
     }
