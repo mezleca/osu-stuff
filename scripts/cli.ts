@@ -3,9 +3,9 @@ import type { Subprocess } from "bun";
 import { cp, rm, mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync, watch } from "fs";
 import { execSync } from "child_process";
+import path from "path";
 
 import svelte_plugin from "./plugins/svelte";
-import path from "path";
 
 const ARGS = process.argv.slice(2);
 const IS_DEV = ARGS.includes("dev");
@@ -26,7 +26,9 @@ let electron_process: Subprocess | null = null;
 let is_restarting = false;
 
 const kill_process_tree = async (proc: Subprocess | null) => {
-    if (!proc || proc.exitCode !== null) return;
+    if (!proc || proc.exitCode !== null) {
+        return;
+    }
 
     const pid = proc.pid;
     if (!pid) {
@@ -45,7 +47,7 @@ const kill_process_tree = async (proc: Subprocess | null) => {
             } catch {}
         }
     } catch (e) {
-        console.log(`[script] process ${pid} probably already dead`);
+        console.log(`[cli] process ${pid} probably already dead`);
     }
 
     try {
@@ -58,14 +60,22 @@ const free_port_5173 = () => {
         try {
             const output = execSync("netstat -ano | findstr :5173", { stdio: "pipe" }).toString();
             const lines = output.trim().split("\n");
+
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                if (!line.trim()) continue;
+                if (!line.trim()) {
+                    continue;
+                }
+
                 const parts = line.trim().split(/\s+/);
                 const pid_str = parts[parts.length - 1];
                 const pid = parseInt(pid_str, 10);
-                if (isNaN(pid) || pid === 0) continue;
-                console.log(`[script] killing old process on port 5173 (PID ${pid})`);
+
+                if (isNaN(pid) || pid === 0) {
+                    continue;
+                }
+
+                console.log(`[cli] killing old process on port 5173 (PID ${pid})`);
                 execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
             }
         } catch {}
@@ -77,10 +87,17 @@ const free_port_5173 = () => {
 };
 
 const cleanup = async () => {
-    console.log("[script] cleaning up processes...");
+    console.log("[cli] cleaning up processes...");
     const tasks: Promise<void>[] = [];
-    if (vite_process) tasks.push(kill_process_tree(vite_process));
-    if (electron_process) tasks.push(kill_process_tree(electron_process));
+
+    if (vite_process) {
+        tasks.push(kill_process_tree(vite_process));
+    }
+
+    if (electron_process) {
+        tasks.push(kill_process_tree(electron_process));
+    }
+
     await Promise.all(tasks);
 
     vite_process = null;
@@ -95,42 +112,56 @@ const handle_signal = async () => {
 process.on("SIGINT", handle_signal);
 process.on("SIGTERM", handle_signal);
 process.on("exit", () => {
-    if (vite_process && vite_process.exitCode === null) vite_process.kill("SIGKILL");
-    if (electron_process && electron_process.exitCode === null) electron_process.kill("SIGKILL");
+    if (vite_process && vite_process.exitCode === null) {
+        vite_process.kill("SIGKILL");
+    }
+    if (electron_process && electron_process.exitCode === null) {
+        electron_process.kill("SIGKILL");
+    }
 });
 
 process.on("uncaughtException", async (err) => {
-    console.error("[script] uncaught exception:", err);
+    console.error("[cli] uncaught exception:", err);
     await cleanup();
     process.exit(1);
 });
 
 process.on("unhandledRejection", async (err) => {
-    console.error("[script] unhandled rejection:", err);
+    console.error("[cli] unhandled rejection:", err);
     await cleanup();
     process.exit(1);
 });
 
 const bundle = async (config: any) => {
     console.log(`[build] building ${config.label}...`);
+
     const result = await build({
         ...config,
         sourcemap: IS_DEV ? "inline" : "none",
-        minify: !IS_DEV
+        minify: !IS_DEV,
+        define: {
+            "process.env.NODE_ENV": JSON.stringify(IS_DEV ? "development" : "production")
+        }
     });
+
     if (!result.success) {
         console.error(`[build] failed (${config.label})`, result.logs);
-        if (!IS_DEV) process.exit(1);
+        if (!IS_DEV) {
+            process.exit(1);
+        }
     }
 };
 
 const clean = async () => {
-    if (existsSync(PATHS.OUT)) await rm(PATHS.OUT, { recursive: true, force: true }).catch(() => {});
+    if (existsSync(PATHS.OUT)) {
+        await rm(PATHS.OUT, { recursive: true, force: true }).catch(() => {});
+    }
+
     await mkdir(PATHS.OUT, { recursive: true });
 };
 
-const build_main = () =>
-    bundle({
+const build_main = () => {
+    return bundle({
         label: "main",
         entrypoints: [PATHS.SRC_MAIN],
         outdir: path.join(PATHS.OUT, "main"),
@@ -138,9 +169,10 @@ const build_main = () =>
         external: ["electron", "better-sqlite3"],
         tsconfig: "tsconfig.node.json"
     });
+};
 
-const build_preload = () =>
-    bundle({
+const build_preload = () => {
+    return bundle({
         label: "preload",
         entrypoints: [PATHS.SRC_PRELOAD],
         outdir: path.join(PATHS.OUT, "preload"),
@@ -148,6 +180,7 @@ const build_preload = () =>
         external: ["electron"],
         tsconfig: "tsconfig.node.json"
     });
+};
 
 const build_renderer = async () => {
     const assets_src = path.join(PATHS.ROOT, "src/renderer/src/assets");
@@ -166,6 +199,7 @@ const build_renderer = async () => {
 
     let html = await readFile(PATHS.HTML_TEMPLATE, "utf-8");
     html = html.replace(/src="\/src\/main.ts"/, 'src="./main.js"').replace("</head>", '<link rel="stylesheet" href="./main.css">\n</head>');
+
     await writeFile(path.join(PATHS.OUT, "renderer/index.html"), html);
 };
 
@@ -186,22 +220,31 @@ const start_electron = async (dev: boolean) => {
         ...process.env,
         NODE_ENV: dev ? "development" : "production"
     };
-    if (dev) env.ELECTRON_RENDERER_URL = "http://localhost:5173";
 
-    electron_process = spawn(["bunx", "electron", "."], {
+    if (dev) {
+        env.ELECTRON_RENDERER_URL = "http://localhost:5173";
+    }
+
+    const electron_bin = process.platform === "win32" ? "node_modules\\.bin\\electron.cmd" : "node_modules/.bin/electron";
+
+    electron_process = spawn([electron_bin, "."], {
         stdout: "inherit",
         stderr: "inherit",
         env
     });
 
+    console.log(`[cli] starting electron in ${env.NODE_ENV} mode`);
+
     const current_process = electron_process;
     is_restarting = false;
 
     current_process.exited.then(async () => {
-        if (is_restarting && electron_process !== current_process) return;
+        if (is_restarting && electron_process !== current_process) {
+            return;
+        }
 
         if (!is_restarting) {
-            console.log("[script] electron closed, exiting...");
+            console.log("[cli] electron closed, exiting...");
             await cleanup();
             process.exit(0);
         }
@@ -212,7 +255,7 @@ const dev = async () => {
     await clean();
     free_port_5173();
 
-    console.log("[script] starting vite...");
+    console.log("[cli] starting vite...");
 
     vite_process = spawn(["bunx", "vite", "dev", "--port", "5173", "--strictPort"], {
         stdout: "inherit",
@@ -222,7 +265,7 @@ const dev = async () => {
     await new Promise((r) => setTimeout(r, 2000));
 
     if (vite_process.exitCode !== null) {
-        console.error("[script] vite failed to start");
+        console.error("[cli] vite failed to start");
         process.exit(1);
     }
 
@@ -240,7 +283,7 @@ const build_all = async () => {
     await build_renderer();
 };
 
-(async () => {
+const run = async () => {
     try {
         if (IS_DEV) {
             await dev();
@@ -251,8 +294,10 @@ const build_all = async () => {
             await build_all();
         }
     } catch (error) {
-        console.error("[script] fatal error:", error);
+        console.error("[cli] fatal error:", error);
         await cleanup();
         process.exit(1);
     }
-})();
+};
+
+run();

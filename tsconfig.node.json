@@ -13,9 +13,6 @@
       "@shared/*": [
         "./src/shared/*"
       ]
-    },
-    "types": [
-      "electron-vite/node"
-    ]
+    }
   }
 }
