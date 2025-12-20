@@ -33,7 +33,6 @@ export class ConfigDatabase extends BaseDatabase {
     data: StuffConfig;
 
     constructor(location: string = get_app_path()) {
-        console.log("config location:", location);
         super("config.db", location);
         this.data = { ...DEFAULT_DATA };
     }

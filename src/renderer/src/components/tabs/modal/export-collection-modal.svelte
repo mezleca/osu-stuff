@@ -96,16 +96,6 @@
 {/if}
 
 <style>
-    .collection-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 8px;
-        margin-bottom: 20px;
-    }
-
     .options {
         margin-bottom: 20px;
     }

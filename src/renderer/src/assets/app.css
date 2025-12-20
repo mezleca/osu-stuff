@@ -208,6 +208,15 @@ main {
     flex: 1;
 }
 
+.collection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
 .missing-button {
     font-family: "Torus SemiBold";
     border: none;
@@ -630,7 +639,6 @@ main {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    gap: 10px;
 }
 
 .modal-header {

@@ -129,11 +129,3 @@
         </div>
     </div>
 {/if}
-
-<style>
-    .collection-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-</style>
