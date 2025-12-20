@@ -202,6 +202,28 @@ main {
     position: relative;
 }
 
+.results-count {
+    color: var(--accent-color);
+    font-size: 13px;
+    flex: 1;
+}
+
+.missing-button {
+    font-family: "Torus SemiBold";
+    border: none;
+    padding: 6px 8px;
+    transition: all 0.15s;
+    border-radius: 6px;
+    font-size: 14px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.missing-button:hover {
+    background-color: var(--accent-color);
+}
+
 .app-title {
     background: none;
     border: none;
@@ -282,7 +304,7 @@ main {
     background: transparent;
     border: none;
     color: var(--accent-color);
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 6px;
@@ -611,6 +633,61 @@ main {
     gap: 10px;
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-content {
+    min-height: 100px;
+    max-height: 450px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.primary-btn,
+.accent-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    font-family: "Torus Bold";
+    padding: 10px 20px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.primary-btn:hover,
+.accent-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.loading-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px;
+    text-align: center;
+}
+
+.loading-state span,
+.empty-state span {
+    font-size: 16px;
+    opacity: 0.7;
+    font-family: "Torus Bold";
+}
+
 .modal-spinner {
     position: absolute;
     top: 0;
@@ -638,9 +715,9 @@ main {
 }
 
 .actions-separator {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #333;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* SCROLLBAR CONFIG */

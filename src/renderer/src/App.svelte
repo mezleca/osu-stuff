@@ -16,6 +16,7 @@
     import Config from "./components/tabs/config.svelte";
     import Index from "./components/tabs/index.svelte";
     import Status from "./components/tabs/status.svelte";
+    import MissingBeatmapsModal from "./components/tabs/modal/missing-beatmaps-modal.svelte";
 
     // extra
     import Header from "./components/header.svelte";
@@ -70,10 +71,11 @@
     <Notifications />
     <ProgressBox />
     <ContextMenu />
+    <MissingBeatmapsModal />
 
     <!-- show loading screen on initialization -->
     {#if !initialized}
-        <div class="loading-screen" onclick={(e) => e.stopPropagation()}>
+        <div class="loading-screen" role="presentation" onmousedown={(e) => e.stopPropagation()}>
             <Spinner width={48} height={48} />
             <h1 class="loading-status" style="color: white;">loading...</h1>
         </div>

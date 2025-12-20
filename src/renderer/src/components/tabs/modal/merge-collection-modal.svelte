@@ -31,7 +31,9 @@
         for (const col_name of selected_collections) {
             const collection = collections.get(col_name);
             if (collection) {
-                collection.beatmaps.map((h) => beatmaps.add(h));
+                for (const h of collection.beatmaps) {
+                    beatmaps.add(h);
+                }
             }
         }
 

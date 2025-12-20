@@ -293,27 +293,50 @@ export abstract class BaseDriver implements IOsuDriver {
     };
 
     get_missing_beatmaps = async (name: string | null): Promise<string[]> => {
-        const beatmaps =
-            (name
-                ? this.get_collection(name)?.beatmaps
-                : // if null, use stored beatmaps
-                  this.get_beatmaps().map((b) => b.md5)) ?? [];
+        let hashes: string[] = [];
 
-        if (!beatmaps) {
+        if (name) {
+            hashes = this.get_collection(name)?.beatmaps ?? [];
+        } else {
+            const collections = this.get_collections();
+            const unique_hashes = new Set<string>();
+
+            for (const collection of collections) {
+                for (const hash of collection.beatmaps) {
+                    if (hash) {
+                        unique_hashes.add(hash);
+                    }
+                }
+            }
+
+            hashes = Array.from(unique_hashes);
+        }
+
+        if (hashes.length == 0) {
             return [];
         }
 
         const missing_beatmaps: string[] = [];
 
-        for (let i = 0; i < beatmaps.length; i++) {
-            const md5 = beatmaps[i];
-            const beatmap = await this.get_beatmap_by_md5(md5);
+        // parallel checks for performance
+        const results = await Promise.all(
+            hashes.map(async (md5) => {
+                const beatmap = await this.get_beatmap_by_md5(md5);
+                if (!beatmap || beatmap.temp) {
+                    return md5;
+                }
+                return null;
+            })
+        );
 
-            if (beatmap && !beatmap.temp) {
-                continue;
+        for (const md5 of results) {
+            if (md5) {
+                missing_beatmaps.push(md5);
             }
+        }
 
-            missing_beatmaps.push(md5);
+        if (missing_beatmaps.length > 0) {
+            console.log(`[driver] found ${missing_beatmaps.length} missing beatmaps out of ${hashes.length} checked`);
         }
 
         return missing_beatmaps;

@@ -24,7 +24,20 @@ class CollectionManager {
     query: Writable<string> = writable("");
     selected: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
     selected_radio: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
-    missing_beatmaps: Writable<any[]> = writable([]);
+
+    async get_missing(): Promise<{ name: string; count: number }[]> {
+        const collections = get(this.all_collections);
+        const result: { name: string; count: number }[] = [];
+
+        for (const collection of collections) {
+            const missing = await window.api.invoke("driver:get_missing_beatmaps", collection.name);
+            if (missing && missing.length > 0) {
+                result.push({ name: collection.name, count: missing.length });
+            }
+        }
+
+        return result;
+    }
 
     set(collections: ICollectionResult[]): void {
         const with_edit: ICollectionWithEdit[] = collections.map((c) => ({

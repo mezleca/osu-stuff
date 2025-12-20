@@ -124,15 +124,4 @@
         background: rgba(255, 64, 64, 0.2);
         transform: translateY(-1px);
     }
-
-    :global(.primary-btn) {
-        background-color: var(--accent-color) !important;
-        color: white !important;
-        border: none !important;
-    }
-
-    .actions-separator {
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
 </style>

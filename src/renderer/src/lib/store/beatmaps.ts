@@ -11,6 +11,7 @@ import type {
     StarRatingFilter
 } from "@shared/types";
 import { config } from "./config";
+import { debounce } from "../utils/utils";
 
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
@@ -30,6 +31,7 @@ export abstract class ListBase {
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
     selected: Writable<ISelectedBeatmap | null> = writable(null);
     should_update: Writable<boolean> = writable(false);
+    total_missing: Writable<number> = writable(0);
 
     constructor(id: string) {
         this.list_id.set(id);
@@ -62,6 +64,19 @@ export abstract class ListBase {
     abstract search(): Promise<any>;
     abstract load(): Promise<boolean>;
     abstract reload(): Promise<void>;
+
+    check_missing = debounce(async () => {
+        try {
+            const missing = await window.api.invoke("driver:get_missing_beatmaps", null);
+            const count = missing?.length ?? 0;
+            console.log(`[list_base] check_missing: ${count} maps`);
+            this.total_missing.set(count);
+        } catch (error) {
+            console.error("[list_base] check_missing error:", error);
+            this.total_missing.set(0);
+        }
+    }, 500);
+
     abstract clear(): void;
 }
 
@@ -97,6 +112,8 @@ export class BeatmapList extends ListBase {
         if (should_update_id && query) {
             this.update_list_id(query);
         }
+
+        this.check_missing();
     }
 
     select(md5: string, index: number): void {
@@ -201,6 +218,7 @@ export class BeatmapList extends ListBase {
         const key = JSON.stringify(this.build_filter());
 
         this.set_items(hashes, key);
+
         return true;
     }
 
@@ -293,6 +311,8 @@ export class BeatmapSetList extends ListBase {
         if (should_update_id && query) {
             this.update_list_id(query);
         }
+
+        this.check_missing();
     }
 
     select(beatmapset_id: number, index: number): void {
@@ -367,6 +387,7 @@ export class BeatmapSetList extends ListBase {
         const key = JSON.stringify(this.build_filter());
 
         this.set_items(ids, key);
+
         return true;
     }
 
@@ -394,7 +415,7 @@ export class BeatmapSetList extends ListBase {
         return item1.md5 == item2.md5;
     }
 
-    get_beatmapset(beatmapset_id: number): BeatmapSetResult | null {
+    get_beatmapset(_beatmapset_id: number): BeatmapSetResult | null {
         return null;
     }
 

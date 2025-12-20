@@ -35,6 +35,8 @@ const get_save_path = (): string => {
     return config.get().export_path;
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const parallel_map = async <T, R>(array: T[], mapper: (item: T, index: number) => Promise<R | { stop: true }>, concurrency: number): Promise<R[]> => {
     const results: R[] = [];
     let index = 0;
@@ -289,6 +291,9 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
                 await this.process_beatmap(beatmap);
 
+                // tiny delay to keep things fast but stable
+                await sleep(50);
+
                 if (download.progress) {
                     completed_count++;
                     download.progress.current = completed_count;
@@ -304,10 +309,17 @@ class BeatmapDownloader implements IBeatmapDownloader {
     }
 
     private async get_beatmap_info(beatmap: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>> {
+        const md5 = beatmap.md5;
+
+        if (!md5) {
+            return { success: false, reason: "missing md5" };
+        }
+
         try {
-            const result = await v2.beatmaps.lookup({ type: "difficulty", checksum: beatmap.md5 });
+            const result = await v2.beatmaps.lookup({ type: "difficulty", checksum: md5 });
 
             if (result.error) {
+                console.log(`[downloader] lookup error for ${md5}:`, result.error);
                 return { success: false, reason: result.error.message };
             }
 
@@ -337,7 +349,8 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
             return { success: true, data: mapped };
         } catch (err) {
-            return { success: false, reason: err as string };
+            console.error(`[downloader] lookup exception for ${md5}:`, err);
+            return { success: false, reason: String(err) };
         }
     }
 

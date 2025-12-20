@@ -8,7 +8,8 @@ export enum ModalType {
     merge_collection,
     empty_collection,
     quick_confirm,
-    new_mirror
+    new_mirror,
+    missing_beatmaps
 }
 
 export const current_modal = writable(ModalType.none);

@@ -12,15 +12,21 @@
     export let show_context = false;
     export let show_remove = false;
     export let on_update: (index: number) => void = null;
+    export let show_missing = false;
 
+    import { current_modal, ModalType } from "../lib/utils/modal";
     const items = list_manager.items;
     const list_id = list_manager.list_id;
+    const total_missing = list_manager.total_missing;
 </script>
 
 <div class="beatmapset-list-container" style="width: {width};">
     <!-- render beatmap matches-->
     <div class="beatmapsets-header">
         <div class="results-count">{$items?.length ?? 0} beatmapsets</div>
+        {#if show_missing && $total_missing > 0}
+            <button class="missing-button" onclick={() => ($current_modal = ModalType.missing_beatmaps)}> missing maps </button>
+        {/if}
     </div>
 
     <!-- render beatmapsets list -->
@@ -58,10 +64,5 @@
         gap: 12px;
         align-items: center;
         padding: 8px 0;
-    }
-
-    .results-count {
-        color: var(--accent-color);
-        font-size: 13px;
     }
 </style>

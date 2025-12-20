@@ -2,7 +2,7 @@ import { app, shell, ipcMain, dialog, protocol, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
-import { get_window } from "./database/utils";
+import { get_window, get_app_path } from "./database/utils";
 import { fetch_manager, media_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
 import {
@@ -153,7 +153,13 @@ async function createWindow() {
     handle_ipc("driver:fetch_beatmapsets", (_, args) => fetch_beatmapsets(...args));
 
     // osu-extended-api
-    handle_ipc("web:authenticate", (_, args) => auth.login(args[0]));
+    handle_ipc("web:authenticate", (_, args) => {
+        const params = args[0];
+        if (params.type == "v2") {
+            params.cachedTokenPath = path.resolve(get_app_path(), "osu_token.json");
+        }
+        return auth.login(params);
+    });
     handle_ipc("web:get_beatmap", (_, args) => v2.beatmaps.lookup(args[0]));
     handle_ipc("web:get_beatmapset", (_, args) => v2.beatmaps.lookup(args[0]));
     handle_ipc("web:search", (_, args) => v2.search(args[0]));

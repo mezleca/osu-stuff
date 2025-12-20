@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import type { StarRatingFilter, ICollectionResult } from "@shared/types";
     import { show_notification } from "../../../lib/store/notifications";
     import { current_modal, ModalType } from "../../../lib/utils/modal";
@@ -18,7 +19,6 @@
     // icons
     import CrossIcon from "../../../components/icon/cross.svelte";
     import Spinner from "../../icon/spinner.svelte";
-    import { onMount } from "svelte";
 
     // general
     let collection_type = "osu!collector";
@@ -661,51 +661,5 @@
         background: rgba(255, 255, 255, 0.03);
         border-radius: 8px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        text-align: center;
-    }
-
-    .accent-btn {
-        background-color: var(--accent-color);
-        border: none;
-        padding: 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-family: "Torus Bold";
-        transition: all 0.2s;
-    }
-
-    .accent-btn:hover {
-        filter: brightness(1.1);
-        transform: translateY(-1px);
-    }
-
-    :global(.primary-btn) {
-        background-color: var(--accent-color) !important;
-        color: white !important;
-        border: none !important;
-    }
-
-    :global(.primary-btn:hover) {
-        filter: brightness(1.1) !important;
-    }
-
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-        padding: 40px;
-        text-align: center;
-    }
-
-    .empty-state span {
-        font-size: 18px;
-        opacity: 0.7;
-        font-family: "Torus Bold";
-    }
-
-    .actions-separator {
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 </style>

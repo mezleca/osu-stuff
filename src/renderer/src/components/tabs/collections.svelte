@@ -181,6 +181,8 @@
         if ($selected_collection.name && list.get_items().length == 0) {
             filter_beatmaps();
         }
+
+        list.check_missing();
     });
 </script>
 
@@ -243,7 +245,7 @@
         </div>
 
         <!-- render beatmap list -->
-        <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} />
+        <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} show_missing={true} />
     </div>
 </div>
 

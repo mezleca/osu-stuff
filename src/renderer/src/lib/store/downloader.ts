@@ -1,7 +1,7 @@
 import { get, type Writable, writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { show_progress_box, hide_progress_box } from "./progress_box";
-import type { IBeatmapResult, IDownloadData, IDownloadProgress, IDownloadEvent, IMinimalBeatmap, IDownloadedBeatmap } from "@shared/types";
+import type { IDownloadData, IDownloadProgress, IDownloadEvent, IDownloadedBeatmap } from "@shared/types";
 import { config } from "./config";
 import { active_tab } from "./other";
 

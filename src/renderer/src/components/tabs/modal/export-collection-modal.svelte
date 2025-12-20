@@ -109,15 +109,4 @@
     .options {
         margin-bottom: 20px;
     }
-
-    :global(.primary-btn) {
-        background-color: var(--accent-color) !important;
-        color: white !important;
-        border: none !important;
-    }
-
-    .actions-separator {
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
 </style>

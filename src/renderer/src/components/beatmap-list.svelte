@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { BeatmapList } from "../lib/store/beatmaps";
+    import { current_modal, ModalType } from "../lib/utils/modal";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
@@ -12,11 +13,13 @@
     export let direction: "left" | "right" = "right";
     export let on_update: (index: number) => any = null;
     export let on_remove: (checksum: string) => any = null;
+    export let show_missing = false;
 
     const items = list_manager.items;
     const selected = list_manager.selected;
     const selected_buffer = list_manager.selected_buffer;
     const list_id = list_manager.list_id;
+    const total_missing = list_manager.total_missing;
 
     const handle_card_click = (event: MouseEvent, hash: string, index: number) => {
         const is_selected = $selected?.md5 == hash;
@@ -38,6 +41,9 @@
     <!-- render beatmap matches-->
     <div class="beatmaps-header">
         <div class="results-count">{$items?.length ?? 0} beatmaps</div>
+        {#if show_missing && $total_missing > 0}
+            <button class="missing-button" onclick={() => ($current_modal = ModalType.missing_beatmaps)}> missing maps </button>
+        {/if}
     </div>
 
     <!-- render beatmaps list-->
@@ -90,10 +96,5 @@
         gap: 12px;
         align-items: center;
         padding: 8px 0;
-    }
-
-    .results-count {
-        color: var(--accent-color);
-        font-size: 13px;
     }
 </style>
