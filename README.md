@@ -46,66 +46,25 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 
 ### prerequisites
 
-- [node.js 22.x](https://nodejs.org/)
+- [node.js 24.x](https://nodejs.org/)
 - [git](https://git-scm.com/downloads)
 - [bun](https://bun.sh)
 
-## windows specific prerequisites
-
-- [build tools](https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows)
-- [vcpkg](https://vcpkg.io/en/)
-
-### steps (windows)
+### steps
 
 ```bash
-# make sure you have everything listed here -> https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-windows
-
-# install libsndfile
-vcpkg install libsndfile[core,mpeg,external-libs]:x64-windows-static
-
 # clone repo
-git clone https://github.com/mezleca/osu-stuff.git
+git clone https://github.com/mezleca/osu-stuff.git && cd osu-stuff
 
 # install dependencies
-cd osu-stuff
 bun install
-
-# install node-gyp
-bun install -g node-gyp
-
-# rebuild native modules (to prevent better-sqlite3 NODE VERSION errors)
-bun run rebuild
 
 # start without building
 bun run dev
 
 # or if you want a installer
-bun run build:win
-```
-
-### steps (linux)
-
-```bash
-# make sure you have everything listed here -> https://github.com/nodejs/node-gyp?tab=readme-ov-file#on-unix
-# also install all of the linux dependencies listed here -> https://github.com/mezleca/osu-stuff?tab=readme-ov-file#linux-dependencies
-
-# clone repo
-git clone https://github.com/mezleca/osu-stuff.git
-
-# install dependencies
-cd osu-stuff
-bun install
-
-# install node-gyp
-bun install -g node-gyp
-
-# rebuild native modules (to prevent better-sqlite3 NODE VERSION errors)
-bun run rebuild
-
-# start without building
-bun run dev
-
-# or if you want a installer
+bun run build:win 
+or
 bun run build:linux
 ```
 
@@ -113,3 +72,4 @@ bun run build:linux
 
 - [CollectionManager](https://github.com/Piotrekol/CollectionManager) .osdb files
 - [Osu!Collector](https://osucollector.com)
+- [osu-api-extended](https://github.com/cyperdark/osu-api-extended)
