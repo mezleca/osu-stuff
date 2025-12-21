@@ -213,6 +213,17 @@ jobs:
                   echo "[log] listing artifacts directory:"
                   ls -la artifacts/ || echo "[log] no artifacts directory found"
 
+            - name: decode changelog
+              id: decode_notes
+              run: |
+                  if [[ -n "${{ needs.prepare.outputs.notes }}" ]]; then
+                  echo "${{ needs.prepare.outputs.notes }}" | base64 -d > decoded_notes.txt
+                  echo "decoded<<NOTES_EOF" >> $GITHUB_OUTPUT
+                  cat decoded_notes.txt >> $GITHUB_OUTPUT
+                  echo "" >> $GITHUB_OUTPUT
+                  echo "NOTES_EOF" >> $GITHUB_OUTPUT
+                  fi
+
             - name: create or update release
               uses: softprops/action-gh-release@v2
               with:
@@ -220,7 +231,7 @@ jobs:
                   tag_name: ${{ github.event.inputs.version }}
                   draft: ${{ github.event.inputs.action_type == 'draft' }}
                   prerelease: ${{ github.event.inputs.action_type == 'draft' }}
-                  generate_release_notes: ${{ needs.prepare.outputs.notes == '' }}
-                  body: ${{ base64 --decode <<< needs.prepare.outputs.notes }}
+                  generate_release_notes: ${{ steps.decode_notes.outputs.decoded == '' }}
+                  body: ${{ steps.decode_notes.outputs.decoded }}
                   files: artifacts/*
                   token: ${{ secrets.GITHUB_TOKEN }}
