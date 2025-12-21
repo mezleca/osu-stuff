@@ -83,7 +83,7 @@ jobs:
                   else
                     echo "exists=false" >> $GITHUB_OUTPUT
 
-                     [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
+                    if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
                       echo "[error] cannot use update_only when release doesn't exist"
                       exit 1
                     fi
