@@ -62,6 +62,8 @@ const extract_version = (ver: string, content: string) => {
 
             if (all_notes) {
                 all_notes += `\n\n---\n\n# ${ver}\n\n${ver_notes}`;
+            } else if (main_notes === "") {
+                all_notes = `# ${version}\n\n---\n\n# ${ver}\n\n${ver_notes}`;
             } else {
                 all_notes = `# ${ver}\n\n${ver_notes}`;
             }
