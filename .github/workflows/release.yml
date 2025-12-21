@@ -25,11 +25,93 @@ on:
                     - "draft"
                     - "publish"
                     - "build-only"
+            changelog_override:
+                description: "override existing release changelog"
+                required: false
+                default: false
+                type: boolean
+            update_only:
+                description: "only update release description (skip build/upload)"
+                required: false
+                default: false
+                type: boolean
+            include_versions:
+                description: "additional versions to include in changelog (comma-separated, e.g. v2.1.1,v2.1.0)"
+                required: false
+                type: string
 
 jobs:
-    build-linux:
+    prepare:
         runs-on: ubuntu-latest
-        if: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'linux-only' }}
+        outputs:
+            exists: ${{ steps.check_release.outputs.exists }}
+            notes: ${{ steps.extract_notes.outputs.notes }}
+            should_build: ${{ steps.check_release.outputs.should_build }}
+            should_create_release: ${{ steps.check_release.outputs.should_create_release }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v6
+
+            - name: setup bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: check if release exists
+              id: check_release
+              run: |
+                  echo "[log] checking if release ${{ github.event.inputs.version }} exists..."
+
+                  if gh release view "${{ github.event.inputs.version }}" > /dev/null 2>&1; then
+                    echo "exists=true" >> $GITHUB_OUTPUT
+                    echo "[log] release already exists."
+
+                    if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
+                      echo "should_build=false" >> $GITHUB_OUTPUT
+                      echo "should_create_release=true" >> $GITHUB_OUTPUT
+                      echo "[log] update_only mode - will skip build but update release."
+                    elif [[ "${{ github.event.inputs.changelog_override }}" == "true" ]]; then
+                      echo "should_build=true" >> $GITHUB_OUTPUT
+                      echo "should_create_release=true" >> $GITHUB_OUTPUT
+                      echo "[log] override enabled - will rebuild and update release."
+                    else
+                      echo "should_build=false" >> $GITHUB_OUTPUT
+                      echo "should_create_release=false" >> $GITHUB_OUTPUT
+                      echo "[log] release exists and no override - workflow will stop."
+                      exit 1
+                    fi
+                  else
+                    echo "exists=false" >> $GITHUB_OUTPUT
+
+                    if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
+                      echo "[error] cannot use update_only when release doesn't exist"
+                      exit 1
+                    fi
+
+                    echo "should_build=true" >> $GITHUB_OUTPUT
+                    echo "should_create_release=true" >> $GITHUB_OUTPUT
+                    echo "[log] release doesn't exist - will build and create."
+                  fi
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: extract notes
+              id: extract_notes
+              run: |
+                  bun run scripts/changelog.ts "${{ github.event.inputs.version }}" "${{ github.event.inputs.include_versions }}" "changelog_output.tmp"
+
+                  if [[ -f "changelog_output.tmp" ]]; then
+                    echo "notes<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+                    cat changelog_output.tmp >> $GITHUB_OUTPUT
+                    echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+                  fi
+
+    build_linux:
+        needs: [prepare]
+        runs-on: ubuntu-latest
+        if: |
+            needs.prepare.outputs.should_build == 'true' &&
+            (github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'linux-only')
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
@@ -68,9 +150,12 @@ jobs:
                       dist/*.AppImage
                       dist/*.deb
 
-    build-windows:
+    build_windows:
+        needs: [prepare]
         runs-on: windows-latest
-        if: ${{ github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'windows-only' }}
+        if: |
+            needs.prepare.outputs.should_build == 'true' &&
+            (github.event.inputs.build_target == 'both' || github.event.inputs.build_target == 'windows-only')
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
@@ -100,63 +185,43 @@ jobs:
                   path: |
                       dist/*.exe
 
-    create-release:
-        needs: [build-linux, build-windows]
+    create_release:
+        needs: [prepare, build_linux, build_windows]
         runs-on: ubuntu-latest
         if: |
             always() &&
-            (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') &&
-            (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') &&
+            needs.prepare.outputs.should_create_release == 'true' &&
+            (needs.build_linux.result == 'success' || needs.build_linux.result == 'skipped') &&
+            (needs.build_windows.result == 'success' || needs.build_windows.result == 'skipped') &&
             (github.event.inputs.action_type == 'draft' || github.event.inputs.action_type == 'publish')
         steps:
-            - name: checkout
-              uses: actions/checkout@v6
-
-            - name: get version
-              id: get_version
-              run: |
-                  echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-
             - name: download linux artifacts
-              if: ${{ needs.build-linux.result == 'success' }}
+              if: needs.build_linux.result == 'success'
               uses: actions/download-artifact@v7
               with:
                   name: linux-build
                   path: artifacts/
 
             - name: download windows artifacts
-              if: ${{ needs.build-windows.result == 'success' }}
+              if: needs.build_windows.result == 'success'
               uses: actions/download-artifact@v7
               with:
                   name: windows-build
                   path: artifacts/
 
-            - name: create draft release
-              if: ${{ github.event.inputs.action_type == 'draft' }}
-              uses: softprops/action-gh-release@v2
-              with:
-                  name: ${{ steps.get_version.outputs.VERSION }}
-                  tag_name: ${{ steps.get_version.outputs.VERSION }}
-                  draft: true
-                  prerelease: true
-                  generate_release_notes: true
-                  files: |
-                      ./artifacts/*.AppImage
-                      ./artifacts/*.deb
-                      ./artifacts/*.exe
-                  token: ${{ secrets.GITHUB_TOKEN }}
+            - name: list artifacts
+              run: |
+                  echo "[log] listing artifacts directory:"
+                  ls -la artifacts/ || echo "[log] no artifacts directory found"
 
-            - name: create published release
-              if: ${{ github.event.inputs.action_type == 'publish' }}
+            - name: create or update release
               uses: softprops/action-gh-release@v2
               with:
-                  name: ${{ steps.get_version.outputs.VERSION }}
-                  tag_name: ${{ steps.get_version.outputs.VERSION }}
-                  draft: false
-                  prerelease: false
-                  generate_release_notes: true
-                  files: |
-                      ./artifacts/*.AppImage
-                      ./artifacts/*.deb
-                      ./artifacts/*.exe
+                  name: ${{ github.event.inputs.version }}
+                  tag_name: ${{ github.event.inputs.version }}
+                  draft: ${{ github.event.inputs.action_type == 'draft' }}
+                  prerelease: ${{ github.event.inputs.action_type == 'draft' }}
+                  generate_release_notes: ${{ needs.prepare.outputs.notes == '' }}
+                  body: ${{ needs.prepare.outputs.notes }}
+                  files: artifacts/*
                   token: ${{ secrets.GITHUB_TOKEN }}
