@@ -57,7 +57,6 @@ jobs:
             - name: install dependencies
               run: bun install
 
-
             - name: build linux app
               run: bun run build:linux
 
@@ -90,7 +89,6 @@ jobs:
 
             - name: install dependencies
               run: bun install
-
 
             - name: build windows app
               run: bun run build:win

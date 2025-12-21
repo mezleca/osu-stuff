@@ -15,7 +15,6 @@
     import RadioControl from "../utils/audio/radio-control.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
     import BeatmapList from "../beatmap-list.svelte";
-    import ExpandableMenu from "../utils/expandable-menu.svelte";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
@@ -216,15 +215,6 @@
         max-width: 40%;
         z-index: 1;
         background-color: rgba(18, 18, 18, 0.95);
-    }
-
-    .filter-container {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
-        position: relative;
-        z-index: 99999;
-        max-width: 100%;
     }
 
     .radio-data {

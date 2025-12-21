@@ -42,8 +42,8 @@ class AudioManager {
     random: Writable<boolean> = writable(false);
     repeat: Writable<boolean> = writable(false);
     force_random: Writable<boolean> = writable(false);
-    failed: Writable<boolean> = writable(false);
     store: Writable<IAudioState> = writable({ ...DEFAULT_STATE });
+    unsubscribe_config: (() => void) | null = null;
 
     callbacks: IAudioCallbacks | null = null;
     pause_interval: NodeJS.Timeout | null = null;
@@ -51,7 +51,19 @@ class AudioManager {
     constructor(id: string) {
         this.id = id;
         this.is_preview = id === "preview";
+
+        // sync volume with config
+        this.unsubscribe_config = config.subscribe((data) => {
+            const volume = data.radio_volume ?? DEFAULT_VOLUME;
+            this.set_volume(volume, false);
+        });
     }
+
+    destroy = () => {
+        if (this.unsubscribe_config) {
+            this.unsubscribe_config();
+        }
+    };
 
     subscribe = (run: (value: IAudioState) => void, invalidate?: (value?: IAudioState) => void) => {
         return this.store.subscribe(run, invalidate);
@@ -259,6 +271,12 @@ class AudioManager {
             if (radio_manager.get_state().playing) {
                 radio_manager.pause_until(() => !this.get_state().playing);
             }
+        } else if (this.id === "radio") {
+            const preview_manager = get_audio_manager("preview");
+            if (preview_manager.get_state().playing) {
+                preview_manager.pause();
+                preview_manager.clean_audio();
+            }
         }
 
         if (this.pause_interval) {
@@ -333,7 +351,7 @@ class AudioManager {
         console.log(`[${this.id}] seeking to: ${format_time(target_time)} (${(percent * 100).toFixed(1)}%)`);
     };
 
-    set_volume = (volume: number): void => {
+    set_volume = (volume: number, update_config: boolean = true): void => {
         const state = this.get_state();
 
         if (state.audio) {
@@ -341,6 +359,11 @@ class AudioManager {
         }
 
         this.store.update((obj) => ({ ...obj, volume }));
+
+        if (update_config && !this.is_preview) {
+            config.set("radio_volume", volume);
+        }
+
         console.log(`[${this.id}] volume set to: ${volume}%`);
     };
 
@@ -484,10 +507,6 @@ export const get_audio_preview = async (url: string): Promise<HTMLAudioElement |
 
 export const toggle_beatmap_preview = async (beatmapset_id: number) => {
     const manager = get_audio_manager("preview");
-
-    // use same volume as radio
-    const volume = config.get("radio_volume") ?? 50;
-    manager.set_volume(volume);
 
     // get current preview state
     const state = manager.get_state();
