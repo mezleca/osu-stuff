@@ -57,8 +57,6 @@ jobs:
             - name: install dependencies
               run: bun install
 
-            - name: rebuild just in case
-              run: npm rebuild
 
             - name: build linux app
               run: bun run build:linux
@@ -93,8 +91,6 @@ jobs:
             - name: install dependencies
               run: bun install
 
-            - name: rebuild just in case
-              run: npm rebuild
 
             - name: build windows app
               run: bun run build:win
