@@ -41,6 +41,11 @@ jobs:
               with:
                   bun-version: latest
 
+            - name: setup node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+
             - name: install system dependencies
               run: |
                   sudo apt-get update
@@ -50,7 +55,10 @@ jobs:
                   chmod +x /usr/local/bin/appimagetool
 
             - name: install dependencies
-              run: bun install
+              run: bun instal
+
+            - name: rebuild just in case
+              run: bun rebuild
 
             - name: build linux app
               run: bun run build:linux
@@ -76,6 +84,11 @@ jobs:
               uses: oven-sh/setup-bun@v2
               with:
                   bun-version: latest
+
+            - name: setup node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
 
             - name: install dependencies
               run: bun install
