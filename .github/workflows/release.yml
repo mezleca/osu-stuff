@@ -100,11 +100,10 @@ jobs:
               run: |
                   bun run scripts/changelog.ts "${{ github.event.inputs.version }}" "${{ github.event.inputs.include_versions }}" "changelog_output.tmp"
 
-                  if [[ -f "changelog_output.tmp" ]]; then
-                    echo "notes<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
-                    cat changelog_output.tmp >> $GITHUB_OUTPUT
-                    echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
-                  fi
+                    if [[ -f "changelog_output.tmp" ]]; then
+                        encoded=$(base64 -w 0 changelog_output.tmp)
+                        echo "notes=$encoded" >> $GITHUB_OUTPUT
+                    fi
 
     build_linux:
         needs: [prepare]
@@ -222,6 +221,6 @@ jobs:
                   draft: ${{ github.event.inputs.action_type == 'draft' }}
                   prerelease: ${{ github.event.inputs.action_type == 'draft' }}
                   generate_release_notes: ${{ needs.prepare.outputs.notes == '' }}
-                  body: ${{ needs.prepare.outputs.notes }}
+                  body: ${{ base64 --decode <<< needs.prepare.outputs.notes }}
                   files: artifacts/*
                   token: ${{ secrets.GITHUB_TOKEN }}
