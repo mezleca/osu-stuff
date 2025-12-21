@@ -62,6 +62,14 @@ jobs:
               run: |
                   echo "[log] checking if release ${{ github.event.inputs.version }} exists..."
 
+                  # check update_only first
+                  if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
+                    echo "should_build=false" >> $GITHUB_OUTPUT
+                    echo "should_create_release=true" >> $GITHUB_OUTPUT
+                    echo "[log] update_only mode - will skip build."
+                    exit 0
+                    fi
+
                   if gh release view "${{ github.event.inputs.version }}" > /dev/null 2>&1; then
                     echo "exists=true" >> $GITHUB_OUTPUT
                     echo "[log] release already exists."
