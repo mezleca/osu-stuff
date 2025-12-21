@@ -87,7 +87,13 @@ jobs:
                   echo "[log] searching for manual release notes for $version in $notes_file..."
 
                   if [[ -f "$notes_file" ]]; then
-                      notes=$(awk -v ver="$version" '$0 == "# " ver {flag=1; next} flag' "$notes_file")
+                      # get until we find another header
+                      notes=$(awk -v ver="$version" '
+                          $0 == "# " ver {flag=1; next} 
+                          flag && /^# / {exit} 
+                          flag {print}
+                      ' "$notes_file")
+                      
                       if [[ -n "$notes" ]]; then
                           echo "[log] found notes for $version."
                           echo "notes<<EOF" >> $GITHUB_OUTPUT
