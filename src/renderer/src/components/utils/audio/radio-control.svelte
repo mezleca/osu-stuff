@@ -66,11 +66,7 @@
     };
 
     onMount(() => {
-        const saved_volume = config.get("radio_volume");
-
-        if (saved_volume != null) {
-            audio_manager.set_volume(saved_volume);
-        }
+        // volume is now synced via AudioManager subscription to config
     });
 </script>
 
