@@ -59,7 +59,12 @@ const extract_version = (ver: string, content: string) => {
         for (const ver of versions) {
             console.log(`[log] extracting notes for ${ver}`);
             const ver_notes = extract_version(ver, content);
-            all_notes += `\n\n# ${ver}\n\n${ver_notes}`;
+
+            if (all_notes) {
+                all_notes += `\n\n---\n\n# ${ver}\n\n${ver_notes}`;
+            } else {
+                all_notes = `# ${ver}\n\n${ver_notes}`;
+            }
         }
     }
 
