@@ -8,11 +8,13 @@ const extract_version = (ver: string, content: string) => {
     const header = `# ${ver}`;
 
     let capturing = false;
+    let found_header = false;
     let result: Array<string> = [];
 
     for (const line of lines) {
         if (line === header) {
             capturing = true;
+            found_header = true;
             continue;
         }
 
@@ -23,6 +25,11 @@ const extract_version = (ver: string, content: string) => {
         if (capturing) {
             result.push(line);
         }
+    }
+
+    // if found header but no content, just return an empty string idk
+    if (found_header && result.length === 0) {
+        return "";
     }
 
     return result.length > 0 ? result.join("\n").trim() : "_changelog not found..._";
