@@ -35,6 +35,10 @@ on:
                 required: false
                 default: false
                 type: boolean
+            include_versions:
+                description: "additional versions to include in changelog (e.g. v2.1.1,v2.1.0)"
+                required: false
+                type: string
 
 jobs:
     prepare:
@@ -87,13 +91,7 @@ jobs:
                   echo "[log] searching for manual release notes for $version in $notes_file..."
 
                   if [[ -f "$notes_file" ]]; then
-                      # get until we find another header
-                      notes=$(awk -v ver="$version" '
-                          $0 == "# " ver {flag=1; next} 
-                          flag && /^# / {exit} 
-                          flag {print}
-                      ' "$notes_file")
-                      
+                      notes=$(awk -v ver="$version" '$0 == "# " ver {flag=1; next} flag' "$notes_file")
                       if [[ -n "$notes" ]]; then
                           echo "[log] found notes for $version."
                           echo "notes<<EOF" >> $GITHUB_OUTPUT
