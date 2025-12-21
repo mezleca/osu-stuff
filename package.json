@@ -13,7 +13,7 @@
         "svelte-check": "svelte-check --tsconfig ./tsconfig.json",
         "start": "bun rebuild && bun scripts/cli.ts start",
         "dev": "bun rebuild && bun scripts/cli.ts dev",
-        "build": "bun rebuild && bun scripts/cli.ts build",
+        "build": "npm rebuild && bun scripts/cli.ts build",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
         "postinstall": "electron-builder install-app-deps",
         "test": "npm rebuild && cross-env NODE_ENV=test vitest ./tests/main/",
