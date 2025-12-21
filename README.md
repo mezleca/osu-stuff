@@ -63,7 +63,7 @@ bun install
 bun run dev
 
 # or if you want a installer
-bun run build:win 
+bun run build:win
 or
 bun run build:linux
 ```

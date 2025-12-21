@@ -7,9 +7,9 @@
         FADE_RANGE: number;
         SCALE_FULL: number;
         SCALE_MINIMUM: number;
-        HOVER_SCALE_MULTIPLIER: number;
-        HOVER_SCALE_MAX: number;
         HOVER_MARGIN: number;
+        PUSH_RANGE: number;
+        PUSH_STRENGTH: number;
     }
 
     interface ScrollAnimationState {
@@ -22,7 +22,8 @@
 
     interface CarouselTransform {
         scale: number;
-        margin: number;
+        x_offset: number;
+        y_offset: number;
     }
 
     export let items: any[] = [];
@@ -39,7 +40,7 @@
     export let selected: number = -1;
     export let columns: number | null = null;
 
-    const PADDING = 10;
+    const PADDING = 6;
     const SCROLL_DEBOUNCE_MS = 20;
     const SCROLL_ANIMATION_DURATION_MS = 250;
     const INSTANT_SCROLL_THRESHOLD = 2000;
@@ -47,17 +48,17 @@
 
     const CAROUSEL_CONFIG: CarouselConfig = {
         SCALE_THRESHOLD_NEAR: 0.5,
-        SCALE_THRESHOLD_FAR: 2.0,
-        FADE_RANGE: 1.5,
+        SCALE_THRESHOLD_FAR: 2.5,
+        FADE_RANGE: 2.0,
         SCALE_FULL: 1.0,
-        SCALE_MINIMUM: 0.95,
-        HOVER_SCALE_MULTIPLIER: 1.01,
-        HOVER_SCALE_MAX: 1.03,
-        HOVER_MARGIN: 8
+        SCALE_MINIMUM: 0.92,
+        HOVER_MARGIN: 20,
+        PUSH_RANGE: 15,
+        PUSH_STRENGTH: 10
     };
 
     let container: HTMLDivElement;
-    let hovered_item: number = 0;
+    let hovered_item: number = -1;
     let container_height: number = 0;
     let scroll_top: number = 0;
     let animation_frame_id: number | null = null;
@@ -88,21 +89,24 @@
         return start + (end - start) * factor;
     };
 
-    const ease_out = (elapsed: number, duration: number): number => {
+    const ease_out_quint = (elapsed: number, duration: number): number => {
         const t = elapsed / duration;
-        return 1 - Math.pow(1 - t, 3);
+        return 1 - Math.pow(1 - t, 5);
     };
 
     const calculate_carousel_transform = (
         distance_from_center: number,
         item_height: number,
-        is_hovered: boolean,
-        is_selected: boolean
+        item_index: number,
+        hovered_index: number,
+        selected_index: number
     ): CarouselTransform => {
         const normalized_distance = distance_from_center / item_height;
         let scale = CAROUSEL_CONFIG.SCALE_FULL;
-        let margin = 0;
+        let x_offset = 0;
+        let y_offset = 0;
 
+        // gentle scale falloff for depth effect
         if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_NEAR) {
             scale = CAROUSEL_CONFIG.SCALE_FULL;
         } else if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_FAR) {
@@ -112,12 +116,28 @@
             scale = CAROUSEL_CONFIG.SCALE_MINIMUM;
         }
 
-        if (is_hovered && !is_selected) {
-            scale = Math.min(scale * CAROUSEL_CONFIG.HOVER_SCALE_MULTIPLIER, CAROUSEL_CONFIG.HOVER_SCALE_MAX);
-            margin = CAROUSEL_CONFIG.HOVER_MARGIN;
+        const is_hovered = item_index == hovered_index;
+        const is_selected = item_index == selected_index;
+
+        // x_offset: selected or hovered items move horizontally
+        if (is_hovered || is_selected) {
+            const multiplier = direction == "right" ? -1 : direction == "left" ? 1 : 0;
+            x_offset = CAROUSEL_CONFIG.HOVER_MARGIN * multiplier;
         }
 
-        return { scale, margin };
+        // y_offset: ALL items get pushed away from hovered item
+        if (hovered_index >= 0 && !is_hovered) {
+            const distance = Math.abs(item_index - hovered_index);
+
+            if (distance <= CAROUSEL_CONFIG.PUSH_RANGE) {
+                const normalized = distance / CAROUSEL_CONFIG.PUSH_RANGE;
+                const push_factor = Math.pow(1 - normalized, 2.0);
+                const direction_multiplier = item_index > hovered_index ? 1 : -1;
+                y_offset = push_factor * CAROUSEL_CONFIG.PUSH_STRENGTH * direction_multiplier;
+            }
+        }
+
+        return { scale, x_offset, y_offset };
     };
 
     const update_carousel_effect = (): void => {
@@ -138,20 +158,24 @@
 
             const item_center_y = item_index * item_height_with_padding + item_height_with_padding / 2;
             const distance_from_center = Math.abs(item_center_y - center_y);
-            const is_hovered = hovered_item == item_index;
-            const is_selected = selected == item_index;
 
-            const { scale, margin } = calculate_carousel_transform(distance_from_center, item_height_with_padding, is_hovered, is_selected);
+            const { scale, x_offset, y_offset } = calculate_carousel_transform(
+                distance_from_center,
+                item_height_with_padding,
+                item_index,
+                hovered_item,
+                selected
+            );
 
-            const cache_key = `${item_index}-${scale.toFixed(3)}-${margin}`;
+            const cache_key = `${item_index}-${scale.toFixed(3)}-${x_offset.toFixed(1)}-${y_offset.toFixed(1)}`;
             const cached_state = element_cache.get(element);
 
             if (cached_state != cache_key) {
                 const height_px = Math.round(item_height_with_padding * scale);
                 element.style.height = `${height_px}px`;
                 element.style.setProperty("--scale-x", scale.toString());
-                element.style.setProperty("--x-offset", "0px");
-                element.style.setProperty("--margin", `${margin}px`);
+                element.style.setProperty("--x-offset", `${x_offset}px`);
+                element.style.setProperty("--y-offset", `${y_offset}px`);
 
                 element_cache.set(element, cache_key);
             }
@@ -199,8 +223,8 @@
     };
 
     const handle_mouse_leave = (): void => {
-        if (!hovered_item) return;
-        hovered_item = 0;
+        if (hovered_item == -1) return;
+        hovered_item = -1;
         if (carousel_enabled && !is_scrolling) {
             carousel_update();
         }
@@ -225,7 +249,7 @@
         const elapsed = current_time - scroll_animation.start_time;
 
         if (elapsed < scroll_animation.duration) {
-            const t = ease_out(elapsed, scroll_animation.duration);
+            const t = ease_out_quint(elapsed, scroll_animation.duration);
             const new_scroll = lerp(scroll_animation.start_scroll, scroll_animation.target_scroll, t);
             container.scrollTop = new_scroll;
             scroll_animation.animation_id = requestAnimationFrame(animate_scroll);
@@ -290,7 +314,7 @@
 
     const reset = (): void => {
         element_cache = new WeakMap();
-        hovered_item = 0;
+        hovered_item = -1;
     };
 
     $: if (selected != -1) {
@@ -389,7 +413,7 @@
                     position: absolute;
                     top: {top_pos}px;
                     width: {max_width ? (carousel_enabled ? '98' : '100') : '80'}%;
-                    transform-origin: {direction} center;
+                    transform-origin: {direction};
                     z-index: {z_index};
                 "
                 on:mouseenter={() => handle_mouse_enter(actual_index)}
@@ -457,15 +481,13 @@
     }
 
     .carousel-effect {
-        transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0));
+        transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0)) translateY(var(--y-offset, 0));
         backface-visibility: hidden;
         outline: 1px solid transparent;
         transition:
-            transform 100ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-            opacity 100ms ease-out,
-            margin 50ms ease-out;
+            transform 600ms cubic-bezier(0.23, 1, 0.32, 1),
+            opacity 100ms ease-out;
         will-change: transform;
-        margin-left: var(--margin, 0px);
     }
 
     .osu-mode {
