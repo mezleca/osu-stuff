@@ -36,7 +36,7 @@ on:
                 default: false
                 type: boolean
             include_versions:
-                description: "additional versions to include in changelog (e.g. v2.1.1,v2.1.0)"
+                description: "additional versions to include in changelog (comma-separated, e.g. v2.1.1,v2.1.0)"
                 required: false
                 type: string
 
@@ -52,33 +52,39 @@ jobs:
             - name: checkout
               uses: actions/checkout@v6
 
+            - name: setup bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
             - name: check if release exists
               id: check_release
               run: |
                   echo "[log] checking if release ${{ github.event.inputs.version }} exists..."
 
                   if gh release view "${{ github.event.inputs.version }}" > /dev/null 2>&1; then
-                      echo "exists=true" >> $GITHUB_OUTPUT
-                      echo "[log] release already exists."
-                      if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
-                          echo "should_build=false" >> $GITHUB_OUTPUT
-                          echo "should_create_release=true" >> $GITHUB_OUTPUT
-                          echo "[log] update_only mode - will skip build but update release."
-                      elif [[ "${{ github.event.inputs.changelog_override }}" == "true" ]]; then
-                          echo "should_build=true" >> $GITHUB_OUTPUT
-                          echo "should_create_release=true" >> $GITHUB_OUTPUT
-                          echo "[log] override enabled - will rebuild and update release."
-                      else
-                          echo "should_build=false" >> $GITHUB_OUTPUT
-                          echo "should_create_release=false" >> $GITHUB_OUTPUT
-                          echo "[log] release exists and no override - workflow will stop."
-                          exit 1
-                      fi
-                  else
-                      echo "exists=false" >> $GITHUB_OUTPUT
+                    echo "exists=true" >> $GITHUB_OUTPUT
+                    echo "[log] release already exists."
+
+                    if [[ "${{ github.event.inputs.update_only }}" == "true" ]]; then
+                      echo "should_build=false" >> $GITHUB_OUTPUT
+                      echo "should_create_release=true" >> $GITHUB_OUTPUT
+                      echo "[log] update_only mode - will skip build but update release."
+                    elif [[ "${{ github.event.inputs.changelog_override }}" == "true" ]]; then
                       echo "should_build=true" >> $GITHUB_OUTPUT
                       echo "should_create_release=true" >> $GITHUB_OUTPUT
-                      echo "[log] release doesn't exist - will build and create."
+                      echo "[log] override enabled - will rebuild and update release."
+                    else
+                      echo "should_build=false" >> $GITHUB_OUTPUT
+                      echo "should_create_release=false" >> $GITHUB_OUTPUT
+                      echo "[log] release exists and no override - workflow will stop."
+                      exit 1
+                    fi
+                  else
+                    echo "exists=false" >> $GITHUB_OUTPUT
+                    echo "should_build=true" >> $GITHUB_OUTPUT
+                    echo "should_create_release=true" >> $GITHUB_OUTPUT
+                    echo "[log] release doesn't exist - will build and create."
                   fi
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -86,22 +92,12 @@ jobs:
             - name: extract notes
               id: extract_notes
               run: |
-                  version="${{ github.event.inputs.version }}"
-                  notes_file="changelog/notes.md"
-                  echo "[log] searching for manual release notes for $version in $notes_file..."
+                  bun run scripts/changelog.ts "${{ github.event.inputs.version }}" "${{ github.event.inputs.include_versions }}" "changelog_output.tmp"
 
-                  if [[ -f "$notes_file" ]]; then
-                      notes=$(awk -v ver="$version" '$0 == "# " ver {flag=1; next} flag' "$notes_file")
-                      if [[ -n "$notes" ]]; then
-                          echo "[log] found notes for $version."
-                          echo "notes<<EOF" >> $GITHUB_OUTPUT
-                          echo "$notes" >> $GITHUB_OUTPUT
-                          echo "EOF" >> $GITHUB_OUTPUT
-                      else
-                          echo "[log] no notes found in $notes_file for version $version."
-                      fi
-                  else
-                      echo "[log] $notes_file not found, skipping extraction."
+                  if [[ -f "changelog_output.tmp" ]]; then
+                    echo "notes<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+                    cat changelog_output.tmp >> $GITHUB_OUTPUT
+                    echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
                   fi
 
     build_linux:
