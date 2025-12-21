@@ -55,7 +55,7 @@ jobs:
                   chmod +x /usr/local/bin/appimagetool
 
             - name: install dependencies
-              run: bun instal
+              run: bun install
 
             - name: rebuild just in case
               run: bun rebuild
@@ -92,6 +92,9 @@ jobs:
 
             - name: install dependencies
               run: bun install
+
+            - name: rebuild just in case
+              run: bun rebuild
 
             - name: build windows app
               run: bun run build:win
