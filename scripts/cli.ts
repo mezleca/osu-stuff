@@ -226,7 +226,7 @@ const start_electron = async (dev: boolean) => {
         env.ELECTRON_RENDERER_URL = "http://localhost:5173";
     }
 
-    const electron_bin = process.platform === "win32" ? "node_modules\\.bin\\electron.cmd" : "node_modules/.bin/electron";
+    const electron_bin = process.platform === "win32" ? "node_modules\\.bin\\electron.exe" : "node_modules/.bin/electron";
 
     electron_process = spawn([electron_bin, "."], {
         stdout: "inherit",
