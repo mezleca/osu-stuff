@@ -47,7 +47,7 @@ const extract_version = (ver: string, content: string) => {
     // extract main version
     console.log(`[log] extracting notes for ${version}`);
     const main_notes = extract_version(version, content);
-    let all_notes = `# ${version}\n\n${main_notes}`;
+    let all_notes = main_notes;
 
     // extract additional versions
     if (include_versions_raw && include_versions_raw.trim()) {
