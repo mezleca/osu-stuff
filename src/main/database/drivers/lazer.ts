@@ -426,6 +426,10 @@ class LazerBeatmapDriver extends BaseDriver {
         return undefined;
     };
 
+    get_beatmap_files = async (md5: string): Promise<BeatmapFile[]> => {
+        return [];
+    };
+
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {
         const files: BeatmapFile[] = [];
         const beatmapset = this.instance.objects<BeatmapSetSchema>("BeatmapSet").find((b) => b.OnlineID == id);

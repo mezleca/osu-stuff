@@ -57,7 +57,7 @@
                 beatmapset = null;
             } else {
                 beatmapset = result;
-                get_card_image_source(beatmapset).then((img) => (image_src = img));
+                image_src = get_card_image_source(beatmapset);
             }
         } catch (err) {
             console.error("failed to load beatmapset:", loading_id, err);

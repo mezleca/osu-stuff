@@ -2,8 +2,11 @@
     import { onMount } from "svelte";
     import { is_dev_mode } from "../../lib/utils/utils";
 
-    // test tab
+    // stuff
     import TestContent from "./test.svelte";
+
+    // modals
+    import BeatmapPreviewModal from "./modal/beatmap-preview-modal.svelte";
 
     let container = null;
     let show_test = false;
@@ -34,6 +37,8 @@
 </script>
 
 <div class="content tab-content index-content" bind:this={container}>
+    <BeatmapPreviewModal />
+
     <div class="index-header">
         <div class="header-text">
             <h1>osu-stuff</h1>
