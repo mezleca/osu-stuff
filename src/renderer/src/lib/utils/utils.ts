@@ -1,7 +1,7 @@
 import type { FetchOptions, IFetchResponse } from "@shared/types";
 import { writable } from "svelte/store";
 
-export const get_image_url = async (file: string): Promise<string | undefined> => {
+export const url_from_media = (file: string): string => {
     return `media://${encodeURIComponent(file)}`;
 };
 

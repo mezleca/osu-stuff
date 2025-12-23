@@ -213,6 +213,7 @@ export interface IBeatmapResult {
     mode: string;
     temp: boolean;
     last_modified: string;
+    file_path?: string;
 
     // processor
     unique_id?: string;
@@ -344,6 +345,7 @@ export interface IOsuDriver {
     get_missing_beatmaps(name: string | null): Promise<string[]>;
     search_beatmaps(params: IBeatmapFilter): Promise<ISearchResponse>;
     search_beatmapsets(params: IBeatmapSetFilter): Promise<ISearchSetResponse>;
+    get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

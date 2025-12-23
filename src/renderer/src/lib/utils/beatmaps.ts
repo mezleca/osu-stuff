@@ -1,4 +1,4 @@
-import { get } from "svelte/store";
+import { get, writable } from "svelte/store";
 import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
 import { quick_confirm } from "./modal";
@@ -8,6 +8,9 @@ import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDeta
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
 const BEATMAP_CACHE_SIZE = 512;
+
+// beatmap result that will be used on preview
+export const beatmap_preview = writable<IBeatmapResult | null>(null);
 
 // cached beatmap / beatmapsets
 export const beatmap_cache = new CacheManager<IBeatmapResult>(BEATMAP_CACHE_SIZE);
