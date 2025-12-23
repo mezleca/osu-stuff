@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { tick } from "svelte";
     import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
-    import { BeatmapPlayer } from "@rel-packages/osu-beatmap-preview";
+    import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview } from "../../../lib/utils/beatmaps";
     import { string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { show_notification } from "../../../lib/store/notifications";
@@ -29,7 +29,7 @@
     let current_time = 0;
     let duration = 0;
     let is_playing = false;
-    let show_grid = true;
+    let show_grid = false;
 
     // overlay visibility
     let overlay_visible = false;
@@ -129,8 +129,11 @@
     };
 
     const toggle_grid = () => {
-        player?.toggle_grid();
         show_grid = !show_grid;
+
+        player.update_config({
+            grid_level: show_grid ? GridLevel.Large : GridLevel.None
+        });
     };
 
     const cleanup = () => {
@@ -198,6 +201,10 @@
     onMount(() => {
         input.on("space", () => {
             toggle_pause();
+        });
+
+        input.on("g", () => {
+            toggle_grid();
         });
 
         return () => {
