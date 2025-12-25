@@ -24,7 +24,7 @@
         "build:linux": "bun run build && electron-builder --linux"
     },
     "dependencies": {
-        "@rel-packages/osu-beatmap-parser": "^0.1.9",
+        "@rel-packages/osu-beatmap-parser": "^1.0.5",
         "better-sqlite3": "^12.5.0",
         "jszip": "^3.10.1",
         "osu-api-extended": "^3.1.7",
