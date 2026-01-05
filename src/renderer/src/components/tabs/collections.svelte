@@ -6,7 +6,7 @@
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap } from "../../lib/utils/beatmaps";
     import { context_separator, debounce, string_is_valid } from "../../lib/utils/utils";
-    import { show_modal, ModalType } from "../../lib/utils/modal";
+    import { modals, ModalType } from "../../lib/utils/modal";
     import { show_context_menu } from "../../lib/store/context-menu";
 
     // components
@@ -100,7 +100,7 @@
 
         switch (id) {
             case "empty":
-                show_modal(ModalType.empty_collection);
+                modals.show(ModalType.empty_collection);
                 break;
             default:
                 break;
@@ -113,7 +113,7 @@
 
         switch (type) {
             case "merge":
-                show_modal(ModalType.merge_collection);
+                modals.show(ModalType.merge_collection);
                 break;
             case "rename":
                 enable_edit_mode(id_parts[1]);
@@ -122,10 +122,10 @@
                 collections.remove(id_parts[1]);
                 break;
             case "export":
-                show_modal(ModalType.export_collection);
+                modals.show(ModalType.export_collection);
                 break;
             case "export beatmaps":
-                show_modal(ModalType.export_beatmaps);
+                modals.show(ModalType.export_beatmaps);
                 break;
         }
     };
@@ -188,7 +188,7 @@
 
 <div class="content tab-content">
     <!-- more options -->
-    <Add callback={() => show_modal(ModalType.get_collection)} />
+    <Add callback={() => modals.show(ModalType.get_collection)} />
 
     <GetCollectionModal />
     <MergeCollectionModal />

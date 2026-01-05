@@ -1,7 +1,7 @@
 <script lang="ts">
     import { config } from "../../lib/store/config";
     import { show_notification } from "../../lib/store/notifications";
-    import { quick_confirm, show_modal, ModalType } from "../../lib/utils/modal";
+    import { quick_confirm, modals, ModalType } from "../../lib/utils/modal";
     import type { StuffConfig } from "@shared/types";
     import { get_osu_data } from "../../lib/utils/collections";
 
@@ -19,19 +19,18 @@
     };
 
     const handle_local_image_toggle = async () => {
-        const confirmation = await quick_confirm(`local images means more memory usage. are you sure?`, {
-            submit: "yeah bro idc",
-            cancel: "nah"
-        });
+        const value = $config.local_images;
 
-        if (!confirmation) {
-            return;
-        }
+        // only show warning if we're enabling
+        if (!value) {
+            const confirmation = await quick_confirm(`local images means more memory usage. are you sure?`, {
+                submit: "yeah bro idc",
+                cancel: "nah"
+            });
 
-        const success = await config.set("local_images", !$config.local_images);
-
-        if (!success) {
-            $config.local_images = $config.local_images;
+            await config.set("local_images", confirmation);
+        } else {
+            await config.set("local_images", false);
         }
     };
 
@@ -89,7 +88,7 @@
 </script>
 
 <div class="content tab-content">
-    <Add callback={() => show_modal(ModalType.new_mirror)} />
+    <Add callback={() => modals.show(ModalType.new_mirror)} />
     <QuickConfirmModal />
     <NewMirrorModal />
     <div class="config-content">

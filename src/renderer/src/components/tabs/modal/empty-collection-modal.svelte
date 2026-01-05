@@ -1,10 +1,13 @@
 <script lang="ts">
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import Input from "../../utils/basic/input.svelte";
     import { show_notification } from "../../../lib/store/notifications";
 
     let name = "";
+
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.empty_collection);
 
     const on_submit = async () => {
         const result = collections.create_collection(name);
@@ -19,11 +22,11 @@
 
     const cleanup = () => {
         name = "";
-        show_modal(ModalType.none);
+        modals.hide(ModalType.empty_collection);
     };
 </script>
 
-{#if $current_modal == ModalType.empty_collection}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>

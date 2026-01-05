@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { export_beatmaps } from "../../../lib/utils/collections";
     import { config } from "../../../lib/store/config";
@@ -13,6 +13,8 @@
     let selected_collections: string[] = [];
 
     $: all_collections = collections.all_collections;
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.export_beatmaps);
 
     const on_submit = async () => {
         if (selected_collections.length == 0) {
@@ -36,11 +38,11 @@
 
     const cleanup = () => {
         selected_collections = [];
-        show_modal(ModalType.none);
+        modals.hide(ModalType.export_beatmaps);
     };
 </script>
 
-{#if $current_modal == ModalType.export_beatmaps}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>

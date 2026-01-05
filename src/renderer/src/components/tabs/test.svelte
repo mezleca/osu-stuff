@@ -3,7 +3,7 @@
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
     import { context_menu_manager } from "../../lib/store/context-menu";
     import { downloader } from "../../lib/store/downloader";
-    import { ModalType, show_modal } from "../../lib/utils/modal";
+    import { ModalType, modals } from "../../lib/utils/modal";
     import { collections } from "../../lib/store/collections";
     import { string_is_valid } from "../../lib/utils/utils";
     import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
@@ -37,7 +37,7 @@
                 const beatmap = await get_beatmap(hash);
                 if (beatmap) {
                     beatmap_preview.set(beatmap);
-                    show_modal(ModalType.beatmap_preview);
+                    modals.show(ModalType.beatmap_preview);
                     return;
                 }
             }

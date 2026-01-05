@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { config } from "../../../lib/store/config";
     import { show_notification } from "../../../lib/store/notifications";
     import Input from "../../utils/basic/input.svelte";
 
     let name = "";
     let url = "";
+
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.new_mirror);
 
     const { mirrors } = config;
 
@@ -33,11 +36,11 @@
     const cleanup = () => {
         name = "";
         url = "";
-        show_modal(ModalType.none);
+        modals.hide(ModalType.new_mirror);
     };
 </script>
 
-{#if $current_modal == ModalType.new_mirror}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>

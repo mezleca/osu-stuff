@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { tick } from "svelte";
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview } from "../../../lib/utils/beatmaps";
     import { string_is_valid, url_from_media } from "../../../lib/utils/utils";
@@ -22,6 +22,8 @@
     let canvas: HTMLCanvasElement = null;
 
     // data
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.beatmap_preview);
     $: beatmap_data = $beatmap_preview;
     $: beatmap_hash = beatmap_data?.md5 ?? "";
 
@@ -139,7 +141,7 @@
     const cleanup = () => {
         stop_player();
         beatmap_preview.set(null);
-        show_modal(ModalType.none);
+        modals.hide(ModalType.beatmap_preview);
     };
 
     const open_on_browser = () => {
@@ -148,7 +150,8 @@
     };
 
     $: {
-        if ($current_modal != ModalType.beatmap_preview) {
+        // reset if active modals dont include preview
+        if (!has_modal) {
             if (player) stop_player();
 
             beatmap_loaded = false;
@@ -158,7 +161,8 @@
             is_playing = false;
         }
 
-        if (canvas && !player && $current_modal === ModalType.beatmap_preview) {
+        // create new canvas when necessary
+        if (canvas && !player && has_modal) {
             player = new BeatmapPlayer({
                 canvas,
                 playfield_scale: 1,
@@ -188,14 +192,10 @@
             observer.observe(player_container);
         }
 
-        if (canvas && beatmap_hash && !beatmap_loaded && $current_modal === ModalType.beatmap_preview) {
+        if (canvas && beatmap_hash && !beatmap_loaded && has_modal) {
             console.log("[preview] loading new beatmap:", beatmap_hash, beatmap_data?.title);
             get_beatmap_files();
         }
-    }
-
-    $: if ($beatmap_preview) {
-        console.log("[preview] store updated:", $beatmap_preview?.md5, $beatmap_preview?.title);
     }
 
     onMount(() => {
@@ -207,17 +207,18 @@
             toggle_grid();
         });
 
+        // TODO: too much shit going on, need to move as much shit as possible to the beatmap-preview later
         return () => {
             beatmap_preview.set(null);
             stop_player();
             input.unregister("space");
             observer?.disconnect();
-            show_modal(ModalType.none);
+            active_modals.delete(ModalType.beatmap_preview);
         };
     });
 </script>
 
-{#if $current_modal == ModalType.beatmap_preview}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup} style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);">

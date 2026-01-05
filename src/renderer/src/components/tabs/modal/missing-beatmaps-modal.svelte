@@ -1,11 +1,14 @@
 <script lang="ts">
     import { collections } from "../../../lib/store/collections";
     import { downloader } from "../../../lib/store/downloader";
-    import { current_modal, ModalType } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { show_notification } from "../../../lib/store/notifications";
 
     import CollectionCard from "../../cards/collection-card.svelte";
     import Spinner from "../../icon/spinner.svelte";
+
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.missing_beatmaps);
 
     let missing_collections: { name: string; count: number }[] = [];
     let selected_collections: string[] = [];
@@ -72,15 +75,15 @@
     const cleanup = () => {
         selected_collections = [];
         missing_collections = [];
-        current_modal.set(ModalType.none);
+        modals.hide(ModalType.missing_beatmaps);
     };
 
-    $: if ($current_modal == ModalType.missing_beatmaps) {
+    $: if (has_modal) {
         fetch_missing();
     }
 </script>
 
-{#if $current_modal == ModalType.missing_beatmaps}
+{#if has_modal}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" role="button" tabindex="0" onclick={cleanup} onkeydown={(e) => (e.key == "Enter" || e.key == " ") && cleanup()}>
         <div class="modal" role="dialog" aria-modal="true" tabindex="0" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
