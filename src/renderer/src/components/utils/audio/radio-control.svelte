@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { get_audio_manager } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
     import { config } from "../../../lib/store/config";
@@ -64,10 +63,6 @@
         audio_manager.set_volume(clamped_volume);
         config.set("radio_volume", clamped_volume);
     };
-
-    onMount(() => {
-        // volume is now synced via AudioManager subscription to config
-    });
 </script>
 
 <div>

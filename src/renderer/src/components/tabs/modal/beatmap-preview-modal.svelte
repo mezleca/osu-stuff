@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { tick } from "svelte";
+    import { onDestroy, tick } from "svelte";
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview } from "../../../lib/utils/beatmaps";
     import { string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { show_notification } from "../../../lib/store/notifications";
+    import { config } from "../../../lib/store/config";
     import { input } from "../../../lib/store/input";
 
     // components
@@ -138,8 +138,45 @@
         });
     };
 
+    const setup_player = () => {
+        player = new BeatmapPlayer({
+            canvas,
+            playfield_scale: 1,
+            volume: ($config.radio_volume ?? 50) / 100,
+            skin: {
+                approach_circle_width: 0.1
+            },
+            renderer_config: {
+                scale: 1
+            }
+        });
+
+        player.on("timeupdate", (t) => {
+            current_time = t;
+            duration = player.duration;
+        });
+
+        player.on("statechange", (playing) => (is_playing = playing));
+        input.on("space", toggle_pause);
+        input.on("g", toggle_grid);
+
+        // ensure resize after modal is visible
+        tick().then(() => {
+            setTimeout(() => {
+                resize_canvas();
+            }, 100);
+        });
+    };
+
     const cleanup = () => {
-        stop_player();
+        if (player) stop_player();
+        if (observer) observer.disconnect();
+        input.unregister("space", "g");
+        beatmap_loaded = false;
+        beatmap_is_invalid = false;
+        current_time = 0;
+        duration = 0;
+        is_playing = false;
         beatmap_preview.set(null);
         modals.hide(ModalType.beatmap_preview);
     };
@@ -149,42 +186,12 @@
         window.api.invoke("shell:open", `https://osu.ppy.sh/beatmapsets/${beatmap_data.beatmapset_id}`);
     };
 
+    onDestroy(cleanup);
+
     $: {
-        // reset if active modals dont include preview
-        if (!has_modal) {
-            if (player) stop_player();
-
-            beatmap_loaded = false;
-            beatmap_is_invalid = false;
-            current_time = 0;
-            duration = 0;
-            is_playing = false;
-        }
-
-        // create new canvas when necessary
+        // setup canvas if needed
         if (canvas && !player && has_modal) {
-            player = new BeatmapPlayer({
-                canvas,
-                playfield_scale: 1,
-                volume: 0.5,
-                renderer_config: { scale: 1 }
-            });
-
-            player.on("timeupdate", (t) => {
-                current_time = t;
-                duration = player.duration;
-            });
-
-            player.on("statechange", (playing) => {
-                is_playing = playing;
-            });
-
-            // ensure resize after modal is visible
-            tick().then(() => {
-                setTimeout(() => {
-                    resize_canvas();
-                }, 100);
-            });
+            setup_player();
         }
 
         if (player_container && !observer) {
@@ -197,25 +204,6 @@
             get_beatmap_files();
         }
     }
-
-    onMount(() => {
-        input.on("space", () => {
-            toggle_pause();
-        });
-
-        input.on("g", () => {
-            toggle_grid();
-        });
-
-        // TODO: too much shit going on, need to move as much shit as possible to the beatmap-preview later
-        return () => {
-            beatmap_preview.set(null);
-            stop_player();
-            input.unregister("space");
-            observer?.disconnect();
-            active_modals.delete(ModalType.beatmap_preview);
-        };
-    });
 </script>
 
 {#if has_modal}
@@ -243,19 +231,14 @@
                 <canvas bind:this={canvas} class:visible={beatmap_loaded}></canvas>
 
                 <div class="overlay-container" class:visible={beatmap_loaded && overlay_visible}>
-                    <div class="player-overlay info">
-                        <div class="controls-row">
-                            <span class="beatmap-info">
+                    <div class="player-overlay">
+                        <div class="beatmap-info">
+                            <span class="beatmap-title">
                                 {beatmap_data?.artist} - {beatmap_data?.title} [{beatmap_data?.difficulty}]
                             </span>
-                            <div class="top-actions">
-                                <button class="icon-button" class:active={show_grid} onclick={toggle_grid}>toggle grid</button>
-                                <button class="icon-button" onclick={open_on_browser}>open on browser</button>
-                            </div>
+                            <button class="icon-button" onclick={open_on_browser}>open on browser</button>
                         </div>
-                    </div>
 
-                    <div class="player-overlay progress">
                         <div class="controls-row">
                             <button class="icon-button" onclick={toggle_pause}>
                                 {#if is_playing}
@@ -342,28 +325,23 @@
         pointer-events: auto;
     }
 
+    .beatmap-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-left: 6px;
+    }
+
     .player-overlay {
-        padding: 4px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
         background: rgba(10, 10, 10, 0.8);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .beatmap-info {
-        color: white;
-        font-family: "Torus SemiBold";
-        font-size: 0.88em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1;
-    }
-
-    .top-actions {
-        display: flex;
-        gap: 8px;
     }
 
     .controls-row {
@@ -386,19 +364,11 @@
         border-radius: 8px;
         transition: all 0.2s;
         opacity: 0.8;
+        font-family: "Torus SemiBold";
     }
 
     .icon-button:hover {
         background: rgba(255, 255, 255, 0.1);
         opacity: 1;
-    }
-
-    .icon-button.active {
-        color: var(--accent-color);
-        background: rgba(var(--accent-color-rgb), 0.1);
-    }
-
-    :global(.control-bar) {
-        flex: 1;
     }
 </style>
