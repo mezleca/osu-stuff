@@ -139,17 +139,19 @@
     };
 
     const setup_player = () => {
-        player = new BeatmapPlayer({
-            canvas,
-            playfield_scale: 1,
-            volume: ($config.radio_volume ?? 50) / 100,
-            skin: {
-                approach_circle_width: 0.1
-            },
-            renderer_config: {
-                scale: 1
-            }
-        });
+        if (!player) {
+            player = new BeatmapPlayer({
+                canvas,
+                playfield_scale: 1,
+                volume: ($config.radio_volume ?? 50) / 100,
+                skin: {
+                    approach_circle_width: 0.1
+                },
+                renderer_config: {
+                    scale: 1
+                }
+            });
+        }
 
         player.on("timeupdate", (t) => {
             current_time = t;
