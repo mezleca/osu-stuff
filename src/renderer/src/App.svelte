@@ -16,6 +16,9 @@
     import Config from "./components/tabs/config.svelte";
     import Index from "./components/tabs/index.svelte";
     import Status from "./components/tabs/status.svelte";
+
+    // global modals
+    import BeatmapPreviewModal from "./components/tabs/modal/beatmap-preview-modal.svelte";
     import MissingBeatmapsModal from "./components/tabs/modal/missing-beatmaps-modal.svelte";
 
     // extra
@@ -67,11 +70,12 @@
 <main>
     <div class="window-border" class:show={!$is_maximized}></div>
 
-    <!-- notification container -->
+    <!-- global components -->
     <Notifications />
     <ProgressBox />
     <ContextMenu />
     <MissingBeatmapsModal />
+    <BeatmapPreviewModal />
 
     <!-- show loading screen on initialization -->
     {#if !initialized}

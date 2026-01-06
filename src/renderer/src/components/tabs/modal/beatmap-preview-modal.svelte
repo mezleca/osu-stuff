@@ -3,7 +3,7 @@
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview } from "../../../lib/utils/beatmaps";
-    import { string_is_valid, url_from_media } from "../../../lib/utils/utils";
+    import { debounce, string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
     import { input } from "../../../lib/store/input";
@@ -126,9 +126,9 @@
         player.seek(pos * player.duration);
     };
 
-    const toggle_pause = () => {
+    const toggle_pause = debounce(() => {
         player?.toggle_pause();
-    };
+    }, 50);
 
     const toggle_grid = () => {
         show_grid = !show_grid;
@@ -139,6 +139,8 @@
     };
 
     const setup_player = () => {
+        console.log("[setup_player] initializing");
+
         if (!player) {
             player = new BeatmapPlayer({
                 canvas,
@@ -159,6 +161,11 @@
         });
 
         player.on("statechange", (playing) => (is_playing = playing));
+
+        // always unregister
+        input.unregister("space", "g");
+
+        // setup listeners
         input.on("space", toggle_pause);
         input.on("g", toggle_grid);
 
@@ -226,7 +233,7 @@
                 {#if !beatmap_loaded}
                     <div class="loading-overlay">
                         <Spinner width={48} height={48} />
-                        <span style="margin-top: 12px; font-size: 1.1em; color: #ccc;">loading beatmap...</span>
+                        <span class="loading-text" style="margin-top: 12px; font-size: 1.1em; color: #ccc;">loading beatmap...</span>
                     </div>
                 {/if}
 
@@ -242,7 +249,13 @@
                         </div>
 
                         <div class="controls-row">
-                            <button class="icon-button" onclick={toggle_pause}>
+                            <button
+                                class="icon-button"
+                                onclick={(e) => {
+                                    toggle_pause();
+                                    e.currentTarget.blur();
+                                }}
+                            >
                                 {#if is_playing}
                                     <Pause width={18} height={18} />
                                 {:else}
@@ -332,6 +345,11 @@
         align-items: center;
         justify-content: space-between;
         margin-left: 6px;
+    }
+
+    .beatmap-title,
+    .loading-text {
+        font-family: "Torus Semibold";
     }
 
     .player-overlay {

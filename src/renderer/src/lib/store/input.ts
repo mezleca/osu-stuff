@@ -29,6 +29,11 @@ class InputManager {
             return;
         }
 
+        // if the key is already pressed, ignore
+        if (this.keys.has(pressed_key)) {
+            return;
+        }
+
         this.keys.add(pressed_key);
 
         if (mouse) {
@@ -43,7 +48,7 @@ class InputManager {
     }
 
     remove(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
-        const released_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : (event as KeyboardEvent).key.toLowerCase();
+        const released_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : rename_key((event as KeyboardEvent).key.toLowerCase());
 
         if (this.keys.has(released_key)) {
             this.keys.delete(released_key);

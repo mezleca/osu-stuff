@@ -20,10 +20,6 @@
     };
 
     const tabs = ["collections", "browse", "discover", "radio", "config", "status"];
-
-    $: {
-        console.log(active_modals.size);
-    }
 </script>
 
 <div class="header">
