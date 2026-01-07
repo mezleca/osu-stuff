@@ -49,7 +49,7 @@
                 beatmap = null;
             } else {
                 beatmap = result;
-                if (!minimal) get_card_image_source(beatmap).then((img) => (image_src = img));
+                if (!minimal) image_src = get_card_image_source(beatmap);
             }
         } catch (err) {
             console.error("failed to load beatmap:", loading_hash, err);

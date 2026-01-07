@@ -1,10 +1,10 @@
 import type { IBeatmapResult, BeatmapSetResult } from "@shared/types";
-import { get_image_url, string_is_valid } from "./utils";
+import { url_from_media, string_is_valid } from "./utils";
 import { config } from "../store/config";
 
 const PLACEHOLDER_IMAGE = "@assets/images/fallback.png";
 
-export const get_card_image_source = async (item: IBeatmapResult | BeatmapSetResult): Promise<string> => {
+export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): string => {
     // use the placeholder image on invalid beatmap
     if (!item) {
         return PLACEHOLDER_IMAGE;
@@ -20,7 +20,7 @@ export const get_card_image_source = async (item: IBeatmapResult | BeatmapSetRes
         }
 
         if (beatmap.background) {
-            const src = await get_image_url(beatmap.background);
+            const src = url_from_media(beatmap.background);
             if (string_is_valid(src)) return src;
         }
 

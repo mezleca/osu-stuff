@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import type { StarRatingFilter, ICollectionResult } from "@shared/types";
     import { show_notification } from "../../../lib/store/notifications";
-    import { current_modal, ModalType } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { get_from_osu_collector, get_legacy_collection_data, get_osdb_data } from "../../../lib/utils/collections";
     import { get_player_data, type IPlayerOptions } from "../../../lib/utils/beatmaps";
@@ -51,6 +51,8 @@
 
     const collection_options = ["osu!collector", "client", "file", "player"].map((option) => ({ label: option, value: option }));
 
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.get_collection);
     $: collection_label =
         collection_type == "player" ? "player name" : collection_type == "osu!collector" ? "collection name (optional)" : "collection name";
 
@@ -381,20 +383,14 @@
         pending_collections = [];
         selected_collections = [];
         is_client_fetched = false;
-        current_modal.set(ModalType.none);
+        modals.hide(ModalType.get_collection);
     };
 
     let is_client_fetched = false;
     let is_fetching_client = false;
 
     $: {
-        if (
-            collection_type == "client" &&
-            !is_client_fetched &&
-            !is_fetching_client &&
-            !is_driver_loading &&
-            $current_modal == ModalType.get_collection
-        ) {
+        if (collection_type == "client" && !is_client_fetched && !is_fetching_client && !is_driver_loading && has_modal) {
             if (is_target_initialized) {
                 is_fetching_client = true;
                 handle_from_client();
@@ -428,7 +424,7 @@
     });
 </script>
 
-{#if $current_modal == ModalType.get_collection}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>

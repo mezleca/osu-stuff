@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { is_dev_mode } from "../../lib/utils/utils";
 
-    // test tab
+    // stuff
     import TestContent from "./test.svelte";
 
     let container = null;

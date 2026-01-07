@@ -31,7 +31,8 @@ import {
     update_collection,
     add_beatmaps_to_collection,
     should_update,
-    is_initialized
+    is_initialized,
+    get_beatmap_files
 } from "./database/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./beatmaps/downloader";
@@ -149,6 +150,7 @@ async function createWindow() {
     handle_ipc("driver:search_beatmaps", (_, args) => search_beatmaps(...args));
     handle_ipc("driver:search_beatmapsets", (_, args) => search_beatmapsets(...args));
     handle_ipc("driver:get_missing_beatmaps", (_, args) => get_missing_beatmaps(...args));
+    handle_ipc("driver:get_beatmap_files", (_, args) => get_beatmap_files(...args));
     handle_ipc("driver:fetch_beatmaps", (_, args) => fetch_beatmaps(...args));
     handle_ipc("driver:fetch_beatmapsets", (_, args) => fetch_beatmapsets(...args));
 
@@ -160,6 +162,7 @@ async function createWindow() {
         }
         return auth.login(params);
     });
+
     handle_ipc("web:get_beatmap", (_, args) => v2.beatmaps.lookup(args[0]));
     handle_ipc("web:get_beatmapset", (_, args) => v2.beatmaps.lookup(args[0]));
     handle_ipc("web:search", (_, args) => v2.search(args[0]));

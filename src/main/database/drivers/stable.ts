@@ -47,7 +47,8 @@ const build_beatmap = (beatmap: IStableBeatmap, processed?: BeatmapRow, temp: bo
         background: processed?.background || "",
         audio: processed?.audio || "",
         folder_name: beatmap.folder_name,
-        file_name: beatmap.file
+        file_name: beatmap.file,
+        file_path: beatmap.file_path
     };
 };
 
@@ -320,6 +321,46 @@ class StableBeatmapDriver extends BaseDriver {
         }
 
         return undefined;
+    };
+
+    get_beatmap_files = async (md5: string): Promise<BeatmapFile[]> => {
+        const result: BeatmapFile[] = [];
+        const beatmap = await this.get_beatmap_by_md5(md5);
+
+        if (!beatmap || !beatmap?.file_name || !beatmap?.file_path || !beatmap.audio) {
+            console.warn("get_beatmap_files: failed to get beatmap file / audio", beatmap);
+            return result;
+        }
+
+        const file_location = path.join(config.get().stable_songs_path, beatmap.file_path);
+        const audio_location = beatmap.audio;
+        const background_location = beatmap.background;
+
+        if (!fs.existsSync(file_location) || !fs.existsSync(audio_location)) {
+            console.warn("get_beatmap_files: failed to find ->", file_location, audio_location);
+            return result;
+        }
+
+        result.push(
+            {
+                name: path.basename(file_location),
+                location: file_location
+            },
+            {
+                name: path.basename(audio_location),
+                location: audio_location
+            }
+        );
+
+        // only add background if it exists
+        if (background_location && fs.existsSync(background_location)) {
+            result.push({
+                name: path.basename(background_location),
+                location: background_location
+            });
+        }
+
+        return result;
     };
 
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {

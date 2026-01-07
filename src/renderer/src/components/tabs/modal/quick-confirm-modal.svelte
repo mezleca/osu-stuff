@@ -1,5 +1,8 @@
 <script lang="ts">
-    import { current_modal, ModalType, quick_confirm_options } from "../../../lib/utils/modal";
+    import { modals, ModalType, quick_confirm_options } from "../../../lib/utils/modal";
+
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.quick_confirm);
 
     const on_confirm = () => {
         if ($quick_confirm_options?.on_confirm) {
@@ -14,7 +17,7 @@
     };
 </script>
 
-{#if $current_modal == ModalType.quick_confirm && $quick_confirm_options}
+{#if has_modal && $quick_confirm_options}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={on_cancel}>

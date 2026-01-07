@@ -436,6 +436,7 @@ export abstract class BaseDriver implements IOsuDriver {
     abstract has_beatmapset(id: number): boolean;
     abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
+    abstract get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     abstract fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     abstract fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

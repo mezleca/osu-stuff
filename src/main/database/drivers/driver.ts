@@ -155,6 +155,11 @@ export const search_beatmapsets = (options: IBeatmapSetFilter, custom_driver: st
     return driver.search_beatmapsets(options);
 };
 
+export const get_beatmap_files = (md5: string, custom_driver: string = ""): Promise<BeatmapFile[]> => {
+    const driver = get_driver(custom_driver);
+    return driver.get_beatmap_files(md5);
+};
+
 export const get_beatmapset_files = (id: number, custom_driver: string = ""): Promise<BeatmapFile[]> => {
     const driver = get_driver(custom_driver);
     return driver.get_beatmapset_files(id);

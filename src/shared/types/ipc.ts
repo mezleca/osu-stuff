@@ -228,6 +228,10 @@ export interface IpcSchema {
             params: [string | null, string?];
             result: ReturnType<IOsuDriver["get_missing_beatmaps"]>;
         };
+        "driver:get_beatmap_files": {
+            params: [string, string?];
+            result: ReturnType<IOsuDriver["get_beatmap_files"]>;
+        };
         "driver:search_beatmaps": {
             params: [IBeatmapFilter, string?];
             result: ReturnType<IOsuDriver["search_beatmaps"]>;

@@ -3,6 +3,11 @@
     import { finish_notification, show_notification, edit_notification } from "../../lib/store/notifications";
     import { context_menu_manager } from "../../lib/store/context-menu";
     import { downloader } from "../../lib/store/downloader";
+    import { ModalType, modals } from "../../lib/utils/modal";
+    import { collections } from "../../lib/store/collections";
+    import { string_is_valid } from "../../lib/utils/utils";
+    import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
+    import { config } from "../../lib/store/config";
 
     let beatmaps: Array<{ md5: string }> = [];
     let download_id = 0;
@@ -17,6 +22,39 @@
         const amt = Math.floor(Math.random() * 100) || 1;
         const test_beatmaps = beatmaps.splice(0, amt);
         downloader.add({ id: `test download (${download_id++})`, beatmaps: test_beatmaps });
+    };
+
+    const show_beatmap_preview = async () => {
+        try {
+            // attempt to get a random ass beatmap
+            const c = collections.get_all();
+
+            for (const collection of c) {
+                if (collection.beatmaps.length === 0) continue;
+
+                const random_idx = Math.floor(Math.random() * collection.beatmaps.length);
+                const hash = collection.beatmaps[random_idx];
+
+                if (string_is_valid(hash)) {
+                    if (config.get("lazer_mode")) {
+                        console.log(await window.api.invoke("driver:get_beatmap_files", hash));
+                        // return;
+                    }
+
+                    const beatmap = await get_beatmap(hash);
+
+                    if (beatmap) {
+                        beatmap_preview.set(beatmap);
+                        modals.show(ModalType.beatmap_preview);
+                        return;
+                    }
+                }
+            }
+
+            show_notification({ type: "error", text: "no beatmaps found in collections for preview" });
+        } catch (err) {
+            show_notification({ type: "error", text: `failed to load beatmap preview: ${err}` });
+        }
     };
 
     const generate_nested_array = (depth: number, current = 1): TestItem[] => {
@@ -71,6 +109,7 @@
     <button onclick={() => show_notification({ id: notification_id, type: "error", text: "Hello Bro", duration: 1000, persist: true })}
         >notification persist</button
     >
+    <button onclick={() => show_beatmap_preview()}>show player</button>
     <button onclick={() => close_notification()}>end notification</button>
     <button oncontextmenu={open_context_menu}>open context menu (right click)</button>
 </div>

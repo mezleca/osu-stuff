@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { BeatmapList } from "../lib/store/beatmaps";
-    import { current_modal, ModalType } from "../lib/utils/modal";
+    import { modals, ModalType } from "../lib/utils/modal";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
@@ -42,7 +42,7 @@
     <div class="beatmaps-header">
         <div class="results-count">{$items?.length ?? 0} beatmaps</div>
         {#if show_missing && $total_missing > 0}
-            <button class="missing-button" onclick={() => ($current_modal = ModalType.missing_beatmaps)}> missing maps </button>
+            <button class="missing-button" onclick={() => modals.show(ModalType.missing_beatmaps)}> missing maps </button>
         {/if}
     </div>
 

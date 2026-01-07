@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { current_modal, ModalType, show_modal } from "../../../lib/utils/modal";
+    import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
     import { export_collections } from "../../../lib/utils/collections";
@@ -13,6 +13,8 @@
     let selected_collections: string[] = [];
     let type = "db";
 
+    $: active_modals = $modals;
+    $: has_modal = active_modals.has(ModalType.export_collection);
     $: all_collections = collections.all_collections;
 
     const on_submit = async () => {
@@ -53,11 +55,11 @@
 
     const cleanup = () => {
         selected_collections = [];
-        show_modal(ModalType.none);
+        modals.hide(ModalType.export_collection);
     };
 </script>
 
-{#if $current_modal == ModalType.export_collection}
+{#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-container" onclick={cleanup}>

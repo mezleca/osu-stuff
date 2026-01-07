@@ -426,6 +426,72 @@ class LazerBeatmapDriver extends BaseDriver {
         return undefined;
     };
 
+    get_beatmap_files = async (md5: string): Promise<BeatmapFile[]> => {
+        const beatmap = this.instance.objects<BeatmapSchema>("Beatmap").find((b) => b.MD5Hash == md5);
+
+        if (!beatmap) {
+            console.warn("get_beatmap_files: failed to get beatmap...");
+            return [];
+        }
+
+        // get files from beatmapset
+        const files: BeatmapFile[] = [];
+        const realm_osu_file = beatmap.BeatmapSet.Files.find((f) => f.File?.Hash === beatmap.Hash);
+
+        if (!realm_osu_file) {
+            console.error("failed to find .osu for:", beatmap.Hash);
+            return [];
+        }
+
+        const osu_file = get_lazer_file_location(realm_osu_file.File?.Hash as string);
+
+        if (!fs.existsSync(osu_file)) {
+            console.error("failed to find .osu (not found) for:", beatmap.Hash);
+            return [];
+        }
+
+        files.push({ name: realm_osu_file.Filename as string, location: osu_file });
+
+        const properties = beatmap_parser.get_properties({ path: osu_file }, ["Background", "AudioFilename"]);
+
+        // get the other files
+        let found_background = false,
+            found_audio = false;
+
+        for (const realm_file of beatmap.BeatmapSet.Files) {
+            const filename = realm_file.Filename;
+            const hash = realm_file.File?.Hash as string;
+
+            if (found_background && found_audio) break;
+
+            if (filename && !found_background && properties.Background == filename) {
+                const location = get_lazer_file_location(hash);
+
+                if (!fs.existsSync(location)) {
+                    console.warn("background file doenst exists...");
+                } else {
+                    files.push({ name: filename, location });
+                }
+
+                found_background = true;
+            }
+
+            if (filename && !found_audio && properties.AudioFilename == filename) {
+                const location = get_lazer_file_location(hash);
+
+                if (!fs.existsSync(location)) {
+                    console.warn("audio file doenst exists...");
+                } else {
+                    files.push({ name: filename, location });
+                }
+
+                found_audio = true;
+            }
+        }
+
+        return files;
+    };
+
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {
         const files: BeatmapFile[] = [];
         const beatmapset = this.instance.objects<BeatmapSetSchema>("BeatmapSet").find((b) => b.OnlineID == id);

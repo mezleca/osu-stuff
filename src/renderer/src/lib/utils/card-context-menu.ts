@@ -3,13 +3,15 @@ import { collections } from "../store/collections";
 import { open_on_browser } from "./utils";
 import { show_notification } from "../store/notifications";
 import { config } from "../store/config";
+import { beatmap_preview } from "./beatmaps";
+import { modals, ModalType } from "./modal";
 
 export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show_remove: boolean): ContextMenuOption[] => {
     const all_collections = collections.get_all();
     const options: ContextMenuOption[] = [];
 
     if (beatmap) {
-        options.push({ id: "browser", text: "open on browser" });
+        options.push({ id: "browser", text: "open on browser" }, { id: "preview", text: "preview beatmap" });
     }
 
     if (all_collections.length) {
@@ -75,6 +77,12 @@ export const handle_card_context_action = async (
             const collection = id;
             const hashes = is_set ? (beatmap as BeatmapSetResult).beatmaps : [(beatmap as IBeatmapResult).md5];
             collections.add_beatmaps(collection, hashes);
+            break;
+        }
+        case "preview": {
+            if (!beatmap || is_set) break;
+            beatmap_preview.set(beatmap as IBeatmapResult);
+            modals.show(ModalType.beatmap_preview);
             break;
         }
         case "export": {

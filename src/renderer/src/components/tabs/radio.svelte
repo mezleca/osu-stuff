@@ -3,7 +3,7 @@
 
     import { collections } from "../../lib/store/collections";
     import { ALL_BEATMAPS_KEY, FILTER_TYPES } from "../../lib/store/other";
-    import { debounce, format_time, get_image_url } from "../../lib/utils/utils";
+    import { debounce, format_time, url_from_media } from "../../lib/utils/utils";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap } from "../../lib/utils/beatmaps";
@@ -38,7 +38,7 @@
             return;
         }
 
-        const local = selected_beatmap.background ? await get_image_url(selected_beatmap.background) : "";
+        const local = selected_beatmap.background ? url_from_media(selected_beatmap.background) : "";
         const web = selected_beatmap.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${selected_beatmap.beatmapset_id}/covers/cover.jpg` : "";
 
         if (local && web) {

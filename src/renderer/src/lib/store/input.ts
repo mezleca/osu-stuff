@@ -6,6 +6,11 @@ const BUTTON_TO_STRING: Record<number, string> = {
     [4]: "mouse5"
 };
 
+const rename_key = (key: string) => {
+    if (key == " ") return "space";
+    return key;
+};
+
 class InputManager {
     keys: Set<string>;
     handlers: Map<string, () => void>;
@@ -18,9 +23,14 @@ class InputManager {
     }
 
     add(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
-        const pressed_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : (event as KeyboardEvent).key.toLowerCase();
+        const pressed_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : rename_key((event as KeyboardEvent).key.toLowerCase());
 
         if (!pressed_key) {
+            return;
+        }
+
+        // if the key is already pressed, ignore
+        if (this.keys.has(pressed_key)) {
             return;
         }
 
@@ -38,7 +48,7 @@ class InputManager {
     }
 
     remove(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
-        const released_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : (event as KeyboardEvent).key.toLowerCase();
+        const released_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : rename_key((event as KeyboardEvent).key.toLowerCase());
 
         if (this.keys.has(released_key)) {
             this.keys.delete(released_key);

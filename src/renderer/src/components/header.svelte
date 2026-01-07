@@ -1,17 +1,21 @@
 <script lang="ts">
     import { active_tab, is_maximized } from "../lib/store/other";
-    import { current_modal, ModalType } from "../lib/utils/modal";
+    import { modals } from "../lib/utils/modal";
 
     // icons
     import Line from "./icon/line.svelte";
     import Square from "./icon/square.svelte";
     import X from "./icon/x.svelte";
 
+    $: active_modals = $modals;
+
     // props
     export let active = false;
 
     const set_active_tab = (tab: string) => {
-        if (!active || $current_modal != ModalType.none) return;
+        // if we're inside a modal ignore any pointer event
+        if (!active || active_modals.size != 0) return;
+
         $active_tab = tab;
     };
 
@@ -23,12 +27,7 @@
         <button class="app-title" onclick={() => set_active_tab("index")}>osu-stuff</button>
         <div class="tabs">
             {#each tabs as tab}
-                <button
-                    class="tab"
-                    onclick={() => set_active_tab(tab)}
-                    class:active={$active_tab == tab}
-                    class:disabled={$current_modal != ModalType.none}
-                >
+                <button class="tab" onclick={() => set_active_tab(tab)} class:active={$active_tab == tab} class:disabled={active_modals.size != 0}>
                     {tab}
                 </button>
             {/each}
