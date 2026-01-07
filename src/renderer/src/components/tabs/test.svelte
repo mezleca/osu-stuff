@@ -7,6 +7,7 @@
     import { collections } from "../../lib/store/collections";
     import { string_is_valid } from "../../lib/utils/utils";
     import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
+    import { config } from "../../lib/store/config";
 
     let beatmaps: Array<{ md5: string }> = [];
     let download_id = 0;
@@ -24,26 +25,36 @@
     };
 
     const show_beatmap_preview = async () => {
-        // attempt to get a random ass beatmap
-        const c = collections.get_all();
+        try {
+            // attempt to get a random ass beatmap
+            const c = collections.get_all();
 
-        for (const collection of c) {
-            if (collection.beatmaps.length == 0) continue;
+            for (const collection of c) {
+                if (collection.beatmaps.length === 0) continue;
 
-            const random_idx = Math.floor(Math.random() * collection.beatmaps.length);
-            const hash = collection.beatmaps[random_idx];
+                const random_idx = Math.floor(Math.random() * collection.beatmaps.length);
+                const hash = collection.beatmaps[random_idx];
 
-            if (string_is_valid(hash)) {
-                const beatmap = await get_beatmap(hash);
-                if (beatmap) {
-                    beatmap_preview.set(beatmap);
-                    modals.show(ModalType.beatmap_preview);
-                    return;
+                if (string_is_valid(hash)) {
+                    if (config.get("lazer_mode")) {
+                        console.log(await window.api.invoke("driver:get_beatmap_files", hash));
+                        // return;
+                    }
+
+                    const beatmap = await get_beatmap(hash);
+
+                    if (beatmap) {
+                        beatmap_preview.set(beatmap);
+                        modals.show(ModalType.beatmap_preview);
+                        return;
+                    }
                 }
             }
-        }
 
-        show_notification({ type: "error", text: "no beatmaps found in collections for preview" });
+            show_notification({ type: "error", text: "no beatmaps found in collections for preview" });
+        } catch (err) {
+            show_notification({ type: "error", text: `failed to load beatmap preview: ${err}` });
+        }
     };
 
     const generate_nested_array = (depth: number, current = 1): TestItem[] => {

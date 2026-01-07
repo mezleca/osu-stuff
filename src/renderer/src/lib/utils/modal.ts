@@ -27,15 +27,17 @@ class ModalManager {
 
     show = (modal: ModalType) => {
         this.active_modals.update((modals: Set<ModalType>) => {
-            modals.add(modal);
-            return modals;
+            const newSet = new Set(modals);
+            newSet.add(modal);
+            return newSet;
         });
     };
 
     hide = (modal: ModalType) => {
         this.active_modals.update((modals: Set<ModalType>) => {
-            modals.delete(modal);
-            return modals;
+            const newSet = new Set(modals);
+            newSet.delete(modal);
+            return newSet;
         });
     };
 

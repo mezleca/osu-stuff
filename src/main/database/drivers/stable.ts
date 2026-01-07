@@ -327,12 +327,11 @@ class StableBeatmapDriver extends BaseDriver {
         const result: BeatmapFile[] = [];
         const beatmap = await this.get_beatmap_by_md5(md5);
 
-        if (!beatmap || !beatmap?.file_name || !beatmap.audio) {
+        if (!beatmap || !beatmap?.file_name || !beatmap?.file_path || !beatmap.audio) {
             console.warn("get_beatmap_files: failed to get beatmap file / audio", beatmap);
             return result;
         }
 
-        // @ts-ignore
         const file_location = path.join(config.get().stable_songs_path, beatmap.file_path);
         const audio_location = beatmap.audio;
         const background_location = beatmap.background;
@@ -342,7 +341,6 @@ class StableBeatmapDriver extends BaseDriver {
             return result;
         }
 
-        // TODO: later we could use the beatmap_parser to also tell what hitsounds are being used n shit (need to implement that on the parser)
         result.push(
             {
                 name: path.basename(file_location),
@@ -351,12 +349,16 @@ class StableBeatmapDriver extends BaseDriver {
             {
                 name: path.basename(audio_location),
                 location: audio_location
-            },
-            {
-                name: path.basename(background_location),
-                location: background_location
             }
         );
+
+        // only add background if it exists
+        if (background_location && fs.existsSync(background_location)) {
+            result.push({
+                name: path.basename(background_location),
+                location: background_location
+            });
+        }
 
         return result;
     };

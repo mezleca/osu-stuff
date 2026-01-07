@@ -81,8 +81,7 @@ export const handle_card_context_action = async (
         }
         case "preview": {
             if (!beatmap || is_set) break;
-            // @ts-ignore
-            beatmap_preview.set(beatmap);
+            beatmap_preview.set(beatmap as IBeatmapResult);
             modals.show(ModalType.beatmap_preview);
             break;
         }

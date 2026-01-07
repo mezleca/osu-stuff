@@ -2,7 +2,7 @@
     import { onDestroy, tick } from "svelte";
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
-    import { beatmap_preview } from "../../../lib/utils/beatmaps";
+    import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
     import { debounce, string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
@@ -19,7 +19,7 @@
     let observer: ResizeObserver | null = null;
     let player: BeatmapPlayer | null = null;
     let player_container: HTMLDivElement | null = null;
-    let canvas: HTMLCanvasElement = null;
+    let canvas: HTMLCanvasElement | null = null;
 
     // data
     $: active_modals = $modals;
@@ -28,6 +28,7 @@
     $: beatmap_hash = beatmap_data?.md5 ?? "";
 
     // progress
+    let fetching_files = false;
     let current_time = 0;
     let duration = 0;
     let is_playing = false;
@@ -67,7 +68,15 @@
     const get_beatmap_files = async () => {
         if (!beatmap_hash) return;
 
+        fetching_files = true;
+
         try {
+            const beatmap = await get_beatmap(beatmap_hash);
+
+            if (!beatmap) {
+                throw Error("beatmap not found...");
+            }
+
             const files_result = await window.api.invoke("driver:get_beatmap_files", beatmap_hash);
 
             if (files_result.length < 2) {
@@ -75,6 +84,10 @@
             }
 
             const files: Map<string, ArrayBuffer> = new Map();
+
+            // check if we're misisng the important shit (audio / .osu)
+            // get_beatmapset_files already deals with the .osu file check so lets check for the audio
+            let has_audio = false;
 
             for (const file of files_result) {
                 const response = await fetch(url_from_media(file.location));
@@ -84,12 +97,13 @@
                     continue;
                 }
 
+                if (file.name == beatmap.audio) has_audio = true;
+
                 files.set(file.name, await response.arrayBuffer());
             }
 
-            if (files.size < 2) {
-                throw Error("failed to get beatmap files...");
-            }
+            if (!has_audio) throw Error("failed to get beatmap audio");
+            if (!player) throw Error("player not initialized");
 
             const result = await player.load_files(files);
 
@@ -109,6 +123,7 @@
             beatmap_is_invalid = true;
         } finally {
             beatmap_loaded = true;
+            fetching_files = false;
         }
     };
 
@@ -127,10 +142,13 @@
     };
 
     const toggle_pause = debounce(() => {
-        player?.toggle_pause();
+        if (!player) return;
+        player.toggle_pause();
     }, 50);
 
     const toggle_grid = () => {
+        if (!player) return;
+
         show_grid = !show_grid;
 
         player.update_config({
@@ -146,9 +164,6 @@
                 canvas,
                 playfield_scale: 1,
                 volume: ($config.radio_volume ?? 50) / 100,
-                skin: {
-                    approach_circle_width: 0.1
-                },
                 renderer_config: {
                     scale: 1
                 }
@@ -208,7 +223,7 @@
             observer.observe(player_container);
         }
 
-        if (canvas && beatmap_hash && !beatmap_loaded && has_modal) {
+        if (canvas && beatmap_hash && !beatmap_loaded && has_modal && !fetching_files) {
             console.log("[preview] loading new beatmap:", beatmap_hash, beatmap_data?.title);
             get_beatmap_files();
         }

@@ -38,7 +38,7 @@
             return;
         }
 
-        const local = selected_beatmap.background ? await url_from_media(selected_beatmap.background) : "";
+        const local = selected_beatmap.background ? url_from_media(selected_beatmap.background) : "";
         const web = selected_beatmap.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${selected_beatmap.beatmapset_id}/covers/cover.jpg` : "";
 
         if (local && web) {
