@@ -85,7 +85,7 @@
 
             const files: Map<string, ArrayBuffer> = new Map();
 
-            // check if we're misisng the important shit (audio / .osu)
+            // check if we're missing the important shit (audio / .osu)
             // get_beatmapset_files already deals with the .osu file check so lets check for the audio
             let has_audio = false;
 
