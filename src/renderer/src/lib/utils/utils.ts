@@ -64,8 +64,48 @@ export const string_is_valid = (value: string) => {
     return true;
 };
 
+export const get_dirname = (file_path: string): string => {
+    if (!file_path) return ".";
+
+    // remove trailing slashes
+    let path = file_path;
+
+    while (path.length > 1 && path[path.length - 1] === "/") {
+        path = path.slice(0, -1);
+    }
+
+    // find last slash
+    const last_slash = path.lastIndexOf("/");
+
+    if (last_slash === -1) return ".";
+    if (last_slash === 0) return "/";
+
+    // return everything before last slash
+    return path.slice(0, last_slash);
+};
+
+export const get_basename = (file_path: string, extension?: string): string => {
+    if (!file_path) return "";
+
+    // remove trailing slashes
+    let path = file_path;
+
+    while (path.length > 1 && path[path.length - 1] === "/") {
+        path = path.slice(0, -1);
+    }
+
+    const last_slash = path.lastIndexOf("/");
+    const filename = last_slash === -1 ? path : path.slice(last_slash + 1);
+
+    // remove extension if provided
+    if (extension && filename.endsWith(extension)) {
+        return filename.slice(0, -extension.length);
+    }
+
+    return filename;
+};
+
 export const custom_fetch = async (options: FetchOptions): Promise<IFetchResponse> => {
-    // TODO: why is this named "fetch:get"?
     return window.api.invoke("fetch:get", options);
 };
 

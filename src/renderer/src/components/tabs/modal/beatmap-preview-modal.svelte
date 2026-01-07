@@ -3,7 +3,7 @@
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
-    import { debounce, string_is_valid, url_from_media } from "../../../lib/utils/utils";
+    import { debounce, get_basename, string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
     import { input } from "../../../lib/store/input";
@@ -87,7 +87,8 @@
 
             // check if we're missing the important shit (audio / .osu)
             // get_beatmapset_files already deals with the .osu file check so lets check for the audio
-            let has_audio = false;
+            // TOFIX: i dont want to deal with this garbage on lazer so fuck it
+            let has_audio = !!config.get("lazer_mode");
 
             for (const file of files_result) {
                 const response = await fetch(url_from_media(file.location));
@@ -97,7 +98,8 @@
                     continue;
                 }
 
-                if (file.name == beatmap.audio) has_audio = true;
+
+                if (file.name == get_basename(beatmap.audio)) has_audio = true;
 
                 files.set(file.name, await response.arrayBuffer());
             }
