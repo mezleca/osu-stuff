@@ -73,7 +73,7 @@
 
     onMount(() => {
         update_fill();
-        window.addEventListener("resize", (event) => event);
+        window.addEventListener("resize", update_fill);
 
         return () => {
             debounced_update.cancel();
