@@ -98,7 +98,6 @@
                     continue;
                 }
 
-
                 if (file.name == get_basename(beatmap.audio)) has_audio = true;
 
                 files.set(file.name, await response.arrayBuffer());

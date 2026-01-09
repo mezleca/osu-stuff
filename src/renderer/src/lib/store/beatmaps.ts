@@ -12,6 +12,7 @@ import type {
 } from "@shared/types";
 import { config } from "./config";
 import { debounce } from "../utils/utils";
+import LRU from "quick-lru";
 
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
@@ -295,8 +296,6 @@ export class BeatmapSetList extends ListBase {
         super(id);
     }
 
-    // expansion state
-
     get_items(): number[] {
         return get(this.items);
     }
@@ -427,6 +426,59 @@ export class BeatmapSetList extends ListBase {
         this.last_result = null;
     }
 }
+
+export interface BeatmapComponentState {
+    beatmap: IBeatmapResult | null;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+export interface BeatmapSetComponentState {
+    beatmapset: BeatmapSetResult | null;
+    beatmaps: IBeatmapResult[];
+    failed_beatmaps: Set<string>;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+const beatmap_state: LRU<string, BeatmapComponentState> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
+const beatmapset_state: LRU<number, BeatmapSetComponentState> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
+
+export const get_beatmap_state = (id: string) => {
+    if (beatmap_state.has(id)) {
+        return beatmap_state.get(id);
+    }
+
+    const state: BeatmapComponentState = {
+        beatmap: null,
+        loading: false,
+        loaded: false,
+        background: ""
+    };
+
+    beatmap_state.set(id, state);
+    return state;
+};
+
+export const get_beatmapset_state = (id: number) => {
+    if (beatmapset_state.has(id)) {
+        return beatmapset_state.get(id);
+    }
+
+    const state: BeatmapSetComponentState = {
+        beatmapset: null,
+        beatmaps: [],
+        failed_beatmaps: new Set(),
+        loaded: false,
+        loading: false,
+        background: ""
+    };
+
+    beatmapset_state.set(id, state);
+    return state;
+};
 
 export const reset_beatmap_lists = () => {
     const beatmap_lists = Array.from(beatmap_managers.values());

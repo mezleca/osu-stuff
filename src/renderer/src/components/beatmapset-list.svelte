@@ -46,7 +46,7 @@
         {@const id = $items[index]}
 
         <!-- render beatmapset card -->
-        <BeatmapSetCard {id} {show_context} {show_remove} {height} {list_manager} />
+        <BeatmapSetCard {id} {show_context} {show_remove} {height} />
     </VirtualList>
 </div>
 

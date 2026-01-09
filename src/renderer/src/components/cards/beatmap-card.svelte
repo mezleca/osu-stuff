@@ -1,11 +1,13 @@
 <script lang="ts">
-    import type { IBeatmapResult } from "@shared/types";
+    import { onDestroy } from "svelte";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { debounce, open_on_browser } from "../../lib/utils/utils";
+    import { open_on_browser } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import { show_context_menu } from "../../lib/store/context-menu";
-
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
+    import { type BeatmapComponentState, get_beatmap_state } from "../../lib/store/beatmaps";
+    import { type IBeatmapResult } from "@shared/types";
 
     // components
     import BeatmapControls from "./beatmap-controls.svelte";
@@ -26,40 +28,55 @@
         on_click: (event: MouseEvent) => void = null,
         on_remove: (checksum: string) => void = null;
 
+    let state: BeatmapComponentState | null = null;
+
     let image_element: HTMLImageElement = null;
-    let image_src: string = "";
-    let beatmap_loaded = false;
     let image_loaded = false;
-    let visible = false;
 
-    // track loading state to prevent infinite loops
-    let loading_hash: string | null = null;
-    let failed_hashes = new Set<string>();
+    $: loaded = state && state.loaded == true;
+    $: has_map = state?.beatmap && state.beatmap.temp == false;
 
-    $: has_map = beatmap && beatmap?.temp == false;
+    const debounced_load = debounce(async () => {
+        // if we're alreading loading, ignore
+        if (!state || state.loading) {
+            return;
+        }
 
-    const load_beatmap = debounce(async () => {
-        beatmap_loaded = false;
+        state.loading = true;
 
         try {
-            const result = await get_beatmap(loading_hash);
+            // ignore if we already have the beatmap saved
+            if (state.beatmap) {
+                return;
+            }
 
-            if (result === undefined) {
-                failed_hashes.add(loading_hash);
-                beatmap = null;
-            } else {
-                beatmap = result;
-                if (!minimal) image_src = get_card_image_source(beatmap);
+            let result: IBeatmapResult | null = null;
+
+            // use the manually passed beatmap if possible
+            if (beatmap && !state.beatmap) {
+                result = beatmap;
+            }
+
+            // otherwise, get using ipc / cache
+            if (!result) {
+                result = await get_beatmap(hash);
+            }
+
+            if (result != undefined) {
+                state.beatmap = result;
+
+                if (!minimal && state.background == "") {
+                    state.background = get_card_image_source(state.beatmap);
+                }
             }
         } catch (err) {
-            console.error("failed to load beatmap:", loading_hash, err);
-            failed_hashes.add(loading_hash);
-            beatmap = null;
+            console.error("failed to load beatmap:", err);
+            state.beatmap = null;
         } finally {
-            beatmap_loaded = true;
-            visible = true;
+            state.loading = false;
+            state.loaded = true;
         }
-    }, 100);
+    }, 50);
 
     const handle_click = (event: MouseEvent) => {
         event.stopPropagation();
@@ -79,19 +96,6 @@
         });
     };
 
-    $: {
-        if (image_element) {
-            // add opacity transition after image fully loads
-            image_element.onload = () => (image_loaded = true);
-        }
-
-        // only load if hash changed and we havent tried this hash before
-        if (hash && hash != loading_hash && !failed_hashes.has(hash)) {
-            loading_hash = hash;
-            load_beatmap();
-        }
-    }
-
     const get_beatmap_star_rating = (beatmap: IBeatmapResult): string => {
         if (beatmap?.star_rating) {
             return beatmap.star_rating.toFixed(2);
@@ -99,6 +103,25 @@
 
         return "0.0";
     };
+
+    $: {
+        if (!state && hash) {
+            state = get_beatmap_state(hash);
+        }
+
+        if (image_element) {
+            image_element.onload = () => (image_loaded = true);
+        }
+
+        // load beatmap if we're not loaded yet
+        if (state && !state.loaded) {
+            debounced_load();
+        }
+    }
+
+    onDestroy(() => {
+        debounced_load.cancel();
+    });
 </script>
 
 {#if minimal}
@@ -116,7 +139,7 @@
         ★ {get_beatmap_star_rating(beatmap)}</span
     >
     <p>{beatmap?.difficulty ?? "unknown"}</p>
-{:else if !visible || !beatmap_loaded}
+{:else if !loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
 {:else}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -133,26 +156,26 @@
     >
         <!-- render background image -->
         <!-- svelte-ignore a11y_img_redundant_alt -->
-        <img src={image_src} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
+        <img src={state.background} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
 
         <!-- render controls -->
         {#if show_control}
-            <BeatmapControls beatmapset_id={beatmap?.beatmapset_id ?? -1} {hash} {has_map} {show_remove} {on_remove} />
+            <BeatmapControls beatmapset_id={state.beatmap?.beatmapset_id ?? -1} {hash} {has_map} {show_remove} {on_remove} />
         {/if}
 
         <!-- render set information -->
         <div class="beatmap-card-metadata" class:centered>
-            <div class="title">{beatmap?.title ?? "unknown"}</div>
-            <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
-            <div class="creator">mapped by {beatmap?.creator ?? "unknown"}</div>
+            <div class="title">{state.beatmap?.title ?? "unknown"}</div>
+            <div class="artist">by {state.beatmap?.artist ?? "unknown"}</div>
+            <div class="creator">mapped by {state.beatmap?.creator ?? "unknown"}</div>
             {#if show_status}
                 <div class="beatmap-card-extra">
-                    <span class="status">{beatmap?.status ?? "unknown"}</span>
+                    <span class="status">{state.beatmap?.status ?? "unknown"}</span>
                     {#if show_bpm}
-                        <span class="bpm">{Math.round(beatmap?.bpm) ?? "0"} bpm</span>
+                        <span class="bpm">{Math.round(state.beatmap?.bpm) ?? "0"} bpm</span>
                     {/if}
                     {#if show_star_rating}
-                        <span class="star-rating">★ {get_beatmap_star_rating(beatmap)}</span>
+                        <span class="star-rating">★ {get_beatmap_star_rating(state.beatmap)}</span>
                     {/if}
                 </div>
             {/if}
