@@ -35,6 +35,7 @@
 
     $: loaded = state && state.loaded == true;
     $: has_map = state?.beatmap && state.beatmap.temp == false;
+    $: current_beatmap = state?.beatmap ?? beatmap;
 
     const debounced_load = debounce(async () => {
         // if we're alreading loading, ignore
@@ -47,6 +48,9 @@
         try {
             // ignore if we already have the beatmap saved
             if (state.beatmap) {
+                if (!minimal && state.background == "") {
+                    state.background = get_card_image_source(state.beatmap);
+                }
                 return;
             }
 
@@ -80,7 +84,7 @@
 
     const handle_click = (event: MouseEvent) => {
         event.stopPropagation();
-        if (beatmap && on_click) on_click(event);
+        if (current_beatmap && on_click) on_click(event);
     };
 
     const handle_context = async (event: MouseEvent) => {
@@ -88,17 +92,17 @@
 
         if (!show_context) return;
 
-        const options = get_beatmap_context_options(beatmap, show_remove);
+        const options = get_beatmap_context_options(current_beatmap, show_remove);
 
         show_context_menu(event, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], beatmap, on_remove);
+            handle_card_context_action(item_split[0], item_split[1], current_beatmap, on_remove);
         });
     };
 
-    const get_beatmap_star_rating = (beatmap: IBeatmapResult): string => {
-        if (beatmap?.star_rating) {
-            return beatmap.star_rating.toFixed(2);
+    const get_beatmap_star_rating = (): string => {
+        if (current_beatmap?.star_rating) {
+            return current_beatmap.star_rating.toFixed(2);
         }
 
         return "0.0";
@@ -131,14 +135,14 @@
         tabindex="0"
         onclick={(e) => {
             e.stopPropagation();
-            open_on_browser(beatmap?.beatmapset_id);
+            open_on_browser(current_beatmap?.beatmapset_id);
         }}
         oncontextmenu={handle_context}
         class="star-rating"
     >
-        ★ {get_beatmap_star_rating(beatmap)}</span
+        ★ {get_beatmap_star_rating()}</span
     >
-    <p>{beatmap?.difficulty ?? "unknown"}</p>
+    <p>{current_beatmap?.difficulty ?? "unknown"}</p>
 {:else if !loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
 {:else}
@@ -149,7 +153,7 @@
         style="height: {height}px;"
         class:selected
         class:highlighted
-        class:temp={beatmap?.temp}
+        class:temp={current_beatmap?.temp}
         class:loaded={image_loaded}
         onclick={(event) => handle_click(event)}
         oncontextmenu={handle_context}
@@ -165,17 +169,17 @@
 
         <!-- render set information -->
         <div class="beatmap-card-metadata" class:centered>
-            <div class="title">{state.beatmap?.title ?? "unknown"}</div>
-            <div class="artist">by {state.beatmap?.artist ?? "unknown"}</div>
-            <div class="creator">mapped by {state.beatmap?.creator ?? "unknown"}</div>
+            <div class="title">{current_beatmap?.title ?? "unknown"}</div>
+            <div class="artist">by {current_beatmap?.artist ?? "unknown"}</div>
+            <div class="creator">mapped by {current_beatmap?.creator ?? "unknown"}</div>
             {#if show_status}
                 <div class="beatmap-card-extra">
-                    <span class="status">{state.beatmap?.status ?? "unknown"}</span>
+                    <span class="status">{current_beatmap?.status ?? "unknown"}</span>
                     {#if show_bpm}
-                        <span class="bpm">{Math.round(state.beatmap?.bpm) ?? "0"} bpm</span>
+                        <span class="bpm">{Math.round(current_beatmap?.bpm) ?? "0"} bpm</span>
                     {/if}
                     {#if show_star_rating}
-                        <span class="star-rating">★ {get_beatmap_star_rating(state.beatmap)}</span>
+                        <span class="star-rating">★ {get_beatmap_star_rating()}</span>
                     {/if}
                 </div>
             {/if}

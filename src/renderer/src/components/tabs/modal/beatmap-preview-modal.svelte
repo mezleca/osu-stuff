@@ -3,7 +3,8 @@
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
-    import { debounce, get_basename, string_is_valid, url_from_media } from "../../../lib/utils/utils";
+    import { get_basename, string_is_valid, url_from_media } from "../../../lib/utils/utils";
+    import { debounce } from "../../../lib/utils/timings";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
     import { input } from "../../../lib/store/input";
@@ -142,7 +143,7 @@
         player.seek(pos * player.duration);
     };
 
-    const toggle_pause = debounce(() => {
+    const debounced_pause_toggle = debounce(() => {
         if (!player) return;
         player.toggle_pause();
     }, 50);
@@ -182,7 +183,7 @@
         input.unregister("space", "g");
 
         // setup listeners
-        input.on("space", toggle_pause);
+        input.on("space", debounced_pause_toggle);
         input.on("g", toggle_grid);
 
         // ensure resize after modal is visible
@@ -204,6 +205,7 @@
         is_playing = false;
         beatmap_preview.set(null);
         modals.hide(ModalType.beatmap_preview);
+        debounced_pause_toggle.cancel();
     };
 
     const open_on_browser = () => {
@@ -268,7 +270,7 @@
                             <button
                                 class="icon-button"
                                 onclick={(e) => {
-                                    toggle_pause();
+                                    debounced_pause_toggle();
                                     e.currentTarget.blur();
                                 }}
                             >

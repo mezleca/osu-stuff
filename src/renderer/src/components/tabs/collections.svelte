@@ -5,7 +5,8 @@
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap } from "../../lib/utils/beatmaps";
-    import { context_separator, debounce, string_is_valid } from "../../lib/utils/utils";
+    import { context_separator, string_is_valid } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import { modals, ModalType } from "../../lib/utils/modal";
     import { show_context_menu } from "../../lib/store/context-menu";
 
@@ -38,7 +39,7 @@
     $: all_collections = collections.all_collections;
     $: collection_should_update = collections.needs_update;
 
-    const filter_beatmaps = debounce(async (force: boolean = false) => {
+    const debounced_filter = debounce(async (force: boolean = false) => {
         // only filter if we selected something
         if (!string_is_valid($selected_collection.name)) {
             return;
@@ -172,17 +173,21 @@
     }
 
     $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $difficulty_range || $should_update)) {
-        filter_beatmaps($should_update);
+        debounced_filter($should_update);
     }
 
     onMount(() => {
         if (!$sort) $sort = "artist";
 
         if ($selected_collection.name && list.get_items().length == 0) {
-            filter_beatmaps();
+            debounced_filter();
         }
 
         list.check_missing();
+
+        return () => {
+            debounced_filter.cancel();
+        };
     });
 </script>
 

@@ -66,6 +66,7 @@ export const throttle = <T extends (...args: any[]) => any>(func: T, timeout = 1
         if (time_since_last_call >= timeout) {
             last_call_time = now;
             func(...args);
+            last_args = null;
             return;
         }
 
@@ -86,9 +87,9 @@ export const throttle = <T extends (...args: any[]) => any>(func: T, timeout = 1
     throttled.cancel = () => {
         if (timer !== null) {
             clearTimeout(timer);
-            timer = null;
-            last_args = null;
         }
+        timer = null;
+        last_args = null;
     };
 
     throttled.flush = () => {

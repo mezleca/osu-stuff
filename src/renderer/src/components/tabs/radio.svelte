@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
 
     import { collections } from "../../lib/store/collections";
     import { ALL_BEATMAPS_KEY, FILTER_TYPES } from "../../lib/store/other";
-    import { debounce, format_time, url_from_media } from "../../lib/utils/utils";
+    import { format_time, url_from_media } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap } from "../../lib/utils/beatmaps";
@@ -48,7 +49,7 @@
         }
     };
 
-    const update_beatmaps = debounce(async (force: boolean = false) => {
+    const debounced_update = debounce(async (force: boolean = false) => {
         list.show_remove.set($target == ALL_BEATMAPS_KEY);
 
         const result = await list.search(force);
@@ -108,7 +109,7 @@
     }
 
     $: if ($selected_collection.name || $query || $sort || $target || $should_update) {
-        update_beatmaps($should_update);
+        debounced_update($should_update);
     }
 
     onMount(() => {
@@ -146,11 +147,12 @@
         });
 
         update_background_image();
-    });
 
-    onDestroy(() => {
-        input.unregister("f2", "shift+f2");
-        list.show_remove.set(true);
+        return () => {
+            debounced_update.cancel();
+            input.unregister("f2", "shift+f2");
+            list.show_remove.set(true);
+        };
     });
 </script>
 

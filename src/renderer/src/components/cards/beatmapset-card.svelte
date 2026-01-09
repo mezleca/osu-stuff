@@ -45,6 +45,9 @@
         try {
             // if we already have the set, fuck ignore
             if (state.beatmapset) {
+                if (!state.background) {
+                    state.background = get_card_image_source(state.beatmapset);
+                }
                 return;
             }
 
@@ -124,7 +127,7 @@
     });
 
     $: {
-        if (!state && id) {
+        if (!state && id > 0) {
             state = get_beatmapset_state(id);
         }
 
@@ -212,6 +215,8 @@
             </div>
         {/if}
     </div>
+{:else}
+    <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.35);"></div>
 {/if}
 
 <style>

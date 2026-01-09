@@ -11,7 +11,7 @@ import type {
     StarRatingFilter
 } from "@shared/types";
 import { config } from "./config";
-import { debounce } from "../utils/utils";
+import { throttle } from "../utils/timings";
 import LRU from "quick-lru";
 
 const beatmap_managers = new Map<string, BeatmapList>();
@@ -66,7 +66,7 @@ export abstract class ListBase {
     abstract load(): Promise<boolean>;
     abstract reload(): Promise<void>;
 
-    check_missing = debounce(async () => {
+    check_missing = throttle(async () => {
         try {
             const missing = await window.api.invoke("driver:get_missing_beatmaps", null);
             const count = missing?.length ?? 0;
@@ -76,7 +76,7 @@ export abstract class ListBase {
             console.error("[list_base] check_missing error:", error);
             this.total_missing.set(0);
         }
-    }, 500);
+    }, 1000);
 
     abstract clear(): void;
 }

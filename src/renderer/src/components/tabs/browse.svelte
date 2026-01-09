@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { onDestroy, onMount } from "svelte";
+    import { onMount } from "svelte";
     import { get_beatmapset_list } from "../../lib/store/beatmaps";
     import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
-    import { debounce } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
 
     // components
     import ExpandableMenu from "../utils/expandable-menu.svelte";
@@ -14,7 +14,7 @@
     const list = get_beatmapset_list("browse");
     const { query, status, sort, difficulty_range, should_update } = list;
 
-    const update_beatmaps = debounce(async (force: boolean = true) => {
+    const debounced_update = debounce(async (force: boolean = true) => {
         const result = await list.search(force);
         if (!result) return;
 
@@ -24,15 +24,16 @@
     }, 20);
 
     $: if ($query != undefined || $status || $sort || $difficulty_range || $should_update) {
-        update_beatmaps($should_update);
+        debounced_update($should_update);
     }
 
     onMount(() => {
         list.show_remove.set(false);
-    });
 
-    onDestroy(() => {
-        list.show_remove.set(true);
+        return () => {
+            debounced_update.cancel();
+            list.show_remove.set(true);
+        };
     });
 </script>
 
