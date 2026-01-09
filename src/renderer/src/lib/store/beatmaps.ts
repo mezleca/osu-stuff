@@ -443,20 +443,20 @@ export interface BeatmapSetComponentState {
     background: string;
 }
 
-const beatmap_state: LRU<string, BeatmapComponentState> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
-const beatmapset_state: LRU<number, BeatmapSetComponentState> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
+const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
+const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
 
 export const get_beatmap_state = (id: string) => {
     if (beatmap_state.has(id)) {
-        return beatmap_state.get(id);
+        return beatmap_state.get(id)!;
     }
 
-    const state: BeatmapComponentState = {
+    const state = writable<BeatmapComponentState>({
         beatmap: null,
         loading: false,
         loaded: false,
         background: ""
-    };
+    });
 
     beatmap_state.set(id, state);
     return state;
@@ -464,17 +464,17 @@ export const get_beatmap_state = (id: string) => {
 
 export const get_beatmapset_state = (id: number) => {
     if (beatmapset_state.has(id)) {
-        return beatmapset_state.get(id);
+        return beatmapset_state.get(id)!;
     }
 
-    const state: BeatmapSetComponentState = {
+    const state = writable<BeatmapSetComponentState>({
         beatmapset: null,
         beatmaps: [],
         failed_beatmaps: new Set(),
         loaded: false,
         loading: false,
         background: ""
-    };
+    });
 
     beatmapset_state.set(id, state);
     return state;

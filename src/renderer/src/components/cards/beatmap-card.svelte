@@ -6,6 +6,7 @@
     import { debounce } from "../../lib/utils/timings";
     import { show_context_menu } from "../../lib/store/context-menu";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
+    import { type Writable } from "svelte/store";
     import { type BeatmapComponentState, get_beatmap_state } from "../../lib/store/beatmaps";
     import { type IBeatmapResult } from "@shared/types";
 
@@ -28,7 +29,8 @@
         on_click: (event: MouseEvent) => void = null,
         on_remove: (checksum: string) => void = null;
 
-    let state: BeatmapComponentState | null = null;
+    let state_store: Writable<BeatmapComponentState> | null = null;
+    $: state = state_store ? $state_store : null;
 
     let image_element: HTMLImageElement = null;
     let image_loaded = false;
@@ -43,13 +45,13 @@
             return;
         }
 
-        state.loading = true;
+        state_store.update((val) => ({ ...val, loading: true }));
 
         try {
             // ignore if we already have the beatmap saved
             if (state.beatmap) {
                 if (!minimal && state.background == "") {
-                    state.background = get_card_image_source(state.beatmap);
+                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmap) }));
                 }
                 return;
             }
@@ -67,18 +69,17 @@
             }
 
             if (result != undefined) {
-                state.beatmap = result;
-
-                if (!minimal && state.background == "") {
-                    state.background = get_card_image_source(state.beatmap);
-                }
+                state_store.update((s) => ({
+                    ...s,
+                    beatmap: result,
+                    background: !minimal && s.background == "" ? get_card_image_source(result) : s.background
+                }));
             }
         } catch (err) {
             console.error("failed to load beatmap:", err);
-            state.beatmap = null;
+            state_store.update((s) => ({ ...s, beatmap: null }));
         } finally {
-            state.loading = false;
-            state.loaded = true;
+            state_store.update((s) => ({ ...s, loading: false, loaded: true }));
         }
     }, 50);
 
@@ -109,18 +110,12 @@
     };
 
     $: {
-        if (!state && hash) {
-            state = get_beatmap_state(hash);
-        }
-
-        if (image_element) {
-            image_element.onload = () => (image_loaded = true);
-        }
-
-        // load beatmap if we're not loaded yet
-        if (state && !state.loaded) {
+        if (hash) {
+            state_store = get_beatmap_state(hash);
             debounced_load();
         }
+
+        if (image_element) image_element.onload = () => (image_loaded = true);
     }
 
     onDestroy(() => {

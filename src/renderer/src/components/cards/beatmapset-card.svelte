@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import type { BeatmapSetResult, IBeatmapResult } from "@shared/types";
-    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
+    import type { IBeatmapResult } from "@shared/types";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmap, get_beatmapset } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
@@ -13,6 +12,8 @@
     // components
     import BeatmapCard from "./beatmap-card.svelte";
     import BeatmapControls from "./beatmap-controls.svelte";
+    import { type Writable } from "svelte/store";
+    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
 
     export let id = -1;
     export let show_context = true;
@@ -23,7 +24,8 @@
     export let on_remove: (id: number) => {} = null;
     export let height = 100;
 
-    let state: BeatmapSetComponentState | null = null;
+    let state_store: Writable<BeatmapSetComponentState> | null = null;
+    $: state = state_store ? $state_store : null;
 
     let expanded = false;
     let sorted_beatmaps: IBeatmapResult[] = [];
@@ -40,38 +42,31 @@
             return;
         }
 
-        state.loading = true;
+        state_store.update((val) => ({ ...val, loading: true }));
 
         try {
-            // if we already have the set, fuck ignore
+            // if we already have the set, just update the background
             if (state.beatmapset) {
                 if (!state.background) {
-                    state.background = get_card_image_source(state.beatmapset);
+                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmapset) }));
                 }
                 return;
             }
 
-            let result: BeatmapSetResult | null = null;
+            const result = await get_beatmapset(id);
 
-            // try to get beatmapset from list manager
-            if (!result) {
-                result = await get_beatmapset(id);
-            }
-
-            // if we found, update the card state
-            if (result != undefined) {
-                state.beatmapset = result;
-
-                if (!state.background) {
-                    state.background = get_card_image_source(state.beatmapset);
-                }
+            if (result) {
+                state_store.update((s) => ({
+                    ...s,
+                    beatmapset: result,
+                    background: !s.background ? get_card_image_source(result) : s.background
+                }));
             }
         } catch (err) {
             console.error("failed to load beatmapset:", id, err);
-            state.beatmapset = null;
+            state_store.update((s) => ({ ...s, beatmapset: null }));
         } finally {
-            state.loading = false;
-            state.loaded = true;
+            state_store.update((s) => ({ ...s, loading: false, loaded: true }));
         }
     }, 50);
 
@@ -82,11 +77,17 @@
             return;
         }
 
+        const current_set = state.beatmapset;
+
+        if (!current_set) {
+            return;
+        }
+
         const options = get_beatmapset_context_options(show_remove);
 
         show_context_menu(e, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], state.beatmapset, on_remove);
+            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove);
         });
     };
 
@@ -127,17 +128,17 @@
     });
 
     $: {
-        if (!state && id > 0) {
-            state = get_beatmapset_state(id);
+        if (id > 0) {
+            state_store = get_beatmapset_state(id);
+            expanded = false;
+            sorted_beatmaps = [];
+            first_beatmap = null;
+            image_loaded = false;
+            debounced_load();
         }
 
         if (image_element) {
             image_element.onload = () => (image_loaded = true);
-        }
-
-        // load beatmapset if we're not loaded yet
-        if (state && !state.loaded) {
-            debounced_load();
         }
     }
 
