@@ -171,7 +171,7 @@
                 <div class="beatmap-card-extra">
                     <span class="status">{current_beatmap?.status ?? "unknown"}</span>
                     {#if show_bpm}
-                        <span class="bpm">{Math.round(current_beatmap?.bpm) ?? "0"} bpm</span>
+                        <span class="bpm">{Math.round(current_beatmap?.bpm ?? 0)} bpm</span>
                     {/if}
                     {#if show_star_rating}
                         <span class="star-rating">★ {get_beatmap_star_rating()}</span>
