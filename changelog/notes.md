@@ -1,7 +1,5 @@
 # v2.3.0
 
----
-
 ## new features
 - beatmap preview (standard / mania only...)
 
@@ -10,15 +8,11 @@
 - fix quick confirm for "local images" sync / showing alert on every damn action 
 - fix rare cases where input manager would callback 2 times (keyup / keydown)
 
----
-
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.2.1...v2.3.0
 
 # v2.2.1
 
 ## bug fixes
-
----
 
 ### ci
 
@@ -44,8 +38,6 @@ osu-api-extended:
 - sometimes returns dumb errors
 - hard to tell what actually failed during download
 
----
-
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.2.0...v2.2.1
 
 # v2.2.0
@@ -55,8 +47,6 @@ osu-api-extended:
 basically a massive cleanup + restructuring pass.
 a lot of internal stuff changed, but the end result is a way cleaner codebase
 and way less pain to add new features later.
-
----
 
 ## changelog
 
@@ -78,15 +68,11 @@ added osu! driver system (client)
 
 overall this makes multi-client support way easier to maintain and extend.
 
----
-
 ### cli
 
 - fixed cases where the cli would leave zombie processes around
 - build pipeline switched to bun build
 - electron no longer randomly starts in dev mode
-
----
 
 ### ui
 
@@ -128,14 +114,10 @@ beatmap browser:
 
 - a bunch of other small ui tweaks that arent worth listing one by one.
 
----
-
 ### bugfixes
 
 honestly, a lot.
 mostly edge cases, crashes, and weird state bugs that piled up over time.
-
----
 
 ## known issues
 
@@ -153,8 +135,6 @@ radio volume:
 
 - switches from 50% to 0% on first launch
 - no idea why lol
-
----
 
 ## pull requests
 
@@ -174,8 +154,6 @@ radio volume:
   https://github.com/mezleca/osu-stuff/pull/125
 - fix(cli): fix electron always starting in dev mode + cleanup  
   https://github.com/mezleca/osu-stuff/pull/126
-
----
 
 ## What's Changed
 
