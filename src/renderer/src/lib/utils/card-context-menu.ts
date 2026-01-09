@@ -5,6 +5,7 @@ import { show_notification } from "../store/notifications";
 import { config } from "../store/config";
 import { beatmap_preview } from "./beatmaps";
 import { modals, ModalType } from "./modal";
+import { get_beatmap_list } from "../store/beatmaps";
 
 export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show_remove: boolean): ContextMenuOption[] => {
     const all_collections = collections.get_all();
@@ -76,7 +77,12 @@ export const handle_card_context_action = async (
         case "move": {
             const collection = id;
             const hashes = is_set ? (beatmap as BeatmapSetResult).beatmaps : [(beatmap as IBeatmapResult).md5];
+
+            // add beatmap to the desired collection
             collections.add_beatmaps(collection, hashes);
+
+            // also ensure we have a fresh list state
+            get_beatmap_list("collections")?.reload();
             break;
         }
         case "preview": {

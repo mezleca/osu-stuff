@@ -39,14 +39,6 @@ export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElem
     }
 };
 
-export const debounce = (func: any, timeout = 100) => {
-    let timer: any;
-    return (...args: any) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => func(...args), timeout);
-    };
-};
-
 export const format_time = (secs: number) => {
     if (!isFinite(secs) || isNaN(secs)) {
         return "0:00";

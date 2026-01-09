@@ -29,6 +29,7 @@
         "better-sqlite3": "^12.5.0",
         "jszip": "^3.10.1",
         "osu-api-extended": "^3.1.7",
+        "quick-lru": "^7.3.0",
         "realm": "^20.2.0"
     },
     "devDependencies": {

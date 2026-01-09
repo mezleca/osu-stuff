@@ -11,7 +11,8 @@ import type {
     StarRatingFilter
 } from "@shared/types";
 import { config } from "./config";
-import { debounce } from "../utils/utils";
+import { throttle } from "../utils/timings";
+import LRU from "quick-lru";
 
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
@@ -65,7 +66,7 @@ export abstract class ListBase {
     abstract load(): Promise<boolean>;
     abstract reload(): Promise<void>;
 
-    check_missing = debounce(async () => {
+    check_missing = throttle(async () => {
         try {
             const missing = await window.api.invoke("driver:get_missing_beatmaps", null);
             const count = missing?.length ?? 0;
@@ -75,7 +76,7 @@ export abstract class ListBase {
             console.error("[list_base] check_missing error:", error);
             this.total_missing.set(0);
         }
-    }, 500);
+    }, 1000);
 
     abstract clear(): void;
 }
@@ -295,8 +296,6 @@ export class BeatmapSetList extends ListBase {
         super(id);
     }
 
-    // expansion state
-
     get_items(): number[] {
         return get(this.items);
     }
@@ -427,6 +426,59 @@ export class BeatmapSetList extends ListBase {
         this.last_result = null;
     }
 }
+
+export interface BeatmapComponentState {
+    beatmap: IBeatmapResult | null;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+export interface BeatmapSetComponentState {
+    beatmapset: BeatmapSetResult | null;
+    beatmaps: IBeatmapResult[];
+    failed_beatmaps: Set<string>;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
+const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
+
+export const get_beatmap_state = (id: string) => {
+    if (beatmap_state.has(id)) {
+        return beatmap_state.get(id)!;
+    }
+
+    const state = writable<BeatmapComponentState>({
+        beatmap: null,
+        loading: false,
+        loaded: false,
+        background: ""
+    });
+
+    beatmap_state.set(id, state);
+    return state;
+};
+
+export const get_beatmapset_state = (id: number) => {
+    if (beatmapset_state.has(id)) {
+        return beatmapset_state.get(id)!;
+    }
+
+    const state = writable<BeatmapSetComponentState>({
+        beatmapset: null,
+        beatmaps: [],
+        failed_beatmaps: new Set(),
+        loaded: false,
+        loading: false,
+        background: ""
+    });
+
+    beatmapset_state.set(id, state);
+    return state;
+};
 
 export const reset_beatmap_lists = () => {
     const beatmap_lists = Array.from(beatmap_managers.values());

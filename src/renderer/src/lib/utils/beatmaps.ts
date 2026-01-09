@@ -3,28 +3,19 @@ import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
-import { CacheManager } from "./cache";
 import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDetailsResponse } from "@shared/types";
+import LRU from "quick-lru";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer
-const BEATMAP_CACHE_SIZE = 512;
 
 // beatmap result that will be used on preview
 export const beatmap_preview = writable<IBeatmapResult | null>(null);
 
 // cached beatmap / beatmapsets
-export const beatmap_cache = new CacheManager<IBeatmapResult>(BEATMAP_CACHE_SIZE);
-export const beatmapset_cache = new CacheManager<BeatmapSetResult>(BEATMAP_CACHE_SIZE);
-
-// temp hack to prevent cards spam
-const invalid_beatmaps: Set<string> = new Set();
-const invalid_beatmapsets: Set<number> = new Set();
+export const beatmap_cache = new LRU<string, IBeatmapResult>({ maxSize: 512 });
+export const beatmapset_cache = new LRU<number, BeatmapSetResult>({ maxSize: 256 });
 
 export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefined> => {
-    if (invalid_beatmaps.has(id)) {
-        return undefined;
-    }
-
     const cached = beatmap_cache.get(id);
 
     if (cached) {
@@ -34,7 +25,6 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
     const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
 
     if (!beatmap) {
-        invalid_beatmaps.add(id);
         return undefined;
     }
 
@@ -44,14 +34,13 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
 
 export const invalidate_beatmap = (id: string) => {
     beatmap_cache.delete(id);
-    invalid_beatmaps.delete(id);
+};
+
+export const invalidate_beatmapset = (id: number) => {
+    beatmapset_cache.delete(id);
 };
 
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
-    if (invalid_beatmapsets.has(id)) {
-        return undefined;
-    }
-
     const cached = beatmapset_cache.get(id);
 
     if (cached) {
@@ -61,8 +50,6 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
     const beatmapset = await window.api.invoke("driver:get_beatmapset", id);
 
     if (!beatmapset) {
-        // TODO: remove invalid beatmapset on download
-        invalid_beatmapsets.add(id);
         return undefined;
     }
 

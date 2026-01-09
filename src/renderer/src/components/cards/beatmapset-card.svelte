@@ -1,18 +1,19 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import type { BeatmapSetResult, IBeatmapResult } from "@shared/types";
-    import type { BeatmapSetList } from "../../lib/store/beatmaps";
+    import type { IBeatmapResult } from "@shared/types";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
-    import { get_beatmapset, get_beatmap } from "../../lib/utils/beatmaps";
+    import { get_beatmap, get_beatmapset } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
     import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
-    import { debounce } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import { get } from "svelte/store";
     import { slide } from "svelte/transition";
 
     // components
     import BeatmapCard from "./beatmap-card.svelte";
     import BeatmapControls from "./beatmap-controls.svelte";
+    import { type Writable } from "svelte/store";
+    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
 
     export let id = -1;
     export let show_context = true;
@@ -23,90 +24,79 @@
     export let on_remove: (id: number) => {} = null;
     export let height = 100;
 
-    export let list_manager: BeatmapSetList = null;
+    let state_store: Writable<BeatmapSetComponentState> | null = null;
+    $: state = state_store ? $state_store : null;
 
-    let beatmapset: BeatmapSetResult | null = null;
-    let image_src: string = "";
+    let expanded = false;
+    let sorted_beatmaps: IBeatmapResult[] = [];
+    let is_hovering = false;
+    let first_beatmap: IBeatmapResult | null = null;
     let image_element: HTMLImageElement = null;
-
-    let beatmapset_loaded = false;
     let image_loaded = false;
-    let visible = false;
 
-    // track loading state to prevent infinite loops
-    let loading_id: number | null = null;
-    let failed_ids = new Set<number>();
+    $: loaded = state && state.loaded == true;
 
-    const load_beatmapset = debounce(async () => {
-        beatmapset_loaded = false;
+    const debounced_load = debounce(async () => {
+        // if we're alreading loading, ignore
+        if (!state || state.loading) {
+            return;
+        }
+
+        state_store.update((val) => ({ ...val, loading: true }));
 
         try {
-            let result: BeatmapSetResult | undefined;
-
-            if (list_manager && list_manager.get_beatmapset) {
-                result = list_manager.get_beatmapset(loading_id) || undefined;
+            // if we already have the set, just update the background
+            if (state.beatmapset) {
+                if (!state.background) {
+                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmapset) }));
+                }
+                return;
             }
 
-            // fallback to global
-            if (!result) {
-                result = await get_beatmapset(loading_id);
-            }
+            const result = await get_beatmapset(id);
 
-            if (result === undefined) {
-                failed_ids.add(loading_id);
-                beatmapset = null;
-            } else {
-                beatmapset = result;
-                image_src = get_card_image_source(beatmapset);
+            if (result) {
+                state_store.update((s) => ({
+                    ...s,
+                    beatmapset: result,
+                    background: !s.background ? get_card_image_source(result) : s.background
+                }));
             }
         } catch (err) {
-            console.error("failed to load beatmapset:", loading_id, err);
-            failed_ids.add(loading_id);
-            beatmapset = null;
+            console.error("failed to load beatmapset:", id, err);
+            state_store.update((s) => ({ ...s, beatmapset: null }));
         } finally {
-            beatmapset_loaded = true;
-            visible = true;
+            state_store.update((s) => ({ ...s, loading: false, loaded: true }));
         }
-    }, 100);
+    }, 50);
 
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
 
-        if (!show_context) return;
+        if (!show_context) {
+            return;
+        }
+
+        const current_set = state.beatmapset;
+
+        if (!current_set) {
+            return;
+        }
 
         const options = get_beatmapset_context_options(show_remove);
 
         show_context_menu(e, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], beatmapset, on_remove);
+            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove);
         });
     };
 
-    $: {
-        if (image_element) {
-            // add opacity transition after image fully loads
-            image_element.onload = () => (image_loaded = true);
-        }
-
-        // only load if id changed AND we haven't tried this id before
-        if (id > 0 && id !== loading_id && !failed_ids.has(id)) {
-            loading_id = id;
-            load_beatmapset();
-        }
-    }
-
-    let hover_timeout: NodeJS.Timeout | null = null;
-    let expanded = false;
-    let sorted_beatmaps: IBeatmapResult[] = [];
-    let is_hovering = false;
-    let first_beatmap: IBeatmapResult | null = null;
-
-    const handle_mouseenter = async () => {
+    const debounced_hover = debounce(async () => {
         is_hovering = true;
 
         // preload and sort beatmaps
-        if (beatmapset && beatmapset.beatmaps && sorted_beatmaps.length === 0) {
-            const beatmaps = await Promise.all(beatmapset.beatmaps.map((hash) => get_beatmap(hash)));
+        if (state.beatmapset && state.beatmapset.beatmaps && sorted_beatmaps.length === 0) {
+            const beatmaps = await Promise.all(state.beatmapset.beatmaps.map((hash) => get_beatmap(hash)));
             sorted_beatmaps = beatmaps.filter((b) => b !== undefined).sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
 
             // set first beatmap for controls
@@ -115,36 +105,53 @@
             }
         }
 
-        if (hover_timeout) clearTimeout(hover_timeout);
-        hover_timeout = setTimeout(() => {
-            expanded = true;
-        }, 200);
-    };
+        expanded = true;
+    }, 200);
 
     const handle_mouseleave = () => {
+        debounced_hover.cancel();
         is_hovering = false;
-        if (get(context_menu_manager.active)) return;
 
-        if (hover_timeout) clearTimeout(hover_timeout);
+        // ignore event if we're on the context menu
+        if (get(context_menu_manager.active)) {
+            return;
+        }
+
         expanded = false;
     };
 
     // collapse if context menu closes and we are not hovering
     const unsubscribe_context = context_menu_manager.active.subscribe((active) => {
         if (!active && !is_hovering) {
-            expanded = false;
+            handle_mouseleave();
         }
     });
 
+    $: {
+        if (id > 0) {
+            state_store = get_beatmapset_state(id);
+            expanded = false;
+            sorted_beatmaps = [];
+            first_beatmap = null;
+            image_loaded = false;
+            debounced_load();
+        }
+
+        if (image_element) {
+            image_element.onload = () => (image_loaded = true);
+        }
+    }
+
     onDestroy(() => {
+        debounced_load.cancel();
+        debounced_hover.cancel();
         unsubscribe_context();
-        if (hover_timeout) clearTimeout(hover_timeout);
     });
 </script>
 
-{#if !visible || !beatmapset_loaded}
+{#if !loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
-{:else if beatmapset}
+{:else if state.beatmapset}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -155,36 +162,42 @@
         class:highlighted
         class:loaded={image_loaded}
         oncontextmenu={handle_context}
-        onmouseenter={handle_mouseenter}
+        onmouseenter={debounced_hover}
         onmouseleave={handle_mouseleave}
     >
         <div class="beatmap-card-header" style="height: {height}px;">
             <!-- render background image -->
             <!-- svelte-ignore a11y_img_redundant_alt -->
-            <img src={image_src} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
+            <img
+                src={state.background}
+                class="beatmap-card-background"
+                class:loaded={image_loaded}
+                alt="background image"
+                bind:this={image_element}
+            />
 
             <!-- render controls -->
             {#if first_beatmap}
                 <BeatmapControls
-                    beatmapset_id={beatmapset.online_id}
+                    beatmapset_id={state.beatmapset.online_id}
                     hash={first_beatmap.md5}
                     has_map={!first_beatmap.temp}
                     {show_remove}
                     on_remove={() => {
-                        if (on_remove) on_remove(beatmapset.online_id);
+                        if (on_remove) on_remove(state.beatmapset.online_id);
                     }}
                 />
             {/if}
 
             <!-- render set information -->
             <div class="beatmap-card-metadata">
-                <div class="title">{beatmapset.metadata?.title ?? "unknown"}</div>
-                <div class="artist">by {beatmapset.metadata?.artist ?? "unknown"}</div>
-                <div class="creator">mapped by {beatmapset.metadata?.creator ?? "unknown"}</div>
+                <div class="title">{state.beatmapset.metadata?.title ?? "unknown"}</div>
+                <div class="artist">by {state.beatmapset.metadata?.artist ?? "unknown"}</div>
+                <div class="creator">mapped by {state.beatmapset.metadata?.creator ?? "unknown"}</div>
 
                 {#if show_expand}
                     <div class="beatmap-card-extra">
-                        {#if beatmapset.beatmaps && beatmapset.beatmaps.length > 0}
+                        {#if state.beatmapset.beatmaps && state.beatmapset.beatmaps.length > 0}
                             <div class="expand-indicator">
                                 {expanded ? "▼" : "▶"}
                             </div>
@@ -196,13 +209,15 @@
 
         <!-- render difficulties when expanded -->
         {#if expanded && sorted_beatmaps.length > 0}
-            <div class="beatmap-difficulties" transition:slide={{ duration: 100 }}>
+            <div class="beatmap-difficulties" onmouseenter={(e) => e.stopPropagation()} transition:slide={{ duration: 100 }}>
                 {#each sorted_beatmaps as beatmap}
                     <BeatmapCard minimal={true} {beatmap} hash={beatmap.md5} show_control={false} />
                 {/each}
             </div>
         {/if}
     </div>
+{:else}
+    <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.35);"></div>
 {/if}
 
 <style>

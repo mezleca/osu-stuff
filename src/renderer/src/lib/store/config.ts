@@ -1,6 +1,7 @@
 import { writable, get, type Writable } from "svelte/store";
 import type { StuffConfig, StuffMirror } from "@shared/types";
-import { debounce, string_is_valid } from "../utils/utils";
+import { string_is_valid } from "../utils/utils";
+import { throttle } from "../utils/timings";
 import { show_notification } from "./notifications";
 
 const DEFAULT_CONFIG_FIELDS = {
@@ -15,7 +16,7 @@ const DEFAULT_CONFIG_FIELDS = {
     radio_volume: 50
 };
 
-const show_failed_auth_warn = debounce(() => {
+const show_failed_auth_warn = throttle(() => {
     show_notification({ type: "error", text: "failed to authenticate (invalid id / secret)" });
 }, 1000);
 

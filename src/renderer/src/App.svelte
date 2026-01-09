@@ -3,7 +3,8 @@
     import { active_tab, is_maximized } from "./lib/store/other";
     import { show_notification } from "./lib/store/notifications";
     import { processing, processing_data } from "./lib/store/processor";
-    import { debounce, is_dev_mode } from "./lib/utils/utils";
+    import { is_dev_mode } from "./lib/utils/utils";
+    import { debounce } from "./lib/utils/timings";
     import { config } from "./lib/store/config";
     import { downloader } from "./lib/store/downloader";
     import { get_osu_data } from "./lib/utils/collections";
