@@ -1,21 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-// @TOFIX: move to shared later
-type LoggerConfig = {
-    name: string;
-    show_date: boolean;
-    save_to_path: {
-        path: string;
-    } | null;
-};
-
-type Logger = {
-    info: (...args: unknown[]) => void;
-    warn: (...args: unknown[]) => void;
-    error: (...args: unknown[]) => void;
-    debug: (...args: unknown[]) => void;
-};
+import type { LoggerConfig, Logger } from "@shared/types";
 
 export const create_logger = (
     config: LoggerConfig = {

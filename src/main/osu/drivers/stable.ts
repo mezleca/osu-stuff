@@ -11,9 +11,9 @@ import {
 } from "@shared/types";
 import { BaseDriver } from "./base";
 import { stable_parser } from "../../binary/stable";
-import { beatmap_processor } from "../processor";
+import { beatmap_processor } from "../../database/processor";
 import { BeatmapRow } from "@shared/types";
-import { config } from "../config";
+import { config } from "../../database/config";
 
 import fs from "fs";
 import path from "path";

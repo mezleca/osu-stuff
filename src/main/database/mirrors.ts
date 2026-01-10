@@ -1,7 +1,7 @@
 import { StuffMirror } from "@shared/types.js";
 import { BaseDatabase } from "./database.js";
 import { get_app_path } from "./utils.js";
-import { beatmap_downloader } from "../beatmaps/downloader.js";
+import { beatmap_downloader } from "../osu/downloader.js";
 
 export class MirrorsDatabase extends BaseDatabase {
     data: StuffMirror[] = [];

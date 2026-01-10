@@ -5,3 +5,4 @@ export * from "./types/ipc";
 export * from "./types/basic";
 export * from "./types/downloader";
 export * from "./types/renderer";
+export * from "./types/logger";

@@ -20,9 +20,9 @@ import {
     RulesetSchema
 } from "./schemas/lazer";
 import { BaseDriver } from "./base";
-import { config } from "../config";
-import { get_lazer_file_location } from "../../beatmaps/beatmaps";
-import { beatmap_processor } from "../processor";
+import { config } from "../../database/config";
+import { get_lazer_file_location } from "../beatmaps";
+import { beatmap_processor } from "../../database/processor";
 
 import beatmap_parser from "@rel-packages/osu-beatmap-parser";
 import Realm from "realm";

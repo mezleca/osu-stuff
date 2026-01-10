@@ -10,7 +10,7 @@ import {
 } from "@shared/types/osu";
 
 import { BaseDriver } from "./base";
-import { config } from "../config";
+import { config } from "../../database/config";
 import { lazer_driver } from "./lazer";
 import { stable_driver } from "./stable";
 

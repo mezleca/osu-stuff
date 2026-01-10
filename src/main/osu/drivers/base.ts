@@ -13,10 +13,10 @@ import {
     ISearchSetResponse,
     IBeatmapSetFilter
 } from "@shared/types";
-import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../../beatmaps/beatmaps";
+import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { osdb_parser } from "../../binary/osdb";
 import { stable_parser } from "../../binary/stable";
-import { config } from "../config";
+import { config } from "../../database/config";
 
 import path from "path";
 import JSzip from "jszip";

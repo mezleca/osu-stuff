@@ -1,4 +1,4 @@
-import { app, shell, ipcMain, dialog, protocol, net } from "electron";
+import { app, shell, dialog, protocol, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
@@ -33,13 +33,13 @@ import {
     should_update,
     is_initialized,
     get_beatmap_files
-} from "./database/drivers/driver";
+} from "./osu/drivers/driver";
 import { auth, v2 } from "osu-api-extended";
-import { beatmap_downloader } from "./beatmaps/downloader";
-import { beatmap_exporter } from "./beatmaps/exporter";
+import { beatmap_downloader } from "./osu/downloader";
+import { beatmap_exporter } from "./osu/exporter";
 import { read_legacy_collection, read_legacy_db, write_legacy_collection } from "./binary/stable";
 import { read_osdb, write_osdb } from "./binary/osdb";
-import { is_dev_mode } from "./utils";
+import { is_dev_mode } from "./env";
 import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
@@ -82,22 +82,12 @@ async function createWindow() {
         }
     });
 
-    if (is_dev_mode) {
-        const original_fn = ipcMain.handle.bind(ipcMain);
-        ipcMain.handle = function (channel: string, handler: any) {
-            return original_fn(channel, (event: any, ...args: any[]) => {
-                console.log(`invoking ${channel}`);
-                return handler(event, ...args);
-            });
-        };
-    }
-
     await config.setup_default_paths();
     beatmap_processor.set_window(mainWindow);
     beatmap_downloader.initialize();
 
     // env
-    handle_ipc("env:dev_mode", () => is_dev_mode);
+    handle_ipc("env:dev_mode", is_dev_mode);
 
     // window
     handle_ipc("window:state", () => (mainWindow.isMaximized() ? "maximized" : "minimized"));
@@ -228,7 +218,7 @@ async function createWindow() {
 
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
-    if (is_dev_mode && renderer_url) {
+    if (is_dev_mode() && renderer_url) {
         mainWindow.loadURL(renderer_url);
     } else {
         mainWindow.loadFile(path.resolve(app.getAppPath(), "out/renderer/index.html"));

@@ -1,4 +1,4 @@
-import { get_common_bpm } from "../beatmaps/beatmaps.js";
+import { get_common_bpm } from "../osu/beatmaps.js";
 import { BinaryReader } from "./binary.js";
 import { config } from "../database/config.js";
 import { GenericResult } from "@shared/types/basic.js";

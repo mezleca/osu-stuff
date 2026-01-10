@@ -11,7 +11,7 @@ import { config } from "../database/config";
 import { mirrors } from "../database/mirrors";
 import { send_to_renderer } from "../ipc";
 import { get_window } from "../database/utils";
-import { get_driver } from "../database/drivers/driver";
+import { get_driver } from "./drivers/driver";
 import { v2 } from "osu-api-extended";
 
 import path from "path";

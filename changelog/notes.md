@@ -1,11 +1,13 @@
 # v2.3.0
 
 ## new features
+
 - beatmap preview (standard / mania only...)
 
 ## bug fixes
+
 - make modal a litte bigger
-- fix quick confirm for "local images" sync / showing alert on every damn action 
+- fix quick confirm for "local images" sync / showing alert on every damn action
 - fix rare cases where input manager would callback 2 times (keyup / keydown)
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.2.1...v2.3.0

@@ -1,4 +1,4 @@
-import { get_driver } from "../database/drivers/driver";
+import { get_driver } from "./drivers/driver";
 import { get_window } from "../database/utils";
 import type { IOsuDriver } from "@shared/types";
 
