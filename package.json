@@ -44,7 +44,7 @@
         "@types/jszip": "^3.4.1",
         "@types/node": "^25.0.1",
         "cross-env": "^10.1.0",
-        "electron": "^39.2.6",
+        "electron": "^40.0.0",
         "electron-builder": "^26.0.12",
         "prettier": "^3.7.4",
         "prettier-plugin-svelte": "^3.4.0",
