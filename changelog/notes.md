@@ -6,7 +6,8 @@
 
 ## bug fixes
 
-- make modal a litte bigger
+- increase modal height by a little (and some other misc stuff)
+- use archiver instead of jszip for beatmap export
 - fix quick confirm for "local images" sync / showing alert on every damn action
 - fix rare cases where input manager would callback 2 times (keyup / keydown)
 

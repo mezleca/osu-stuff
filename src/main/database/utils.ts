@@ -104,7 +104,6 @@ export const get_osu_path = async (): Promise<GenericResult<PathResult>> => {
     }
 };
 
-// TOFIX: this shouldn't be here
 const created_windows: Map<string, BrowserWindow> = new Map();
 
 const create_new_window = (name: string, options: BrowserWindowConstructorOptions) => {

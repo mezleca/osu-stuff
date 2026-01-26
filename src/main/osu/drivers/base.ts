@@ -11,7 +11,8 @@ import {
     gamemode_to_code,
     ISearchResponse,
     ISearchSetResponse,
-    IBeatmapSetFilter
+    IBeatmapSetFilter,
+    ExportResult
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { osdb_parser } from "../../binary/osdb";
@@ -19,7 +20,7 @@ import { stable_parser } from "../../binary/stable";
 import { config } from "../../database/config";
 
 import path from "path";
-import JSzip from "jszip";
+import archiver from "archiver";
 import fs from "fs";
 
 export abstract class BaseDriver implements IOsuDriver {
@@ -245,40 +246,59 @@ export abstract class BaseDriver implements IOsuDriver {
             return false;
         }
 
-        const zip = new JSzip();
+        const archive = archiver("zip");
 
-        for (const file of files) {
-            // skip folders to prevent "EISDIR"
-            if (fs.statSync(file.location).isDirectory()) {
-                console.warn("export_beatmapset: skipping directory:", file.location);
-                continue;
-            }
-
+        const add_file = async (file: BeatmapFile): Promise<ExportResult> => {
+            // ensure it actually exists
             if (!fs.existsSync(file.location)) {
                 console.warn("export_beatmapset: failed to find", file);
 
                 // panic if the missing file is a .osu one
                 if (path.extname(file.name) == ".osu") {
-                    return false;
+                    return ExportResult.PANIC;
                 }
 
-                continue;
+                return ExportResult.NOT_FOUND;
             }
 
-            const buffer = fs.readFileSync(file.location);
+            // skip folders
+            if (fs.statSync(file.location).isDirectory()) {
+                console.warn("export_beatmapset: skipping directory:", file.location);
+                return ExportResult.NOT_FOUND;
+            }
+
+            const buffer = await fs.promises.readFile(file.location);
 
             if (!buffer) {
                 console.warn("export_beatmapset: failed to get buffer from", file);
-                continue;
+                return ExportResult.NOT_FOUND;
             }
 
             zip.file(file.name, buffer);
+            return ExportResult.SUCCESS;
+        };
+
+        // make a little faster by doing all at the same time
+        const promise_result = await Promise.all(
+            files.map(async (file) => {
+                const result = await add_file(file);
+
+                // if we received a panic result, cancel
+                if (result == ExportResult.PANIC) return false;
+
+                return true;
+            })
+        );
+
+        if (promise_result.some((result) => !result)) {
+            console.error("export_beatmapset: panic cuz .osu not found");
+            return false;
         }
 
         const buffer = await zip.generateAsync({
             type: "nodebuffer",
             compression: "DEFLATE",
-            compressionOptions: { level: 9 }
+            compressionOptions: { level: 6 }
         });
 
         const location = path.resolve(config.get().export_path, `${id}.osz`);

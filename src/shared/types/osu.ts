@@ -456,6 +456,14 @@ export interface IOsuCollectorCollection {
 
 export type IExtendedBeatmapSet = Beatmapset;
 
+/* EXPORT */
+
+export enum ExportResult {
+    PANIC = -1,
+    NOT_FOUND = 0,
+    SUCCESS = 1
+}
+
 /* OSDB */
 
 export interface IOSDBBeatmap {
