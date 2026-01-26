@@ -146,6 +146,7 @@ jobs:
               with:
                   name: linux-build
                   path: |
+                      dist/*.pacman
                       dist/*.AppImage
                       dist/*.deb
 
