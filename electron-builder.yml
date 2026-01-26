@@ -5,6 +5,10 @@ electronLanguages:
     - en-US
 directories:
     buildResources: resources
+
+asarUnpack:
+    - resources/**
+
 files:
     - out/**
     - "!out/main/node_modules/**"
@@ -21,6 +25,7 @@ files:
     - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 win:
+    icon: resources/icon.ico
     executableName: osu-stuff
 nsis:
     artifactName: ${name}-${version}-setup.${ext}
@@ -28,10 +33,11 @@ nsis:
     uninstallDisplayName: ${productName}
     createDesktopShortcut: always
 linux:
+    icon: resources/icon.png
     target:
         - AppImage
-        - snap
         - deb
+        - pacman
     maintainer: https://github.com/mezleca
     category: Utility
 appImage:

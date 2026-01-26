@@ -1,7 +1,8 @@
 # v2.3.0
 
-## new features
+## new stuff
 
+- added build for arch linux (.pacman)
 - beatmap preview (standard / mania only...)
 
 ## bug fixes
@@ -10,6 +11,7 @@
 - use archiver instead of jszip for beatmap export
 - fix quick confirm for "local images" sync / showing alert on every damn action
 - fix rare cases where input manager would callback 2 times (keyup / keydown)
+- removed .snap target for electron builder
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.2.1...v2.3.0
 
