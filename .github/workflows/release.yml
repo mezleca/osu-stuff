@@ -130,7 +130,7 @@ jobs:
             - name: install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y dpkg-dev build-essential bsdtar
+                  sudo apt-get install -y dpkg-dev build-essential libarchive-tools
                   mkdir -p /usr/local/bin
                   curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool
                   chmod +x /usr/local/bin/appimagetool
