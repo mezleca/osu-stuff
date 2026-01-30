@@ -2,9 +2,10 @@ import { app, shell, dialog, protocol, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
+import electronUpdater, { type AppUpdater } from "electron-updater";
 import { get_window, get_app_path } from "./database/utils";
 import { fetch_manager, media_manager } from "./fetch";
-import { handle_ipc } from "./ipc";
+import { handle_ipc, send_to_renderer } from "./ipc";
 import {
     add_beatmap,
     add_collection,
@@ -44,6 +45,7 @@ import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
 import path from "path";
+import { ipcMain } from "electron/main";
 
 const icon_path = path.resolve(__dirname, "../../resources/icon.png");
 
@@ -59,6 +61,13 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
+// https://www.electron.build/auto-update.html
+const get_auto_updater = (): AppUpdater => {
+    const { autoUpdater } = electronUpdater;
+    return autoUpdater;
+};
+
+const updater = get_auto_updater();
 const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
 
 async function createWindow() {
@@ -207,6 +216,24 @@ async function createWindow() {
         }
     });
 
+    // update
+    handle_ipc("updater:update", () => {
+        // TODO: show update download progress if possible
+        updater.downloadUpdate();
+    });
+
+    updater.on("update-available", (data) => {
+        send_to_renderer(mainWindow.webContents, "updater:new", data);
+    });
+
+    updater.on("update-downloaded", (data) => {
+        send_to_renderer(mainWindow.webContents, "updater:finish", { success: true, data: data.version });
+    });
+
+    updater.on("error", (data) => {
+        send_to_renderer(mainWindow.webContents, "updater:finish", { success: false, reason: data.message });
+    });
+
     mainWindow.on("ready-to-show", mainWindow.show);
 
     mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -255,6 +282,9 @@ app.whenReady().then(async () => {
 
     // initialize electron window
     createWindow();
+
+    // check for new updates
+    updater.checkForUpdatesAndNotify();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

@@ -4,7 +4,9 @@ import { FetchOptions, IFetchResponse } from "./fetch";
 import { ICollectionResult, ILegacyDatabase, IOSDBData, IOsuDriver, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
 import { IBeatmapDownloader, IDownloadEvent } from "./downloader";
 import { GenericResult } from "./basic";
+import { NewUpdateResponse } from "./update";
 import { OpenDialogOptions, OpenDialogReturnValue } from "electron";
+import { UpdateInfo } from "electron-updater";
 
 // osu-api-extended
 export type ScoreListBaseParams = {
@@ -371,12 +373,19 @@ export interface IpcSchema {
             params: string;
             result: GenericResult<Uint8Array>;
         };
+        // update
+        "updater:update": {
+            params: undefined;
+            result: void;
+        };
     };
     send: {
         "downloader:events": IDownloadEvent;
         "processor:events": IProcessorEvent;
         "export:update": IExportUpdate;
         "export:finish": IExportFinish;
+        "updater:new": UpdateInfo;
+        "updater:finish": GenericResult<string>;
     };
     on: IpcSchema["send"];
 }

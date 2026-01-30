@@ -3,6 +3,7 @@ productName: osu-stuff
 compression: normal
 electronLanguages:
     - en-US
+
 directories:
     buildResources: resources
 
@@ -27,11 +28,13 @@ files:
 win:
     icon: resources/icon.ico
     executableName: osu-stuff
+
 nsis:
     artifactName: ${name}-${version}-setup.${ext}
     shortcutName: ${productName}
     uninstallDisplayName: ${productName}
     createDesktopShortcut: always
+
 linux:
     icon: resources/icon.png
     target:
@@ -40,6 +43,13 @@ linux:
         - pacman
     maintainer: https://github.com/mezleca
     category: Utility
+
 appImage:
     artifactName: ${name}-${version}.${ext}
+
+publish:
+    provider: github
+    owner: mezleca
+    repo: https://github.com/mezleca/osu-stuff
+
 npmRebuild: false

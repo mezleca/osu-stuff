@@ -2,8 +2,9 @@
     import { config } from "../../lib/store/config";
     import { show_notification } from "../../lib/store/notifications";
     import { quick_confirm, modals, ModalType } from "../../lib/utils/modal";
-    import type { StuffConfig } from "@shared/types";
     import { get_osu_data } from "../../lib/utils/collections";
+    import { update_progress } from "../../lib/store/update";
+    import type { StuffConfig } from "@shared/types";
 
     // components
     import Add from "../utils/add.svelte";
@@ -13,6 +14,8 @@
     import NewMirrorModal from "./modal/new-mirror-modal.svelte";
 
     const { mirrors } = config;
+
+    $: update_data = $update_progress;
 
     const handle_text_change = async (key: keyof StuffConfig, value: string) => {
         await config.set(key, value);
@@ -186,6 +189,9 @@
             </div>
 
             <div class="config-buttons">
+                {#if update_data.available}
+                    <button type="button" disabled={!update_data.updating}>update osu-stuff</button>
+                {/if}
                 <button type="button" onclick={reload_files}>reload files</button>
                 <button type="button" onclick={() => window.api.invoke("window:dev_tools")}> open dev tools </button>
             </div>
