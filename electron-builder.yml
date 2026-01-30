@@ -50,6 +50,6 @@ appImage:
 publish:
     provider: github
     owner: mezleca
-    repo: https://github.com/mezleca/osu-stuff
+    repo: osu-stuff
 
 npmRebuild: false

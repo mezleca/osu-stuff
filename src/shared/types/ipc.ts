@@ -4,7 +4,6 @@ import { FetchOptions, IFetchResponse } from "./fetch";
 import { ICollectionResult, ILegacyDatabase, IOSDBData, IOsuDriver, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
 import { IBeatmapDownloader, IDownloadEvent } from "./downloader";
 import { GenericResult } from "./basic";
-import { NewUpdateResponse } from "./update";
 import { OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import { UpdateInfo } from "electron-updater";
 

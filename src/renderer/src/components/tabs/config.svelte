@@ -190,7 +190,7 @@
 
             <div class="config-buttons">
                 {#if update_data.available}
-                    <button type="button" disabled={!update_data.updating}>update osu-stuff</button>
+                    <button type="button" disabled={update_data.updating}>update osu-stuff</button>
                 {/if}
                 <button type="button" onclick={reload_files}>reload files</button>
                 <button type="button" onclick={() => window.api.invoke("window:dev_tools")}> open dev tools </button>

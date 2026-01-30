@@ -6,4 +6,3 @@ export * from "./types/basic";
 export * from "./types/downloader";
 export * from "./types/renderer";
 export * from "./types/logger";
-export * from "./types/update";
