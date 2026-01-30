@@ -149,6 +149,7 @@ jobs:
                       dist/*.pacman
                       dist/*.AppImage
                       dist/*.deb
+                      dist/latest-linux.yml
 
     build_windows:
         needs: [prepare]
@@ -184,6 +185,7 @@ jobs:
                   name: windows-build
                   path: |
                       dist/*.exe
+                      dist/latest-windows.yml
 
     create_release:
         needs: [prepare, build_linux, build_windows]
