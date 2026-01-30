@@ -2,7 +2,6 @@ import { app, shell, dialog, protocol, net } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
-import electronUpdater, { type AppUpdater } from "electron-updater";
 import { get_window, get_app_path } from "./database/utils";
 import { fetch_manager, media_manager } from "./fetch";
 import { handle_ipc, send_to_renderer } from "./ipc";
@@ -45,7 +44,7 @@ import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
 import path from "path";
-import { ipcMain } from "electron/main";
+import electronUpdater, { type AppUpdater } from "electron-updater";
 
 const icon_path = path.resolve(__dirname, "../../resources/icon.png");
 
