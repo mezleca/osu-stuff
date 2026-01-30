@@ -70,10 +70,11 @@ export const edit_notification = (id: string, data: Partial<INotification>): voi
     });
 };
 
-export const finish_notification = (id: string): void => {
+export const finish_notification = (id: string, data?: Partial<INotification>): void => {
     notifications_store.update((all) => {
         return all.map((n) => {
             if (n.id != id || !n.persist) return n;
+            if (data) Object.assign(n, data);
             start_timeout(n.id, n.duration);
             return { ...n, persist: false };
         });
