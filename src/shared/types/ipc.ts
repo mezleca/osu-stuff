@@ -375,7 +375,7 @@ export interface IpcSchema {
         // update
         "updater:update": {
             params: undefined;
-            result: void;
+            result: Promise<GenericResult<string>>;
         };
     };
     send: {

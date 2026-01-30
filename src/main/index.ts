@@ -216,9 +216,20 @@ async function createWindow() {
     });
 
     // update
-    handle_ipc("updater:update", () => {
+    handle_ipc("updater:update", async () => {
+        // check if we support auto update for the current system / package
+        if (!updater.isUpdaterActive()) {
+            if (process.platform == "linux") {
+                return { success: false, reason: "auto update is only supported for AppImage... please download the update manually" };
+            } else {
+                return { success: false, reason: "auto update is not supported for this platform... please download the update manually" };
+            }
+        }
+
         // TODO: show update download progress if possible
         updater.downloadUpdate();
+
+        return { success: true, data: "something" };
     });
 
     updater.on("update-available", (data) => {

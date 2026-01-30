@@ -167,7 +167,7 @@ const build_main = () => {
         entrypoints: [PATHS.SRC_MAIN],
         outdir: path.join(PATHS.OUT, "main"),
         target: "node",
-        external: ["electron", "better-sqlite3", "@rel-packages/osu-beatmap-parser", "realm"],
+        external: ["electron", "better-sqlite3", "@rel-packages/osu-beatmap-parser", "realm", "electron-updater"],
         tsconfig: "tsconfig.node.json"
     });
 };
