@@ -1,6 +1,6 @@
 {
     "name": "osu-stuff",
-    "version": "2.3.4",
+    "version": "2.3.3",
     "description": "yet another osu! manager",
     "homepage": "https://github.com/mezleca/osu-stuff",
     "main": "./out/main/index.js",

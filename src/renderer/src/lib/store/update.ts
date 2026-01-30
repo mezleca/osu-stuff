@@ -22,13 +22,19 @@ export const start_update = throttle(async () => {
             return;
         }
 
+        progress_data.updating = true;
+
         // TOFIX: im not sure if electron-builder will notify errors on downloadUpdate thing
-        await window.api.invoke("updater:update");
+        const result = await window.api.invoke("updater:update");
+
+        if (!result.success) {
+            // @ts-ignore
+            show_notification({ type: "error", text: `failed to update: ${result.reason}` });
+            return;
+        }
 
         // create a persistent notification
         show_notification({ id: NOTIFICATION_ID, type: "info", text: "updating...", persist: true });
-
-        progress_data.updating = true;
     } catch (err) {
         if (progress_data.updating) finish_notification(NOTIFICATION_ID, { text: "finished downloading (restart me :3)", type: "error" });
     } finally {
