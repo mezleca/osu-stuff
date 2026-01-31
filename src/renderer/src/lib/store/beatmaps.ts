@@ -286,8 +286,6 @@ export class BeatmapList extends ListBase<string> {
 }
 
 export class BeatmapSetList extends ListBase<number> {
-    items: Writable<number[]> = writable([]);
-
     // extra filter options
     sort: Writable<keyof BeatmapSetResult["metadata"]> = writable("artist");
 

@@ -39,17 +39,17 @@
     };
 
     onMount(() => {
-        input.on("escape", () => {
+        const handle_unselected_id = input.on("escape", () => {
             // order: multi selection -> selection
             if (list_manager.get_selected_buffer().length > 0) {
                 list_manager.clear_selected_buffer();
-            } else if (list_manager.selected) {
+            } else if (list_manager.get_selected()) {
                 list_manager.clear_selected();
             }
         });
 
         return () => {
-            input.unregister("escape");
+            input.unregister(handle_unselected_id);
         };
     });
 </script>
