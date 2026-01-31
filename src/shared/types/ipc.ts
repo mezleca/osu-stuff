@@ -375,7 +375,7 @@ export interface IpcSchema {
         // update
         "updater:update": {
             params: undefined;
-            result: Promise<GenericResult<string>>;
+            result: GenericResult<string>;
         };
         "updater:install": {
             params: undefined;

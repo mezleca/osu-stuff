@@ -60,11 +60,13 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
+// TODO: move all of the update stuff to another file
 // https://www.electron.build/auto-update.html
 const get_auto_updater = (): AppUpdater => {
     return autoUpdater;
 };
 
+let is_downloading_update = false;
 const updater = get_auto_updater();
 const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
 
@@ -217,18 +219,22 @@ async function createWindow() {
     handle_ipc("updater:install", () => updater.quitAndInstall());
 
     // update
-    handle_ipc("updater:update", async () => {
-        // check if we support auto update for the current system / package
-        if (!updater.isUpdaterActive()) {
-            if (process.platform == "linux") {
-                return { success: false, reason: "auto update is only supported for AppImage... please download the update manually" };
-            } else {
-                return { success: false, reason: "auto update is not supported for this platform... please download the update manually" };
+    handle_ipc("updater:update", () => {
+        try {
+            // check if we support auto update for the current system / package
+            if (!updater.isUpdaterActive()) {
+                if (process.platform == "linux") {
+                    return { success: false, reason: "auto update is only supported for AppImage... please download the update manually" };
+                } else {
+                    return { success: false, reason: "auto update is not supported for this platform... please download the update manually" };
+                }
             }
-        }
 
-        updater.downloadUpdate();
-        return { success: true, data: "download started" };
+            updater.downloadUpdate();
+            return { success: true, data: "download started" };
+        } catch (err) {
+            return { success: false, reason: err as string };
+        }
     });
 
     updater.on("update-available", (data) => {
@@ -236,14 +242,25 @@ async function createWindow() {
         send_to_renderer(mainWindow.webContents, "updater:new", data);
     });
 
+    // TODO: send updater:progress to renderer
+    updater.on("download-progress", () => {
+        is_downloading_update = true;
+    });
+
     updater.on("update-downloaded", (data) => {
         console.log("[updater] update downloaded:", data);
+        is_downloading_update = false;
         send_to_renderer(mainWindow.webContents, "updater:finish", { success: true, data: data.version });
     });
 
     updater.on("error", (data) => {
         console.error("[updater] error:", data);
-        send_to_renderer(mainWindow.webContents, "updater:finish", { success: false, reason: data.message });
+
+        // skip update checks (only notify if we're downloading)
+        if (is_downloading_update) {
+            is_downloading_update = false;
+            send_to_renderer(mainWindow.webContents, "updater:finish", { success: false, reason: data.message });
+        }
     });
 
     mainWindow.on("ready-to-show", mainWindow.show);

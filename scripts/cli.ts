@@ -168,7 +168,7 @@ const build_main = () => {
         outdir: path.join(PATHS.OUT, "main"),
         target: "node",
         format: "cjs",
-        external: ["electron", "better-sqlite3", "@rel-packages/osu-beatmap-parser", "realm", "electron-updater"],
+        external: ["electron", "better-sqlite3", "realm", "electron-updater"],
         tsconfig: "tsconfig.node.json"
     });
 };
