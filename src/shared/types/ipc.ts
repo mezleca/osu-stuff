@@ -377,6 +377,10 @@ export interface IpcSchema {
             params: undefined;
             result: Promise<GenericResult<string>>;
         };
+        "updater:install": {
+            params: undefined;
+            result: void;
+        };
     };
     send: {
         "downloader:events": IDownloadEvent;

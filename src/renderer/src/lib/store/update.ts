@@ -1,5 +1,6 @@
 import { Writable, writable, get } from "svelte/store";
 import { finish_notification, show_notification } from "./notifications";
+import { quick_confirm } from "../utils/modal";
 import { throttle } from "../utils/timings";
 
 const NOTIFICATION_ID = "update:progress";
@@ -51,7 +52,17 @@ window.api.on("updater:new", async (data) => {
 window.api.on("updater:finish", async (data) => {
     if (data.success) {
         update_progress.set({ available: false, updating: false });
-        finish_notification(NOTIFICATION_ID, { text: "finished downloading (restart me :3)", type: "success" });
+        finish_notification(NOTIFICATION_ID, { text: "finished downloading", type: "success" });
+
+        const confirm = await quick_confirm("update downloaded. restart now?", {
+            submit: "yeah",
+            cancel: "later"
+        });
+
+        if (confirm) {
+            await window.api.invoke("updater:install");
+        }
+
         return;
     }
 

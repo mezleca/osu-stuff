@@ -214,6 +214,8 @@ async function createWindow() {
         }
     });
 
+    handle_ipc("updater:install", () => updater.quitAndInstall());
+
     // update
     handle_ipc("updater:update", async () => {
         // check if we support auto update for the current system / package
@@ -225,10 +227,8 @@ async function createWindow() {
             }
         }
 
-        // TODO: show update download progress if possible
         updater.downloadUpdate();
-
-        return { success: true, data: "something" };
+        return { success: true, data: "download started" };
     });
 
     updater.on("update-available", (data) => {
@@ -301,7 +301,8 @@ app.whenReady().then(async () => {
     createWindow();
 
     // check for new updates
-    updater.checkForUpdatesAndNotify();
+    updater.autoDownload = false;
+    updater.checkForUpdates();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
