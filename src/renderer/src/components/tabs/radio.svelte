@@ -129,12 +129,12 @@
         if ($selected_collection.name == "") collections.select(ALL_BEATMAPS_KEY, true);
 
         // select random
-        input.on("f2", () => {
+        const handle_random_id = input.on("f2", () => {
             audio.force_random.set(true);
         });
 
         // get previous random songs
-        input.on("shift+f2", async () => {
+        const handle_previous_id = input.on("shift+f2", async () => {
             const index = $previous_songs.length - 2;
             const data = $previous_songs[index];
 
@@ -150,7 +150,8 @@
 
         return () => {
             debounced_update.cancel();
-            input.unregister("f2", "shift+f2");
+            input.unregister(handle_random_id);
+            input.unregister(handle_previous_id);
             list.show_remove.set(true);
         };
     });

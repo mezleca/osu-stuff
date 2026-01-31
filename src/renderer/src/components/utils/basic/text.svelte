@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { input } from "../../../lib/store/input";
 
     // props
@@ -19,8 +19,6 @@
 
     // automatically focus on edit
     $: if (element && edit) {
-        input.on("escape", () => release());
-        input.on("enter", () => release());
         element.focus();
     }
 
@@ -37,10 +35,14 @@
 
     onMount(() => {
         edit_value = value;
-    });
 
-    onDestroy(() => {
-        input.unregister("enter", "escape");
+        const handle_escape_id = input.on("escape", () => release());
+        const handle_enter_id = input.on("enter", () => release());
+
+        return () => {
+            input.unregister(handle_enter_id);
+            input.unregister(handle_escape_id);
+        };
     });
 </script>
 

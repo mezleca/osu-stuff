@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy, tick } from "svelte";
+    import { onMount, tick } from "svelte";
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
@@ -179,13 +179,6 @@
 
         player.on("statechange", (playing) => (is_playing = playing));
 
-        // always unregister
-        input.unregister("space", "g");
-
-        // setup listeners
-        input.on("space", debounced_pause_toggle);
-        input.on("g", toggle_grid);
-
         // ensure resize after modal is visible
         tick().then(() => {
             setTimeout(() => {
@@ -197,7 +190,6 @@
     const cleanup = () => {
         if (player) stop_player();
         if (observer) observer.disconnect();
-        input.unregister("space", "g");
         beatmap_loaded = false;
         beatmap_is_invalid = false;
         current_time = 0;
@@ -213,7 +205,17 @@
         window.api.invoke("shell:open", `https://osu.ppy.sh/beatmapsets/${beatmap_data.beatmapset_id}`);
     };
 
-    onDestroy(cleanup);
+    onMount(() => {
+        // setup listeners
+        const handle_pause_id = input.on("space", debounced_pause_toggle);
+        const handle_grid_id = input.on("g", toggle_grid);
+
+        return () => {
+            cleanup();
+            input.unregister(handle_pause_id);
+            input.unregister(handle_grid_id);
+        };
+    });
 
     $: {
         // setup canvas if needed

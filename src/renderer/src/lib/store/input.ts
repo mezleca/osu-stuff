@@ -11,15 +11,24 @@ const rename_key = (key: string) => {
     return key;
 };
 
+type HandlerCallback = () => void;
+
+interface Handler {
+    id: number;
+    callback: HandlerCallback;
+}
+
 class InputManager {
     keys: Set<string>;
-    handlers: Map<string, () => void>;
+    handlers: Map<string, Handler[]>;
     last_clicked_element: EventTarget | null;
+    next_id: number;
 
     constructor() {
         this.keys = new Set();
         this.handlers = new Map();
         this.last_clicked_element = null;
+        this.next_id = 0;
     }
 
     add(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
@@ -42,9 +51,13 @@ class InputManager {
 
         // sort so we dont have order issues
         const current_comb = this._normalize_keys(Array.from(this.keys));
-        const callback = this.handlers.get(current_comb);
+        const handlers = this.handlers.get(current_comb);
 
-        if (callback) callback();
+        if (handlers) {
+            for (const handler of handlers) {
+                handler.callback();
+            }
+        }
     }
 
     remove(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
@@ -61,22 +74,36 @@ class InputManager {
         return normalized == current;
     }
 
-    on(keys: string, callback: () => void): void {
+    on(keys: string, callback: HandlerCallback): number {
         if (typeof keys != "string") {
             console.log("[input] expected string on keys paramater");
-            return;
+            return -1;
         }
 
         // sort so we dont have order issues
         const normalized_keys = this._normalize_keys(keys.split("+"));
-        this.handlers.set(normalized_keys, callback);
+        const handler_id = this.next_id++;
+        const existing = this.handlers.get(normalized_keys);
+
+        if (existing) {
+            existing.push({ id: handler_id, callback });
+        } else {
+            this.handlers.set(normalized_keys, [{ id: handler_id, callback }]);
+        }
+
+        return handler_id;
     }
 
-    unregister(...combinations: string[]): void {
-        for (const keys of combinations) {
-            // sort so we dont have order issues
-            const normalized_keys = this._normalize_keys(keys.split("+"));
-            this.handlers.delete(normalized_keys);
+    unregister(handler_id: number): void {
+        for (const [keys, handlers] of this.handlers.entries()) {
+            const index = handlers.findIndex((h) => h.id == handler_id);
+            if (index != -1) {
+                handlers.splice(index, 1);
+                if (handlers.length == 0) {
+                    this.handlers.delete(keys);
+                }
+                return;
+            }
         }
     }
 

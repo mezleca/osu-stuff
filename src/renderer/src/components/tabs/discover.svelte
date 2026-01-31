@@ -72,7 +72,7 @@
                 list_manager={discover}
                 on_update={(i) => {
                     // update list on last index
-                    if (discover.can_load_more() && discover.get_list_length() - i <= 2) {
+                    if (discover.can_load_more() && discover.get_items().length - i <= 2) {
                         discover.search();
                     }
                 }}
