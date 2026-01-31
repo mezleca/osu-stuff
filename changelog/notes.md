@@ -1,3 +1,14 @@
+# v2.4.0
+
+## new stuff
+
+- added auto update (windows, appimage on linux)
+- clear beatmap selection on escape
+
+## bug fixes
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.3.0...v2.4.0
+
 # v2.3.0
 
 ## new stuff
