@@ -167,6 +167,7 @@ const build_main = () => {
         entrypoints: [PATHS.SRC_MAIN],
         outdir: path.join(PATHS.OUT, "main"),
         target: "node",
+        format: "cjs",
         external: ["electron", "better-sqlite3", "@rel-packages/osu-beatmap-parser", "realm", "electron-updater"],
         tsconfig: "tsconfig.node.json"
     });
@@ -178,6 +179,7 @@ const build_preload = () => {
         entrypoints: [PATHS.SRC_PRELOAD],
         outdir: path.join(PATHS.OUT, "preload"),
         target: "node",
+        format: "cjs",
         external: ["electron"],
         tsconfig: "tsconfig.node.json"
     });

@@ -12,16 +12,16 @@ asarUnpack:
 
 files:
     - out/**
-    - "!out/main/node_modules/**"
-    - "!out/preload/node_modules/**"
+    - package.json
+    - "!**/node_modules/realm/prebuilds/android/**"
+    - "!**/node_modules/realm/prebuilds/apple/**"
+    - "!**/node_modules/electron/**"
     - "!**/.vscode/*"
     - "!src/*"
     - "!electron.vite.config.{js,ts,mjs,cjs}"
     - "!svelte.config.mjs"
     - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
     - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
-    - "!node_modules/realm/prebuilds/android*/**"
-    - "!node_modules/realm/prebuilds/apple*/**"
     - "!tests/"
     - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
@@ -52,4 +52,4 @@ publish:
     owner: mezleca
     repo: osu-stuff
 
-npmRebuild: false
+npmRebuild: true

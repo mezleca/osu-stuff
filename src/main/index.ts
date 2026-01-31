@@ -44,7 +44,7 @@ import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
 import path from "path";
-import electronUpdater, { type AppUpdater } from "electron-updater";
+import { autoUpdater, type AppUpdater } from "electron-updater";
 
 const icon_path = path.resolve(__dirname, "../../resources/icon.png");
 
@@ -62,7 +62,6 @@ protocol.registerSchemesAsPrivileged([
 
 // https://www.electron.build/auto-update.html
 const get_auto_updater = (): AppUpdater => {
-    const { autoUpdater } = electronUpdater;
     return autoUpdater;
 };
 
@@ -233,14 +232,17 @@ async function createWindow() {
     });
 
     updater.on("update-available", (data) => {
+        console.log("[updater] update available:", data);
         send_to_renderer(mainWindow.webContents, "updater:new", data);
     });
 
     updater.on("update-downloaded", (data) => {
+        console.log("[updater] update downloaded:", data);
         send_to_renderer(mainWindow.webContents, "updater:finish", { success: true, data: data.version });
     });
 
     updater.on("error", (data) => {
+        console.error("[updater] error:", data);
         send_to_renderer(mainWindow.webContents, "updater:finish", { success: false, reason: data.message });
     });
 
@@ -250,6 +252,11 @@ async function createWindow() {
         shell.openExternal(details.url);
         return { action: "deny" };
     });
+
+    // auto open devtools in dev mode
+    if (is_dev_mode()) {
+        mainWindow.webContents.openDevTools();
+    }
 
     const renderer_url = process.env["ELECTRON_RENDERER_URL"];
 
