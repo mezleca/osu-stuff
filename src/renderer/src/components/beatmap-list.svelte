@@ -1,9 +1,11 @@
 <script lang="ts">
     import type { BeatmapList } from "../lib/store/beatmaps";
     import { modals, ModalType } from "../lib/utils/modal";
+    import { input } from "../lib/store/input";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
+    import { onMount } from "svelte";
 
     export let list_manager: BeatmapList;
     export let height = 100;
@@ -27,7 +29,7 @@
         if (event.ctrlKey) {
             list_manager.multi_select([hash]);
         } else {
-            list_manager.clear_multi_selected();
+            list_manager.clear_selected_buffer();
             if (is_selected) {
                 list_manager.clear_selected();
             } else {
@@ -35,6 +37,21 @@
             }
         }
     };
+
+    onMount(() => {
+        input.on("escape", () => {
+            // order: multi selection -> selection
+            if (list_manager.get_selected_buffer().length > 0) {
+                list_manager.clear_selected_buffer();
+            } else if (list_manager.selected) {
+                list_manager.clear_selected();
+            }
+        });
+
+        return () => {
+            input.unregister("escape");
+        };
+    });
 </script>
 
 <div class="beatmap-list-container">

@@ -22,7 +22,7 @@ interface ISelectedBeatmap {
     index: number;
 }
 
-export abstract class ListBase {
+export abstract class ListBase<T> {
     key: string = crypto.randomUUID();
     list_id: Writable<string> = writable(this.key);
     query: Writable<string> = writable("");
@@ -30,9 +30,12 @@ export abstract class ListBase {
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
     show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
-    selected: Writable<ISelectedBeatmap | null> = writable(null);
     should_update: Writable<boolean> = writable(false);
     total_missing: Writable<number> = writable(0);
+    items: Writable<T[]> = writable([]);
+    // TOFIX: surely we can simplify by just having selected_buffer
+    selected: Writable<ISelectedBeatmap | null> = writable(null);
+    selected_buffer: Writable<T[]> = writable([]);
 
     constructor(id: string) {
         this.list_id.set(id);
@@ -62,6 +65,44 @@ export abstract class ListBase {
         this.should_update.set(value);
     }
 
+    get_items(): T[] {
+        return get(this.items);
+    }
+
+    set_items(items: T[], query?: string, should_update_id = true): void {
+        this.items.set(items);
+
+        if (should_update_id && query) {
+            this.update_list_id(query);
+        }
+
+        this.check_missing();
+    }
+
+    select(md5: string, index: number): void {
+        this.selected.set({ md5, index });
+    }
+
+    multi_select(ids: T[], replace = false): void {
+        if (replace) {
+            this.selected_buffer.set(ids);
+        } else {
+            this.selected_buffer.update((current) => [...current, ...ids]);
+        }
+    }
+
+    get_selected = (): ISelectedBeatmap | null => {
+        return get(this.selected);
+    };
+
+    get_selected_buffer = (): T[] => {
+        return get(this.selected_buffer);
+    };
+
+    clear_selected_buffer(): void {
+        this.selected_buffer.set([]);
+    }
+
     abstract search(): Promise<any>;
     abstract load(): Promise<boolean>;
     abstract reload(): Promise<void>;
@@ -81,10 +122,7 @@ export abstract class ListBase {
     abstract clear(): void;
 }
 
-export class BeatmapList extends ListBase {
-    items: Writable<string[]> = writable([]);
-    selected_buffer: Writable<string[]> = writable([]);
-
+export class BeatmapList extends ListBase<string> {
     // filter options
     target: Writable<string> = writable(ALL_BEATMAPS_KEY);
     sort: Writable<keyof IBeatmapResult> = writable("title");
@@ -97,40 +135,6 @@ export class BeatmapList extends ListBase {
 
     constructor(id: string) {
         super(id);
-    }
-
-    get_items(): string[] {
-        return get(this.items);
-    }
-
-    get_list_length(): number {
-        return get(this.items).length;
-    }
-
-    set_items(items: string[], query?: string, should_update_id = true): void {
-        this.items.set(items);
-
-        if (should_update_id && query) {
-            this.update_list_id(query);
-        }
-
-        this.check_missing();
-    }
-
-    select(md5: string, index: number): void {
-        this.selected.set({ md5, index });
-    }
-
-    multi_select(hashes: string[], replace = false): void {
-        if (replace) {
-            this.selected_buffer.set(hashes);
-        } else {
-            this.selected_buffer.update((current) => [...current, ...hashes]);
-        }
-    }
-
-    clear_multi_selected(): void {
-        this.selected_buffer.set([]);
     }
 
     async handle_context_change(hashes: string[]) {
@@ -281,9 +285,8 @@ export class BeatmapList extends ListBase {
     }
 }
 
-export class BeatmapSetList extends ListBase {
+export class BeatmapSetList extends ListBase<number> {
     items: Writable<number[]> = writable([]);
-    selected_buffer: Writable<number[]> = writable([]);
 
     // extra filter options
     sort: Writable<keyof BeatmapSetResult["metadata"]> = writable("artist");
@@ -294,43 +297,6 @@ export class BeatmapSetList extends ListBase {
 
     constructor(id: string) {
         super(id);
-    }
-
-    get_items(): number[] {
-        return get(this.items);
-    }
-
-    get_list_length(): number {
-        return get(this.items).length;
-    }
-
-    set_items(items: number[], query?: string, should_update_id = true): void {
-        this.items.set(items);
-
-        if (should_update_id && query) {
-            this.update_list_id(query);
-        }
-
-        this.check_missing();
-    }
-
-    select(beatmapset_id: number, index: number): void {
-        this.selected.set({
-            md5: String(beatmapset_id),
-            index
-        });
-    }
-
-    multi_select(ids: number[], replace = false): void {
-        if (replace) {
-            this.selected_buffer.set(ids);
-        } else {
-            this.selected_buffer.update((current) => [...current, ...ids]);
-        }
-    }
-
-    clear_multi_selected(): void {
-        this.selected_buffer.set([]);
     }
 
     build_filter(): IBeatmapSetFilter {
