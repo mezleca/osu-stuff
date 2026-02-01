@@ -210,10 +210,17 @@
         const handle_pause_id = input.on("space", debounced_pause_toggle);
         const handle_grid_id = input.on("g", toggle_grid);
 
+        // leave preview using escape
+        const handle_escape_id = input.on("escape", () => {
+            cleanup();
+        });
+
         return () => {
             cleanup();
+
             input.unregister(handle_pause_id);
             input.unregister(handle_grid_id);
+            input.unregister(handle_escape_id);
         };
     });
 
