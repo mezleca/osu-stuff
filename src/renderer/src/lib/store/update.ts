@@ -44,6 +44,10 @@ export const start_update = throttle(async () => {
     }
 }, 100);
 
+export const check_for_updates = () => {
+    window.api.invoke("updater:check");
+};
+
 window.api.on("updater:new", async (data) => {
     show_notification({ type: "warning", text: `a new version of osu-stuff is available! (${data.version})` });
     update_progress.update((u) => ({ ...u, available: true }));

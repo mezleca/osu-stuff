@@ -40,11 +40,11 @@ import { beatmap_exporter } from "./osu/exporter";
 import { read_legacy_collection, read_legacy_db, write_legacy_collection } from "./binary/stable";
 import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./env";
+import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
 import path from "path";
-import { autoUpdater, type AppUpdater } from "electron-updater";
 
 const icon_path = path.resolve(__dirname, "../../resources/icon.png");
 
@@ -60,14 +60,6 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
-// TODO: move all of the update stuff to another file
-// https://www.electron.build/auto-update.html
-const get_auto_updater = (): AppUpdater => {
-    return autoUpdater;
-};
-
-let is_downloading_update = false;
-const updater = get_auto_updater();
 const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
 
 async function createWindow() {
@@ -216,52 +208,8 @@ async function createWindow() {
         }
     });
 
-    handle_ipc("updater:install", () => updater.quitAndInstall());
-
-    // update
-    handle_ipc("updater:update", () => {
-        try {
-            // check if we support auto update for the current system / package
-            if (!updater.isUpdaterActive()) {
-                if (process.platform == "linux") {
-                    return { success: false, reason: "auto update is only supported for AppImage... please download the update manually" };
-                } else {
-                    return { success: false, reason: "auto update is not supported for this platform... please download the update manually" };
-                }
-            }
-
-            updater.downloadUpdate();
-            return { success: true, data: "download started" };
-        } catch (err) {
-            return { success: false, reason: err as string };
-        }
-    });
-
-    updater.on("update-available", (data) => {
-        console.log("[updater] update available:", data);
-        send_to_renderer(mainWindow.webContents, "updater:new", data);
-    });
-
-    // TODO: send updater:progress to renderer
-    updater.on("download-progress", () => {
-        is_downloading_update = true;
-    });
-
-    updater.on("update-downloaded", (data) => {
-        console.log("[updater] update downloaded:", data);
-        is_downloading_update = false;
-        send_to_renderer(mainWindow.webContents, "updater:finish", { success: true, data: data.version });
-    });
-
-    updater.on("error", (data) => {
-        console.error("[updater] error:", data);
-
-        // skip update checks (only notify if we're downloading)
-        if (is_downloading_update) {
-            is_downloading_update = false;
-            send_to_renderer(mainWindow.webContents, "updater:finish", { success: false, reason: data.message });
-        }
-    });
+    // initialize auto updater
+    updater.initialize();
 
     mainWindow.on("ready-to-show", mainWindow.show);
 
@@ -316,10 +264,6 @@ app.whenReady().then(async () => {
 
     // initialize electron window
     createWindow();
-
-    // check for new updates
-    updater.autoDownload = false;
-    updater.checkForUpdates();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

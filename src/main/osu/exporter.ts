@@ -12,12 +12,12 @@ interface IExportState {
 class BeatmapExporter {
     private queue: Set<Number> = new Set();
     private current_index: number = 0;
-    private is_exporting: boolean = false;
+    private exporting: boolean = false;
     private current_beatmap: string = "";
     private driver: IOsuDriver | null = null;
 
     start = async (collections: string[]) => {
-        if (this.is_exporting) {
+        if (this.is_exporting()) {
             console.log("[exporter] already exporting");
             return;
         }
@@ -45,13 +45,13 @@ class BeatmapExporter {
             return;
         }
 
-        this.is_exporting = true;
+        this.exporting = true;
         this.process();
     };
 
     cancel = () => {
         if (!this.is_exporting) return;
-        this.is_exporting = false;
+        this.exporting = false;
         this.queue = new Set();
         this.driver = null;
         this.notify("export:finish", { success: false, reason: "cancelled by user" });
@@ -59,18 +59,22 @@ class BeatmapExporter {
 
     get_state = (): IExportState => {
         return {
-            is_exporting: this.is_exporting,
+            is_exporting: this.exporting,
             current_index: this.current_index,
             total: this.queue.size,
             current_beatmap: this.current_beatmap
         };
     };
 
+    is_exporting = (): boolean => {
+        return this.exporting;
+    };
+
     private process = async () => {
         if (!this.is_exporting || !this.driver) return;
 
         if (this.current_index >= this.queue.size) {
-            this.is_exporting = false;
+            this.exporting = false;
             this.driver = null;
             this.notify("export:finish", { success: true, count: this.queue.size });
             return;

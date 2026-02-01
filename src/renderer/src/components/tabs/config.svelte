@@ -3,7 +3,7 @@
     import { show_notification } from "../../lib/store/notifications";
     import { quick_confirm, modals, ModalType } from "../../lib/utils/modal";
     import { get_osu_data } from "../../lib/utils/collections";
-    import { start_update, update_progress } from "../../lib/store/update";
+    import { check_for_updates, start_update, update_progress } from "../../lib/store/update";
     import type { StuffConfig } from "@shared/types";
 
     // components
@@ -189,9 +189,9 @@
             </div>
 
             <div class="config-buttons">
-                {#if update_data.available}
-                    <button onclick={start_update} type="button" disabled={update_data.updating}>update osu-stuff</button>
-                {/if}
+                <button onclick={update_data.available ? start_update : check_for_updates} type="button">
+                    {update_data.available ? "update osu-stuff" : "check for updates"}
+                </button>
                 <button type="button" onclick={reload_files}>reload files</button>
                 <button type="button" onclick={() => window.api.invoke("window:dev_tools")}> open dev tools </button>
             </div>

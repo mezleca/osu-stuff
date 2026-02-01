@@ -377,6 +377,10 @@ export interface IpcSchema {
             params: undefined;
             result: GenericResult<string>;
         };
+        "updater:check": {
+            params: undefined;
+            result: void;
+        };
         "updater:install": {
             params: undefined;
             result: void;

@@ -120,6 +120,20 @@ class BeatmapDownloader implements IBeatmapDownloader {
         return Array.from(this.queue.values());
     }
 
+    is_active(): boolean {
+        if (!this.current_download_id) {
+            return false;
+        }
+
+        const current = this.queue.get(this.current_download_id);
+
+        if (!current) {
+            return false;
+        }
+
+        return current.progress?.paused || false;
+    }
+
     async add_single(data: IDownloadedBeatmap): Promise<boolean> {
         console.log("[downloader] single download started");
         return this.process_beatmap(data);
@@ -202,12 +216,14 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return false;
         }
 
+        // start new download if possible
         if (this.current_download_id === id) {
             this.pause(id);
             this.current_download_id = null;
             setTimeout(() => this.start_next_download(), 100);
         }
 
+        // otherwise, just delete it
         this.queue.delete(id);
         console.log("[downloader] removed from queue:", id);
 
