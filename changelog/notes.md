@@ -3,9 +3,13 @@
 ## new stuff
 
 - added auto update (windows, appimage on linux)
+- allow leaving beatmap preview on escape
+- allow select all beatmaps using ctrl + a
 - clear beatmap selection on escape
 
 ## bug fixes
+
+- some build issues
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.3.0...v2.4.0
 
