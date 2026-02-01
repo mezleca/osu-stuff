@@ -10,8 +10,8 @@
 <div class="checkbox-wrapper">
     <div class="checkbox">
         <input
+            {id}
             type="checkbox"
-            id="lazer_checkbox"
             bind:checked={value}
             onchange={() => {
                 if (onchange) onchange(id, value);
