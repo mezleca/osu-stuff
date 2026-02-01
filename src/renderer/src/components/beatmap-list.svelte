@@ -39,8 +39,9 @@
     };
 
     onMount(() => {
+        // remove selected beatmaps on scape
+        // order: multi selection -> selection
         const handle_unselected_id = input.on("escape", () => {
-            // order: multi selection -> selection
             if (list_manager.get_selected_buffer().length > 0) {
                 list_manager.clear_selected_buffer();
             } else if (list_manager.get_selected()) {
@@ -48,8 +49,27 @@
             }
         });
 
+        // select all beatmaps on ctrl + a
+        const handle_select_all_id = input.on("control+a", () => {
+            const items = list_manager.get_items();
+            const items_size = items.length;
+
+            let selected_size = list_manager.get_selected_buffer().length;
+
+            if (list_manager.get_selected()) {
+                selected_size++;
+            }
+
+            if (selected_size >= items_size) {
+                return;
+            }
+
+            list_manager.selected_buffer.set(items);
+        });
+
         return () => {
             input.unregister(handle_unselected_id);
+            input.unregister(handle_select_all_id);
         };
     });
 </script>

@@ -25,7 +25,6 @@ export const start_update = throttle(async () => {
 
         progress_data.updating = true;
 
-        // TOFIX: im not sure if electron-builder will notify errors on downloadUpdate thing
         const result = await window.api.invoke("updater:update");
 
         if (!result.success) {
