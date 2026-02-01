@@ -185,7 +185,7 @@ jobs:
                   name: windows-build
                   path: |
                       dist/*.exe
-                      dist/latest-windows.yml
+                      dist/latest.yml
 
     create_release:
         needs: [prepare, build_linux, build_windows]
