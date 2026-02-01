@@ -10,6 +10,7 @@
 ## bug fixes
 
 - some build issues
+- fix checkboxes conflicting with each other on config tab
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.3.0...v2.4.0
 
