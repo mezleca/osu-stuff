@@ -9,6 +9,8 @@ directories:
 
 asarUnpack:
     - resources/**
+    - "**/*.node"
+    - "!**/node_modules/realm/prebuilds/**"
 
 files:
     - out/**
