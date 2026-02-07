@@ -17,7 +17,7 @@ import { config } from "../../database/config";
 
 import fs from "fs";
 import path from "path";
-import beatmap_parser from "@rel-packages/osu-beatmap-parser";
+import * as beatmap_parser from "@rel-packages/osu-beatmap-parser";
 
 const CHUNK_SIZE = 100;
 

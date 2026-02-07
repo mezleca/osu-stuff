@@ -1,3 +1,14 @@
+# v2.4.2
+
+## new stuff
+
+## bug fixes
+
+- build: fix beatmap parser import in bundled builds
+- build: unpack native .node addons (exclude realm prebuilds)
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.1...v2.4.2
+
 # v2.4.1
 
 ## new stuff
