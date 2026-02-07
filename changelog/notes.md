@@ -1,3 +1,14 @@
+# v2.4.3
+
+## new stuff
+
+## bug fixes
+
+- radio: skip invalid beatmaps without blocking input
+- beatmaps: ignore select-all while typing in search
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.2...v2.4.3
+
 # v2.4.2
 
 ## new stuff

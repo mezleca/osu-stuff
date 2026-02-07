@@ -62,26 +62,69 @@
         list.set_items(beatmaps, undefined, false);
     }, 100);
 
-    const get_next_id_callback = async (direction: any) => {
+    const retry_random = debounce(() => audio.force_random.set(true), 200);
+    const trigger_random = debounce(() => audio.force_random.set(true), 50);
+
+    const pick_next_valid_id = async (direction: any) => {
         const beatmaps = list.get_items();
 
         if (beatmaps.length == 0) {
             return null;
         }
 
-        const current_index = $selected.index;
-        const next_idx = audio.calculate_next_index(current_index, beatmaps.length, direction);
+        const tried = new Set<number>();
+        let attempts = 0;
+        let current_index = $selected?.index ?? 0;
+
+        while (attempts < beatmaps.length) {
+            const next_idx = audio.calculate_next_index(current_index, beatmaps.length, direction);
+
+            if (tried.has(next_idx)) {
+                attempts++;
+                current_index = next_idx;
+                continue;
+            }
+
+            tried.add(next_idx);
+
+            const beatmap_id = beatmaps[next_idx];
+            const beatmap = await get_beatmap(beatmap_id);
+
+            if (!beatmap?.audio) {
+                console.log("[radio] skipping invalid beatmap:", beatmap_id);
+                attempts++;
+                current_index = next_idx;
+                continue;
+            }
+
+            return { beatmap_id, index: next_idx };
+        }
+
+        return null;
+    };
+
+    const commit_next_id = (data: { beatmap_id: string; index: number }) => {
+        list.previous_buffer.update((old) => [...old, { md5: data.beatmap_id, index: data.index }]);
+
+        if (!$selected || data.index != $selected.index) {
+            list.select(data.beatmap_id, data.index);
+        }
+    };
+
+    const get_next_id_callback = async (direction: any) => {
+        const result = await pick_next_valid_id(direction);
 
         audio.force_random.set(false);
 
-        const beatmap_id = beatmaps[next_idx];
-        list.previous_buffer.update((old) => [...old, { md5: beatmap_id, index: next_idx }]);
-
-        if (next_idx != current_index) {
-            list.select(beatmap_id, next_idx);
+        if (!result) {
+            if (direction === 0) {
+                retry_random();
+            }
+            return null;
         }
 
-        return beatmap_id;
+        commit_next_id(result);
+        return result.beatmap_id;
     };
 
     const get_beatmap_callback = async (beatmap_id: string) => {
@@ -130,7 +173,7 @@
 
         // select random
         const handle_random_id = input.on("f2", () => {
-            audio.force_random.set(true);
+            trigger_random();
         });
 
         // get previous random songs

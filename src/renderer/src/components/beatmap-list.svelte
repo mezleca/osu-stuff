@@ -2,6 +2,7 @@
     import type { BeatmapList } from "../lib/store/beatmaps";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
+    import { is_typing } from "../lib/store/other";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
@@ -51,6 +52,10 @@
 
         // select all beatmaps on ctrl + a
         const handle_select_all_id = input.on("control+a", () => {
+            if ($is_typing) {
+                return;
+            }
+
             const items = list_manager.get_items();
             const items_size = items.length;
 
