@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeAll, afterAll } from "vitest";
-import { get_driver } from "@main/database/drivers/driver";
+import { get_driver } from "@main/osu/drivers/driver";
 import { create_temp_beatmap } from "../utils/utils";
 import { setup_config } from "../utils/utils";
 

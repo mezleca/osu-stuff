@@ -17,6 +17,7 @@ import { config } from "../../database/config";
 
 import fs from "fs";
 import path from "path";
+import audio_util from "@rel-packages/audio-utils";
 import * as beatmap_parser from "@rel-packages/osu-beatmap-parser";
 
 const CHUNK_SIZE = 100;
@@ -196,27 +197,38 @@ class StableBeatmapDriver extends BaseDriver {
             return null;
         }
 
-        const file_path = path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap.file);
-        const beatmap_properties = beatmap_parser.get_properties(file_path, ["AudioFilename", "Background"]);
+        try {
+            const file_location = path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap.file);
 
-        const background_location = beatmap_properties.Background
-            ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.Background)
-            : "";
+            if (!fs.existsSync(file_location)) {
+                return null;
+            }
 
-        const audio_location = beatmap_properties.AudioFilename
-            ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.AudioFilename)
-            : "";
+            const file_content = fs.readFileSync(file_location);
+            const beatmap_properties = beatmap_parser.get_properties(file_content, ["AudioFilename", "Background"]);
 
-        const audio_duration = audio_location ? beatmap_parser.get_audio_duration(audio_location) : 0;
+            const background_location = beatmap_properties.Background
+                ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.Background)
+                : "";
 
-        return {
-            md5: beatmap.md5,
-            last_modified,
-            background: background_location,
-            audio: audio_location,
-            video: "",
-            duration: audio_duration
-        };
+            const audio_location = beatmap_properties.AudioFilename
+                ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.AudioFilename)
+                : "";
+
+            const audio_duration = audio_location ? audio_util.get_duration(audio_location) : 0;
+
+            return {
+                md5: beatmap.md5,
+                last_modified,
+                background: background_location,
+                audio: audio_location,
+                video: "",
+                duration: audio_duration
+            };
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
     };
 
     get_player_name = (): string => {

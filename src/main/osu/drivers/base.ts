@@ -11,8 +11,7 @@ import {
     gamemode_to_code,
     ISearchResponse,
     ISearchSetResponse,
-    IBeatmapSetFilter,
-    ExportResult
+    IBeatmapSetFilter
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { osdb_parser } from "../../binary/osdb";

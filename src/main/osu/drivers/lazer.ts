@@ -26,6 +26,7 @@ import { beatmap_processor } from "../../database/processor";
 
 import * as beatmap_parser from "@rel-packages/osu-beatmap-parser";
 import Realm from "realm";
+import audio_util from "@rel-packages/audio-utils";
 import fs from "fs";
 import path from "path";
 
@@ -224,35 +225,47 @@ class LazerBeatmapDriver extends BaseDriver {
             return null;
         }
 
-        const file_path = get_lazer_file_location(osu_file.File.Hash);
-        const beatmap_properties = beatmap_parser.get_properties(file_path, ["AudioFilename", "Background"]);
+        try {
+            const file_location = get_lazer_file_location(osu_file.File.Hash);
 
-        const background_location = beatmap_properties.Background
-            ? get_lazer_file_location(
-                  beatmap.BeatmapSet.Files.find((file_usage) => {
-                      return file_usage.Filename == beatmap_properties.Background;
-                  })?.File?.Hash ?? ""
-              )
-            : "";
+            if (!fs.existsSync(file_location)) {
+                console.error("failed to find .osu (not found) for:", beatmap.Hash);
+                return null;
+            }
 
-        const audio_location = beatmap_properties.AudioFilename
-            ? get_lazer_file_location(
-                  beatmap.BeatmapSet.Files.find((file_usage) => {
-                      return file_usage.Filename == beatmap_properties.AudioFilename;
-                  })?.File?.Hash ?? ""
-              )
-            : "";
+            const osu_content = fs.readFileSync(file_location);
+            const beatmap_properties = beatmap_parser.get_properties(osu_content, ["AudioFilename", "Background"]);
 
-        const audio_duration = audio_location ? beatmap_parser.get_audio_duration(audio_location) : 0;
+            const background_location = beatmap_properties.Background
+                ? get_lazer_file_location(
+                      beatmap.BeatmapSet.Files.find((file_usage) => {
+                          return file_usage.Filename == beatmap_properties.Background;
+                      })?.File?.Hash ?? ""
+                  )
+                : "";
 
-        return {
-            md5: beatmap?.MD5Hash ?? "",
-            last_modified,
-            background: background_location,
-            audio: audio_location,
-            video: "",
-            duration: audio_duration
-        };
+            const audio_location = beatmap_properties.AudioFilename
+                ? get_lazer_file_location(
+                      beatmap.BeatmapSet.Files.find((file_usage) => {
+                          return file_usage.Filename == beatmap_properties.AudioFilename;
+                      })?.File?.Hash ?? ""
+                  )
+                : "";
+
+            const audio_duration = audio_location ? audio_util.get_duration(audio_location) : 0;
+
+            return {
+                md5: beatmap?.MD5Hash ?? "",
+                last_modified,
+                background: background_location,
+                audio: audio_location,
+                video: "",
+                duration: audio_duration
+            };
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
     };
 
     get_player_name = (): string => {
@@ -443,16 +456,17 @@ class LazerBeatmapDriver extends BaseDriver {
             return [];
         }
 
-        const osu_file = get_lazer_file_location(realm_osu_file.File?.Hash as string);
+        const file_location = get_lazer_file_location(realm_osu_file.File?.Hash as string);
 
-        if (!fs.existsSync(osu_file)) {
+        if (!fs.existsSync(file_location)) {
             console.error("failed to find .osu (not found) for:", beatmap.Hash);
             return [];
         }
 
-        files.push({ name: realm_osu_file.Filename as string, location: osu_file });
+        const osu_content = fs.readFileSync(file_location);
+        const properties = beatmap_parser.get_properties(osu_content, ["Background", "AudioFilename"]);
 
-        const properties = beatmap_parser.get_properties({ path: osu_file }, ["Background", "AudioFilename"]);
+        files.push({ name: realm_osu_file.Filename as string, location: file_location });
 
         // get the other files
         let found_background = false,
