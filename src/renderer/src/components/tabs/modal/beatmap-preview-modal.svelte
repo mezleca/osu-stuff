@@ -19,7 +19,7 @@
     let beatmap_is_invalid = false;
     let observer: ResizeObserver | null = null;
     let player: BeatmapPlayer | null = null;
-    let player_container: HTMLDivElement | null = null;
+    let canvas_container: HTMLDivElement | null = null;
     let canvas: HTMLCanvasElement | null = null;
     let assets_loaded = false;
 
@@ -35,10 +35,6 @@
     let duration = 0;
     let is_playing = false;
     let show_grid = false;
-
-    // overlay visibility
-    let overlay_visible = false;
-    let overlay_timeout: any = null;
 
     const default_hitsounds = [
         "drum--hitwhistle.wav",
@@ -94,23 +90,6 @@
             player.dispose();
             player = null;
         }
-    };
-
-    const reset_overlay_timeout = () => {
-        overlay_visible = true;
-        clearTimeout(overlay_timeout);
-        overlay_timeout = setTimeout(() => {
-            overlay_visible = false;
-        }, 1000);
-    };
-
-    const handle_mouse_move = () => {
-        reset_overlay_timeout();
-    };
-
-    const handle_mouse_leave = () => {
-        overlay_visible = false;
-        clearTimeout(overlay_timeout);
     };
 
     $: progress_percentage = duration > 0 ? (current_time / duration) * 100 : 0;
@@ -186,9 +165,9 @@
     };
 
     const resize_canvas = () => {
-        if (!player_container || !canvas) return;
+        if (!canvas_container || !canvas) return;
 
-        const rect = player_container.getBoundingClientRect();
+        const rect = canvas_container.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
         player?.resize(rect.width, rect.height);
@@ -218,13 +197,15 @@
         console.log("[setup_player] initializing");
 
         const target_volume = ($config.radio_volume ?? 50) / 100;
+        const hitsound_volume = Math.max(0.05, Math.min(0.3, target_volume * 0.35));
 
         if (!player) {
             player = new BeatmapPlayer({
                 canvas,
                 playfield_scale: 0.9,
                 auto_resize: true,
-                volume: target_volume
+                volume: target_volume,
+                hitsound_volume
             });
         }
 
@@ -286,9 +267,9 @@
             setup_player();
         }
 
-        if (player_container && !observer) {
+        if (canvas_container && !observer) {
             observer = new ResizeObserver(() => resize_canvas());
-            observer.observe(player_container);
+            observer.observe(canvas_container);
         }
 
         if (canvas && beatmap_hash && !beatmap_loaded && has_modal && !fetching_files) {
@@ -306,13 +287,7 @@
             <h2 style="color: white; font-weight: 500;">beatmap not found :c</h2>
         {:else}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-                class="player-container"
-                bind:this={player_container}
-                onclick={(e) => e.stopPropagation()}
-                onmousemove={handle_mouse_move}
-                onmouseleave={handle_mouse_leave}
-            >
+            <div class="player-container" onclick={(e) => e.stopPropagation()}>
                 {#if !beatmap_loaded}
                     <div class="loading-overlay">
                         <Spinner width={48} height={48} />
@@ -320,33 +295,33 @@
                     </div>
                 {/if}
 
-                <canvas bind:this={canvas} class:visible={beatmap_loaded}></canvas>
+                <div class="canvas-container" bind:this={canvas_container}>
+                    <canvas bind:this={canvas} class:visible={beatmap_loaded}></canvas>
+                </div>
 
-                <div class="overlay-container" class:visible={beatmap_loaded && overlay_visible}>
-                    <div class="player-overlay">
-                        <div class="beatmap-info">
-                            <span class="beatmap-title">
-                                {beatmap_data?.artist} - {beatmap_data?.title} [{beatmap_data?.difficulty}]
-                            </span>
-                            <button class="icon-button" onclick={open_on_browser}>open on browser</button>
-                        </div>
+                <div class="controls-container">
+                    <div class="beatmap-info">
+                        <span class="beatmap-title">
+                            {beatmap_data?.artist} - {beatmap_data?.title} [{beatmap_data?.difficulty}]
+                        </span>
+                        <button class="icon-button" onclick={open_on_browser}>open on browser</button>
+                    </div>
 
-                        <div class="controls-row">
-                            <button
-                                class="icon-button"
-                                onclick={(e) => {
-                                    debounced_pause_toggle();
-                                    e.currentTarget.blur();
-                                }}
-                            >
-                                {#if is_playing}
-                                    <Pause width={18} height={18} />
-                                {:else}
-                                    <Play width={18} height={18} />
-                                {/if}
-                            </button>
-                            <ControlBar value={progress_percentage} callback={seek} />
-                        </div>
+                    <div class="controls-row">
+                        <button
+                            class="icon-button"
+                            onclick={(e) => {
+                                debounced_pause_toggle();
+                                e.currentTarget.blur();
+                            }}
+                        >
+                            {#if is_playing}
+                                <Pause width={18} height={18} />
+                            {:else}
+                                <Play width={18} height={18} />
+                            {/if}
+                        </button>
+                        <ControlBar value={progress_percentage} callback={seek} />
                     </div>
                 </div>
             </div>
@@ -361,23 +336,35 @@
         justify-content: center;
         width: 100vw;
         height: 100vh;
+        padding: 32px;
+        box-sizing: border-box;
     }
 
     .player-container {
         position: relative;
-        width: 85%;
-        max-width: 1200px;
-        height: 75%;
+        width: min(1400px, 95%);
+        height: min(900px, 95%);
         background-color: #0c0c0c;
         border-radius: 12px;
+        margin-top: 4em;
         overflow: hidden;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
         border: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         flex-direction: column;
+        gap: 8px;
+    }
+
+    .canvas-container {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        background-color: #0c0c0c;
     }
 
     canvas {
+        width: 100%;
+        height: 100%;
         opacity: 0;
         transition: opacity 0.3s ease;
     }
@@ -400,32 +387,21 @@
         z-index: 10;
     }
 
-    .overlay-container {
-        position: absolute;
-        bottom: 12px;
-        left: 16px;
-        width: calc(100% - 32px);
+    .controls-container {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        opacity: 0;
-        transform: translateY(6px);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 20;
-        pointer-events: none;
-    }
-
-    .overlay-container.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
+        gap: 6px;
+        padding: 8px 10px 10px 10px;
+        background: rgba(10, 10, 10, 0.85);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .beatmap-info {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-left: 6px;
+        margin-left: 4px;
+        gap: 10px;
     }
 
     .beatmap-title,
@@ -433,22 +409,14 @@
         font-family: "Torus Semibold";
     }
 
-    .player-overlay {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 8px 12px;
-        background: rgba(10, 10, 10, 0.8);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+    .beatmap-title {
+        font-size: 13px;
     }
 
     .controls-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         width: 100%;
         height: 100%;
     }
@@ -461,11 +429,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 8px;
+        padding: 6px;
         border-radius: 8px;
         transition: all 0.2s;
         opacity: 0.8;
         font-family: "Torus SemiBold";
+        font-size: 12px;
     }
 
     .icon-button:hover {
