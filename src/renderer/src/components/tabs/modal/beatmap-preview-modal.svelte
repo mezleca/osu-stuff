@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
     import { ModalType, modals } from "../../../lib/utils/modal";
-    import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
+    import { BeatmapPlayer, GridLevel, load_default_fonts } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
     import { get_basename, string_is_valid, url_from_media } from "../../../lib/utils/utils";
     import { debounce } from "../../../lib/utils/timings";
@@ -21,6 +21,7 @@
     let player: BeatmapPlayer | null = null;
     let player_container: HTMLDivElement | null = null;
     let canvas: HTMLCanvasElement | null = null;
+    let assets_loaded = false;
 
     // data
     $: active_modals = $modals;
@@ -38,6 +39,54 @@
     // overlay visibility
     let overlay_visible = false;
     let overlay_timeout: any = null;
+
+    const default_hitsounds = [
+        "drum--hitwhistle.wav",
+        "drum-hitclap.wav",
+        "drum-hitclap3.wav",
+        "drum-hitnormal.wav",
+        "drum-hitnormalh.wav",
+        "drum-hitwhistle.wav",
+        "drum-sliderslide.wav",
+        "drum-slidertick.wav",
+        "normal-hitclap.wav",
+        "normal-hitclap2.wav",
+        "normal-hitfinish.wav",
+        "normal-hitfinish2.wav",
+        "normal-hitnormal.wav",
+        "normal-hitnormalh.wav",
+        "normal-hitwhistle.wav",
+        "normal-slidertick.wav",
+        "soft-hitclap.wav",
+        "soft-hitclap2.wav",
+        "soft-hitfinish.wav",
+        "soft-hitfinish2.wav",
+        "soft-hitnormal.wav",
+        "soft-hitnormal1.wav",
+        "soft-hitnormal2.wav",
+        "soft-hitsoft.wav",
+        "soft-hitwhistle.wav",
+        "soft-sliderslide.wav",
+        "soft-slidertick.wav",
+        "soft-sliderwhistle.wav"
+    ];
+
+    const load_default_hitsounds = async (target: BeatmapPlayer) => {
+        const base_url = import.meta.env.BASE_URL || "/";
+        const files = new Map<string, ArrayBuffer>();
+
+        for (const name of default_hitsounds) {
+            const response = await fetch(`${base_url}preview/hitsounds/${name}`);
+            if (!response.ok) {
+                continue;
+            }
+            files.set(name, await response.arrayBuffer());
+        }
+
+        if (files.size > 0) {
+            await target.load_hitsounds(files);
+        }
+    };
 
     const stop_player = () => {
         if (player) {
@@ -107,6 +156,13 @@
             if (!has_audio) throw Error("failed to get beatmap audio");
             if (!player) throw Error("player not initialized");
 
+            if (!assets_loaded) {
+                assets_loaded = true;
+                const base_url = import.meta.env.BASE_URL || "/";
+                await load_default_fonts(`${base_url}preview/fonts`);
+                await load_default_hitsounds(player);
+            }
+
             const result = await player.load_files(files);
 
             if (!result.success) {
@@ -161,14 +217,14 @@
     const setup_player = () => {
         console.log("[setup_player] initializing");
 
+        const target_volume = ($config.radio_volume ?? 50) / 100;
+
         if (!player) {
             player = new BeatmapPlayer({
                 canvas,
-                playfield_scale: 1,
-                volume: ($config.radio_volume ?? 50) / 100,
-                renderer_config: {
-                    scale: 1
-                }
+                playfield_scale: 0.9,
+                auto_resize: true,
+                volume: target_volume
             });
         }
 
@@ -309,9 +365,9 @@
 
     .player-container {
         position: relative;
-        width: 90%;
+        width: 85%;
         max-width: 1200px;
-        height: 70%;
+        height: 75%;
         background-color: #0c0c0c;
         border-radius: 12px;
         overflow: hidden;
@@ -322,8 +378,6 @@
     }
 
     canvas {
-        width: 100%;
-        height: 100%;
         opacity: 0;
         transition: opacity 0.3s ease;
     }
