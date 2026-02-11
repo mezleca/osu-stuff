@@ -145,13 +145,15 @@
         align-items: center;
         justify-content: center;
         flex: 1;
+        font-family: "Torus";
     }
 
     .processing-title {
         color: #fff;
         font-size: 1.5em;
-        margin-bottom: 1.4em;
+        margin-bottom: 1em;
         text-align: center;
+        font-family: "Torus SemiBold";
     }
 
     .processing-bar-container {
@@ -177,6 +179,7 @@
         width: 400px;
         white-space: nowrap;
         overflow: hidden;
+        font-family: "Torus SemiBold";
     }
 
     .processing-bottom-text {
@@ -187,6 +190,7 @@
         left: 0;
         width: 100vw;
         text-align: center;
+        font-family: "Torus SemiBold";
     }
 
     .main-container {
