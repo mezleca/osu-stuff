@@ -46,8 +46,9 @@ import { beatmap_processor } from "./database/processor";
 import fs from "fs";
 import path from "path";
 
-const resource_folder = path.join(app.getAppPath(), "resources");
-const icon_path = path.resolve(__dirname, "../../resources/icon.png");
+const app_resource_root = app.isPackaged ? process.resourcesPath : app.getAppPath();
+const resource_folder = path.join(app_resource_root, "resources");
+const icon_path = path.join(resource_folder, "icon.png");
 
 const file_privileges: Privileges = {
     secure: true,

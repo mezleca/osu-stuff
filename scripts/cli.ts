@@ -1,11 +1,9 @@
 import { spawn, build } from "bun";
 import type { Subprocess } from "bun";
-import { cp, rm, mkdir, readFile, writeFile } from "fs/promises";
+import { rm, mkdir } from "fs/promises";
 import { existsSync, watch } from "fs";
 import { execSync } from "child_process";
 import path from "path";
-
-import svelte_plugin from "./plugins/svelte";
 
 const ARGS = process.argv.slice(2);
 const IS_DEV = ARGS.includes("dev");
@@ -16,8 +14,6 @@ const PATHS = {
     OUT: path.resolve(__dirname, "../out"),
     SRC_MAIN: path.resolve(__dirname, "../src/main/index.ts"),
     SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts"),
-    SRC_RENDERER: path.resolve(__dirname, "../src/renderer/src/main.ts"),
-    HTML_TEMPLATE: path.resolve(__dirname, "../src/renderer/index.html"),
     RESOURCES: path.resolve(__dirname, "../resources")
 };
 
@@ -186,24 +182,18 @@ const build_preload = () => {
 };
 
 const build_renderer = async () => {
-    const assets_src = path.join(PATHS.ROOT, "src/renderer/src/assets");
+    console.log("[build] building renderer...");
 
-    if (existsSync(assets_src)) {
-        await cp(assets_src, path.join(PATHS.OUT, "renderer/assets"), { recursive: true });
-    }
-
-    await bundle({
-        label: "renderer",
-        entrypoints: [PATHS.SRC_RENDERER],
-        outdir: path.join(PATHS.OUT, "renderer"),
-        target: "browser",
-        plugins: [svelte_plugin]
+    const vite_build = spawn(["bunx", "vite", "build", "--config", path.join(PATHS.ROOT, "vite.config.ts")], {
+        stdout: "inherit",
+        stderr: "inherit"
     });
 
-    let html = await readFile(PATHS.HTML_TEMPLATE, "utf-8");
-    html = html.replace(/src="\/src\/main.ts"/, 'src="./main.js"').replace("</head>", '<link rel="stylesheet" href="./main.css">\n</head>');
+    const exit_code = await vite_build.exited;
 
-    await writeFile(path.join(PATHS.OUT, "renderer/index.html"), html);
+    if (exit_code !== 0) {
+        throw new Error(`renderer build failed (exit code: ${exit_code})`);
+    }
 };
 
 const start_electron = async (dev: boolean) => {

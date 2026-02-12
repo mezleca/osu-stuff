@@ -11,8 +11,7 @@ export default defineConfig({
     root: "src/renderer",
     plugins: [svelte()],
     resolve: {
-        alias: SHARED_ALIAS,
-        preserveSymlinks: true
+        alias: SHARED_ALIAS
     },
     optimizeDeps: {
         exclude: ["@rel-packages/osu-beatmap-parser", "@rel-packages/osu-beatmap-parser/browser"]
