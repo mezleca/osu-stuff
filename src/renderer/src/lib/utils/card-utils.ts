@@ -1,5 +1,5 @@
 import type { IBeatmapResult, BeatmapSetResult } from "@shared/types";
-import { url_from_media, string_is_valid } from "./utils";
+import { url_to_media, string_is_valid } from "./utils";
 import { config } from "../store/config";
 
 const PLACEHOLDER_IMAGE = "@assets/images/fallback.png";
@@ -20,7 +20,7 @@ export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): 
         }
 
         if (beatmap.background) {
-            const src = url_from_media(beatmap.background);
+            const src = url_to_media(beatmap.background);
             if (string_is_valid(src)) return src;
         }
 

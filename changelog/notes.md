@@ -1,3 +1,15 @@
+# v2.4.4
+
+## new stuff
+- preview: updated to 0.8.x (better font, hitsounds, etc...)
+
+## bug fixes
+
+- preview/radio: rare cases where media protocol failed to return files from weird folders
+- progress(ui): progress was using the default browser font instead of torus
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.3...v2.4.4
+
 # v2.4.3
 
 ## new stuff

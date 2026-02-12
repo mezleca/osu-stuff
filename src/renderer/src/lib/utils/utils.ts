@@ -1,8 +1,12 @@
 import type { FetchOptions, IFetchResponse } from "@shared/types";
 import { writable } from "svelte/store";
 
-export const url_from_media = (file: string): string => {
+export const url_to_media = (file: string): string => {
     return `media://${encodeURIComponent(file)}`;
+};
+
+export const url_to_resources = (file: string): string => {
+    return `resources://${encodeURIComponent(file)}`;
 };
 
 export const open_on_browser = (id: number): void => {
@@ -104,6 +108,36 @@ export const custom_fetch = async (options: FetchOptions): Promise<IFetchRespons
 export const context_separator = "<|=‎=|>";
 export const is_dev_mode = writable(false);
 export const mouse_position = { x: 0, y: 0 };
+export const default_hitsounds = [
+    "drum--hitwhistle.wav",
+    "drum-hitclap.wav",
+    "drum-hitclap3.wav",
+    "drum-hitnormal.wav",
+    "drum-hitnormalh.wav",
+    "drum-hitwhistle.wav",
+    "drum-sliderslide.wav",
+    "drum-slidertick.wav",
+    "normal-hitclap.wav",
+    "normal-hitclap2.wav",
+    "normal-hitfinish.wav",
+    "normal-hitfinish2.wav",
+    "normal-hitnormal.wav",
+    "normal-hitnormalh.wav",
+    "normal-hitwhistle.wav",
+    "normal-slidertick.wav",
+    "soft-hitclap.wav",
+    "soft-hitclap2.wav",
+    "soft-hitfinish.wav",
+    "soft-hitfinish2.wav",
+    "soft-hitnormal.wav",
+    "soft-hitnormal1.wav",
+    "soft-hitnormal2.wav",
+    "soft-hitsoft.wav",
+    "soft-hitwhistle.wav",
+    "soft-sliderslide.wav",
+    "soft-slidertick.wav",
+    "soft-sliderwhistle.wav"
+];
 
 document.addEventListener("mousemove", (event) => {
     mouse_position.x = event.clientX;

@@ -1,10 +1,10 @@
-import { app, shell, dialog, protocol, net } from "electron";
+import { app, shell, dialog, protocol, net, Privileges } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
 import { get_window, get_app_path } from "./database/utils";
 import { fetch_manager, media_manager } from "./fetch";
-import { handle_ipc, send_to_renderer } from "./ipc";
+import { handle_ipc } from "./ipc";
 import {
     add_beatmap,
     add_collection,
@@ -46,17 +46,24 @@ import { beatmap_processor } from "./database/processor";
 import fs from "fs";
 import path from "path";
 
+const resource_folder = path.join(app.getAppPath(), "resources");
 const icon_path = path.resolve(__dirname, "../../resources/icon.png");
+
+const file_privileges: Privileges = {
+    secure: true,
+    stream: true,
+    supportFetchAPI: true,
+    bypassCSP: true
+};
 
 protocol.registerSchemesAsPrivileged([
     {
         scheme: "media",
-        privileges: {
-            secure: true,
-            stream: true,
-            supportFetchAPI: true,
-            bypassCSP: true
-        }
+        privileges: file_privileges
+    },
+    {
+        scheme: "resources",
+        privileges: file_privileges
     }
 ]);
 
@@ -234,21 +241,52 @@ async function createWindow() {
     }
 }
 
+const normalize_protocol_path = (original: string, protocol: string): string => {
+    let location = decodeURIComponent(original.replace(`${protocol}://`, ""));
+
+    if (process.platform == "win32") {
+        location = location.replace(/\\/g, "/");
+        if (!location.includes(":/")) location = location.replace(/^([A-Z])\//, "$1:/");
+    }
+
+    // encode again because some paths will prob break without this
+    location = encodeURI(location).replace(/#/g, "%23");
+
+    return location;
+};
+
+const is_subdir = (parent: string, child: string): boolean => {
+    const resolved_parent = path.resolve(parent);
+    const resolved_child = path.resolve(child);
+    return resolved_child.startsWith(resolved_parent + path.sep) || resolved_child == resolved_parent;
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
-    // register protocol handler
+    // protocol to return files from fs
     protocol.handle("media", (req) => {
         try {
-            let location = decodeURIComponent(req.url.replace("media://", ""));
+            const normalized = normalize_protocol_path(req.url, "media");
+            return net.fetch(process.platform == "win32" ? `file:///${normalized}` : `file://${normalized}`);
+        } catch (err) {
+            console.error("protocol error:", err);
+            return new Response("not found", { status: 404 });
+        }
+    });
 
-            if (process.platform == "win32") {
-                location = location.replace(/\\/g, "/");
-                if (!location.includes(":/")) location = location.replace(/^([A-Z])\//, "$1:/");
+    // protocol to reutnr files from resources
+    protocol.handle("resources", (req) => {
+        try {
+            const normalized = normalize_protocol_path(req.url, "resources");
+            const asset_location = path.join(resource_folder, normalized);
+
+            if (!is_subdir(resource_folder, asset_location)) {
+                throw Error(`${asset_location} is not a subdir of: ${resource_folder}`);
             }
 
-            return net.fetch(process.platform == "win32" ? `file:///${location}` : `file://${location}`);
+            return net.fetch(process.platform == "win32" ? `file:///${asset_location}` : `file://${asset_location}`);
         } catch (err) {
             console.error("protocol error:", err);
             return new Response("not found", { status: 404 });

@@ -3,7 +3,7 @@
     import { ModalType, modals } from "../../../lib/utils/modal";
     import { BeatmapPlayer, GridLevel, load_default_fonts } from "@rel-packages/osu-beatmap-preview";
     import { beatmap_preview, get_beatmap } from "../../../lib/utils/beatmaps";
-    import { get_basename, string_is_valid, url_from_media } from "../../../lib/utils/utils";
+    import { default_hitsounds, get_basename, string_is_valid, url_to_media, url_to_resources } from "../../../lib/utils/utils";
     import { debounce } from "../../../lib/utils/timings";
     import { show_notification } from "../../../lib/store/notifications";
     import { config } from "../../../lib/store/config";
@@ -36,47 +36,21 @@
     let is_playing = false;
     let show_grid = false;
 
-    const default_hitsounds = [
-        "drum--hitwhistle.wav",
-        "drum-hitclap.wav",
-        "drum-hitclap3.wav",
-        "drum-hitnormal.wav",
-        "drum-hitnormalh.wav",
-        "drum-hitwhistle.wav",
-        "drum-sliderslide.wav",
-        "drum-slidertick.wav",
-        "normal-hitclap.wav",
-        "normal-hitclap2.wav",
-        "normal-hitfinish.wav",
-        "normal-hitfinish2.wav",
-        "normal-hitnormal.wav",
-        "normal-hitnormalh.wav",
-        "normal-hitwhistle.wav",
-        "normal-slidertick.wav",
-        "soft-hitclap.wav",
-        "soft-hitclap2.wav",
-        "soft-hitfinish.wav",
-        "soft-hitfinish2.wav",
-        "soft-hitnormal.wav",
-        "soft-hitnormal1.wav",
-        "soft-hitnormal2.wav",
-        "soft-hitsoft.wav",
-        "soft-hitwhistle.wav",
-        "soft-sliderslide.wav",
-        "soft-slidertick.wav",
-        "soft-sliderwhistle.wav"
-    ];
-
     const load_default_hitsounds = async (target: BeatmapPlayer) => {
-        const base_url = import.meta.env.BASE_URL || "/";
         const files = new Map<string, ArrayBuffer>();
 
         for (const name of default_hitsounds) {
-            const response = await fetch(`${base_url}preview/hitsounds/${name}`);
-            if (!response.ok) {
-                continue;
+            try {
+                const response = await fetch(url_to_resources(`hitsounds/${name}`));
+
+                if (!response.ok) {
+                    continue;
+                }
+
+                files.set(name, await response.arrayBuffer());
+            } catch (err) {
+                console.error(err);
             }
-            files.set(name, await response.arrayBuffer());
         }
 
         if (files.size > 0) {
@@ -120,25 +94,38 @@
             let has_audio = !!config.get("lazer_mode");
 
             for (const file of files_result) {
-                const response = await fetch(url_from_media(file.location));
+                try {
+                    const response = await fetch(url_to_media(file.location));
 
-                if (response.status != 200) {
-                    console.warn("failed to get file:", file.location);
-                    continue;
+                    if (response.status != 200) {
+                        console.warn("failed to get file:", file.location);
+                        continue;
+                    }
+
+                    if (file.name == get_basename(beatmap.audio)) has_audio = true;
+
+                    files.set(file.name, await response.arrayBuffer());
+                } catch (err) {
+                    console.error(err);
                 }
-
-                if (file.name == get_basename(beatmap.audio)) has_audio = true;
-
-                files.set(file.name, await response.arrayBuffer());
             }
 
-            if (!has_audio) throw Error("failed to get beatmap audio");
-            if (!player) throw Error("player not initialized");
+            if (!has_audio) {
+                throw Error("failed to get beatmap audio");
+            }
+
+            if (!player) {
+                throw Error("player not initialized");
+            }
 
             if (!assets_loaded) {
-                assets_loaded = true;
-                const base_url = import.meta.env.BASE_URL || "/";
-                await load_default_fonts(`${base_url}preview/fonts`);
+                // TOFIX: preview unload all loaded hitsounds on dispose...
+                // assets_loaded = true;
+
+                // TOFIX: this api sucks holy shit
+                await load_default_fonts(url_to_resources("fonts"));
+
+                // TOFIX: also, this should be a preview helper not something here
                 await load_default_hitsounds(player);
             }
 
