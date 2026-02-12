@@ -214,6 +214,28 @@ async function createWindow() {
             return { success: false, reason: String(err) };
         }
     });
+    handle_ipc("resources:get_hitsounds", () => {
+        try {
+            const hitsounds_path = path.join(resource_folder, "hitsounds");
+
+            if (!fs.existsSync(hitsounds_path)) {
+                return [];
+            }
+
+            return fs
+                .readdirSync(hitsounds_path, { withFileTypes: true })
+                .filter((entry) => entry.isFile())
+                .map((entry) => entry.name)
+                .filter((name) => {
+                    const lower_name = name.toLowerCase();
+                    return lower_name.endsWith(".wav") || lower_name.endsWith(".mp3") || lower_name.endsWith(".ogg");
+                })
+                .sort((a, b) => a.localeCompare(b));
+        } catch (error) {
+            console.error("failed to read hitsounds from resources:", error);
+            return [];
+        }
+    });
 
     // initialize auto updater
     updater.initialize();

@@ -372,6 +372,10 @@ export interface IpcSchema {
             params: string;
             result: GenericResult<Uint8Array>;
         };
+        "resources:get_hitsounds": {
+            params: undefined;
+            result: string[];
+        };
         // update
         "updater:update": {
             params: undefined;

@@ -205,7 +205,7 @@ class StableBeatmapDriver extends BaseDriver {
             }
 
             const file_content = fs.readFileSync(file_location);
-            const beatmap_properties = beatmap_parser.get_properties(file_content, ["AudioFilename", "Background"]);
+            const beatmap_properties = await beatmap_parser.get_properties(file_content, ["AudioFilename", "Background"]);
 
             const background_location = beatmap_properties.Background
                 ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.Background)

@@ -1,6 +1,7 @@
 # v2.4.4
 
 ## new stuff
+
 - preview: updated to 0.8.x (better font, hitsounds, etc...)
 
 ## bug fixes

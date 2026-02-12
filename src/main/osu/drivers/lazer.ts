@@ -234,7 +234,7 @@ class LazerBeatmapDriver extends BaseDriver {
             }
 
             const osu_content = fs.readFileSync(file_location);
-            const beatmap_properties = beatmap_parser.get_properties(osu_content, ["AudioFilename", "Background"]);
+            const beatmap_properties = await beatmap_parser.get_properties(osu_content, ["AudioFilename", "Background"]);
 
             const background_location = beatmap_properties.Background
                 ? get_lazer_file_location(
@@ -464,7 +464,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         const osu_content = fs.readFileSync(file_location);
-        const properties = beatmap_parser.get_properties(osu_content, ["Background", "AudioFilename"]);
+        const properties = await beatmap_parser.get_properties(osu_content, ["Background", "AudioFilename"]);
 
         files.push({ name: realm_osu_file.Filename as string, location: file_location });
 
