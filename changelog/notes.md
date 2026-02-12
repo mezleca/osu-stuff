@@ -3,6 +3,7 @@
 ## new stuff
 
 - preview: updated to 0.8.x (better font, hitsounds, etc...)
+- electron: updated to the latest version (fixed some weird window bugs)
 
 ## bug fixes
 

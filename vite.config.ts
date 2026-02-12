@@ -15,8 +15,6 @@ export default defineConfig({
         preserveSymlinks: true
     },
     optimizeDeps: {
-        // these packages create workers/wasm urls internally.
-        // pre-bundling in optimize deps rewrites paths and breaks worker resolution.
         exclude: ["@rel-packages/osu-beatmap-parser", "@rel-packages/osu-beatmap-parser/browser"]
     },
     build: {
