@@ -92,6 +92,48 @@
         });
     };
 
+    const show_multiline_notification = () => {
+        show_notification({
+            type: "info",
+            text: "line 1\nline 2\nline 3",
+            persist: true
+        });
+    };
+
+    const show_clickable_notification = () => {
+        show_notification({
+            type: "warning",
+            text: "click me to open releases",
+            persist: true,
+            on_click: async () => {
+                await window.api.invoke("shell:open", "https://github.com/mezleca/osu-stuff/releases/latest");
+            }
+        });
+    };
+
+    const show_confirm_notification = () => {
+        show_notification({
+            type: "confirm",
+            text: "confirm notification\nchoose an action:",
+            persist: true,
+            actions: [
+                {
+                    id: "confirm_ok",
+                    label: "ok",
+                    close_on_click: true
+                },
+                {
+                    id: "confirm_open",
+                    label: "open github",
+                    close_on_click: false,
+                    on_click: async () => {
+                        await window.api.invoke("shell:open", "https://github.com/mezleca/osu-stuff");
+                    }
+                }
+            ]
+        });
+    };
+
     onMount(async () => {
         if (beatmaps.length == 0) {
             const a = await window.api.invoke("driver:search_beatmaps", { query: "", sort: "artist", unique: false });
@@ -112,6 +154,9 @@
     <button onclick={() => show_beatmap_preview()}>show player</button>
     <button onclick={() => close_notification()}>end notification</button>
     <button oncontextmenu={open_context_menu}>open context menu (right click)</button>
+    <button onclick={() => show_multiline_notification()}>notification multiline</button>
+    <button onclick={() => show_clickable_notification()}>notification clickable</button>
+    <button onclick={() => show_confirm_notification()}>notification confirm</button>
 </div>
 
 <style>

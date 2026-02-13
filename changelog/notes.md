@@ -1,3 +1,18 @@
+# v2.4.5
+
+## new stuff
+
+- notification: fancy actions, confirm type
+- updater: clickable notifications to open latest release on browser
+
+## bug fixes
+
+- notification: fix text wrapping for no reason, align close icon
+- updater: handle automic update errors instead of doing nothing
+- updater: show warn if automatic update fails
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.4...v2.4.5
+
 # v2.4.4
 
 ## new stuff

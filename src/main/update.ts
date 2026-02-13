@@ -4,14 +4,24 @@ import { get_window } from "./database/utils";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
 
+const RELEASES_URL = "https://github.com/mezleca/osu-stuff/releases/latest";
+
 class StuffUpdater {
     active: boolean = false;
+    installing: boolean = false;
 
     initialize = () => {
         autoUpdater.autoDownload = false;
 
         handle_ipc("updater:install", () => {
-            autoUpdater.quitAndInstall();
+            try {
+                this.installing = true;
+                autoUpdater.quitAndInstall();
+                return { success: true, data: "install started" };
+            } catch (err) {
+                this.installing = false;
+                return { success: false, reason: this.build_manual_update_reason(err) };
+            }
         });
 
         handle_ipc("updater:check", () => {
@@ -23,9 +33,9 @@ class StuffUpdater {
                 // check if we support auto update for the current system / package
                 if (!autoUpdater.isUpdaterActive()) {
                     if (process.platform == "linux") {
-                        return { success: false, reason: "auto update is only supported for AppImage... please download the update manually" };
+                        return { success: false, reason: `auto update is not available for this linux package. install manually: ${RELEASES_URL}` };
                     } else {
-                        return { success: false, reason: "auto update is not supported for this platform... please download the update manually" };
+                        return { success: false, reason: `auto update is not supported for this platform. install manually: ${RELEASES_URL}` };
                     }
                 }
 
@@ -57,6 +67,28 @@ class StuffUpdater {
             send_to_renderer(window.webContents, "updater:new", data);
         });
 
+        autoUpdater.on("checking-for-update", () => {
+            const window = get_window("main");
+
+            if (!window) {
+                console.error("failed to get main window");
+                return;
+            }
+
+            send_to_renderer(window.webContents, "updater:checking", undefined);
+        });
+
+        autoUpdater.on("update-not-available", (data) => {
+            const window = get_window("main");
+
+            if (!window) {
+                console.error("failed to get main window");
+                return;
+            }
+
+            send_to_renderer(window.webContents, "updater:not_available", data);
+        });
+
         // TODO: send updater:progress to renderer
         autoUpdater.on("download-progress", () => {
             this.active = true;
@@ -86,10 +118,14 @@ class StuffUpdater {
 
             console.error("[updater] error:", data);
 
-            // skip update checks (only notify if we're downloading)
-            if (this.active) {
+            // skip passive update checks, but notify on download/install flows.
+            if (this.active || this.installing) {
+                const is_install_error = this.installing;
                 this.active = false;
-                send_to_renderer(window.webContents, "updater:finish", { success: false, reason: data.message });
+                this.installing = false;
+
+                const reason = is_install_error ? this.build_manual_update_reason(data) : data.message;
+                send_to_renderer(window.webContents, "updater:finish", { success: false, reason });
             }
         });
 
@@ -98,6 +134,11 @@ class StuffUpdater {
 
     check() {
         autoUpdater.checkForUpdates();
+    }
+
+    private build_manual_update_reason(err: unknown): string {
+        const message = err instanceof Error ? err.message : String(err);
+        return `failed to start auto install (${message}). install manually: ${RELEASES_URL}`;
     }
 }
 

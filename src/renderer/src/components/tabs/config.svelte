@@ -88,6 +88,15 @@
 
         show_notification({ type: "success", text: "reloaded successfully" });
     };
+
+    $: update_button_text = update_data.available ? "update osu-stuff" : "check for updates";
+    $: if (update_data.checking) {
+        update_button_text = "checking updates...";
+    } else if (update_data.updating) {
+        update_button_text = "downloading update...";
+    } else if (update_data.installing) {
+        update_button_text = "installing update...";
+    }
 </script>
 
 <div class="content tab-content">
@@ -189,9 +198,15 @@
             </div>
 
             <div class="config-buttons">
-                <button onclick={update_data.available ? start_update : check_for_updates} type="button">
-                    {update_data.available ? "update osu-stuff" : "check for updates"}
-                </button>
+                {#if !update_data.manual_update_required}
+                    <button
+                        onclick={update_data.available ? start_update : check_for_updates}
+                        disabled={update_data.checking || update_data.updating || update_data.installing}
+                        type="button"
+                    >
+                        {update_button_text}
+                    </button>
+                {/if}
                 <button type="button" onclick={reload_files}>reload files</button>
                 <button type="button" onclick={() => window.api.invoke("window:dev_tools")}> open dev tools </button>
             </div>

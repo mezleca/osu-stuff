@@ -387,7 +387,7 @@ export interface IpcSchema {
         };
         "updater:install": {
             params: undefined;
-            result: void;
+            result: GenericResult<string>;
         };
     };
     send: {
@@ -396,6 +396,8 @@ export interface IpcSchema {
         "export:update": IExportUpdate;
         "export:finish": IExportFinish;
         "updater:new": UpdateInfo;
+        "updater:checking": undefined;
+        "updater:not_available": UpdateInfo;
         "updater:finish": GenericResult<string>;
     };
     on: IpcSchema["send"];
