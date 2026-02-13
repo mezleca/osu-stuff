@@ -2,13 +2,14 @@
 
 ## new stuff
 
-- preview: beatmap loads 5x faster, hit burst animation, default hitsounds
+- preview: beatmap loads 5x faster, hit burst animation, default hitsounds and custom font
+  (might be wrong but i think its the same stable uses for the default skin)
 - electron: updated to the latest version (fixed some weird window bugs)
 
 ## bug fixes
 
 - preview/radio: rare cases where media protocol failed to return files from weird folders
-- preview: memory leak leading to system crash on 30+ min beatmaps (at least on linux, almost fried my sdd)
+- preview: memory leak leading to system crash on 30+ min beatmaps (at least on linux, almost fried my ssd)
 - progress(ui): progress was using the default browser font instead of torus
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.3...v2.4.4
