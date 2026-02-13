@@ -2,12 +2,13 @@
 
 ## new stuff
 
-- preview: updated to 0.8.x (better font, hitsounds, etc...)
+- preview: beatmap loads 5x faster, hit burst animation, default hitsounds
 - electron: updated to the latest version (fixed some weird window bugs)
 
 ## bug fixes
 
 - preview/radio: rare cases where media protocol failed to return files from weird folders
+- preview: memory leak leading to system crash on 30+ min beatmaps (at least on linux, almost fried my sdd)
 - progress(ui): progress was using the default browser font instead of torus
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.3...v2.4.4
