@@ -26,7 +26,7 @@
         "@electron-toolkit/utils": "^4.0.0",
         "@rel-packages/audio-utils": "^0.2.0",
         "@rel-packages/osu-beatmap-parser": "^1.5.6",
-        "@rel-packages/osu-beatmap-preview": "0.8.4",
+        "@rel-packages/osu-beatmap-preview": "0.9.0",
         "@types/archiver": "^7.0.0",
         "archiver": "^7.0.1",
         "better-sqlite3": "^12.6.2",

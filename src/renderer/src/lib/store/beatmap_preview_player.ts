@@ -3,6 +3,7 @@ import { BeatmapPlayer, GridLevel, load_font } from "@rel-packages/osu-beatmap-p
 import { beatmap_preview, get_beatmap } from "../utils/beatmaps";
 import { show_notification } from "./notifications";
 import { config } from "./config";
+import { get_audio_manager } from "./audio";
 import { get_basename, url_to_media, url_to_resources } from "../utils/utils";
 
 interface IBeatmapPreviewPlayerState {
@@ -31,11 +32,43 @@ class BeatmapPreviewPlayerStore {
     private player: BeatmapPlayer | null = null;
     private assets_loaded = false;
     private cached_hitsounds: string[] | null = null;
+    private radio_manager = get_audio_manager("radio");
+    private load_request_id = 0;
+    private load_controller: AbortController | null = null;
 
     subscribe = this.store.subscribe;
 
+    private pause_radio_until_preview_stops = () => {
+        if (!this.radio_manager.get_state().playing) {
+            return;
+        }
+
+        this.radio_manager.pause_until(() => !this.get_state().is_playing);
+    };
+
     private set_state = (data: Partial<IBeatmapPreviewPlayerState>) => {
         this.store.update((state) => ({ ...state, ...data }));
+    };
+
+    private start_load_request = (): { request_id: number; signal: AbortSignal } => {
+        this.abort_active_load();
+        this.load_controller = new AbortController();
+        this.load_request_id += 1;
+        return {
+            request_id: this.load_request_id,
+            signal: this.load_controller.signal
+        };
+    };
+
+    private is_request_active = (request_id: number): boolean => {
+        return request_id == this.load_request_id;
+    };
+
+    private abort_active_load = () => {
+        if (this.load_controller) {
+            this.load_controller.abort();
+            this.load_controller = null;
+        }
     };
 
     get_state = (): IBeatmapPreviewPlayerState => {
@@ -56,6 +89,7 @@ class BeatmapPreviewPlayerStore {
             auto_resize: true,
             volume: target_volume,
             hitsound_volume,
+            audio_offset: 30,
             skin: {
                 default_font: "osu default"
             }
@@ -74,6 +108,10 @@ class BeatmapPreviewPlayerStore {
 
         this.player.on("statechange", (playing) => {
             this.set_state({ is_playing: playing });
+
+            if (playing) {
+                this.pause_radio_until_preview_stops();
+            }
         });
     };
 
@@ -123,6 +161,8 @@ class BeatmapPreviewPlayerStore {
             return;
         }
 
+        const { request_id, signal } = this.start_load_request();
+
         this.set_state({
             fetching_files: true,
             beatmap_loaded: false,
@@ -142,41 +182,68 @@ class BeatmapPreviewPlayerStore {
                 throw Error("failed to get beatmap files...");
             }
 
-            const files: Map<string, ArrayBuffer> = new Map();
-            let has_audio = !!get(config).lazer_mode;
+            let osu_content: string | null = null;
+            let audio_data: ArrayBuffer | null = null;
+            let background_blob: Blob | undefined;
 
             for (const file of files_result) {
                 try {
-                    const response = await fetch(url_to_media(file.location));
+                    if (!this.is_request_active(request_id) || !this.player) {
+                        return;
+                    }
+
+                    const response = await fetch(url_to_media(file.location), { signal });
 
                     if (response.status != 200) {
                         console.warn("failed to get file:", file.location);
                         continue;
                     }
 
-                    if (file.name == get_basename(beatmap.audio)) {
-                        has_audio = true;
+                    const lower_name = file.name.toLowerCase();
+
+                    if (lower_name.endsWith(".osu")) {
+                        osu_content = await response.text();
+                        continue;
                     }
 
-                    files.set(file.name, await response.arrayBuffer());
+                    if (file.name == get_basename(beatmap.audio)) {
+                        audio_data = await response.arrayBuffer();
+                        continue;
+                    }
+
+                    if (beatmap.background && file.name == get_basename(beatmap.background)) {
+                        background_blob = await response.blob();
+                    }
                 } catch (error) {
+                    if ((error as Error)?.name == "AbortError") {
+                        return;
+                    }
                     console.error(error);
                 }
             }
 
-            if (!has_audio) {
+            if (!this.is_request_active(request_id) || !this.player) {
+                return;
+            }
+
+            if (!osu_content) {
+                throw Error("failed to get beatmap .osu");
+            }
+
+            if (!audio_data) {
                 throw Error("failed to get beatmap audio");
             }
 
             await this.ensure_assets();
 
-            const result = await this.player.load_files(files);
+            const result = await this.player.load_beatmap_files(osu_content, audio_data, background_blob);
 
             if (!result.success) {
                 // @ts-ignore
                 throw Error("failed to load beatmap: " + result.reason);
             }
 
+            this.pause_radio_until_preview_stops();
             this.player.play();
 
             this.set_state({
@@ -186,6 +253,9 @@ class BeatmapPreviewPlayerStore {
                 is_playing: this.player.is_playing
             });
         } catch (error: any) {
+            if (error?.name == "AbortError") {
+                return;
+            }
             console.error(error);
             show_notification({ type: "error", text: error?.message ?? "unknown error" });
 
@@ -194,7 +264,10 @@ class BeatmapPreviewPlayerStore {
                 beatmap_is_invalid: true
             });
         } finally {
-            this.set_state({ fetching_files: false });
+            if (this.is_request_active(request_id)) {
+                this.set_state({ fetching_files: false });
+                this.load_controller = null;
+            }
         }
     };
 
@@ -229,6 +302,9 @@ class BeatmapPreviewPlayerStore {
     };
 
     destroy_player = () => {
+        this.abort_active_load();
+        this.load_request_id += 1;
+
         if (!this.player) {
             return;
         }
