@@ -1,3 +1,16 @@
+# v2.4.6
+
+## new stuff
+
+- beatmap list: beatmap selection on arrow key (left / right)
+- loading/processing (ui): fade-out transition
+
+## bug fixes
+
+- processing: show processing on top of "loading" screen
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.5...v2.4.6
+
 # v2.4.5
 
 ## new stuff

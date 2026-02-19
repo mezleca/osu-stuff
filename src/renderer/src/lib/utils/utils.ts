@@ -20,17 +20,17 @@ export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElem
     }
 
     try {
-        const result = await window.api.invoke("media:get_buffer", audio_path);
+        const result = await fetch(url_to_media(audio_path));
 
-        if (!result.success) {
+        if (!result.ok) {
             return null;
         }
 
-        const blob = new Blob([result.data as any]);
-
+        const buffer = await result.arrayBuffer();
+        const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
-
         const audio = new Audio(url);
+
         audio.preload = "auto";
 
         // store blob url on the element to revoke it later
@@ -58,26 +58,6 @@ export const string_is_valid = (value: string) => {
     if (!value || value == "") return false;
     if (value?.trim() == "") return false;
     return true;
-};
-
-export const get_dirname = (file_path: string): string => {
-    if (!file_path) return ".";
-
-    // remove trailing slashes
-    let path = file_path;
-
-    while (path.length > 1 && path[path.length - 1] === "/") {
-        path = path.slice(0, -1);
-    }
-
-    // find last slash
-    const last_slash = path.lastIndexOf("/");
-
-    if (last_slash === -1) return ".";
-    if (last_slash === 0) return "/";
-
-    // return everything before last slash
-    return path.slice(0, last_slash);
 };
 
 export const get_basename = (file_path: string, extension?: string): string => {

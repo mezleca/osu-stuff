@@ -6,10 +6,17 @@ import { exec } from "child_process";
 import { GenericResult } from "@shared/types";
 import { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 
+const audio_ext: string[] = [".mp3", ".wav", ".ogg"];
+const created_windows: Map<string, BrowserWindow> = new Map();
+
 interface PathResult {
     stable_path: string;
     lazer_path: string;
 }
+
+export const is_audio = (file: string): boolean => {
+    return audio_ext.includes(path.extname(file));
+};
 
 export const get_app_path = (): string => {
     if (process.env["NODE_ENV"] == "test") {
@@ -103,8 +110,6 @@ export const get_osu_path = async (): Promise<GenericResult<PathResult>> => {
             return { success: false, reason: "unsupported platform" };
     }
 };
-
-const created_windows: Map<string, BrowserWindow> = new Map();
 
 const create_new_window = (name: string, options: BrowserWindowConstructorOptions) => {
     const new_window = new BrowserWindow(options);

@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 
 import { BaseDatabase } from "./database";
-import { get_app_path, get_osu_path } from "./utils";
+import { get_app_path, get_osu_path } from "../utils";
 import { StuffConfig } from "@shared/types";
 
 const CONFIG_KEYS = [

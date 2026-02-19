@@ -2,8 +2,8 @@ import { app, shell, dialog, protocol, net, Privileges } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
-import { get_window, get_app_path } from "./database/utils";
-import { fetch_manager, media_manager } from "./fetch";
+import { get_window, get_app_path, is_audio } from "./utils";
+import { fetch_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
 import {
     add_beatmap,
@@ -45,6 +45,7 @@ import { beatmap_processor } from "./database/processor";
 
 import fs from "fs";
 import path from "path";
+import { OpenDevToolsOptions } from "electron/utility";
 
 const app_resource_root = app.isPackaged ? process.resourcesPath : app.getAppPath();
 const resource_folder = path.join(app_resource_root, "resources");
@@ -55,6 +56,10 @@ const file_privileges: Privileges = {
     stream: true,
     supportFetchAPI: true,
     bypassCSP: true
+};
+
+const dev_tools_options: OpenDevToolsOptions = {
+    mode: "detach"
 };
 
 protocol.registerSchemesAsPrivileged([
@@ -104,7 +109,7 @@ async function createWindow() {
     handle_ipc("window:maximize", () => mainWindow.maximize());
     handle_ipc("window:unmaximize", () => mainWindow.unmaximize());
     handle_ipc("window:dialog", (_, args) => dialog.showOpenDialog(mainWindow, args[0]));
-    handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools());
+    handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools(dev_tools_options));
     handle_ipc("window:close", () => app.quit());
 
     // shell
@@ -194,27 +199,6 @@ async function createWindow() {
     handle_ipc("reader:read_osdb", (_, args) => read_osdb(args[0]));
     handle_ipc("reader:write_osdb", (_, args) => write_osdb(args[0]));
 
-    // media
-    handle_ipc("media:get", (_, args) => media_manager.get(args[0]));
-    handle_ipc("media:get_buffer", (_, args) => {
-        try {
-            const file_path = args[0];
-            const app_config = config.get();
-            const allowed_paths = [app_config.stable_songs_path, app_config.lazer_path].filter(Boolean);
-            const is_allowed = allowed_paths.some((p) => file_path.startsWith(p));
-
-            if (!is_allowed) {
-                console.error(`blocking unauthorized access to: ${file_path}`);
-                return { success: false, reason: "unauthorized" };
-            }
-
-            const buffer = fs.readFileSync(file_path);
-            return { success: true, data: new Uint8Array(buffer) };
-        } catch (err) {
-            console.error(`media:get_buffer error for ${args[0]}:`, err);
-            return { success: false, reason: String(err) };
-        }
-    });
     handle_ipc("resources:get_hitsounds", () => {
         try {
             const hitsounds_path = path.join(resource_folder, "hitsounds");
@@ -223,15 +207,19 @@ async function createWindow() {
                 return [];
             }
 
-            return fs
-                .readdirSync(hitsounds_path, { withFileTypes: true })
-                .filter((entry) => entry.isFile())
-                .map((entry) => entry.name)
-                .filter((name) => {
-                    const lower_name = name.toLowerCase();
-                    return lower_name.endsWith(".wav") || lower_name.endsWith(".mp3") || lower_name.endsWith(".ogg");
-                })
-                .sort((a, b) => a.localeCompare(b));
+            const entries = fs.readdirSync(hitsounds_path, { withFileTypes: true }).filter((entry) => entry.isFile());
+
+            const valid: string[] = [];
+
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i].name;
+
+                if (is_audio(entry)) {
+                    valid.push(entry);
+                }
+            }
+
+            return valid;
         } catch (error) {
             console.error("failed to read hitsounds from resources:", error);
             return [];
@@ -250,7 +238,7 @@ async function createWindow() {
 
     // auto open devtools in dev mode
     if (is_dev_mode()) {
-        mainWindow.webContents.openDevTools();
+        mainWindow.webContents.openDevTools(dev_tools_options);
     }
 
     const renderer_url = process.env["ELECTRON_RENDERER_URL"];

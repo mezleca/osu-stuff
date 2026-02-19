@@ -103,7 +103,7 @@
 {#if has_modal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="modal-container" onclick={cleanup} style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);">
+    <div class="modal-container" onclick={cleanup} style="background: rgba(0, 0, 0, 0.6);">
         {#if !string_is_valid(beatmap_hash) || preview_state.beatmap_is_invalid}
             <h2 style="color: white; font-weight: 500;">beatmap not found :c</h2>
         {:else}

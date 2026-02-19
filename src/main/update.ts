@@ -1,6 +1,6 @@
 import { autoUpdater } from "electron-updater";
 import { handle_ipc, send_to_renderer } from "./ipc";
-import { get_window } from "./database/utils";
+import { get_window } from "./utils";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
 

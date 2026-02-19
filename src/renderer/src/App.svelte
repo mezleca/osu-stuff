@@ -28,6 +28,8 @@
     import ProgressBox from "./components/utils/progress-box.svelte";
     import Spinner from "./components/icon/spinner.svelte";
     import ContextMenu from "./components/utils/context-menu.svelte";
+    import { fade } from "svelte/transition";
+    import { cubicOut } from "svelte/easing";
 
     $: initialized = false;
     $: processing_status = $processing_data?.status ?? "doing something";
@@ -80,7 +82,7 @@
 
     <!-- show loading screen on initialization -->
     {#if !initialized}
-        <div class="loading-screen" role="presentation" onmousedown={(e) => e.stopPropagation()}>
+        <div class="loading-screen" role="presentation" onmousedown={(e) => e.stopPropagation()} transition:fade={{ easing: cubicOut }}>
             <Spinner width={48} height={48} />
             <h1 class="loading-status" style="color: white;">loading...</h1>
         </div>
@@ -88,7 +90,7 @@
 
     <!-- processing screen -->
     {#if $processing}
-        <div class="processing-overlay">
+        <div class="processing-overlay" transition:fade={{ easing: cubicOut }}>
             <div class="processing-center">
                 <div class="processing-title">{processing_status}</div>
                 <div class="processing-bar-container">
@@ -132,7 +134,7 @@
         width: 100vw;
         height: 100vh;
         background: rgba(20, 20, 20, 0.95);
-        z-index: 1001;
+        z-index: 99999;
         display: flex;
         flex-direction: column;
         justify-content: center;

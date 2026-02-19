@@ -1,6 +1,6 @@
 import { BeatmapRow, ExtractedData, GenericResult } from "@shared/types";
 import { BaseDatabase } from "./database.js";
-import { get_app_path, throttle } from "./utils.js";
+import { get_app_path, throttle } from "../utils.js";
 import { send_to_renderer } from "../ipc.js";
 import { BrowserWindow } from "electron";
 
@@ -35,8 +35,8 @@ export class ProcessorDatabase extends BaseDatabase {
         if (
             !this.prepare_statement(
                 "insert_beatmap",
-                `INSERT OR REPLACE INTO beatmaps 
-            (md5, last_modified, background, audio, video, duration) 
+                `INSERT OR REPLACE INTO beatmaps
+            (md5, last_modified, background, audio, video, duration)
             VALUES (?, ?, ?, ?, ?, ?)`
             )
         )
@@ -45,7 +45,7 @@ export class ProcessorDatabase extends BaseDatabase {
         if (
             !this.prepare_statement(
                 "get_by_md5",
-                `SELECT md5, last_modified, background, audio, video, duration 
+                `SELECT md5, last_modified, background, audio, video, duration
             FROM beatmaps WHERE md5 = ?`
             )
         )

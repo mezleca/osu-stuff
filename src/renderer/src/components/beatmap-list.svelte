@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import type { BeatmapList } from "../lib/store/beatmaps";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
@@ -6,7 +7,6 @@
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
-    import { onMount } from "svelte";
 
     export let list_manager: BeatmapList;
     export let height = 100;
@@ -50,6 +50,62 @@
             }
         });
 
+        const handle_arrow_left_id = input.on("arrowleft", () => {
+            if ($is_typing) {
+                return;
+            }
+
+            const current_selected = list_manager.get_selected();
+
+            if (!current_selected) {
+                return;
+            }
+
+            const items = list_manager.get_items();
+            const current_idx = current_selected.index;
+
+            if (current_idx == 0) {
+                return;
+            }
+
+            const next_idx = current_idx - 1;
+            const hash = items[next_idx];
+
+            if (!hash) {
+                return;
+            }
+
+            list_manager.select(hash, next_idx);
+        });
+
+        const handle_arrow_right_id = input.on("arrowright", () => {
+            if ($is_typing) {
+                return;
+            }
+
+            const current_selected = list_manager.get_selected();
+
+            if (!current_selected) {
+                return;
+            }
+
+            const items = list_manager.get_items();
+            const current_idx = current_selected.index;
+
+            if (current_idx >= items.length - 1) {
+                return;
+            }
+
+            const next_idx = current_idx + 1;
+            const hash = items[next_idx];
+
+            if (!hash) {
+                return;
+            }
+
+            list_manager.select(hash, next_idx);
+        });
+
         // select all beatmaps on ctrl + a
         const handle_select_all_id = input.on("control+a", () => {
             if ($is_typing) {
@@ -75,6 +131,8 @@
         return () => {
             input.unregister(handle_unselected_id);
             input.unregister(handle_select_all_id);
+            input.unregister(handle_arrow_left_id);
+            input.unregister(handle_arrow_right_id);
         };
     });
 </script>

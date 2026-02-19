@@ -363,15 +363,6 @@ export interface IpcSchema {
             params: undefined;
             result: boolean;
         };
-        // media
-        "media:get": {
-            params: string;
-            result: GenericResult<ArrayBuffer>;
-        };
-        "media:get_buffer": {
-            params: string;
-            result: GenericResult<Uint8Array>;
-        };
         "resources:get_hitsounds": {
             params: undefined;
             result: string[];

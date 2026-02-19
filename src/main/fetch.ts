@@ -160,5 +160,4 @@ export class FetchManager {
     }
 }
 
-export const media_manager = new MediaManager();
 export const fetch_manager = new FetchManager();

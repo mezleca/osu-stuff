@@ -89,7 +89,7 @@ class BeatmapPreviewPlayerStore {
             auto_resize: true,
             volume: target_volume,
             hitsound_volume,
-            audio_offset: 30,
+            audio_offset: 20,
             skin: {
                 default_font: "osu default"
             }

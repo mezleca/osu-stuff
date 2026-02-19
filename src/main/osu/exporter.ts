@@ -1,5 +1,5 @@
 import { get_driver } from "./drivers/driver";
-import { get_window } from "../database/utils";
+import { get_window } from "../utils";
 import type { IOsuDriver } from "@shared/types";
 
 interface IExportState {
