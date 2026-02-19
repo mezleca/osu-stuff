@@ -8,6 +8,7 @@
 ## bug fixes
 
 - processing: show processing on top of "loading" screen
+- devtools: always open detached
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.5...v2.4.6
 
