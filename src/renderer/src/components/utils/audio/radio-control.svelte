@@ -26,7 +26,7 @@
     const get_current_id = () => $selected?.md5;
 
     $: audio_state = $audio_manager;
-    $: is_playing = audio_state.playing && audio_state.id == get_current_id();
+    $: is_playing = audio_state.playing;
     $: is_loading = audio_state.is_loading;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
@@ -49,12 +49,14 @@
 
         const state = audio_state;
 
-        if (state.id == get_current_id() && state.audio) {
-            if (state.playing) {
-                audio_manager.pause();
-            } else {
-                await audio_manager.play();
-            }
+        if (!state.audio) {
+            return;
+        }
+
+        if (state.playing) {
+            audio_manager.pause();
+        } else {
+            await audio_manager.play();
         }
     };
 

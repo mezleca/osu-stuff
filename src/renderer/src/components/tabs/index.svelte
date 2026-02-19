@@ -17,19 +17,27 @@
     ];
 
     onMount(() => {
-        // handle links to open in external browser
-        const all_links = [...container.querySelectorAll("a")];
+        const handle_link_click = (e) => {
+            const element = e.target;
+            const target_link = element?.closest?.("a");
 
-        for (const link of all_links) {
-            link.addEventListener("click", (e) => {
-                e.preventDefault();
-                const target_url = e.target.getAttribute("href");
+            if (!target_link || !container.contains(target_link)) {
+                return;
+            }
 
-                if (target_url && target_url != "") {
-                    window.api.invoke("shell:open", target_url);
-                }
-            });
-        }
+            e.preventDefault();
+            const target_url = target_link.getAttribute("href");
+
+            if (target_url && target_url != "") {
+                window.api.invoke("shell:open", target_url);
+            }
+        };
+
+        container.addEventListener("click", handle_link_click);
+
+        return () => {
+            container.removeEventListener("click", handle_link_click);
+        };
     });
 </script>
 

@@ -39,7 +39,7 @@
 
 <div class="content tab-content">
     <div class="manager-content">
-        <div class="content-header" style="z-index: 99999;">
+        <div class="content-header">
             <Search placeholder="search local beatmaps" value={$query} callback={(q) => list.set_query(q)} />
             <ExpandableMenu>
                 <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />

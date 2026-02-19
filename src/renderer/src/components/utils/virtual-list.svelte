@@ -312,6 +312,28 @@
         }
     };
 
+    const notify_visible_updates = (): void => {
+        if (!on_update || visible_items <= 0) {
+            return;
+        }
+
+        if (columns_mode) {
+            for (let row_index = start_index; row_index < end_index; row_index++) {
+                const column_items = get_column_items(row_index);
+
+                for (let i = 0; i < column_items.length; i++) {
+                    on_update(column_items[i]);
+                }
+            }
+
+            return;
+        }
+
+        for (let item_index = start_index; item_index < end_index; item_index++) {
+            on_update(item_index);
+        }
+    };
+
     const reset = (): void => {
         element_cache = new WeakMap();
         hovered_item = -1;
@@ -323,6 +345,10 @@
 
     $: if (carousel_enabled && visible_items > 0) {
         carousel_update();
+    }
+
+    $: if (on_update && visible_items > 0) {
+        notify_visible_updates();
     }
 
     $: if (key) {
@@ -385,9 +411,6 @@
                 data-index={row_index}
             >
                 {#each column_items as item_index}
-                    {#if on_update}
-                        {on_update(item_index)}
-                    {/if}
                     <div
                         id={key}
                         class="item {direction} column-item"
@@ -402,9 +425,6 @@
                 {/each}
             </div>
         {:else}
-            {#if on_update}
-                {on_update(actual_index)}
-            {/if}
             <div
                 id={key}
                 class="item {direction}"
@@ -448,7 +468,6 @@
 
     .item {
         cursor: pointer;
-        will-change: contents;
         overflow: visible;
     }
 

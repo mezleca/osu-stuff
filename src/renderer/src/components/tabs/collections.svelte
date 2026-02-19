@@ -36,7 +36,6 @@
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
     $: collection_search = collections.query;
-    $: all_collections = collections.all_collections;
     $: collection_should_update = collections.needs_update;
 
     const debounced_filter = debounce(async (force: boolean = false) => {
@@ -167,8 +166,8 @@
         }
     };
 
-    // update collection object on query or when we update something from the collections object
-    $: if ($collection_search != undefined || $all_collections) {
+    // update collection object on query updates
+    $: if ($collection_search != undefined) {
         collections.filter();
     }
 

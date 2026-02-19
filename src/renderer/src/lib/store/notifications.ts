@@ -31,6 +31,11 @@ const DEFAULT_NOTIFICATION: Omit<INotification, "id" | "text"> = Object.freeze({
 });
 
 const start_timeout = (id: string, duration: number): void => {
+    const existing_timeout = timeouts.get(id);
+    if (existing_timeout) {
+        clearTimeout(existing_timeout);
+    }
+
     const timeout = setTimeout(() => remove_notification(id), duration);
     timeouts.set(id, timeout);
 };
@@ -83,7 +88,7 @@ export const edit_notification = (id: string, data: Partial<INotification>): voi
 export const finish_notification = (id: string, data?: Partial<INotification>): void => {
     notifications_store.update((all) => {
         return all.map((n) => {
-            if (n.id != id || !n.persist) return n;
+            if (n.id != id) return n;
             if (data) Object.assign(n, data);
             start_timeout(n.id, n.duration);
             return { ...n, persist: false };

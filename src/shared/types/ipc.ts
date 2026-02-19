@@ -178,7 +178,7 @@ export interface IpcSchema {
             result: ReturnType<IOsuDriver["get_collections"]>;
         };
         "driver:update_collection": {
-            params: [];
+            params: [string?];
             result: ReturnType<IOsuDriver["update_collection"]>;
         };
         "driver:export_collections": {
@@ -316,6 +316,10 @@ export interface IpcSchema {
             params: string;
             result: void;
         };
+        "shell:open_path": {
+            params: string;
+            result: string;
+        };
         // window
         "window:minimize": {
             params: undefined;
@@ -399,13 +403,12 @@ export type SendChannels = keyof IpcSchema["send"];
 export type OnChannels = keyof IpcSchema["on"];
 export type InvokeParams<T extends InvokeChannels> = IpcSchema["invoke"][T]["params"];
 export type InvokeResult<T extends InvokeChannels> = IpcSchema["invoke"][T]["result"];
+export type InvokeArgs<T extends InvokeChannels> =
+    InvokeParams<T> extends undefined ? [] : InvokeParams<T> extends any[] ? InvokeParams<T> : [InvokeParams<T>];
 export type SendPayload<T extends SendChannels> = IpcSchema["send"][T];
 export type OnPayload<T extends OnChannels> = IpcSchema["on"][T];
 
 export interface ElectronApi {
-    invoke: <T extends InvokeChannels>(
-        channel: T,
-        ...args: InvokeParams<T> extends undefined ? [] : InvokeParams<T> extends any[] ? InvokeParams<T> : [InvokeParams<T>]
-    ) => Promise<InvokeResult<T>>;
+    invoke: <T extends InvokeChannels>(channel: T, ...args: InvokeArgs<T>) => Promise<InvokeResult<T>>;
     on: <T extends OnChannels>(channel: T, callback: (payload: OnPayload<T>) => void) => () => void;
 }

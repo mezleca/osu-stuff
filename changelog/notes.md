@@ -1,3 +1,21 @@
+# v2.5.0
+
+## new stuff
+
+- radio: seek through timeline using shift + arrow key (left, right)
+- beatmap export: added button to open exports folder on finish notification
+- notifications: more improvement to notification actions style
+
+<img width="657" height="438" alt="Image" src="https://github.com/user-attachments/assets/292610cf-d6c1-4ca4-9752-57396dee4a7f" />
+
+## bug fixes
+
+- everything: cleanup
+- radio: race condition on "f2" causing the wrong song to be played
+- discover: search bar being on top of notification
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.4.6...v2.5.0
+
 # v2.4.6
 
 ## new stuff

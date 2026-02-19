@@ -70,6 +70,25 @@
         }
     }, 50);
 
+    const fetch_beatmaps_with_limit = async (hashes: string[], concurrency: number): Promise<IBeatmapResult[]> => {
+        const results: IBeatmapResult[] = [];
+
+        for (let i = 0; i < hashes.length; i += concurrency) {
+            const batch = hashes.slice(i, i + concurrency);
+            const batch_result = await Promise.all(batch.map((hash) => get_beatmap(hash)));
+
+            for (let j = 0; j < batch_result.length; j++) {
+                const beatmap = batch_result[j];
+
+                if (beatmap != undefined) {
+                    results.push(beatmap);
+                }
+            }
+        }
+
+        return results;
+    };
+
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
 
@@ -96,8 +115,8 @@
 
         // preload and sort beatmaps
         if (state.beatmapset && state.beatmapset.beatmaps && sorted_beatmaps.length === 0) {
-            const beatmaps = await Promise.all(state.beatmapset.beatmaps.map((hash) => get_beatmap(hash)));
-            sorted_beatmaps = beatmaps.filter((b) => b !== undefined).sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
+            const beatmaps = await fetch_beatmaps_with_limit(state.beatmapset.beatmaps, 8);
+            sorted_beatmaps = beatmaps.sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
 
             // set first beatmap for controls
             if (sorted_beatmaps.length > 0) {

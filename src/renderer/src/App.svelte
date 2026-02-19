@@ -42,32 +42,37 @@
         $is_maximized = state == "maximized";
     };
 
-    onMount(async () => {
-        try {
-            // update maximzed state
-            await toggle_maximized();
+    onMount(() => {
+        const debounced_toggle_maximized = debounce(toggle_maximized, 150);
 
-            // initialize config system
-            await config.load();
+        (async () => {
+            try {
+                // update maximzed state
+                await toggle_maximized();
 
-            // check if we're on dev mode
-            is_dev_mode.set(await window.api.invoke("env:dev_mode"));
+                // check if we're on dev mode
+                is_dev_mode.set(await window.api.invoke("env:dev_mode"));
 
-            // initialize downloader events
-            await downloader.initialize();
+                // initialize downloader events
+                await downloader.initialize();
 
-            // then initialize
-            await get_osu_data();
-        } catch (err) {
-            console.log(err);
-            show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
-        } finally {
-            initialized = true;
-        }
+                // then initialize
+                await get_osu_data();
+            } catch (err) {
+                console.log(err);
+                show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
+            } finally {
+                initialized = true;
+            }
+        })();
+
+        window.addEventListener("resize", debounced_toggle_maximized);
+
+        return () => {
+            window.removeEventListener("resize", debounced_toggle_maximized);
+            debounced_toggle_maximized.cancel();
+        };
     });
-
-    // check for maximized state on resize
-    window.addEventListener("resize", debounce(toggle_maximized, 50));
 </script>
 
 <main>

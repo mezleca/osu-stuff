@@ -18,6 +18,8 @@
                 return WarningIcon;
             case "success":
                 return SuccessIcon;
+            case "info":
+                return Spinner;
             default:
                 return SuccessIcon;
         }
@@ -41,19 +43,35 @@
 
 <div class="notification-container">
     {#each $notifications_store as notification}
-        <div class="notification {notification.type}" class:clickable={Boolean(notification.on_click)} transition:fade>
-            <div class="notification-content">
-                <svelte:component this={get_icon(notification.type, notification.persist)} />
-                {#if notification.on_click}
-                    <button class="notification-link" onclick={(event) => handle_notification_content_click(event, notification.id)}>
-                        <h2 class="notification-text">{notification.text}</h2>
-                    </button>
-                {:else}
-                    <h2 class="notification-text">{notification.text}</h2>
-                {/if}
+        <div class="notification-shell" transition:fade>
+            <div class="notification notification-main {notification.type}" class:clickable={Boolean(notification.on_click)}>
+                <div class="notification-icon-rail">
+                    <svelte:component this={get_icon(notification.type, notification.persist)} />
+                </div>
+
+                <div class="notification-body">
+                    <div class="notification-content">
+                        {#if notification.on_click}
+                            <button class="notification-link" onclick={(event) => handle_notification_content_click(event, notification.id)}>
+                                <h2 class="notification-text">{notification.text}</h2>
+                            </button>
+                        {:else}
+                            <h2 class="notification-text">{notification.text}</h2>
+                        {/if}
+                    </div>
+                </div>
+
+                <button class="close" id={notification.id} onclick={(event) => handle_on_click(event, notification.id)}>
+                    <X />
+                </button>
             </div>
-            {#if notification.type == "confirm" && notification.actions && notification.actions.length > 0}
-                <div class="notification-actions">
+
+            {#if notification.actions && notification.actions.length > 0}
+                <div
+                    class="notification-actions"
+                    class:two-actions={notification.actions.length >= 2}
+                    class:one-action={notification.actions.length < 2}
+                >
                     {#each notification.actions as action}
                         <button class="notification-action" onclick={(event) => handle_action_click(event, notification.id, action.id)}>
                             {action.label}
@@ -61,9 +79,6 @@
                     {/each}
                 </div>
             {/if}
-            <button class="close" id={notification.id} onclick={(event) => handle_on_click(event, notification.id)}>
-                <X />
-            </button>
         </div>
     {/each}
 </div>
@@ -73,23 +88,24 @@
         display: flex;
         align-items: flex-end;
         flex-direction: column;
-        position: absolute;
+        position: fixed;
         top: 9%;
         right: 10px;
         width: 80%;
         pointer-events: none;
-        z-index: 9999;
+        z-index: 100000;
+    }
+
+    .notification-shell {
+        min-width: 5em;
+        max-width: 20em;
+        width: 100%;
+        margin-bottom: 10px;
     }
 
     .notification {
-        display: grid;
-        grid-template-columns: 1fr;
-        align-items: flex-start;
         position: relative;
-        min-width: 5em;
-        max-width: 20em;
-        margin-bottom: 10px;
-        padding: 12px 38px 12px 12px;
+        padding: 12px;
         border-radius: 6px;
         background-color: var(--bg-color);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -97,10 +113,33 @@
         box-sizing: border-box;
     }
 
+    .notification-body {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .notification-icon-rail {
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+    }
+
+    .notification-icon-rail :global(svg) {
+        flex-shrink: 0;
+    }
+
     .notification-content {
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: flex-start;
         width: 100%;
     }
 
@@ -116,10 +155,7 @@
         white-space: pre-line;
         line-height: 1.3;
         margin: 0;
-    }
-
-    .notification-content :global(svg) {
-        flex-shrink: 0;
+        text-align: left;
     }
 
     .notification.error {
@@ -186,26 +222,43 @@
 
     .notification-actions {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
+        align-items: stretch;
         gap: 8px;
-        margin-top: 12px;
+        margin-top: 6px;
         width: 100%;
+        pointer-events: auto;
+    }
+
+    .notification-actions.one-action {
+        flex-direction: column;
+    }
+
+    .notification-actions.two-actions {
+        flex-direction: row;
+        flex-wrap: nowrap;
+    }
+
+    .notification-actions.two-actions .notification-action {
+        flex: 0 0 calc(50% - 4px);
+        max-width: calc(50% - 4px);
     }
 
     .notification-action {
-        background: transparent;
+        display: block;
+        appearance: none;
+        width: 100%;
+        background: var(--bg-color);
         color: white;
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 4px;
-        padding: 4px 8px;
+        padding: 6px 10px;
         font-family: "Torus SemiBold";
         font-size: 0.85em;
         cursor: pointer;
     }
 
     .notification-action:hover {
-        border-color: rgba(255, 255, 255, 0.5);
+        background: var(--bg-color);
+        border-color: rgba(255, 255, 255, 0.4);
     }
 </style>

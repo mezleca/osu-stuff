@@ -1,8 +1,9 @@
 import { show_progress_box, hide_progress_box } from "./progress_box";
 import { config } from "../store/config";
-import { show_notification } from "./notifications";
+import { edit_notification, finish_notification, notification_exists, show_notification } from "./notifications";
 
 const EXPORT_PROGRESS_ID = "export";
+const EXPORT_NOTIFICATION_ID = "export:status";
 
 interface IExportUpdate {
     current: number;
@@ -16,6 +17,15 @@ interface IExportFinish {
     reason?: string;
 }
 
+const show_or_update_export_notification = (data: any) => {
+    if (notification_exists(EXPORT_NOTIFICATION_ID)) {
+        edit_notification(EXPORT_NOTIFICATION_ID, { persist: true, ...data });
+        return;
+    }
+
+    show_notification({ id: EXPORT_NOTIFICATION_ID, persist: true, ...data });
+};
+
 window.api.on("export:update", (event: any) => {
     const data = event as IExportUpdate;
     const progress = Math.floor((data.current / data.total) * 100);
@@ -28,6 +38,12 @@ window.api.on("export:update", (event: any) => {
         progress,
         auto_hide: true
     });
+
+    show_or_update_export_notification({
+        type: "info",
+        text: `${data.text} (${data.current}/${data.total})`,
+        actions: []
+    });
 });
 
 window.api.on("export:finish", (event: any) => {
@@ -37,10 +53,36 @@ window.api.on("export:finish", (event: any) => {
     hide_progress_box(EXPORT_PROGRESS_ID);
 
     if (data.success) {
-        show_notification({ type: "success", text: `exported ${data.count} beatmaps` });
+        finish_notification(EXPORT_NOTIFICATION_ID, {
+            type: "success",
+            text: `exported ${data.count} beatmaps`,
+            duration: 8000,
+            actions: [
+                {
+                    id: "open-folder",
+                    label: "open folder",
+                    close_on_click: true,
+                    on_click: async () => {
+                        await window.api.invoke("shell:open_path", config.get("export_path"));
+                    }
+                }
+            ]
+        });
     } else {
         if (data.reason != "cancelled by user") {
-            show_notification({ type: "error", text: data.reason || "export failed" });
+            finish_notification(EXPORT_NOTIFICATION_ID, {
+                type: "error",
+                text: data.reason || "export failed",
+                duration: 5000,
+                actions: []
+            });
+        } else {
+            finish_notification(EXPORT_NOTIFICATION_ID, {
+                type: "warning",
+                text: "export cancelled",
+                duration: 3000,
+                actions: []
+            });
         }
     }
 });
@@ -53,6 +95,12 @@ window.api.invoke("exporter:state").then((state: any) => {
             text: `exporting ${state.current_beatmap}`,
             progress: Math.floor((state.current_index / state.total) * 100),
             auto_hide: true
+        });
+
+        show_or_update_export_notification({
+            type: "info",
+            text: `exporting ${state.current_beatmap} (${state.current_index}/${state.total})`,
+            actions: []
         });
     }
 });

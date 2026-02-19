@@ -335,21 +335,24 @@ export abstract class BaseDriver implements IOsuDriver {
         }
 
         const missing_beatmaps: string[] = [];
+        const MAX_CONCURRENT_CHECKS = 64;
 
-        // parallel checks for performance
-        const results = await Promise.all(
-            hashes.map(async (md5) => {
-                const beatmap = await this.get_beatmap_by_md5(md5);
-                if (!beatmap || beatmap.temp) {
-                    return md5;
+        for (let i = 0; i < hashes.length; i += MAX_CONCURRENT_CHECKS) {
+            const batch = hashes.slice(i, i + MAX_CONCURRENT_CHECKS);
+            const results = await Promise.all(
+                batch.map(async (md5) => {
+                    const beatmap = await this.get_beatmap_by_md5(md5);
+                    if (!beatmap || beatmap.temp) {
+                        return md5;
+                    }
+                    return null;
+                })
+            );
+
+            for (const md5 of results) {
+                if (md5) {
+                    missing_beatmaps.push(md5);
                 }
-                return null;
-            })
-        );
-
-        for (const md5 of results) {
-            if (md5) {
-                missing_beatmaps.push(md5);
             }
         }
 

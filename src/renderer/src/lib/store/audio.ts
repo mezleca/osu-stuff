@@ -47,6 +47,7 @@ class AudioManager {
 
     callbacks: IAudioCallbacks | null = null;
     pause_interval: NodeJS.Timeout | null = null;
+    is_navigating: boolean = false;
 
     constructor(id: string) {
         this.id = id;
@@ -406,6 +407,13 @@ class AudioManager {
             return false;
         }
 
+        if (this.is_navigating) {
+            console.log(`[${this.id}] skipping navigate: already navigating`);
+            return false;
+        }
+
+        this.is_navigating = true;
+
         const direction_label = direction === -1 ? "previous" : direction === 1 ? "next (manual)" : "next (auto)";
         console.log(`[${this.id}] navigating to ${direction_label} song`);
 
@@ -434,6 +442,8 @@ class AudioManager {
             console.error(`[${this.id}] error navigating:`, error);
             this.store.update((obj) => ({ ...obj, is_loading: false }));
             return false;
+        } finally {
+            this.is_navigating = false;
         }
     };
 
@@ -496,7 +506,6 @@ export const get_audio_preview = async (url: string): Promise<HTMLAudioElement |
 
         const blob = new Blob([result.data], { type: "audio/ogg" });
         const audio = new Audio(window.URL.createObjectURL(blob));
-
         audio.preload = "auto";
         return audio;
     } catch (error) {

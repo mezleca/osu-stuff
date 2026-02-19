@@ -64,6 +64,21 @@
 
     const retry_random = debounce(() => audio.force_random.set(true), 200);
     const trigger_random = debounce(() => audio.force_random.set(true), 50);
+    const SEEK_OFFSET_SECONDS = 5;
+
+    const seek_by_seconds = (offset_seconds: number) => {
+        const state = audio.get_state();
+        const current_audio = state.audio;
+
+        if (!current_audio || !isFinite(current_audio.duration)) {
+            return;
+        }
+
+        const next_time = Math.max(0, Math.min(current_audio.duration, current_audio.currentTime + offset_seconds));
+        const seek_percent = current_audio.duration > 0 ? next_time / current_audio.duration : 0;
+
+        audio.seek(seek_percent);
+    };
 
     const pick_next_valid_id = async (direction: any) => {
         const beatmaps = list.get_items();
@@ -189,12 +204,22 @@
             $previous_songs.pop();
         });
 
+        const handle_seek_backward_id = input.on("shift+arrowleft", () => {
+            seek_by_seconds(-SEEK_OFFSET_SECONDS);
+        });
+
+        const handle_seek_forward_id = input.on("shift+arrowright", () => {
+            seek_by_seconds(SEEK_OFFSET_SECONDS);
+        });
+
         update_background_image();
 
         return () => {
             debounced_update.cancel();
             input.unregister(handle_random_id);
             input.unregister(handle_previous_id);
+            input.unregister(handle_seek_backward_id);
+            input.unregister(handle_seek_forward_id);
             list.show_remove.set(true);
         };
     });

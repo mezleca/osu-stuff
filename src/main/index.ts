@@ -42,10 +42,10 @@ import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./env";
 import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
+import { OpenDevToolsOptions } from "electron/utility";
 
 import fs from "fs";
 import path from "path";
-import { OpenDevToolsOptions } from "electron/utility";
 
 const app_resource_root = app.isPackaged ? process.resourcesPath : app.getAppPath();
 const resource_folder = path.join(app_resource_root, "resources");
@@ -108,96 +108,96 @@ async function createWindow() {
     handle_ipc("window:minimize", () => mainWindow.minimize());
     handle_ipc("window:maximize", () => mainWindow.maximize());
     handle_ipc("window:unmaximize", () => mainWindow.unmaximize());
-    handle_ipc("window:dialog", (_, args) => dialog.showOpenDialog(mainWindow, args[0]));
+    handle_ipc("window:dialog", (_, options) => dialog.showOpenDialog(mainWindow, options));
     handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools(dev_tools_options));
     handle_ipc("window:close", () => app.quit());
 
     // shell
-    handle_ipc("shell:open", (_, args) => shell.openExternal(args[0]));
+    handle_ipc("shell:open", (_, target_url) => shell.openExternal(target_url));
+    handle_ipc("shell:open_path", (_, target_path) => shell.openPath(target_path));
 
     // fetch manager
-    handle_ipc("fetch:get", (_, args) => fetch_manager.execute(args[0]));
+    handle_ipc("fetch:get", (_, options) => fetch_manager.execute(options));
 
     // config
     handle_ipc("config:get", () => config.get());
-    handle_ipc("config:save", (_, args) => config.update(args[0]));
+    handle_ipc("config:save", (_, data) => config.update(data));
     handle_ipc("config:load", (_) => config.load());
 
     // mirrors
     handle_ipc("mirrors:get", () => mirrors.get());
-    handle_ipc("mirrors:save", (_, args) => mirrors.update(args[0].name, args[0].url));
-    handle_ipc("mirrors:delete", (_, args) => mirrors.delete(args[0].name));
+    handle_ipc("mirrors:save", (_, mirror) => mirrors.update(mirror.name, mirror.url));
+    handle_ipc("mirrors:delete", (_, data) => mirrors.delete(data.name));
     handle_ipc("mirrors:load", () => mirrors.load());
 
     // drivers
-    handle_ipc("driver:initialize", (_, args) => initialize_driver(...args));
-    handle_ipc("driver:is_initialized", (_, args) => is_initialized(...args));
-    handle_ipc("driver:should_update", (_, args) => should_update(...args));
-    handle_ipc("driver:get_player_name", (_, args) => get_player_name(...args));
-    handle_ipc("driver:add_collection", (_, args) => add_collection(...args));
-    handle_ipc("driver:rename_collection", (_, args) => rename_collection(...args));
-    handle_ipc("driver:delete_collection", (_, args) => delete_collection(...args));
-    handle_ipc("driver:get_collection", (_, args) => get_collection(...args));
-    handle_ipc("driver:get_collections", (_, args) => get_collections(...args));
-    handle_ipc("driver:update_collection", (_, args) => update_collection(...args));
-    handle_ipc("driver:add_beatmaps_to_collection", (_, args) => add_beatmaps_to_collection(...args));
-    handle_ipc("driver:export_collections", (_, args) => export_collections(...args));
-    handle_ipc("driver:add_beatmap", (_, args) => add_beatmap(...args));
-    handle_ipc("driver:delete_beatmap", (_, args) => delete_beatmap(...args));
-    handle_ipc("driver:has_beatmap", (_, args) => has_beatmap(...args));
-    handle_ipc("driver:has_beatmapset", (_, args) => has_beatmapset(...args));
-    handle_ipc("driver:has_beatmapsets", (_, args) => has_beatmapsets(...args));
-    handle_ipc("driver:get_beatmap_by_md5", (_, args) => get_beatmap_by_md5(...args));
-    handle_ipc("driver:get_beatmap_by_id", (_, args) => get_beatmap_by_id(...args));
-    handle_ipc("driver:get_beatmapset", (_, args) => get_beatmapset(...args));
-    handle_ipc("driver:export_beatmapset", (_, args) => export_beatmapset(...args));
-    handle_ipc("driver:search_beatmaps", (_, args) => search_beatmaps(...args));
-    handle_ipc("driver:search_beatmapsets", (_, args) => search_beatmapsets(...args));
-    handle_ipc("driver:get_missing_beatmaps", (_, args) => get_missing_beatmaps(...args));
-    handle_ipc("driver:get_beatmap_files", (_, args) => get_beatmap_files(...args));
-    handle_ipc("driver:fetch_beatmaps", (_, args) => fetch_beatmaps(...args));
-    handle_ipc("driver:fetch_beatmapsets", (_, args) => fetch_beatmapsets(...args));
+    handle_ipc("driver:initialize", (_, force, driver) => initialize_driver(force, driver));
+    handle_ipc("driver:is_initialized", (_, driver) => is_initialized(driver));
+    handle_ipc("driver:should_update", (_, driver) => should_update(driver));
+    handle_ipc("driver:get_player_name", (_, driver) => get_player_name(driver));
+    handle_ipc("driver:add_collection", (_, name, beatmaps, driver) => add_collection(name, beatmaps, driver));
+    handle_ipc("driver:rename_collection", (_, old_name, new_name, driver) => rename_collection(old_name, new_name, driver));
+    handle_ipc("driver:delete_collection", (_, name, driver) => delete_collection(name, driver));
+    handle_ipc("driver:get_collection", (_, name, driver) => get_collection(name, driver));
+    handle_ipc("driver:get_collections", (_, driver) => get_collections(driver));
+    handle_ipc("driver:update_collection", (_, driver) => update_collection(driver));
+    handle_ipc("driver:add_beatmaps_to_collection", (_, name, hashes, driver) => add_beatmaps_to_collection(name, hashes, driver));
+    handle_ipc("driver:export_collections", (_, collections, type, driver) => export_collections(collections, type, driver));
+    handle_ipc("driver:add_beatmap", (_, beatmap, driver) => add_beatmap(beatmap, driver));
+    handle_ipc("driver:delete_beatmap", (_, options, driver) => delete_beatmap(options, driver));
+    handle_ipc("driver:has_beatmap", (_, md5, driver) => has_beatmap(md5, driver));
+    handle_ipc("driver:has_beatmapset", (_, id, driver) => has_beatmapset(id, driver));
+    handle_ipc("driver:has_beatmapsets", (_, ids, driver) => has_beatmapsets(ids, driver));
+    handle_ipc("driver:get_beatmap_by_md5", (_, md5, driver) => get_beatmap_by_md5(md5, driver));
+    handle_ipc("driver:get_beatmap_by_id", (_, id, driver) => get_beatmap_by_id(id, driver));
+    handle_ipc("driver:get_beatmapset", (_, id, driver) => get_beatmapset(id, driver));
+    handle_ipc("driver:export_beatmapset", (_, id, driver) => export_beatmapset(id, driver));
+    handle_ipc("driver:search_beatmaps", (_, options, driver) => search_beatmaps(options, driver));
+    handle_ipc("driver:search_beatmapsets", (_, options, driver) => search_beatmapsets(options, driver));
+    handle_ipc("driver:get_missing_beatmaps", (_, name, driver) => get_missing_beatmaps(name, driver));
+    handle_ipc("driver:get_beatmap_files", (_, md5, driver) => get_beatmap_files(md5, driver));
+    handle_ipc("driver:fetch_beatmaps", (_, hashes, driver) => fetch_beatmaps(hashes, driver));
+    handle_ipc("driver:fetch_beatmapsets", (_, ids, driver) => fetch_beatmapsets(ids, driver));
 
     // osu-extended-api
-    handle_ipc("web:authenticate", (_, args) => {
-        const params = args[0];
+    handle_ipc("web:authenticate", (_, params) => {
         if (params.type == "v2") {
-            params.cachedTokenPath = path.resolve(get_app_path(), "osu_token.json");
+            params.cached_token_path = path.resolve(get_app_path(), "osu_token.json");
         }
         return auth.login(params);
     });
 
-    handle_ipc("web:get_beatmap", (_, args) => v2.beatmaps.lookup(args[0]));
-    handle_ipc("web:get_beatmapset", (_, args) => v2.beatmaps.lookup(args[0]));
-    handle_ipc("web:search", (_, args) => v2.search(args[0]));
-    handle_ipc("web:players_lookup", (_, args) => v2.users.lookup(args[0]));
-    handle_ipc("web:users_details", (_, args) => v2.users.details(args[0]));
-    handle_ipc("web:user_beatmaps", (_, args) => v2.users.beatmaps(args[0]));
-    handle_ipc("web:score_list_leaderboard", (_, args) => v2.scores.list(args[0]));
-    handle_ipc("web:score_list_user_best", (_, args) => v2.scores.list(args[0]));
-    handle_ipc("web:score_list_user_firsts", (_, args) => v2.scores.list(args[0]));
+    handle_ipc("web:get_beatmap", (_, options) => v2.beatmaps.lookup(options));
+    handle_ipc("web:get_beatmapset", (_, options) => v2.beatmaps.lookup(options));
+    handle_ipc("web:search", (_, options) => v2.search(options));
+    handle_ipc("web:players_lookup", (_, options) => v2.users.lookup(options));
+    handle_ipc("web:users_details", (_, options) => v2.users.details(options));
+    handle_ipc("web:user_beatmaps", (_, options) => v2.users.beatmaps(options));
+    handle_ipc("web:score_list_leaderboard", (_, options) => v2.scores.list(options));
+    handle_ipc("web:score_list_user_best", (_, options) => v2.scores.list(options));
+    handle_ipc("web:score_list_user_firsts", (_, options) => v2.scores.list(options));
 
     // downloader
-    handle_ipc("downloader:add", (_, params) => beatmap_downloader.add_to_queue(...params));
-    handle_ipc("downloader:single", (_, params) => beatmap_downloader.add_single(...params));
-    handle_ipc("downloader:pause", (_, params) => beatmap_downloader.pause(...params));
-    handle_ipc("downloader:resume", (_, params) => beatmap_downloader.resume(...params));
+    handle_ipc("downloader:add", (_, data) => beatmap_downloader.add_to_queue(data));
+    handle_ipc("downloader:single", (_, data) => beatmap_downloader.add_single(data));
+    handle_ipc("downloader:pause", (_, id) => beatmap_downloader.pause(id));
+    handle_ipc("downloader:resume", (_, id) => beatmap_downloader.resume(id));
     handle_ipc("downloader:get", (_) => beatmap_downloader.get_queue());
-    handle_ipc("downloader:remove", (_, params) => beatmap_downloader.remove_from_queue(...params));
+    handle_ipc("downloader:remove", (_, id) => beatmap_downloader.remove_from_queue(id));
 
     // exporter
-    handle_ipc("exporter:start", (_, args) => beatmap_exporter.start(args[0]));
+    handle_ipc("exporter:start", (_, collections_name) => beatmap_exporter.start(collections_name));
     handle_ipc("exporter:cancel", (_) => beatmap_exporter.cancel());
     handle_ipc("exporter:state", (_) => beatmap_exporter.get_state());
 
     // reader (stable)
-    handle_ipc("reader:read_legacy_collection", (_, args) => read_legacy_collection(args[0]));
-    handle_ipc("reader:read_legacy_db", (_, args) => read_legacy_db(args[0]));
-    handle_ipc("reader:write_legacy_collection", (_, args) => write_legacy_collection(args[0]));
+    handle_ipc("reader:read_legacy_collection", (_, location) => read_legacy_collection(location));
+    handle_ipc("reader:read_legacy_db", (_, location) => read_legacy_db(location));
+    handle_ipc("reader:write_legacy_collection", (_, data) => write_legacy_collection(data));
 
     // reader (osdb)
-    handle_ipc("reader:read_osdb", (_, args) => read_osdb(args[0]));
-    handle_ipc("reader:write_osdb", (_, args) => write_osdb(args[0]));
+    handle_ipc("reader:read_osdb", (_, location) => read_osdb(location));
+    handle_ipc("reader:write_osdb", (_, data) => write_osdb(data));
 
     handle_ipc("resources:get_hitsounds", () => {
         try {
@@ -243,8 +243,6 @@ async function createWindow() {
 
     const renderer_url = process.env["ELECTRON_RENDERER_URL"];
 
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
     if (is_dev_mode() && renderer_url) {
         mainWindow.loadURL(renderer_url);
     } else {
@@ -272,9 +270,6 @@ const is_subdir = (parent: string, child: string): boolean => {
     return resolved_child.startsWith(resolved_parent + path.sep) || resolved_child == resolved_parent;
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
     // protocol to return files from fs
     protocol.handle("media", (req) => {
@@ -315,9 +310,6 @@ app.whenReady().then(async () => {
     createWindow();
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
     if (process.platform != "darwin") {
         app.quit();

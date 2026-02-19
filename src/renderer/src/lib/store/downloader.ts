@@ -189,7 +189,7 @@ class Downloader {
             case "started":
             case "update": {
                 // hide progress box if we are on status tab
-                if (get(active_tab) == "Status") {
+                if (get(active_tab) == "status") {
                     hide_progress_box(DOWNLOAD_PROGRESS_ID);
                     break;
                 }

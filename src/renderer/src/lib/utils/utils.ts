@@ -30,12 +30,10 @@ export const get_local_audio = async (audio_path: string): Promise<HTMLAudioElem
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
-
         audio.preload = "auto";
 
         // store blob url on the element to revoke it later
         (audio as any)._blob_url = url;
-
         return audio;
     } catch (error) {
         console.log("error creating local audio:", audio_path, error);

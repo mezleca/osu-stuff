@@ -1,11 +1,22 @@
 import type { ContextMenuOption, IBeatmapResult, BeatmapSetResult } from "@shared/types";
 import { collections } from "../store/collections";
 import { open_on_browser } from "./utils";
-import { show_notification } from "../store/notifications";
+import { edit_notification, finish_notification, notification_exists, show_notification } from "../store/notifications";
 import { config } from "../store/config";
 import { beatmap_preview } from "./beatmaps";
 import { modals, ModalType } from "./modal";
 import { get_beatmap_list } from "../store/beatmaps";
+
+const EXPORT_CARD_NOTIFICATION_ID = "export:single_beatmapset";
+
+const show_or_update_export_card_notification = (data: any) => {
+    if (notification_exists(EXPORT_CARD_NOTIFICATION_ID)) {
+        edit_notification(EXPORT_CARD_NOTIFICATION_ID, { persist: true, ...data });
+        return;
+    }
+
+    show_notification({ id: EXPORT_CARD_NOTIFICATION_ID, persist: true, ...data });
+};
 
 export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show_remove: boolean): ContextMenuOption[] => {
     const all_collections = collections.get_all();
@@ -92,10 +103,37 @@ export const handle_card_context_action = async (
             break;
         }
         case "export": {
+            show_or_update_export_card_notification({
+                type: "info",
+                text: `exporting beatmapset #${beatmapsed_id}...`,
+                actions: []
+            });
+
             const result = await window.api.invoke("driver:export_beatmapset", beatmapsed_id);
 
             if (result) {
-                show_notification({ type: "success", text: `finished exporting at ${config.get("export_path")}` });
+                finish_notification(EXPORT_CARD_NOTIFICATION_ID, {
+                    type: "success",
+                    text: `finished exporting at ${config.get("export_path")}`,
+                    duration: 8000,
+                    actions: [
+                        {
+                            id: "open-folder",
+                            label: "open folder",
+                            close_on_click: true,
+                            on_click: async () => {
+                                await window.api.invoke("shell:open_path", config.get("export_path"));
+                            }
+                        }
+                    ]
+                });
+            } else {
+                finish_notification(EXPORT_CARD_NOTIFICATION_ID, {
+                    type: "error",
+                    text: "failed to export beatmapset",
+                    duration: 5000,
+                    actions: []
+                });
             }
 
             break;
