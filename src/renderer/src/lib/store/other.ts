@@ -1,26 +1,26 @@
+import { ALL_BEATMAPS_KEY, ALL_MODES_KEY, ALL_STATUS_KEY, GameMode, IBeatmapResult } from "@shared/types";
 import { writable } from "svelte/store";
 
 export const is_typing = writable(false);
 export const is_maximized = writable(false);
 export const active_tab = writable("index");
 
-// for collections / beatmmaps filter system
-export const DEFAULT_SORT_OPTIONS = ["artist", "title", "duration"];
+const DEFAULT_SORT_VALUES: (keyof IBeatmapResult)[] = ["artist", "title", "duration"];
+const DEFAULT_STATUS_VALUES = ["graveyard", "pending", "wip", "ranked", "qualified", "loved"];
+const DEFAULT_MODE_VALUES: GameMode[] = [GameMode.Osu, GameMode.Taiko, GameMode.Catch, GameMode.Mania];
+
 export const DEFAULT_SELECTED_MAP = Object.freeze({ index: -1, md5: null });
-export const DEFAULT_STATUS_TYPES = ["graveyard", "pending", "wip", "ranked", "qualified", "loved"];
-export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
-export const ALL_STATUS_KEY = "@stuff:__all_status__";
 
 const SPECIAL_KEYS = new Map([
     [ALL_BEATMAPS_KEY, "all beatmaps"],
-    [ALL_STATUS_KEY, "all"]
+    [ALL_STATUS_KEY, "all status"],
+    [ALL_MODES_KEY, "all modes"]
 ]);
 
 export const is_special_key = (key: string) => {
     return SPECIAL_KEYS.has(key);
 };
 
-// for special keys
 export const convert_special_key = (key: string) => {
     return SPECIAL_KEYS.has(key) ? SPECIAL_KEYS.get(key) : key;
 };
@@ -46,16 +46,23 @@ export const validate_url = (url: string, target: string = "") => {
     }
 };
 
-export const FILTER_TYPES = [
-    ...DEFAULT_SORT_OPTIONS.map((b) => {
-        return { label: b, value: b };
+export const FILTER_DATA = [
+    ...DEFAULT_SORT_VALUES.map((b) => {
+        return { label: b as string, value: b as string };
     }),
     { label: "length", value: "length" }
 ];
 
-export const STATUS_TYPES = [
+export const STATUS_DATA = [
     { label: "all status", value: ALL_STATUS_KEY },
-    ...DEFAULT_STATUS_TYPES.map((b) => {
-        return { label: b, value: b };
+    ...DEFAULT_STATUS_VALUES.map((s) => {
+        return { label: s as string, value: s as string };
+    })
+];
+
+export const MODES_DATA = [
+    { label: "all modes", value: ALL_MODES_KEY },
+    ...DEFAULT_MODE_VALUES.map((m) => {
+        return { label: m as string, value: m as string };
     })
 ];

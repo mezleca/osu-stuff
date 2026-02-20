@@ -125,19 +125,18 @@
 
 {#if minimal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <span
-        role="button"
+    <span class="star-rating">★ {get_beatmap_star_rating()}</span>
+
+    <button
         tabindex="0"
         onclick={(e) => {
             e.stopPropagation();
             open_on_browser(current_beatmap?.beatmapset_id);
         }}
         oncontextmenu={handle_context}
-        class="star-rating"
     >
-        ★ {get_beatmap_star_rating()}</span
-    >
-    <p>{current_beatmap?.difficulty ?? "unknown"}</p>
+        {current_beatmap?.difficulty ?? "unknown"}
+    </button>
 {:else if !loaded}
     <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
 {:else}

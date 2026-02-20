@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { collections } from "../../lib/store/collections";
-    import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, STATUS_DATA } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap } from "../../lib/utils/beatmaps";
@@ -31,7 +31,7 @@
 
     const list = get_beatmap_list("collections");
 
-    const { sort, query, status, show_invalid, difficulty_range, should_update } = list;
+    const { sort, query, status, mode, show_invalid, difficulty_range, should_update } = list;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.selected;
@@ -171,7 +171,7 @@
         collections.filter();
     }
 
-    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $show_invalid || $difficulty_range || $should_update)) {
+    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $mode || $show_invalid || $difficulty_range || $should_update)) {
         debounced_filter($should_update);
     }
 
@@ -241,8 +241,9 @@
         <div class="content-header">
             <Search bind:value={$query} placeholder="search beatmaps" />
             <ExpandableMenu>
-                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
+                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
+                <Dropdown label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
                 <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>

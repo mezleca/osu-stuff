@@ -1,9 +1,11 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { fade } from "svelte/transition";
-    import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
-    import MenuItem from "./menu-item.svelte";
+    import { fade, scale } from "svelte/transition";
+    import { clamp } from "../../lib/utils/utils";
     import type { ContextMenuOption } from "@shared/types";
+    import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
+
+    import MenuItem from "./menu-item.svelte";
 
     let active_context: ActiveContextMenu | null = null;
     let menu_element: HTMLDivElement;
@@ -11,17 +13,6 @@
     let leave_timeout: any;
 
     const PADDING = 10;
-
-    // subscribe to store
-    context_menu_manager.active.subscribe(async (value) => {
-        active_context = value;
-
-        if (active_context) {
-            active_path = [];
-            await tick();
-            adjust_position();
-        }
-    });
 
     const hide = () => {
         context_menu_manager.hide();
@@ -44,11 +35,6 @@
             adjusted_x = viewport_width - menu_rect.width - PADDING;
         }
 
-        // prevent overflow on left edge
-        if (adjusted_x < PADDING) {
-            adjusted_x = PADDING;
-        }
-
         // prevent overflow on bottom edge
         if (adjusted_y + menu_rect.height > viewport_height - PADDING) {
             // try to position above if it overflows bottom
@@ -60,10 +46,8 @@
             }
         }
 
-        // prevent overflow on top edge
-        if (adjusted_y < PADDING) {
-            adjusted_y = PADDING;
-        }
+        adjusted_x = clamp(adjusted_x, PADDING, viewport_width - menu_rect.width - PADDING);
+        adjusted_y = clamp(adjusted_y, PADDING, viewport_height - menu_rect.height - PADDING);
 
         menu_element.style.left = `${adjusted_x}px`;
         menu_element.style.top = `${adjusted_y}px`;
@@ -120,12 +104,25 @@
     };
 
     onMount(() => {
+        const unsubscribe = context_menu_manager.active.subscribe(async (value) => {
+            active_context = value;
+
+            if (active_context) {
+                active_path = [];
+                await tick();
+                adjust_position();
+            }
+        });
+
         document.addEventListener("click", handle_outside_click);
         document.addEventListener("keydown", handle_keydown);
+        window.addEventListener("resize", adjust_position);
 
         return () => {
+            unsubscribe();
             document.removeEventListener("click", handle_outside_click);
             document.removeEventListener("keydown", handle_keydown);
+            window.removeEventListener("resize", adjust_position);
             clearTimeout(leave_timeout);
         };
     });
@@ -138,18 +135,21 @@
         class="context-menu"
         onmouseenter={handle_menu_enter}
         onmouseleave={handle_menu_leave}
-        transition:fade={{ delay: 0, duration: 100 }}
+        in:scale={{ duration: 100, start: 0.96 }}
+        out:fade={{ duration: 80 }}
     >
-        {#each active_context.options as item}
-            <MenuItem
-                {item}
-                {active_path}
-                depth={0}
-                onclick={handle_item_click}
-                on_submenu_enter={handle_submenu_enter}
-                on_submenu_leave={handle_submenu_leave}
-            />
-        {/each}
+        <div class="context-menu-list">
+            {#each active_context.options as item}
+                <MenuItem
+                    {item}
+                    {active_path}
+                    depth={0}
+                    onclick={handle_item_click}
+                    on_submenu_enter={handle_submenu_enter}
+                    on_submenu_leave={handle_submenu_leave}
+                />
+            {/each}
+        </div>
     </div>
 {/if}
 
@@ -164,6 +164,12 @@
         z-index: 99999;
         min-width: 120px;
         font-size: 0.8em;
-        transform: translateZ(0);
+    }
+
+    .context-menu-list {
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
     }
 </style>

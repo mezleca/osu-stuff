@@ -46,7 +46,7 @@
         {@const id = $items[index]}
 
         <!-- render beatmapset card -->
-        <BeatmapSetCard {id} {show_context} {show_remove} {height} />
+        <BeatmapSetCard {id} filtered_hashes={list_manager.get_filtered_beatmaps(id)} {show_context} {show_remove} {height} />
     </VirtualList>
 </div>
 

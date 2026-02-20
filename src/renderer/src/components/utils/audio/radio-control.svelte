@@ -1,6 +1,7 @@
 <script lang="ts">
     import { get_audio_manager } from "../../../lib/store/audio";
     import { get_beatmap_list } from "../../../lib/store/beatmaps";
+    import { clamp } from "../../../lib/utils/utils";
     import { config } from "../../../lib/store/config";
 
     // icons
@@ -60,8 +61,8 @@
         }
     };
 
-    const set_volume = (v) => {
-        const clamped_volume = Math.max(0, Math.min(100, v));
+    const set_volume = (v: number) => {
+        const clamped_volume = clamp(v, 0, 100);
         audio_manager.set_volume(clamped_volume);
         config.set("radio_volume", clamped_volume);
     };

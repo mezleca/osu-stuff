@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { get_beatmapset_list } from "../../lib/store/beatmaps";
-    import { FILTER_TYPES, STATUS_TYPES } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, STATUS_DATA } from "../../lib/store/other";
     import { debounce } from "../../lib/utils/timings";
 
     // components
@@ -12,7 +12,7 @@
     import BeatmapsetList from "../beatmapset-list.svelte";
 
     const list = get_beatmapset_list("browse");
-    const { query, status, sort, difficulty_range, should_update } = list;
+    const { query, status, mode, sort, difficulty_range, should_update } = list;
 
     const debounced_update = debounce(async (force: boolean = true) => {
         const result = await list.search(force);
@@ -23,7 +23,7 @@
         list.set_items(ids, undefined, false);
     }, 20);
 
-    $: if ($query != undefined || $status || $sort || $difficulty_range || $should_update) {
+    $: if ($query != undefined || $status || $sort || $difficulty_range || $mode || $should_update) {
         debounced_update($should_update);
     }
 
@@ -42,8 +42,9 @@
         <div class="content-header">
             <Search placeholder="search local beatmaps" value={$query} callback={(q) => list.set_query(q)} />
             <ExpandableMenu>
-                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
-                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_TYPES} />
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
+                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
+                <Dropdown label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>
         </div>

@@ -83,6 +83,9 @@ export const custom_fetch = async (options: FetchOptions): Promise<IFetchRespons
     return window.api.invoke("fetch:get", options);
 };
 
+export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+export const clamp = (x: number, min: number, max: number): number => Math.min(max, Math.max(min, x));
+
 export const context_separator = "<|=‎=|>";
 export const is_dev_mode = writable(false);
 export const mouse_position = { x: 0, y: 0 };

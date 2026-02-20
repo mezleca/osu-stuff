@@ -1,3 +1,19 @@
+# v2.5.1
+
+## new stuff
+
+- collections(tab): filter by mode
+- browse(tab): filter by mode
+
+## bug fixes
+
+- context-menu(move to): only reload collection list if we're inside the collection list (fixes browse tab move-to freezing the ui)
+- beatmapset-card(difficulty): context menu options only showing on star-rating click
+- virtual-list: add isolation so items that have a huge ass z-index dont show on top of other components
+- context-menu: ensure context menu is not out of bounds, scrollbar if exceeds height
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.0...v2.5.1
+
 # v2.5.0
 
 ## new stuff

@@ -5,7 +5,8 @@ import {
     IDownloadData,
     IDownloadedBeatmap,
     IMirrorWithCooldown,
-    IBeatmapResult
+    IBeatmapResult,
+    GameMode
 } from "@shared/types";
 import { config } from "../database/config";
 import { mirrors } from "../database/mirrors";
@@ -348,7 +349,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
                 creator: result.beatmapset?.creator || "",
                 difficulty: result.version,
                 status: result.status,
-                mode: result.mode,
+                mode: result.mode as GameMode,
                 temp: false,
                 ar: result.ar,
                 cs: result.cs,

@@ -76,7 +76,8 @@ export const handle_card_context_action = async (
     action: string,
     id: string,
     beatmap: IBeatmapResult | BeatmapSetResult,
-    on_remove: (id: string | number) => void
+    on_remove: (id: string | number) => void,
+    filtered_hashes: string[] = []
 ) => {
     const is_set = "beatmaps" in (beatmap as BeatmapSetResult);
     const beatmapsed_id = is_set ? (beatmap as BeatmapSetResult).online_id : (beatmap as IBeatmapResult).beatmapset_id;
@@ -87,13 +88,17 @@ export const handle_card_context_action = async (
             break;
         case "move": {
             const collection = id;
-            const hashes = is_set ? (beatmap as BeatmapSetResult).beatmaps : [(beatmap as IBeatmapResult).md5];
+            const hashes = is_set
+                ? filtered_hashes.length > 0
+                    ? filtered_hashes
+                    : (beatmap as BeatmapSetResult).beatmaps
+                : [(beatmap as IBeatmapResult).md5];
 
-            // add beatmap to the desired collection
-            collections.add_beatmaps(collection, hashes);
+            // add beatmaps to the target collection
+            await collections.add_beatmaps(collection, hashes);
 
-            // also ensure we have a fresh list state
-            get_beatmap_list("collections")?.reload();
+            // set update so if we're on another tab (e.g. browser) we dont have to wait for that
+            get_beatmap_list("collections")?.set_update(true);
             break;
         }
         case "preview": {

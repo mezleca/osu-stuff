@@ -53,7 +53,7 @@
 <div class="field-group" style="display: flex; flex-direction: {inline ? 'row' : 'column'}; max-width: 100%; ">
     {#if label != ""}
         <div class="field-label" style="margin-right: 10px; align-self: {inline ? 'center' : 'auto'}; color: var(--text-secondary);">
-            {label}
+            {convert_special_key(label)}
         </div>
     {/if}
 

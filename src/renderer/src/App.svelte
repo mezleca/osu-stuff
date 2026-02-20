@@ -5,7 +5,6 @@
     import { processing, processing_data } from "./lib/store/processor";
     import { is_dev_mode } from "./lib/utils/utils";
     import { debounce } from "./lib/utils/timings";
-    import { config } from "./lib/store/config";
     import { downloader } from "./lib/store/downloader";
     import { get_osu_data } from "./lib/utils/collections";
 

@@ -21,6 +21,7 @@
     export let show_expand = true;
     export let selected = false;
     export let highlighted = false;
+    export let filtered_hashes: string[] = [];
     export let on_remove: (id: number) => {} = null;
     export let height = 100;
 
@@ -33,8 +34,13 @@
     let first_beatmap: IBeatmapResult | null = null;
     let image_element: HTMLImageElement = null;
     let image_loaded = false;
+    let last_filtered_hashes: string[] = filtered_hashes;
 
     $: loaded = state && state.loaded == true;
+    $: visible_hashes =
+        state?.beatmapset?.beatmaps && filtered_hashes.length > 0
+            ? state.beatmapset.beatmaps.filter((hash) => filtered_hashes.includes(hash))
+            : (state?.beatmapset?.beatmaps ?? []);
 
     const debounced_load = debounce(async () => {
         // if we're alreading loading, ignore
@@ -106,7 +112,7 @@
 
         show_context_menu(e, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove);
+            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove, visible_hashes);
         });
     };
 
@@ -114,8 +120,8 @@
         is_hovering = true;
 
         // preload and sort beatmaps
-        if (state.beatmapset && state.beatmapset.beatmaps && sorted_beatmaps.length === 0) {
-            const beatmaps = await fetch_beatmaps_with_limit(state.beatmapset.beatmaps, 8);
+        if (visible_hashes.length > 0 && sorted_beatmaps.length === 0) {
+            const beatmaps = await fetch_beatmaps_with_limit(visible_hashes, 8);
             sorted_beatmaps = beatmaps.sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
 
             // set first beatmap for controls
@@ -158,6 +164,15 @@
 
         if (image_element) {
             image_element.onload = () => (image_loaded = true);
+        }
+    }
+
+    $: {
+        if (filtered_hashes !== last_filtered_hashes) {
+            last_filtered_hashes = filtered_hashes;
+            sorted_beatmaps = [];
+            first_beatmap = null;
+            expanded = false;
         }
     }
 
@@ -216,7 +231,7 @@
 
                 {#if show_expand}
                     <div class="beatmap-card-extra">
-                        {#if state.beatmapset.beatmaps && state.beatmapset.beatmaps.length > 0}
+                        {#if visible_hashes.length > 0}
                             <div class="expand-indicator">
                                 {expanded ? "▼" : "▶"}
                             </div>

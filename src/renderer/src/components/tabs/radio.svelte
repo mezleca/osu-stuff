@@ -2,7 +2,8 @@
     import { onMount } from "svelte";
 
     import { collections } from "../../lib/store/collections";
-    import { ALL_BEATMAPS_KEY, FILTER_TYPES } from "../../lib/store/other";
+    import { FILTER_DATA } from "../../lib/store/other";
+    import { ALL_BEATMAPS_KEY } from "@shared/types";
     import { format_time, url_to_media } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
     import { get_audio_manager } from "../../lib/store/audio";
@@ -230,7 +231,7 @@
         <div class="sidebar">
             <div class="sidebar-header" style="z-index: 999999;">
                 <Search bind:value={$query} placeholder="search beatmaps" />
-                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_TYPES} />
+                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
                 <Dropdown label={"target"} bind:selected_value={$target} options={collection_target_options} />
             </div>
             <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />

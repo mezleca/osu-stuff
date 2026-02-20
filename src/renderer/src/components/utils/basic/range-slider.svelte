@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
     import { debounce } from "../../../lib/utils/timings";
+    import { clamp } from "../../../lib/utils/utils";
 
     type RangeOnUpdate = [number, number]; // min, max
 
@@ -40,8 +41,6 @@
         min_thumb.style.left = `${min_position}px`;
         max_thumb.style.left = `${max_position}px`;
     };
-
-    const clamp = (number, min_val, max_val) => Math.min(Math.max(number, min_val), max_val);
 
     const handle_min = (e) => {
         const new_min = parseFloat(e.target.value);

@@ -11,7 +11,10 @@ import {
     gamemode_to_code,
     ISearchResponse,
     ISearchSetResponse,
-    IBeatmapSetFilter
+    IBeatmapSetFilter,
+    ALL_BEATMAPS_KEY,
+    ALL_STATUS_KEY,
+    ALL_MODES_KEY
 } from "@shared/types";
 import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { osdb_parser } from "../../binary/osdb";
@@ -47,14 +50,14 @@ export abstract class BaseDriver implements IOsuDriver {
         if (beatmap.beatmapset_id == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
         if (options.query && !filter_beatmap_by_query(beatmap, options.query)) return false;
-        if (options.status && beatmap.status?.toLowerCase() != options.status?.toLowerCase()) return false;
+        if (options.status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != options.status.toLowerCase()) return false;
+        if ((options.mode as string) != ALL_MODES_KEY && beatmap.mode != options.mode) return false;
         return true;
     };
 
-    search_beatmaps = async (options: IBeatmapFilter): Promise<ISearchResponse> => {
+    search_beatmaps = async (options: IBeatmapFilter, target: string): Promise<ISearchResponse> => {
         // unify both database beatmaps / recently download in a single map
-        // TODO: the fact that we still need to get hashes to then get the actual beatmap data pmo
-        const beatmaps = options?.collection ? this.collections.get(options.collection)?.beatmaps : this.get_beatmaps().map((b) => b.md5);
+        const beatmaps = target != ALL_BEATMAPS_KEY ? this.collections.get(target)?.beatmaps : this.get_beatmaps().map((b) => b.md5);
 
         if (!beatmaps || beatmaps?.length == 0) {
             return { beatmaps: [], invalid: [] };
@@ -130,8 +133,17 @@ export abstract class BaseDriver implements IOsuDriver {
             const valid_beatmaps: string[] = [];
 
             for (const beatmap of beatmaps) {
-                const is_valid_beatmap = this.filter_beatmap(beatmap, { query: options.query, sort: options.sort, unique: false });
-                if (!is_valid_beatmap) continue;
+                const is_valid_beatmap = this.filter_beatmap(beatmap, {
+                    query: options.query,
+                    mode: options.mode,
+                    status: options.status,
+                    sort: options.sort,
+                    unique: false
+                });
+
+                if (!is_valid_beatmap) {
+                    continue;
+                }
 
                 valid_beatmaps.push(beatmap.md5);
             }

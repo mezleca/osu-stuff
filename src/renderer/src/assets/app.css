@@ -502,10 +502,12 @@ main {
     font-family: "Torus SemiBold";
 }
 
+/* MINIMAL BEATMAP CARD */
+
 .beatmap-difficulties {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 2px;
+    row-gap: 5px;
     padding: 8px;
     background: rgba(17, 20, 31);
     border: none;
@@ -530,15 +532,22 @@ main {
     color: black;
 }
 
-.beatmap-difficulties > p {
+.beatmap-difficulties > button {
+    text-align: start;
+    margin: none;
+    background: none;
+    border: none;
+    border-radius: 0px;
+    padding: 0px;
     transition: all 0.3s;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.beatmap-difficulties > p:hover {
+.beatmap-difficulties > button:hover {
     background: rgba(255, 255, 255, 0.1);
+    border: none;
     cursor: pointer;
 }
 
@@ -663,11 +672,9 @@ main {
     margin-top: 16px;
 }
 
-.primary-btn,
-.accent-btn {
+.primary-btn {
     background-color: var(--accent-color);
     color: white;
-    border: none;
     font-family: "Torus Bold";
     padding: 10px 20px;
     border-radius: 6px;
@@ -675,10 +682,9 @@ main {
     cursor: pointer;
 }
 
-.primary-btn:hover,
-.accent-btn:hover {
+.primary-btn:hover {
+    border: 1px solid var(--accent-color);
     filter: brightness(1.1);
-    transform: translateY(-1px);
 }
 
 .loading-state,

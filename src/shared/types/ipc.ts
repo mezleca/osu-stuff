@@ -234,7 +234,7 @@ export interface IpcSchema {
             result: ReturnType<IOsuDriver["get_beatmap_files"]>;
         };
         "driver:search_beatmaps": {
-            params: [IBeatmapFilter, string?];
+            params: [IBeatmapFilter, string, string?];
             result: ReturnType<IOsuDriver["search_beatmaps"]>;
         };
         "driver:search_beatmapsets": {

@@ -135,9 +135,9 @@ export const get_missing_beatmaps = (name: string | null, custom_driver: string 
     return driver.get_missing_beatmaps(name);
 };
 
-export const search_beatmaps = (options: IBeatmapFilter, custom_driver: string = ""): Promise<ISearchResponse> => {
+export const search_beatmaps = (options: IBeatmapFilter, target: string, custom_driver: string = ""): Promise<ISearchResponse> => {
     const driver = get_driver(custom_driver);
-    return driver.search_beatmaps(options);
+    return driver.search_beatmaps(options, target);
 };
 
 export const fetch_beatmaps = (checksums: string[], custom_driver: string = ""): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> => {

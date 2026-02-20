@@ -495,7 +495,7 @@
                         {:else if !is_target_initialized}
                             <div class="driver-init">
                                 <span>{target_driver} client is not initialized yet</span>
-                                <button class="accent-btn" onclick={() => handle_driver_initialization()}>initialize</button>
+                                <button class="primary-btn" onclick={() => handle_driver_initialization()}>initialize</button>
                             </div>
                         {/if}
                     {/if}

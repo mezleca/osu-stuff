@@ -1,8 +1,9 @@
 import { writable, get, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
-import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "./other";
-import type {
+import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "@shared/types";
+import {
     BeatmapSetResult,
+    GameMode,
     IBeatmapFilter,
     IBeatmapResult,
     IBeatmapSetFilter,
@@ -12,10 +13,12 @@ import type {
 } from "@shared/types";
 import { config } from "./config";
 import { throttle } from "../utils/timings";
+
 import LRU from "quick-lru";
 
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
+const EMPTY_HASHES: string[] = [];
 
 interface ISelectedBeatmap {
     md5: string;
@@ -27,6 +30,7 @@ export abstract class ListBase<T> {
     list_id: Writable<string> = writable(this.key);
     query: Writable<string> = writable("");
     status: Writable<string> = writable(ALL_STATUS_KEY);
+    mode: Writable<GameMode> = writable(GameMode.All);
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
     show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
@@ -130,7 +134,7 @@ export class BeatmapList extends ListBase<string> {
     show_unique: Writable<boolean> = writable(false);
 
     // cache
-    last_filter: IBeatmapFilter | null = null;
+    last_filter: string = "";
     last_result: ISearchResponse | null = null;
 
     constructor(id: string) {
@@ -168,7 +172,6 @@ export class BeatmapList extends ListBase<string> {
     }
 
     build_filter(): IBeatmapFilter {
-        let target = get(this.target);
         let status = get(this.status);
 
         // stable classifies "graveyard / WIP" as pending
@@ -180,26 +183,27 @@ export class BeatmapList extends ListBase<string> {
             query: get(this.query),
             sort: get(this.sort),
             difficulty_range: get(this.difficulty_range),
-            status: status == ALL_STATUS_KEY ? undefined : status,
-            unique: get(this.show_unique),
-            collection: target == ALL_BEATMAPS_KEY ? undefined : target
+            status: status,
+            mode: get(this.mode),
+            unique: get(this.show_unique)
         };
     }
 
     async search(force: boolean = false) {
         const filter = this.build_filter();
-        const filter_json = JSON.stringify(filter);
+        const target = get(this.target);
+        const current_filter = JSON.stringify({ ...filter, target });
 
-        if (!force && this.last_filter && JSON.stringify(this.last_filter) == filter_json) {
+        if (!force && this.last_filter && this.last_filter == current_filter) {
             if (this.last_result) {
                 return this.last_result;
             }
         }
 
         try {
-            const result = await window.api.invoke("driver:search_beatmaps", filter);
+            const result = await window.api.invoke("driver:search_beatmaps", filter, target);
 
-            this.last_filter = filter;
+            this.last_filter = JSON.stringify({ ...filter, target });
             this.last_result = result;
 
             return result;
@@ -288,6 +292,7 @@ export class BeatmapList extends ListBase<string> {
 export class BeatmapSetList extends ListBase<number> {
     // extra filter options
     sort: Writable<keyof BeatmapSetResult["metadata"]> = writable("artist");
+    filtered_beatmaps = new Map<number, string[]>();
 
     // cache
     last_filter?: IBeatmapSetFilter = null;
@@ -299,6 +304,7 @@ export class BeatmapSetList extends ListBase<number> {
 
     build_filter(): IBeatmapSetFilter {
         let status = get(this.status);
+        let mode = get(this.mode);
 
         // stable classifies "graveyard / WIP" as pending
         if (!config.get("lazer_mode") && ["graveyard", "wip"].includes(status)) {
@@ -309,7 +315,8 @@ export class BeatmapSetList extends ListBase<number> {
             query: get(this.query),
             sort: get(this.sort),
             difficulty_range: get(this.difficulty_range),
-            status: status == ALL_STATUS_KEY ? undefined : status
+            status: status,
+            mode: mode
         };
     }
 
@@ -325,6 +332,11 @@ export class BeatmapSetList extends ListBase<number> {
 
         try {
             const result = await window.api.invoke("driver:search_beatmapsets", filter);
+            this.filtered_beatmaps.clear();
+
+            for (const beatmapset of result?.beatmapsets ?? []) {
+                this.filtered_beatmaps.set(beatmapset.online_id, beatmapset.beatmaps ?? []);
+            }
 
             this.last_filter = filter;
             this.last_result = result;
@@ -357,6 +369,7 @@ export class BeatmapSetList extends ListBase<number> {
     async reload() {
         this.last_filter = null;
         this.last_result = null;
+        this.filtered_beatmaps.clear();
         await this.load();
     }
 
@@ -382,12 +395,17 @@ export class BeatmapSetList extends ListBase<number> {
         return null;
     }
 
+    get_filtered_beatmaps(beatmapset_id: number): string[] {
+        return this.filtered_beatmaps.get(beatmapset_id) ?? EMPTY_HASHES;
+    }
+
     clear() {
         this.items.set([]);
         this.selected.set(null);
         this.selected_buffer.set([]);
         this.last_filter = null;
         this.last_result = null;
+        this.filtered_beatmaps.clear();
     }
 }
 

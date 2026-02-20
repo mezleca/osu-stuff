@@ -152,7 +152,7 @@ async function createWindow() {
     handle_ipc("driver:get_beatmap_by_id", (_, id, driver) => get_beatmap_by_id(id, driver));
     handle_ipc("driver:get_beatmapset", (_, id, driver) => get_beatmapset(id, driver));
     handle_ipc("driver:export_beatmapset", (_, id, driver) => export_beatmapset(id, driver));
-    handle_ipc("driver:search_beatmaps", (_, options, driver) => search_beatmaps(options, driver));
+    handle_ipc("driver:search_beatmaps", (_, options, target, driver) => search_beatmaps(options, target, driver));
     handle_ipc("driver:search_beatmapsets", (_, options, driver) => search_beatmapsets(options, driver));
     handle_ipc("driver:get_missing_beatmaps", (_, name, driver) => get_missing_beatmaps(name, driver));
     handle_ipc("driver:get_beatmap_files", (_, md5, driver) => get_beatmap_files(md5, driver));

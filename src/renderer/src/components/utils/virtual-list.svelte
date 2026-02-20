@@ -450,6 +450,7 @@
 
 <style>
     .virtual-list {
+        isolation: isolate;
         position: relative;
         width: 100%;
         overflow-y: auto;

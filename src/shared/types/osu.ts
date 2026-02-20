@@ -1,15 +1,18 @@
-/* USEFUL CONSTANTS */
-
 import { OsuInput } from "@rel-packages/osu-beatmap-parser";
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
 import { v2 } from "osu-api-extended";
 
+/* CORE CONSTANTS */
+
 export const LEGACY_DATABASE_VERSION: number = 20251102;
 export const LAZER_DATABASE_VERSION: number = 51;
+export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
+export const ALL_STATUS_KEY = "@stuff:__all_status__";
+export const ALL_MODES_KEY = "@stuff:__all_modes__";
 
 export type UsersDetailsResponse = Awaited<ReturnType<typeof v2.users.details>>;
 
-/* ENUMERATORS */
+/* OSU ENUMERATORS */
 
 export enum Permissions {
     None = 0,
@@ -58,11 +61,19 @@ export enum OsdbVersion {
     O_DM8_MIN = 1008
 }
 
-export enum GameMode {
+export enum GameModeCode {
     Osu = 0,
     Taiko = 1,
     Catch = 2,
     Mania = 3
+}
+
+export enum GameMode {
+    All = ALL_MODES_KEY,
+    Osu = "osu",
+    Taiko = "taiko",
+    Catch = "fruits",
+    Mania = "mania"
 }
 
 export const STABLE_STATUS = {
@@ -175,20 +186,19 @@ export interface IBeatmapFilter {
     // general
     query: string;
     sort: keyof IBeatmapResult;
-    status?: string;
+    status: string;
+    mode: GameMode;
     difficulty_range?: StarRatingFilter;
 
     // make sure we keep 1 diff per beatmap (unless its a set with different music files)
     unique: boolean;
-
-    // will be used if available on filter
-    collection?: string;
 }
 
 export interface IBeatmapSetFilter {
     query: string;
     sort: keyof BeatmapSetResult["metadata"];
-    status?: string;
+    status: string;
+    mode: GameMode;
     difficulty_range?: StarRatingFilter;
 }
 
@@ -210,7 +220,7 @@ export interface IBeatmapResult {
     bpm: number;
     length: number;
     status: string;
-    mode: string;
+    mode: GameMode;
     temp: boolean;
     last_modified: string;
     file_path?: string;
@@ -343,7 +353,7 @@ export interface IOsuDriver {
     get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
     get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined>;
     get_missing_beatmaps(name: string | null): Promise<string[]>;
-    search_beatmaps(params: IBeatmapFilter): Promise<ISearchResponse>;
+    search_beatmaps(params: IBeatmapFilter, target: string): Promise<ISearchResponse>;
     search_beatmapsets(params: IBeatmapSetFilter): Promise<ISearchSetResponse>;
     get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
@@ -494,31 +504,31 @@ export interface IOSDBData {
 
 /* ENUMERATOR HELPERS */
 
-export const gamemode_to_code = (mode: string) => {
+export const gamemode_to_code = (mode: GameMode): GameModeCode => {
     switch (mode.toLowerCase()) {
-        case "osu":
-            return GameMode.Osu;
-        case "taiko":
-            return GameMode.Taiko;
-        case "catch":
-            return GameMode.Catch;
-        case "mania":
-            return GameMode.Mania;
+        case GameMode.Osu:
+            return GameModeCode.Osu;
+        case GameMode.Taiko:
+            return GameModeCode.Taiko;
+        case GameMode.Catch:
+            return GameModeCode.Catch;
+        case GameMode.Mania:
+            return GameModeCode.Mania;
     }
 
-    return 0; // defaults to osu
+    return GameModeCode.Osu;
 };
 
-export const gamemode_from_code = (mode: GameMode) => {
+export const gamemode_from_code = (mode: GameModeCode): GameMode => {
     switch (mode) {
-        case GameMode.Osu:
-            return "Osu";
-        case GameMode.Taiko:
-            return "Taiko";
-        case GameMode.Catch:
-            return "Catch";
-        case GameMode.Mania:
-            return "Mania";
+        case GameModeCode.Osu:
+            return GameMode.Osu;
+        case GameModeCode.Taiko:
+            return GameMode.Taiko;
+        case GameModeCode.Catch:
+            return GameMode.Catch;
+        case GameModeCode.Mania:
+            return GameMode.Mania;
     }
 };
 
