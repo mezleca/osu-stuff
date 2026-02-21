@@ -1,3 +1,17 @@
+# v2.5.2
+
+## new stuff
+
+- config(radio): option to enable radio background
+
+## bug fixes
+
+- filter(beatmap): better query handling (faster, actually normalize query, parse query filter before filtering all beatmaps, some other quality of life improvements)
+- collection(update): use correct notification type
+- updater: hang on check update while being on the latest version
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.1...v2.5.2
+
 # v2.5.1
 
 ## new stuff

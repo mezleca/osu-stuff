@@ -49,11 +49,7 @@
         const local = selected_beatmap.background ? url_to_media(selected_beatmap.background) : "";
         const web = selected_beatmap.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${selected_beatmap.beatmapset_id}/covers/cover.jpg` : "";
 
-        if (local && web) {
-            bg = `url("${local}"), url("${web}")`;
-        } else {
-            bg = local ? `url("${local}")` : web ? `url("${web}")` : "";
-        }
+        bg = local != "" ? local : web;
     };
 
     const debounced_update = debounce(async (force: boolean = false) => {
@@ -241,7 +237,7 @@
 </script>
 
 <div class="content tab-content">
-    <div class="radio-container" style="--radio-bg: {bg};">
+    <div class="radio-container">
         <div class="sidebar">
             <div class="sidebar-header" style="z-index: 999999;">
                 <Search bind:value={$query} placeholder="search beatmaps" />
@@ -251,8 +247,11 @@
             <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />
         </div>
 
-        <div class="radio-data">
-            <div class="radio-beatmap" class:no-bg={!bg}>
+        <div class="radio-data" class:no-bg={!bg}>
+            {#if bg}
+                <img class="radio-background" src={bg} alt="" />
+            {/if}
+            <div class="radio-beatmap">
                 <div class="radio-beatmap-header">
                     <div class="status">playing</div>
                     <div class="status">{selected_beatmap?.status ?? "unknown"}</div>
@@ -294,7 +293,6 @@
         height: 100%;
         overflow: hidden;
         display: flex;
-        --radio-bg: none;
     }
 
     .sidebar {
@@ -307,13 +305,13 @@
         flex: 1;
         position: relative;
         overflow: hidden;
-        padding: 20px;
-        background-color: rgba(18, 18, 18, 0.95);
+    }
+
+    .radio-data.no-bg {
+        background: linear-gradient(90deg, rgba(28, 24, 26, 1) 0%, rgba(33, 18, 22, 1) 100%);
     }
 
     .radio-beatmap {
-        background: var(--bg-tertiary);
-        backdrop-filter: blur(15px);
         border-radius: 4px;
         padding: 24px;
         width: 100%;
@@ -323,27 +321,20 @@
         display: grid;
         grid-template-rows: auto auto auto 1fr auto;
         gap: 24px;
+        z-index: 1;
     }
 
-    .radio-beatmap::before {
-        content: "";
+    .radio-background {
         position: absolute;
-        inset: 0;
-        z-index: -1;
-        background: var(--radio-bg, linear-gradient(90deg, rgba(23, 50, 82, 1) 0%, rgba(74, 19, 89, 1) 100%));
+        z-index: 0;
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        opacity: 1;
-        filter: brightness(0.05);
-        transition:
-            background-image 0.3s ease,
-            opacity 0.3s ease;
-    }
-
-    .radio-beatmap.no-bg::before {
-        background: linear-gradient(90deg, rgba(23, 50, 82, 1) 0%, rgba(74, 19, 89, 1) 100%);
-        background-image: none;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        filter: brightness(0.1);
     }
 
     .radio-beatmap-header {
@@ -377,6 +368,7 @@
         gap: 24px;
         padding: 16px;
         background: rgba(19, 19, 19, 0.8);
+        backdrop-filter: blur(10px);
         border-radius: 4px;
     }
 

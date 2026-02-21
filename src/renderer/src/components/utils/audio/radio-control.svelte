@@ -134,6 +134,7 @@
         padding: 24px;
         background: rgba(19, 19, 19, 0.8);
         border-radius: 6px;
+        backdrop-filter: blur(10px);
     }
 
     .volume-container {
@@ -143,6 +144,7 @@
         align-items: center;
         padding: 8px;
         background-color: rgba(19, 19, 19, 0.8);
+        backdrop-filter: blur(10px);
         border-radius: 6px;
         width: fit-content;
         margin-bottom: 10px;

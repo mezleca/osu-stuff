@@ -131,7 +131,16 @@ export const check_for_updates = () => {
         actions: []
     });
 
-    window.api.invoke("updater:check");
+    window.api.invoke("updater:check").catch((err) => {
+        console.error("[updater] check failed:", err);
+        update_progress.update((state) => ({ ...state, checking: false }));
+        finish_notification(NOTIFICATION_ID, {
+            type: "error",
+            text: "failed to check for updates",
+            duration: 3500,
+            actions: []
+        });
+    });
 };
 
 window.api.on("updater:new", async (data) => {
@@ -193,11 +202,11 @@ window.api.on("updater:finish", async (data) => {
         upsert_update_notification({
             type: "confirm",
             persist: true,
-            text: "update downloaded\nrestart now?",
+            text: "update downloaded\nclick install update to apply it now",
             actions: [
                 {
                     id: "restart-now",
-                    label: "restart now",
+                    label: "install update",
                     close_on_click: false,
                     on_click: async () => {
                         await request_install();
@@ -205,7 +214,7 @@ window.api.on("updater:finish", async (data) => {
                 },
                 {
                     id: "restart-later",
-                    label: "later",
+                    label: "install later",
                     close_on_click: true
                 }
             ]

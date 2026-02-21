@@ -36,197 +36,142 @@ export const get_common_bpm = (timing_points: IStableTimingPoint[], length: numb
     }).bpm;
 };
 
-const normalize_key = (v: string) => {
-    if (v.startsWith('"') && v.endsWith('"')) {
-        v = v.slice(1, -1);
-    }
-
-    const value = Number(v);
-    return isNaN(value) ? v : value;
-};
-
-const validate_advanced_filter = <K extends keyof IBeatmapResult>(obj: IBeatmapResult, key: K, op: string, rawValue: string): boolean => {
-    const field = obj[key];
-    let value: any = rawValue;
-
-    if (typeof field === "number") {
-        value = Number(rawValue);
-        if (isNaN(value)) return false;
-    } else {
-        value = String(rawValue).toLowerCase();
-    }
-
-    if (field == undefined || value == undefined) {
-        return true;
-    }
-
-    switch (op) {
-        case "=":
-            return field == value;
-        case "!=":
-            return field != value;
-        case ">":
-            return field > value;
-        case ">=":
-            return field >= value;
-        case "<":
-            return field < value;
-        case "<=":
-            return field <= value;
-        default:
-            return false;
-    }
-};
+const FILTER_REGEX = /\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
 
 export interface AdvancedFilter<K extends keyof IBeatmapResult = keyof IBeatmapResult> {
-    text: string;
     k: K;
     o: string;
     v: string;
 }
 
-// filter beatmap based on query and search filters
-export const filter_beatmap_by_query = (beatmap: IBeatmapResult, query: string) => {
-    let valid = true;
+export interface ParsedQuery {
+    text: string;
+    filters: AdvancedFilter[];
+}
 
+export const parse_query = (raw: string): ParsedQuery => {
+    const filters: AdvancedFilter[] = [];
+    let text = raw;
+
+    for (const match of raw.matchAll(FILTER_REGEX)) {
+        const { key, op, value } = match.groups!;
+        filters.push({
+            k: key as keyof IBeatmapResult,
+            o: op,
+            v: value.replace(/"/g, "")
+        });
+        text = text.replace(match[0], "");
+    }
+
+    return { text: text.trim().toLowerCase(), filters };
+};
+
+const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boolean => {
+    const field = beatmap[filter.k];
+    if (field == undefined) return true;
+
+    let field_val: string | number;
+    let filter_val: string | number;
+
+    if (typeof field === "number") {
+        filter_val = Number(filter.v);
+
+        if (isNaN(filter_val as number)) {
+            return false;
+        }
+
+        field_val = field;
+    } else {
+        field_val = String(field).toLowerCase();
+        filter_val = filter.v.toLowerCase();
+    }
+
+    switch (filter.o) {
+        case "=":
+            return field_val == filter_val;
+        case "!=":
+            return field_val != filter_val;
+        case ">":
+            return field_val > filter_val;
+        case ">=":
+            return field_val >= filter_val;
+        case "<":
+            return field_val < filter_val;
+        case "<=":
+            return field_val <= filter_val;
+        default:
+            return false;
+    }
+};
+
+export const matches_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery): boolean => {
     if (!beatmap) {
         return false;
     }
 
-    const artist = beatmap.artist;
-    const title = beatmap.title;
-    const difficulty = beatmap.difficulty;
-    const creator = beatmap.creator;
-    const tags = beatmap.tags;
-    const searchable_text = `${artist} ${title} ${difficulty} ${creator} ${tags}`.toLowerCase();
-
-    // attempt to get advanced filters ex:
-    // "property=something"
-    const advanced_filters: AdvancedFilter[] = [];
-    const regex = /\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
-
-    for (const match of query.matchAll(regex)) {
-        const groups = match.groups;
-        if (!groups) continue;
-
-        const { key, op, value } = groups;
-        advanced_filters.push({ text: match[0], k: key as keyof IBeatmapResult, o: op, v: value.replace(/"/g, "") });
+    for (const filter of query.filters) {
+        // skip filters with empty values
+        if (!filter.v) continue;
+        if (!validate_filter(beatmap, filter)) return false;
     }
 
-    // remove the advanced filters from query so the query only reflects basic stuff
-    for (const filter of advanced_filters) {
-        query = query.replace(filter.text, "");
+    if (!query.text) {
+        return true;
     }
 
-    // check if advanced filters block the current search
-    for (const filter of advanced_filters) {
-        const normalized = normalize_key(filter.v);
+    const tags = Array.isArray(beatmap.tags) ? beatmap.tags.join(" ") : (beatmap.tags ?? "");
+    const searchable = `${beatmap.artist} ${beatmap.title} ${beatmap.difficulty} ${beatmap.creator} ${tags}`.toLowerCase();
 
-        // ignore invalid filters
-        if (!normalized) {
-            continue;
-        }
-
-        if (!validate_advanced_filter(beatmap, filter.k, filter.o, filter.v)) {
-            valid = false;
-            break;
-        }
-    }
-
-    return valid && (query == "" || searchable_text.includes(query));
+    return searchable.includes(query.text);
 };
 
-const normalize_text = (text: string) => {
-    if (!text) {
-        return "";
-    }
+export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRatingFilter): boolean => {
+    const [min_val, max_val] = diff;
 
+    if (min_val != null && beatmap.star_rating < min_val) return false;
+    if (max_val != null && max_val != MAX_STAR_RATING_VALUE && beatmap.star_rating > max_val) return false;
+
+    return true;
+};
+
+const normalize_text = (text: string): string => {
+    if (!text) return "";
     return text
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase();
 };
 
-// sort beatmaps by type (descending)
-export const sort_beatmaps = (beatmaps: IBeatmapResult[], property: keyof IBeatmapResult) => {
-    if (!ALLOWED_SORT_KEYS.includes(property)) {
-        return beatmaps;
+const compare_values = (a_raw: unknown, b_raw: unknown): number => {
+    if (typeof a_raw === "string") {
+        const a = normalize_text(a_raw);
+        const b = normalize_text(String(b_raw ?? ""));
+
+        if (!a && b) return 1;
+        if (a && !b) return -1;
+        if (!a && !b) return 0;
+
+        return a.localeCompare(b);
     }
 
-    const result = beatmaps.sort((a, b) => {
-        const a_val_check = a[property];
-        const is_text_comparission = typeof a_val_check == "string";
+    const a = (a_raw as number) ?? null;
+    const b = (b_raw as number) ?? null;
 
-        if (is_text_comparission) {
-            const a_val = normalize_text(String(a[property]));
-            const b_val = normalize_text(String(b[property]));
+    if (a == null && b != null) return 1;
+    if (a != null && b == null) return -1;
+    if (a == null && b == null) return 0;
 
-            // push empty/invalid values to the end
-            if (!a_val && b_val) return 1;
-            if (a_val && !b_val) return -1;
-            if (!a_val && !b_val) return 0;
-
-            return a_val.localeCompare(b_val);
-        } else {
-            const a_val = (a[property] as number) || 0;
-            const b_val = (b[property] as number) || 0;
-
-            // push null/undefined values to the end
-            if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
-            if (a_val != null && a_val != undefined && (b_val == null || b_val == undefined)) return -1;
-            if ((a_val == null || a_val == undefined) && (b_val == null || b_val == undefined)) return 0;
-
-            return b_val - a_val;
-        }
-    });
-
-    return result;
+    return (b as number) - (a as number);
 };
 
-// sort beatmapsets by type (descending)
-export const sort_beatmapset = (beatmaps: BeatmapSetResult[], property: keyof BeatmapSetResult["metadata"]) => {
-    if (!ALLOWED_SORT_KEYS.includes(property)) {
-        return beatmaps;
-    }
-
-    const result = beatmaps.sort((a, b) => {
-        const a_val_check = a[property];
-        const is_text_comparission = typeof a_val_check == "string";
-
-        if (is_text_comparission) {
-            const a_val = normalize_text(String(a[property]));
-            const b_val = normalize_text(String(b[property]));
-
-            // push empty/invalid values to the end
-            if (!a_val && b_val) return 1;
-            if (a_val && !b_val) return -1;
-            if (!a_val && !b_val) return 0;
-
-            return a_val.localeCompare(b_val);
-        } else {
-            const a_val = (a[property] as number) || 0;
-            const b_val = (b[property] as number) || 0;
-
-            // push null/undefined values to the end
-            if ((a_val == null || a_val == undefined) && b_val != null && b_val != undefined) return 1;
-            if (a_val != null && a_val != undefined && (b_val == null || b_val == undefined)) return -1;
-            if ((a_val == null || a_val == undefined) && (b_val == null || b_val == undefined)) return 0;
-
-            return b_val - a_val;
-        }
-    });
-
-    return result;
+export const sort_beatmaps = (beatmaps: IBeatmapResult[], property: keyof IBeatmapResult): IBeatmapResult[] => {
+    if (!ALLOWED_SORT_KEYS.includes(property)) return beatmaps;
+    return beatmaps.sort((a, b) => compare_values(a[property], b[property]));
 };
 
-export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRatingFilter) => {
-    const min_val = diff[0];
-    const max_val = diff[1];
-
-    if (min_val != null && beatmap.star_rating < min_val) return false;
-    if (max_val != null && max_val != MAX_STAR_RATING_VALUE && beatmap.star_rating > max_val) return false;
-
-    return true;
+export const sort_beatmapset = (beatmaps: BeatmapSetResult[], property: keyof BeatmapSetResult["metadata"]): BeatmapSetResult[] => {
+    if (!ALLOWED_SORT_KEYS.includes(property)) return beatmaps;
+    return beatmaps.sort((a, b) => compare_values(a.metadata[property], b.metadata[property]));
 };
 
 export const get_lazer_file_location = (name: string) => {

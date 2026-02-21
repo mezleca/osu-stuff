@@ -16,7 +16,7 @@ import {
     ALL_STATUS_KEY,
     ALL_MODES_KEY
 } from "@shared/types";
-import { check_beatmap_difficulty, filter_beatmap_by_query, sort_beatmaps, sort_beatmapset } from "../beatmaps";
+import { check_beatmap_difficulty, matches_beatmap, parse_query, ParsedQuery, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { osdb_parser } from "../../binary/osdb";
 import { stable_parser } from "../../binary/stable";
 import { config } from "../../database/config";
@@ -46,10 +46,10 @@ export abstract class BaseDriver implements IOsuDriver {
         return this.initialized;
     };
 
-    filter_beatmap = (beatmap: IBeatmapResult, options: IBeatmapFilter): boolean => {
+    filter_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery, options: IBeatmapFilter): boolean => {
         if (beatmap.beatmapset_id == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
-        if (options.query && !filter_beatmap_by_query(beatmap, options.query)) return false;
+        if (options.query && !matches_beatmap(beatmap, query)) return false;
         if (options.status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != options.status.toLowerCase()) return false;
         if ((options.mode as string) != ALL_MODES_KEY && beatmap.mode != options.mode) return false;
         return true;
@@ -66,6 +66,7 @@ export abstract class BaseDriver implements IOsuDriver {
         const unique_ids: Set<string> = new Set();
         const valid_beatmaps: IBeatmapResult[] = [];
         const invalid_beatmaps: string[] = [];
+        const parsed_query = parse_query(options.query);
 
         for (const checksum of beatmaps) {
             const beatmap = await this.get_beatmap_by_md5(checksum);
@@ -84,7 +85,7 @@ export abstract class BaseDriver implements IOsuDriver {
             }
 
             // now check for the other filters
-            const is_valid_beatmap = this.filter_beatmap(beatmap, options);
+            const is_valid_beatmap = this.filter_beatmap(beatmap, parsed_query, options);
 
             if (!is_valid_beatmap) {
                 invalid_beatmaps.push(checksum);
@@ -118,6 +119,7 @@ export abstract class BaseDriver implements IOsuDriver {
         const valid_beatmapsets: BeatmapSetResult[] = [];
         // also store the invalid ones for later
         const invalid_beatmapsets: number[] = [];
+        const parsed_query = parse_query(options.query);
 
         for (const [id, beatmapset] of unified_maps) {
             // fetch stored beatmaps from beatmapset
@@ -133,7 +135,7 @@ export abstract class BaseDriver implements IOsuDriver {
             const valid_beatmaps: string[] = [];
 
             for (const beatmap of beatmaps) {
-                const is_valid_beatmap = this.filter_beatmap(beatmap, {
+                const is_valid_beatmap = this.filter_beatmap(beatmap, parsed_query, {
                     query: options.query,
                     mode: options.mode,
                     status: options.status,

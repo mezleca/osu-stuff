@@ -256,7 +256,7 @@ class CollectionManager {
                 return;
             }
 
-            show_notification({ text: "collections updated" });
+            show_notification({ type: "success", text: "collections updated" });
             this.needs_update.set(false);
         } catch (error) {
             console.error("[collections] update error:", error);
@@ -290,7 +290,7 @@ class CollectionManager {
             }
 
             this.remove(name);
-            show_notification({ text: `collection "${name}" deleted` });
+            show_notification({ type: "success", text: `collection "${name}" deleted` });
         } catch (error) {
             console.error("[collections] delete error:", error);
             show_notification({ type: "error", text: "failed to delete collection" });

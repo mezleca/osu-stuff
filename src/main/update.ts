@@ -9,6 +9,7 @@ const RELEASES_URL = "https://github.com/mezleca/osu-stuff/releases/latest";
 class StuffUpdater {
     active: boolean = false;
     installing: boolean = false;
+    checking: boolean = false;
 
     initialize = () => {
         autoUpdater.autoDownload = false;
@@ -25,7 +26,7 @@ class StuffUpdater {
         });
 
         handle_ipc("updater:check", () => {
-            this.check();
+            return this.check();
         });
 
         handle_ipc("updater:update", () => {
@@ -56,6 +57,7 @@ class StuffUpdater {
         });
 
         autoUpdater.on("update-available", (data) => {
+            this.checking = false;
             const window = get_window("main");
 
             if (!window) {
@@ -68,6 +70,7 @@ class StuffUpdater {
         });
 
         autoUpdater.on("checking-for-update", () => {
+            this.checking = true;
             const window = get_window("main");
 
             if (!window) {
@@ -79,6 +82,7 @@ class StuffUpdater {
         });
 
         autoUpdater.on("update-not-available", (data) => {
+            this.checking = false;
             const window = get_window("main");
 
             if (!window) {
@@ -105,6 +109,7 @@ class StuffUpdater {
             console.log("[updater] update downloaded:", data);
 
             this.active = false;
+            this.checking = false;
             send_to_renderer(window.webContents, "updater:finish", { success: true, data: data.version });
         });
 
@@ -118,7 +123,12 @@ class StuffUpdater {
 
             console.error("[updater] error:", data);
 
-            // skip passive update checks, but notify on download/install flows.
+            if (this.checking) {
+                this.checking = false;
+                send_to_renderer(window.webContents, "updater:not_available", undefined);
+            }
+
+            // skip passive update checks errors, but notify on download/install flows.
             if (this.active || this.installing) {
                 const is_install_error = this.installing;
                 this.active = false;
@@ -133,7 +143,27 @@ class StuffUpdater {
     };
 
     check() {
-        autoUpdater.checkForUpdates();
+        const window = get_window("main");
+
+        if (!autoUpdater.isUpdaterActive()) {
+            this.checking = false;
+            if (window) {
+                send_to_renderer(window.webContents, "updater:not_available", undefined);
+            }
+            return { success: false, reason: "auto updater is not active in this build" };
+        }
+
+        try {
+            this.checking = true;
+            autoUpdater.checkForUpdates();
+            return { success: true, data: "check started" };
+        } catch (err) {
+            this.checking = false;
+            if (window) {
+                send_to_renderer(window.webContents, "updater:not_available", undefined);
+            }
+            return { success: false, reason: err as string };
+        }
     }
 
     private build_manual_update_reason(err: unknown): string {
