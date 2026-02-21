@@ -45,6 +45,10 @@
         }
     };
 
+    const handle_radio_background_toggle = async () => {
+        await config.set("radio_background", !$config.radio_background);
+    };
+
     const remove_mirror = async (name: string) => {
         const confirm_result = await quick_confirm(`delete ${name}?`, {
             submit: "delete",
@@ -194,6 +198,15 @@
                     value={$config.lazer_mode}
                     label={"lazer mode"}
                     desc="enable to use your lazer collections / beatmaps"
+                />
+            </div>
+
+            <div class="field-group">
+                <Checkbox
+                    onchange={handle_radio_background_toggle}
+                    value={$config.radio_background}
+                    label={"radio background"}
+                    desc="enable background image in radio tab"
                 />
             </div>
 

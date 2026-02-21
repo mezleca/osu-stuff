@@ -7,6 +7,7 @@ export interface StuffConfig {
     export_path: string;
     local_images: boolean;
     lazer_mode: boolean;
+    radio_background: boolean;
     radio_volume: number;
 }
 

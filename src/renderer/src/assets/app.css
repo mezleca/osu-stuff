@@ -372,8 +372,6 @@ main {
         height 0.2s ease-in-out,
         border-color 0.2s ease,
         box-shadow 0.2s ease;
-    will-change: transform, filter;
-    transform: translateZ(0);
     contain: layout style paint;
 }
 

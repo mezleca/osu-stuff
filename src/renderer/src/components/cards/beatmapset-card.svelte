@@ -1,6 +1,8 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
     import type { IBeatmapResult } from "@shared/types";
+    import { type Writable } from "svelte/store";
+    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmap, get_beatmapset } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
@@ -12,8 +14,6 @@
     // components
     import BeatmapCard from "./beatmap-card.svelte";
     import BeatmapControls from "./beatmap-controls.svelte";
-    import { type Writable } from "svelte/store";
-    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
 
     export let id = -1;
     export let show_context = true;
@@ -26,7 +26,6 @@
     export let height = 100;
 
     let state_store: Writable<BeatmapSetComponentState> | null = null;
-    $: state = state_store ? $state_store : null;
 
     let expanded = false;
     let sorted_beatmaps: IBeatmapResult[] = [];
@@ -36,6 +35,7 @@
     let image_loaded = false;
     let last_filtered_hashes: string[] = filtered_hashes;
 
+    $: state = state_store ? $state_store : null;
     $: loaded = state && state.loaded == true;
     $: visible_hashes =
         state?.beatmapset?.beatmaps && filtered_hashes.length > 0
@@ -206,7 +206,9 @@
                 src={state.background}
                 class="beatmap-card-background"
                 class:loaded={image_loaded}
-                alt="background image"
+                alt=""
+                loading="lazy"
+                decoding="async"
                 bind:this={image_element}
             />
 

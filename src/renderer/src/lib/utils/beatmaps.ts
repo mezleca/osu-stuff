@@ -4,6 +4,7 @@ import { collections } from "../store/collections";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
 import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDetailsResponse } from "@shared/types";
+
 import LRU from "quick-lru";
 
 const MAX_STAR_RATING_VALUE = 10; // lazer

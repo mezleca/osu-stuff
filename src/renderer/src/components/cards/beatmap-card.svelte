@@ -2,7 +2,7 @@
     import { onDestroy } from "svelte";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { open_on_browser } from "../../lib/utils/utils";
+    import { open_on_browser, string_is_valid, url_to_media } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
     import { show_context_menu } from "../../lib/store/context-menu";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
@@ -17,6 +17,7 @@
         highlighted = false,
         beatmap: IBeatmapResult | null = null,
         hash: string = "",
+        force_local_background = false,
         show_bpm = true,
         show_star_rating = true,
         show_status = true,
@@ -30,11 +31,10 @@
         on_remove: (checksum: string) => void = null;
 
     let state_store: Writable<BeatmapComponentState> | null = null;
-    $: state = state_store ? $state_store : null;
-
     let image_element: HTMLImageElement = null;
     let image_loaded = false;
 
+    $: state = state_store ? $state_store : null;
     $: loaded = state && state.loaded == true;
     $: has_map = state?.beatmap && state.beatmap.temp == false;
     $: current_beatmap = state?.beatmap ?? beatmap;
@@ -51,7 +51,7 @@
             // ignore if we already have the beatmap saved
             if (state.beatmap) {
                 if (!minimal && state.background == "") {
-                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmap) }));
+                    state_store.update((s) => ({ ...s, background: get_background_source(s.beatmap) }));
                 }
                 return;
             }
@@ -72,7 +72,7 @@
                 state_store.update((s) => ({
                     ...s,
                     beatmap: result,
-                    background: !minimal && s.background == "" ? get_card_image_source(result) : s.background
+                    background: !minimal && s.background == "" ? get_background_source(result) : s.background
                 }));
             }
         } catch (err) {
@@ -109,6 +109,24 @@
         return "0.0";
     };
 
+    const get_background_source = (item: IBeatmapResult | null): string => {
+        if (!item) {
+            return "";
+        }
+
+        if (force_local_background) {
+            const local = item.background ? url_to_media(item.background) : "";
+
+            if (string_is_valid(local)) {
+                return local;
+            }
+
+            return item.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${item.beatmapset_id}/covers/cover.jpg` : "";
+        }
+
+        return get_card_image_source(item);
+    };
+
     $: {
         if (hash) {
             state_store = get_beatmap_state(hash);
@@ -120,6 +138,10 @@
 
     onDestroy(() => {
         debounced_load.cancel();
+
+        if (image_element) {
+            image_element.src = "";
+        }
     });
 </script>
 
@@ -154,7 +176,15 @@
     >
         <!-- render background image -->
         <!-- svelte-ignore a11y_img_redundant_alt -->
-        <img src={state.background} class="beatmap-card-background" class:loaded={image_loaded} alt="background image" bind:this={image_element} />
+        <img
+            class="beatmap-card-background"
+            class:loaded={image_loaded}
+            src={state.background}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            bind:this={image_element}
+        />
 
         <!-- render controls -->
         {#if show_control}

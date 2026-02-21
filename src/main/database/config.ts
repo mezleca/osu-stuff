@@ -14,6 +14,7 @@ const CONFIG_KEYS = [
     "export_path",
     "local_images",
     "lazer_mode",
+    "radio_background",
     "radio_volume"
 ];
 
@@ -26,6 +27,7 @@ const DEFAULT_DATA: StuffConfig = {
     export_path: "",
     local_images: false,
     lazer_mode: false,
+    radio_background: true,
     radio_volume: 50
 };
 
@@ -51,6 +53,7 @@ export class ConfigDatabase extends BaseDatabase {
                 export_path TEXT,
                 local_images INTEGER DEFAULT 0,
                 lazer_mode INTEGER DEFAULT 0,
+                radio_background INTEGER DEFAULT 1,
                 radio_volume INTEGER DEFAULT 0
             );
         `);
@@ -65,7 +68,17 @@ export class ConfigDatabase extends BaseDatabase {
     }
 
     post_initialize() {
+        this.ensure_columns();
         this.ensure_config_row();
+    }
+
+    ensure_columns() {
+        const columns = this.instance.prepare("PRAGMA table_info(config)").all() as Array<{ name: string }>;
+        const has_radio_background = columns.some((column) => column.name == "radio_background");
+
+        if (!has_radio_background) {
+            this.exec("ALTER TABLE config ADD COLUMN radio_background INTEGER DEFAULT 1");
+        }
     }
 
     ensure_config_row() {
@@ -95,6 +108,7 @@ export class ConfigDatabase extends BaseDatabase {
         // convert it back to booleans if necessary
         config_obj.local_images = Boolean(config_obj.local_images);
         config_obj.lazer_mode = Boolean(config_obj.lazer_mode);
+        config_obj.radio_background = Boolean(config_obj.radio_background);
 
         // load values from db into config object
         Object.assign(this.data, config_obj);

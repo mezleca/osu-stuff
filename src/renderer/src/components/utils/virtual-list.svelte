@@ -502,12 +502,10 @@
 
     .carousel-effect {
         transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0)) translateY(var(--y-offset, 0));
-        backface-visibility: hidden;
-        outline: 1px solid transparent;
         transition:
             transform 600ms cubic-bezier(0.23, 1, 0.32, 1),
             opacity 100ms ease-out;
-        will-change: transform;
+        contain: layout style paint;
     }
 
     .osu-mode {

@@ -13,6 +13,7 @@ const DEFAULT_CONFIG_FIELDS = {
     export_path: "",
     local_images: false,
     lazer_mode: false,
+    radio_background: true,
     radio_volume: 50
 };
 

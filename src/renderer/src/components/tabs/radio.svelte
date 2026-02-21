@@ -11,6 +11,7 @@
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { type IBeatmapResult } from "@shared/types";
     import { input } from "../../lib/store/input";
+    import { config } from "../../lib/store/config";
 
     // components
     import Search from "../utils/basic/search.svelte";
@@ -35,6 +36,11 @@
     ];
 
     const update_background_image = async () => {
+        if (!$config.radio_background) {
+            bg = "";
+            return;
+        }
+
         if (!selected_beatmap) {
             bg = "";
             return;
@@ -171,6 +177,12 @@
         debounced_update($should_update);
     }
 
+    $: if ($config.radio_background) {
+        update_background_image();
+    } else {
+        bg = "";
+    }
+
     onMount(() => {
         list.show_unique.set(true);
 
@@ -217,10 +229,12 @@
 
         return () => {
             debounced_update.cancel();
+
             input.unregister(handle_random_id);
             input.unregister(handle_previous_id);
             input.unregister(handle_seek_backward_id);
             input.unregister(handle_seek_forward_id);
+
             list.show_remove.set(true);
         };
     });

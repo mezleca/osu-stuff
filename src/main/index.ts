@@ -272,10 +272,15 @@ const is_subdir = (parent: string, child: string): boolean => {
 
 app.whenReady().then(async () => {
     // protocol to return files from fs
-    protocol.handle("media", (req) => {
+    protocol.handle("media", async (req) => {
         try {
             const normalized = normalize_protocol_path(req.url, "media");
-            return net.fetch(process.platform == "win32" ? `file:///${normalized}` : `file://${normalized}`);
+            return net.fetch(process.platform == "win32" ? `file:///${normalized}` : `file://${normalized}`, {
+                headers: {
+                    "Content-Type": "image/webp",
+                    "Cache-Control": "max-age=3600"
+                }
+            });
         } catch (err) {
             console.error("protocol error:", err);
             return new Response("not found", { status: 404 });

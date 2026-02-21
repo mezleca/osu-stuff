@@ -13,6 +13,7 @@
     export let carousel = true;
     export let max_card_width = false;
     export let simplified = false;
+    export let force_local_background = false;
     export let direction: "left" | "right" = "right";
     export let on_update: (index: number) => any = null;
     export let on_remove: (checksum: string) => any = null;
@@ -174,6 +175,7 @@
             show_star_rating={!simplified}
             show_status={!simplified}
             centered={simplified}
+            {force_local_background}
             {on_remove}
             {hash}
             {height}
