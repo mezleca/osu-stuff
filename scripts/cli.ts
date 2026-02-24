@@ -13,8 +13,7 @@ const PATHS = {
     ROOT: path.resolve(__dirname, ".."),
     OUT: path.resolve(__dirname, "../out"),
     SRC_MAIN: path.resolve(__dirname, "../src/main/index.ts"),
-    SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts"),
-    RESOURCES: path.resolve(__dirname, "../resources")
+    SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts")
 };
 
 let vite_process: Subprocess | null = null;

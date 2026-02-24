@@ -1,3 +1,13 @@
+# v2.5.3
+
+## new stuff
+
+## bug fixes
+
+- fix icon
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.2...v2.5.3
+
 # v2.5.2
 
 ## new stuff

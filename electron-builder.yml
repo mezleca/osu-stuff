@@ -31,7 +31,7 @@ files:
     - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 win:
-    icon: resources/icon.ico
+    icon: icon.ico
     executableName: osu-stuff
 
 nsis:
@@ -41,13 +41,16 @@ nsis:
     createDesktopShortcut: always
 
 linux:
-    icon: resources/icon.png
+    icon: icon.png
     target:
         - AppImage
         - deb
         - pacman
     maintainer: https://github.com/mezleca
     category: Utility
+    desktop:
+        entry:
+            StartupWMClass: osu-stuff
 
 appImage:
     artifactName: ${name}-${version}.${ext}
