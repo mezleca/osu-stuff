@@ -1,6 +1,7 @@
 import { get, writable } from "svelte/store";
 import { show_notification } from "../store/notifications";
 import { collections } from "../store/collections";
+import { update_beatmap_lists } from "../store/beatmaps";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
 import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDetailsResponse } from "@shared/types";
@@ -393,11 +394,33 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
     };
 };
 
-export const remove_beatmap = async (md5: string, collection_name?: string) => {
+export const remove_beatmap_from_collection = async (md5: string, collection_name?: string): Promise<string> => {
     if (collection_name) {
         collections.remove_beatmap(collection_name, md5);
         await window.api.invoke("driver:delete_beatmap", { md5, collection: collection_name });
     } else {
         await window.api.invoke("driver:delete_beatmap", { md5 });
     }
+
+    // force list update to prevent caching issues
+    update_beatmap_lists();
+    return md5;
+};
+
+export const remove_beatmapset_from_collection = async (id: number, collection_name?: string): Promise<string[]> => {
+    const beatmapset = await get_beatmapset(id);
+
+    if (!beatmapset) {
+        show_notification({ type: "error", text: "failed to removed beatmapset (not found)" });
+        return [];
+    }
+
+    for (const md5 of beatmapset.beatmaps) {
+        collections.remove_beatmap(collection_name, md5);
+        await window.api.invoke("driver:delete_beatmap", { md5, collection: collection_name });
+    }
+
+    // force list update to prevent caching issues
+    update_beatmap_lists();
+    return beatmapset.beatmaps;
 };

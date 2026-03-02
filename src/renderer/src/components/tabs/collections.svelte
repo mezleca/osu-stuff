@@ -4,7 +4,7 @@
     import { FILTER_DATA, MODES_DATA, STATUS_DATA } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
-    import { remove_beatmap } from "../../lib/utils/beatmaps";
+    import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
     import { modals, ModalType } from "../../lib/utils/modal";
@@ -34,7 +34,7 @@
     const { sort, query, status, mode, show_invalid, difficulty_range, should_update } = list;
 
     $: filtered_collections = collections.collections;
-    $: selected_collection = collections.selected;
+    $: selected_collection = collections.get_selected_store("collections");
     $: collection_search = collections.query;
     $: collection_should_update = collections.needs_update;
 
@@ -44,7 +44,7 @@
             return;
         }
 
-        list.target.set($selected_collection.name);
+        list.set_target($selected_collection.name);
 
         const result = await list.search(force);
         const hashes: Set<string> = new Set();
@@ -60,22 +60,31 @@
         }
 
         if (result) {
-            list.set_items(Array.from(hashes.values()), $query, false);
-            list.update_list_id($selected_collection.name);
+            list.set_items(Array.from(hashes.values()));
         }
 
         list.clear_selected_buffer();
     }, 10);
 
     const remove_callback = async (hash: string) => {
-        if ($selected_collection.name) {
-            await remove_beatmap(hash, $selected_collection.name);
+        await remove_beatmap_from_collection(hash, $selected_collection?.name ?? "");
 
-            const current_items = list.get_items();
-            const new_items = current_items.filter((h) => h != hash);
-            list.set_items(new_items, $query, false);
-        }
+        const current_items = list.get_items();
+        const new_items = current_items.filter((h) => h != hash);
 
+        list.set_items(new_items);
+        collections.filter();
+    };
+
+    const remove_set_callback = async (id: number) => {
+        const hashes = await remove_beatmapset_from_collection(id, $selected_collection?.name ?? "");
+        const current_items = list.get_items();
+        const new_items = current_items.filter((md5) => hashes.includes(md5));
+
+        console.log("removed:", hashes);
+        console.log("new size:", new_items.length, "old size:", current_items.length);
+
+        list.set_items(new_items);
         collections.filter();
     };
 
@@ -229,7 +238,7 @@
                             count={collection.beatmaps.length ?? 0}
                             edit={collection.edit}
                             selected={$selected_collection?.name == collection.name}
-                            on_select={() => collections.select(collection.name, false)}
+                            on_select={() => collections.select(collection.name, "collections")}
                             on_rename={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
                         />
                     </div>
@@ -250,7 +259,7 @@
         </div>
 
         <!-- render beatmap list -->
-        <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} show_missing={true} />
+        <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} on_remove_set={remove_set_callback} show_missing={true} />
     </div>
 </div>
 

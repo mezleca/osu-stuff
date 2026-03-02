@@ -16,7 +16,7 @@
     export let show_missing = false;
 
     const items = list_manager.items;
-    const list_id = list_manager.list_id;
+    const list_id = list_manager.id;
     const total_missing = list_manager.total_missing;
 </script>
 

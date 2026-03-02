@@ -1,3 +1,16 @@
+# v2.5.4
+
+## new stuff
+
+- context-menu(beatmap): delete beatmapset from collection
+
+## bug fixes
+
+- collections(tab) / radio(tab): "remove beatmap" not working at all
+- radio(context-menu): "remove beatmap" not showing on simplified beatmap card
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.3...v2.5.4
+
 # v2.5.3
 
 ## new stuff

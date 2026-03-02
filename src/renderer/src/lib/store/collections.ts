@@ -22,8 +22,19 @@ class CollectionManager {
     collections: Writable<ICollectionWithEdit[]> = writable([]);
     all_collections: Writable<ICollectionWithEdit[]> = writable([]);
     query: Writable<string> = writable("");
-    selected: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
-    selected_radio: Writable<ISelectedCollection> = writable({ ...DEFAULT_SELECTED });
+    private selected_states: Map<string, Writable<ISelectedCollection>> = new Map();
+
+    get_selected_store(context: string): Writable<ISelectedCollection> {
+        const existing = this.selected_states.get(context);
+
+        if (existing) {
+            return existing;
+        }
+
+        const store = writable({ ...DEFAULT_SELECTED });
+        this.selected_states.set(context, store);
+        return store;
+    }
 
     async get_missing(): Promise<{ name: string; count: number }[]> {
         const collections = get(this.all_collections);
@@ -89,7 +100,7 @@ class CollectionManager {
         this.filter();
     }
 
-    select(name: string, is_radio: boolean = false): void {
+    select(name: string, context: string = "collections"): void {
         let selected_data: ISelectedCollection;
 
         if (is_special_key(name)) {
@@ -103,11 +114,8 @@ class CollectionManager {
             selected_data = { name: collection.name, beatmaps: collection.beatmaps };
         }
 
-        if (is_radio) {
-            this.selected_radio.set(selected_data);
-        } else {
-            this.selected.set(selected_data);
-        }
+        const store = this.get_selected_store(context);
+        store.set(selected_data);
     }
 
     filter(): void {
@@ -135,18 +143,13 @@ class CollectionManager {
             });
         });
 
-        const current = get(this.selected);
+        for (const store of this.selected_states.values()) {
+            const current = get(store);
 
-        // update current select if necessary
-        if (current.name == old_name) {
-            this.selected.set({ ...current, name: new_name });
-        }
-
-        // update radio selected if necessary
-        const current_radio = get(this.selected_radio);
-
-        if (current_radio.name == old_name) {
-            this.selected_radio.set({ ...current_radio, name: new_name });
+            // update current select if necessary
+            if (current.name == old_name) {
+                store.set({ ...current, name: new_name });
+            }
         }
 
         this.needs_update.set(true);
@@ -164,18 +167,13 @@ class CollectionManager {
     }
 
     async remove(name: string): Promise<void> {
-        const current = get(this.selected);
+        for (const store of this.selected_states.values()) {
+            const current = get(store);
 
-        // remove from selected if necessary
-        if (current.name == name) {
-            this.selected.set({ ...DEFAULT_SELECTED });
-        }
-
-        const current_radio = get(this.selected_radio);
-
-        // remove from selected (radio tab) if necessary
-        if (current_radio.name == name) {
-            this.selected_radio.set({ ...DEFAULT_SELECTED });
+            // remove from selected if necessary
+            if (current.name == name) {
+                store.set({ ...DEFAULT_SELECTED });
+            }
         }
 
         // remove from the crrent map
@@ -205,18 +203,13 @@ class CollectionManager {
             });
         });
 
-        const current = get(this.selected);
+        for (const store of this.selected_states.values()) {
+            const current = get(store);
 
-        if (current.name == name) {
-            const beatmaps = current.beatmaps.filter((hash) => hash != md5);
-            this.selected.set({ ...current, beatmaps });
-        }
-
-        const current_radio = get(this.selected_radio);
-
-        if (current_radio.name == name) {
-            const beatmaps = current_radio.beatmaps.filter((hash) => hash != md5);
-            this.selected_radio.set({ ...current_radio, beatmaps });
+            if (current.name == name) {
+                const beatmaps = current.beatmaps.filter((hash) => hash != md5);
+                store.set({ ...current, beatmaps });
+            }
         }
 
         this.needs_update.set(true);

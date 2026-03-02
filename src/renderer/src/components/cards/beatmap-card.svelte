@@ -22,13 +22,15 @@
         show_star_rating = true,
         show_status = true,
         show_remove = true,
+        show_context_remove = false,
         show_context = true,
         show_control = true,
         centered = false,
         minimal = false,
         height = 100,
         on_click: (event: MouseEvent) => void = null,
-        on_remove: (checksum: string) => void = null;
+        on_remove: (checksum: string) => void = null,
+        on_remove_set: (id: number) => void = null;
 
     let state_store: Writable<BeatmapComponentState> | null = null;
     let image_element: HTMLImageElement = null;
@@ -93,11 +95,11 @@
 
         if (!show_context) return;
 
-        const options = get_beatmap_context_options(current_beatmap, show_remove);
+        const options = get_beatmap_context_options(current_beatmap, show_context_remove);
 
         show_context_menu(event, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], current_beatmap, on_remove);
+            handle_card_context_action(item_split[0], item_split[1], current_beatmap, on_remove, on_remove_set);
         });
     };
 

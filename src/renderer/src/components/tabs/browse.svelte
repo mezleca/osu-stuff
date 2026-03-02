@@ -20,7 +20,7 @@
 
         const ids = result.beatmapsets.map((b) => b.online_id);
 
-        list.set_items(ids, undefined, false);
+        list.set_items(ids);
     }, 20);
 
     $: if ($query != undefined || $status || $sort || $difficulty_range || $mode || $should_update) {
@@ -28,11 +28,8 @@
     }
 
     onMount(() => {
-        list.show_remove.set(false);
-
         return () => {
             debounced_update.cancel();
-            list.show_remove.set(true);
         };
     });
 </script>

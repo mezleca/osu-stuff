@@ -16,8 +16,27 @@ import { throttle } from "../utils/timings";
 
 import LRU from "quick-lru";
 
+export interface BeatmapComponentState {
+    beatmap: IBeatmapResult | null;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+export interface BeatmapSetComponentState {
+    beatmapset: BeatmapSetResult | null;
+    beatmaps: IBeatmapResult[];
+    failed_beatmaps: Set<string>;
+    loaded: boolean;
+    loading: boolean;
+    background: string;
+}
+
+const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
+const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
+
 const EMPTY_HASHES: string[] = [];
 
 interface ISelectedBeatmap {
@@ -26,13 +45,12 @@ interface ISelectedBeatmap {
 }
 
 export abstract class ListBase<T> {
-    key: string = crypto.randomUUID();
-    list_id: Writable<string> = writable(this.key);
+    id: Writable<string> = writable("");
+    name: Writable<string> = writable("");
     query: Writable<string> = writable("");
     status: Writable<string> = writable(ALL_STATUS_KEY);
     mode: Writable<GameMode> = writable(GameMode.All);
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
-    show_remove: Writable<boolean> = writable(true);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
     should_update: Writable<boolean> = writable(false);
     total_missing: Writable<number> = writable(0);
@@ -41,12 +59,16 @@ export abstract class ListBase<T> {
     selected: Writable<ISelectedBeatmap | null> = writable(null);
     selected_buffer: Writable<T[]> = writable([]);
 
-    constructor(id: string) {
-        this.list_id.set(id);
+    constructor() {
+        this.update_id();
     }
 
-    update_list_id(id: string): void {
-        this.list_id.set(`${this.key}-${id}`);
+    update_id(): void {
+        this.id.set(crypto.randomUUID());
+    }
+
+    update_name(name: string): void {
+        this.name.set(name);
     }
 
     clear_selected(): void {
@@ -73,13 +95,9 @@ export abstract class ListBase<T> {
         return get(this.items);
     }
 
-    set_items(items: T[], query?: string, should_update_id = true): void {
+    set_items(items: T[]): void {
         this.items.set(items);
-
-        if (should_update_id && query) {
-            this.update_list_id(query);
-        }
-
+        this.update_id();
         this.check_missing();
     }
 
@@ -137,11 +155,16 @@ export class BeatmapList extends ListBase<string> {
     last_filter: string = "";
     last_result: ISearchResponse | null = null;
 
-    constructor(id: string) {
-        super(id);
+    constructor() {
+        super();
     }
 
-    async handle_context_change(hashes: string[]) {
+    set_target(name: string): void {
+        this.target.set(name);
+        this.update_name(name);
+    }
+
+    async handle_context_change(hashes: string[]): Promise<boolean> {
         try {
             const current_selected = get(this.selected);
             if (!current_selected) return false;
@@ -224,10 +247,7 @@ export class BeatmapList extends ListBase<string> {
         }
 
         const hashes = result.beatmaps.map((b) => b.md5);
-        const key = JSON.stringify(this.build_filter());
-
-        this.set_items(hashes, key);
-
+        this.set_items(hashes);
         return true;
     }
 
@@ -298,8 +318,8 @@ export class BeatmapSetList extends ListBase<number> {
     last_filter?: IBeatmapSetFilter = null;
     last_result?: ISearchSetResponse = null;
 
-    constructor(id: string) {
-        super(id);
+    constructor() {
+        super();
     }
 
     build_filter(): IBeatmapSetFilter {
@@ -358,11 +378,6 @@ export class BeatmapSetList extends ListBase<number> {
             return false;
         }
 
-        const ids = result.beatmapsets.map((bs) => bs.online_id);
-        const key = JSON.stringify(this.build_filter());
-
-        this.set_items(ids, key);
-
         return true;
     }
 
@@ -408,25 +423,6 @@ export class BeatmapSetList extends ListBase<number> {
         this.filtered_beatmaps.clear();
     }
 }
-
-export interface BeatmapComponentState {
-    beatmap: IBeatmapResult | null;
-    loaded: boolean;
-    loading: boolean;
-    background: string;
-}
-
-export interface BeatmapSetComponentState {
-    beatmapset: BeatmapSetResult | null;
-    beatmaps: IBeatmapResult[];
-    failed_beatmaps: Set<string>;
-    loaded: boolean;
-    loading: boolean;
-    background: string;
-}
-
-const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
-const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
 
 export const get_beatmap_state = (id: string) => {
     if (beatmap_state.has(id)) {
@@ -492,7 +488,7 @@ export const update_beatmap_lists = () => {
 
 export const get_beatmap_list = (tab_id: string): BeatmapList => {
     if (!beatmap_managers.has(tab_id)) {
-        beatmap_managers.set(tab_id, new BeatmapList(tab_id));
+        beatmap_managers.set(tab_id, new BeatmapList());
     }
 
     return beatmap_managers.get(tab_id)!;
@@ -500,7 +496,7 @@ export const get_beatmap_list = (tab_id: string): BeatmapList => {
 
 export const get_beatmapset_list = (tab_id: string): BeatmapSetList => {
     if (!beatmapset_managers.has(tab_id)) {
-        beatmapset_managers.set(tab_id, new BeatmapSetList(tab_id));
+        beatmapset_managers.set(tab_id, new BeatmapSetList());
     }
 
     return beatmapset_managers.get(tab_id)!;

@@ -112,7 +112,7 @@
 
         show_context_menu(e, options, (item) => {
             const item_split = item.id.split("-");
-            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove, visible_hashes);
+            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove, null, visible_hashes);
         });
     };
 

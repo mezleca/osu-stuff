@@ -7,6 +7,7 @@
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
+    import { ALL_BEATMAPS_KEY } from "@shared/types";
 
     export let list_manager: BeatmapList;
     export let height = 100;
@@ -17,13 +18,10 @@
     export let direction: "left" | "right" = "right";
     export let on_update: (index: number) => any = null;
     export let on_remove: (checksum: string) => any = null;
+    export let on_remove_set: (id: number) => any = null;
     export let show_missing = false;
 
-    const items = list_manager.items;
-    const selected = list_manager.selected;
-    const selected_buffer = list_manager.selected_buffer;
-    const list_id = list_manager.list_id;
-    const total_missing = list_manager.total_missing;
+    const { items, target, selected, selected_buffer, id: list_id, total_missing } = list_manager;
 
     const handle_card_click = (event: MouseEvent, hash: string, index: number) => {
         const is_selected = $selected?.md5 == hash;
@@ -175,8 +173,10 @@
             show_star_rating={!simplified}
             show_status={!simplified}
             centered={simplified}
+            show_context_remove={$target != ALL_BEATMAPS_KEY}
             {force_local_background}
             {on_remove}
+            {on_remove_set}
             {hash}
             {height}
             on_click={(event) => handle_card_click(event, hash, index)}

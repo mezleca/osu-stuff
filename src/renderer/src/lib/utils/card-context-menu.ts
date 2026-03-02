@@ -41,6 +41,7 @@ export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show
 
     if (show_remove) {
         options.push({ id: "remove", text: "remove beatmap" });
+        options.push({ id: "remove set", text: "remove beatmapset" });
     }
 
     return options;
@@ -76,7 +77,8 @@ export const handle_card_context_action = async (
     action: string,
     id: string,
     beatmap: IBeatmapResult | BeatmapSetResult,
-    on_remove: (id: string | number) => void,
+    on_remove?: (id: string | number) => void,
+    on_remove_set?: (id: number) => void,
     filtered_hashes: string[] = []
 ) => {
     const is_set = "beatmaps" in (beatmap as BeatmapSetResult);
@@ -143,8 +145,13 @@ export const handle_card_context_action = async (
 
             break;
         }
-        case "remove":
-            on_remove(is_set ? beatmapsed_id : (beatmap as IBeatmapResult).md5);
+        case "remove": {
+            if (on_remove) on_remove(is_set ? beatmapsed_id : (beatmap as IBeatmapResult).md5);
             break;
+        }
+        case "remove set": {
+            if (on_remove_set) on_remove_set(is_set ? beatmapsed_id : (beatmap as IBeatmapResult).beatmapset_id);
+            break;
+        }
     }
 };

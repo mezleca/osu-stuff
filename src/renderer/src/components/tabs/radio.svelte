@@ -8,7 +8,7 @@
     import { debounce } from "../../lib/utils/timings";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
-    import { get_beatmap } from "../../lib/utils/beatmaps";
+    import { get_beatmap, remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
     import { type IBeatmapResult } from "@shared/types";
     import { input } from "../../lib/store/input";
     import { config } from "../../lib/store/config";
@@ -21,12 +21,13 @@
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
+    const selected_store = collections.get_selected_store("radio");
 
-    const { selected, query, sort, target, should_update } = list;
+    const { selected, query, sort, should_update } = list;
 
     let selected_beatmap: IBeatmapResult | null = null;
 
-    $: selected_collection = collections.selected_radio;
+    $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
     $: previous_songs = list.previous_buffer;
     $: bg = "";
 
@@ -53,7 +54,7 @@
     };
 
     const debounced_update = debounce(async (force: boolean = false) => {
-        list.show_remove.set($target == ALL_BEATMAPS_KEY);
+        list.set_target(selected_collection);
 
         const result = await list.search(force);
 
@@ -62,7 +63,7 @@
         }
 
         const beatmaps = result.beatmaps.map((b) => b.md5);
-        list.set_items(beatmaps, undefined, false);
+        list.set_items(beatmaps);
     }, 100);
 
     const retry_random = debounce(() => audio.force_random.set(true), 200);
@@ -149,6 +150,28 @@
         return await get_beatmap(beatmap_id);
     };
 
+    const remove_callback = async (hash: string) => {
+        await remove_beatmap_from_collection(hash, selected_collection);
+
+        const current_items = list.get_items();
+        const new_items = current_items.filter((h) => h != hash);
+
+        list.set_items(new_items);
+        collections.filter();
+    };
+
+    const remove_set_callback = async (id: number) => {
+        const hashes = await remove_beatmapset_from_collection(id, selected_collection);
+        const current_items = list.get_items();
+        const new_items = current_items.filter((md5) => hashes.includes(md5));
+
+        console.log("removed:", hashes);
+        console.log("new size:", new_items.length, "old size:", current_items.length);
+
+        list.set_items(new_items);
+        collections.filter();
+    };
+
     $: if ($selected?.md5 && $selected.index != -1 && audio.get_state().id != $selected.md5 && !audio.get_state().is_loading) {
         const beatmap_id = $selected.md5;
         audio.load_and_setup_audio(beatmap_id).then(async (result) => {
@@ -169,7 +192,16 @@
         audio.clean_audio();
     }
 
-    $: if ($selected_collection.name || $query || $sort || $target || $should_update) {
+    $: if (selected_collection && $selected_store.name != selected_collection) {
+        // fallback to all beatmaps if the collection was deleted
+        if (selected_collection != ALL_BEATMAPS_KEY && !collections.has(selected_collection)) {
+            selected_collection = ALL_BEATMAPS_KEY;
+        }
+
+        collections.select(selected_collection, "radio");
+    }
+
+    $: if (selected_collection || $query || $sort || $should_update) {
         debounced_update($should_update);
     }
 
@@ -191,9 +223,6 @@
         if ($selected?.index == -1) {
             audio.clean_audio();
         }
-
-        // default selected "collection" to all beatmaps
-        if ($selected_collection.name == "") collections.select(ALL_BEATMAPS_KEY, true);
 
         // select random
         const handle_random_id = input.on("f2", () => {
@@ -230,8 +259,6 @@
             input.unregister(handle_previous_id);
             input.unregister(handle_seek_backward_id);
             input.unregister(handle_seek_forward_id);
-
-            list.show_remove.set(true);
         };
     });
 </script>
@@ -242,9 +269,17 @@
             <div class="sidebar-header" style="z-index: 999999;">
                 <Search bind:value={$query} placeholder="search beatmaps" />
                 <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
-                <Dropdown label={"target"} bind:selected_value={$target} options={collection_target_options} />
+                <Dropdown label={"target"} bind:selected_value={selected_collection} options={collection_target_options} />
             </div>
-            <BeatmapList list_manager={list} carousel={false} direction={"left"} max_card_width={true} simplified={true} />
+            <BeatmapList
+                on_remove={remove_callback}
+                on_remove_set={remove_set_callback}
+                list_manager={list}
+                carousel={false}
+                direction={"left"}
+                max_card_width={true}
+                simplified={true}
+            />
         </div>
 
         <div class="radio-data" class:no-bg={!bg}>
