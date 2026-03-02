@@ -165,9 +165,6 @@
         const current_items = list.get_items();
         const new_items = current_items.filter((md5) => hashes.includes(md5));
 
-        console.log("removed:", hashes);
-        console.log("new size:", new_items.length, "old size:", current_items.length);
-
         list.set_items(new_items);
         collections.filter();
     };
