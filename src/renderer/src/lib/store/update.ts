@@ -36,7 +36,7 @@ const show_manual_update_notification = (reason: string) => {
     upsert_update_notification({
         type: "warning",
         persist: true,
-        text: `failed to install automatically\n${reason}\n\nclick below to download manually`,
+        text: `failed to install automatically...\n${reason}`,
         actions: [
             {
                 id: "manual-download",
@@ -202,7 +202,7 @@ window.api.on("updater:finish", async (data) => {
         upsert_update_notification({
             type: "confirm",
             persist: true,
-            text: "update downloaded\nclick install update to apply it now",
+            text: "update downloaded",
             actions: [
                 {
                     id: "restart-now",
