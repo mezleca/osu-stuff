@@ -2,6 +2,7 @@ import {
     IBeatmapResult,
     BeatmapSetResult,
     ICollectionResult,
+    GameMode,
     LAZER_DATABASE_VERSION,
     BeatmapFile,
     BeatmapRow,
@@ -19,7 +20,7 @@ import {
     RealmUserSchema,
     RulesetSchema
 } from "./schemas/lazer";
-import { BaseDriver } from "./base";
+import { BaseClient } from "./base";
 import { config } from "../../database/config";
 import { get_lazer_file_location } from "../beatmaps";
 import { beatmap_processor } from "../../database/processor";
@@ -52,7 +53,7 @@ const build_beatmap = (beatmap: BeatmapSchema, processed?: BeatmapRow, temp: boo
         hp: beatmap.Difficulty.DrainRate,
         od: beatmap.Difficulty.OverallDifficulty,
         status: lazer_status_from_code(beatmap.Status),
-        mode: beatmap.Ruleset.Name || "",
+        mode: (beatmap.Ruleset.Name as GameMode) || GameMode.Osu,
         temp: temp,
         duration: processed?.duration || 0,
         background: processed?.background || "",
@@ -74,7 +75,7 @@ const build_beatmapset = (beatmapset: BeatmapSetSchema, temp: boolean = false): 
     };
 };
 
-class LazerBeatmapDriver extends BaseDriver {
+class LazerBeatmapClient extends BaseClient {
     instance!: Realm;
 
     constructor() {
@@ -113,7 +114,7 @@ class LazerBeatmapDriver extends BaseDriver {
             });
         }
 
-        // populate base driver maps
+        // populate base client maps
         this.collections.clear();
         this.beatmaps.clear();
         this.beatmapsets.clear();
@@ -170,7 +171,8 @@ class LazerBeatmapDriver extends BaseDriver {
             const name = collection.Name || "";
             this.collections.set(name, {
                 name,
-                beatmaps: Array.from(collection.BeatmapMD5Hashes)
+                beatmaps: Array.from(collection.BeatmapMD5Hashes),
+                last_modified: 0
             });
         }
 
@@ -277,7 +279,7 @@ class LazerBeatmapDriver extends BaseDriver {
             return false;
         }
 
-        this.collections.set(name, { name, beatmaps });
+        this.collections.set(name, { name, beatmaps, last_modified: this.get_collection_timestamp() });
         this.should_update = true;
         return true;
     };
@@ -322,6 +324,7 @@ class LazerBeatmapDriver extends BaseDriver {
                 }
             });
 
+            this.reset_collection_modifications();
             this.should_update = false;
             return true;
         } catch (error) {
@@ -338,7 +341,7 @@ class LazerBeatmapDriver extends BaseDriver {
         }
 
         this.collections.delete(old_name);
-        this.collections.set(new_name, { ...collection, name: new_name });
+        this.collections.set(new_name, { ...collection, name: new_name, last_modified: this.get_collection_timestamp() });
         this.should_update = true;
         return true;
     };
@@ -359,6 +362,7 @@ class LazerBeatmapDriver extends BaseDriver {
             }
 
             collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
+            collection.last_modified = this.get_collection_timestamp();
             this.should_update = true;
             return true;
         }
@@ -534,4 +538,4 @@ class LazerBeatmapDriver extends BaseDriver {
     };
 }
 
-export const lazer_driver = new LazerBeatmapDriver();
+export const lazer_client = new LazerBeatmapClient();

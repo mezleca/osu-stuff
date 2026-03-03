@@ -13,6 +13,7 @@ import {
 } from "@shared/types";
 import { config } from "./config";
 import { throttle } from "../utils/timings";
+import { collections } from "./collections";
 
 import LRU from "quick-lru";
 
@@ -98,7 +99,6 @@ export abstract class ListBase<T> {
     set_items(items: T[]): void {
         this.items.set(items);
         this.update_id();
-        this.check_missing();
     }
 
     select(md5: string, index: number): void {
@@ -130,15 +130,8 @@ export abstract class ListBase<T> {
     abstract reload(): Promise<void>;
 
     check_missing = throttle(async () => {
-        try {
-            const missing = await window.api.invoke("driver:get_missing_beatmaps", null);
-            const count = missing?.length ?? 0;
-            console.log(`[list_base] check_missing: ${count} maps`);
-            this.total_missing.set(count);
-        } catch (error) {
-            console.error("[list_base] check_missing error:", error);
-            this.total_missing.set(0);
-        }
+        const count = await collections.get_total_missing();
+        this.total_missing.set(count);
     }, 1000);
 
     abstract clear(): void;
@@ -224,7 +217,7 @@ export class BeatmapList extends ListBase<string> {
         }
 
         try {
-            const result = await window.api.invoke("driver:search_beatmaps", filter, target);
+            const result = await window.api.invoke("client:search_beatmaps", filter, target);
 
             this.last_filter = JSON.stringify({ ...filter, target });
             this.last_result = result;
@@ -269,7 +262,7 @@ export class BeatmapList extends ListBase<string> {
     }
 
     async find_by_unique_id_batch(hashes: string[], target_md5: string): Promise<ISelectedBeatmap | null> {
-        const { beatmaps } = await window.api.invoke("driver:fetch_beatmaps", hashes);
+        const { beatmaps } = await window.api.invoke("client:fetch_beatmaps", hashes);
 
         if (!beatmaps || beatmaps.length == 0) {
             return null;
@@ -351,7 +344,7 @@ export class BeatmapSetList extends ListBase<number> {
         }
 
         try {
-            const result = await window.api.invoke("driver:search_beatmapsets", filter);
+            const result = await window.api.invoke("client:search_beatmapsets", filter);
             this.filtered_beatmaps.clear();
 
             for (const beatmapset of result?.beatmapsets ?? []) {
@@ -470,6 +463,22 @@ export const reset_beatmap_lists = () => {
     for (const list of beatmapset_lists) {
         list.clear();
     }
+};
+
+const refresh_missing_badges = async (): Promise<void> => {
+    const count = await collections.get_total_missing();
+
+    for (const list of beatmap_managers.values()) {
+        list.total_missing.set(count);
+    }
+
+    for (const list of beatmapset_managers.values()) {
+        list.total_missing.set(count);
+    }
+};
+
+export const refresh_missing_count = async (): Promise<void> => {
+    await refresh_missing_badges();
 };
 
 export const update_beatmap_lists = () => {

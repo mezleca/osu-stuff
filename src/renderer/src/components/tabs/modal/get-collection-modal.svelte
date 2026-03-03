@@ -31,9 +31,9 @@
     // file
     let collection_location = "";
 
-    // driver
-    let target_driver = !!config.get("lazer_mode") ? "stable" : "lazer";
-    let is_driver_loading = true;
+    // client
+    let target_client = !!config.get("lazer_mode") ? "stable" : "lazer";
+    let is_client_loading = true;
     let is_target_initialized = false;
 
     // player
@@ -97,7 +97,7 @@
 
         const data = result.data.collections.map((c) => {
             const hashes = c.hash_only_beatmaps.length > 0 ? c.hash_only_beatmaps : c.beatmaps.map((b) => b.md5);
-            return { name: c.name, beatmaps: hashes };
+            return { name: c.name, beatmaps: hashes, last_modified: 0 };
         });
 
         process_results(data);
@@ -182,7 +182,7 @@
     const handle_from_client = async () => {
         try {
             fetching_status = "fetching collections from client...";
-            const data = await window.api.invoke("driver:get_collections", target_driver);
+            const data = await window.api.invoke("client:get_collections", target_client);
             process_results(data || []);
             is_client_fetched = true;
             is_fetching_client = false;
@@ -265,13 +265,13 @@
         }
     };
 
-    const handle_driver_initialization = async () => {
+    const handle_client_initialization = async () => {
         try {
-            fetching_status = "initializing driver...";
-            const result = await window.api.invoke("driver:initialize", false, target_driver);
+            fetching_status = "initializing client...";
+            const result = await window.api.invoke("client:initialize", false, target_client);
 
             if (!result) {
-                show_notification({ type: "error", text: "failed to start driver..." });
+                show_notification({ type: "error", text: "failed to start client..." });
                 return;
             }
 
@@ -390,7 +390,7 @@
     let is_fetching_client = false;
 
     $: {
-        if (collection_type == "client" && !is_client_fetched && !is_fetching_client && !is_driver_loading && has_modal) {
+        if (collection_type == "client" && !is_client_fetched && !is_fetching_client && !is_client_loading && has_modal) {
             if (is_target_initialized) {
                 is_fetching_client = true;
                 handle_from_client();
@@ -413,13 +413,13 @@
 
     onMount(() => {
         try {
-            window.api.invoke("driver:is_initialized", target_driver).then((value: boolean) => {
+            window.api.invoke("client:is_initialized", target_client).then((value: boolean) => {
                 is_target_initialized = value;
             });
         } catch (err) {
             show_notification({ type: "error", text: err as string });
         } finally {
-            is_driver_loading = false;
+            is_client_loading = false;
         }
     });
 </script>
@@ -487,15 +487,15 @@
                     <Dropdown label={"type"} inline={false} bind:selected_value={collection_type} options={collection_options} />
 
                     {#if collection_type == "client"}
-                        {#if is_driver_loading}
+                        {#if is_client_loading}
                             <div class="inline-spinner">
                                 <Spinner />
-                                <span>getting data from driver...</span>
+                                <span>getting data from client...</span>
                             </div>
                         {:else if !is_target_initialized}
-                            <div class="driver-init">
-                                <span>{target_driver} client is not initialized yet</span>
-                                <button class="primary-btn" onclick={() => handle_driver_initialization()}>initialize</button>
+                            <div class="client-init">
+                                <span>{target_client} client is not initialized yet</span>
+                                <button class="primary-btn" onclick={() => handle_client_initialization()}>initialize</button>
                             </div>
                         {/if}
                     {/if}
@@ -640,7 +640,7 @@
         transform: translateY(-1px);
     }
 
-    .driver-init {
+    .client-init {
         display: flex;
         flex-direction: column;
         gap: 12px;

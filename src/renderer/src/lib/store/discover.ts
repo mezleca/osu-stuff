@@ -5,6 +5,7 @@ import { beatmap_cache, beatmapset_cache } from "../utils/beatmaps";
 import { BeatmapSetList } from "./beatmaps";
 
 import type { Writable } from "svelte/store";
+import { GameMode } from "@shared/types";
 import type { BeatmapSetResult, BeatmapsSearchParams, IBeatmapResult } from "@shared/types";
 import type { Beatmapset, Beatmap } from "osu-api-extended/dist/types/v2/search_all";
 
@@ -59,7 +60,7 @@ const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata): IBea
         hp: beatmap.drain,
         od: beatmap.accuracy,
         status: beatmap.status,
-        mode: beatmap.mode,
+        mode: beatmap.mode as GameMode,
         temp: true,
         background: ""
     };
@@ -101,7 +102,7 @@ class DiscoverManager extends BeatmapSetList {
     data: Writable<BeatmapsSearchParams> = writable({
         type: "beatmaps",
         _nsfw: true,
-        mode: "osu"
+        mode: GameMode.Osu
     });
 
     // beatmaps
@@ -114,7 +115,10 @@ class DiscoverManager extends BeatmapSetList {
     reached_end: Writable<boolean> = writable(false);
 
     constructor(custom_id?: string) {
-        super(custom_id || "discover");
+        super();
+        if (custom_id) {
+            this.id.set(custom_id);
+        }
     }
 
     get_beatmapset(id: number): BeatmapSetResult | null {
@@ -206,7 +210,7 @@ class DiscoverManager extends BeatmapSetList {
         // sync beatmap data
         const new_ids: number[] = [];
         const ids = result.beatmapsets.map((b) => b.id);
-        const set_exists = await window.api.invoke("driver:has_beatmapsets", ids);
+        const set_exists = await window.api.invoke("client:has_beatmapsets", ids);
 
         for (let i = 0; i < result.beatmapsets.length; i++) {
             const beatmapset = result.beatmapsets[i];

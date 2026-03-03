@@ -12,7 +12,7 @@ import { config } from "../database/config";
 import { mirrors } from "../database/mirrors";
 import { send_to_renderer } from "../ipc";
 import { get_window } from "../utils";
-import { get_driver } from "./drivers/driver";
+import { get_client } from "./clients/client";
 import { v2 } from "osu-api-extended";
 
 import path from "path";
@@ -398,13 +398,13 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return false;
         }
 
-        const driver = get_driver();
+        const client = get_client();
 
         // write beatmap data
         await this.save_beatmap(buffer, file_path);
 
         // add beatmap to static temp beatmaps
-        driver.add_beatmap(beatmap_info);
+        client.add_beatmap(beatmap_info);
 
         return true;
     }

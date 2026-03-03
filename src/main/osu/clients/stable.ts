@@ -9,7 +9,7 @@ import {
     gamemode_from_code,
     stable_status_from_code
 } from "@shared/types";
-import { BaseDriver } from "./base";
+import { BaseClient } from "./base";
 import { stable_parser } from "../../binary/stable";
 import { beatmap_processor } from "../../database/processor";
 import { BeatmapRow } from "@shared/types";
@@ -66,7 +66,7 @@ const build_beatmapset = (beatmapset: IStableBeatmapset, temp: boolean = false):
     };
 };
 
-class StableBeatmapDriver extends BaseDriver {
+class StableBeatmapClient extends BaseClient {
     osu!: ILegacyDatabase;
 
     constructor() {
@@ -82,7 +82,7 @@ class StableBeatmapDriver extends BaseDriver {
         const collection_database_file = path.resolve(config.get().stable_path, "collection.db");
 
         if (!fs.existsSync(osu_database_file) || !fs.existsSync(collection_database_file)) {
-            console.error("failed to initialize stable driver (missing database files)");
+            console.error("failed to initialize stable client (missing database files)");
             return false;
         }
 
@@ -240,7 +240,7 @@ class StableBeatmapDriver extends BaseDriver {
             return false;
         }
 
-        this.collections.set(name, { name, beatmaps });
+        this.collections.set(name, { name, beatmaps, last_modified: this.get_collection_timestamp() });
         this.should_update = true;
         return true;
     };
@@ -252,7 +252,7 @@ class StableBeatmapDriver extends BaseDriver {
         }
 
         this.collections.delete(old_name);
-        this.collections.set(new_name, { ...collection, name: new_name });
+        this.collections.set(new_name, { ...collection, name: new_name, last_modified: this.get_collection_timestamp() });
         this.should_update = true;
         return true;
     };
@@ -404,6 +404,9 @@ class StableBeatmapDriver extends BaseDriver {
 
         const files: BeatmapFile[] = [];
         const full_dir_data = get_file_location();
+        if (!full_dir_data || !fs.existsSync(full_dir_data)) {
+            return files;
+        }
         const all_set_files = fs.readdirSync(full_dir_data);
 
         for (const file of all_set_files) {
@@ -460,4 +463,4 @@ class StableBeatmapDriver extends BaseDriver {
     };
 }
 
-export const stable_driver = new StableBeatmapDriver();
+export const stable_client = new StableBeatmapClient();

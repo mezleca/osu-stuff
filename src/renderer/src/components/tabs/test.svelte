@@ -37,7 +37,7 @@
 
                 if (string_is_valid(hash)) {
                     if (config.get("lazer_mode")) {
-                        console.log(await window.api.invoke("driver:get_beatmap_files", hash));
+                        console.log(await window.api.invoke("client:get_beatmap_files", hash));
                         // return;
                     }
 
@@ -136,7 +136,7 @@
 
     onMount(async () => {
         if (beatmaps.length == 0) {
-            const a = await window.api.invoke("driver:search_beatmaps", { query: "", sort: "artist", unique: false });
+            const a = await window.api.invoke("client:search_beatmaps", { query: "", sort: "artist", unique: false });
             beatmaps = a.beatmaps;
         }
     });

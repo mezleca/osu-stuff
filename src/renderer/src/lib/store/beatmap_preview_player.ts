@@ -176,7 +176,7 @@ class BeatmapPreviewPlayerStore {
                 throw Error("beatmap not found...");
             }
 
-            const files_result = await window.api.invoke("driver:get_beatmap_files", beatmap_hash);
+            const files_result = await window.api.invoke("client:get_beatmap_files", beatmap_hash);
 
             if (files_result.length < 2) {
                 throw Error("failed to get beatmap files...");
