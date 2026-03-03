@@ -16,8 +16,8 @@ const test_client = (type: string) => {
     // however lazer seems to count the intro as a beatmap? idk
     const BEATMAP_COUNT = type == "lazer" ? 48 : 47;
 
-    beforeAll(() => {
-        client.initialize();
+    beforeAll(async () => {
+        await client.initialize();
     });
 
     afterAll(() => {

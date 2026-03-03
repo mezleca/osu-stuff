@@ -405,10 +405,14 @@ export abstract class BaseClient implements IOsuClient {
             return false;
         }
 
+        const previous_size = collection.beatmaps.length;
         const all_hashes = new Set([...collection.beatmaps, ...hashes]);
         collection.beatmaps = Array.from(all_hashes);
-        this.mark_collection_modified(collection_name);
-        this.should_update = true;
+
+        if (all_hashes.size > previous_size) {
+            this.mark_collection_modified(collection_name);
+            this.should_update = true;
+        }
 
         return true;
     }

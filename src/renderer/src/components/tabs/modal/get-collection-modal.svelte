@@ -412,15 +412,18 @@
     }
 
     onMount(() => {
-        try {
-            window.api.invoke("client:is_initialized", target_client).then((value: boolean) => {
+        const load_client_state = async () => {
+            try {
+                const value = await window.api.invoke("client:is_initialized", target_client);
                 is_target_initialized = value;
-            });
-        } catch (err) {
-            show_notification({ type: "error", text: err as string });
-        } finally {
-            is_client_loading = false;
-        }
+            } catch (err) {
+                show_notification({ type: "error", text: err as string });
+            } finally {
+                is_client_loading = false;
+            }
+        };
+
+        load_client_state();
     });
 </script>
 

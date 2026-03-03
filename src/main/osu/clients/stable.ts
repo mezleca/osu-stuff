@@ -299,6 +299,7 @@ class StableBeatmapClient extends BaseClient {
         const target = path.resolve(config.get().stable_path, "collection.db");
         fs.writeFileSync(target, result.data);
 
+        this.reset_collection_modifications();
         this.should_update = false;
         return true;
     };

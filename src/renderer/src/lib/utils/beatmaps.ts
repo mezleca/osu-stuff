@@ -60,7 +60,7 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
 };
 
 export const get_missing_beatmaps = async () => {
-    const invalid_beatmaps = new Set();
+    const missing_beatmaps: { md5: string }[] = [];
 
     let target_name: string = "";
 
@@ -70,7 +70,7 @@ export const get_missing_beatmaps = async () => {
             const invalid = await window.api.invoke("client:get_missing_beatmaps", collection.name);
 
             if (invalid.length > 0) {
-                invalid_beatmaps.add({ name: collection.name, beatmaps: invalid, last_modified: 0 });
+                missing_beatmaps.push(...invalid.map((md5) => ({ md5 })));
                 target_name += collection.name + ", ";
             }
         }
@@ -83,7 +83,7 @@ export const get_missing_beatmaps = async () => {
             return;
         }
 
-        downloader.add({ id: target_name, beatmaps: Array.from(invalid_beatmaps.keys()) });
+        downloader.add({ id: target_name, beatmaps: missing_beatmaps });
     } catch (err) {
         show_notification({ type: "error", text: "failed to get missing beatmaps..." });
         console.error(err);
