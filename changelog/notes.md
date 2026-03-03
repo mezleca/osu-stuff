@@ -1,3 +1,9 @@
+# (unknown)
+
+## bug fixes
+
+- exporter(.osz): improved file validation to avoid broken exports when map files are missing/invalid
+
 # v2.5.4
 
 ## new stuff
