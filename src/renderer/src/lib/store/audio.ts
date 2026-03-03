@@ -1,5 +1,5 @@
 import { writable, get, type Writable } from "svelte/store";
-import { custom_fetch, format_time, get_local_audio, url_to_media } from "../utils/utils";
+import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
 import { config } from "./config";
 import { IBeatmapResult } from "@shared/types";
 
