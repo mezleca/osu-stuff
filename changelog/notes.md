@@ -1,5 +1,9 @@
 # (unknown)
 
+## new stuff
+
+- radio(media session api): show title - artist and allow selecting next / previous track
+
 ## bug fixes
 
 - exporter(.osz): improved file validation to avoid broken exports when map files are missing/invalid

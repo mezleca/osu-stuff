@@ -1,10 +1,12 @@
 import { writable, get, type Writable } from "svelte/store";
-import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
+import { custom_fetch, format_time, get_local_audio, url_to_media } from "../utils/utils";
 import { config } from "./config";
+import { IBeatmapResult } from "@shared/types";
 
 const DEFAULT_VOLUME = 50;
 
 interface IAudioState {
+    beatmap: IBeatmapResult;
     audio: HTMLAudioElement | null;
     id: string | null;
     playing: boolean;
@@ -18,12 +20,13 @@ interface IAudioState {
 
 interface IAudioCallbacks {
     get_next_id: (direction: number) => Promise<string | null>;
-    get_beatmap: (id: string) => Promise<any>;
+    get_beatmap: (id: string) => Promise<IBeatmapResult | undefined>;
 }
 
 type Direction = -1 | 0 | 1;
 
 const DEFAULT_STATE: IAudioState = {
+    beatmap: null,
     audio: null,
     id: null,
     playing: false,
@@ -188,10 +191,31 @@ class AudioManager {
         return current_index + 1 >= beatmaps_length ? 0 : current_index + 1;
     };
 
-    setup_audio = (id: string, audio_data: HTMLAudioElement): HTMLAudioElement => {
-        console.log(`[${this.id}] setting up audio for: ${id}`);
+    setup_media_session = (beatmap: IBeatmapResult) => {
+        if ("mediaSession" in navigator) {
+            const metadata: MediaMetadata = new MediaMetadata({
+                title: beatmap.title,
+                artist: beatmap.artist,
+                album: this.id,
+                artwork: [] // TODO
+            });
 
+            navigator.mediaSession.setActionHandler("previoustrack", () => {
+                this.navigate(-1);
+            });
+
+            navigator.mediaSession.setActionHandler("nexttrack", () => {
+                this.navigate(1);
+            });
+
+            navigator.mediaSession.metadata = metadata;
+        }
+    };
+
+    setup_audio = (id: string, audio_data: HTMLAudioElement, beatmap?: IBeatmapResult): HTMLAudioElement => {
         const old_state = this.get_state();
+
+        console.log(`[${this.id}] setting up audio for: ${id}`);
 
         if (old_state.id === id && old_state.audio) {
             console.log(`[${this.id}] audio already setup for: ${id}`);
@@ -203,6 +227,7 @@ class AudioManager {
         this.store.update((obj) => ({
             ...obj,
             id,
+            beatmap,
             audio: audio_data,
             playing: false,
             is_loading: true,
@@ -220,7 +245,6 @@ class AudioManager {
         }
 
         audio_data.volume = this.get_state().volume / 100;
-
         return audio_data;
     };
 
@@ -248,7 +272,9 @@ class AudioManager {
                 return null;
             }
 
-            this.setup_audio(beatmap.md5, audio);
+            this.setup_audio(beatmap.md5, audio, beatmap);
+            this.setup_media_session(beatmap);
+
             return { beatmap, audio };
         } catch (error) {
             console.error(`[${this.id}] error loading audio for ${beatmap_id}:`, error);
