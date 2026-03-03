@@ -232,7 +232,8 @@ export class StableParser extends BinaryReader {
 
             const collection: ICollectionResult = {
                 name: name,
-                beatmaps: checksums
+                beatmaps: checksums,
+                last_modified: 0
             };
 
             collections.set(name, collection);

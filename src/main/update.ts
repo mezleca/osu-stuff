@@ -3,6 +3,7 @@ import { handle_ipc, send_to_renderer } from "./ipc";
 import { get_window } from "./utils";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
+import { GenericResult } from "@shared/types";
 
 const RELEASES_URL = "https://github.com/mezleca/osu-stuff/releases/latest";
 
@@ -142,7 +143,7 @@ class StuffUpdater {
         this.check();
     };
 
-    check() {
+    check(): GenericResult<string> {
         const window = get_window("main");
 
         if (!autoUpdater.isUpdaterActive()) {
@@ -150,19 +151,19 @@ class StuffUpdater {
             if (window) {
                 send_to_renderer(window.webContents, "updater:not_available", undefined);
             }
-            return { success: false, reason: "auto updater is not active in this build" };
+            return { success: false, reason: "auto updater is not active in this build" } as const;
         }
 
         try {
             this.checking = true;
             autoUpdater.checkForUpdates();
-            return { success: true, data: "check started" };
+            return { success: true, data: "check started" } as const;
         } catch (err) {
             this.checking = false;
             if (window) {
                 send_to_renderer(window.webContents, "updater:not_available", undefined);
             }
-            return { success: false, reason: err as string };
+            return { success: false, reason: err as string } as const;
         }
     }
 

@@ -24,16 +24,16 @@ import {
     has_beatmap,
     has_beatmapset,
     has_beatmapsets,
-    initialize_driver,
+    initialize_client,
     rename_collection,
     search_beatmaps,
     search_beatmapsets,
     update_collection,
     add_beatmaps_to_collection,
     should_update,
-    is_initialized,
+    is_client_initialized,
     get_beatmap_files
-} from "./osu/drivers/driver";
+} from "./osu/clients/client";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
@@ -130,34 +130,34 @@ async function createWindow() {
     handle_ipc("mirrors:delete", (_, data) => mirrors.delete(data.name));
     handle_ipc("mirrors:load", () => mirrors.load());
 
-    // drivers
-    handle_ipc("driver:initialize", (_, force, driver) => initialize_driver(force, driver));
-    handle_ipc("driver:is_initialized", (_, driver) => is_initialized(driver));
-    handle_ipc("driver:should_update", (_, driver) => should_update(driver));
-    handle_ipc("driver:get_player_name", (_, driver) => get_player_name(driver));
-    handle_ipc("driver:add_collection", (_, name, beatmaps, driver) => add_collection(name, beatmaps, driver));
-    handle_ipc("driver:rename_collection", (_, old_name, new_name, driver) => rename_collection(old_name, new_name, driver));
-    handle_ipc("driver:delete_collection", (_, name, driver) => delete_collection(name, driver));
-    handle_ipc("driver:get_collection", (_, name, driver) => get_collection(name, driver));
-    handle_ipc("driver:get_collections", (_, driver) => get_collections(driver));
-    handle_ipc("driver:update_collection", (_, driver) => update_collection(driver));
-    handle_ipc("driver:add_beatmaps_to_collection", (_, name, hashes, driver) => add_beatmaps_to_collection(name, hashes, driver));
-    handle_ipc("driver:export_collections", (_, collections, type, driver) => export_collections(collections, type, driver));
-    handle_ipc("driver:add_beatmap", (_, beatmap, driver) => add_beatmap(beatmap, driver));
-    handle_ipc("driver:delete_beatmap", (_, options, driver) => delete_beatmap(options, driver));
-    handle_ipc("driver:has_beatmap", (_, md5, driver) => has_beatmap(md5, driver));
-    handle_ipc("driver:has_beatmapset", (_, id, driver) => has_beatmapset(id, driver));
-    handle_ipc("driver:has_beatmapsets", (_, ids, driver) => has_beatmapsets(ids, driver));
-    handle_ipc("driver:get_beatmap_by_md5", (_, md5, driver) => get_beatmap_by_md5(md5, driver));
-    handle_ipc("driver:get_beatmap_by_id", (_, id, driver) => get_beatmap_by_id(id, driver));
-    handle_ipc("driver:get_beatmapset", (_, id, driver) => get_beatmapset(id, driver));
-    handle_ipc("driver:export_beatmapset", (_, id, driver) => export_beatmapset(id, driver));
-    handle_ipc("driver:search_beatmaps", (_, options, target, driver) => search_beatmaps(options, target, driver));
-    handle_ipc("driver:search_beatmapsets", (_, options, driver) => search_beatmapsets(options, driver));
-    handle_ipc("driver:get_missing_beatmaps", (_, name, driver) => get_missing_beatmaps(name, driver));
-    handle_ipc("driver:get_beatmap_files", (_, md5, driver) => get_beatmap_files(md5, driver));
-    handle_ipc("driver:fetch_beatmaps", (_, hashes, driver) => fetch_beatmaps(hashes, driver));
-    handle_ipc("driver:fetch_beatmapsets", (_, ids, driver) => fetch_beatmapsets(ids, driver));
+    // clients
+    handle_ipc("client:initialize", (_, force, client) => initialize_client(force, client));
+    handle_ipc("client:is_initialized", (_, client) => is_client_initialized(client));
+    handle_ipc("client:should_update", (_, client) => should_update(client));
+    handle_ipc("client:get_player_name", (_, client) => get_player_name(client));
+    handle_ipc("client:add_collection", (_, name, beatmaps, client) => add_collection(name, beatmaps, client));
+    handle_ipc("client:rename_collection", (_, old_name, new_name, client) => rename_collection(old_name, new_name, client));
+    handle_ipc("client:delete_collection", (_, name, client) => delete_collection(name, client));
+    handle_ipc("client:get_collection", (_, name, client) => get_collection(name, client));
+    handle_ipc("client:get_collections", (_, client) => get_collections(client));
+    handle_ipc("client:update_collection", (_, client) => update_collection(client));
+    handle_ipc("client:add_beatmaps_to_collection", (_, name, hashes, client) => add_beatmaps_to_collection(name, hashes, client));
+    handle_ipc("client:export_collections", (_, collections, type, client) => export_collections(collections, type, client));
+    handle_ipc("client:add_beatmap", (_, beatmap, client) => add_beatmap(beatmap, client));
+    handle_ipc("client:delete_beatmap", (_, options, client) => delete_beatmap(options, client));
+    handle_ipc("client:has_beatmap", (_, md5, client) => has_beatmap(md5, client));
+    handle_ipc("client:has_beatmapset", (_, id, client) => has_beatmapset(id, client));
+    handle_ipc("client:has_beatmapsets", (_, ids, client) => has_beatmapsets(ids, client));
+    handle_ipc("client:get_beatmap_by_md5", (_, md5, client) => get_beatmap_by_md5(md5, client));
+    handle_ipc("client:get_beatmap_by_id", (_, id, client) => get_beatmap_by_id(id, client));
+    handle_ipc("client:get_beatmapset", (_, id, client) => get_beatmapset(id, client));
+    handle_ipc("client:export_beatmapset", (_, id, client) => export_beatmapset(id, client));
+    handle_ipc("client:search_beatmaps", (_, options, target, client) => search_beatmaps(options, target, client));
+    handle_ipc("client:search_beatmapsets", (_, options, client) => search_beatmapsets(options, client));
+    handle_ipc("client:get_missing_beatmaps", (_, name, client) => get_missing_beatmaps(name, client));
+    handle_ipc("client:get_beatmap_files", (_, md5, client) => get_beatmap_files(md5, client));
+    handle_ipc("client:fetch_beatmaps", (_, hashes, client) => fetch_beatmaps(hashes, client));
+    handle_ipc("client:fetch_beatmapsets", (_, ids, client) => fetch_beatmapsets(ids, client));
 
     // osu-extended-api
     handle_ipc("web:authenticate", (_, params) => {

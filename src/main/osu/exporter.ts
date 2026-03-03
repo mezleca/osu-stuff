@@ -1,6 +1,6 @@
-import { get_driver } from "./drivers/driver";
+import { get_client } from "./clients/client";
 import { get_window } from "../utils";
-import type { IOsuDriver } from "@shared/types";
+import type { IOsuClient } from "@shared/types";
 
 interface IExportState {
     is_exporting: boolean;
@@ -10,11 +10,11 @@ interface IExportState {
 }
 
 class BeatmapExporter {
-    private queue: Set<Number> = new Set();
+    private queue: number[] = [];
     private current_index: number = 0;
     private exporting: boolean = false;
     private current_beatmap: string = "";
-    private driver: IOsuDriver | null = null;
+    private client: IOsuClient | null = null;
 
     start = async (collections: string[]) => {
         if (this.is_exporting()) {
@@ -22,25 +22,28 @@ class BeatmapExporter {
             return;
         }
 
-        this.queue = new Set();
+        this.queue = [];
         this.current_index = 0;
+        const set_queue = new Set<number>();
 
-        // get current active driver
-        this.driver = get_driver();
+        // get current active client
+        this.client = get_client();
 
         for (const name of collections) {
-            const collection = this.driver.get_collection(name);
+            const collection = this.client.get_collection(name);
             if (collection) {
                 for (const md5 of collection.beatmaps) {
-                    const beatmap = await this.driver.get_beatmap_by_md5(md5);
+                    const beatmap = await this.client.get_beatmap_by_md5(md5);
                     if (beatmap && beatmap.beatmapset_id) {
-                        this.queue.add(beatmap.beatmapset_id);
+                        set_queue.add(beatmap.beatmapset_id);
                     }
                 }
             }
         }
 
-        if (this.queue.size == 0) {
+        this.queue = Array.from(set_queue);
+
+        if (this.queue.length == 0) {
             this.notify("export:finish", { success: false, reason: "no beatmaps found" });
             return;
         }
@@ -50,10 +53,10 @@ class BeatmapExporter {
     };
 
     cancel = () => {
-        if (!this.is_exporting) return;
+        if (!this.is_exporting()) return;
         this.exporting = false;
-        this.queue = new Set();
-        this.driver = null;
+        this.queue = [];
+        this.client = null;
         this.notify("export:finish", { success: false, reason: "cancelled by user" });
     };
 
@@ -61,7 +64,7 @@ class BeatmapExporter {
         return {
             is_exporting: this.exporting,
             current_index: this.current_index,
-            total: this.queue.size,
+            total: this.queue.length,
             current_beatmap: this.current_beatmap
         };
     };
@@ -71,26 +74,33 @@ class BeatmapExporter {
     };
 
     private process = async () => {
-        if (!this.is_exporting || !this.driver) return;
+        if (!this.is_exporting() || !this.client) return;
 
-        if (this.current_index >= this.queue.size) {
+        if (this.current_index >= this.queue.length) {
             this.exporting = false;
-            this.driver = null;
-            this.notify("export:finish", { success: true, count: this.queue.size });
+            this.client = null;
+            this.notify("export:finish", { success: true, count: this.queue.length });
             return;
         }
 
         const id = this.queue[this.current_index];
+        if (id == null) {
+            this.exporting = false;
+            this.client = null;
+            this.notify("export:finish", { success: false, reason: "invalid export queue state" });
+            return;
+        }
+
         this.current_beatmap = `beatmapset #${id}`;
 
         // notify progress
         this.notify("export:update", {
             current: this.current_index,
-            total: this.queue.size,
+            total: this.queue.length,
             text: `exporting ${this.current_beatmap}`
         });
 
-        const success = await this.driver.export_beatmapset(id);
+        const success = await this.client.export_beatmapset(id);
 
         if (!success) {
             console.warn(`[exporter] failed to export ${id}`);

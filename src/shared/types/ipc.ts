@@ -1,7 +1,7 @@
 import { auth, Modes_names, v2 } from "osu-api-extended";
 import { StuffConfig, StuffMirror } from "./config";
 import { FetchOptions, IFetchResponse } from "./fetch";
-import { ICollectionResult, ILegacyDatabase, IOSDBData, IOsuDriver, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
+import { ICollectionResult, ILegacyDatabase, IOSDBData, IOsuClient, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
 import { IBeatmapDownloader, IDownloadEvent } from "./downloader";
 import { GenericResult } from "./basic";
 import { OpenDialogOptions, OpenDialogReturnValue } from "electron";
@@ -136,114 +136,114 @@ export interface IpcSchema {
             params: undefined;
             result: boolean;
         };
-        // drivers
-        "driver:initialize": {
+        // clients
+        "client:initialize": {
             params: [boolean?, string?];
-            result: ReturnType<IOsuDriver["initialize"]>;
+            result: ReturnType<IOsuClient["initialize"]>;
         };
-        "driver:is_initialized": {
+        "client:is_initialized": {
             params: [string?];
             result: boolean;
         };
-        "driver:should_update": {
+        "client:should_update": {
             params: [string?];
             result: boolean;
         };
-        "driver:get_player_name": {
+        "client:get_player_name": {
             params: [string?];
-            result: ReturnType<IOsuDriver["get_player_name"]>;
+            result: ReturnType<IOsuClient["get_player_name"]>;
         };
-        "driver:add_collection": {
+        "client:add_collection": {
             params: [string, string[], string?];
-            result: ReturnType<IOsuDriver["add_collection"]>;
+            result: ReturnType<IOsuClient["add_collection"]>;
         };
-        "driver:delete_collection": {
+        "client:delete_collection": {
             params: [string, string?];
-            result: ReturnType<IOsuDriver["delete_collection"]>;
+            result: ReturnType<IOsuClient["delete_collection"]>;
         };
-        "driver:rename_collection": {
+        "client:rename_collection": {
             params: [string, string, string?];
-            result: ReturnType<IOsuDriver["rename_collection"]>;
+            result: ReturnType<IOsuClient["rename_collection"]>;
         };
-        "driver:get_collection": {
+        "client:get_collection": {
             params: [string, string?];
-            result: ReturnType<IOsuDriver["get_collection"]>;
+            result: ReturnType<IOsuClient["get_collection"]>;
         };
-        "driver:add_beatmaps_to_collection": {
+        "client:add_beatmaps_to_collection": {
             params: [string, string[], string?];
             result: boolean;
         };
-        "driver:get_collections": {
+        "client:get_collections": {
             params: [string?];
-            result: ReturnType<IOsuDriver["get_collections"]>;
+            result: ReturnType<IOsuClient["get_collections"]>;
         };
-        "driver:update_collection": {
+        "client:update_collection": {
             params: [string?];
-            result: ReturnType<IOsuDriver["update_collection"]>;
+            result: ReturnType<IOsuClient["update_collection"]>;
         };
-        "driver:export_collections": {
+        "client:export_collections": {
             params: [ICollectionResult[], string, string?];
-            result: ReturnType<IOsuDriver["export_collections"]>;
+            result: ReturnType<IOsuClient["export_collections"]>;
         };
-        "driver:add_beatmap": {
+        "client:add_beatmap": {
             params: [IBeatmapResult, string?];
-            result: ReturnType<IOsuDriver["add_beatmap"]>;
+            result: ReturnType<IOsuClient["add_beatmap"]>;
         };
-        "driver:delete_beatmap": {
+        "client:delete_beatmap": {
             params: [{ md5: string; collection?: string }, string?];
-            result: ReturnType<IOsuDriver["delete_beatmap"]>;
+            result: ReturnType<IOsuClient["delete_beatmap"]>;
         };
-        "driver:has_beatmap": {
+        "client:has_beatmap": {
             params: [string, string?];
-            result: ReturnType<IOsuDriver["has_beatmap"]>;
+            result: ReturnType<IOsuClient["has_beatmap"]>;
         };
-        "driver:has_beatmapset": {
+        "client:has_beatmapset": {
             params: [number, string?];
-            result: ReturnType<IOsuDriver["has_beatmapset"]>;
+            result: ReturnType<IOsuClient["has_beatmapset"]>;
         };
-        "driver:has_beatmapsets": {
+        "client:has_beatmapsets": {
             params: [number[], string?];
             result: boolean[];
         };
-        "driver:get_beatmap_by_md5": {
+        "client:get_beatmap_by_md5": {
             params: [string, string?];
-            result: ReturnType<IOsuDriver["get_beatmap_by_md5"]>;
+            result: ReturnType<IOsuClient["get_beatmap_by_md5"]>;
         };
-        "driver:fetch_beatmaps": {
+        "client:fetch_beatmaps": {
             params: [string[], string?];
-            result: ReturnType<IOsuDriver["fetch_beatmaps"]>;
+            result: ReturnType<IOsuClient["fetch_beatmaps"]>;
         };
-        "driver:fetch_beatmapsets": {
+        "client:fetch_beatmapsets": {
             params: [number[], string?];
-            result: ReturnType<IOsuDriver["fetch_beatmapsets"]>;
+            result: ReturnType<IOsuClient["fetch_beatmapsets"]>;
         };
-        "driver:get_beatmap_by_id": {
+        "client:get_beatmap_by_id": {
             params: [number, string?];
-            result: ReturnType<IOsuDriver["get_beatmap_by_id"]>;
+            result: ReturnType<IOsuClient["get_beatmap_by_id"]>;
         };
-        "driver:get_beatmapset": {
+        "client:get_beatmapset": {
             params: [number, string?];
-            result: ReturnType<IOsuDriver["get_beatmapset"]>;
+            result: ReturnType<IOsuClient["get_beatmapset"]>;
         };
-        "driver:get_missing_beatmaps": {
+        "client:get_missing_beatmaps": {
             params: [string | null, string?];
-            result: ReturnType<IOsuDriver["get_missing_beatmaps"]>;
+            result: ReturnType<IOsuClient["get_missing_beatmaps"]>;
         };
-        "driver:get_beatmap_files": {
+        "client:get_beatmap_files": {
             params: [string, string?];
-            result: ReturnType<IOsuDriver["get_beatmap_files"]>;
+            result: ReturnType<IOsuClient["get_beatmap_files"]>;
         };
-        "driver:search_beatmaps": {
+        "client:search_beatmaps": {
             params: [IBeatmapFilter, string, string?];
-            result: ReturnType<IOsuDriver["search_beatmaps"]>;
+            result: ReturnType<IOsuClient["search_beatmaps"]>;
         };
-        "driver:search_beatmapsets": {
+        "client:search_beatmapsets": {
             params: [IBeatmapSetFilter, string?];
-            result: ReturnType<IOsuDriver["search_beatmapsets"]>;
+            result: ReturnType<IOsuClient["search_beatmapsets"]>;
         };
-        "driver:export_beatmapset": {
+        "client:export_beatmapset": {
             params: [number, string?];
-            result: ReturnType<IOsuDriver["export_beatmapset"]>;
+            result: ReturnType<IOsuClient["export_beatmapset"]>;
         };
         // osu-api-extended
         "web:authenticate": {
@@ -378,7 +378,7 @@ export interface IpcSchema {
         };
         "updater:check": {
             params: undefined;
-            result: void;
+            result: GenericResult<string>;
         };
         "updater:install": {
             params: undefined;
@@ -392,7 +392,7 @@ export interface IpcSchema {
         "export:finish": IExportFinish;
         "updater:new": UpdateInfo;
         "updater:checking": undefined;
-        "updater:not_available": UpdateInfo;
+        "updater:not_available": UpdateInfo | undefined;
         "updater:finish": GenericResult<string>;
     };
     on: IpcSchema["send"];

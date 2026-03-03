@@ -1,5 +1,5 @@
 import {
-    IOsuDriver,
+    IOsuClient,
     IBeatmapFilter,
     IBeatmapResult,
     BeatmapSetResult,
@@ -25,7 +25,7 @@ import path from "path";
 import archiver from "archiver";
 import fs from "fs";
 
-export abstract class BaseDriver implements IOsuDriver {
+export abstract class BaseClient implements IOsuClient {
     protected initialized: boolean = false;
 
     // in memory shit
@@ -42,20 +42,42 @@ export abstract class BaseDriver implements IOsuDriver {
     protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
     protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
 
+    protected get_collection_timestamp(): number {
+        return Date.now();
+    }
+
+    protected mark_collection_modified(collection_name: string): void {
+        const collection = this.collections.get(collection_name);
+        if (!collection) {
+            return;
+        }
+
+        collection.last_modified = this.get_collection_timestamp();
+    }
+
+    protected reset_collection_modifications(): void {
+        for (const collection of this.collections.values()) {
+            collection.last_modified = 0;
+        }
+    }
+
     is_initialized = (): boolean => {
         return this.initialized;
     };
 
     filter_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery, options: IBeatmapFilter): boolean => {
+        const selected_status = options.status ?? ALL_STATUS_KEY;
+        const selected_mode = (options.mode as string) ?? ALL_MODES_KEY;
+
         if (beatmap.beatmapset_id == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
         if (options.query && !matches_beatmap(beatmap, query)) return false;
-        if (options.status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != options.status.toLowerCase()) return false;
-        if ((options.mode as string) != ALL_MODES_KEY && beatmap.mode != options.mode) return false;
+        if (selected_status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != selected_status.toLowerCase()) return false;
+        if (selected_mode != ALL_MODES_KEY && beatmap.mode != selected_mode) return false;
         return true;
     };
 
-    search_beatmaps = async (options: IBeatmapFilter, target: string): Promise<ISearchResponse> => {
+    search_beatmaps = async (options: IBeatmapFilter, target: string = ALL_BEATMAPS_KEY): Promise<ISearchResponse> => {
         // unify both database beatmaps / recently download in a single map
         const beatmaps = target != ALL_BEATMAPS_KEY ? this.collections.get(target)?.beatmaps : this.get_beatmaps().map((b) => b.md5);
 
@@ -66,7 +88,7 @@ export abstract class BaseDriver implements IOsuDriver {
         const unique_ids: Set<string> = new Set();
         const valid_beatmaps: IBeatmapResult[] = [];
         const invalid_beatmaps: string[] = [];
-        const parsed_query = parse_query(options.query);
+        const parsed_query = parse_query(options.query ?? "");
 
         for (const checksum of beatmaps) {
             const beatmap = await this.get_beatmap_by_md5(checksum);
@@ -119,7 +141,7 @@ export abstract class BaseDriver implements IOsuDriver {
         const valid_beatmapsets: BeatmapSetResult[] = [];
         // also store the invalid ones for later
         const invalid_beatmapsets: number[] = [];
-        const parsed_query = parse_query(options.query);
+        const parsed_query = parse_query(options.query ?? "");
 
         for (const [id, beatmapset] of unified_maps) {
             // fetch stored beatmaps from beatmapset
@@ -371,7 +393,7 @@ export abstract class BaseDriver implements IOsuDriver {
         }
 
         if (missing_beatmaps.length > 0) {
-            console.log(`[driver] found ${missing_beatmaps.length} missing beatmaps out of ${hashes.length} checked`);
+            console.log(`[client] found ${missing_beatmaps.length} missing beatmaps out of ${hashes.length} checked`);
         }
 
         return missing_beatmaps;
@@ -383,8 +405,14 @@ export abstract class BaseDriver implements IOsuDriver {
             return false;
         }
 
+        const previous_size = collection.beatmaps.length;
         const all_hashes = new Set([...collection.beatmaps, ...hashes]);
         collection.beatmaps = Array.from(all_hashes);
+
+        if (all_hashes.size > previous_size) {
+            this.mark_collection_modified(collection_name);
+            this.should_update = true;
+        }
 
         return true;
     }
@@ -457,7 +485,7 @@ export abstract class BaseDriver implements IOsuDriver {
         return this.beatmapsets.get(set_id);
     }
 
-    // driver based implementation
+    // client based implementation
     abstract initialize(force?: boolean): Promise<boolean>;
     abstract get_player_name(): string;
     abstract add_collection(name: string, beatmaps: string[]): boolean;

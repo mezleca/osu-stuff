@@ -50,7 +50,7 @@
 
         try {
             for (const name of selected_collections) {
-                const missing_hashes = await window.api.invoke("driver:get_missing_beatmaps", name);
+                const missing_hashes = await window.api.invoke("client:get_missing_beatmaps", name);
 
                 if (!missing_hashes || missing_hashes.length == 0) {
                     continue;

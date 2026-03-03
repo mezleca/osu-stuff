@@ -3,7 +3,7 @@ import { reset_audio_manager } from "../store/audio";
 import { collections } from "../store/collections";
 import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
-import type { GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
+import type { GameMode, GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
 
 import { show_notification } from "../store/notifications";
 
@@ -16,9 +16,9 @@ export const get_osu_data = async (force_load: boolean = false) => {
         return;
     }
 
-    // initialize driver based on mode
-    const driver = config.get("lazer_mode") == true ? "lazer" : "stable";
-    const init_result = await window.api.invoke("driver:initialize", force_load, driver);
+    // initialize client based on mode
+    const client = config.get("lazer_mode") == true ? "lazer" : "stable";
+    const init_result = await window.api.invoke("client:initialize", force_load, client);
 
     if (!init_result) {
         show_notification({ type: "error", text: "failed to initialize..." });
@@ -30,13 +30,13 @@ export const get_osu_data = async (force_load: boolean = false) => {
     reset_audio_manager();
 
     // update data
-    const result = await window.api.invoke("driver:get_collections", driver);
+    const result = await window.api.invoke("client:get_collections", client);
 
     // add new collections
     collections.set(result);
 
     // get update state
-    const update_state = await window.api.invoke("driver:should_update", driver);
+    const update_state = await window.api.invoke("client:should_update", client);
     collections.needs_update.set(update_state);
 };
 
@@ -71,7 +71,7 @@ const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapRe
                     length: beatmap.hit_length,
                     temp: true,
                     status: beatmap.status,
-                    mode: beatmap.mode,
+                    mode: beatmap.mode as GameMode,
                     last_modified: "",
                     background: ""
                 });
@@ -123,7 +123,7 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
             temp: true,
 
             status: beatmap.status,
-            mode: beatmap.mode,
+            mode: beatmap.mode as GameMode,
             last_modified: "",
             background: ""
         });
@@ -175,11 +175,11 @@ export const get_legacy_collection_data = async (location: string) => {
 };
 
 export const export_collection = async (collection: ICollectionResult, type: string) => {
-    return window.api.invoke("driver:export_collections", [collection], type);
+    return window.api.invoke("client:export_collections", [collection], type);
 };
 
 export const export_collections = async (collections: ICollectionResult[], type: string) => {
-    return window.api.invoke("driver:export_collections", collections, type);
+    return window.api.invoke("client:export_collections", collections, type);
 };
 
 // TODO: parallel

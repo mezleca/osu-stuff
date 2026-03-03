@@ -24,7 +24,7 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
         return cached;
     }
 
-    const beatmap = await window.api.invoke("driver:get_beatmap_by_md5", id);
+    const beatmap = await window.api.invoke("client:get_beatmap_by_md5", id);
 
     if (!beatmap) {
         return undefined;
@@ -49,7 +49,7 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
         return cached;
     }
 
-    const beatmapset = await window.api.invoke("driver:get_beatmapset", id);
+    const beatmapset = await window.api.invoke("client:get_beatmapset", id);
 
     if (!beatmapset) {
         return undefined;
@@ -60,17 +60,17 @@ export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | und
 };
 
 export const get_missing_beatmaps = async () => {
-    const invalid_beatmaps = new Set();
+    const missing_beatmaps: { md5: string }[] = [];
 
     let target_name: string = "";
 
     try {
         for (const collection of get(collections.all_collections)) {
             // search for missing beatmaps on the current collection
-            const invalid = await window.api.invoke("driver:get_missing_beatmaps", collection.name);
+            const invalid = await window.api.invoke("client:get_missing_beatmaps", collection.name);
 
             if (invalid.length > 0) {
-                invalid_beatmaps.add({ name: collection.name, beatmaps: invalid });
+                missing_beatmaps.push(...invalid.map((md5) => ({ md5 })));
                 target_name += collection.name + ", ";
             }
         }
@@ -83,7 +83,7 @@ export const get_missing_beatmaps = async () => {
             return;
         }
 
-        downloader.add({ id: target_name, beatmaps: Array.from(invalid_beatmaps.keys()) });
+        downloader.add({ id: target_name, beatmaps: missing_beatmaps });
     } catch (err) {
         show_notification({ type: "error", text: "failed to get missing beatmaps..." });
         console.error(err);
@@ -397,9 +397,9 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
 export const remove_beatmap_from_collection = async (md5: string, collection_name?: string): Promise<string> => {
     if (collection_name) {
         collections.remove_beatmap(collection_name, md5);
-        await window.api.invoke("driver:delete_beatmap", { md5, collection: collection_name });
+        await window.api.invoke("client:delete_beatmap", { md5, collection: collection_name });
     } else {
-        await window.api.invoke("driver:delete_beatmap", { md5 });
+        await window.api.invoke("client:delete_beatmap", { md5 });
     }
 
     // force list update to prevent caching issues
@@ -417,7 +417,7 @@ export const remove_beatmapset_from_collection = async (id: number, collection_n
 
     for (const md5 of beatmapset.beatmaps) {
         collections.remove_beatmap(collection_name, md5);
-        await window.api.invoke("driver:delete_beatmap", { md5, collection: collection_name });
+        await window.api.invoke("client:delete_beatmap", { md5, collection: collection_name });
     }
 
     // force list update to prevent caching issues

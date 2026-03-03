@@ -12,6 +12,11 @@ interface ISelectedCollection {
     beatmaps: string[];
 }
 
+interface IMissingCache {
+    count: number;
+    last_checked_modified: number;
+}
+
 const DEFAULT_SELECTED: ISelectedCollection = {
     name: "",
     beatmaps: []
@@ -23,6 +28,50 @@ class CollectionManager {
     all_collections: Writable<ICollectionWithEdit[]> = writable([]);
     query: Writable<string> = writable("");
     private selected_states: Map<string, Writable<ISelectedCollection>> = new Map();
+    private missing_cache: Map<string, IMissingCache> = new Map();
+
+    private get_now(): number {
+        return Date.now();
+    }
+
+    private normalize_collection(collection: ICollectionResult): ICollectionResult {
+        return {
+            ...collection,
+            last_modified: collection.last_modified ?? 0
+        };
+    }
+
+    private invalidate_missing(name: string): void {
+        this.missing_cache.delete(name);
+    }
+
+    private sync_missing_cache_with_collections(collections: ICollectionWithEdit[]): void {
+        const names = new Set(collections.map((collection) => collection.name));
+
+        for (const name of this.missing_cache.keys()) {
+            if (!names.has(name)) {
+                this.missing_cache.delete(name);
+            }
+        }
+    }
+
+    private async get_missing_count_for_collection(collection: ICollectionWithEdit): Promise<number> {
+        const cached = this.missing_cache.get(collection.name);
+
+        if (cached && collection.last_modified <= cached.last_checked_modified) {
+            return cached.count;
+        }
+
+        const missing = await window.api.invoke("client:get_missing_beatmaps", collection.name);
+        const count = missing?.length ?? 0;
+
+        this.missing_cache.set(collection.name, {
+            count,
+            last_checked_modified: collection.last_modified
+        });
+
+        return count;
+    }
 
     get_selected_store(context: string): Writable<ISelectedCollection> {
         const existing = this.selected_states.get(context);
@@ -37,26 +86,38 @@ class CollectionManager {
     }
 
     async get_missing(): Promise<{ name: string; count: number }[]> {
-        const collections = get(this.all_collections);
+        const all = get(this.all_collections);
         const result: { name: string; count: number }[] = [];
 
-        for (const collection of collections) {
-            const missing = await window.api.invoke("driver:get_missing_beatmaps", collection.name);
-            if (missing && missing.length > 0) {
-                result.push({ name: collection.name, count: missing.length });
+        for (const collection of all) {
+            const count = await this.get_missing_count_for_collection(collection);
+            if (count > 0) {
+                result.push({ name: collection.name, count });
             }
         }
 
         return result;
     }
 
+    async get_total_missing(): Promise<number> {
+        const all = get(this.all_collections);
+        let total = 0;
+
+        for (const collection of all) {
+            total += await this.get_missing_count_for_collection(collection);
+        }
+
+        return total;
+    }
+
     set(collections: ICollectionResult[]): void {
-        const with_edit: ICollectionWithEdit[] = collections.map((c) => ({
-            ...c,
+        const with_edit: ICollectionWithEdit[] = collections.map((collection) => ({
+            ...this.normalize_collection(collection),
             edit: false
         }));
 
         this.all_collections.set(with_edit);
+        this.sync_missing_cache_with_collections(with_edit);
         this.filter();
     }
 
@@ -74,24 +135,30 @@ class CollectionManager {
 
     add(collection: ICollectionResult): void {
         const with_edit: ICollectionWithEdit = {
-            ...collection,
+            ...this.normalize_collection(collection),
             edit: false
         };
 
         this.all_collections.update((old) => [...old, with_edit]);
+        this.invalidate_missing(with_edit.name);
         this.needs_update.set(true);
         this.filter();
     }
 
     replace(data: ICollectionResult, ignore_update: boolean = false): void {
+        const normalized = this.normalize_collection(data);
+
         this.all_collections.update((collections) => {
             return collections.map((collection) => {
-                if (collection.name == data.name) {
-                    return { ...collection, ...data };
+                if (collection.name == normalized.name) {
+                    return { ...collection, ...normalized };
                 }
+
                 return collection;
             });
         });
+
+        this.invalidate_missing(normalized.name);
 
         if (!ignore_update) {
             this.needs_update.set(true);
@@ -134,11 +201,14 @@ class CollectionManager {
     }
 
     async rename(old_name: string, new_name: string): Promise<boolean> {
+        const now = this.get_now();
+
         this.all_collections.update((collections) => {
             return collections.map((collection) => {
                 if (collection.name == old_name) {
-                    return { ...collection, name: new_name, edit: false };
+                    return { ...collection, name: new_name, edit: false, last_modified: now };
                 }
+
                 return collection;
             });
         });
@@ -146,17 +216,17 @@ class CollectionManager {
         for (const store of this.selected_states.values()) {
             const current = get(store);
 
-            // update current select if necessary
             if (current.name == old_name) {
                 store.set({ ...current, name: new_name });
             }
         }
 
+        this.invalidate_missing(old_name);
+        this.invalidate_missing(new_name);
         this.needs_update.set(true);
         this.filter();
 
-        // update main process
-        const result = await window.api.invoke("driver:rename_collection", old_name, new_name);
+        const result = await window.api.invoke("client:rename_collection", old_name, new_name);
 
         if (!result) {
             console.error("failed to rename collection");
@@ -170,24 +240,16 @@ class CollectionManager {
         for (const store of this.selected_states.values()) {
             const current = get(store);
 
-            // remove from selected if necessary
             if (current.name == name) {
                 store.set({ ...DEFAULT_SELECTED });
             }
         }
 
-        // remove from the crrent map
         this.all_collections.update((collections) => {
             return collections.filter((c) => c.name != name);
         });
 
-        // remove from main process
-        const result = await window.api.invoke("driver:delete_collection", name);
-
-        if (!result) {
-            console.warn("failed to remove from main process!!!");
-        }
-
+        this.invalidate_missing(name);
         this.needs_update.set(true);
         this.filter();
     }
@@ -198,8 +260,9 @@ class CollectionManager {
                 if (collection.name != name) {
                     return collection;
                 }
+
                 const beatmaps = collection.beatmaps.filter((hash) => hash != md5);
-                return { ...collection, beatmaps };
+                return { ...collection, beatmaps, last_modified: this.get_now() };
             });
         });
 
@@ -212,6 +275,7 @@ class CollectionManager {
             }
         }
 
+        this.invalidate_missing(name);
         this.needs_update.set(true);
         this.filter();
     }
@@ -222,13 +286,19 @@ class CollectionManager {
                 if (collection.name != name) {
                     return collection;
                 }
+
                 const beatmaps_set = new Set([...collection.beatmaps, ...hashes]);
-                return { ...collection, beatmaps: Array.from(beatmaps_set) };
+                return {
+                    ...collection,
+                    beatmaps: Array.from(beatmaps_set),
+                    last_modified: this.get_now()
+                };
             });
         });
 
-        await window.api.invoke("driver:add_beatmaps_to_collection", name, hashes);
+        await window.api.invoke("client:add_beatmaps_to_collection", name, hashes);
 
+        this.invalidate_missing(name);
         this.needs_update.set(true);
         this.filter();
     }
@@ -242,15 +312,22 @@ class CollectionManager {
         }
 
         try {
-            const result = await window.api.invoke("driver:update_collection");
+            const result = await window.api.invoke("client:update_collection");
 
             if (!result) {
                 show_notification({ type: "error", text: "failed to update collections" });
                 return;
             }
 
+            this.all_collections.update((all) => all.map((collection) => ({ ...collection, last_modified: 0 })));
+
+            for (const [name, cached] of this.missing_cache) {
+                this.missing_cache.set(name, { ...cached, last_checked_modified: 0 });
+            }
+
             show_notification({ type: "success", text: "collections updated" });
             this.needs_update.set(false);
+            this.filter();
         } catch (error) {
             console.error("[collections] update error:", error);
             show_notification({ type: "error", text: "failed to update collections" });
@@ -259,7 +336,7 @@ class CollectionManager {
 
     async load(): Promise<void> {
         try {
-            const collections = await window.api.invoke("driver:get_collections");
+            const collections = await window.api.invoke("client:get_collections");
 
             if (!collections) {
                 console.warn("[collections] failed to load collections");
@@ -275,14 +352,14 @@ class CollectionManager {
 
     async delete_collection(name: string): Promise<void> {
         try {
-            const result = await window.api.invoke("driver:delete_collection", name);
+            const result = await window.api.invoke("client:delete_collection", name);
 
             if (!result) {
                 show_notification({ type: "error", text: `failed to delete collection: ${name}` });
                 return;
             }
 
-            this.remove(name);
+            await this.remove(name);
             show_notification({ type: "success", text: `collection "${name}" deleted` });
         } catch (error) {
             console.error("[collections] delete error:", error);
@@ -304,14 +381,14 @@ class CollectionManager {
         }
 
         try {
-            const result = await window.api.invoke("driver:add_collection", name, []);
+            const result = await window.api.invoke("client:add_collection", name, []);
 
             if (!result) {
                 show_notification({ type: "error", text: "failed to create collection" });
                 return false;
             }
 
-            this.add({ name, beatmaps: [] });
+            this.add({ name, beatmaps: [], last_modified: this.get_now() });
             return true;
         } catch (error) {
             console.error("[collections] create error:", error);

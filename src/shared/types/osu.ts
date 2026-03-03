@@ -178,7 +178,7 @@ export interface ILegacyDatabase {
     beatmapsets: Map<number, IStableBeatmapset>;
 }
 
-/* OSU DRIVER RELATED STUFF */
+/* OSU CLIENT RELATED STUFF */
 
 export type StarRatingFilter = [number, number];
 
@@ -263,6 +263,7 @@ export interface BeatmapSetResult {
 export interface ICollectionResult {
     name: string;
     beatmaps: string[];
+    last_modified: number;
     bpm_min?: 0;
     bpm_max?: 0;
 }
@@ -332,7 +333,7 @@ export interface ISearchSetResponse {
 }
 
 // TODO: get_beatmap_by<T>
-export interface IOsuDriver {
+export interface IOsuClient {
     initialize(force: boolean): Promise<boolean>;
     get_player_name(): string;
     add_collection(name: string, beatmaps: string[]): boolean;

@@ -116,7 +116,7 @@ export const handle_card_context_action = async (
                 actions: []
             });
 
-            const result = await window.api.invoke("driver:export_beatmapset", beatmapsed_id);
+            const result = await window.api.invoke("client:export_beatmapset", beatmapsed_id);
 
             if (result) {
                 finish_notification(EXPORT_CARD_NOTIFICATION_ID, {

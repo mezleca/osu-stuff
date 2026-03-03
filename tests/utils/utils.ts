@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
-import { IBeatmapResult, StuffConfig } from "@shared/types";
+import { GameMode, IBeatmapResult, StuffConfig } from "@shared/types";
 import { config as _config } from "@main/database/config";
 import { mirrors as _mirrors } from "@main/database/mirrors";
 import { beatmap_processor as _processor } from "@main/database/processor";
@@ -38,7 +38,7 @@ export const create_temp_beatmap = (): IBeatmapResult => {
         bpm: 0,
         length: 120,
         status: "ranked",
-        mode: "osu!",
+        mode: GameMode.Osu,
         last_modified: "",
         temp: true,
         background: ""
