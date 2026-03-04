@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
 
     import { collections } from "../../lib/store/collections";
-    import { FILTER_DATA } from "../../lib/store/other";
+    import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other";
     import { ALL_BEATMAPS_KEY } from "@shared/types";
     import { format_time, url_to_media } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
@@ -64,7 +64,7 @@
 
         const beatmaps = result.beatmaps.map((b) => b.md5);
         list.set_items(beatmaps);
-    }, 100);
+    }, SEARCH_DEBOUNCE_INTERVAL);
 
     const retry_random = debounce(() => audio.force_random.set(true), 200);
     const trigger_random = debounce(() => audio.force_random.set(true), 50);

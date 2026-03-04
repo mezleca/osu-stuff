@@ -38,6 +38,7 @@
     export let direction: "left" | "right" | "center" = "right";
     export let on_update: ((index: number) => void) | null = null;
     export let selected: number = -1;
+    export let selected_key: any = null;
     export let columns: number | null = null;
 
     const PADDING = 6;
@@ -64,6 +65,9 @@
     let animation_frame_id: number | null = null;
     let scroll_timeout: ReturnType<typeof setTimeout> | null = null;
     let is_scrolling: boolean = false;
+    let pending_focus_update: boolean = false;
+    let last_focused_selected: number = -1;
+    let last_focused_items: any[] | null = null;
 
     let scroll_animation: ScrollAnimationState = {
         animation_id: null,
@@ -84,6 +88,7 @@
     $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
     $: end_index = Math.min(start_index + visible_count, rows_per_screen);
     $: visible_items = Math.max(0, end_index - start_index);
+    $: selected_index = selected_key != null ? items.indexOf(selected_key) : selected;
 
     const lerp = (start: number, end: number, factor: number): number => {
         return start + (end - start) * factor;
@@ -164,7 +169,7 @@
                 item_height_with_padding,
                 item_index,
                 hovered_item,
-                selected
+                selected_index
             );
 
             const cache_key = `${item_index}-${scale.toFixed(3)}-${x_offset.toFixed(1)}-${y_offset.toFixed(1)}`;
@@ -204,6 +209,12 @@
 
         scroll_timeout = setTimeout(() => {
             is_scrolling = false;
+
+            if (pending_focus_update) {
+                pending_focus_update = false;
+                request_focus_selected(true);
+            }
+
             if (carousel_enabled) {
                 carousel_update();
             }
@@ -260,7 +271,7 @@
     };
 
     export const scroll_to_item = async (index: number): Promise<void> => {
-        if (index < 0) {
+        if (index < 0 || index >= count) {
             return;
         }
 
@@ -288,6 +299,25 @@
         } else {
             scroll_animation.animation_id = requestAnimationFrame(animate_scroll);
         }
+    };
+
+    const request_focus_selected = (force: boolean = false): void => {
+        if (selected_index < 0 || selected_index >= count) {
+            return;
+        }
+
+        if (is_scrolling) {
+            pending_focus_update = true;
+            return;
+        }
+
+        if (!force && selected_index === last_focused_selected && items === last_focused_items) {
+            return;
+        }
+
+        last_focused_selected = selected_index;
+        last_focused_items = items;
+        scroll_to_item(selected_index);
     };
 
     const get_column_items = (row_index: number): number[] => {
@@ -339,8 +369,8 @@
         hovered_item = -1;
     };
 
-    $: if (selected != -1) {
-        scroll_to_item(selected);
+    $: if (items && count >= 0 && selected_index >= 0) {
+        request_focus_selected();
     }
 
     $: if (carousel_enabled && visible_items > 0) {

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import type { IBeatmapResult } from "@shared/types";
+    import type { IBeatmapResult, BeatmapSetResult } from "@shared/types";
     import { type Writable } from "svelte/store";
     import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
@@ -15,7 +15,8 @@
     import BeatmapCard from "./beatmap-card.svelte";
     import BeatmapControls from "./beatmap-controls.svelte";
 
-    export let id = -1;
+    export let id: number | null = null;
+    export let beatmapset: BeatmapSetResult | null = null;
     export let show_context = true;
     export let show_remove = true;
     export let show_expand = true;
@@ -59,7 +60,7 @@
                 return;
             }
 
-            const result = await get_beatmapset(id);
+            const result = beatmapset ?? (id != null ? await get_beatmapset(id) : null);
 
             if (result) {
                 state_store.update((s) => ({
@@ -153,7 +154,7 @@
     });
 
     $: {
-        if (id > 0) {
+        if (id != null && Number.isFinite(id)) {
             state_store = get_beatmapset_state(id);
             expanded = false;
             sorted_beatmaps = [];

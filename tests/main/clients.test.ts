@@ -1,8 +1,9 @@
 import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { get_client } from "@main/osu/clients/client";
+import { matches_beatmap, parse_query } from "@main/osu/beatmaps";
 import { create_temp_beatmap } from "../utils/utils";
 import { setup_config } from "../utils/utils";
-import { GameMode, ALL_STATUS_KEY } from "@shared/types";
+import { GameMode, ALL_STATUS_KEY, IBeatmapResult } from "@shared/types";
 
 const temp_beatmap = create_temp_beatmap();
 
@@ -142,6 +143,17 @@ const test_client = (type: string) => {
         expect(beatmaps.length).toBe(18);
     });
 
+    test(`${type}: search_beatmapsets():`, async () => {
+        const { beatmapsets } = await client.search_beatmapsets({
+            query: "glass beach",
+            sort: "artist",
+            status: ALL_STATUS_KEY,
+            mode: GameMode.All
+        });
+
+        expect(beatmapsets.length).toBeGreaterThan(0);
+    });
+
     test(`${type}: get_beatmap_files():`, async () => {
         const result = await client.get_beatmapset_files(test_beatmapset_id);
         expect(result.length).toBeGreaterThan(1);
@@ -173,4 +185,66 @@ describe("osu!client", () => {
 
     describe("lazer", () => test_client("lazer"));
     describe("stable", () => test_client("stable"));
+});
+
+const make_query_beatmap = (overrides: Partial<IBeatmapResult> = {}): IBeatmapResult => ({
+    md5: "md5",
+    online_id: 1,
+    beatmapset_id: 2,
+    title: "Senorita",
+    artist: "Camellia",
+    creator: "Mapper",
+    difficulty: "Insane",
+    source: "",
+    tags: "electronic test",
+    ar: 9,
+    cs: 4,
+    hp: 6,
+    od: 8,
+    star_rating: 5.5,
+    bpm: 180,
+    length: 120,
+    status: "ranked",
+    mode: GameMode.Osu,
+    temp: false,
+    last_modified: "0",
+    background: "",
+    duration: 120,
+    audio: "",
+    ...overrides
+});
+
+describe("beatmap query", () => {
+    test("supports wiki-style aliases/operators and normalized text search", () => {
+        const beatmap = make_query_beatmap({
+            title: "Señorita",
+            creator: "rel",
+            difficulty: "Another",
+            star_rating: 6.3,
+            hp: 7,
+            mode: GameMode.Catch,
+            status: "ranked"
+        });
+
+        const valid_queries = [
+            "senorita",
+            "AR>=9",
+            'author:"rel" diff:another sr>=6 dr==7',
+            'mapper:"rel" stars>=6 mode=catch status=ranked',
+            "status=ranked,loved"
+        ];
+
+        for (const raw of valid_queries) {
+            expect(matches_beatmap(beatmap, parse_query(raw))).toBe(true);
+        }
+    });
+
+    test("unknown keys become text and invalid filters fail", () => {
+        const beatmap = make_query_beatmap({ title: "my song x", status: "ranked" });
+
+        expect(matches_beatmap(beatmap, parse_query("foo:x"))).toBe(true);
+        expect(matches_beatmap(beatmap, parse_query("sr>=10"))).toBe(false);
+        expect(matches_beatmap(beatmap, parse_query("mode=mania"))).toBe(false);
+        expect(matches_beatmap(beatmap, parse_query("status!=ranked,loved"))).toBe(false);
+    });
 });

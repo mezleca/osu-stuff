@@ -1,3 +1,17 @@
+# v2.5.6
+
+## new stuff
+
+- client(beatmap / beatmapset search): now support all aliases listed [here](https://osu.ppy.sh/wiki/en/Beatmap_search#client) (well... except short ones)
+
+## bug fixes
+
+- virtual-list: fix auto focus not working at all
+- client(beatmap / beatmapset search): fixed a bunch of query filter issues
+- beatmap-list: use consistent search interval between all tabs
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.5...v2.5.6
+
 # v2.5.5
 
 ## new stuff

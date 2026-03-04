@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { collections } from "../../lib/store/collections";
-    import { FILTER_DATA, MODES_DATA, STATUS_DATA } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
@@ -64,7 +64,7 @@
         }
 
         list.clear_selected_buffer();
-    }, 10);
+    }, SEARCH_DEBOUNCE_INTERVAL);
 
     const remove_callback = async (hash: string) => {
         await remove_beatmap_from_collection(hash, $selected_collection?.name ?? "");

@@ -177,8 +177,13 @@ class LazerBeatmapClient extends BaseClient {
         }
 
         // populate in-memory sets
+        let fallback_set_id = -1;
+
         for (const beatmapset of beatmapsets) {
-            this.beatmapsets.set(beatmapset.OnlineID, build_beatmapset(beatmapset));
+            const mapped = build_beatmapset(beatmapset);
+            const preferred_id = mapped.online_id;
+            const resolved_id = preferred_id > 0 && !this.beatmapsets.has(preferred_id) ? preferred_id : fallback_set_id--;
+            this.beatmapsets.set(resolved_id, { ...mapped, online_id: resolved_id });
         }
     };
 

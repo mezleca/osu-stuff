@@ -44,9 +44,10 @@
     >
         <!-- get current beatmapset id -->
         {@const id = $items[index]}
+        {@const beatmapset = list_manager.get_beatmapset(id)}
 
         <!-- render beatmapset card -->
-        <BeatmapSetCard {id} filtered_hashes={list_manager.get_filtered_beatmaps(id)} {show_context} {show_remove} {height} />
+        <BeatmapSetCard {id} {beatmapset} filtered_hashes={list_manager.get_filtered_beatmaps(id)} {show_context} {show_remove} {height} />
     </VirtualList>
 </div>
 

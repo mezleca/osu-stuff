@@ -9,6 +9,7 @@ const DEFAULT_SORT_VALUES: (keyof IBeatmapResult)[] = ["artist", "title", "durat
 const DEFAULT_STATUS_VALUES = ["graveyard", "pending", "wip", "ranked", "qualified", "loved"];
 const DEFAULT_MODE_VALUES: GameMode[] = [GameMode.Osu, GameMode.Taiko, GameMode.Catch, GameMode.Mania];
 
+export const SEARCH_DEBOUNCE_INTERVAL = 50;
 export const DEFAULT_SELECTED_MAP = Object.freeze({ index: -1, md5: null });
 
 const SPECIAL_KEYS = new Map([

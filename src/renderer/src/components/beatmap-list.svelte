@@ -157,6 +157,7 @@
         {direction}
         {on_update}
         selected={$selected?.index ?? -1}
+        selected_key={$selected?.md5 ?? null}
         let:index
     >
         <!-- get current md5 hash -->

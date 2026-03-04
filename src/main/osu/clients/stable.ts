@@ -146,8 +146,13 @@ class StableBeatmapClient extends BaseClient {
             this.beatmaps.set(md5, build_beatmap(beatmap, processed));
         }
 
+        let fallback_set_id = -1;
+
         for (const [id, beatmapset] of this.osu.beatmapsets) {
-            this.beatmapsets.set(id, build_beatmapset(beatmapset));
+            const mapped = build_beatmapset(beatmapset);
+            const preferred_id = mapped.online_id || id;
+            const resolved_id = preferred_id > 0 && !this.beatmapsets.has(preferred_id) ? preferred_id : fallback_set_id--;
+            this.beatmapsets.set(resolved_id, { ...mapped, online_id: resolved_id });
         }
 
         // clear raw storage to reduce memory usage

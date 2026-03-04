@@ -5,6 +5,47 @@ import path from "path";
 
 export const MAX_STAR_RATING_VALUE = 10;
 export const ALLOWED_SORT_KEYS = ["title", "artist", "duration", "length", "ar", "cs", "od", "hp"];
+const FILTER_KEY_ALIASES: Record<string, keyof IBeatmapResult> = {
+    artist: "artist",
+    creator: "creator",
+    author: "creator",
+    mapper: "creator",
+    title: "title",
+    difficulty: "difficulty",
+    diff: "difficulty",
+    source: "source",
+    tag: "tags",
+    tags: "tags",
+    ar: "ar",
+    cs: "cs",
+    od: "od",
+    hp: "hp",
+    dr: "hp",
+    star: "star_rating",
+    stars: "star_rating",
+    sr: "star_rating",
+    bpm: "bpm",
+    length: "length",
+    mode: "mode",
+    status: "status"
+};
+
+const MODE_ALIASES: Record<string, string> = {
+    osu: "osu",
+    taiko: "taiko",
+    catch: "fruits",
+    fruits: "fruits",
+    mania: "mania"
+};
+
+const STATUS_ALIASES: Record<string, string> = {
+    ranked: "ranked",
+    approved: "approved",
+    pending: "pending",
+    notsubmitted: "unknown",
+    unknown: "unknown",
+    loved: "loved"
+};
 
 // https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
 export const get_common_bpm = (timing_points: IStableTimingPoint[], length: number) => {
@@ -36,7 +77,7 @@ export const get_common_bpm = (timing_points: IStableTimingPoint[], length: numb
     }).bpm;
 };
 
-const FILTER_REGEX = /\b(?<key>\w+)(?<op>!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
+const FILTER_REGEX = /\b(?<key>\w+)(?<op>==|!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
 
 export interface AdvancedFilter<K extends keyof IBeatmapResult = keyof IBeatmapResult> {
     k: K;
@@ -55,8 +96,16 @@ export const parse_query = (raw: string): ParsedQuery => {
 
     for (const match of raw.matchAll(FILTER_REGEX)) {
         const { key, op, value } = match.groups!;
+        const normalized_key = key.toLowerCase();
+        const mapped_key = FILTER_KEY_ALIASES[normalized_key];
+
+        // treat unknown keys as plain text
+        if (!mapped_key) {
+            continue;
+        }
+
         filters.push({
-            k: key as keyof IBeatmapResult,
+            k: mapped_key,
             o: op,
             v: value.replace(/"/g, "")
         });
@@ -68,25 +117,66 @@ export const parse_query = (raw: string): ParsedQuery => {
 
 const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boolean => {
     const field = beatmap[filter.k];
-    if (field == undefined) return true;
+    if (field == undefined) return false;
 
-    let field_val: string | number;
-    let filter_val: string | number;
+    const operator = normalize_operator(filter.o);
 
     if (typeof field === "number") {
-        filter_val = Number(filter.v);
-
-        if (isNaN(filter_val as number)) {
-            return false;
-        }
-
-        field_val = field;
-    } else {
-        field_val = String(field).toLowerCase();
-        filter_val = filter.v.toLowerCase();
+        return evaluate_numeric_filter(field, filter.v, operator);
     }
 
-    switch (filter.o) {
+    return evaluate_text_filter(filter.k, String(field), filter.v, operator);
+};
+
+const normalize_operator = (operator: string): string => {
+    if (operator === ":" || operator === "==") return "=";
+    if (operator === "!:") return "!=";
+    return operator;
+};
+
+const evaluate_numeric_filter = (field: number, value: string, operator: string): boolean => {
+    const target = Number(value);
+
+    if (Number.isNaN(target)) {
+        return false;
+    }
+
+    switch (operator) {
+        case "=":
+            return field == target;
+        case "!=":
+            return field != target;
+        case ">":
+            return field > target;
+        case ">=":
+            return field >= target;
+        case "<":
+            return field < target;
+        case "<=":
+            return field <= target;
+        default:
+            return false;
+    }
+};
+
+const evaluate_text_filter = (key: keyof IBeatmapResult, field: string, value: string, operator: string): boolean => {
+    const field_val = normalize_text(normalize_filter_value(key, field));
+    const filter_val = normalize_text(normalize_filter_value(key, value));
+
+    if (key === "status") {
+        const status_values = filter_val
+            .split(",")
+            .map((v) => v.trim())
+            .filter((v) => v.length > 0);
+
+        if (status_values.length > 1) {
+            if (operator === "=") return status_values.includes(field_val);
+            if (operator === "!=") return !status_values.includes(field_val);
+            return false;
+        }
+    }
+
+    switch (operator) {
         case "=":
             return field_val == filter_val;
         case "!=":
@@ -102,6 +192,27 @@ const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boole
         default:
             return false;
     }
+};
+
+const normalize_filter_value = (key: keyof IBeatmapResult, value: string): string => {
+    const normalized = value.toLowerCase();
+
+    if (key === "mode") {
+        return MODE_ALIASES[normalized] ?? normalized;
+    }
+
+    if (key === "status") {
+        if (normalized.includes(",")) {
+            return normalized
+                .split(",")
+                .map((v) => STATUS_ALIASES[v.trim()] ?? v.trim())
+                .join(",");
+        }
+
+        return STATUS_ALIASES[normalized] ?? normalized;
+    }
+
+    return value;
 };
 
 export const matches_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery): boolean => {
@@ -120,9 +231,10 @@ export const matches_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery): bo
     }
 
     const tags = Array.isArray(beatmap.tags) ? beatmap.tags.join(" ") : (beatmap.tags ?? "");
-    const searchable = `${beatmap.artist} ${beatmap.title} ${beatmap.difficulty} ${beatmap.creator} ${tags}`.toLowerCase();
+    const searchable = normalize_text(`${beatmap.artist} ${beatmap.title} ${beatmap.difficulty} ${beatmap.creator} ${tags}`);
+    const query_text = normalize_text(query.text);
 
-    return searchable.includes(query.text);
+    return searchable.includes(query_text);
 };
 
 export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRatingFilter): boolean => {

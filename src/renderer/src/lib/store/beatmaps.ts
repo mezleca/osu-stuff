@@ -305,7 +305,7 @@ export class BeatmapList extends ListBase<string> {
 export class BeatmapSetList extends ListBase<number> {
     // extra filter options
     sort: Writable<keyof BeatmapSetResult["metadata"]> = writable("artist");
-    filtered_beatmaps = new Map<number, string[]>();
+    search_cache = new Map<number, { filtered_hashes: string[]; beatmapset: BeatmapSetResult | null }>();
 
     // cache
     last_filter?: IBeatmapSetFilter = null;
@@ -345,10 +345,26 @@ export class BeatmapSetList extends ListBase<number> {
 
         try {
             const result = await window.api.invoke("client:search_beatmapsets", filter);
-            this.filtered_beatmaps.clear();
+            this.search_cache.clear();
 
+            const ids: number[] = [];
             for (const beatmapset of result?.beatmapsets ?? []) {
-                this.filtered_beatmaps.set(beatmapset.online_id, beatmapset.beatmaps ?? []);
+                this.search_cache.set(beatmapset.online_id, {
+                    filtered_hashes: beatmapset.beatmaps ?? [],
+                    beatmapset: null
+                });
+                ids.push(beatmapset.online_id);
+            }
+
+            if (ids.length > 0) {
+                const { beatmaps } = await window.api.invoke("client:fetch_beatmapsets", ids);
+                for (const beatmapset of beatmaps ?? []) {
+                    const cached = this.search_cache.get(beatmapset.online_id);
+                    this.search_cache.set(beatmapset.online_id, {
+                        filtered_hashes: cached?.filtered_hashes ?? beatmapset.beatmaps ?? [],
+                        beatmapset
+                    });
+                }
             }
 
             this.last_filter = filter;
@@ -377,7 +393,7 @@ export class BeatmapSetList extends ListBase<number> {
     async reload() {
         this.last_filter = null;
         this.last_result = null;
-        this.filtered_beatmaps.clear();
+        this.search_cache.clear();
         await this.load();
     }
 
@@ -399,12 +415,12 @@ export class BeatmapSetList extends ListBase<number> {
         return item1.md5 == item2.md5;
     }
 
-    get_beatmapset(_beatmapset_id: number): BeatmapSetResult | null {
-        return null;
+    get_filtered_beatmaps(beatmapset_id: number): string[] {
+        return this.search_cache.get(beatmapset_id)?.filtered_hashes ?? EMPTY_HASHES;
     }
 
-    get_filtered_beatmaps(beatmapset_id: number): string[] {
-        return this.filtered_beatmaps.get(beatmapset_id) ?? EMPTY_HASHES;
+    get_beatmapset(beatmapset_id: number): BeatmapSetResult | null {
+        return this.search_cache.get(beatmapset_id)?.beatmapset ?? null;
     }
 
     clear() {
@@ -413,7 +429,7 @@ export class BeatmapSetList extends ListBase<number> {
         this.selected_buffer.set([]);
         this.last_filter = null;
         this.last_result = null;
-        this.filtered_beatmaps.clear();
+        this.search_cache.clear();
     }
 }
 

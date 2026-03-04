@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { get_beatmapset_list } from "../../lib/store/beatmaps";
-    import { FILTER_DATA, MODES_DATA, STATUS_DATA } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
     import { debounce } from "../../lib/utils/timings";
 
     // components
@@ -21,7 +21,7 @@
         const ids = result.beatmapsets.map((b) => b.online_id);
 
         list.set_items(ids);
-    }, 20);
+    }, SEARCH_DEBOUNCE_INTERVAL);
 
     $: if ($query != undefined || $status || $sort || $difficulty_range || $mode || $should_update) {
         debounced_update($should_update);

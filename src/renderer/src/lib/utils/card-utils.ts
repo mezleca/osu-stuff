@@ -33,7 +33,7 @@ export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): 
         const beatmapset = item as BeatmapSetResult;
 
         // fallback to asset
-        if (beatmapset.online_id) {
+        if (beatmapset.online_id > 0) {
             return `https://assets.ppy.sh/beatmaps/${beatmapset.online_id}/covers/cover.jpg`;
         }
     }
