@@ -8,6 +8,7 @@
 - discover/download: downloaded state is now consistent even after page reload (dev mode)
 - beatmap controls(download): show clear success / error notifications (without spamming duplicate errors)
 - downloader(single): downloading an already existing beatmap is now treated as success instead of error
+- context-menu: weird ass errors on newer svelte versions
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.7...v2.5.8
 
