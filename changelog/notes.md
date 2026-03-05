@@ -1,3 +1,16 @@
+# v2.5.8
+
+## new stuff
+
+## bug fixes
+
+- missing beatmaps(modal): disable download action when no mirror is active and show proper warning
+- discover/download: downloaded state is now consistent even after page reload (dev mode)
+- beatmap controls(download): show clear success / error notifications (without spamming duplicate errors)
+- downloader(single): downloading an already existing beatmap is now treated as success instead of error
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.7...v2.5.8
+
 # v2.5.7
 
 ## new stuff

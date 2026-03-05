@@ -103,7 +103,7 @@
     };
 
     const get_star_rating = (): number => {
-        return current_beatmap.star_rating;
+        return current_beatmap?.star_rating;
     };
 
     const format_star_rating = (rating: number): string => {
@@ -181,7 +181,23 @@
 
         <!-- render controls -->
         {#if show_control}
-            <BeatmapControls beatmapset_id={state.beatmap?.beatmapset_id ?? -1} {hash} {has_map} {show_remove} {on_remove} />
+            <BeatmapControls
+                beatmapset_id={state.beatmap?.beatmapset_id ?? -1}
+                {hash}
+                {has_map}
+                {show_remove}
+                {on_remove}
+                on_download={() => {
+                    if (!state_store) {
+                        return;
+                    }
+
+                    state_store.update((s) => ({
+                        ...s,
+                        beatmap: s.beatmap ? { ...s.beatmap, temp: false } : s.beatmap
+                    }));
+                }}
+            />
         {/if}
 
         <!-- render set information -->

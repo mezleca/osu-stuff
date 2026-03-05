@@ -135,7 +135,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
         return current.progress?.paused || false;
     }
 
-    async add_single(data: IDownloadedBeatmap): Promise<boolean> {
+    async add_single(data: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>> {
         console.log("[downloader] single download started");
         return this.process_beatmap(data);
     }
@@ -306,7 +306,11 @@ class BeatmapDownloader implements IBeatmapDownloader {
                     return { stop: true };
                 }
 
-                await this.process_beatmap(beatmap);
+                const result = await this.process_beatmap(beatmap);
+
+                if (!result.success) {
+                    console.log("[downloader] failed to process beatmap:", result.reason);
+                }
 
                 // tiny delay to keep things fast but stable
                 await sleep(50);
@@ -371,13 +375,12 @@ class BeatmapDownloader implements IBeatmapDownloader {
         }
     }
 
-    private async process_beatmap(beatmap: IDownloadedBeatmap): Promise<boolean> {
+    private async process_beatmap(beatmap: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>> {
         const result = await this.get_beatmap_info(beatmap);
 
-        // TODO: notify :3
         if (!result.success) {
             console.log("[downloader] failed to process beatmap:", result.reason);
-            return false;
+            return result;
         }
 
         const beatmap_info = result.data;
@@ -388,14 +391,15 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
         if (fs.existsSync(folder_path) || fs.existsSync(file_path)) {
             console.log("[downloader] file already exists:", id);
-            return false;
+            get_client().add_beatmap(beatmap_info);
+            return { success: true, data: beatmap_info };
         }
 
         const buffer = await this.download_from_mirrors(id);
 
         if (!buffer) {
             console.log("[downloader] failed to download:", id);
-            return false;
+            return { success: false, reason: "failed to download beatmap" };
         }
 
         const client = get_client();
@@ -406,7 +410,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
         // add beatmap to static temp beatmaps
         client.add_beatmap(beatmap_info);
 
-        return true;
+        return { success: true, data: beatmap_info };
     }
 
     private async download_from_mirrors(beatmap_id: number): Promise<ArrayBuffer | null> {

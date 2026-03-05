@@ -19,7 +19,7 @@ class ContextMenuManager {
         event.stopPropagation();
 
         this.active.set({
-            options,
+            options: Array.isArray(options) ? options : [],
             position: { x: event.clientX, y: event.clientY },
             on_click
         });

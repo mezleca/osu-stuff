@@ -2,7 +2,9 @@
     import { get_audio_manager, toggle_beatmap_preview } from "../../lib/store/audio";
     import { downloader } from "../../lib/store/downloader";
     import { update_beatmap_lists } from "../../lib/store/beatmaps";
+    import { beatmap_cache, beatmapset_cache } from "../../lib/utils/beatmaps";
     import { string_is_valid } from "../../lib/utils/utils";
+    import { edit_notification, notification_exists, show_notification } from "../../lib/store/notifications";
 
     // components
     import Play from "../icon/play.svelte";
@@ -21,6 +23,9 @@
     export let has_map = false;
     export let show_remove = true;
     export let on_remove: (checksum: string) => void = null;
+    export let on_download: (checksum: string) => void = null;
+
+    const DOWNLOAD_FAILED_ID = "beatmap-controls:download-failed";
 
     const { active_singles } = downloader;
 
@@ -44,14 +49,42 @@
         }
 
         // start download
-        const result = await downloader.single_download({ beatmapset_id, md5: hash });
+        const result = await downloader.single_download({ beatmapset_id, md5: hash }, false);
 
-        if (!result) {
+        if (!result.success) {
             console.error("download failed for:", hash);
+            if (notification_exists(DOWNLOAD_FAILED_ID)) {
+                edit_notification(DOWNLOAD_FAILED_ID, { type: "error", text: "failed to download beatmap", duration: 3000 });
+            } else {
+                show_notification({ id: DOWNLOAD_FAILED_ID, type: "error", text: "failed to download beatmap", duration: 3000 });
+            }
             return;
         }
 
-        // if we succesfully downloaded a new beatmap, ensure to update all lists when possible
+        const downloaded_beatmap = result.data;
+        const cached_beatmap = (await window.api.invoke("client:get_beatmap_by_md5", hash)) ?? downloaded_beatmap;
+        let notification_title = downloaded_beatmap.title ?? hash;
+
+        if (cached_beatmap) {
+            beatmap_cache.set(hash, cached_beatmap);
+            notification_title = cached_beatmap.title ?? hash;
+
+            if (cached_beatmap.beatmapset_id) {
+                const cached_beatmapset = await window.api.invoke("client:get_beatmapset", cached_beatmap.beatmapset_id);
+
+                if (cached_beatmapset) {
+                    beatmapset_cache.set(cached_beatmapset.online_id, cached_beatmapset);
+                }
+            }
+        }
+
+        if (on_download) {
+            on_download(hash);
+        }
+
+        show_notification({ type: "success", text: `downloaded ${notification_title}` });
+
+        // if we succesfully downloaded a new beatmap, update all lists
         update_beatmap_lists();
     };
 

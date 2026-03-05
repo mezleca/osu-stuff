@@ -91,6 +91,22 @@ body {
     overflow: hidden;
 }
 
+button:disabled,
+button[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+    filter: saturate(0.7);
+}
+
+button:disabled:hover,
+button:disabled:focus,
+button[aria-disabled="true"]:hover,
+button[aria-disabled="true"]:focus {
+    opacity: 0.5;
+    filter: saturate(0.7);
+}
+
 #app {
     height: 100vh;
     display: flex;

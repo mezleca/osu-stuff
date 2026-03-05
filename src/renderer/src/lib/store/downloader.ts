@@ -4,6 +4,7 @@ import { show_progress_box, hide_progress_box } from "./progress_box";
 import type { IDownloadData, IDownloadProgress, IDownloadEvent, IDownloadedBeatmap } from "@shared/types";
 import { config } from "./config";
 import { active_tab } from "./other";
+import type { GenericResult, IBeatmapResult } from "@shared/types";
 
 const DOWNLOAD_PROGRESS_ID = "download";
 
@@ -76,15 +77,26 @@ class Downloader {
         this.data.update((downloads) => [...downloads, new_download]);
     };
 
-    single_download = async (beatmap: IDownloadedBeatmap) => {
+    single_download = async (beatmap: IDownloadedBeatmap, notify: boolean = true): Promise<GenericResult<IBeatmapResult>> => {
         if (!config.authenticated) {
-            show_notification({ type: "error", text: "not authenticated bro" });
-            return false;
+            if (notify) {
+                show_notification({ type: "error", text: "not authenticated bro" });
+            }
+            return { success: false, reason: "not authenticated bro" };
+        }
+
+        if (get(config.mirrors).length == 0) {
+            if (notify) {
+                show_notification({ type: "error", text: "cant start a download with no mirrors..." });
+            }
+            return { success: false, reason: "cant start a download with no mirrors..." };
         }
 
         if (!beatmap.beatmapset_id && !beatmap.md5) {
-            show_notification({ type: "error", text: "missing md5 / id" });
-            return false;
+            if (notify) {
+                show_notification({ type: "error", text: "missing md5 / id" });
+            }
+            return { success: false, reason: "missing md5 / id" };
         }
 
         // TODO: this might be too much but maybe some way to get the actual kb progress would be cool

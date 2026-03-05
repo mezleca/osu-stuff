@@ -10,6 +10,7 @@
     let active_context: ActiveContextMenu | null = null;
     let menu_element: HTMLDivElement;
     let active_path: ContextMenuOption[] = [];
+    let active_options: ContextMenuOption[] = [];
     let leave_timeout: any;
 
     const PADDING = 10;
@@ -106,6 +107,7 @@
     onMount(() => {
         const unsubscribe = context_menu_manager.active.subscribe(async (value) => {
             active_context = value;
+            active_options = value?.options ?? [];
 
             if (active_context) {
                 active_path = [];
@@ -139,7 +141,7 @@
         out:fade={{ duration: 80 }}
     >
         <div class="context-menu-list">
-            {#each active_context.options as item}
+            {#each active_options as item}
                 <MenuItem
                     {item}
                     {active_path}

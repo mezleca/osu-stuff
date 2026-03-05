@@ -206,7 +206,7 @@ window.api.on("updater:finish", async (data) => {
             actions: [
                 {
                     id: "restart-now",
-                    label: "install update",
+                    label: "install now",
                     close_on_click: false,
                     on_click: async () => {
                         await request_install();

@@ -40,7 +40,7 @@ interface IApiBeatmapSetMetadata {
     tags: string;
 }
 
-const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata): IBeatmapResult => {
+const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata, has_local_map: boolean): IBeatmapResult => {
     return {
         md5: beatmap.checksum || "",
         online_id: beatmap.id,
@@ -61,12 +61,12 @@ const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata): IBea
         od: beatmap.accuracy,
         status: beatmap.status,
         mode: beatmap.mode as GameMode,
-        temp: true,
+        temp: !has_local_map,
         background: ""
     };
 };
 
-const build_beatmapset = (beatmapset: Beatmapset): BeatmapSetResult => {
+const build_beatmapset = (beatmapset: Beatmapset, local_hashes: Set<string>): BeatmapSetResult => {
     const metadata: IApiBeatmapSetMetadata = {
         title: beatmapset.title,
         artist: beatmapset.artist,
@@ -79,10 +79,24 @@ const build_beatmapset = (beatmapset: Beatmapset): BeatmapSetResult => {
 
     // get hashes / save to temp cache
     for (const beatmap of beatmapset.beatmaps) {
-        hashes.push(beatmap.checksum);
+        const checksum = beatmap.checksum || "";
 
-        if (!beatmap_cache.has(beatmap.checksum)) {
-            beatmap_cache.set(beatmap.checksum, build_beatmap(beatmap, metadata));
+        if (checksum == "") {
+            continue;
+        }
+
+        hashes.push(checksum);
+
+        const has_local_map = local_hashes.has(checksum);
+        const cached = beatmap_cache.get(checksum);
+
+        if (!cached) {
+            beatmap_cache.set(checksum, build_beatmap(beatmap, metadata, has_local_map));
+            continue;
+        }
+
+        if (has_local_map && cached.temp) {
+            beatmap_cache.set(checksum, { ...cached, temp: false });
         }
     }
 
@@ -208,6 +222,29 @@ class DiscoverManager extends BeatmapSetList {
         }
 
         // sync beatmap data
+        const all_hashes = new Set<string>();
+
+        for (const beatmapset of result.beatmapsets) {
+            for (const beatmap of beatmapset.beatmaps) {
+                const checksum = beatmap.checksum || "";
+
+                if (checksum != "") {
+                    all_hashes.add(checksum);
+                }
+            }
+        }
+
+        const local_hashes = new Set<string>();
+
+        if (all_hashes.size > 0) {
+            const { beatmaps } = await window.api.invoke("client:fetch_beatmaps", Array.from(all_hashes));
+
+            for (const beatmap of beatmaps ?? []) {
+                local_hashes.add(beatmap.md5);
+                beatmap_cache.set(beatmap.md5, beatmap);
+            }
+        }
+
         const new_ids: number[] = [];
         const ids = result.beatmapsets.map((b) => b.id);
         const set_exists = await window.api.invoke("client:has_beatmapsets", ids);
@@ -218,7 +255,7 @@ class DiscoverManager extends BeatmapSetList {
 
             // if we dont have the beatmap, build and cache it
             if (!exists) {
-                const set_result = build_beatmapset(beatmapset);
+                const set_result = build_beatmapset(beatmapset, local_hashes);
                 beatmapset_cache.set(beatmapset.id, set_result);
             }
 

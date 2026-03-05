@@ -146,6 +146,27 @@
         expanded = false;
     };
 
+    const mark_beatmap_as_downloaded = (checksum: string) => {
+        if (!checksum) {
+            return;
+        }
+
+        const index = sorted_beatmaps.findIndex((beatmap) => beatmap.md5 == checksum);
+
+        if (index == -1) {
+            return;
+        }
+
+        const updated = { ...sorted_beatmaps[index], temp: false };
+        const next = [...sorted_beatmaps];
+        next[index] = updated;
+        sorted_beatmaps = next;
+
+        if (first_beatmap?.md5 == checksum) {
+            first_beatmap = updated;
+        }
+    };
+
     // collapse if context menu closes and we are not hovering
     const unsubscribe_context = context_menu_manager.active.subscribe((active) => {
         if (!active && !is_hovering) {
@@ -220,6 +241,7 @@
                     hash={first_beatmap.md5}
                     has_map={!first_beatmap.temp}
                     {show_remove}
+                    on_download={mark_beatmap_as_downloaded}
                     on_remove={() => {
                         if (on_remove) on_remove(state.beatmapset.online_id);
                     }}

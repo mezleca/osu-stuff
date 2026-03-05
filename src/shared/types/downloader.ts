@@ -1,3 +1,6 @@
+import type { GenericResult } from "./basic";
+import type { IBeatmapResult } from "./osu";
+
 export interface IDownloadProgress {
     id: string;
     paused: boolean;
@@ -32,7 +35,7 @@ export interface IMirrorWithCooldown {
 export interface IBeatmapDownloader {
     initialize(): void;
     resume(id: string): boolean;
-    add_single(data: IDownloadedBeatmap): Promise<boolean>;
+    add_single(data: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>>;
     add_to_queue(data: IDownloadData): boolean;
     remove_from_queue(id: string): boolean;
     pause(id: string): boolean;

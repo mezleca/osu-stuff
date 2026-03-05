@@ -1,14 +1,18 @@
 <script lang="ts">
     import { collections } from "../../../lib/store/collections";
     import { downloader } from "../../../lib/store/downloader";
+    import { config } from "../../../lib/store/config";
     import { modals, ModalType } from "../../../lib/utils/modal";
     import { show_notification } from "../../../lib/store/notifications";
 
     import CollectionCard from "../../cards/collection-card.svelte";
     import Spinner from "../../icon/spinner.svelte";
 
+    const mirrors = config.mirrors;
+
     $: active_modals = $modals;
     $: has_modal = active_modals.has(ModalType.missing_beatmaps);
+    $: has_mirrors = $mirrors.length > 0;
 
     let missing_collections: { name: string; count: number }[] = [];
     let selected_collections: string[] = [];
@@ -43,6 +47,11 @@
     };
 
     const handle_download = async () => {
+        if (!has_mirrors) {
+            show_notification({ type: "error", text: "no active mirrors configured. add one in config tab first" });
+            return;
+        }
+
         if (selected_collections.length == 0) {
             show_notification({ type: "warning", text: "select at least one collection" });
             return;
@@ -123,12 +132,24 @@
 
             {#if !loading && missing_collections.length > 0}
                 <div class="modal-footer actions-separator">
-                    <button class="primary-btn" onclick={handle_download}>
+                    <button class="primary-btn" onclick={handle_download} disabled={!has_mirrors}>
                         download ({selected_collections.length})
                     </button>
                     <button onclick={cleanup}>cancel</button>
                 </div>
+                {#if !has_mirrors}
+                    <div class="mirror-warning">no active mirrors found. add at least one mirror in config tab.</div>
+                {/if}
             {/if}
         </div>
     </div>
 {/if}
+
+<style>
+    .mirror-warning {
+        font-family: "Torus SemiBold";
+        font-size: 0.8em;
+        opacity: 0.8;
+        margin-top: 8px;
+    }
+</style>
