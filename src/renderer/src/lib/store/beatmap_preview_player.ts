@@ -32,18 +32,19 @@ class BeatmapPreviewPlayerStore {
     private player: BeatmapPlayer | null = null;
     private assets_loaded = false;
     private cached_hitsounds: string[] | null = null;
-    private radio_manager = get_audio_manager("radio");
+    private audio_radio_manager = get_audio_manager("radio");
+    private audio_preview_manager = get_audio_manager("preview");
     private load_request_id = 0;
     private load_controller: AbortController | null = null;
 
     subscribe = this.store.subscribe;
 
     private pause_radio_until_preview_stops = () => {
-        if (!this.radio_manager.get_state().playing) {
+        if (!this.audio_radio_manager.get_state().playing) {
             return;
         }
 
-        this.radio_manager.pause_until(() => !this.get_state().is_playing);
+        this.audio_radio_manager.pause_until(() => !this.get_state().is_playing);
     };
 
     private set_state = (data: Partial<IBeatmapPreviewPlayerState>) => {
@@ -244,6 +245,7 @@ class BeatmapPreviewPlayerStore {
             }
 
             this.pause_radio_until_preview_stops();
+            this.audio_preview_manager.pause();
             this.player.play();
 
             this.set_state({

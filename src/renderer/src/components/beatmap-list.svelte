@@ -14,7 +14,6 @@
     export let carousel = true;
     export let max_card_width = false;
     export let simplified = false;
-    export let force_local_background = false;
     export let direction: "left" | "right" = "right";
     export let on_update: (index: number) => any = null;
     export let on_remove: (checksum: string) => any = null;
@@ -175,7 +174,6 @@
             show_status={!simplified}
             centered={simplified}
             show_context_remove={$target != ALL_BEATMAPS_KEY}
-            {force_local_background}
             {on_remove}
             {on_remove_set}
             {hash}

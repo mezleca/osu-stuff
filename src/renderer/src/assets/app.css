@@ -375,6 +375,10 @@ main {
     contain: layout style paint;
 }
 
+.beatmap-card.temp {
+    border: 2px solid red;
+}
+
 .beatmap-card.selected,
 .beatmap-card.expanded {
     border-color: var(--accent-color) !important;
@@ -388,32 +392,13 @@ main {
     position: absolute;
     width: 100%;
     height: 100%;
+    filter: brightness(0.5);
     object-fit: cover;
     object-position: center;
-    opacity: 0;
     transition: opacity 0.2s ease-in-out;
     display: block;
     min-height: 100px;
     z-index: 1;
-}
-
-.beatmap-card-background:not([src]),
-.beatmap-card-background[src=""] {
-    opacity: 0 !important;
-}
-
-.beatmap-card-background.loaded {
-    opacity: 1;
-}
-
-.beatmap-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: rgba(17, 20, 31, 0.65);
-    transition: background 0.15s ease;
 }
 
 .beatmap-card-metadata {
@@ -516,15 +501,14 @@ main {
 }
 
 .beatmap-difficulties > * {
-    font-size: 13px;
+    font-size: 12px;
     font-family: "Torus SemiBold";
     min-width: 0;
 }
 
 .beatmap-difficulties > span {
     height: max-content;
-    background-color: var(--accent-color);
-    padding: 0 6px;
+    padding: 0px 8px;
     border-radius: 6px;
     margin-right: 6px;
     color: black;

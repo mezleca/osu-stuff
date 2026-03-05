@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
     import { get_beatmap } from "../../lib/utils/beatmaps";
-    import { get_card_image_source } from "../../lib/utils/card-utils";
-    import { open_on_browser, string_is_valid, url_to_media } from "../../lib/utils/utils";
+    import { get_placeholder_image, get_card_image_source, get_diff_color, get_diff_text_color } from "../../lib/utils/card-utils";
+    import { open_on_browser } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
     import { show_context_menu } from "../../lib/store/context-menu";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
@@ -17,7 +17,6 @@
         highlighted = false,
         beatmap: IBeatmapResult | null = null,
         hash: string = "",
-        force_local_background = false,
         show_bpm = true,
         show_star_rating = true,
         show_status = true,
@@ -53,7 +52,7 @@
             // ignore if we already have the beatmap saved
             if (state.beatmap) {
                 if (!minimal && state.background == "") {
-                    state_store.update((s) => ({ ...s, background: get_background_source(s.beatmap) }));
+                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmap) }));
                 }
                 return;
             }
@@ -74,7 +73,7 @@
                 state_store.update((s) => ({
                     ...s,
                     beatmap: result,
-                    background: !minimal && s.background == "" ? get_background_source(result) : s.background
+                    background: !minimal && s.background == "" ? get_card_image_source(result) : s.background
                 }));
             }
         } catch (err) {
@@ -103,30 +102,12 @@
         });
     };
 
-    const get_beatmap_star_rating = (): string => {
-        if (current_beatmap?.star_rating) {
-            return current_beatmap.star_rating.toFixed(2);
-        }
-
-        return "0.0";
+    const get_star_rating = (): number => {
+        return current_beatmap.star_rating;
     };
 
-    const get_background_source = (item: IBeatmapResult | null): string => {
-        if (!item) {
-            return "";
-        }
-
-        if (force_local_background) {
-            const local = item.background ? url_to_media(item.background) : "";
-
-            if (string_is_valid(local)) {
-                return local;
-            }
-
-            return item.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${item.beatmapset_id}/covers/cover.jpg` : "";
-        }
-
-        return get_card_image_source(item);
+    const format_star_rating = (rating: number): string => {
+        return !isNaN(rating) ? rating.toFixed(2) : "0.0";
     };
 
     $: {
@@ -135,7 +116,13 @@
             debounced_load();
         }
 
-        if (image_element) image_element.onload = () => (image_loaded = true);
+        if (image_element) {
+            image_element.onload = () => (image_loaded = true);
+            image_element.onerror = () => {
+                // TOFIX: ...
+                if (image_element) image_element.src = get_placeholder_image();
+            };
+        }
     }
 
     onDestroy(() => {
@@ -149,7 +136,11 @@
 
 {#if minimal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <span class="star-rating">★ {get_beatmap_star_rating()}</span>
+    {@const star_rating = get_star_rating()}
+
+    <span class="star-rating" style="color: {get_diff_text_color(star_rating)}; background-color: {get_diff_color(star_rating)};">
+        ★ {format_star_rating(star_rating)}
+    </span>
 
     <button
         tabindex="0"
@@ -205,16 +196,11 @@
                         <span class="bpm">{Math.round(current_beatmap?.bpm ?? 0)} bpm</span>
                     {/if}
                     {#if show_star_rating}
-                        <span class="star-rating">★ {get_beatmap_star_rating()}</span>
+                        {@const star_rating = get_star_rating()}
+                        <span class="star-rating">★ {format_star_rating(star_rating)}</span>
                     {/if}
                 </div>
             {/if}
         </div>
     </div>
 {/if}
-
-<style>
-    .beatmap-card.temp {
-        border: 2px solid red;
-    }
-</style>

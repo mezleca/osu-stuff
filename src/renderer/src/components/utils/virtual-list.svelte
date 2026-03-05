@@ -531,15 +531,16 @@
     }
 
     .carousel-effect {
-        transform: translateZ(0) scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0)) translateY(var(--y-offset, 0));
+        will-change: transform;
+        transform: scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0px)) translateY(var(--y-offset, 0px));
         transition:
             transform 600ms cubic-bezier(0.23, 1, 0.32, 1),
             opacity 100ms ease-out;
-        contain: layout style paint;
+        contain: layout style;
     }
 
     .osu-mode {
-        transform: translateZ(0);
+        will-change: scroll-position;
     }
 
     @media (max-width: 768px) {

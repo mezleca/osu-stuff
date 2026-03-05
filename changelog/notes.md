@@ -1,3 +1,19 @@
+# v2.5.7
+
+## new stuff
+
+- beatmapset-card: minor style changes
+
+<img width="272" height="148" alt="Image" src="https://github.com/user-attachments/assets/616a58e0-6246-4405-8fef-5d9f80cd5f75" />
+
+## bug fixes
+
+- beatmap-preview: stop beatmap-card audio preview if needed
+- virtual-list: visual bugs on carousel effect
+- beatmap-card: use correct fallback image for invalid beatmaps, reduce even more vram usage (30%~)
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.6...v2.5.7
+
 # v2.5.6
 
 ## new stuff
