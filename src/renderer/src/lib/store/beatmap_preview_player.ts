@@ -1,10 +1,10 @@
 import { writable, get } from "svelte/store";
-import { BeatmapPlayer, GridLevel, load_font } from "@rel-packages/osu-beatmap-preview";
+import { BeatmapPlayer, GridLevel } from "@rel-packages/osu-beatmap-preview";
 import { beatmap_preview, get_beatmap } from "../utils/beatmaps";
 import { show_notification } from "./notifications";
 import { config } from "./config";
 import { get_audio_manager } from "./audio";
-import { get_basename, url_to_media, url_to_resources } from "../utils/utils";
+import { get_basename, url_to_media } from "../utils/utils";
 
 interface IBeatmapPreviewPlayerState {
     beatmap_loaded: boolean;
@@ -31,7 +31,6 @@ class BeatmapPreviewPlayerStore {
 
     private player: BeatmapPlayer | null = null;
     private assets_loaded = false;
-    private cached_hitsounds: string[] | null = null;
     private audio_radio_manager = get_audio_manager("radio");
     private audio_preview_manager = get_audio_manager("preview");
     private load_request_id = 0;
@@ -89,11 +88,7 @@ class BeatmapPreviewPlayerStore {
             playfield_scale: 0.9,
             auto_resize: true,
             volume: target_volume,
-            hitsound_volume,
-            audio_offset: 20,
-            skin: {
-                default_font: "osu default"
-            }
+            hitsound_volume
         });
 
         this.player.on("timeupdate", (time) => {
@@ -127,34 +122,12 @@ class BeatmapPreviewPlayerStore {
         this.player?.resize(rect.width, rect.height);
     };
 
-    private get_hitsound_names = async (): Promise<string[]> => {
-        if (this.cached_hitsounds) {
-            return this.cached_hitsounds;
-        }
-
-        const names = await window.api.invoke("resources:get_hitsounds");
-        this.cached_hitsounds = names;
-
-        return names;
-    };
-
     private ensure_assets = async () => {
         if (!this.player || this.assets_loaded) {
             return;
         }
 
-        const default_font = {
-            url: `url("${url_to_resources("fonts/KozGoProBold.otf")}")`,
-            family: "osu default",
-            weight: "600"
-        };
-
-        const hitsound_names = await this.get_hitsound_names();
-        const hitsound_urls = hitsound_names.map((name) => url_to_resources(`hitsounds/${name}`));
-
-        await load_font(default_font);
-        await this.player.load_default_hitsounds(hitsound_urls);
-        this.assets_loaded = true;
+        // TODO: allow selecting custom skins in the future (osu-beatmap-preview still needs to support more skin elements)
     };
 
     load_beatmap = async (beatmap_hash: string) => {

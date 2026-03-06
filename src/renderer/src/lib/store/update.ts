@@ -157,8 +157,8 @@ window.api.on("updater:new", async (data) => {
                 id: "update-now",
                 label: "update now",
                 close_on_click: false,
-                on_click: async () => {
-                    await start_update();
+                on_click: () => {
+                    void start_update();
                 }
             },
             {
@@ -208,8 +208,8 @@ window.api.on("updater:finish", async (data) => {
                     id: "restart-now",
                     label: "install now",
                     close_on_click: false,
-                    on_click: async () => {
-                        await request_install();
+                    on_click: () => {
+                        void request_install();
                     }
                 },
                 {

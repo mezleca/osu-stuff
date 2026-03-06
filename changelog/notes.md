@@ -1,3 +1,15 @@
+# v2.5.9
+
+## new stuff
+
+- updated osu-beatmap-preview to the latest version
+
+<img alt="Image" src="https://github.com/user-attachments/assets/120e904d-1439-4447-b179-b080daaa0b67" />
+
+## bug fixes
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.8...v2.5.9
+
 # v2.5.8
 
 ## new stuff

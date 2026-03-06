@@ -367,10 +367,6 @@ export interface IpcSchema {
             params: undefined;
             result: boolean;
         };
-        "resources:get_hitsounds": {
-            params: undefined;
-            result: string[];
-        };
         // update
         "updater:update": {
             params: undefined;

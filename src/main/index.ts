@@ -2,7 +2,7 @@ import { app, shell, dialog, protocol, net, Privileges } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
-import { get_window, get_app_path, is_audio } from "./utils";
+import { get_window, get_app_path } from "./utils";
 import { fetch_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
 import {
@@ -44,7 +44,6 @@ import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
 import { OpenDevToolsOptions } from "electron/utility";
 
-import fs from "fs";
 import path from "path";
 
 const app_resource_root = app.isPackaged ? process.resourcesPath : app.getAppPath();
@@ -198,33 +197,6 @@ async function createWindow() {
     // reader (osdb)
     handle_ipc("reader:read_osdb", (_, location) => read_osdb(location));
     handle_ipc("reader:write_osdb", (_, data) => write_osdb(data));
-
-    handle_ipc("resources:get_hitsounds", () => {
-        try {
-            const hitsounds_path = path.join(resource_folder, "hitsounds");
-
-            if (!fs.existsSync(hitsounds_path)) {
-                return [];
-            }
-
-            const entries = fs.readdirSync(hitsounds_path, { withFileTypes: true }).filter((entry) => entry.isFile());
-
-            const valid: string[] = [];
-
-            for (let i = 0; i < entries.length; i++) {
-                const entry = entries[i].name;
-
-                if (is_audio(entry)) {
-                    valid.push(entry);
-                }
-            }
-
-            return valid;
-        } catch (error) {
-            console.error("failed to read hitsounds from resources:", error);
-            return [];
-        }
-    });
 
     // initialize auto updater
     updater.initialize();
