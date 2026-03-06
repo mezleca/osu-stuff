@@ -1,3 +1,13 @@
+# v2.5.10
+
+## new stuff
+
+## bug fixes
+
+- osu-beatmap-preview: regressions causing slow loading and high memory usage
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.9...v2.5.10
+
 # v2.5.9
 
 ## new stuff
