@@ -6,8 +6,6 @@ import {
     LAZER_DATABASE_VERSION,
     BeatmapFile,
     BeatmapRow,
-    BeatmapPreviewFileKind,
-    BeatmapPreviewFiles,
     lazer_status_from_code
 } from "@shared/types";
 import {
@@ -515,68 +513,6 @@ class LazerBeatmapClient extends BaseClient {
         }
 
         return files;
-    };
-
-    get_beatmap_preview_files = async (md5: string): Promise<BeatmapPreviewFiles> => {
-        const result: BeatmapPreviewFiles = {
-            [BeatmapPreviewFileKind.Osu]: null,
-            [BeatmapPreviewFileKind.Audio]: null,
-            [BeatmapPreviewFileKind.Background]: null
-        };
-        const beatmap = this.instance.objects<BeatmapSchema>("Beatmap").find((b) => b.MD5Hash == md5);
-
-        if (!beatmap) {
-            return result;
-        }
-
-        const realm_osu_file = beatmap.BeatmapSet.Files.find((f) => f.File?.Hash === beatmap.Hash);
-
-        if (!realm_osu_file) {
-            return result;
-        }
-
-        const osu_location = get_lazer_file_location(realm_osu_file.File?.Hash as string);
-
-        if (!fs.existsSync(osu_location)) {
-            return result;
-        }
-
-        result[BeatmapPreviewFileKind.Osu] = {
-            name: realm_osu_file.Filename as string,
-            location: osu_location
-        };
-
-        const osu_content = fs.readFileSync(osu_location);
-        const properties = await beatmap_parser.get_properties(osu_content, ["Background", "AudioFilename"]);
-
-        for (const realm_file of beatmap.BeatmapSet.Files) {
-            const filename = realm_file.Filename;
-            const hash = realm_file.File?.Hash as string;
-
-            if (!filename || !hash) {
-                continue;
-            }
-
-            if (!result[BeatmapPreviewFileKind.Background] && properties.Background == filename) {
-                const location = get_lazer_file_location(hash);
-                if (fs.existsSync(location)) {
-                    result[BeatmapPreviewFileKind.Background] = { name: filename, location };
-                }
-            }
-
-            if (!result[BeatmapPreviewFileKind.Audio] && properties.AudioFilename == filename) {
-                const location = get_lazer_file_location(hash);
-                if (fs.existsSync(location)) {
-                    result[BeatmapPreviewFileKind.Audio] = { name: filename, location };
-                }
-            }
-
-            if (result[BeatmapPreviewFileKind.Background] && result[BeatmapPreviewFileKind.Audio]) {
-                break;
-            }
-        }
-
-        return result;
     };
 
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {

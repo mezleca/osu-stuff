@@ -14,7 +14,6 @@
     import Pause from "../../icon/pause.svelte";
 
     let observer: ResizeObserver | null = null;
-    let resize_animation_frame: number | null = null;
     let did_setup = false;
     let canvas_container: HTMLDivElement | null = null;
     let canvas: HTMLCanvasElement | null = null;
@@ -40,11 +39,6 @@
     };
 
     const cleanup = () => {
-        if (resize_animation_frame !== null) {
-            cancelAnimationFrame(resize_animation_frame);
-            resize_animation_frame = null;
-        }
-
         beatmap_preview_player.cleanup();
         if (observer) {
             observer.disconnect();
@@ -84,12 +78,7 @@
         beatmap_preview_player.setup_player(canvas);
 
         tick().then(() => {
-            if (!has_modal || !did_setup) {
-                return;
-            }
-
-            resize_animation_frame = requestAnimationFrame(() => {
-                resize_animation_frame = null;
+            requestAnimationFrame(() => {
                 beatmap_preview_player.resize(canvas_container, canvas);
             });
         });

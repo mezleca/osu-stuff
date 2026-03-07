@@ -3,8 +3,6 @@ import {
     IBeatmapResult,
     BeatmapSetResult,
     BeatmapFile,
-    BeatmapPreviewFileKind,
-    BeatmapPreviewFiles,
     ILegacyDatabase,
     IStableBeatmap,
     IStableBeatmapset,
@@ -381,45 +379,6 @@ class StableBeatmapClient extends BaseClient {
         }
 
         return result;
-    };
-
-    get_beatmap_preview_files = async (md5: string): Promise<BeatmapPreviewFiles> => {
-        const empty: BeatmapPreviewFiles = {
-            [BeatmapPreviewFileKind.Osu]: null,
-            [BeatmapPreviewFileKind.Audio]: null,
-            [BeatmapPreviewFileKind.Background]: null
-        };
-        const beatmap = await this.get_beatmap_by_md5(md5);
-
-        if (!beatmap || !beatmap.file_path || !beatmap.audio) {
-            return empty;
-        }
-
-        const osu_location = path.join(config.get().stable_songs_path, beatmap.file_path);
-        const audio_location = beatmap.audio;
-
-        if (fs.existsSync(osu_location)) {
-            empty[BeatmapPreviewFileKind.Osu] = {
-                name: path.basename(osu_location),
-                location: osu_location
-            };
-        }
-
-        if (fs.existsSync(audio_location)) {
-            empty[BeatmapPreviewFileKind.Audio] = {
-                name: path.basename(audio_location),
-                location: audio_location
-            };
-        }
-
-        if (beatmap.background && fs.existsSync(beatmap.background)) {
-            empty[BeatmapPreviewFileKind.Background] = {
-                name: path.basename(beatmap.background),
-                location: beatmap.background
-            };
-        }
-
-        return empty;
     };
 
     get_beatmapset_files = async (id: number): Promise<BeatmapFile[]> => {

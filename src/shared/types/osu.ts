@@ -319,18 +319,6 @@ export type BeatmapFile = {
     location: string;
 };
 
-export enum BeatmapPreviewFileKind {
-    Osu = "osu",
-    Audio = "audio",
-    Background = "background"
-}
-
-export type BeatmapPreviewFiles = {
-    [BeatmapPreviewFileKind.Osu]: BeatmapFile | null;
-    [BeatmapPreviewFileKind.Audio]: BeatmapFile | null;
-    [BeatmapPreviewFileKind.Background]: BeatmapFile | null;
-};
-
 export type IMinimalBeatmapset = Omit<BeatmapSetResult, "metadata">;
 export type IMinimalBeatmap = { md5: string };
 
@@ -369,7 +357,6 @@ export interface IOsuClient {
     search_beatmaps(params: IBeatmapFilter, target: string): Promise<ISearchResponse>;
     search_beatmapsets(params: IBeatmapSetFilter): Promise<ISearchSetResponse>;
     get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
-    get_beatmap_preview_files(md5: string): Promise<BeatmapPreviewFiles>;
     get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

@@ -233,10 +233,6 @@ export interface IpcSchema {
             params: [string, string?];
             result: ReturnType<IOsuClient["get_beatmap_files"]>;
         };
-        "client:get_beatmap_preview_files": {
-            params: [string, string?];
-            result: ReturnType<IOsuClient["get_beatmap_preview_files"]>;
-        };
         "client:search_beatmaps": {
             params: [IBeatmapFilter, string, string?];
             result: ReturnType<IOsuClient["search_beatmaps"]>;
