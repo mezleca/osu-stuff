@@ -2,22 +2,33 @@
     import { onMount, tick } from "svelte";
     import { fade, scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import type { ContextMenuOption } from "@shared/types";
     import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
 
     import MenuItem from "./menu-item.svelte";
 
+    interface MousePoint {
+        x: number;
+        y: number;
+    }
+
     let active_context: ActiveContextMenu | null = null;
     let menu_element: HTMLDivElement;
     let active_path: ContextMenuOption[] = [];
     let active_options: ContextMenuOption[] = [];
-    let leave_timeout: any;
+    let mouse_points: MousePoint[] = [];
 
     const PADDING = 10;
+    const MAX_MOUSE_POINTS = 5;
 
     const hide = () => {
         context_menu_manager.hide();
     };
+
+    const close_menu = debounce(() => {
+        hide();
+    }, 500);
 
     const adjust_position = () => {
         if (!menu_element || !active_context) {
@@ -70,26 +81,23 @@
     };
 
     const handle_submenu_enter = (item: ContextMenuOption, depth: number) => {
-        clearTimeout(leave_timeout);
         active_path = [...active_path.slice(0, depth), item];
     };
 
-    const handle_submenu_leave = (depth: number) => {
-        clearTimeout(leave_timeout);
-        leave_timeout = setTimeout(() => {
-            active_path = active_path.slice(0, depth);
-        }, 150);
-    };
-
     const handle_menu_enter = () => {
-        clearTimeout(leave_timeout);
+        close_menu.cancel();
     };
 
     const handle_menu_leave = () => {
-        clearTimeout(leave_timeout);
-        leave_timeout = setTimeout(() => {
-            hide();
-        }, 500);
+        close_menu();
+    };
+
+    const handle_menu_mousemove = (event: MouseEvent) => {
+        mouse_points = [...mouse_points.slice(-(MAX_MOUSE_POINTS - 1)), { x: event.clientX, y: event.clientY }];
+    };
+
+    const get_mouse_points = () => {
+        return mouse_points;
     };
 
     const handle_outside_click = (event: MouseEvent) => {
@@ -111,6 +119,7 @@
 
             if (active_context) {
                 active_path = [];
+                mouse_points = [];
                 await tick();
                 adjust_position();
             }
@@ -125,7 +134,7 @@
             document.removeEventListener("click", handle_outside_click);
             document.removeEventListener("keydown", handle_keydown);
             window.removeEventListener("resize", adjust_position);
-            clearTimeout(leave_timeout);
+            close_menu.cancel();
         };
     });
 </script>
@@ -137,19 +146,13 @@
         class="context-menu"
         onmouseenter={handle_menu_enter}
         onmouseleave={handle_menu_leave}
+        onmousemove={handle_menu_mousemove}
         in:scale={{ duration: 100, start: 0.96 }}
         out:fade={{ duration: 80 }}
     >
         <div class="context-menu-list">
-            {#each active_options as item}
-                <MenuItem
-                    {item}
-                    {active_path}
-                    depth={0}
-                    onclick={handle_item_click}
-                    on_submenu_enter={handle_submenu_enter}
-                    on_submenu_leave={handle_submenu_leave}
-                />
+            {#each active_options as item (item.id)}
+                <MenuItem {item} {active_path} depth={0} onclick={handle_item_click} on_submenu_enter={handle_submenu_enter} {get_mouse_points} />
             {/each}
         </div>
     </div>

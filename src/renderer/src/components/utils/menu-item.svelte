@@ -1,15 +1,21 @@
 <script lang="ts">
-    import { tick } from "svelte";
-    import { fade, scale } from "svelte/transition";
+    import { onDestroy, tick } from "svelte";
+    import { scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
+    import { debounce } from "../../lib/utils/timings";
     import type { ContextMenuOption } from "@shared/types";
+
+    interface MousePoint {
+        x: number;
+        y: number;
+    }
 
     export let item: ContextMenuOption;
     export let depth: number;
-    export let active_path;
-    export let onclick;
-    export let on_submenu_enter;
-    export let on_submenu_leave;
+    export let active_path: ContextMenuOption[] = [];
+    export let onclick: (item: ContextMenuOption, event: MouseEvent) => void;
+    export let on_submenu_enter: (item: ContextMenuOption, depth: number) => void;
+    export let get_mouse_points: () => MousePoint[] = () => [];
 
     let item_element: HTMLDivElement;
     let submenu_element: HTMLDivElement;
@@ -18,6 +24,7 @@
     const VIEWPORT_PADDING = 10;
     const SUBMENU_GAP = 2;
     const SUBMENU_Y_OFFSET = 4;
+    const SUBMENU_AIM_DELAY_MS = 220;
 
     $: has_submenu = item?.data && Array.isArray(item.data);
     $: is_item_active = active_path[depth] && active_path[depth].id == item.id;
@@ -59,19 +66,75 @@
         }
     };
 
-    const handle_mouse_enter = () => {
+    const point_in_triangle = (p: MousePoint, a: MousePoint, b: MousePoint, c: MousePoint): boolean => {
+        const sign = (p1: MousePoint, p2: MousePoint, p3: MousePoint): number => {
+            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        };
+
+        const d1 = sign(p, a, b);
+        const d2 = sign(p, b, c);
+        const d3 = sign(p, c, a);
+        const has_negative = d1 < 0 || d2 < 0 || d3 < 0;
+        const has_positive = d1 > 0 || d2 > 0 || d3 > 0;
+
+        return !(has_negative && has_positive);
+    };
+
+    const should_delay_submenu_enter = (event: MouseEvent): boolean => {
+        const points = get_mouse_points();
+
+        if (!Array.isArray(points) || points.length < 2 || !item_element) {
+            return false;
+        }
+
+        const previous_point = points[points.length - 2] as MousePoint;
+        const current_point: MousePoint = { x: event.clientX, y: event.clientY };
+        const current_active_submenu = document.querySelector(`.submenu[data-depth="${depth}"]`) as HTMLDivElement | null;
+
+        if (!current_active_submenu || !current_active_submenu.isConnected) {
+            return false;
+        }
+
+        const submenu_rect = current_active_submenu.getBoundingClientRect();
+        const anchor_rect = item_element.getBoundingClientRect();
+        const opens_left = submenu_rect.right <= anchor_rect.left;
+        const near_top = {
+            x: opens_left ? submenu_rect.right : submenu_rect.left,
+            y: submenu_rect.top
+        };
+        const near_bottom = {
+            x: opens_left ? submenu_rect.right : submenu_rect.left,
+            y: submenu_rect.bottom
+        };
+
+        return point_in_triangle(current_point, previous_point, near_top, near_bottom);
+    };
+
+    const delayed_submenu_enter = debounce((target_item: ContextMenuOption, target_depth: number) => {
+        on_submenu_enter(target_item, target_depth);
+    }, SUBMENU_AIM_DELAY_MS);
+
+    const handle_mouse_enter = (event: MouseEvent) => {
         if (has_submenu) {
+            if (!is_item_active && should_delay_submenu_enter(event)) {
+                delayed_submenu_enter(item, depth);
+                return;
+            }
+
+            delayed_submenu_enter.cancel();
             on_submenu_enter(item, depth);
         } else {
-            on_submenu_leave(depth);
+            delayed_submenu_enter.cancel();
         }
     };
 
-    const handle_mouse_leave = () => {
-        if (has_submenu) {
-            on_submenu_leave(depth);
-        }
+    const handle_mouse_leave = (_event: MouseEvent) => {
+        delayed_submenu_enter.cancel();
     };
+
+    onDestroy(() => {
+        delayed_submenu_enter.cancel();
+    });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -92,17 +155,10 @@
     </div>
 
     {#if has_submenu && is_item_active}
-        <div
-            bind:this={submenu_element}
-            class="submenu"
-            style={submenu_style}
-            onmouseenter={() => on_submenu_enter(item, depth)}
-            in:scale={{ duration: 100, start: 0.96 }}
-            out:fade={{ duration: 80 }}
-        >
+        <div bind:this={submenu_element} class="submenu" data-depth={depth} style={submenu_style} in:scale={{ duration: 100, start: 0.96 }}>
             <div class="submenu-list">
-                {#each item.data as sub_item}
-                    <svelte:self item={sub_item} depth={depth + 1} {active_path} {onclick} {on_submenu_enter} {on_submenu_leave} />
+                {#each item.data as sub_item (sub_item.id)}
+                    <svelte:self item={sub_item} depth={depth + 1} {active_path} {onclick} {on_submenu_enter} {get_mouse_points} />
                 {/each}
             </div>
         </div>

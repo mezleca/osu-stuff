@@ -1,3 +1,15 @@
+# v2.5.11
+
+## new stuff
+
+## bug fixes
+
+- downloader: rare cases where dowloader would hang on the last beatmap
+- context-menu: flicking issue on depth > 3
+- osu-beatmap-preview: more regressions...
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.10...v2.5.11
+
 # v2.5.10
 
 ## new stuff

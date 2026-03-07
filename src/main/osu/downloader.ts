@@ -20,6 +20,7 @@ import fs from "fs";
 
 const MAX_PARALLEL_DOWNLOADS = 3;
 const COOLDOWN_MS = 5 * 60 * 1000;
+const REQUEST_TIMEOUT_MS = 20 * 1000;
 
 const get_save_path = (): string => {
     const lazer_mode = config.get().lazer_mode;
@@ -132,7 +133,7 @@ class BeatmapDownloader implements IBeatmapDownloader {
             return false;
         }
 
-        return current.progress?.paused || false;
+        return !current.progress?.paused;
     }
 
     async add_single(data: IDownloadedBeatmap): Promise<GenericResult<IBeatmapResult>> {
@@ -233,8 +234,19 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
     // TOFIX: handle auth errors
     private start_download(id: string): void {
-        if (this.current_download_id) {
+        if (this.current_download_id && this.current_download_id !== id) {
             console.log("[downloader] another download is processing");
+            return;
+        }
+
+        if (this.current_download_id === id) {
+            const current_download = this.queue.get(id);
+
+            if (current_download?.progress?.paused) {
+                current_download.progress.paused = false;
+                this.notify_update("resumed");
+            }
+
             return;
         }
 
@@ -432,7 +444,9 @@ class BeatmapDownloader implements IBeatmapDownloader {
             }
 
             try {
-                const response = await fetch(`${url}/${beatmap_id}`);
+                const controller = new AbortController();
+                const timeout_id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+                const response = await fetch(`${url}/${beatmap_id}`, { signal: controller.signal }).finally(() => clearTimeout(timeout_id));
 
                 if (response.status === 429) {
                     mirror.cooldown = Date.now() + COOLDOWN_MS;
