@@ -8,6 +8,7 @@ import {
     OsdbVersion,
     IOSDBCollection,
     BeatmapFile,
+    BeatmapPreviewFiles,
     gamemode_to_code,
     ISearchResponse,
     ISearchSetResponse,
@@ -500,6 +501,7 @@ export abstract class BaseClient implements IOsuClient {
     abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
+    abstract get_beatmap_preview_files(md5: string): Promise<BeatmapPreviewFiles>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
     abstract fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
     abstract fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;

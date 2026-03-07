@@ -3,6 +3,7 @@ import {
     IBeatmapResult,
     BeatmapSetResult,
     BeatmapFile,
+    BeatmapPreviewFiles,
     IBeatmapFilter,
     ISearchResponse,
     ISearchSetResponse,
@@ -131,6 +132,10 @@ export const search_beatmapsets = (options: IBeatmapSetFilter, custom_client: st
 
 export const get_beatmap_files = (md5: string, custom_client: string = ""): Promise<BeatmapFile[]> => {
     return get_client(custom_client).get_beatmap_files(md5);
+};
+
+export const get_beatmap_preview_files = (md5: string, custom_client: string = ""): Promise<BeatmapPreviewFiles> => {
+    return get_client(custom_client).get_beatmap_preview_files(md5);
 };
 
 export const get_beatmapset_files = (id: number, custom_client: string = ""): Promise<BeatmapFile[]> => {

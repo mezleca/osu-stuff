@@ -4,7 +4,7 @@ import { beatmap_preview, get_beatmap } from "../utils/beatmaps";
 import { show_notification } from "./notifications";
 import { config } from "./config";
 import { get_audio_manager } from "./audio";
-import { get_basename, url_to_media } from "../utils/utils";
+import { url_to_media } from "../utils/utils";
 
 interface IBeatmapPreviewPlayerState {
     beatmap_loaded: boolean;
@@ -150,17 +150,21 @@ class BeatmapPreviewPlayerStore {
                 throw Error("beatmap not found...");
             }
 
-            const files_result = await window.api.invoke("client:get_beatmap_files", beatmap_hash);
+            const preview_files = await window.api.invoke("client:get_beatmap_preview_files", beatmap_hash);
+            const osu_file = preview_files?.osu;
+            const audio_file = preview_files?.audio;
+            const background_file = preview_files?.background ?? null;
 
-            if (files_result.length < 2) {
-                throw Error("failed to get beatmap files...");
+            if (!osu_file || !audio_file) {
+                throw Error("failed to get beatmap preview files...");
             }
 
             let osu_content: string | null = null;
             let audio_data: ArrayBuffer | null = null;
             let background_blob: Blob | undefined;
+            const files_to_load = [osu_file, audio_file, background_file].filter((file) => file != null);
 
-            for (const file of files_result) {
+            for (const file of files_to_load) {
                 try {
                     if (!this.is_request_active(request_id) || !this.player) {
                         return;
@@ -180,12 +184,12 @@ class BeatmapPreviewPlayerStore {
                         continue;
                     }
 
-                    if (file.name == get_basename(beatmap.audio)) {
+                    if (audio_file && file.location == audio_file.location) {
                         audio_data = await response.arrayBuffer();
                         continue;
                     }
 
-                    if (beatmap.background && file.name == get_basename(beatmap.background)) {
+                    if (background_file && file.location == background_file.location) {
                         background_blob = await response.blob();
                     }
                 } catch (error) {

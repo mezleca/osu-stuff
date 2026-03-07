@@ -32,7 +32,8 @@ import {
     add_beatmaps_to_collection,
     should_update,
     is_client_initialized,
-    get_beatmap_files
+    get_beatmap_files,
+    get_beatmap_preview_files
 } from "./osu/clients/client";
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./osu/downloader";
@@ -155,6 +156,7 @@ async function createWindow() {
     handle_ipc("client:search_beatmapsets", (_, options, client) => search_beatmapsets(options, client));
     handle_ipc("client:get_missing_beatmaps", (_, name, client) => get_missing_beatmaps(name, client));
     handle_ipc("client:get_beatmap_files", (_, md5, client) => get_beatmap_files(md5, client));
+    handle_ipc("client:get_beatmap_preview_files", (_, md5, client) => get_beatmap_preview_files(md5, client));
     handle_ipc("client:fetch_beatmaps", (_, hashes, client) => fetch_beatmaps(hashes, client));
     handle_ipc("client:fetch_beatmapsets", (_, ids, client) => fetch_beatmapsets(ids, client));
 
