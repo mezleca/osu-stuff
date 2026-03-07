@@ -1,3 +1,13 @@
+# v2.5.12
+
+## new stuff
+
+## bug fixes
+
+- osu-beatmap-preview: revert to version 0.9 (0.11 still has lots of issues with some audio files...)
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.11...v2.5.12
+
 # v2.5.11
 
 ## new stuff
