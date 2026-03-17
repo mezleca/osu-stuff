@@ -46,7 +46,7 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 
 ### prerequisites
 
-- [node.js 24.x](https://nodejs.org/)
+- [node.js 25.x](https://nodejs.org/)
 - [git](https://git-scm.com/downloads)
 - [bun](https://bun.sh)
 
