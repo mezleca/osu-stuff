@@ -85,7 +85,7 @@ class BeatmapPreviewPlayerStore {
 
         this.player = new BeatmapPlayer({
             canvas,
-            playfield_scale: 0.9,
+            playfield_scale: 1,
             auto_resize: true,
             volume: target_volume,
             hitsound_volume

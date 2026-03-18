@@ -32,6 +32,32 @@ const test_client = (type: string) => {
         expect(client.initialized).toBe(true);
     }, 15000);
 
+    if (type == "stable") {
+        test(`${type}: osu_db get helpers`, () => {
+            // @ts-ignore: accessing protected property for testing
+            const parser = client.osu_db_parser;
+            const header = parser.get_header();
+            expect(header.beatmaps_count).toBeGreaterThan(0);
+
+            const first = parser.get_beatmaps_range(0, 1)[0];
+            expect(first).toBeDefined();
+
+            const full = parser.get_by_md5(first.md5);
+            expect(full?.md5).toBe(first.md5);
+
+            const minimal = parser.get_minimal_by_md5(first.md5);
+            expect(minimal?.md5).toBe(first.md5);
+            expect(minimal?.beatmap_id).toBe(first.beatmap_id);
+            expect(minimal?.difficulty_id).toBe(first.difficulty_id);
+
+            const by_set = parser.get_by_beatmapset_id(first.beatmap_id);
+            expect(by_set.length).toBeGreaterThan(0);
+
+            const by_diff = parser.get_by_difficulty_id(first.difficulty_id);
+            expect(by_diff?.md5).toBe(first.md5);
+        });
+    }
+
     test(`${type}: add_collection():`, () => {
         const result = client.add_collection(temp_collection_name, ["123", "321"]);
         expect(result).toBe(true);
@@ -64,8 +90,8 @@ const test_client = (type: string) => {
         expect(result).toBeDefined();
     });
 
-    test(`${type}: update_collection() resets last_modified:`, () => {
-        const result = client.update_collection();
+    test(`${type}: update_collection() resets last_modified:`, async () => {
+        const result = await client.update_collection();
         expect(result).toBe(true);
 
         const collection = client.get_collection(temp_collection_name);

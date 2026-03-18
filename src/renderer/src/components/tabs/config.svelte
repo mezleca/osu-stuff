@@ -4,7 +4,7 @@
     import { quick_confirm, modals, ModalType } from "../../lib/utils/modal";
     import { get_osu_data } from "../../lib/utils/collections";
     import { check_for_updates, start_update, update_progress } from "../../lib/store/update";
-    import type { StuffConfig } from "@shared/types";
+    import type { ManagerConfig } from "@shared/types";
 
     // components
     import Add from "../utils/add.svelte";
@@ -17,7 +17,7 @@
 
     $: update_data = $update_progress;
 
-    const handle_text_change = async (key: keyof StuffConfig, value: string) => {
+    const handle_text_change = async (key: keyof ManagerConfig, value: string) => {
         await config.set(key, value);
     };
 

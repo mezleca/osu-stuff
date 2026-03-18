@@ -4,9 +4,6 @@ import {
     IBeatmapResult,
     BeatmapSetResult,
     ICollectionResult,
-    IOSDBData,
-    OsdbVersion,
-    IOSDBCollection,
     BeatmapFile,
     gamemode_to_code,
     ISearchResponse,
@@ -17,13 +14,31 @@ import {
     ALL_MODES_KEY
 } from "@shared/types";
 import { check_beatmap_difficulty, matches_beatmap, parse_query, ParsedQuery, sort_beatmaps, sort_beatmapset } from "../beatmaps";
-import { osdb_parser } from "../../binary/osdb";
-import { stable_parser } from "../../binary/stable";
 import { config } from "../../database/config";
+import { OsdbParser, OsuCollectionDbParser } from "@rel-packages/osu-parser";
+import type { OsdbBeatmap, OsdbCollection, OsdbData } from "@rel-packages/osu-parser";
 
 import path from "path";
 import archiver from "archiver";
 import fs from "fs";
+
+const resolve_template_path = (...segments: string[]): string => {
+    const candidates: string[] = [];
+
+    if (process.resourcesPath) {
+        candidates.push(path.join(process.resourcesPath, ...segments));
+    }
+
+    candidates.push(path.resolve(...segments));
+
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    return path.resolve(...segments);
+};
 
 export abstract class BaseClient implements IOsuClient {
     protected initialized: boolean = false;
@@ -187,24 +202,27 @@ export abstract class BaseClient implements IOsuClient {
     };
 
     private write_osdb_collection = async (collections: ICollectionResult[]) => {
-        const osdb_data: IOSDBData = {
-            collections: [],
-            count: 0,
-            last_editor: this.get_player_name(),
-            save_date: BigInt(new Date().getTime())
-        };
-
         const output_name = collections.map((c) => c.name).join("-") + `.osdb`;
+        const location = path.resolve(config.get().export_path, output_name);
+        const template_location = resolve_template_path("resources", "templates", "osdb.osdb");
+
+        if (!fs.existsSync(template_location)) {
+            console.error("failed to export osdb (missing template):", template_location);
+            return false;
+        }
+
+        if (!fs.existsSync(path.dirname(location))) {
+            fs.mkdirSync(path.dirname(location), { recursive: true });
+        }
+
+        fs.copyFileSync(template_location, location);
+
+        const osdb_parser = new OsdbParser();
+        const osdb_collections: OsdbCollection[] = [];
 
         for (const collection of collections) {
-            // create new osdb collection
-            const osdb_collection: IOSDBCollection = {
-                name: collection.name,
-                beatmaps: [],
-                hash_only_beatmaps: []
-            };
+            const beatmaps: OsdbBeatmap[] = [];
 
-            // add data from previous collection
             for (const hash of collection.beatmaps) {
                 const beatmap = await this.get_beatmap_by_md5(hash);
 
@@ -212,61 +230,86 @@ export abstract class BaseClient implements IOsuClient {
                     continue;
                 }
 
-                osdb_collection.beatmaps.push({
+                beatmaps.push({
                     difficulty_id: beatmap.online_id,
                     beatmapset_id: beatmap.beatmapset_id,
                     artist: beatmap.artist,
                     title: beatmap.title,
-                    diff_name: beatmap.difficulty,
-                    md5: beatmap.md5,
-                    difficulty_rating: beatmap.star_rating,
-                    mode: gamemode_to_code(beatmap.mode)
+                    difficulty: beatmap.difficulty,
+                    checksum: beatmap.md5,
+                    user_comment: "",
+                    mode: gamemode_to_code(beatmap.mode),
+                    difficulty_rating: beatmap.star_rating
                 });
             }
 
-            osdb_data.collections.push(osdb_collection);
-            osdb_data.count++;
-            osdb_collection.hash_only_beatmaps = collection.beatmaps;
+            osdb_collections.push({
+                name: collection.name,
+                online_id: 0,
+                beatmaps,
+                hash_only_beatmaps: collection.beatmaps
+            });
         }
 
-        // get buffer
-        const result = osdb_parser.write(OsdbVersion.O_DM8_MIN, osdb_data);
+        const osdb_data: OsdbData = {
+            version_string: "o!dm8min",
+            save_data: 0n,
+            last_editor: this.get_player_name(),
+            count: osdb_collections.length,
+            collections: osdb_collections
+        };
 
-        if (!result.success) {
+        try {
+            await osdb_parser.parse(location);
+            osdb_parser.update(osdb_data);
+            await osdb_parser.write();
+            return true;
+        } catch (err) {
+            console.error("failed to export osdb:", err);
             return false;
+        } finally {
+            osdb_parser.free();
         }
-
-        const buffer = result.data as Buffer;
-        const location = path.resolve(config.get().export_path, output_name);
-
-        if (!fs.existsSync(path.dirname(location))) {
-            fs.mkdirSync(path.dirname(location));
-        }
-
-        fs.writeFileSync(location, buffer);
-        return true;
     };
 
-    private write_stable_collection(collections: ICollectionResult[]): boolean {
+    private write_stable_collection = async (collections: ICollectionResult[]): Promise<boolean> => {
         const output_name = collections.map((c) => c.name).join("-") + `.db`;
+        const location = path.resolve(config.get().export_path, output_name);
+        const template_location = path.resolve(config.get().stable_path, "collection.db");
 
-        // get buffer
-        const result = stable_parser.write_collections_data(collections);
-
-        if (!result.success) {
+        if (!fs.existsSync(template_location)) {
+            console.error("failed to export collection.db (missing template):", template_location);
             return false;
         }
 
-        const buffer = result.data;
-        const location = path.resolve(config.get().export_path, output_name);
-
         if (!fs.existsSync(path.dirname(location))) {
-            fs.mkdirSync(path.dirname(location));
+            fs.mkdirSync(path.dirname(location), { recursive: true });
         }
 
-        fs.writeFileSync(location, buffer);
-        return true;
-    }
+        fs.copyFileSync(template_location, location);
+
+        const parser = new OsuCollectionDbParser();
+        const collection_data = collections.map((collection) => ({
+            name: collection.name,
+            beatmaps_count: collection.beatmaps.length,
+            beatmap_md5: collection.beatmaps
+        }));
+
+        try {
+            await parser.parse(location);
+            parser.update({
+                collections: collection_data,
+                collections_count: collection_data.length
+            });
+            await parser.write();
+            return true;
+        } catch (err) {
+            console.error("failed to export collection.db:", err);
+            return false;
+        } finally {
+            parser.free();
+        }
+    };
 
     export_collections = async (collections: ICollectionResult[], type: string): Promise<boolean> => {
         return type == "osdb" ? this.write_osdb_collection(collections) : this.write_stable_collection(collections);
@@ -494,7 +537,7 @@ export abstract class BaseClient implements IOsuClient {
     abstract delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
     abstract get_collection(name: string): ICollectionResult | undefined;
     abstract get_collections(): ICollectionResult[];
-    abstract update_collection(): boolean;
+    abstract update_collection(): Promise<boolean>;
     abstract has_beatmap(md5: string): boolean;
     abstract has_beatmapset(id: number): boolean;
     abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;

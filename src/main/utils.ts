@@ -112,12 +112,24 @@ export const get_osu_path = async (): Promise<GenericResult<PathResult>> => {
 };
 
 const create_new_window = (name: string, options: BrowserWindowConstructorOptions) => {
+    if (process.env["NODE_ENV"] == "test") {
+        return {
+            webContents: {
+                send: () => {}
+            }
+        } as unknown as BrowserWindow;
+    }
+
     const new_window = new BrowserWindow(options);
     created_windows.set(name, new_window);
     return new_window;
 };
 
 export const get_window = (name: string, options: BrowserWindowConstructorOptions = {}): BrowserWindow => {
+    if (process.env["NODE_ENV"] == "test") {
+        return create_new_window(name, options);
+    }
+
     return created_windows.get(name) ?? create_new_window(name, options);
 };
 

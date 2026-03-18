@@ -1,10 +1,9 @@
-import { OsuInput } from "@rel-packages/osu-beatmap-parser";
+import type { OsuFileFormat } from "@rel-packages/osu-parser";
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
 import { v2 } from "osu-api-extended";
 
 /* CORE CONSTANTS */
 
-export const LEGACY_DATABASE_VERSION: number = 20251102;
 export const LAZER_DATABASE_VERSION: number = 51;
 export const ALL_BEATMAPS_KEY = "@stuff:__all_beatmaps__";
 export const ALL_STATUS_KEY = "@stuff:__all_status__";
@@ -48,19 +47,6 @@ export enum LazerBeatmapStatus {
     Loved = 4
 }
 
-export enum OsdbVersion {
-    O_DM = 1,
-    O_DM2 = 2,
-    O_DM3 = 3,
-    O_DM4 = 4,
-    O_DM5 = 5,
-    O_DM6 = 6,
-    O_DM7 = 7,
-    O_DM8 = 8,
-    O_DM7_MIN = 1007,
-    O_DM8_MIN = 1008
-}
-
 export enum GameModeCode {
     Osu = 0,
     Taiko = 1,
@@ -96,86 +82,6 @@ export interface IStableTimingPoint {
     beat_length: number;
     offset: number;
     inherited: boolean;
-}
-
-export interface IStableBeatmap {
-    entry: number;
-    artist: string;
-    artist_unicode: string;
-    title: string;
-    title_unicode: string;
-    creator: string;
-    difficulty: string;
-    audio_file_name: string;
-    md5: string;
-    file: string;
-    status: StableBeatmapStatus;
-    hitcircle: number;
-    sliders: number;
-    spinners: number;
-    last_modification: bigint;
-    bpm: number;
-    ar: number;
-    cs: number;
-    hp: number;
-    od: number;
-    slider_velocity: number;
-    star_rating: number[];
-    timing_points: IStableTimingPoint[];
-    drain_time: number;
-    length: number;
-    audio_preview: number;
-    difficulty_id: number;
-    beatmapset_id: number;
-    thread_id: number;
-    grade_standard: number;
-    grade_taiko: number;
-    grade_ctb: number;
-    grade_mania: number;
-    local_offset: number;
-    stack_leniency: number;
-    mode: number;
-    source: string;
-    tags: string;
-    online_offset: number;
-    font: string;
-    unplayed: boolean;
-    last_played: bigint;
-    is_osz2: boolean;
-    folder_name: string;
-    last_checked: bigint;
-    ignore_sounds: boolean;
-    ignore_skin: boolean;
-    disable_storyboard: boolean;
-    disable_video: boolean;
-    visual_override: boolean;
-    unknown: number;
-    mania_scroll_speed: number;
-    unique_id: string;
-    audio_path: string;
-    file_path: string;
-    image_path: string;
-    temp: boolean;
-}
-
-export interface IStableBeatmapset {
-    title: string;
-    artist: string;
-    creator: string;
-    online_id: number;
-    // NOTE: we dont need to store the beatmap object two times (LegacyDatabase should store it)
-    beatmaps: Set<string>;
-}
-
-export interface ILegacyDatabase {
-    version: number;
-    folders: number;
-    account_unlocked: boolean;
-    last_unlocked_time: bigint;
-    player_name: string;
-    beatmaps_count: number;
-    beatmaps: Map<string, IStableBeatmap>;
-    beatmapsets: Map<number, IStableBeatmapset>;
 }
 
 /* OSU CLIENT RELATED STUFF */
@@ -270,7 +176,7 @@ export interface ICollectionResult {
 
 export type ExtractType = "duration" | "background" | "video";
 
-export interface ProcessorInput extends OsuInput {
+export interface ProcessorInput extends OsuFileFormat {
     last_modified?: string;
 }
 
@@ -342,7 +248,7 @@ export interface IOsuClient {
     delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
     get_collection(name: string): ICollectionResult | undefined;
     get_collections(): ICollectionResult[];
-    update_collection(): boolean;
+    update_collection(): Promise<boolean>;
     export_collections(collections: ICollectionResult[], type: string): Promise<boolean>;
     export_beatmapset(id: number): Promise<boolean>;
     add_beatmap(beatmap: IBeatmapResult): boolean;
@@ -475,34 +381,6 @@ export enum ExportResult {
     SUCCESS = 1
 }
 
-/* OSDB */
-
-export interface IOSDBBeatmap {
-    difficulty_id: number;
-    beatmapset_id: number;
-    artist?: string;
-    title?: string;
-    diff_name?: string;
-    md5: string;
-    user_comment?: string;
-    mode?: number;
-    difficulty_rating?: number;
-}
-
-export interface IOSDBCollection {
-    name: string;
-    online_id?: number;
-    beatmaps: IOSDBBeatmap[];
-    hash_only_beatmaps: string[];
-}
-
-export interface IOSDBData {
-    save_date: bigint;
-    last_editor: string;
-    count: number;
-    collections: IOSDBCollection[];
-}
-
 /* ENUMERATOR HELPERS */
 
 export const gamemode_to_code = (mode: GameMode): GameModeCode => {
@@ -624,57 +502,6 @@ export const lazer_status_from_code = (status: LazerBeatmapStatus) => {
             return "loved";
     }
     return "notsubmitted";
-};
-
-export const osdb_version_to_code = (version: string) => {
-    switch (version) {
-        case "o!dm":
-            return OsdbVersion.O_DM;
-        case "o!dm2":
-            return OsdbVersion.O_DM2;
-        case "o!dm3":
-            return OsdbVersion.O_DM3;
-        case "o!dm4":
-            return OsdbVersion.O_DM4;
-        case "o!dm5":
-            return OsdbVersion.O_DM5;
-        case "o!dm6":
-            return OsdbVersion.O_DM6;
-        case "o!dm7":
-            return OsdbVersion.O_DM7;
-        case "o!dm8":
-            return OsdbVersion.O_DM8;
-        case "o!dm7min":
-            return OsdbVersion.O_DM7_MIN;
-        case "o!dm8min":
-            return OsdbVersion.O_DM8_MIN;
-    }
-    return OsdbVersion.O_DM;
-};
-
-export const osdb_version_from_code = (version: OsdbVersion) => {
-    switch (version) {
-        case OsdbVersion.O_DM:
-            return "o!dm";
-        case OsdbVersion.O_DM2:
-            return "o!dm2";
-        case OsdbVersion.O_DM3:
-            return "o!dm3";
-        case OsdbVersion.O_DM4:
-            return "o!dm4";
-        case OsdbVersion.O_DM5:
-            return "o!dm5";
-        case OsdbVersion.O_DM6:
-            return "o!dm6";
-        case OsdbVersion.O_DM7:
-            return "o!dm7";
-        case OsdbVersion.O_DM8:
-            return "o!dm8";
-        case OsdbVersion.O_DM7_MIN:
-            return "o!dm7min";
-        case OsdbVersion.O_DM8_MIN:
-            return "o!dm8min";
-    }
 };
 
 // aka stable status code to lazer status code...

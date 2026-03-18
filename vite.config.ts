@@ -18,7 +18,11 @@ export default defineConfig({
     },
     build: {
         outDir: "../../out/renderer",
-        emptyOutDir: true
+        emptyOutDir: true,
+        sourcemap: false
+    },
+    css: {
+        devSourcemap: false
     },
     base: "./"
 });

@@ -1,10 +1,11 @@
 import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
-import { GameMode, IBeatmapResult, StuffConfig } from "@shared/types";
+import { GameMode, IBeatmapResult, ManagerConfig } from "@shared/types";
 import { config as _config } from "@main/database/config";
 import { mirrors as _mirrors } from "@main/database/mirrors";
 import { beatmap_processor as _processor } from "@main/database/processor";
+import { DatabaseManager } from "@main/database/database";
 
 export const DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz";
 export const TEMP_DIR = path.resolve("tests", ".temp_data");
@@ -132,12 +133,14 @@ export const setup_config = async (): Promise<void> => {
     try {
         await setup_test_env();
 
+        DatabaseManager.connect(path.resolve(TEMP_DIR, "app.db"));
+
         console.log("[CONFIG] reinitializing modules");
         _config.reinitialize();
         _processor.reinitialize();
         _mirrors.reinitialize();
 
-        const config_data: Partial<StuffConfig> = {
+        const config_data: Partial<ManagerConfig> = {
             stable_path: path.resolve(TEMP_DIR, "osu"),
             stable_songs_path: path.resolve(TEMP_DIR, "osu", "Songs"),
             lazer_path: path.resolve(TEMP_DIR, "lazer"),

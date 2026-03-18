@@ -1,4 +1,5 @@
-export interface StuffConfig {
+export interface ManagerConfig {
+    _id: number;
     osu_id: string;
     osu_secret: string;
     stable_path: string;
@@ -11,7 +12,7 @@ export interface StuffConfig {
     radio_volume: number;
 }
 
-export interface StuffMirror {
+export interface ManagerMirror {
     name: string;
     url: string;
 }

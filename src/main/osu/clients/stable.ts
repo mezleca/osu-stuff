@@ -1,59 +1,79 @@
-import {
-    ICollectionResult,
-    IBeatmapResult,
-    BeatmapSetResult,
-    BeatmapFile,
-    ILegacyDatabase,
-    IStableBeatmap,
-    IStableBeatmapset,
-    gamemode_from_code,
-    stable_status_from_code
-} from "@shared/types";
+import { gamemode_from_code, stable_status_from_code } from "@shared/types";
+import type { ICollectionResult, IBeatmapResult, BeatmapSetResult, BeatmapFile, BeatmapRow } from "@shared/types";
+import { BeatmapParser, OsuCollectionDbParser, OsuDbParser } from "@rel-packages/osu-parser";
+import type { OsuDbBeatmapMinimal } from "@rel-packages/osu-parser";
 import { BaseClient } from "./base";
-import { stable_parser } from "../../binary/stable";
 import { beatmap_processor } from "../../database/processor";
-import { BeatmapRow } from "@shared/types";
 import { config } from "../../database/config";
 
 import fs from "fs";
 import path from "path";
 import audio_util from "@rel-packages/audio-utils";
-import * as beatmap_parser from "@rel-packages/osu-beatmap-parser";
 
 const CHUNK_SIZE = 100;
 
-const build_beatmap = (beatmap: IStableBeatmap, processed?: BeatmapRow, temp: boolean = false): IBeatmapResult => {
+const get_beatmap_properties = async (file_location: string) => {
+    const parser = new BeatmapParser();
+
+    try {
+        await parser.parse(file_location);
+        const data = parser.get();
+
+        return {
+            AudioFilename: data.General.AudioFilename ?? "",
+            Background: data.Events.background?.filename ?? ""
+        };
+    } finally {
+        parser.free();
+    }
+};
+
+type StableBeatmapset = {
+    title: string;
+    artist: string;
+    creator: string;
+    online_id: number;
+    beatmaps: Set<string>;
+};
+
+type StableOsuData = {
+    player_name: string;
+    beatmaps: Map<string, OsuDbBeatmapMinimal>;
+    beatmapsets: Map<number, StableBeatmapset>;
+};
+
+const build_beatmap = (beatmap: OsuDbBeatmapMinimal, processed?: BeatmapRow, temp: boolean = false): IBeatmapResult => {
     return {
         md5: beatmap.md5 || "",
         online_id: beatmap.difficulty_id,
-        beatmapset_id: beatmap.beatmapset_id,
+        beatmapset_id: beatmap.beatmap_id,
         title: beatmap.title || "unknown",
         artist: beatmap.artist || "unknown",
         creator: beatmap.creator || "unknown",
         difficulty: beatmap.difficulty || "unknown",
         source: beatmap.source || "",
         tags: beatmap.tags || "",
-        star_rating: beatmap.star_rating[beatmap.mode],
-        bpm: beatmap.bpm,
-        length: beatmap.length,
-        last_modified: String(beatmap.last_modification),
-        ar: beatmap.ar,
-        cs: beatmap.cs,
-        hp: beatmap.hp,
-        od: beatmap.od,
-        status: stable_status_from_code(beatmap.status),
+        star_rating: beatmap.star_rating ?? 0,
+        bpm: beatmap.bpm ?? 0,
+        length: beatmap.total_time,
+        last_modified: String(beatmap.last_modification_time),
+        ar: beatmap.approach_rate,
+        cs: beatmap.circle_size,
+        hp: beatmap.hp_drain,
+        od: beatmap.overall_difficulty,
+        status: stable_status_from_code(beatmap.ranked_status),
         mode: gamemode_from_code(beatmap.mode),
         temp: temp,
-        duration: processed?.duration || 0,
+        duration: beatmap.duration ?? processed?.duration ?? 0,
         background: processed?.background || "",
         audio: processed?.audio || "",
         folder_name: beatmap.folder_name,
-        file_name: beatmap.file,
-        file_path: beatmap.file_path
+        file_name: beatmap.osu_file_name,
+        file_path: path.join(beatmap.folder_name, beatmap.osu_file_name)
     };
 };
 
-const build_beatmapset = (beatmapset: IStableBeatmapset, temp: boolean = false): BeatmapSetResult => {
+const build_beatmapset = (beatmapset: StableBeatmapset, temp: boolean = false): BeatmapSetResult => {
     return {
         online_id: beatmapset.online_id,
         metadata: {
@@ -67,7 +87,9 @@ const build_beatmapset = (beatmapset: IStableBeatmapset, temp: boolean = false):
 };
 
 class StableBeatmapClient extends BaseClient {
-    osu!: ILegacyDatabase;
+    osu!: StableOsuData;
+    private osu_db_parser = new OsuDbParser();
+    private collection_db_parser = new OsuCollectionDbParser();
 
     constructor() {
         super();
@@ -86,33 +108,73 @@ class StableBeatmapClient extends BaseClient {
             return false;
         }
 
-        const osu_result = stable_parser.get_osu_data(osu_database_file);
-
-        if (!osu_result.success) {
-            console.error("failed to parse osu!.db:", osu_result.reason);
+        try {
+            await this.osu_db_parser.parse(osu_database_file);
+        } catch (err) {
+            console.error("failed to parse osu!.db:", err);
             return false;
         }
 
-        const collection_result = stable_parser.get_collections_data(collection_database_file);
-
-        if (!collection_result.success) {
-            console.error("failed to parse collection.db:", collection_result.reason);
+        try {
+            await this.collection_db_parser.parse(collection_database_file);
+        } catch (err) {
+            console.error("failed to parse collection.db:", err);
             return false;
         }
 
-        this.osu = osu_result.data;
-        this.collections = collection_result.data;
+        const osu_header = this.osu_db_parser.get_header();
+        const beatmap_md5s = this.osu_db_parser.get_minimal_list();
+        const beatmaps = new Map<string, OsuDbBeatmapMinimal>();
+        const beatmapsets = new Map<number, StableBeatmapset>();
+        const beatmaps_list: OsuDbBeatmapMinimal[] = [];
+
+        for (let i = 0; i < beatmap_md5s.length; i++) {
+            const beatmap = beatmap_md5s[i];
+            if (!beatmap?.md5) continue;
+            beatmaps_list.push(beatmap);
+            beatmaps.set(beatmap.md5, beatmap);
+
+            const set_id = beatmap.beatmap_id;
+            const existing = beatmapsets.get(set_id);
+
+            if (!existing) {
+                beatmapsets.set(set_id, {
+                    title: beatmap.title,
+                    artist: beatmap.artist,
+                    creator: beatmap.creator,
+                    online_id: set_id,
+                    beatmaps: new Set([beatmap.md5])
+                });
+            } else {
+                existing.beatmaps.add(beatmap.md5);
+            }
+        }
+
+        const collection_data = this.collection_db_parser.get();
+        const collections = new Map<string, ICollectionResult>();
+
+        for (let i = 0; i < collection_data.collections.length; i++) {
+            const collection = collection_data.collections[i];
+            collections.set(collection.name, {
+                name: collection.name,
+                beatmaps: collection.beatmap_md5,
+                last_modified: 0
+            });
+
+            if (i > 0 && i % 2000 === 0) {
+                await new Promise((r) => setTimeout(r, 0));
+            }
+        }
+
+        this.osu = {
+            player_name: osu_header.player_name,
+            beatmaps,
+            beatmapsets
+        };
+
+        this.collections = collections;
         this.beatmaps.clear();
         this.beatmapsets.clear();
-
-        await this.process_beatmaps();
-        this.initialized = true;
-
-        return true;
-    };
-
-    private process_beatmaps = async (): Promise<void> => {
-        beatmap_processor.show_on_renderer();
 
         const processed_rows = beatmap_processor.get_all_beatmaps();
         const processed_map = new Map<string, BeatmapRow>();
@@ -121,13 +183,22 @@ class StableBeatmapClient extends BaseClient {
             processed_map.set(row.md5, row);
         }
 
+        await this.process_beatmaps(beatmaps_list, processed_map);
+
+        this.initialized = true;
+        return true;
+    };
+
+    private process_beatmaps = async (raw_beatmaps: OsuDbBeatmapMinimal[], processed_map: Map<string, BeatmapRow>): Promise<void> => {
+        beatmap_processor.show_on_renderer();
+
         const to_insert: BeatmapRow[] = [];
         const beatmaps_array = Array.from(this.osu.beatmaps.values())
             // only process beatmaps that we havent processed yet or modified ones
             .filter((b) => {
                 const processed = processed_map.get(b.md5);
                 if (!processed) return true;
-                return processed.last_modified != String(b.last_modification);
+                return processed.last_modified != String(b.last_modification_time);
             });
 
         console.log("[stable] processing", beatmaps_array.length, "beatmaps");
@@ -136,6 +207,27 @@ class StableBeatmapClient extends BaseClient {
 
         if (to_insert.length > 0) {
             beatmap_processor.insert_beatmaps(to_insert);
+        }
+
+        const duration_updates: { md5: string; duration: number }[] = [];
+
+        for (const beatmap of raw_beatmaps) {
+            const processed = processed_map.get(beatmap.md5);
+            if (!processed) {
+                continue;
+            }
+            if (processed.duration != null && processed.duration > 0 && beatmap.duration !== processed.duration) {
+                beatmap.duration = processed.duration;
+                duration_updates.push({ md5: beatmap.md5, duration: processed.duration });
+            }
+        }
+
+        if (duration_updates.length > 0) {
+            try {
+                this.osu_db_parser.update_duration(duration_updates);
+            } catch (err) {
+                console.warn("[stable] failed to update beatmap duration:", err);
+            }
         }
 
         beatmap_processor.hide_on_renderer();
@@ -161,7 +253,7 @@ class StableBeatmapClient extends BaseClient {
     };
 
     private process_beatmap_chunks = async (
-        beatmaps: IStableBeatmap[],
+        beatmaps: OsuDbBeatmapMinimal[],
         processed_map: Map<string, BeatmapRow>,
         to_insert: BeatmapRow[]
     ): Promise<void> => {
@@ -176,7 +268,7 @@ class StableBeatmapClient extends BaseClient {
                     continue;
                 }
 
-                const last_modified = String(beatmap.last_modification);
+                const last_modified = String(beatmap.last_modification_time);
                 const cached = processed_map.get(beatmap.md5);
 
                 if (!cached || cached.last_modified != last_modified) {
@@ -197,20 +289,19 @@ class StableBeatmapClient extends BaseClient {
         await process_chunk(0);
     };
 
-    private process_single_beatmap = async (beatmap: IStableBeatmap, last_modified: string): Promise<BeatmapRow | null> => {
-        if (!beatmap.folder_name || !beatmap.file) {
+    private process_single_beatmap = async (beatmap: OsuDbBeatmapMinimal, last_modified: string): Promise<BeatmapRow | null> => {
+        if (!beatmap.folder_name || !beatmap.osu_file_name) {
             return null;
         }
 
         try {
-            const file_location = path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap.file);
+            const file_location = path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap.osu_file_name);
 
             if (!fs.existsSync(file_location)) {
                 return null;
             }
 
-            const file_content = fs.readFileSync(file_location);
-            const beatmap_properties = await beatmap_parser.get_properties(file_content, ["AudioFilename", "Background"]);
+            const beatmap_properties = await get_beatmap_properties(file_location);
 
             const background_location = beatmap_properties.Background
                 ? path.join(config.get().stable_songs_path, beatmap.folder_name, beatmap_properties.Background)
@@ -293,16 +384,23 @@ class StableBeatmapClient extends BaseClient {
         return Array.from(this.collections.values());
     };
 
-    update_collection = (): boolean => {
-        const result = stable_parser.write_collections_data(Array.from(this.collections.values()));
+    update_collection = async (): Promise<boolean> => {
+        const collections = Array.from(this.collections.values()).map((collection) => ({
+            name: collection.name,
+            beatmaps_count: collection.beatmaps.length,
+            beatmap_md5: collection.beatmaps
+        }));
 
-        if (!result.success) {
-            console.error("failed to write collections:", result.reason);
+        try {
+            this.collection_db_parser.update({
+                collections,
+                collections_count: collections.length
+            });
+            await this.collection_db_parser.write();
+        } catch (err) {
+            console.error("failed to write collections:", err);
             return false;
         }
-
-        const target = path.resolve(config.get().stable_path, "collection.db");
-        fs.writeFileSync(target, result.data);
 
         this.reset_collection_modifications();
         this.should_update = false;
@@ -466,6 +564,8 @@ class StableBeatmapClient extends BaseClient {
     dispose = async (): Promise<void> => {
         this.osu.beatmaps.clear();
         this.osu.beatmapsets.clear();
+        this.osu_db_parser.free();
+        this.collection_db_parser.free();
     };
 }
 

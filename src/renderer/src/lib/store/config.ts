@@ -1,5 +1,5 @@
 import { writable, get, type Writable } from "svelte/store";
-import type { StuffConfig, StuffMirror } from "@shared/types";
+import type { ManagerConfig, ManagerMirror } from "@shared/types";
 import { string_is_valid } from "../utils/utils";
 import { throttle } from "../utils/timings";
 import { show_notification } from "./notifications";
@@ -22,8 +22,8 @@ const show_failed_auth_warn = throttle(() => {
 }, 1000);
 
 class ConfigStore {
-    data: Writable<StuffConfig>;
-    mirrors: Writable<StuffMirror[]>;
+    data: Writable<ManagerConfig>;
+    mirrors: Writable<ManagerMirror[]>;
     fetching_token: Writable<boolean>;
     authenticated: Writable<boolean>;
     is_exporting: Writable<boolean>;
@@ -56,7 +56,7 @@ class ConfigStore {
         this.is_loading = false;
     }
 
-    async set<K extends keyof StuffConfig>(key: K, value: StuffConfig[K]): Promise<boolean> {
+    async set<K extends keyof ManagerConfig>(key: K, value: ManagerConfig[K]): Promise<boolean> {
         if (this.is_loading) {
             return false;
         }
@@ -83,7 +83,7 @@ class ConfigStore {
         return true;
     }
 
-    get<K extends keyof StuffConfig>(key: K): StuffConfig[K] {
+    get<K extends keyof ManagerConfig>(key: K): ManagerConfig[K] {
         return get(this.data)[key] ?? null;
     }
 

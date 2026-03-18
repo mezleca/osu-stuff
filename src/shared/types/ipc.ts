@@ -1,7 +1,8 @@
 import { auth, Modes_names, v2 } from "osu-api-extended";
-import { StuffConfig, StuffMirror } from "./config";
+import { ManagerConfig, ManagerMirror } from "./config";
 import { FetchOptions, IFetchResponse } from "./fetch";
-import { ICollectionResult, ILegacyDatabase, IOSDBData, IOsuClient, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
+import type { OsdbData } from "@rel-packages/osu-parser";
+import { ICollectionResult, IOsuClient, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
 import { IBeatmapDownloader, IDownloadEvent } from "./downloader";
 import { GenericResult } from "./basic";
 import { OpenDialogOptions, OpenDialogReturnValue } from "electron";
@@ -50,15 +51,6 @@ export type BeatmapsetSearchResult = Awaited<ReturnType<typeof v2.beatmaps.looku
 export type DifficultySearchParams = Extract<Parameters<typeof v2.beatmaps.lookup>[0], { type: "difficulty" }>;
 export type DifficultySearchResult = Awaited<ReturnType<typeof v2.beatmaps.lookup<DifficultySearchParams>>>;
 
-type WriteDataParams<T> = {
-    location: string;
-    data: T;
-};
-
-// others
-export type WriteOSDBParams = WriteDataParams<IOSDBData>;
-export type WriteCollectionParams = WriteDataParams<ICollectionResult[]>;
-
 export interface IExportState {
     is_exporting: boolean;
     current_index: number;
@@ -83,23 +75,11 @@ export interface IpcSchema {
         // binary related stuff
         "reader:read_osdb": {
             params: string;
-            result: GenericResult<IOSDBData>;
-        };
-        "reader:write_osdb": {
-            params: WriteOSDBParams;
-            result: GenericResult<string>;
-        };
-        "reader:read_legacy_db": {
-            params: string;
-            result: GenericResult<ILegacyDatabase>;
+            result: GenericResult<OsdbData>;
         };
         "reader:read_legacy_collection": {
             params: string;
             result: GenericResult<Map<string, ICollectionResult>>;
-        };
-        "reader:write_legacy_collection": {
-            params: WriteCollectionParams;
-            result: GenericResult<string>;
         };
         // fetch
         "fetch:get": {
@@ -109,10 +89,10 @@ export interface IpcSchema {
         // config
         "config:get": {
             params: undefined;
-            result: StuffConfig;
+            result: ManagerConfig;
         };
         "config:save": {
-            params: Partial<StuffConfig>;
+            params: Partial<ManagerConfig>;
             result: boolean;
         };
         "config:load": {
@@ -122,10 +102,10 @@ export interface IpcSchema {
         // mirrors
         "mirrors:get": {
             params: undefined;
-            result: StuffMirror[];
+            result: ManagerMirror[];
         };
         "mirrors:save": {
-            params: StuffMirror;
+            params: ManagerMirror;
             result: boolean;
         };
         "mirrors:delete": {

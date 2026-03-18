@@ -37,14 +37,17 @@ import {
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
-import { read_legacy_collection, read_legacy_db, write_legacy_collection } from "./binary/stable";
-import { read_osdb, write_osdb } from "./binary/osdb";
 import { is_dev_mode } from "./env";
 import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
 import { OpenDevToolsOptions } from "electron/utility";
+import { DatabaseManager } from "./database/database";
+import { OsdbParser, OsuCollectionDbParser } from "@rel-packages/osu-parser";
+import type { OsdbData } from "@rel-packages/osu-parser";
+import type { GenericResult, ICollectionResult } from "@shared/types";
 
 import path from "path";
+import fs from "fs";
 
 const app_resource_root = app.isPackaged ? process.resourcesPath : app.getAppPath();
 const resource_folder = path.join(app_resource_root, "resources");
@@ -57,8 +60,90 @@ const file_privileges: Privileges = {
     bypassCSP: true
 };
 
-const dev_tools_options: OpenDevToolsOptions = {
+const DEVTOOLS_OPTIONS: OpenDevToolsOptions = {
     mode: "detach"
+};
+
+/* WHY NOT SECTION */
+
+const ELECTRON_ENABLE_FEATURES: string[] = ["UseSkiaRenderer", "CanvasOopRasterization"];
+
+const V8_FLAGS: string[] = ["--max-old-space-size=4096", "--max-semi-space-size=64", "--optimize-for-size"];
+
+const CHROMIUM_FLAGS_ALL: string[] = [
+    "enable-gpu-rasterization",
+    "enable-oop-rasterization",
+    "disable-ipc-flooding-protection",
+    "disable-renderer-backgrounding",
+    "enable-accelerated-2d-canvas"
+];
+
+const CHROMIUM_FLAGS_LINUX: string[] = [
+    "enable-zero-copy",
+    "enable-native-gpu-memory-buffers",
+    "ignore-gpu-blocklist",
+    "disable-gpu-driver-bug-workarounds"
+];
+
+const CHROMIUM_FLAGS: string[] = [...CHROMIUM_FLAGS_ALL, ...(process.platform == "linux" ? CHROMIUM_FLAGS_LINUX : [])];
+
+const apply_chromium_flags = () => {
+    app.commandLine.appendSwitch("js-flags", V8_FLAGS.join(" "));
+    app.commandLine.appendSwitch("enable-features", ELECTRON_ENABLE_FEATURES.join(","));
+
+    for (const flag of CHROMIUM_FLAGS) {
+        app.commandLine.appendSwitch(flag);
+    }
+};
+
+// apply all flags
+apply_chromium_flags();
+
+/* --------------- */
+
+const read_osdb = async (location: string): Promise<GenericResult<OsdbData>> => {
+    if (!fs.existsSync(location)) {
+        return { success: false, reason: `file not found at ${location}` };
+    }
+
+    const parser = new OsdbParser();
+
+    try {
+        await parser.parse(location);
+        return { success: true, data: parser.get() };
+    } catch (err) {
+        return { success: false, reason: String(err) };
+    } finally {
+        parser.free();
+    }
+};
+
+const read_legacy_collection = async (location: string): Promise<GenericResult<Map<string, ICollectionResult>>> => {
+    if (!fs.existsSync(location)) {
+        return { success: false, reason: `file not found at ${location}` };
+    }
+
+    const parser = new OsuCollectionDbParser();
+
+    try {
+        await parser.parse(location);
+        const data = parser.get();
+        const collections = new Map<string, ICollectionResult>();
+
+        for (const collection of data.collections) {
+            collections.set(collection.name, {
+                name: collection.name,
+                beatmaps: collection.beatmap_md5,
+                last_modified: 0
+            });
+        }
+
+        return { success: true, data: collections };
+    } catch (err) {
+        return { success: false, reason: String(err) };
+    } finally {
+        parser.free();
+    }
 };
 
 protocol.registerSchemesAsPrivileged([
@@ -72,9 +157,10 @@ protocol.registerSchemesAsPrivileged([
     }
 ]);
 
-const additionalArguments = ["--disable-renderer-backgrounding", "--disable-ipc-flooding-protection", "--disable-background-timer-throttling"];
-
 async function createWindow() {
+    // initialize database
+    DatabaseManager.connect(path.resolve(get_app_path(), "app.db"));
+
     // create the browser window.
     const mainWindow = get_window("main", {
         width: 1100,
@@ -86,7 +172,6 @@ async function createWindow() {
         autoHideMenuBar: true,
         icon: icon_path,
         webPreferences: {
-            additionalArguments,
             preload: path.resolve(app.getAppPath(), "out/preload/index.js"),
             sandbox: false,
             nodeIntegration: true,
@@ -95,8 +180,9 @@ async function createWindow() {
         }
     });
 
-    await config.setup_default_paths();
-    beatmap_processor.set_window(mainWindow);
+    config.initialize();
+    mirrors.initialize();
+    beatmap_processor.initialize();
     beatmap_downloader.initialize();
 
     // env
@@ -108,7 +194,7 @@ async function createWindow() {
     handle_ipc("window:maximize", () => mainWindow.maximize());
     handle_ipc("window:unmaximize", () => mainWindow.unmaximize());
     handle_ipc("window:dialog", (_, options) => dialog.showOpenDialog(mainWindow, options));
-    handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools(dev_tools_options));
+    handle_ipc("window:dev_tools", () => mainWindow.webContents.openDevTools(DEVTOOLS_OPTIONS));
     handle_ipc("window:close", () => app.quit());
 
     // shell
@@ -125,7 +211,7 @@ async function createWindow() {
 
     // mirrors
     handle_ipc("mirrors:get", () => mirrors.get());
-    handle_ipc("mirrors:save", (_, mirror) => mirrors.update(mirror.name, mirror.url));
+    handle_ipc("mirrors:save", (_, mirror) => mirrors.update(mirror));
     handle_ipc("mirrors:delete", (_, data) => mirrors.delete(data.name));
     handle_ipc("mirrors:load", () => mirrors.load());
 
@@ -191,12 +277,9 @@ async function createWindow() {
 
     // reader (stable)
     handle_ipc("reader:read_legacy_collection", (_, location) => read_legacy_collection(location));
-    handle_ipc("reader:read_legacy_db", (_, location) => read_legacy_db(location));
-    handle_ipc("reader:write_legacy_collection", (_, data) => write_legacy_collection(data));
 
     // reader (osdb)
     handle_ipc("reader:read_osdb", (_, location) => read_osdb(location));
-    handle_ipc("reader:write_osdb", (_, data) => write_osdb(data));
 
     // initialize auto updater
     updater.initialize();
@@ -210,7 +293,7 @@ async function createWindow() {
 
     // auto open devtools in dev mode
     if (is_dev_mode()) {
-        mainWindow.webContents.openDevTools(dev_tools_options);
+        mainWindow.webContents.openDevTools(DEVTOOLS_OPTIONS);
     }
 
     const renderer_url = process.env["ELECTRON_RENDERER_URL"];

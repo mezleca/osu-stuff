@@ -65,7 +65,7 @@ export const get_collections = (custom_client: string = ""): ICollectionResult[]
     return get_client(custom_client).get_collections();
 };
 
-export const update_collection = (custom_client: string = ""): boolean => {
+export const update_collection = (custom_client: string = ""): Promise<boolean> => {
     return get_client(custom_client).update_collection();
 };
 

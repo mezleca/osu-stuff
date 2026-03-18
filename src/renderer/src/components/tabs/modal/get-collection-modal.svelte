@@ -96,7 +96,7 @@
         }
 
         const data = result.data.collections.map((c) => {
-            const hashes = c.hash_only_beatmaps.length > 0 ? c.hash_only_beatmaps : c.beatmaps.map((b) => b.md5);
+            const hashes = c.hash_only_beatmaps.length > 0 ? c.hash_only_beatmaps : c.beatmaps.map((b) => b.checksum);
             return { name: c.name, beatmaps: hashes, last_modified: 0 };
         });
 

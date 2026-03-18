@@ -30,6 +30,14 @@ files:
     - "!tests/"
     - "!scripts/"
     - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+    - "!**/*.map"
+    - "!**/demo/**"
+    - "!**/examples/**"
+    - "!**/docs/**"
+    - "!**/test/**"
+    - "!**/tests/**"
+    - "!**/__tests__/**"
+    - "!**/better-sqlite3/deps/**"
 win:
     icon: icon.ico
     executableName: osu-stuff

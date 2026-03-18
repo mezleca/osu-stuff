@@ -160,6 +160,8 @@ class BeatmapDownloader implements IBeatmapDownloader {
                 length: data.beatmaps.length,
                 current: 0
             };
+        } else if (this.current_download_id !== null) {
+            data.progress.paused = true;
         }
 
         this.queue.set(data.id, data);
@@ -476,12 +478,20 @@ class BeatmapDownloader implements IBeatmapDownloader {
 
     private start_next_download(): void {
         // get the next download in the queue (first one that's paused or any remaining)
+        let next_id: string | null = null;
+
         for (const [id, download] of this.queue) {
-            if (download.progress) {
-                download.progress.paused = false;
+            if (!next_id) {
+                next_id = id;
             }
-            this.start_download(id);
-            return;
+
+            if (download.progress) {
+                download.progress.paused = id !== next_id;
+            }
+        }
+
+        if (next_id) {
+            this.start_download(next_id);
         }
     }
 

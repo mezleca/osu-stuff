@@ -25,13 +25,29 @@ import { config } from "../../database/config";
 import { get_lazer_file_location } from "../beatmaps";
 import { beatmap_processor } from "../../database/processor";
 
-import * as beatmap_parser from "@rel-packages/osu-beatmap-parser";
+import { BeatmapParser } from "@rel-packages/osu-parser";
 import Realm from "realm";
 import audio_util from "@rel-packages/audio-utils";
 import fs from "fs";
 import path from "path";
 
 const CHUNK_SIZE = 100;
+
+const get_beatmap_properties = async (file_location: string) => {
+    const parser = new BeatmapParser();
+
+    try {
+        await parser.parse(file_location);
+        const data = parser.get();
+
+        return {
+            AudioFilename: data.General.AudioFilename ?? "",
+            Background: data.Events.background?.filename ?? ""
+        };
+    } finally {
+        parser.free();
+    }
+};
 
 const build_beatmap = (beatmap: BeatmapSchema, processed?: BeatmapRow, temp: boolean = false): IBeatmapResult => {
     return {
@@ -240,8 +256,7 @@ class LazerBeatmapClient extends BaseClient {
                 return null;
             }
 
-            const osu_content = fs.readFileSync(file_location);
-            const beatmap_properties = await beatmap_parser.get_properties(osu_content, ["AudioFilename", "Background"]);
+            const beatmap_properties = await get_beatmap_properties(file_location);
 
             const background_location = beatmap_properties.Background
                 ? get_lazer_file_location(
@@ -297,7 +312,7 @@ class LazerBeatmapClient extends BaseClient {
         return this.collections.get(name);
     };
 
-    update_collection = (): boolean => {
+    update_collection = async (): Promise<boolean> => {
         if (!this.instance) {
             return false;
         }
@@ -472,8 +487,7 @@ class LazerBeatmapClient extends BaseClient {
             return [];
         }
 
-        const osu_content = fs.readFileSync(file_location);
-        const properties = await beatmap_parser.get_properties(osu_content, ["Background", "AudioFilename"]);
+        const properties = await get_beatmap_properties(file_location);
 
         files.push({ name: realm_osu_file.Filename as string, location: file_location });
 

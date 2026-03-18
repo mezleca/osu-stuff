@@ -1,4 +1,4 @@
-import { BeatmapSetResult, IBeatmapResult, IStableTimingPoint, StarRatingFilter } from "@shared/types";
+import { BeatmapSetResult, IBeatmapResult, StarRatingFilter } from "@shared/types";
 import { config } from "../database/config";
 
 import path from "path";
@@ -47,36 +47,6 @@ const STATUS_ALIASES: Record<string, string> = {
     loved: "loved"
 };
 
-// https://github.com/ppy/osu/blob/775cdc087eda5c1525d763c6fa3d422db0e93f66/osu.Game/Beatmaps/Beatmap.cs#L81
-export const get_common_bpm = (timing_points: IStableTimingPoint[], length: number) => {
-    if (!timing_points || timing_points?.length == 0) {
-        return 0;
-    }
-
-    const beat_length_map = new Map();
-    const last_time = length > 0 ? length : timing_points[timing_points.length - 1].offset;
-
-    for (let i = 0; i < timing_points.length; i++) {
-        const point = timing_points[i];
-
-        if (point.offset > last_time) {
-            continue;
-        }
-
-        const bpm = Math.round((60000 / point.beat_length) * 1000) / 1000;
-        const current_time = i == 0 ? 0 : point.offset;
-        const next_time = i == timing_points.length - 1 ? last_time : timing_points[i + 1].offset;
-        const duration = next_time - current_time;
-
-        beat_length_map.set(bpm, (beat_length_map.get(bpm) || 0) + duration);
-    }
-
-    return [...beat_length_map.entries()].reduce((max, [bpm, duration]) => (duration > max.duration ? { bpm, duration } : max), {
-        bpm: 0,
-        duration: 0
-    }).bpm;
-};
-
 const FILTER_REGEX = /\b(?<key>\w+)(?<op>==|!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
 
 export interface AdvancedFilter<K extends keyof IBeatmapResult = keyof IBeatmapResult> {
@@ -101,6 +71,7 @@ export const parse_query = (raw: string): ParsedQuery => {
 
         // treat unknown keys as plain text
         if (!mapped_key) {
+            text = text.replace(match[0], value.replace(/"/g, ""));
             continue;
         }
 

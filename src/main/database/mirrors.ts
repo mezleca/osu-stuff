@@ -1,66 +1,75 @@
-import { StuffMirror } from "@shared/types.js";
-import { BaseDatabase } from "./database.js";
-import { get_app_path } from "../utils.js";
+import { ManagerMirror } from "@shared/types.js";
+import { BaseTable, dbSchema } from "./database.js";
 import { beatmap_downloader } from "../osu/downloader.js";
 
-export class MirrorsDatabase extends BaseDatabase {
-    data: StuffMirror[] = [];
+const DEFAULT_MIRROR_NAME = "";
+const DEFAULT_MIRROR_URL = "";
 
-    constructor() {
-        super("mirrors.db", get_app_path());
-        this.load();
+export class MirrorDB extends BaseTable<ManagerMirror> {
+    readonly name = "mirrors";
+    readonly schema: dbSchema<ManagerMirror> = {
+        name: { type: "TEXT", primary: true, nullable: false, default: DEFAULT_MIRROR_NAME },
+        url: { type: "TEXT", nullable: false, default: DEFAULT_MIRROR_URL }
+    };
+
+    initialize(): void {
+        this.create_table();
+
+        this.prepare("get_all", `SELECT * FROM ${this.name}`);
+        this.prepare("insert", `INSERT OR REPLACE INTO ${this.name} (name, url) VALUES(?, ?)`);
+        this.prepare("delete", `DELETE FROM ${this.name} WHERE name = ?`);
     }
 
-    initialize() {}
-
-    create_tables() {
-        this.exec(`
-            CREATE TABLE IF NOT EXISTS mirrors(
-                name TEXT PRIMARY KEY,
-                url TEXT
-            );
-        `);
-    }
-
-    prepare_statements() {
-        if (!this.prepare_statement("get_all", "SELECT * FROM mirrors")) return false;
-        if (!this.prepare_statement("insert", `INSERT OR REPLACE INTO mirrors (name, url) VALUES(?, ?)`)) return false;
-        if (!this.prepare_statement("delete", `DELETE FROM mirrors WHERE name = ?`)) return false;
-
-        return true;
-    }
-
-    post_initialize() {}
-
-    load(): boolean {
-        const mirrors = this.get_statement("get_all").all();
-
-        if (mirrors) {
-            this.data = mirrors;
-        }
-
+    _update(): void {
         if (beatmap_downloader.is_initialized()) {
             beatmap_downloader.update_mirrors();
         }
-
-        return true;
     }
 
-    delete(name: string) {
-        const result = this.get_statement("delete").run(name);
-        this.load(); // refresh mirrors
-        return result;
+    get(): ManagerMirror[] {
+        const result = this.stmt("get_all")!.all() ?? [];
+        return result as ManagerMirror[];
     }
 
-    update(name: string, url: string) {
-        const result = this.get_statement("insert").run(name, url);
-        this.load();
-        return result;
+    insert(name: string, url: string): void {
+        this.stmt("insert")!.run(name, url);
+        this._update();
     }
 
-    get() {
-        return this.data || [];
+    update(data: Partial<ManagerMirror>): boolean {
+        try {
+            if (!data.name || !data.url) {
+                return false;
+            }
+
+            this.insert(data.name, data.url);
+            return true;
+        } catch (error) {
+            console.error("[mirrors] failed to update:", error);
+            return false;
+        }
     }
+
+    delete(name: string): boolean {
+        try {
+            this.stmt("delete")!.run(name);
+            this._update();
+            return true;
+        } catch (error) {
+            console.error("[mirrors] failed to delete:", error);
+            return false;
+        }
+    }
+
+    load = async (): Promise<boolean> => {
+        try {
+            this.initialize();
+            return true;
+        } catch (error) {
+            console.error("[mirrors] failed to load:", error);
+            return false;
+        }
+    };
 }
 
-export const mirrors = new MirrorsDatabase();
+export const mirrors = new MirrorDB();

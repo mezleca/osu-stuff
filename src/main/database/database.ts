@@ -1,139 +1,161 @@
-import Database from "better-sqlite3";
+import Database, { type Statement } from "better-sqlite3";
 import fs from "fs";
 import path from "path";
 
-export abstract class BaseDatabase {
-    initialized: boolean = false;
-    recreated: boolean = false;
-    database_name: string = "";
-    app_path: string = "";
-    database_path: string = "";
-    instance: any;
-    statements: any;
+export type columnType = "TEXT" | "INTEGER" | "REAL" | "BLOB" | "BOOLEAN";
 
-    constructor(database_name: string, app_path: string) {
-        if (this.initialized) {
-            return;
+export type columnDef = {
+    type: columnType;
+    nullable: boolean;
+    primary?: boolean;
+    default?: unknown;
+};
+
+export type dbSchema<T> = {
+    [K in keyof T]: columnDef;
+};
+
+export class DatabaseManager {
+    private static instance: Database.Database;
+
+    static connect = (location: string): Database.Database => {
+        const base_dir = path.dirname(location);
+        // ensure the path actually exists so write dont fail :)
+        fs.mkdirSync(base_dir, { recursive: true, mode: 0o777 });
+        fs.chmodSync(base_dir, 0o777);
+
+        // create new instance
+        if (!this.instance) {
+            this.instance = new Database(location);
+            this.instance.pragma("journal_mode = WAL");
+            this.instance.pragma("foreign_keys = ON");
         }
 
-        this.database_name = database_name;
-        this.app_path = app_path;
-        this.database_path = path.resolve(app_path, database_name);
-        this.statements = {};
-
-        console.log({ database_name, app_path });
-
-        if (!this.app_path || this.app_path == "") {
-            throw new Error("BaseDatabase -> initialize(): 'app_path' is required but was not provided.");
-        }
-
-        // ensure app_path dir exists so write dont fail :)
-        fs.mkdirSync(this.app_path, { recursive: true, mode: 0o777 });
-
-        // explicitly ensure write permissions (mode in mkdirSync doesn't always work with recursive)
-        try {
-            fs.chmodSync(this.app_path, 0o777);
-        } catch (err) {
-            console.warn(`failed to chmod ${this.app_path}:`, err);
-        }
-
-        try {
-            this.connect_and_initialize();
-        } catch (error) {
-            console.error(`[${this.database_name}] failed to initialize database, resetting...`, error);
-            this.close();
-
-            if (fs.existsSync(this.database_path)) {
-                fs.unlinkSync(this.database_path);
-            }
-
-            this.connect_and_initialize();
-        }
-
-        this.initialized = true;
-    }
-
-    private create_db_file = () => {
-        fs.writeFileSync(this.database_path, "");
-        fs.chmodSync(this.database_path, 0o666);
+        return this.instance;
     };
 
-    connect_and_initialize() {
-        // create empty shit to prevent more errors
-        if (!fs.existsSync(this.database_path)) {
-            this.create_db_file();
+    static get = (): Database.Database => {
+        if (!this.instance) {
+            throw Error("database: database not connected");
         }
 
-        // create new sqlite instance
-        this.instance = new Database(this.database_path);
+        return this.instance;
+    };
 
-        this.create_tables();
+    static close = (): void => {
+        this.instance?.close();
+    };
+}
 
-        // TODO: rn if we find anything related to statements error, we just delete the old one
-        // in the near future, migration or something would be cool (if its a column update issue)
-        const statements_result = this.prepare_statements();
+export abstract class BaseTable<T extends object> {
+    protected db: Database.Database | undefined;
+    protected statements: Record<string, Database.Statement> = {};
 
-        // TOFIx: too hacky
-        if (!statements_result && !this.recreated) {
-            console.log("attempting to recreate db file");
-            fs.rmSync(this.database_path, { force: true });
+    abstract readonly name: string;
+    abstract readonly schema: dbSchema<T>;
 
-            this.recreated = true;
+    abstract initialize(): void | Promise<void>;
 
-            this.create_db_file();
-            this.connect_and_initialize();
-        }
+    create_table = () => {
+        const parts: string[] = [];
 
-        this.initialize();
-        this.post_initialize();
-    }
+        for (const [name, def] of Object.entries(this.schema)) {
+            const data = def as columnDef;
+            let part = `${name} ${this.to_type(data.type)}`;
 
-    abstract initialize(): void;
-    abstract create_tables(): void;
-    abstract prepare_statements(): boolean;
-    abstract post_initialize(): void;
-
-    prepare_statement(name: string, sql: string) {
-        try {
-            this.statements[name] = this.instance.prepare(sql);
-            return this.statements[name];
-        } catch (err) {
-            console.log("failed to prepare statment:", err);
-        }
-    }
-
-    get_statement(name: string) {
-        return this.statements[name];
-    }
-
-    exec(sql: string) {
-        return this.instance.exec(sql);
-    }
-
-    close() {
-        if (this.instance) {
-            this.instance.close();
-        }
-    }
-
-    reinitialize() {
-        this.close();
-        this.initialized = false;
-        this.statements = {};
-
-        try {
-            this.connect_and_initialize();
-        } catch (error) {
-            console.error(`[${this.database_name}] failed to reinitialize database, resetting...`, error);
-            this.close();
-
-            if (fs.existsSync(this.database_path)) {
-                fs.unlinkSync(this.database_path);
+            if (data?.primary) {
+                part += " PRIMARY KEY";
             }
 
-            this.connect_and_initialize();
+            if (data?.default != undefined) {
+                part += ` DEFAULT ${this.to_value(data.default, data.type)}`;
+            }
+
+            if (!data?.nullable) {
+                if (data?.default == undefined) throw Error(`database: missing default value for ${name}`);
+                part += " NOT NULL";
+            }
+
+            parts.push(part);
         }
 
-        this.initialized = true;
+        this.get_db().exec(`
+            CREATE TABLE IF NOT EXISTS ${this.name} (${parts.join(", ")})
+        `);
+
+        this.prepare("clear", `DELETE FROM ${this.name}`);
+    };
+
+    update(data: Partial<T>): void {
+        const keys = Object.keys(data);
+        const placeholders = keys.map((_) => "?");
+        const set_clause = keys.map((k) => `${k} = EXCLUDED.${k}`).join(", ");
+
+        const statement = this.get_db().prepare(`
+            INSERT INTO ${this.name} (${keys.join(", ")})
+            VALUES(${placeholders})
+            ON CONFLICT DO UPDATE SET ${set_clause}
+        `);
+
+        statement.run(this.to_values(data));
     }
+
+    to_type = (_type: columnType) => {
+        if (_type == "BOOLEAN") {
+            return "INTEGER";
+        }
+
+        return _type;
+    };
+
+    to_values = (data: Record<string, unknown>) => {
+        const result: unknown[] = [];
+
+        for (const [, value] of Object.entries(data)) {
+            if (typeof value === "boolean") {
+                result.push(Number(value));
+            } else {
+                result.push(value);
+            }
+        }
+
+        return result;
+    };
+
+    to_value = (value: unknown, _type?: columnType) => {
+        if (_type == "BOOLEAN" || typeof value == "boolean") {
+            return Number(value);
+        }
+
+        if (_type == "TEXT" || typeof value == "string") {
+            return `'${value}'`;
+        }
+
+        return value;
+    };
+
+    reinitialize = async (): Promise<void> => {
+        await this.initialize();
+    };
+
+    clear = () => {
+        return this.statements["clear"]!.run();
+    };
+
+    protected prepare = (name: string, sql: string): Statement => {
+        this.statements[name] = this.get_db().prepare(sql);
+        return this.statements[name];
+    };
+
+    protected stmt = (name: string): Statement | undefined => {
+        return this.statements[name];
+    };
+
+    protected get_db = (): Database.Database => {
+        if (!this.db) {
+            this.db = DatabaseManager.get();
+        }
+
+        return this.db;
+    };
 }
