@@ -80,6 +80,10 @@ export interface IpcSchema {
             params: string;
             result: GenericResult<Map<string, ICollectionResult>>;
         };
+        "processor:state": {
+            params: undefined;
+            result: { processing: boolean; data: IProcessorEvent["data"] | null };
+        };
         // fetch
         "fetch:get": {
             params: FetchOptions;
@@ -113,6 +117,11 @@ export interface IpcSchema {
         };
         "mirrors:load": {
             params: undefined;
+            result: boolean;
+        };
+        // core
+        "core:initialized": {
+            params: [boolean?];
             result: boolean;
         };
         // clients

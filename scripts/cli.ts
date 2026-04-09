@@ -1,7 +1,7 @@
 import { spawn, build } from "bun";
 import type { Subprocess } from "bun";
 import { rm, mkdir } from "fs/promises";
-import { existsSync, watch } from "fs";
+import { existsSync, readdirSync, statSync, watch } from "fs";
 import { execSync } from "child_process";
 import path from "path";
 
@@ -13,7 +13,9 @@ const PATHS = {
     ROOT: path.resolve(__dirname, ".."),
     OUT: path.resolve(__dirname, "../out"),
     SRC_MAIN: path.resolve(__dirname, "../src/main/index.ts"),
-    SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts")
+    SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts"),
+    SRC_WORKER_DIR: path.resolve(__dirname, "../src/worker"),
+    OUT_WORKER_DIR: path.resolve(__dirname, "../out/main/worker")
 };
 
 let vite_process: Subprocess | null = null;
@@ -163,9 +165,78 @@ const build_main = () => {
         outdir: path.join(PATHS.OUT, "main"),
         target: "node",
         format: "cjs",
-        external: ["electron", "better-sqlite3", "realm", "electron-updater", "@rel-packages/audio-utils"],
+        external: ["electron", "better-sqlite3", "realm", "electron-updater", "@rel-packages/audio-utils", "tinypool"],
         tsconfig: "tsconfig.node.json"
     });
+};
+
+const get_worker_entrypoints = (base_dir: string): string[] => {
+    if (!existsSync(base_dir)) {
+        return [];
+    }
+
+    const output: string[] = [];
+    const stack: string[] = [base_dir];
+
+    while (stack.length > 0) {
+        const current_dir = stack.pop();
+
+        if (!current_dir) {
+            continue;
+        }
+
+        const entries = readdirSync(current_dir);
+
+        for (const entry of entries) {
+            const full_path = path.join(current_dir, entry);
+            const info = statSync(full_path);
+
+            if (info.isDirectory()) {
+                stack.push(full_path);
+                continue;
+            }
+
+            if (!full_path.endsWith(".ts") || full_path.endsWith(".d.ts")) {
+                continue;
+            }
+
+            output.push(full_path);
+        }
+    }
+
+    output.sort((a, b) => a.localeCompare(b));
+    return output;
+};
+
+const build_workers = async () => {
+    const worker_files = get_worker_entrypoints(PATHS.SRC_WORKER_DIR);
+
+    if (worker_files.length == 0) {
+        return;
+    }
+
+    console.log(`[build] building ${worker_files.length} worker(s)...`);
+
+    for (const worker_file of worker_files) {
+        const relative_file = path.relative(PATHS.SRC_WORKER_DIR, worker_file);
+        const output_file = path.join(PATHS.OUT_WORKER_DIR, relative_file.replace(/\.ts$/, ".mjs"));
+
+        await mkdir(path.dirname(output_file), { recursive: true });
+
+        const worker_build = spawn(
+            ["bun", "build", "--target", "node", "--format", "esm", "--outfile", output_file, "--external", "@rel-packages/audio-utils", worker_file],
+            {
+                stdout: "inherit",
+                stderr: "inherit"
+            }
+        );
+
+        const exit_code = await worker_build.exited;
+
+        if (exit_code != 0) {
+            throw new Error(`worker build failed for ${relative_file} (exit code: ${exit_code})`);
+        }
+    }
 };
 
 const build_preload = () => {
@@ -262,6 +333,7 @@ const dev = async () => {
     }
 
     await build_main();
+    await build_workers();
     await build_preload();
     await start_electron(true);
 
@@ -271,6 +343,7 @@ const dev = async () => {
 const build_all = async () => {
     await clean();
     await build_main();
+    await build_workers();
     await build_preload();
     await build_renderer();
 };

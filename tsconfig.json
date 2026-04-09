@@ -19,6 +19,9 @@
       "@shared/*": [
         "./src/shared/*"
       ],
+      "@worker/*": [
+        "./src/worker/*"
+      ],
       "@assets/*": [
         "./src/renderer/src/assets/*"
       ]

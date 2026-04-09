@@ -55,7 +55,8 @@ const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata, has_l
         status: beatmap.status,
         mode: beatmap.mode as GameMode,
         temp: !has_local_map,
-        background: ""
+        background: "",
+        duration: -1
     };
 };
 

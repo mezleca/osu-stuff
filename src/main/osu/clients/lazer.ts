@@ -14,7 +14,7 @@ import {
 import { BaseClient } from "./base";
 import { config } from "../../database/config";
 import { get_lazer_file_location } from "../beatmaps";
-import { get_audio_duration } from "../audio";
+import { process_beatmap_task } from "../beatmap_worker";
 import { beatmap_processor } from "../../database/processor";
 
 import { BeatmapParser } from "../parsers";
@@ -61,7 +61,7 @@ const build_beatmap = (beatmap: BeatmapSchema, processed?: BeatmapRow, temp: boo
         status: lazer_status_from_code(beatmap.Status),
         mode: (beatmap.Ruleset.Name as GameMode) || GameMode.Osu,
         temp: temp,
-        duration: processed?.duration || 0,
+        duration: processed?.duration || -1,
         background: processed?.background || "",
         audio: processed?.audio || ""
     };
@@ -127,8 +127,8 @@ class LazerBeatmapClient extends BaseClient {
         this.beatmaps.clear();
         this.beatmapsets.clear();
 
-        await this.process_beatmaps();
         this.initialized = true;
+        await this.process_beatmaps();
 
         return true;
     };
@@ -157,6 +157,7 @@ class LazerBeatmapClient extends BaseClient {
         });
 
         console.log("[lazer] processing", to_process.length, "beatmaps");
+
         for (let i = 0; i < to_process.length; i++) {
             const beatmap = to_process[i];
             beatmap_processor.update_on_renderer(i, to_process.length);
@@ -173,6 +174,14 @@ class LazerBeatmapClient extends BaseClient {
                 if (row) {
                     to_insert.push(row);
                     processed_map.set(row.md5, row);
+
+                    const cached_beatmap = this.beatmaps.get(row.md5);
+
+                    if (cached_beatmap) {
+                        cached_beatmap.duration = row.duration;
+                        cached_beatmap.background = row.background;
+                        cached_beatmap.audio = row.audio;
+                    }
                 }
             }
         }
@@ -223,39 +232,19 @@ class LazerBeatmapClient extends BaseClient {
 
         try {
             const file_location = get_lazer_file_location(osu_file.File.Hash);
+            const files = beatmap.BeatmapSet.Files.map((file_usage) => ({
+                filename: file_usage.Filename ?? "",
+                hash: file_usage.File?.Hash ?? ""
+            }));
 
-            if (!fs.existsSync(file_location)) {
-                console.error("failed to find .osu (not found) for:", beatmap.Hash);
-                return null;
-            }
-
-            const beatmap_properties = await get_beatmap_properties(file_location);
-
-            const background_location = beatmap_properties.Background
-                ? get_lazer_file_location(
-                      beatmap.BeatmapSet.Files.find((file_usage) => {
-                          return file_usage.Filename == beatmap_properties.Background;
-                      })?.File?.Hash ?? ""
-                  )
-                : "";
-
-            const audio_location = beatmap_properties.AudioFilename
-                ? get_lazer_file_location(
-                      beatmap.BeatmapSet.Files.find((file_usage) => {
-                          return file_usage.Filename == beatmap_properties.AudioFilename;
-                      })?.File?.Hash ?? ""
-                  )
-                : "";
-            const audio_duration = get_audio_duration(audio_location);
-
-            return {
+            return process_beatmap_task({
+                kind: "lazer",
                 md5: beatmap?.MD5Hash ?? "",
                 last_modified,
-                background: background_location,
-                audio: audio_location,
-                video: "",
-                duration: audio_duration > 0 ? audio_duration : (beatmap_properties.Duration ?? 0)
-            };
+                osu_file_location: file_location,
+                lazer_files_path: path.resolve(config.get().lazer_path, "files"),
+                files
+            });
         } catch (err) {
             console.error(err);
             return null;

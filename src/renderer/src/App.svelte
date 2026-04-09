@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { fade } from "svelte/transition";
     import { cubicOut } from "svelte/easing";
     import { active_tab, is_maximized } from "./lib/store/other";
@@ -54,12 +54,23 @@
 
                 // initialize downloader events
                 await downloader.initialize();
+
+                // sync processing statet
+                const processing_state = await window.api.invoke("processor:state");
+
+                processing.set(processing_state.processing);
+                processing_data.set(processing_state.data ?? {});
             } catch (err) {
                 console.log(err);
                 show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
             } finally {
                 initialized = true;
-                requestAnimationFrame(() => get_osu_data());
+
+                await tick();
+
+                // tell main process we're ready
+                await window.api.invoke("core:initialized", true);
+                await get_osu_data();
             }
         })();
 
@@ -136,7 +147,7 @@
         width: 100vw;
         height: 100vh;
         background: rgba(20, 20, 20, 0.95);
-        z-index: 99999;
+        z-index: 99998;
         display: flex;
         flex-direction: column;
         justify-content: center;

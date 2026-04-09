@@ -7,6 +7,7 @@ export const processing_data: Writable<IProcessorEventData> = writable({});
 window.api.on("processor:events", (payload) => {
     if (payload.type == "start") {
         processing.set(true);
+        return;
     }
 
     if (payload.type == "finish") {

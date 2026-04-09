@@ -4,6 +4,7 @@
     "electron.vite.config.*",
     "src/main/**/*",
     "src/main/env.d.ts",
+    "src/worker/**/*",
     "src/preload/**/*",
     "src/shared/**/*"
   ],
@@ -12,6 +13,9 @@
     "paths": {
       "@shared/*": [
         "./src/shared/*"
+      ],
+      "@worker/*": [
+        "./src/worker/*"
       ]
     }
   }

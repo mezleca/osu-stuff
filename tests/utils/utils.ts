@@ -42,7 +42,8 @@ export const create_temp_beatmap = (): IBeatmapResult => {
         mode: GameMode.Osu,
         last_modified: "",
         temp: true,
-        background: ""
+        background: "",
+        duration: 1
     };
 };
 

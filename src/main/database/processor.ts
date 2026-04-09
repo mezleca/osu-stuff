@@ -16,6 +16,7 @@ export class ProcessedDB extends BaseTable<BeatmapRow> {
     };
 
     is_processing: boolean = false;
+    last_event_data: { status: string; large_text: string; small_text: string; index: number; length: number } | null = null;
     window!: BrowserWindow;
 
     initialize() {
@@ -95,6 +96,7 @@ export class ProcessedDB extends BaseTable<BeatmapRow> {
     }
 
     show_on_renderer = () => {
+        this.is_processing = true;
         const window = this.window;
 
         if (window) {
@@ -104,6 +106,8 @@ export class ProcessedDB extends BaseTable<BeatmapRow> {
     };
 
     hide_on_renderer = () => {
+        this.is_processing = false;
+        this.last_event_data = null;
         const window = this.window;
 
         if (window) {
@@ -113,23 +117,32 @@ export class ProcessedDB extends BaseTable<BeatmapRow> {
     };
 
     update_on_renderer = throttle((index: number, length: number) => {
+        this.last_event_data = {
+            status: "processing...",
+            large_text: `processing ${index}`,
+            small_text: "this might take a while",
+            index,
+            length
+        };
+
         const window = this.window;
 
         if (window) {
             send_to_renderer(window.webContents, "processor:events", {
                 type: "update",
-                data: {
-                    status: "processing...",
-                    large_text: `processing ${index}`,
-                    small_text: "this might take a while",
-                    index,
-                    length
-                }
+                data: this.last_event_data
             });
         } else {
             console.log("process update:", index);
         }
     }, 50);
+
+    get_renderer_state = () => {
+        return {
+            processing: this.is_processing,
+            data: this.last_event_data
+        };
+    };
 }
 
 export const beatmap_processor = new ProcessedDB();

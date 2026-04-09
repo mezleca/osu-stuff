@@ -379,7 +379,8 @@ class BeatmapDownloader implements IBeatmapDownloader {
                 last_modified: new Date().toISOString(),
                 background: "",
                 audio: "",
-                tags: result.beatmapset?.tags || ""
+                tags: result.beatmapset?.tags || "",
+                duration: -1
             };
 
             return { success: true, data: mapped };

@@ -43,7 +43,9 @@ import { beatmap_processor } from "./database/processor";
 import { OpenDevToolsOptions } from "electron/utility";
 import { DatabaseManager } from "./database/database";
 import { OsdbParser, OsuCollectionDbParser } from "./osu/parsers";
+import { destroy_beatmap_pool } from "./osu/beatmap_worker";
 import type { GenericResult, ICollectionResult, OsdbData } from "@shared/types";
+import { core } from "./core";
 
 import path from "path";
 import fs from "fs";
@@ -151,6 +153,12 @@ async function createWindow() {
 
     // env
     handle_ipc("env:dev_mode", is_dev_mode);
+    handle_ipc("core:initialized", (_, state) => {
+        if (typeof state == "boolean") {
+            core.initialized = state;
+        }
+        return core.initialized;
+    });
 
     // window
     handle_ipc("window:state", () => (mainWindow.isMaximized() ? "maximized" : "minimized"));
@@ -180,7 +188,12 @@ async function createWindow() {
     handle_ipc("mirrors:load", () => mirrors.load());
 
     // clients
-    handle_ipc("client:initialize", (_, force, client) => initialize_client(force, client));
+    handle_ipc("client:initialize", async (_, force, client) => {
+        if (!core.initialized) {
+            return false;
+        }
+        return initialize_client(force, client);
+    });
     handle_ipc("client:is_initialized", (_, client) => is_client_initialized(client));
     handle_ipc("client:should_update", (_, client) => should_update(client));
     handle_ipc("client:get_player_name", (_, client) => get_player_name(client));
@@ -244,11 +257,14 @@ async function createWindow() {
 
     // reader (osdb)
     handle_ipc("reader:read_osdb", (_, location) => read_osdb(location));
+    handle_ipc("processor:state", () => beatmap_processor.get_renderer_state());
 
     // initialize auto updater
     updater.initialize();
 
-    mainWindow.on("ready-to-show", mainWindow.show);
+    mainWindow.once("ready-to-show", () => {
+        mainWindow.show();
+    });
 
     mainWindow.webContents.setWindowOpenHandler((details) => {
         shell.openExternal(details.url);
@@ -336,6 +352,9 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
     if (process.platform != "darwin") {
+        destroy_beatmap_pool().catch((err) => {
+            console.error("failed to destroy beatmap pool:", err);
+        });
         app.quit();
     }
 });

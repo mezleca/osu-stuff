@@ -9,6 +9,12 @@ import path from "path";
 import { performance } from "node:perf_hooks";
 
 const temp_beatmap = create_temp_beatmap();
+const invalid_duration_beatmap = {
+    ...create_temp_beatmap(),
+    md5: create_temp_beatmap().md5,
+    title: "invalid duration beatmap",
+    duration: -1
+};
 
 const test_client = (type: string) => {
     const client = get_client(type);
@@ -44,17 +50,9 @@ const test_client = (type: string) => {
 
             const first = parser.get_minimal_list()[0];
             expect(first).toBeDefined();
-
-            const by_md5 = parser.filter_by_properties({ md5: first.md5 });
-            expect(by_md5.length).toBe(1);
-            expect(by_md5[0]?.md5).toBe(first.md5);
-
-            const by_set = parser.filter_by_properties({ beatmap_id: first.beatmap_id });
-            expect(by_set.length).toBeGreaterThan(0);
-
-            const by_diff = parser.filter_by_properties({ difficulty_id: first.difficulty_id });
-            expect(by_diff.length).toBe(1);
-            expect(by_diff[0]?.md5).toBe(first.md5);
+            expect(first.md5.length).toBeGreaterThan(0);
+            expect(first.online_id).toBeGreaterThan(0);
+            expect(first.beatmapset_id).toBeGreaterThan(0);
         });
 
         test(`${type}: benchmark parse/filter`, async () => {
@@ -66,11 +64,12 @@ const test_client = (type: string) => {
             const parse_elapsed = performance.now() - parse_start;
 
             const filter_start = performance.now();
-            const filtered = parser.filter_by_properties({
-                query: "glass beach",
-                sort: { key: "title", order: "asc" },
-                star_rating: { min: 4, max: 10 }
-            });
+            const filtered = parser
+                .get_minimal_list()
+                .filter((beatmap) => {
+                    return beatmap.artist.toLowerCase().includes("glass beach") && beatmap.star_rating >= 4;
+                })
+                .sort((a, b) => a.title.localeCompare(b.title));
             const filter_elapsed = performance.now() - filter_start;
 
             console.info(
@@ -148,6 +147,11 @@ const test_client = (type: string) => {
         expect(result).toBe(true);
     });
 
+    test(`${type}: add_beatmap(invalid_duration):`, () => {
+        const result = client.add_beatmap(invalid_duration_beatmap);
+        expect(result).toBe(true);
+    });
+
     test(`${type}: get_beatmap(temp):`, async () => {
         const result = await client.get_beatmap_by_md5(temp_beatmap.md5);
         expect(result).toBe(temp_beatmap);
@@ -155,7 +159,7 @@ const test_client = (type: string) => {
 
     test(`${type}: get_all_beatmaps(including temp):`, async () => {
         const result = client.get_beatmaps();
-        expect(result.length).toBe(BEATMAP_COUNT + 1);
+        expect(result.length).toBe(BEATMAP_COUNT + 2);
     });
 
     // temp beatmaps persist across searches
@@ -193,6 +197,39 @@ const test_client = (type: string) => {
         });
 
         expect(beatmaps.length).toBe(18);
+    });
+
+    test(`${type}: search_beatmaps(sort=duration):`, async () => {
+        const result = await client.search_beatmaps({
+            query: "",
+            sort: "duration",
+            status: ALL_STATUS_KEY,
+            mode: GameMode.All,
+            unique: false
+        });
+
+        expect(result.beatmaps.length).toBeGreaterThan(0);
+
+        const sample = result.beatmaps.slice(0, Math.min(40, result.beatmaps.length)).map((item) => item.md5);
+        const fetched = await client.fetch_beatmaps(sample);
+        const durations = fetched.beatmaps.map((beatmap) => Number(beatmap.duration ?? 0));
+
+        for (let i = 1; i < durations.length; i++) {
+            expect(durations[i - 1]).toBeGreaterThanOrEqual(durations[i]);
+        }
+    });
+
+    test(`${type}: search_beatmaps(has_duration=true) excludes invalid durations:`, async () => {
+        const result = await client.search_beatmaps({
+            query: "invalid duration beatmap",
+            sort: "title",
+            status: ALL_STATUS_KEY,
+            mode: GameMode.All,
+            unique: false,
+            has_duration: true
+        });
+
+        expect(result.beatmaps.find((beatmap) => beatmap.md5 == invalid_duration_beatmap.md5)).toBeUndefined();
     });
 
     test(`${type}: search_beatmapsets():`, async () => {

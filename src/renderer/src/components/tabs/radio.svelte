@@ -19,6 +19,9 @@
     import Dropdown from "../utils/basic/dropdown.svelte";
     import BeatmapList from "../beatmap-list.svelte";
 
+    // @ts-ignore
+    import PLACEHOLDER_IMAGE from "@assets/images/fallback.png";
+
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
     const selected_store = collections.get_selected_store("radio");
@@ -68,6 +71,7 @@
 
     const retry_random = debounce(() => audio.force_random.set(true), 200);
     const trigger_random = debounce(() => audio.force_random.set(true), 50);
+
     const SEEK_OFFSET_SECONDS = 5;
 
     const seek_by_seconds = (offset_seconds: number) => {
@@ -169,47 +173,53 @@
         collections.filter();
     };
 
-    $: if ($selected?.md5 && $selected.index != -1 && audio.get_state().id != $selected.md5 && !audio.get_state().is_loading) {
-        const beatmap_id = $selected.md5;
-        audio.load_and_setup_audio(beatmap_id).then(async (result) => {
-            if (result) {
-                await audio.play();
-            }
-        });
-    }
-
-    $: if ($selected && $selected?.index != -1) {
-        get_beatmap($selected.md5).then((bm) => {
-            selected_beatmap = bm;
-            update_background_image();
-        });
-    } else {
-        selected_beatmap = null;
-        bg = "";
-        audio.clean_audio();
-    }
-
-    $: if (selected_collection && $selected_store.name != selected_collection) {
-        // fallback to all beatmaps if the collection was deleted
-        if (selected_collection != ALL_BEATMAPS_KEY && !collections.has(selected_collection)) {
-            selected_collection = ALL_BEATMAPS_KEY;
+    $: {
+        // load audio on changes
+        if ($selected?.md5 && $selected.index != -1 && audio.get_state().id != $selected.md5 && !audio.get_state().is_loading) {
+            const beatmap_id = $selected.md5;
+            audio.load_and_setup_audio(beatmap_id).then(async (result) => {
+                if (result) {
+                    await audio.play();
+                }
+            });
         }
 
-        collections.select(selected_collection, "radio");
-    }
+        // update selected beatmap data on changes
+        if ($selected && $selected?.index != -1) {
+            get_beatmap($selected.md5).then((bm) => {
+                selected_beatmap = bm;
+                update_background_image();
+            });
+        } else {
+            selected_beatmap = null;
+            bg = "";
+            audio.clean_audio();
+        }
 
-    $: if (selected_collection || $query || $sort || $should_update) {
-        debounced_update($should_update);
-    }
+        // update selection collection on change
+        if (selected_collection && $selected_store.name != selected_collection) {
+            // fallback to all beatmaps if the collection was deleted
+            if (selected_collection != ALL_BEATMAPS_KEY && !collections.has(selected_collection)) {
+                selected_collection = ALL_BEATMAPS_KEY;
+            }
 
-    $: if ($config.radio_background) {
-        update_background_image();
-    } else {
-        bg = "";
+            collections.select(selected_collection, "radio");
+        }
+
+        if (selected_collection || $query || $sort || $should_update) {
+            debounced_update($should_update);
+        }
+
+        if ($config.radio_background) {
+            update_background_image();
+        } else {
+            bg = "";
+        }
     }
 
     onMount(() => {
         list.show_unique.set(true);
+        list.has_duration.set(true);
 
         audio.set_callbacks({
             get_next_id: get_next_id_callback,
@@ -281,7 +291,7 @@
 
         <div class="radio-data" class:no-bg={!bg}>
             {#if bg}
-                <img class="radio-background" src={bg} alt="" />
+                <img class="radio-background" src={bg} onerror={() => (bg = PLACEHOLDER_IMAGE)} alt="" />
             {/if}
             <div class="radio-beatmap">
                 <div class="radio-beatmap-header">

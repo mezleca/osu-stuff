@@ -74,7 +74,8 @@ const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapRe
                     status: beatmap.status,
                     mode: beatmap.mode as GameMode,
                     last_modified: "",
-                    background: ""
+                    background: "",
+                    duration: -1
                 });
             }
         }
@@ -122,7 +123,7 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
             bpm: beatmap.bpm,
             length: beatmap.hit_length,
             temp: true,
-
+            duration: -1,
             status: beatmap.status,
             mode: beatmap.mode as GameMode,
             last_modified: "",

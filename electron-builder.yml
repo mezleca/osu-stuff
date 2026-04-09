@@ -9,6 +9,9 @@ directories:
 
 asarUnpack:
     - "**/*.node"
+    - "out/main/worker/**/*.mjs"
+    - "node_modules/@rel-packages/audio-utils/**"
+    - "node_modules/node-gyp-build/**"
     - "!**/node_modules/realm/prebuilds/**"
 
 extraResources:

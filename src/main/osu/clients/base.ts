@@ -106,6 +106,7 @@ export abstract class BaseClient implements IOsuClient {
         const selected_mode = (options.mode as string) ?? ALL_MODES_KEY;
 
         if (beatmap.beatmapset_id == -1) return false;
+        if (options.has_duration && beatmap.duration == -1) return false;
         if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
         if (options.query && !matches_beatmap(beatmap, query)) return false;
         if (selected_status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != selected_status.toLowerCase()) return false;

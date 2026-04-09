@@ -125,6 +125,7 @@ export class BeatmapList extends ListBase<string> {
     sort: Writable<keyof IBeatmapResult> = writable("title");
     show_invalid: Writable<boolean> = writable(false);
     show_unique: Writable<boolean> = writable(false);
+    has_duration: Writable<boolean> = writable(false);
 
     // cache
     last_filter: string = "";
@@ -183,7 +184,8 @@ export class BeatmapList extends ListBase<string> {
             difficulty_range: get(this.difficulty_range),
             status: status,
             mode: get(this.mode),
-            unique: get(this.show_unique)
+            unique: get(this.show_unique),
+            has_duration: get(this.has_duration)
         };
     }
 

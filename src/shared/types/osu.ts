@@ -156,6 +156,9 @@ export interface IBeatmapFilter {
 
     // make sure we keep 1 diff per beatmap (unless its a set with different music files)
     unique: boolean;
+
+    // only include beatmaps with valid processed audio duration
+    has_duration?: boolean;
 }
 
 export interface IBeatmapSetFilter {
@@ -189,10 +192,12 @@ export interface IBeatmapResult {
     last_modified: string;
     file_path?: string;
 
-    // processor
-    unique_id?: string;
+    // processed
     background: string;
-    duration?: number;
+    duration: number;
+
+    // optional generated stuff
+    unique_id?: string;
     audio?: string;
     folder_name?: string;
     file_name?: string;

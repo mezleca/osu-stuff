@@ -1,3 +1,23 @@
+# v2.6.0
+
+hopefully stable enough for a minor release...
+
+# new stuff
+
+- electron: updated to the latest version
+- beatmap processor: use worker threads
+- beatmap processor(ui): show state even after reload
+
+# bug fixes
+
+- radio: show fallback gradient instead of "not found" icon on background
+- beatmap-list(radio): ignore beatmaps that have no audio file
+- renderer: window border disappearing on processing screen
+- renderer: window taking almost a minute to open on first launch (due to beatmap processor)
+- beatmap: sort not working in some cases
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.13...v2.6.0
+
 # v2.5.13
 
 # new stuff
@@ -10,7 +30,7 @@
 
 - minor bug fixes
 
-**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.11...v2.5.12
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.12...v2.5.13
 
 # v2.5.12
 
