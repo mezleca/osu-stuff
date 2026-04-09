@@ -2,13 +2,15 @@
 
 # new stuff
 
-- collections / beatmapsets: loading / searching should be a bit faster (stable only)
+- collections / beatmapsets: loading / searching should be a bit faster
 - preview: replaced vibecoded previewer with an iframe to "preview.tryz.id.vn"
 - updated dependencies to the latest version
 
 # bug fixes
 
 - minor bug fixes
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.5.11...v2.5.12
 
 # v2.5.12
 
