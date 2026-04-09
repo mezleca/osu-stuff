@@ -4,7 +4,8 @@ import { string_is_valid } from "../utils/utils";
 import { throttle } from "../utils/timings";
 import { show_notification } from "./notifications";
 
-const DEFAULT_CONFIG_FIELDS = {
+const DEFAULT_CONFIG_FIELDS: ManagerConfig = {
+    _id: 0,
     osu_id: "",
     osu_secret: "",
     stable_path: "",

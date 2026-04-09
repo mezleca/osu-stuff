@@ -2,20 +2,9 @@ import { writable, get, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { is_special_key } from "./other";
 import type { ICollectionResult } from "@shared/types";
+import type { ICollectionWithEdit, IMissingCache, ISelectedCollection } from "@shared/types";
 
-export interface ICollectionWithEdit extends ICollectionResult {
-    edit: boolean;
-}
-
-interface ISelectedCollection {
-    name: string;
-    beatmaps: string[];
-}
-
-interface IMissingCache {
-    count: number;
-    last_checked_modified: number;
-}
+export type { ICollectionWithEdit };
 
 const DEFAULT_SELECTED: ISelectedCollection = {
     name: "",

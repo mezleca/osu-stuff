@@ -1,9 +1,12 @@
 import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { get_client } from "@main/osu/clients/client";
 import { matches_beatmap, parse_query } from "@main/osu/beatmaps";
-import { create_temp_beatmap } from "../utils/utils";
+import { OsuDbParser } from "@main/osu/parsers";
+import { create_temp_beatmap, TEMP_DIR } from "../utils/utils";
 import { setup_config } from "../utils/utils";
 import { GameMode, ALL_STATUS_KEY, IBeatmapResult } from "@shared/types";
+import path from "path";
+import { performance } from "node:perf_hooks";
 
 const temp_beatmap = create_temp_beatmap();
 
@@ -39,22 +42,45 @@ const test_client = (type: string) => {
             const header = parser.get_header();
             expect(header.beatmaps_count).toBeGreaterThan(0);
 
-            const first = parser.get_beatmaps_range(0, 1)[0];
+            const first = parser.get_minimal_list()[0];
             expect(first).toBeDefined();
 
-            const full = parser.get_by_md5(first.md5);
-            expect(full?.md5).toBe(first.md5);
+            const by_md5 = parser.filter_by_properties({ md5: first.md5 });
+            expect(by_md5.length).toBe(1);
+            expect(by_md5[0]?.md5).toBe(first.md5);
 
-            const minimal = parser.get_minimal_by_md5(first.md5);
-            expect(minimal?.md5).toBe(first.md5);
-            expect(minimal?.beatmap_id).toBe(first.beatmap_id);
-            expect(minimal?.difficulty_id).toBe(first.difficulty_id);
-
-            const by_set = parser.get_by_beatmapset_id(first.beatmap_id);
+            const by_set = parser.filter_by_properties({ beatmap_id: first.beatmap_id });
             expect(by_set.length).toBeGreaterThan(0);
 
-            const by_diff = parser.get_by_difficulty_id(first.difficulty_id);
-            expect(by_diff?.md5).toBe(first.md5);
+            const by_diff = parser.filter_by_properties({ difficulty_id: first.difficulty_id });
+            expect(by_diff.length).toBe(1);
+            expect(by_diff[0]?.md5).toBe(first.md5);
+        });
+
+        test(`${type}: benchmark parse/filter`, async () => {
+            const osu_db_location = path.resolve(TEMP_DIR, "osu", "osu!.db");
+
+            const parse_start = performance.now();
+            const parser = new OsuDbParser();
+            await parser.parse(osu_db_location);
+            const parse_elapsed = performance.now() - parse_start;
+
+            const filter_start = performance.now();
+            const filtered = parser.filter_by_properties({
+                query: "glass beach",
+                sort: { key: "title", order: "asc" },
+                star_rating: { min: 4, max: 10 }
+            });
+            const filter_elapsed = performance.now() - filter_start;
+
+            console.info(
+                `[benchmark][stable] parse_osu_db_ms=${parse_elapsed.toFixed(3)} filter_ms=${filter_elapsed.toFixed(3)} result=${filtered.length}`
+            );
+
+            expect(parse_elapsed).toBeGreaterThanOrEqual(0);
+            expect(filter_elapsed).toBeGreaterThanOrEqual(0);
+            expect(filtered.length).toBeGreaterThanOrEqual(0);
+            parser.free();
         });
     }
 
@@ -272,5 +298,45 @@ describe("beatmap query", () => {
         expect(matches_beatmap(beatmap, parse_query("sr>=10"))).toBe(false);
         expect(matches_beatmap(beatmap, parse_query("mode=mania"))).toBe(false);
         expect(matches_beatmap(beatmap, parse_query("status!=ranked,loved"))).toBe(false);
+    });
+
+    test("benchmark parse_query/matches_beatmap", () => {
+        const beatmap = make_query_beatmap({
+            title: "Señorita",
+            creator: "rel",
+            difficulty: "Another",
+            star_rating: 6.3,
+            hp: 7,
+            mode: GameMode.Catch,
+            status: "ranked"
+        });
+
+        const input_query = 'mapper:"rel" stars>=6 mode=catch status=ranked';
+        const loops = 2000;
+
+        const parse_start = performance.now();
+        for (let i = 0; i < loops; i++) {
+            parse_query(input_query);
+        }
+        const parse_elapsed = performance.now() - parse_start;
+
+        const parsed = parse_query(input_query);
+        const match_start = performance.now();
+        let matched_count = 0;
+
+        for (let i = 0; i < loops; i++) {
+            if (matches_beatmap(beatmap, parsed)) {
+                matched_count++;
+            }
+        }
+
+        const match_elapsed = performance.now() - match_start;
+        console.info(
+            `[benchmark][query] parse_ms=${parse_elapsed.toFixed(3)} match_ms=${match_elapsed.toFixed(3)} loops=${loops} matches=${matched_count}`
+        );
+
+        expect(parse_elapsed).toBeGreaterThanOrEqual(0);
+        expect(match_elapsed).toBeGreaterThanOrEqual(0);
+        expect(matched_count).toBe(loops);
     });
 });

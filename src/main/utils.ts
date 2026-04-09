@@ -122,6 +122,11 @@ const create_new_window = (name: string, options: BrowserWindowConstructorOption
 
     const new_window = new BrowserWindow(options);
     created_windows.set(name, new_window);
+
+    new_window.on("closed", () => {
+        created_windows.delete(name);
+    });
+
     return new_window;
 };
 
@@ -130,7 +135,14 @@ export const get_window = (name: string, options: BrowserWindowConstructorOption
         return create_new_window(name, options);
     }
 
-    return created_windows.get(name) ?? create_new_window(name, options);
+    const existing_window = created_windows.get(name);
+
+    if (existing_window && !existing_window.isDestroyed()) {
+        return existing_window;
+    }
+
+    created_windows.delete(name);
+    return create_new_window(name, options);
 };
 
 export const throttle = (func: (...args: any[]) => void, duration: number) => {

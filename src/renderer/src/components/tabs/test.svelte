@@ -8,15 +8,10 @@
     import { string_is_valid } from "../../lib/utils/utils";
     import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
+    import type { ContextMenuOption } from "@shared/types";
 
     let beatmaps: Array<{ md5: string }> = [];
     let download_id = 0;
-
-    interface TestItem {
-        id: string;
-        text: string;
-        data?: TestItem[];
-    }
 
     const add_download = () => {
         const amt = Math.floor(Math.random() * 100) || 1;
@@ -57,12 +52,12 @@
         }
     };
 
-    const generate_nested_array = (depth: number, current = 1): TestItem[] => {
+    const generate_nested_array = (depth: number, current = 1): ContextMenuOption[] => {
         const get_id = () => Math.random().toString(36).substring(2, 8);
         const make_text = (id: number) => `Item ${id}`;
 
         const items = Array.from({ length: 3 }, (_, i) => {
-            const obj: TestItem = {
+            const obj: ContextMenuOption = {
                 id: get_id(),
                 text: make_text(i + 1)
             };
@@ -87,7 +82,7 @@
 
     const open_context_menu = (e: MouseEvent) => {
         e.preventDefault();
-        context_menu_manager.show(e, random_options as any, () => {
+        context_menu_manager.show(e, random_options, () => {
             console.log("context menu closed");
         });
     };

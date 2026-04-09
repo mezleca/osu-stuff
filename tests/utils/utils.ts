@@ -149,7 +149,10 @@ export const setup_config = async (): Promise<void> => {
 
         console.log("[CONFIG] updating config:", config_data);
         _config.update(config_data);
-        _mirrors.update("nery", "https://api.nerinyan.moe/d/");
+        _mirrors.update({
+            name: "nery",
+            url: "https://api.nerinyan.moe/d/"
+        });
 
         console.log("[CONFIG] configuration setup complete");
     } catch (error) {

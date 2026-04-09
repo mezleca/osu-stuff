@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import { ElectronApi } from "@shared/types";
 
 declare global {
@@ -5,3 +7,5 @@ declare global {
         api: ElectronApi;
     }
 }
+
+declare module "*.css";

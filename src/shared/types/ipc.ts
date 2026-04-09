@@ -1,8 +1,7 @@
 import { auth, Modes_names, v2 } from "osu-api-extended";
 import { ManagerConfig, ManagerMirror } from "./config";
 import { FetchOptions, IFetchResponse } from "./fetch";
-import type { OsdbData } from "@rel-packages/osu-parser";
-import { ICollectionResult, IOsuClient, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter } from "./osu";
+import { ICollectionResult, IOsuClient, IProcessorEvent, IBeatmapResult, IBeatmapFilter, IBeatmapSetFilter, OsdbData } from "./osu";
 import { IBeatmapDownloader, IDownloadEvent } from "./downloader";
 import { GenericResult } from "./basic";
 import { OpenDialogOptions, OpenDialogReturnValue } from "electron";

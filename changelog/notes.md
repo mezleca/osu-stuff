@@ -1,3 +1,15 @@
+# v2.5.13
+
+# new stuff
+
+- collections / beatmapsets: loading / searching should be a bit faster (stable only)
+- preview: replaced vibecoded previewer with an iframe to "preview.tryz.id.vn"
+- updated dependencies to the latest version
+
+# bug fixes
+
+- minor bug fixes
+
 # v2.5.12
 
 ## new stuff

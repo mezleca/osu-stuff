@@ -63,9 +63,6 @@
     padding: 0;
     user-select: none;
     box-sizing: border-box;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    user-select: none;
     -webkit-user-select: none;
     scroll-behavior: smooth;
 }

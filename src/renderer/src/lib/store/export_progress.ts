@@ -1,21 +1,10 @@
 import { show_progress_box, hide_progress_box } from "./progress_box";
 import { config } from "../store/config";
 import { edit_notification, finish_notification, notification_exists, show_notification } from "./notifications";
+import type { IExportFinish, IExportUpdate } from "@shared/types";
 
 const EXPORT_PROGRESS_ID = "export";
 const EXPORT_NOTIFICATION_ID = "export:status";
-
-interface IExportUpdate {
-    current: number;
-    total: number;
-    text: string;
-}
-
-interface IExportFinish {
-    success: boolean;
-    count?: number;
-    reason?: string;
-}
 
 const show_or_update_export_notification = (data: any) => {
     if (notification_exists(EXPORT_NOTIFICATION_ID)) {

@@ -11,12 +11,14 @@ import {
     IBeatmapSetFilter,
     ALL_BEATMAPS_KEY,
     ALL_STATUS_KEY,
-    ALL_MODES_KEY
+    ALL_MODES_KEY,
+    OsdbBeatmap,
+    OsdbCollection,
+    OsdbData
 } from "@shared/types";
 import { check_beatmap_difficulty, matches_beatmap, parse_query, ParsedQuery, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { config } from "../../database/config";
-import { OsdbParser, OsuCollectionDbParser } from "@rel-packages/osu-parser";
-import type { OsdbBeatmap, OsdbCollection, OsdbData } from "@rel-packages/osu-parser";
+import { OsdbParser, OsuCollectionDbParser } from "../parsers";
 
 import path from "path";
 import archiver from "archiver";
@@ -79,6 +81,25 @@ export abstract class BaseClient implements IOsuClient {
     is_initialized = (): boolean => {
         return this.initialized;
     };
+
+    protected remove_beatmap_from_collection(collection_name: string, md5: string): boolean {
+        const collection = this.collections.get(collection_name);
+
+        if (!collection) {
+            return false;
+        }
+
+        const previous_length = collection.beatmaps.length;
+        collection.beatmaps = collection.beatmaps.filter((hash) => hash != md5);
+
+        if (collection.beatmaps.length == previous_length) {
+            return false;
+        }
+
+        this.mark_collection_modified(collection_name);
+        this.should_update = true;
+        return true;
+    }
 
     filter_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery, options: IBeatmapFilter): boolean => {
         const selected_status = options.status ?? ALL_STATUS_KEY;
@@ -191,7 +212,12 @@ export abstract class BaseClient implements IOsuClient {
             if (valid_beatmaps.length == 0) {
                 invalid_beatmapsets.push(id);
             } else {
-                valid_beatmapsets.push({ ...beatmapset, beatmaps: valid_beatmaps });
+                valid_beatmapsets.push({
+                    online_id: beatmapset.online_id,
+                    metadata: beatmapset.metadata,
+                    beatmaps: valid_beatmaps,
+                    temp: beatmapset.temp
+                });
             }
         }
 
@@ -510,6 +536,114 @@ export abstract class BaseClient implements IOsuClient {
         return true;
     }
 
+    add_collection(name: string, beatmaps: string[]): boolean {
+        if (this.collections.has(name)) {
+            return false;
+        }
+
+        this.collections.set(name, { name, beatmaps, last_modified: this.get_collection_timestamp() });
+        this.should_update = true;
+        return true;
+    }
+
+    rename_collection(old_name: string, new_name: string): boolean {
+        const collection = this.collections.get(old_name);
+        if (!collection || this.collections.has(new_name)) {
+            return false;
+        }
+
+        this.collections.delete(old_name);
+        this.collections.set(new_name, { ...collection, name: new_name, last_modified: this.get_collection_timestamp() });
+        this.should_update = true;
+        return true;
+    }
+
+    delete_collection(name: string): boolean {
+        const result = this.collections.delete(name);
+
+        if (result) {
+            this.should_update = true;
+        }
+
+        return result;
+    }
+
+    get_collection(name: string): ICollectionResult | undefined {
+        return this.collections.get(name);
+    }
+
+    get_collections(): ICollectionResult[] {
+        return Array.from(this.collections.values());
+    }
+
+    has_beatmap(md5: string): boolean {
+        return this.beatmaps.has(md5) || this.temp_beatmaps.has(md5);
+    }
+
+    has_beatmapset(id: number): boolean {
+        return this.beatmapsets.has(id) || this.temp_beatmapsets.has(id);
+    }
+
+    has_beatmapsets(ids: number[]): boolean[] {
+        return ids.map((id) => this.has_beatmapset(id));
+    }
+
+    async get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined> {
+        return this.beatmaps.get(md5) || this.temp_beatmaps.get(md5);
+    }
+
+    async get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined> {
+        for (const beatmap of this.beatmaps.values()) {
+            if (beatmap.online_id == id) {
+                return beatmap;
+            }
+        }
+
+        for (const beatmap of this.temp_beatmaps.values()) {
+            if (beatmap.online_id == id) {
+                return beatmap;
+            }
+        }
+
+        return undefined;
+    }
+
+    async fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> {
+        const beatmaps: IBeatmapResult[] = [];
+        const invalid: string[] = [];
+
+        for (const md5 of checksums) {
+            const beatmap = this.beatmaps.get(md5) ?? this.temp_beatmaps.get(md5);
+
+            if (!beatmap) {
+                invalid.push(md5);
+                continue;
+            }
+
+            beatmaps.push(beatmap);
+        }
+
+        return { beatmaps, invalid };
+    }
+
+    async fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> {
+        const beatmaps: BeatmapSetResult[] = [];
+        const invalid: number[] = [];
+
+        for (const id of ids) {
+            const beatmapset = this.beatmapsets.get(id) ?? this.temp_beatmapsets.get(id);
+
+            if (!beatmapset) {
+                invalid.push(id);
+                continue;
+            }
+
+            beatmaps.push(beatmapset);
+        }
+
+        return { beatmaps, invalid };
+    }
+
     get_beatmaps(): IBeatmapResult[] {
         return [...this.temp_beatmaps.values(), ...this.beatmaps.values()];
     }
@@ -531,21 +665,9 @@ export abstract class BaseClient implements IOsuClient {
     // client based implementation
     abstract initialize(force?: boolean): Promise<boolean>;
     abstract get_player_name(): string;
-    abstract add_collection(name: string, beatmaps: string[]): boolean;
-    abstract rename_collection(old_name: string, new_name: string): boolean;
-    abstract delete_collection(name: string): boolean;
     abstract delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
-    abstract get_collection(name: string): ICollectionResult | undefined;
-    abstract get_collections(): ICollectionResult[];
     abstract update_collection(): Promise<boolean>;
-    abstract has_beatmap(md5: string): boolean;
-    abstract has_beatmapset(id: number): boolean;
-    abstract get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined>;
-    abstract get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined>;
     abstract get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
     abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
-    abstract fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }>;
-    abstract fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }>;
     abstract dispose(): Promise<void>;
-    abstract has_beatmapsets(ids: number[]): boolean[];
 }

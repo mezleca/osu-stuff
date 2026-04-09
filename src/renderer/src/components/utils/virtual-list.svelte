@@ -1,30 +1,6 @@
 <script lang="ts">
+    import type { CarouselConfig, CarouselTransform, ScrollAnimationState } from "@shared/types";
     import { onMount, tick } from "svelte";
-
-    interface CarouselConfig {
-        SCALE_THRESHOLD_NEAR: number;
-        SCALE_THRESHOLD_FAR: number;
-        FADE_RANGE: number;
-        SCALE_FULL: number;
-        SCALE_MINIMUM: number;
-        HOVER_MARGIN: number;
-        PUSH_RANGE: number;
-        PUSH_STRENGTH: number;
-    }
-
-    interface ScrollAnimationState {
-        animation_id: number | null;
-        start_time: number;
-        duration: number;
-        start_scroll: number;
-        target_scroll: number;
-    }
-
-    interface CarouselTransform {
-        scale: number;
-        x_offset: number;
-        y_offset: number;
-    }
 
     export let items: any[] = [];
     export let count: number = 0;

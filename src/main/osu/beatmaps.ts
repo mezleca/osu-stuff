@@ -48,6 +48,11 @@ const STATUS_ALIASES: Record<string, string> = {
 };
 
 const FILTER_REGEX = /\b(?<key>\w+)(?<op>==|!?[:=]|[><][:=]?)(?<value>(".*?"|\S+))/g;
+const QUERY_CACHE_MAX_SIZE = 500;
+const FILTER_OPERATOR_TOKENS = [":", "=", ">", "<", "!"];
+const parsed_query_cache = new Map<string, ParsedQuery>();
+const searchable_beatmap_cache = new WeakMap<IBeatmapResult, string>();
+const normalized_text_cache = new Map<string, string>();
 
 export interface AdvancedFilter<K extends keyof IBeatmapResult = keyof IBeatmapResult> {
     k: K;
@@ -60,7 +65,46 @@ export interface ParsedQuery {
     filters: AdvancedFilter[];
 }
 
+const save_parsed_query_cache = (raw: string, parsed: ParsedQuery): ParsedQuery => {
+    if (parsed_query_cache.size >= QUERY_CACHE_MAX_SIZE) {
+        const first_key = parsed_query_cache.keys().next().value;
+
+        if (first_key) {
+            parsed_query_cache.delete(first_key);
+        }
+    }
+
+    parsed_query_cache.set(raw, parsed);
+    return parsed;
+};
+
+const has_filter_operator = (raw: string): boolean => {
+    for (const token of FILTER_OPERATOR_TOKENS) {
+        if (raw.includes(token)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 export const parse_query = (raw: string): ParsedQuery => {
+    const cached = parsed_query_cache.get(raw);
+
+    if (cached) {
+        return cached;
+    }
+
+    const trimmed_raw = raw.trim();
+
+    if (trimmed_raw == "") {
+        return save_parsed_query_cache(raw, { text: "", filters: [] });
+    }
+
+    if (!has_filter_operator(trimmed_raw)) {
+        return save_parsed_query_cache(raw, { text: trimmed_raw.toLowerCase(), filters: [] });
+    }
+
     const filters: AdvancedFilter[] = [];
     let text = raw;
 
@@ -83,7 +127,7 @@ export const parse_query = (raw: string): ParsedQuery => {
         text = text.replace(match[0], "");
     }
 
-    return { text: text.trim().toLowerCase(), filters };
+    return save_parsed_query_cache(raw, { text: text.trim().toLowerCase(), filters });
 };
 
 const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boolean => {
@@ -92,7 +136,7 @@ const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boole
 
     const operator = normalize_operator(filter.o);
 
-    if (typeof field === "number") {
+    if (typeof field == "number") {
         return evaluate_numeric_filter(field, filter.v, operator);
     }
 
@@ -100,8 +144,8 @@ const validate_filter = (beatmap: IBeatmapResult, filter: AdvancedFilter): boole
 };
 
 const normalize_operator = (operator: string): string => {
-    if (operator === ":" || operator === "==") return "=";
-    if (operator === "!:") return "!=";
+    if (operator == ":" || operator == "==") return "=";
+    if (operator == "!:") return "!=";
     return operator;
 };
 
@@ -134,15 +178,15 @@ const evaluate_text_filter = (key: keyof IBeatmapResult, field: string, value: s
     const field_val = normalize_text(normalize_filter_value(key, field));
     const filter_val = normalize_text(normalize_filter_value(key, value));
 
-    if (key === "status") {
+    if (key == "status") {
         const status_values = filter_val
             .split(",")
             .map((v) => v.trim())
             .filter((v) => v.length > 0);
 
         if (status_values.length > 1) {
-            if (operator === "=") return status_values.includes(field_val);
-            if (operator === "!=") return !status_values.includes(field_val);
+            if (operator == "=") return status_values.includes(field_val);
+            if (operator == "!=") return !status_values.includes(field_val);
             return false;
         }
     }
@@ -168,11 +212,11 @@ const evaluate_text_filter = (key: keyof IBeatmapResult, field: string, value: s
 const normalize_filter_value = (key: keyof IBeatmapResult, value: string): string => {
     const normalized = value.toLowerCase();
 
-    if (key === "mode") {
+    if (key == "mode") {
         return MODE_ALIASES[normalized] ?? normalized;
     }
 
-    if (key === "status") {
+    if (key == "status") {
         if (normalized.includes(",")) {
             return normalized
                 .split(",")
@@ -191,6 +235,10 @@ export const matches_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery): bo
         return false;
     }
 
+    if (query.filters.length == 0 && !query.text) {
+        return true;
+    }
+
     for (const filter of query.filters) {
         // skip filters with empty values
         if (!filter.v) continue;
@@ -201,8 +249,7 @@ export const matches_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery): bo
         return true;
     }
 
-    const tags = Array.isArray(beatmap.tags) ? beatmap.tags.join(" ") : (beatmap.tags ?? "");
-    const searchable = normalize_text(`${beatmap.artist} ${beatmap.title} ${beatmap.difficulty} ${beatmap.creator} ${tags}`);
+    const searchable = get_searchable_beatmap_text(beatmap);
     const query_text = normalize_text(query.text);
 
     return searchable.includes(query_text);
@@ -219,14 +266,42 @@ export const check_beatmap_difficulty = (beatmap: IBeatmapResult, diff: StarRati
 
 const normalize_text = (text: string): string => {
     if (!text) return "";
-    return text
+    const cached = normalized_text_cache.get(text);
+    if (cached) return cached;
+
+    const normalized = text
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase();
+
+    if (normalized_text_cache.size >= QUERY_CACHE_MAX_SIZE) {
+        const first_key = normalized_text_cache.keys().next().value;
+
+        if (first_key) {
+            normalized_text_cache.delete(first_key);
+        }
+    }
+
+    normalized_text_cache.set(text, normalized);
+    return normalized;
+};
+
+const get_searchable_beatmap_text = (beatmap: IBeatmapResult): string => {
+    const cached = searchable_beatmap_cache.get(beatmap);
+
+    if (cached) {
+        return cached;
+    }
+
+    const tags = Array.isArray(beatmap.tags) ? beatmap.tags.join(" ") : (beatmap.tags ?? "");
+    const searchable = normalize_text(`${beatmap.artist} ${beatmap.title} ${beatmap.difficulty} ${beatmap.creator} ${tags}`);
+
+    searchable_beatmap_cache.set(beatmap, searchable);
+    return searchable;
 };
 
 const compare_values = (a_raw: unknown, b_raw: unknown): number => {
-    if (typeof a_raw === "string") {
+    if (typeof a_raw == "string") {
         const a = normalize_text(a_raw);
         const b = normalize_text(String(b_raw ?? ""));
 

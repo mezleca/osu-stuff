@@ -51,8 +51,6 @@ nsis:
 linux:
     icon: icon.png
     target:
-        - AppImage
-        - deb
         - pacman
     maintainer: https://github.com/mezleca
     category: Utility

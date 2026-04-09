@@ -1,13 +1,4 @@
-import {
-    IBeatmapResult,
-    BeatmapSetResult,
-    ICollectionResult,
-    GameMode,
-    LAZER_DATABASE_VERSION,
-    BeatmapFile,
-    BeatmapRow,
-    lazer_status_from_code
-} from "@shared/types";
+import { IBeatmapResult, BeatmapSetResult, GameMode, LAZER_DATABASE_VERSION, BeatmapFile, BeatmapRow, lazer_status_from_code } from "@shared/types";
 import {
     BeatmapCollectionSchema,
     BeatmapDifficultySchema,
@@ -23,26 +14,25 @@ import {
 import { BaseClient } from "./base";
 import { config } from "../../database/config";
 import { get_lazer_file_location } from "../beatmaps";
+import { get_audio_duration } from "../audio";
 import { beatmap_processor } from "../../database/processor";
 
-import { BeatmapParser } from "@rel-packages/osu-parser";
+import { BeatmapParser } from "../parsers";
 import Realm from "realm";
-import audio_util from "@rel-packages/audio-utils";
 import fs from "fs";
 import path from "path";
-
-const CHUNK_SIZE = 100;
 
 const get_beatmap_properties = async (file_location: string) => {
     const parser = new BeatmapParser();
 
     try {
         await parser.parse(file_location);
-        const data = parser.get();
+        const media = parser.get_media();
 
         return {
-            AudioFilename: data.General.AudioFilename ?? "",
-            Background: data.Events.background?.filename ?? ""
+            AudioFilename: media.AudioFilename ?? "",
+            Background: media.Background ?? "",
+            Duration: media.Duration ?? 0
         };
     } finally {
         parser.free();
@@ -112,20 +102,22 @@ class LazerBeatmapClient extends BaseClient {
         }
 
         if (!this.instance) {
+            const schema = [
+                BeatmapDifficultySchema,
+                BeatmapMetadataSchema,
+                BeatmapUserSettingsSchema,
+                BeatmapCollectionSchema,
+                BeatmapSetSchema,
+                BeatmapSchema,
+                RealmUserSchema,
+                RulesetSchema,
+                FileSchema,
+                RealmNamedFileUsageSchema
+            ] as unknown as NonNullable<Realm.Configuration["schema"]>;
+
             this.instance = new Realm({
                 path: realm_location,
-                schema: [
-                    BeatmapDifficultySchema,
-                    BeatmapMetadataSchema,
-                    BeatmapUserSettingsSchema,
-                    BeatmapCollectionSchema,
-                    BeatmapSetSchema,
-                    BeatmapSchema,
-                    RealmUserSchema,
-                    RulesetSchema,
-                    FileSchema,
-                    RealmNamedFileUsageSchema
-                ] as any,
+                schema,
                 schemaVersion: LAZER_DATABASE_VERSION
             });
         }
@@ -165,8 +157,25 @@ class LazerBeatmapClient extends BaseClient {
         });
 
         console.log("[lazer] processing", to_process.length, "beatmaps");
+        for (let i = 0; i < to_process.length; i++) {
+            const beatmap = to_process[i];
+            beatmap_processor.update_on_renderer(i, to_process.length);
 
-        await this.process_beatmap_chunks(to_process, processed_map, to_insert);
+            if (!beatmap.Hash || !beatmap.MD5Hash) {
+                continue;
+            }
+
+            const last_modified = beatmap.LastLocalUpdate?.toString() ?? "";
+            const cached = processed_map.get(beatmap.MD5Hash);
+
+            if (!cached || cached.last_modified != last_modified) {
+                const row = await this.process_single_beatmap(beatmap, last_modified);
+                if (row) {
+                    to_insert.push(row);
+                    processed_map.set(row.md5, row);
+                }
+            }
+        }
 
         if (to_insert.length > 0) {
             beatmap_processor.insert_beatmaps(to_insert);
@@ -203,42 +212,6 @@ class LazerBeatmapClient extends BaseClient {
         }
     };
 
-    private process_beatmap_chunks = async (
-        beatmaps: (Realm.Object<BeatmapSchema, never> & BeatmapSchema)[],
-        processed_map: Map<string, BeatmapRow>,
-        to_insert: BeatmapRow[]
-    ): Promise<void> => {
-        const process_chunk = async (start_index: number) => {
-            const end_index = Math.min(start_index + CHUNK_SIZE, beatmaps.length);
-
-            for (let i = start_index; i < end_index; i++) {
-                const beatmap = beatmaps[i];
-                beatmap_processor.update_on_renderer(i, beatmaps.length);
-
-                if (!beatmap.Hash || !beatmap.MD5Hash) {
-                    continue;
-                }
-
-                const last_modified = beatmap.LastLocalUpdate?.toString() ?? "";
-                const cached = processed_map.get(beatmap.MD5Hash);
-
-                if (!cached || cached.last_modified != last_modified) {
-                    const row = await this.process_single_beatmap(beatmap, last_modified);
-                    if (row) {
-                        to_insert.push(row);
-                        processed_map.set(row.md5, row);
-                    }
-                }
-            }
-
-            if (end_index < beatmaps.length) {
-                await process_chunk(end_index);
-            }
-        };
-
-        await process_chunk(0);
-    };
-
     private process_single_beatmap = async (beatmap: BeatmapSchema, last_modified: string): Promise<BeatmapRow | null> => {
         const osu_file = beatmap.BeatmapSet.Files.find((file_usage) => {
             return file_usage.File?.Hash == beatmap.Hash;
@@ -273,8 +246,7 @@ class LazerBeatmapClient extends BaseClient {
                       })?.File?.Hash ?? ""
                   )
                 : "";
-
-            const audio_duration = audio_location ? audio_util.get_duration(audio_location) : 0;
+            const audio_duration = get_audio_duration(audio_location);
 
             return {
                 md5: beatmap?.MD5Hash ?? "",
@@ -282,7 +254,7 @@ class LazerBeatmapClient extends BaseClient {
                 background: background_location,
                 audio: audio_location,
                 video: "",
-                duration: audio_duration
+                duration: audio_duration > 0 ? audio_duration : (beatmap_properties.Duration ?? 0)
             };
         } catch (err) {
             console.error(err);
@@ -292,24 +264,6 @@ class LazerBeatmapClient extends BaseClient {
 
     get_player_name = (): string => {
         return "lazer";
-    };
-
-    add_collection = (name: string, beatmaps: string[]): boolean => {
-        if (this.collections.has(name)) {
-            return false;
-        }
-
-        this.collections.set(name, { name, beatmaps, last_modified: this.get_collection_timestamp() });
-        this.should_update = true;
-        return true;
-    };
-
-    get_collections = (): ICollectionResult[] => {
-        return Array.from(this.collections.values());
-    };
-
-    get_collection = (name: string): ICollectionResult | undefined => {
-        return this.collections.get(name);
     };
 
     update_collection = async (): Promise<boolean> => {
@@ -353,114 +307,13 @@ class LazerBeatmapClient extends BaseClient {
         }
     };
 
-    rename_collection = (old_name: string, new_name: string): boolean => {
-        const collection = this.collections.get(old_name);
-
-        if (!collection || this.collections.has(new_name)) {
-            return false;
-        }
-
-        this.collections.delete(old_name);
-        this.collections.set(new_name, { ...collection, name: new_name, last_modified: this.get_collection_timestamp() });
-        this.should_update = true;
-        return true;
-    };
-
-    delete_collection = (name: string): boolean => {
-        const result = this.collections.delete(name);
-        if (result) {
-            this.should_update = true;
-        }
-        return result;
-    };
-
     delete_beatmap = async (options: { md5: string; collection?: string }): Promise<boolean> => {
         if (options.collection) {
-            const collection = this.collections.get(options.collection);
-            if (!collection) {
-                return false;
-            }
-
-            collection.beatmaps = collection.beatmaps.filter((b) => b != options.md5);
-            collection.last_modified = this.get_collection_timestamp();
-            this.should_update = true;
-            return true;
+            return this.remove_beatmap_from_collection(options.collection, options.md5);
         }
 
         this.pending_deletion.add(options.md5);
         return true;
-    };
-
-    has_beatmap = (md5: string): boolean => {
-        return this.beatmaps.has(md5);
-    };
-
-    has_beatmapset = (id: number): boolean => {
-        return this.beatmapsets.has(id);
-    };
-
-    has_beatmapsets = (ids: number[]): boolean[] => {
-        return ids.map((id) => this.has_beatmapset(id));
-    };
-
-    fetch_beatmaps = async (checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> => {
-        const beatmaps: IBeatmapResult[] = [];
-        const invalid: string[] = [];
-
-        for (const md5 of checksums) {
-            const beatmap = this.beatmaps.get(md5);
-
-            if (beatmap) {
-                beatmaps.push(beatmap);
-                continue;
-            }
-
-            const temp_beatmap = this.temp_beatmaps.get(md5);
-
-            if (temp_beatmap) {
-                beatmaps.push(temp_beatmap);
-            } else {
-                invalid.push(md5);
-            }
-        }
-
-        return { beatmaps, invalid };
-    };
-
-    fetch_beatmapsets = async (ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> => {
-        const beatmaps: BeatmapSetResult[] = [];
-        const invalid: number[] = [];
-
-        for (const id of ids) {
-            const beatmapset = this.beatmapsets.get(id);
-            if (!beatmapset) {
-                invalid.push(id);
-                continue;
-            }
-            beatmaps.push(beatmapset);
-        }
-
-        return { beatmaps, invalid };
-    };
-
-    get_beatmap_by_md5 = async (md5: string): Promise<IBeatmapResult | undefined> => {
-        return this.beatmaps.get(md5) || this.temp_beatmaps.get(md5);
-    };
-
-    get_beatmap_by_id = async (id: number): Promise<IBeatmapResult | undefined> => {
-        for (const beatmap of this.beatmaps.values()) {
-            if (beatmap.online_id == id) {
-                return beatmap;
-            }
-        }
-
-        for (const beatmap of this.temp_beatmaps.values()) {
-            if (beatmap.online_id == id) {
-                return beatmap;
-            }
-        }
-
-        return undefined;
     };
 
     get_beatmap_files = async (md5: string): Promise<BeatmapFile[]> => {

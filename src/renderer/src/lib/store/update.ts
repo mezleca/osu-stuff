@@ -1,17 +1,11 @@
-import { Writable, writable, get } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { edit_notification, finish_notification, notification_exists, show_notification } from "./notifications";
 import { throttle } from "../utils/timings";
+import type { Writable } from "svelte/store";
+import type { UpdateProgress } from "@shared/types";
 
 const NOTIFICATION_ID = "update:progress";
 const RELEASES_URL = "https://github.com/mezleca/osu-stuff/releases/latest";
-
-interface UpdateProgress {
-    available: boolean;
-    updating: boolean;
-    checking: boolean;
-    installing: boolean;
-    manual_update_required: boolean;
-}
 
 export const update_progress: Writable<UpdateProgress> = writable({
     available: false,

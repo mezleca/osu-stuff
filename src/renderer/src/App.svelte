@@ -1,5 +1,7 @@
-<script lang="ts">
+<script>
     import { onMount } from "svelte";
+    import { fade } from "svelte/transition";
+    import { cubicOut } from "svelte/easing";
     import { active_tab, is_maximized } from "./lib/store/other";
     import { show_notification } from "./lib/store/notifications";
     import { processing, processing_data } from "./lib/store/processor";
@@ -27,8 +29,6 @@
     import ProgressBox from "./components/utils/progress-box.svelte";
     import Spinner from "./components/icon/spinner.svelte";
     import ContextMenu from "./components/utils/context-menu.svelte";
-    import { fade } from "svelte/transition";
-    import { cubicOut } from "svelte/easing";
 
     $: initialized = false;
     $: processing_status = $processing_data?.status ?? "doing something";
@@ -54,14 +54,12 @@
 
                 // initialize downloader events
                 await downloader.initialize();
-
-                // then initialize
-                await get_osu_data();
             } catch (err) {
                 console.log(err);
                 show_notification({ type: "error", duration: 5000, text: `failed to initialize\n${err}` });
             } finally {
                 initialized = true;
+                requestAnimationFrame(() => get_osu_data());
             }
         })();
 

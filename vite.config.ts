@@ -13,9 +13,6 @@ export default defineConfig({
     resolve: {
         alias: SHARED_ALIAS
     },
-    optimizeDeps: {
-        exclude: ["@rel-packages/osu-beatmap-parser", "@rel-packages/osu-beatmap-parser/browser"]
-    },
     build: {
         outDir: "../../out/renderer",
         emptyOutDir: true,

@@ -14,8 +14,8 @@ const MAX_STAR_RATING_VALUE = 10; // lazer
 export const beatmap_preview = writable<IBeatmapResult | null>(null);
 
 // cached beatmap / beatmapsets
-export const beatmap_cache = new LRU<string, IBeatmapResult>({ maxSize: 512 });
-export const beatmapset_cache = new LRU<number, BeatmapSetResult>({ maxSize: 256 });
+export const beatmap_cache = new LRU<string, IBeatmapResult>({ maxSize: 200 });
+export const beatmapset_cache = new LRU<number, BeatmapSetResult>({ maxSize: 100 });
 
 export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefined> => {
     const cached = beatmap_cache.get(id);

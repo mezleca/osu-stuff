@@ -3,12 +3,7 @@
     import { scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
-    import type { ContextMenuOption } from "@shared/types";
-
-    interface MousePoint {
-        x: number;
-        y: number;
-    }
+    import type { ContextMenuOption, MousePoint } from "@shared/types";
 
     export let item: ContextMenuOption;
     export let depth: number;

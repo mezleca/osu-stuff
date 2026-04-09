@@ -7,6 +7,7 @@ import { BeatmapSetList } from "./beatmaps";
 import type { Writable } from "svelte/store";
 import { GameMode } from "@shared/types";
 import type { BeatmapSetResult, BeatmapsSearchParams, IBeatmapResult } from "@shared/types";
+import type { IApiBeatmapSetMetadata } from "@shared/types";
 import type { Beatmapset, Beatmap } from "osu-api-extended/dist/types/v2/search_all";
 
 export const DISCOVER_CATEGORIES = ["converts", "featured artists", "follows", "recommend", "spotlights"];
@@ -31,14 +32,6 @@ export const DISCOVER_LANGUAGES = [
 export const DISCOVER_MODES = ["osu", "fruits", "mania", "taiko"];
 export const DISCOVER_STATUSES = ["any", "ranked", "qualified", "loved", "favourites", "pending", "wip", "graveyard", "mine"];
 export const DISCOVER_EXTRAS = ["storyboard", "video"];
-
-interface IApiBeatmapSetMetadata {
-    title: string;
-    artist: string;
-    creator: string;
-    source: string;
-    tags: string;
-}
 
 const build_beatmap = (beatmap: Beatmap, metadata: IApiBeatmapSetMetadata, has_local_map: boolean): IBeatmapResult => {
     return {

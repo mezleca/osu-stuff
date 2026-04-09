@@ -202,6 +202,10 @@
         debounced_load.cancel();
         debounced_hover.cancel();
         unsubscribe_context();
+
+        if (image_element) {
+            image_element.src = "";
+        }
     });
 </script>
 

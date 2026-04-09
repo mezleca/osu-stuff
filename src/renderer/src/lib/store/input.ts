@@ -1,3 +1,5 @@
+import type { Handler } from "@shared/types";
+
 const BUTTON_TO_STRING: Record<number, string> = {
     [0]: "mouse1",
     [1]: "mouse3",
@@ -12,11 +14,6 @@ const rename_key = (key: string) => {
 };
 
 type HandlerCallback = () => void;
-
-interface Handler {
-    id: number;
-    callback: HandlerCallback;
-}
 
 class InputManager {
     keys: Set<string>;

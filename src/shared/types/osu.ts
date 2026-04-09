@@ -1,4 +1,3 @@
-import type { OsuFileFormat } from "@rel-packages/osu-parser";
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
 import { v2 } from "osu-api-extended";
 
@@ -82,6 +81,65 @@ export interface IStableTimingPoint {
     beat_length: number;
     offset: number;
     inherited: boolean;
+}
+
+export interface EventBackground {
+    filename: string;
+    xOffset: number;
+    yOffset: number;
+}
+
+export interface EventVideo {
+    filename: string;
+    startTime: number;
+    xOffset: number;
+    yOffset: number;
+}
+
+export interface EventsSection {
+    background: EventBackground | null;
+    video: EventVideo | null;
+    breaks: Array<{ startTime: number; endTime: number }>;
+}
+
+export interface OsuFileFormat {
+    version: string;
+    audio_duration: number;
+    General: Record<string, string | number>;
+    Editor: Record<string, string | number | number[]>;
+    Metadata: Record<string, string | number>;
+    Difficulty: Record<string, string | number>;
+    Events: EventsSection;
+    TimingPoints: Array<Record<string, number>>;
+    Colours: Record<string, unknown>;
+    HitObjects: Array<Record<string, unknown>>;
+}
+
+export interface OsdbBeatmap {
+    difficulty_id: number;
+    beatmapset_id: number;
+    artist: string;
+    title: string;
+    difficulty: string;
+    checksum: string;
+    user_comment: string;
+    mode: number;
+    difficulty_rating: number;
+}
+
+export interface OsdbCollection {
+    name: string;
+    online_id: number;
+    beatmaps: OsdbBeatmap[];
+    hash_only_beatmaps: string[];
+}
+
+export interface OsdbData {
+    version_string: string;
+    save_data: bigint;
+    last_editor: string;
+    count: number;
+    collections: OsdbCollection[];
 }
 
 /* OSU CLIENT RELATED STUFF */

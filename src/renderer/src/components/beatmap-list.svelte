@@ -37,6 +37,13 @@
         }
     };
 
+    const _on_remove = (checksum: string) => {
+        // hack: to prevent list to auto focusing after removing a beatmap
+        // reset select
+        list_manager.clear_selected();
+        on_remove(checksum);
+    };
+
     onMount(() => {
         // remove selected beatmaps on scape
         // order: multi selection -> selection
@@ -174,7 +181,7 @@
             show_status={!simplified}
             centered={simplified}
             show_context_remove={$target != ALL_BEATMAPS_KEY}
-            {on_remove}
+            on_remove={_on_remove}
             {on_remove_set}
             {hash}
             {height}

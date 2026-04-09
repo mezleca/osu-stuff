@@ -3,15 +3,10 @@
     import { fade, scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
     import { debounce } from "../../lib/utils/timings";
-    import type { ContextMenuOption } from "@shared/types";
+    import type { ContextMenuOption, MousePoint } from "@shared/types";
     import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
 
     import MenuItem from "./menu-item.svelte";
-
-    interface MousePoint {
-        x: number;
-        y: number;
-    }
 
     let active_context: ActiveContextMenu | null = null;
     let menu_element: HTMLDivElement;

@@ -10,7 +10,7 @@ const DOWNLOAD_PROGRESS_ID = "download";
 
 class Downloader {
     data: Writable<IDownloadData[]>;
-    active_singles: Writable<Set<String>> = writable(new Set());
+    active_singles: Writable<Set<string>> = writable(new Set());
     private unsubscribe_events: (() => void) | null = null;
 
     constructor() {
@@ -100,19 +100,17 @@ class Downloader {
         }
 
         // TODO: this might be too much but maybe some way to get the actual kb progress would be cool
-        this.active_singles.update((s) => {
-            s.add(beatmap.md5);
-            return s;
-        });
+        this.active_singles.update((current) => new Set([...current, beatmap.md5]));
 
-        const result = await window.api.invoke("downloader:single", beatmap);
-
-        this.active_singles.update((s) => {
-            s.delete(beatmap.md5);
-            return s;
-        });
-
-        return result;
+        try {
+            return await window.api.invoke("downloader:single", beatmap);
+        } finally {
+            this.active_singles.update((current) => {
+                const updated = new Set(current);
+                updated.delete(beatmap.md5);
+                return updated;
+            });
+        }
     };
 
     pause = async (name: string) => {

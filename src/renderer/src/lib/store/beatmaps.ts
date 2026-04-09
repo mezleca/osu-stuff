@@ -1,6 +1,7 @@
 import { writable, get, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "@shared/types";
+import type { BeatmapComponentState, BeatmapSetComponentState, ISelectedBeatmap } from "@shared/types";
 import {
     BeatmapSetResult,
     GameMode,
@@ -17,33 +18,14 @@ import { collections } from "./collections";
 
 import LRU from "quick-lru";
 
-export interface BeatmapComponentState {
-    beatmap: IBeatmapResult | null;
-    loaded: boolean;
-    loading: boolean;
-    background: string;
-}
+export type { BeatmapComponentState, BeatmapSetComponentState };
 
-export interface BeatmapSetComponentState {
-    beatmapset: BeatmapSetResult | null;
-    beatmaps: IBeatmapResult[];
-    failed_beatmaps: Set<string>;
-    loaded: boolean;
-    loading: boolean;
-    background: string;
-}
-
-const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 256, maxAge: 60 * 1000 });
-const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 128, maxAge: 60 * 1000 });
+const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 128 });
+const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 64 });
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
 
 const EMPTY_HASHES: string[] = [];
-
-interface ISelectedBeatmap {
-    md5: string;
-    index: number;
-}
 
 export abstract class ListBase<T> {
     id: Writable<string> = writable("");
@@ -354,17 +336,6 @@ export class BeatmapSetList extends ListBase<number> {
                     beatmapset: null
                 });
                 ids.push(beatmapset.online_id);
-            }
-
-            if (ids.length > 0) {
-                const { beatmaps } = await window.api.invoke("client:fetch_beatmapsets", ids);
-                for (const beatmapset of beatmaps ?? []) {
-                    const cached = this.search_cache.get(beatmapset.online_id);
-                    this.search_cache.set(beatmapset.online_id, {
-                        filtered_hashes: cached?.filtered_hashes ?? beatmapset.beatmaps ?? [],
-                        beatmapset
-                    });
-                }
             }
 
             this.last_filter = filter;

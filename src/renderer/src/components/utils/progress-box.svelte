@@ -1,11 +1,21 @@
-<script>
+<script lang="ts">
+    import { onDestroy } from "svelte";
     import { fade } from "svelte/transition";
     import { progress_boxes, hide_progress_box } from "../../lib/store/progress_box";
 
     // auto-hide boxes that have auto_hide enabled after 5s of inactivity
-    let timers = new Map();
+    let timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
     $: {
+        const active_ids = new Set($progress_boxes.map((box) => box.id));
+
+        for (const [id, timer] of timers.entries()) {
+            if (!active_ids.has(id)) {
+                clearTimeout(timer);
+                timers.delete(id);
+            }
+        }
+
         for (const box of $progress_boxes) {
             if (box.auto_hide && !timers.has(box.id)) {
                 const timer = setTimeout(() => {
@@ -16,6 +26,14 @@
             }
         }
     }
+
+    onDestroy(() => {
+        for (const timer of timers.values()) {
+            clearTimeout(timer);
+        }
+
+        timers.clear();
+    });
 </script>
 
 <div class="progress-container">

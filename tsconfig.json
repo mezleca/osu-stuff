@@ -12,6 +12,9 @@
     }
   ],
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": true,
     "paths": {
       "@shared/*": [
         "./src/shared/*"

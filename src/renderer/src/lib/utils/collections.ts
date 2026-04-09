@@ -4,6 +4,7 @@ import { collections } from "../store/collections";
 import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
 import type { GameMode, GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
+import type { IOsuCollectorResult } from "@shared/types";
 
 import { show_notification } from "../store/notifications";
 
@@ -131,12 +132,6 @@ const get_collection_maps = async (id: number): Promise<GenericResult<IBeatmapRe
 
     return { success: true, data: beatmaps };
 };
-
-interface IOsuCollectorResult {
-    name: string;
-    beatmaps: IBeatmapResult[];
-    checksums: string[];
-}
 
 export const get_from_osu_collector = async (url: string): Promise<GenericResult<IOsuCollectorResult>> => {
     if (url == "") {

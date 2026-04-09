@@ -1,22 +1,5 @@
 import { get, writable, type Writable } from "svelte/store";
-
-interface INotification {
-    id: string;
-    type: "info" | "error" | "success" | "warning" | "confirm";
-    text: string;
-    persist: boolean;
-    duration: number;
-    on_click?: () => void | Promise<void>;
-    on_before_close?: () => void;
-    actions?: INotificationAction[];
-}
-
-interface INotificationAction {
-    id: string;
-    label: string;
-    on_click?: () => void | Promise<void>;
-    close_on_click?: boolean;
-}
+import type { INotification, INotificationAction } from "@shared/types";
 
 type NotificationInput = string | Partial<INotification>;
 

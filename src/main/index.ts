@@ -42,9 +42,8 @@ import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
 import { OpenDevToolsOptions } from "electron/utility";
 import { DatabaseManager } from "./database/database";
-import { OsdbParser, OsuCollectionDbParser } from "@rel-packages/osu-parser";
-import type { OsdbData } from "@rel-packages/osu-parser";
-import type { GenericResult, ICollectionResult } from "@shared/types";
+import { OsdbParser, OsuCollectionDbParser } from "./osu/parsers";
+import type { GenericResult, ICollectionResult, OsdbData } from "@shared/types";
 
 import path from "path";
 import fs from "fs";
@@ -63,43 +62,6 @@ const file_privileges: Privileges = {
 const DEVTOOLS_OPTIONS: OpenDevToolsOptions = {
     mode: "detach"
 };
-
-/* WHY NOT SECTION */
-
-const ELECTRON_ENABLE_FEATURES: string[] = ["UseSkiaRenderer", "CanvasOopRasterization"];
-
-const V8_FLAGS: string[] = ["--max-old-space-size=4096", "--max-semi-space-size=64", "--optimize-for-size"];
-
-const CHROMIUM_FLAGS_ALL: string[] = [
-    "enable-gpu-rasterization",
-    "enable-oop-rasterization",
-    "disable-ipc-flooding-protection",
-    "disable-renderer-backgrounding",
-    "enable-accelerated-2d-canvas"
-];
-
-const CHROMIUM_FLAGS_LINUX: string[] = [
-    "enable-zero-copy",
-    "enable-native-gpu-memory-buffers",
-    "ignore-gpu-blocklist",
-    "disable-gpu-driver-bug-workarounds"
-];
-
-const CHROMIUM_FLAGS: string[] = [...CHROMIUM_FLAGS_ALL, ...(process.platform == "linux" ? CHROMIUM_FLAGS_LINUX : [])];
-
-const apply_chromium_flags = () => {
-    app.commandLine.appendSwitch("js-flags", V8_FLAGS.join(" "));
-    app.commandLine.appendSwitch("enable-features", ELECTRON_ENABLE_FEATURES.join(","));
-
-    for (const flag of CHROMIUM_FLAGS) {
-        app.commandLine.appendSwitch(flag);
-    }
-};
-
-// apply all flags
-apply_chromium_flags();
-
-/* --------------- */
 
 const read_osdb = async (location: string): Promise<GenericResult<OsdbData>> => {
     if (!fs.existsSync(location)) {
@@ -180,9 +142,11 @@ async function createWindow() {
         }
     });
 
+    // databases
     config.initialize();
     mirrors.initialize();
     beatmap_processor.initialize();
+
     beatmap_downloader.initialize();
 
     // env
@@ -291,8 +255,8 @@ async function createWindow() {
         return { action: "deny" };
     });
 
-    // auto open devtools in dev mode
     if (is_dev_mode()) {
+        // open devtools in dev mode
         mainWindow.webContents.openDevTools(DEVTOOLS_OPTIONS);
     }
 

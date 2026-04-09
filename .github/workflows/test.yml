@@ -1,0 +1,44 @@
+name: test
+
+on:
+    workflow_dispatch:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v6
+
+            - name: setup bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: setup node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+
+            - name: install system dependencies (ubuntu)
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential python3 make g++
+
+            - name: install dependencies
+              run: bun install
+
+            - name: lint
+              run: bun run lint
+
+            - name: test
+              run: bun run test

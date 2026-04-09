@@ -1,1 +1,5 @@
-export default { preprocess: [] };
+import sveltePreprocess from "svelte-preprocess";
+
+export default {
+    preprocess: sveltePreprocess()
+};
