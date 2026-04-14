@@ -228,7 +228,7 @@ jobs:
                   fi
 
             - name: create or update release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@v3
               with:
                   name: ${{ github.event.inputs.version }}
                   tag_name: ${{ github.event.inputs.version }}
