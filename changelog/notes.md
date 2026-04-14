@@ -1,3 +1,11 @@
+# v2.6.1
+
+# bug fixes
+
+- beatmap-list(radio): fix radio collection not showing moved beatmap
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.6.0...v2.6.1
+
 # v2.6.0
 
 hopefully stable enough for a minor release...

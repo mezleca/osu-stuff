@@ -101,6 +101,7 @@ export const handle_card_context_action = async (
 
             // set update so if we're on another tab (e.g. browser) we dont have to wait for that
             get_beatmap_list("collections")?.set_update(true);
+            get_beatmap_list("radio")?.set_update(true);
             break;
         }
         case "preview": {
