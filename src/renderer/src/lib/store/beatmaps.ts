@@ -18,14 +18,10 @@ import { collections } from "./collections";
 
 import LRU from "quick-lru";
 
-export type { BeatmapComponentState, BeatmapSetComponentState };
-
 const beatmap_state: LRU<string, Writable<BeatmapComponentState>> = new LRU({ maxSize: 128 });
 const beatmapset_state: LRU<number, Writable<BeatmapSetComponentState>> = new LRU({ maxSize: 64 });
 const beatmap_managers = new Map<string, BeatmapList>();
 const beatmapset_managers = new Map<string, BeatmapSetList>();
-
-const EMPTY_HASHES: string[] = [];
 
 export abstract class ListBase<T> {
     id: Writable<string> = writable("");
@@ -34,13 +30,11 @@ export abstract class ListBase<T> {
     status: Writable<string> = writable(ALL_STATUS_KEY);
     mode: Writable<GameMode> = writable(GameMode.All);
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
-    previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
     should_update: Writable<boolean> = writable(false);
     total_missing: Writable<number> = writable(0);
     items: Writable<T[]> = writable([]);
-    // TOFIX: surely we can simplify by just having selected_buffer
-    selected: Writable<ISelectedBeatmap | null> = writable(null);
-    selected_buffer: Writable<T[]> = writable([]);
+    previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
+    selected_buffer: Writable<ISelectedBeatmap[]> = writable([]);
 
     constructor() {
         this.update_id();
@@ -55,7 +49,7 @@ export abstract class ListBase<T> {
     }
 
     clear_selected(): void {
-        this.selected.set(null);
+        this.selected_buffer.set([]);
     }
 
     set_difficulty_range(data: StarRatingFilter): void {
@@ -83,28 +77,20 @@ export abstract class ListBase<T> {
         this.update_id();
     }
 
-    select(md5: string, index: number): void {
-        this.selected.set({ md5, index });
+    select(beatmap: ISelectedBeatmap): void {
+        this.selected_buffer.set([beatmap]);
     }
 
-    multi_select(ids: T[], replace = false): void {
+    multi_select(beatmaps: ISelectedBeatmap[], replace = false): void {
         if (replace) {
-            this.selected_buffer.set(ids);
+            this.selected_buffer.set(beatmaps);
         } else {
-            this.selected_buffer.update((current) => [...current, ...ids]);
+            this.selected_buffer.update((current) => [...current, ...beatmaps]);
         }
     }
 
-    get_selected = (): ISelectedBeatmap | null => {
-        return get(this.selected);
-    };
-
-    get_selected_buffer = (): T[] => {
-        return get(this.selected_buffer);
-    };
-
-    clear_selected_buffer(): void {
-        this.selected_buffer.set([]);
+    get_idx_from_items(id: string | number): number {
+        return this.get_items().findIndex((b) => b === id);
     }
 
     abstract search(): Promise<any>;
@@ -140,32 +126,40 @@ export class BeatmapList extends ListBase<string> {
         this.update_name(name);
     }
 
+    // attempt to rebuild the selected buffer by searching for the same beatmap
     async handle_context_change(hashes: string[]): Promise<boolean> {
         try {
-            const current_selected = get(this.selected);
-            if (!current_selected) return false;
+            const current_selected = get(this.selected_buffer)[0];
+
+            if (!current_selected) {
+                return false;
+            }
 
             const is_unique = get(this.show_unique);
 
             if (is_unique) {
-                const found = await this.find_by_unique_id_batch(hashes, current_selected.md5);
+                const found = await this.find_by_unique_id_batch(hashes, current_selected.id as string);
+
+                // if we found, re-create the buffer
                 if (found) {
-                    this.selected.set(found);
+                    this.clear_selected();
+                    this.select(found);
                     return true;
                 }
             } else {
-                const index = hashes.indexOf(current_selected.md5);
+                const index = hashes.indexOf(current_selected.id as string);
+
                 if (index !== -1) {
-                    this.selected.set({ md5: current_selected.md5, index });
+                    this.select({ ...current_selected, index });
                     return true;
                 }
             }
 
-            this.selected.set(null);
+            this.clear_selected();
             return false;
         } catch (error) {
             console.log("[beatmap_list] handle_context_change error:", error);
-            this.selected.set(null);
+            this.clear_selected();
             return false;
         }
     }
@@ -242,7 +236,7 @@ export class BeatmapList extends ListBase<string> {
             return null;
         }
 
-        return { md5, index };
+        return { id: md5, index };
     }
 
     async find_by_unique_id_batch(hashes: string[], target_md5: string): Promise<ISelectedBeatmap | null> {
@@ -262,10 +256,12 @@ export class BeatmapList extends ListBase<string> {
         // find first beatmap with same unique_id
         for (let i = 0; i < beatmaps.length; i++) {
             const beatmap = beatmaps[i];
+
             if (beatmap.unique_id == target.unique_id) {
                 const index = hashes.indexOf(beatmap.md5);
+
                 if (index != -1) {
-                    return { md5: beatmap.md5, index };
+                    return { id: beatmap.md5, index };
                 }
             }
         }
@@ -274,13 +270,14 @@ export class BeatmapList extends ListBase<string> {
     }
 
     is_same_item(item1: ISelectedBeatmap, item2: ISelectedBeatmap) {
-        return item1.md5 == item2.md5;
+        return item1.id == item2.id;
     }
 
     clear() {
+        this.clear_selected();
+
+        this.previous_buffer.set([]);
         this.items.set([]);
-        this.selected.set(null);
-        this.selected_buffer.set([]);
         this.last_filter = null;
         this.last_result = null;
     }
@@ -328,10 +325,11 @@ export class BeatmapSetList extends ListBase<number> {
         }
 
         try {
+            const ids: number[] = [];
             const result = await window.api.invoke("client:search_beatmapsets", filter);
+
             this.search_cache.clear();
 
-            const ids: number[] = [];
             for (const beatmapset of result?.beatmapsets ?? []) {
                 this.search_cache.set(beatmapset.online_id, {
                     filtered_hashes: beatmapset.beatmaps ?? [],
@@ -379,17 +377,13 @@ export class BeatmapSetList extends ListBase<number> {
         }
 
         return {
-            md5: String(beatmapset_id),
+            id: beatmapset_id,
             index
         };
     }
 
-    is_same_item(item1: ISelectedBeatmap, item2: ISelectedBeatmap) {
-        return item1.md5 == item2.md5;
-    }
-
     get_filtered_beatmaps(beatmapset_id: number): string[] {
-        return this.search_cache.get(beatmapset_id)?.filtered_hashes ?? EMPTY_HASHES;
+        return this.search_cache.get(beatmapset_id)?.filtered_hashes ?? [];
     }
 
     get_beatmapset(beatmapset_id: number): BeatmapSetResult | null {
@@ -397,9 +391,10 @@ export class BeatmapSetList extends ListBase<number> {
     }
 
     clear() {
+        this.clear_selected();
+
+        this.previous_buffer.set([]);
         this.items.set([]);
-        this.selected.set(null);
-        this.selected_buffer.set([]);
         this.last_filter = null;
         this.last_result = null;
         this.search_cache.clear();

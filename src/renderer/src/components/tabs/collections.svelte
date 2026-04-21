@@ -63,7 +63,7 @@
             list.set_items(Array.from(hashes.values()));
         }
 
-        list.clear_selected_buffer();
+        list.clear_selected();
     }, SEARCH_DEBOUNCE_INTERVAL);
 
     const remove_callback = async (hash: string) => {

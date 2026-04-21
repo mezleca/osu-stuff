@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
+    import type { AudioDirection, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other";
     import { ALL_BEATMAPS_KEY } from "@shared/types";
@@ -9,7 +10,6 @@
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap, remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
-    import { type IBeatmapResult } from "@shared/types";
     import { input } from "../../lib/store/input";
     import { config } from "../../lib/store/config";
 
@@ -26,12 +26,12 @@
     const audio = get_audio_manager("radio");
     const selected_store = collections.get_selected_store("radio");
 
-    const { selected, query, sort, should_update } = list;
+    const { selected_buffer, previous_buffer, query, sort, should_update } = list;
 
     let selected_beatmap: IBeatmapResult | null = null;
 
+    $: selected = $selected_buffer[0];
     $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
-    $: previous_songs = list.previous_buffer;
     $: bg = "";
 
     const collection_target_options = [
@@ -69,10 +69,28 @@
         list.set_items(beatmaps);
     }, SEARCH_DEBOUNCE_INTERVAL);
 
-    const retry_random = debounce(() => audio.force_random.set(true), 200);
-    const trigger_random = debounce(() => audio.force_random.set(true), 50);
+    type NavigateOptions = {
+        force_random?: boolean;
+    };
+
+    const retry_random = debounce(() => navigate_random(false), 150);
+    const trigger_random = debounce(() => navigate_random(true), 50);
 
     const SEEK_OFFSET_SECONDS = 5;
+
+    const navigate_random = async (allow_retry: boolean = true) => {
+        const state = audio.get_state();
+
+        if (state.audio && state.audio.currentTime > 0.1 && state.playing) {
+            audio.pause();
+        }
+
+        const navigated = await audio.navigate(0, { force_random: true });
+
+        if (!navigated && allow_retry) {
+            retry_random();
+        }
+    };
 
     const seek_by_seconds = (offset_seconds: number) => {
         const state = audio.get_state();
@@ -88,7 +106,7 @@
         audio.seek(seek_percent);
     };
 
-    const pick_next_valid_id = async (direction: any) => {
+    const pick_next_valid_id = async (direction: AudioDirection, options: NavigateOptions = {}) => {
         const beatmaps = list.get_items();
 
         if (beatmaps.length == 0) {
@@ -96,11 +114,12 @@
         }
 
         const tried = new Set<number>();
+
         let attempts = 0;
-        let current_index = $selected?.index ?? 0;
+        let current_index = selected?.index ?? 0;
 
         while (attempts < beatmaps.length) {
-            const next_idx = audio.calculate_next_index(current_index, beatmaps.length, direction);
+            const next_idx = audio.calculate_next_index(current_index, beatmaps.length, direction, options);
 
             if (tried.has(next_idx)) {
                 attempts++;
@@ -126,27 +145,33 @@
         return null;
     };
 
-    const commit_next_id = (data: { beatmap_id: string; index: number }) => {
-        list.previous_buffer.update((old) => [...old, { md5: data.beatmap_id, index: data.index }]);
+    const push_to_previous_if_new = (beatmap: ISelectedBeatmap) => {
+        list.previous_buffer.update((old) => {
+            const last = old[old.length - 1];
+            const already_last = !!last && last.id == beatmap.id && last.index == beatmap.index;
 
-        if (!$selected || data.index != $selected.index) {
-            list.select(data.beatmap_id, data.index);
+            if (already_last) {
+                return old;
+            }
+
+            return [...old, beatmap];
+        });
+    };
+
+    const set_selected_beatmap = (beatmap: ISelectedBeatmap) => {
+        if (!selected || beatmap.index != selected.index || beatmap.id != selected.id) {
+            list.select(beatmap);
         }
     };
 
-    const get_next_id_callback = async (direction: any) => {
-        const result = await pick_next_valid_id(direction);
-
-        audio.force_random.set(false);
+    const get_next_id_callback = async (direction: AudioDirection, options: NavigateOptions = {}) => {
+        const result = await pick_next_valid_id(direction, options);
 
         if (!result) {
-            if (direction === 0) {
-                retry_random();
-            }
             return null;
         }
 
-        commit_next_id(result);
+        set_selected_beatmap({ id: result.beatmap_id, index: result.index });
         return result.beatmap_id;
     };
 
@@ -175,9 +200,8 @@
 
     $: {
         // load audio on changes
-        if ($selected?.md5 && $selected.index != -1 && audio.get_state().id != $selected.md5 && !audio.get_state().is_loading) {
-            const beatmap_id = $selected.md5;
-            audio.load_and_setup_audio(beatmap_id).then(async (result) => {
+        if (selected?.index != undefined && selected.index != -1 && audio.get_state().id != selected.id && !audio.get_state().is_loading) {
+            audio.load_and_setup_audio(selected.id as string).then(async (result) => {
                 if (result) {
                     await audio.play();
                 }
@@ -185,8 +209,10 @@
         }
 
         // update selected beatmap data on changes
-        if ($selected && $selected?.index != -1) {
-            get_beatmap($selected.md5).then((bm) => {
+        if (selected && selected?.index != -1) {
+            push_to_previous_if_new(selected);
+
+            get_beatmap(selected.id as string).then((bm) => {
                 selected_beatmap = bm;
                 update_background_image();
             });
@@ -227,7 +253,7 @@
         });
 
         // always reset state if no beatmaps are selected
-        if ($selected?.index == -1) {
+        if (selected?.index == -1) {
             audio.clean_audio();
         }
 
@@ -238,15 +264,15 @@
 
         // get previous random songs
         const handle_previous_id = input.on("shift+f2", async () => {
-            const index = $previous_songs.length - 2;
-            const data = $previous_songs[index];
+            const index = $previous_buffer.length - 2;
+            const data = $previous_buffer[index];
 
             if (!data) {
                 return;
             }
 
-            list.select(data.md5, data.index);
-            $previous_songs.pop();
+            list.select(data);
+            $previous_buffer.pop();
         });
 
         const handle_seek_backward_id = input.on("shift+arrowleft", () => {

@@ -20,19 +20,22 @@
     export let on_remove_set: (id: number) => any = null;
     export let show_missing = false;
 
-    const { items, target, selected, selected_buffer, id: list_id, total_missing } = list_manager;
+    const { items, target, selected_buffer, id: list_id, total_missing } = list_manager;
+
+    $: selected = $selected_buffer[0];
 
     const handle_card_click = (event: MouseEvent, hash: string, index: number) => {
-        const is_selected = $selected?.md5 == hash;
+        const is_selected = selected?.id == hash;
 
         if (event.ctrlKey) {
-            list_manager.multi_select([hash]);
+            list_manager.multi_select([{ id: hash, index }]);
         } else {
-            list_manager.clear_selected_buffer();
+            list_manager.clear_selected();
+
             if (is_selected) {
                 list_manager.clear_selected();
             } else {
-                list_manager.select(hash, index);
+                list_manager.select({ id: hash, index });
             }
         }
     };
@@ -48,11 +51,8 @@
         // remove selected beatmaps on scape
         // order: multi selection -> selection
         const handle_unselected_id = input.on("escape", () => {
-            if (list_manager.get_selected_buffer().length > 0) {
-                list_manager.clear_selected_buffer();
-            } else if (list_manager.get_selected()) {
-                list_manager.clear_selected();
-            }
+            const selected_len = $selected_buffer.length;
+            $selected_buffer.length = selected_len > 1 ? 1 : 0;
         });
 
         const handle_arrow_left_id = input.on("arrowleft", () => {
@@ -60,27 +60,25 @@
                 return;
             }
 
-            const current_selected = list_manager.get_selected();
-
-            if (!current_selected) {
+            if (!selected) {
                 return;
             }
 
             const items = list_manager.get_items();
-            const current_idx = current_selected.index;
+            const current_idx = selected.index;
 
             if (current_idx == 0) {
                 return;
             }
 
             const next_idx = current_idx - 1;
-            const hash = items[next_idx];
+            const id = items[next_idx];
 
-            if (!hash) {
+            if (!id) {
                 return;
             }
 
-            list_manager.select(hash, next_idx);
+            list_manager.select({ id, index: next_idx });
         });
 
         const handle_arrow_right_id = input.on("arrowright", () => {
@@ -88,27 +86,25 @@
                 return;
             }
 
-            const current_selected = list_manager.get_selected();
-
-            if (!current_selected) {
+            if (!selected) {
                 return;
             }
 
             const items = list_manager.get_items();
-            const current_idx = current_selected.index;
+            const current_idx = selected.index;
 
             if (current_idx >= items.length - 1) {
                 return;
             }
 
             const next_idx = current_idx + 1;
-            const hash = items[next_idx];
+            const id = items[next_idx];
 
-            if (!hash) {
+            if (!id) {
                 return;
             }
 
-            list_manager.select(hash, next_idx);
+            list_manager.select({ id, index: next_idx });
         });
 
         // select all beatmaps on ctrl + a
@@ -120,17 +116,17 @@
             const items = list_manager.get_items();
             const items_size = items.length;
 
-            let selected_size = list_manager.get_selected_buffer().length;
+            let selected_len = $selected_buffer.length;
 
-            if (list_manager.get_selected()) {
-                selected_size++;
+            if (selected) {
+                selected_len++;
             }
 
-            if (selected_size >= items_size) {
+            if (selected_len >= items_size) {
                 return;
             }
 
-            list_manager.selected_buffer.set(items);
+            list_manager.selected_buffer.set(items.map((id, index) => ({ id, index })));
         });
 
         return () => {
@@ -162,14 +158,14 @@
         {carousel}
         {direction}
         {on_update}
-        selected={$selected?.index ?? -1}
-        selected_key={$selected?.md5 ?? null}
+        selected={selected?.index ?? -1}
+        selected_key={selected?.id ?? null}
         let:index
     >
         <!-- get current md5 hash -->
         {@const hash = $items[index]}
-        {@const is_selected = hash && $selected?.index != -1 ? $selected?.md5 == hash : false}
-        {@const is_highlighted = hash && $selected_buffer.length > 0 ? $selected_buffer.includes(hash) : false}
+        {@const is_selected = hash && selected?.index != -1 ? selected?.id == hash : false}
+        {@const is_highlighted = hash && $selected_buffer.length > 0 ? $selected_buffer.some((s, idx) => idx > 0 && s.id == hash) : false}
 
         <!-- render beatmap card -->
         <BeatmapCard

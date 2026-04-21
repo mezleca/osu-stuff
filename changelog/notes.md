@@ -1,3 +1,17 @@
+# v2.7.0
+
+radio :D
+
+# new stuff
+
+# bug fixes
+
+- radio: allow selecting random beatmap even if we didn't selected anything yet
+- radio: fix first seleted beatmap not being added to the previous songs buffer
+- ci(build): prioritize custom changelog over generated one
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.6.1...v2.7.0
+
 # v2.6.1
 
 # bug fixes

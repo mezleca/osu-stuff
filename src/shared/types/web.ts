@@ -60,13 +60,15 @@ export interface IAudioState {
     is_loading: boolean;
 }
 
+export type AudioDirection = -1 | 0 | 1;
+
 export interface IAudioCallbacks {
     get_next_id: (direction: number) => Promise<string | null>;
     get_beatmap: (id: string) => Promise<IBeatmapResult | undefined>;
 }
 
 export interface ISelectedBeatmap {
-    md5: string;
+    id: string | number;
     index: number;
 }
 

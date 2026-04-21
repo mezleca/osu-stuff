@@ -1,7 +1,7 @@
 import { writable, get, type Writable } from "svelte/store";
 import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
 import { config } from "./config";
-import { IBeatmapResult } from "@shared/types";
+import { AudioDirection, IBeatmapResult } from "@shared/types";
 
 const DEFAULT_VOLUME = 50;
 
@@ -19,11 +19,13 @@ interface IAudioState {
 }
 
 interface IAudioCallbacks {
-    get_next_id: (direction: number) => Promise<string | null>;
+    get_next_id: (direction: number, options?: IAudioNavigateOptions) => Promise<string | null>;
     get_beatmap: (id: string) => Promise<IBeatmapResult | undefined>;
 }
 
-type Direction = -1 | 0 | 1;
+interface IAudioNavigateOptions {
+    force_random?: boolean;
+}
 
 const DEFAULT_STATE: IAudioState = {
     beatmap: null,
@@ -44,7 +46,6 @@ class AudioManager {
 
     random: Writable<boolean> = writable(false);
     repeat: Writable<boolean> = writable(false);
-    force_random: Writable<boolean> = writable(false);
     store: Writable<IAudioState> = writable({ ...DEFAULT_STATE });
     unsubscribe_config: (() => void) | null = null;
 
@@ -160,11 +161,15 @@ class AudioManager {
         }
     };
 
-    calculate_next_index = (current_index: number, beatmaps_length: number, direction: Direction = 0): number => {
-        const force_random = get(this.force_random);
+    calculate_next_index = (
+        current_index: number,
+        beatmaps_length: number,
+        direction: AudioDirection = 0,
+        options: IAudioNavigateOptions = {}
+    ): number => {
         const random_idx = Math.floor(Math.random() * beatmaps_length);
 
-        if (force_random) {
+        if (options.force_random) {
             return random_idx;
         }
 
@@ -248,7 +253,7 @@ class AudioManager {
         return audio_data;
     };
 
-    load_and_setup_audio = async (beatmap_id: string): Promise<{ beatmap: any; audio: HTMLAudioElement } | null> => {
+    load_and_setup_audio = async (beatmap_id: string): Promise<{ beatmap: IBeatmapResult; audio: HTMLAudioElement } | null> => {
         if (!this.callbacks?.get_beatmap) {
             console.error(`[${this.id}] no get_beatmap callback set`);
             return null;
@@ -428,7 +433,7 @@ class AudioManager {
         this.callbacks = callbacks;
     };
 
-    navigate = async (direction: Direction): Promise<boolean> => {
+    navigate = async (direction: AudioDirection, options: IAudioNavigateOptions = {}): Promise<boolean> => {
         if (this.is_preview || !this.callbacks?.get_next_id) {
             return false;
         }
@@ -446,7 +451,7 @@ class AudioManager {
         this.store.update((obj) => ({ ...obj, is_loading: true }));
 
         try {
-            const next_id = await this.callbacks.get_next_id(direction);
+            const next_id = await this.callbacks.get_next_id(direction, options);
 
             if (!next_id) {
                 console.log(`[${this.id}] no ${direction_label} id returned`);

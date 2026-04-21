@@ -22,28 +22,17 @@
     const audio_manager = get_audio_manager("radio");
     const radio_list = get_beatmap_list("radio");
 
-    const { selected } = radio_list;
+    const { selected_buffer } = radio_list;
 
-    const get_current_id = () => $selected?.md5;
-
+    $: selected = $selected_buffer[0];
     $: audio_state = $audio_manager;
     $: is_playing = audio_state.playing;
     $: is_loading = audio_state.is_loading;
     $: random_active = audio_manager.random;
     $: repeat_active = audio_manager.repeat;
-    $: should_force_random = audio_manager.force_random;
-
-    $: if ($should_force_random) {
-        if (audio_state.audio && audio_state.audio.currentTime > 0.1) {
-            if (is_playing) audio_manager.pause();
-            audio_manager.navigate(0).then(() => audio_manager.force_random.set(false));
-        } else {
-            audio_manager.force_random.set(false);
-        }
-    }
 
     const handle_play_pause = async () => {
-        if (!get_current_id()) {
+        if (!selected?.id) {
             console.log("radio: no current beatmap selected");
             return;
         }

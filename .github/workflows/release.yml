@@ -220,21 +220,40 @@ jobs:
               id: decode_notes
               run: |
                   if [[ -n "${{ needs.prepare.outputs.notes }}" ]]; then
-                  echo "${{ needs.prepare.outputs.notes }}" | base64 -d > decoded_notes.txt
-                  echo "decoded<<NOTES_EOF" >> $GITHUB_OUTPUT
-                  cat decoded_notes.txt >> $GITHUB_OUTPUT
-                  echo "" >> $GITHUB_OUTPUT
-                  echo "NOTES_EOF" >> $GITHUB_OUTPUT
+                    echo "${{ needs.prepare.outputs.notes }}" | base64 -d > decoded_notes.txt
+                  else
+                    : > decoded_notes.txt
                   fi
 
-            - name: create or update release
+                  if [[ -s decoded_notes.txt ]]; then
+                    echo "has_custom_notes=true" >> $GITHUB_OUTPUT
+                    echo "[log] using custom changelog from decoded_notes.txt"
+                  else
+                    echo "has_custom_notes=false" >> $GITHUB_OUTPUT
+                    echo "[log] no custom changelog found, using generated release notes"
+                  fi
+
+            - name: create or update release (custom notes)
+              if: steps.decode_notes.outputs.has_custom_notes == 'true'
               uses: softprops/action-gh-release@v3
               with:
                   name: ${{ github.event.inputs.version }}
                   tag_name: ${{ github.event.inputs.version }}
                   draft: ${{ github.event.inputs.action_type == 'draft' }}
                   prerelease: ${{ github.event.inputs.action_type == 'draft' }}
-                  generate_release_notes: ${{ steps.decode_notes.outputs.decoded == '' }}
-                  body: ${{ steps.decode_notes.outputs.decoded }}
+                  generate_release_notes: false
+                  body_path: decoded_notes.txt
+                  files: artifacts/*
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: create or update release (generated notes)
+              if: steps.decode_notes.outputs.has_custom_notes != 'true'
+              uses: softprops/action-gh-release@v3
+              with:
+                  name: ${{ github.event.inputs.version }}
+                  tag_name: ${{ github.event.inputs.version }}
+                  draft: ${{ github.event.inputs.action_type == 'draft' }}
+                  prerelease: ${{ github.event.inputs.action_type == 'draft' }}
+                  generate_release_notes: true
                   files: artifacts/*
                   token: ${{ secrets.GITHUB_TOKEN }}

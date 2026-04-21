@@ -16,10 +16,6 @@ type TinypoolType = {
 
 const MAX_WORKER_THREADS = 4;
 
-// TOFIX: this sucks
-const WORKER_RELATIVE_PATH = path.join("out", "main", "worker", "beatmap_worker.mjs");
-const DEV_WORKER_FILE = path.resolve(__dirname, "..", "worker", "beatmap_worker.mjs");
-
 let pool_promise: Promise<TinypoolType> | null = null;
 
 const get_max_threads = (): number => {
@@ -28,13 +24,19 @@ const get_max_threads = (): number => {
     return Math.min(MAX_WORKER_THREADS, usable_threads);
 };
 
+// TOFIX: this sucks
+const WORKER_RELATIVE_PATH = path.join("out", "worker", "beatmap_worker.mjs");
+
 const get_worker_file = (): string => {
     if (!app.isPackaged) {
-        if (!fs.existsSync(DEV_WORKER_FILE)) {
-            throw new Error(`beatmap worker not found at: ${DEV_WORKER_FILE}`);
+        // ...
+        const non_packaged_worker_file = path.resolve(__dirname, "..", "..", "..", WORKER_RELATIVE_PATH);
+
+        if (!fs.existsSync(WORKER_RELATIVE_PATH)) {
+            throw new Error(`beatmap worker not found at: ${non_packaged_worker_file}`);
         }
 
-        return DEV_WORKER_FILE;
+        return non_packaged_worker_file;
     }
 
     const packaged_worker_file = path.resolve(process.resourcesPath, "app.asar.unpacked", WORKER_RELATIVE_PATH);

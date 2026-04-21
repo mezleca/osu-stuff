@@ -15,7 +15,7 @@ const PATHS = {
     SRC_MAIN: path.resolve(__dirname, "../src/main/index.ts"),
     SRC_PRELOAD: path.resolve(__dirname, "../src/preload/index.ts"),
     SRC_WORKER_DIR: path.resolve(__dirname, "../src/worker"),
-    OUT_WORKER_DIR: path.resolve(__dirname, "../out/main/worker")
+    OUT_WORKER_DIR: path.resolve(__dirname, "../out/worker")
 };
 
 let vite_process: Subprocess | null = null;
