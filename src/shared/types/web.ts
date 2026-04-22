@@ -135,3 +135,5 @@ export interface IMissingCache {
     count: number;
     last_checked_modified: number;
 }
+
+export type BeatmapUpdateReason = "filters" | "remove" | "manual" | "unknown";

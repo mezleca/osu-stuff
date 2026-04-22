@@ -7,6 +7,8 @@ radio :D
 # bug fixes
 
 - radio: allow selecting random beatmap even if we didn't selected anything yet
+- radio: prevent auto focus on navigation (f2 / shift + 2)
+- radio: prevent auto focus after removing beatmaps
 - radio: fix first seleted beatmap not being added to the previous songs buffer
 - ci(build): prioritize custom changelog over generated one
 

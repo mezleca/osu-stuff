@@ -403,7 +403,7 @@ export const remove_beatmap_from_collection = async (md5: string, collection_nam
     }
 
     // force list update to prevent caching issues
-    update_beatmap_lists();
+    update_beatmap_lists("remove");
     return md5;
 };
 
@@ -421,6 +421,6 @@ export const remove_beatmapset_from_collection = async (id: number, collection_n
     }
 
     // force list update to prevent caching issues
-    update_beatmap_lists();
+    update_beatmap_lists("remove");
     return beatmapset.beatmaps;
 };

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
+    import type { BeatmapUpdateReason } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
@@ -30,15 +31,16 @@
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
 
     const list = get_beatmap_list("collections");
+    let beatmap_list_ref: any;
 
-    const { sort, query, status, mode, show_invalid, difficulty_range, should_update } = list;
+    const { sort, query, status, mode, show_invalid, difficulty_range, should_update, selected_buffer, update_reason } = list;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.get_selected_store("collections");
     $: collection_search = collections.query;
     $: collection_should_update = collections.needs_update;
 
-    const debounced_filter = debounce(async (force: boolean = false) => {
+    const debounced_filter = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         // only filter if we selected something
         if (!string_is_valid($selected_collection.name)) {
             return;
@@ -60,10 +62,26 @@
         }
 
         if (result) {
-            list.set_items(Array.from(hashes.values()));
-        }
+            const items = Array.from(hashes.values());
+            list.set_items(items);
 
-        list.clear_selected();
+            const selected = $selected_buffer[0];
+
+            if (selected?.id) {
+                const selected_idx = items.indexOf(selected.id as string);
+
+                if (selected_idx != -1 && selected.index != selected_idx) {
+                    list.select({ id: selected.id, index: selected_idx });
+                } else if (selected_idx == -1) {
+                    list.clear_selected();
+                }
+            }
+
+            if ($query == "" && reason != "remove") {
+                await tick();
+                beatmap_list_ref?.focus_selected(true);
+            }
+        }
     }, SEARCH_DEBOUNCE_INTERVAL);
 
     const remove_callback = async (hash: string) => {
@@ -177,8 +195,12 @@
         collections.filter();
     }
 
-    $: if ($selected_collection.name != undefined && ($query || $sort || $status || $mode || $show_invalid || $difficulty_range || $should_update)) {
-        debounced_filter($should_update);
+    $: if ($selected_collection.name) {
+        list.set_target($selected_collection.name);
+    }
+
+    $: if ($selected_collection.name != undefined && $should_update) {
+        debounced_filter($should_update, $update_reason);
     }
 
     onMount(() => {
@@ -187,6 +209,11 @@
         if ($selected_collection.name && list.get_items().length == 0) {
             debounced_filter();
         }
+
+        // focus beatmap when list is ready
+        tick().then(() => {
+            beatmap_list_ref?.focus_selected(true);
+        });
 
         list.check_missing();
 
@@ -256,7 +283,14 @@
         </div>
 
         <!-- render beatmap list -->
-        <BeatmapList carousel={true} list_manager={list} on_remove={remove_callback} on_remove_set={remove_set_callback} show_missing={true} />
+        <BeatmapList
+            bind:this={beatmap_list_ref}
+            carousel={true}
+            list_manager={list}
+            on_remove={remove_callback}
+            on_remove_set={remove_set_callback}
+            show_missing={true}
+        />
     </div>
 </div>
 

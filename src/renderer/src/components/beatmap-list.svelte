@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import type { BeatmapList } from "../lib/store/beatmaps";
+    import { onMount, tick } from "svelte";
+    import { ALL_BEATMAPS_KEY } from "@shared/types";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
     import { is_typing } from "../lib/store/other";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
-    import { ALL_BEATMAPS_KEY } from "@shared/types";
 
     export let list_manager: BeatmapList;
     export let height = 100;
@@ -20,11 +20,22 @@
     export let on_remove_set: (id: number) => any = null;
     export let show_missing = false;
 
+    let virtual_ref: any;
+
     const { items, target, selected_buffer, id: list_id, total_missing } = list_manager;
 
     $: selected = $selected_buffer[0];
 
-    const handle_card_click = (event: MouseEvent, hash: string, index: number) => {
+    export const focus_selected = (force: boolean = false) => {
+        if (!virtual_ref) {
+            console.log("uhhh, wheres the virtual list ref bro");
+            return;
+        }
+
+        virtual_ref.focus_selected(force);
+    };
+
+    const handle_card_click = async (event: MouseEvent, hash: string, index: number) => {
         const is_selected = selected?.id == hash;
 
         if (event.ctrlKey) {
@@ -36,23 +47,17 @@
                 list_manager.clear_selected();
             } else {
                 list_manager.select({ id: hash, index });
+                await tick();
+                focus_selected(true);
             }
         }
-    };
-
-    const _on_remove = (checksum: string) => {
-        // hack: to prevent list to auto focusing after removing a beatmap
-        // reset select
-        list_manager.clear_selected();
-        on_remove(checksum);
     };
 
     onMount(() => {
         // remove selected beatmaps on scape
         // order: multi selection -> selection
         const handle_unselected_id = input.on("escape", () => {
-            const selected_len = $selected_buffer.length;
-            $selected_buffer.length = selected_len > 1 ? 1 : 0;
+            list_manager.selected_buffer.update((current) => (current.length > 1 ? [current[0]] : []));
         });
 
         const handle_arrow_left_id = input.on("arrowleft", () => {
@@ -149,6 +154,7 @@
 
     <!-- render beatmaps list-->
     <VirtualList
+        bind:this={virtual_ref}
         key={$list_id}
         items={$items}
         count={$items?.length ?? 0}
@@ -159,7 +165,6 @@
         {direction}
         {on_update}
         selected={selected?.index ?? -1}
-        selected_key={selected?.id ?? null}
         let:index
     >
         <!-- get current md5 hash -->
@@ -177,7 +182,7 @@
             show_status={!simplified}
             centered={simplified}
             show_context_remove={$target != ALL_BEATMAPS_KEY}
-            on_remove={_on_remove}
+            {on_remove}
             {on_remove_set}
             {hash}
             {height}

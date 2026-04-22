@@ -14,7 +14,6 @@
     export let direction: "left" | "right" | "center" = "right";
     export let on_update: ((index: number) => void) | null = null;
     export let selected: number = -1;
-    export let selected_key: any = null;
     export let columns: number | null = null;
 
     const PADDING = 6;
@@ -43,7 +42,6 @@
     let is_scrolling: boolean = false;
     let pending_focus_update: boolean = false;
     let last_focused_selected: number = -1;
-    let last_focused_items: any[] | null = null;
 
     let scroll_animation: ScrollAnimationState = {
         animation_id: null,
@@ -64,7 +62,6 @@
     $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
     $: end_index = Math.min(start_index + visible_count, rows_per_screen);
     $: visible_items = Math.max(0, end_index - start_index);
-    $: selected_index = selected_key != null ? items.indexOf(selected_key) : selected;
 
     const lerp = (start: number, end: number, factor: number): number => {
         return start + (end - start) * factor;
@@ -145,7 +142,7 @@
                 item_height_with_padding,
                 item_index,
                 hovered_item,
-                selected_index
+                selected
             );
 
             const cache_key = `${item_index}-${scale.toFixed(3)}-${x_offset.toFixed(1)}-${y_offset.toFixed(1)}`;
@@ -188,7 +185,7 @@
 
             if (pending_focus_update) {
                 pending_focus_update = false;
-                request_focus_selected(true);
+                focus_selected(true);
             }
 
             if (carousel_enabled) {
@@ -277,8 +274,8 @@
         }
     };
 
-    const request_focus_selected = (force: boolean = false): void => {
-        if (selected_index < 0 || selected_index >= count) {
+    export const focus_selected = (force: boolean = false): void => {
+        if (selected < 0 || selected >= count) {
             return;
         }
 
@@ -287,18 +284,18 @@
             return;
         }
 
-        if (!force && selected_index === last_focused_selected && items === last_focused_items) {
+        if (!force && selected === last_focused_selected) {
             return;
         }
 
-        last_focused_selected = selected_index;
-        last_focused_items = items;
-        scroll_to_item(selected_index);
+        last_focused_selected = selected;
+        scroll_to_item(selected);
     };
 
     const get_column_items = (row_index: number): number[] => {
         const items: number[] = [];
         const start_item = row_index * columns!;
+
         for (let col = 0; col < columns!; col++) {
             const item_index = start_item + col;
             if (item_index < count) {
@@ -344,10 +341,6 @@
         element_cache = new WeakMap();
         hovered_item = -1;
     };
-
-    $: if (items && count >= 0 && selected_index >= 0) {
-        request_focus_selected();
-    }
 
     $: if (carousel_enabled && visible_items > 0) {
         carousel_update();

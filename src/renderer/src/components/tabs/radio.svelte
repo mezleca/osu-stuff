@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
 
-    import type { AudioDirection, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
+    import type { AudioDirection, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other";
     import { ALL_BEATMAPS_KEY } from "@shared/types";
@@ -26,13 +26,17 @@
     const audio = get_audio_manager("radio");
     const selected_store = collections.get_selected_store("radio");
 
-    const { selected_buffer, previous_buffer, query, sort, should_update } = list;
+    const { selected_buffer, previous_buffer, query, sort, should_update, update_reason } = list;
 
     let selected_beatmap: IBeatmapResult | null = null;
+    let beatmap_list_ref: any;
 
     $: selected = $selected_buffer[0];
     $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
     $: bg = "";
+    $: if (selected_collection) {
+        list.set_target(selected_collection);
+    }
 
     const collection_target_options = [
         { label: "all beatmaps", value: ALL_BEATMAPS_KEY },
@@ -56,7 +60,7 @@
         bg = local != "" ? local : web;
     };
 
-    const debounced_update = debounce(async (force: boolean = false) => {
+    const debounced_update = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         list.set_target(selected_collection);
 
         const result = await list.search(force);
@@ -67,6 +71,20 @@
 
         const beatmaps = result.beatmaps.map((b) => b.md5);
         list.set_items(beatmaps);
+
+        if (selected?.id) {
+            const selected_idx = beatmaps.indexOf(selected.id as string);
+
+            if (selected_idx != -1 && selected.index != selected_idx) {
+                list.select({ id: selected.id, index: selected_idx });
+            }
+        }
+
+        // focus on empty query
+        if ($query == "" && reason != "remove") {
+            await tick();
+            beatmap_list_ref?.focus_selected(true);
+        }
     }, SEARCH_DEBOUNCE_INTERVAL);
 
     type NavigateOptions = {
@@ -158,8 +176,13 @@
         });
     };
 
+    const focus_selected_in_list = async () => {
+        await tick();
+        beatmap_list_ref?.focus_selected(true);
+    };
+
     const set_selected_beatmap = (beatmap: ISelectedBeatmap) => {
-        if (!selected || beatmap.index != selected.index || beatmap.id != selected.id) {
+        if (!selected || beatmap.id != selected.id) {
             list.select(beatmap);
         }
     };
@@ -172,6 +195,11 @@
         }
 
         set_selected_beatmap({ id: result.beatmap_id, index: result.index });
+
+        if (options.force_random) {
+            await focus_selected_in_list();
+        }
+
         return result.beatmap_id;
     };
 
@@ -198,28 +226,43 @@
         collections.filter();
     };
 
-    $: {
-        // load audio on changes
-        if (selected?.index != undefined && selected.index != -1 && audio.get_state().id != selected.id && !audio.get_state().is_loading) {
-            audio.load_and_setup_audio(selected.id as string).then(async (result) => {
-                if (result) {
-                    await audio.play();
-                }
-            });
+    const load_beatmap = async () => {
+        push_to_previous_if_new(selected);
+        const result = await get_beatmap(selected.id as string);
+
+        if (!result) {
+            console.error("failed to load beatmap:", selected);
+            return;
         }
 
-        // update selected beatmap data on changes
-        if (selected && selected?.index != -1) {
-            push_to_previous_if_new(selected);
+        selected_beatmap = result;
+        update_background_image();
 
-            get_beatmap(selected.id as string).then((bm) => {
-                selected_beatmap = bm;
-                update_background_image();
-            });
-        } else {
-            selected_beatmap = null;
-            bg = "";
-            audio.clean_audio();
+        const audio_result = await audio.load_and_setup_audio(selected.id as string);
+
+        if (!audio_result) {
+            clear_loaded_beatmap();
+            console.error("failed to load audio...");
+            return;
+        }
+
+        await audio.play();
+    };
+
+    const clear_loaded_beatmap = () => {
+        selected_beatmap = null;
+        bg = "";
+        audio.clean_audio();
+    };
+
+    $: {
+        // load the new beatmap if our state and current select doenst match
+        if (selected && selected?.index != -1 && audio.get_state().id != selected.id) {
+            load_beatmap();
+        }
+        // clear selected if we dont have anything
+        else if (!selected || selected?.id == -1) {
+            clear_loaded_beatmap();
         }
 
         // update selection collection on change
@@ -229,11 +272,12 @@
                 selected_collection = ALL_BEATMAPS_KEY;
             }
 
+            list.set_target(selected_collection);
             collections.select(selected_collection, "radio");
         }
 
-        if (selected_collection || $query || $sort || $should_update) {
-            debounced_update($should_update);
+        if ($should_update) {
+            debounced_update($should_update, $update_reason);
         }
 
         if ($config.radio_background) {
@@ -272,7 +316,8 @@
             }
 
             list.select(data);
-            $previous_buffer.pop();
+            list.previous_buffer.update((old) => (old.length > 0 ? old.slice(0, -1) : old));
+            await focus_selected_in_list();
         });
 
         const handle_seek_backward_id = input.on("shift+arrowleft", () => {
@@ -284,6 +329,11 @@
         });
 
         update_background_image();
+
+        // focus beatmap when list is ready
+        tick().then(() => {
+            beatmap_list_ref?.focus_selected(true);
+        });
 
         return () => {
             debounced_update.cancel();
@@ -305,6 +355,7 @@
                 <Dropdown label={"target"} bind:selected_value={selected_collection} options={collection_target_options} />
             </div>
             <BeatmapList
+                bind:this={beatmap_list_ref}
                 on_remove={remove_callback}
                 on_remove_set={remove_set_callback}
                 list_manager={list}

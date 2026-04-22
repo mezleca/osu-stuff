@@ -1,8 +1,9 @@
-import { writable, get, type Writable } from "svelte/store";
+import { writable, get, derived, type Readable, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY } from "@shared/types";
 import type { BeatmapComponentState, BeatmapSetComponentState, ISelectedBeatmap } from "@shared/types";
 import {
+    BeatmapUpdateReason,
     BeatmapSetResult,
     GameMode,
     IBeatmapFilter,
@@ -31,6 +32,7 @@ export abstract class ListBase<T> {
     mode: Writable<GameMode> = writable(GameMode.All);
     difficulty_range: Writable<StarRatingFilter> = writable([0, 10]);
     should_update: Writable<boolean> = writable(false);
+    update_reason: Writable<BeatmapUpdateReason> = writable("unknown");
     total_missing: Writable<number> = writable(0);
     items: Writable<T[]> = writable([]);
     previous_buffer: Writable<ISelectedBeatmap[]> = writable([]);
@@ -64,8 +66,14 @@ export abstract class ListBase<T> {
         this.status.set(value);
     }
 
-    set_update(value: boolean): void {
+    set_update(value: boolean, reason: BeatmapUpdateReason = "manual"): void {
         this.should_update.set(value);
+
+        if (value) {
+            this.update_reason.set(reason);
+        } else {
+            this.update_reason.set("unknown");
+        }
     }
 
     get_items(): T[] {
@@ -116,14 +124,59 @@ export class BeatmapList extends ListBase<string> {
     // cache
     last_filter: string = "";
     last_result: ISearchResponse | null = null;
+    filter_update_unsub: (() => void) | null = null;
+    last_update_key: string = "";
+    has_initialized_filters: boolean = false;
 
     constructor() {
         super();
+        this.setup_filter_update_tracking();
     }
 
     set_target(name: string): void {
         this.target.set(name);
         this.update_name(name);
+    }
+
+    setup_filter_update_tracking(): void {
+        const update_key_store: Readable<string> = derived(
+            [
+                this.target,
+                this.query,
+                this.sort,
+                this.status,
+                this.mode,
+                this.difficulty_range,
+                this.show_invalid,
+                this.show_unique,
+                this.has_duration
+            ],
+            ([$target, $query, $sort, $status, $mode, $difficulty_range, $show_invalid, $show_unique, $has_duration]) =>
+                JSON.stringify({
+                    target: $target,
+                    query: $query,
+                    sort: $sort,
+                    status: $status,
+                    mode: $mode,
+                    difficulty_range: $difficulty_range,
+                    show_invalid: $show_invalid,
+                    show_unique: $show_unique,
+                    has_duration: $has_duration
+                })
+        );
+
+        this.filter_update_unsub = update_key_store.subscribe((key) => {
+            if (!this.has_initialized_filters) {
+                this.has_initialized_filters = true;
+                this.last_update_key = key;
+                return;
+            }
+
+            if (key != this.last_update_key) {
+                this.last_update_key = key;
+                this.set_update(true, "filters");
+            }
+        });
     }
 
     // attempt to rebuild the selected buffer by searching for the same beatmap
@@ -465,17 +518,17 @@ export const refresh_missing_count = async (): Promise<void> => {
     await refresh_missing_badges();
 };
 
-export const update_beatmap_lists = () => {
+export const update_beatmap_lists = (reason: BeatmapUpdateReason = "manual") => {
     const beatmap_lists = Array.from(beatmap_managers.values());
 
     for (const list of beatmap_lists) {
-        list.set_update(true);
+        list.set_update(true, reason);
     }
 
     const beatmapset_lists = Array.from(beatmapset_managers.values());
 
     for (const list of beatmapset_lists) {
-        list.set_update(true);
+        list.set_update(true, reason);
     }
 };
 
