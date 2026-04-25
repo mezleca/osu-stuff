@@ -2,23 +2,40 @@ import fs from "fs";
 
 const [version, include_versions_raw, output_file] = process.argv.slice(2);
 const NOTES_FILE = "changelog/notes.md";
+const VERSION_HEADER_PATTERN = /^#\s+v?\d+\.\d+\.\d+(?:[-+][\w.-]+)?\s*$/i;
+
+const normalize_version = (ver: string): string => {
+    return ver.trim().replace(/^v/i, "");
+};
+
+const is_matching_version_header = (line: string, expected_version: string): boolean => {
+    if (!VERSION_HEADER_PATTERN.test(line)) {
+        return false;
+    }
+
+    const header_version = line.replace(/^#\s+/i, "").trim();
+    return normalize_version(header_version) == normalize_version(expected_version);
+};
+
+const is_version_header = (line: string): boolean => {
+    return VERSION_HEADER_PATTERN.test(line);
+};
 
 const extract_version = (ver: string, content: string) => {
     const lines = content.split("\n");
-    const header = `# ${ver}`;
 
     let capturing = false;
     let found_header = false;
     let result: Array<string> = [];
 
     for (const line of lines) {
-        if (line === header) {
+        if (is_matching_version_header(line, ver)) {
             capturing = true;
             found_header = true;
             continue;
         }
 
-        if (capturing && line.startsWith("# ")) {
+        if (capturing && is_version_header(line)) {
             break;
         }
 

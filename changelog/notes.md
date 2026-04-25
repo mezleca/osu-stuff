@@ -1,8 +1,21 @@
+# v2.7.1
+
+## new stuff
+
+- minor ui tweaks
+
+## bug fixes
+
+- fix(beatmap-card): status badge using the default font...
+- fix(range-slider): not resizing properly in some cases
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.7.0...v2.7.1
+
 # v2.7.0
 
 radio :D
 
-# new stuff
+## new stuff
 
 - ui: minor changes to dropdown, checkbox design
 - radio(ui): layout redesign, show update button after modification
@@ -22,7 +35,7 @@ radio :D
 
 # v2.6.1
 
-# bug fixes
+## bug fixes
 
 - beatmap-list(radio): fix radio collection not showing moved beatmap
 
@@ -32,13 +45,13 @@ radio :D
 
 hopefully stable enough for a minor release...
 
-# new stuff
+## new stuff
 
 - electron: updated to the latest version
 - beatmap processor: use worker threads
 - beatmap processor(ui): show state even after reload
 
-# bug fixes
+## bug fixes
 
 - radio: show fallback gradient instead of "not found" icon on background
 - beatmap-list(radio): ignore beatmaps that have no audio file
@@ -50,13 +63,13 @@ hopefully stable enough for a minor release...
 
 # v2.5.13
 
-# new stuff
+## new stuff
 
 - collections / beatmapsets: loading / searching should be a bit faster
 - preview: replaced vibecoded previewer with an iframe to "preview.tryz.id.vn"
 - updated dependencies to the latest version
 
-# bug fixes
+## bug fixes
 
 - minor bug fixes
 

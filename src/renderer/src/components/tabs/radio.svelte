@@ -40,11 +40,7 @@
 
     $: selected = $selected_buffer[0];
     $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
-    $: card_elements = get_radio_card_elements();
-    $: if (selected_collection) {
-        list.set_target(selected_collection);
-    }
-
+    $: card_elements = get_radio_card_elements(selected_collection);
     $: collection_target_options = get_radio_collection_options(collections.get_all());
     $: bg = get_radio_background_image(selected_beatmap, $config.radio_background);
 
@@ -271,6 +267,10 @@
             sync_selected_beatmap();
         } else if (!selected || selected?.id == -1) {
             clear_loaded_beatmap();
+        }
+
+        if (selected_collection) {
+            list.set_target(selected_collection);
         }
 
         if (selected_collection && $selected_store.name != selected_collection) {
