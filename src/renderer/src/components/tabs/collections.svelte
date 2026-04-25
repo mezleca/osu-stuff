@@ -7,7 +7,7 @@
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
-    import { debounce } from "../../lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import { modals, ModalType } from "../../lib/utils/modal";
     import { show_context_menu } from "../../lib/store/context-menu";
 

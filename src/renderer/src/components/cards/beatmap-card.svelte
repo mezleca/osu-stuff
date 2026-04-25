@@ -4,23 +4,15 @@
     import {
         BEATMAP_CARD_ELEMENT,
         type BeatmapCardElements,
-        type BeatmapCardCallbacks,
         type BeatmapCardMode,
-        type BeatmapCardViewState,
         type BeatmapComponentState,
         type IBeatmapResult
     } from "@shared/types";
 
     import { get_beatmap_state } from "../../lib/store/beatmaps";
     import { show_context_menu } from "../../lib/store/context-menu";
-    import { debounce } from "../../lib/utils/timings";
-    import {
-        EMPTY_BEATMAP_CARD_CALLBACKS,
-        EMPTY_BEATMAP_CARD_VIEW_STATE,
-        create_beatmap_card_view_state,
-        get_beatmap_card_flags,
-        get_display_beatmap
-    } from "../../lib/utils/beatmap-card";
+    import { debounce } from "@shared/timing";
+    import { get_beatmap_card_flags, get_display_beatmap } from "../../lib/utils/beatmap-card";
     import { get_placeholder_image, get_card_image_source } from "../../lib/utils/card-utils";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
@@ -45,35 +37,14 @@
     let image_element: HTMLImageElement | null = null;
     let image_loaded = false;
     let state: BeatmapComponentState | null = null;
-    let loaded = false;
-    let display_beatmap: IBeatmapResult | null = null;
-    let view_state: BeatmapCardViewState = EMPTY_BEATMAP_CARD_VIEW_STATE;
-    let callbacks: BeatmapCardCallbacks = EMPTY_BEATMAP_CARD_CALLBACKS;
-    let flags = get_beatmap_card_flags(elements);
     let last_hash = "";
 
     $: state = state_store ? $state_store : null;
     $: loaded = mode == "minimal" && !!beatmap ? true : state?.loaded == true;
     $: display_beatmap = get_display_beatmap(mode, beatmap, state);
     $: flags = get_beatmap_card_flags(elements);
-    $: view_state = create_beatmap_card_view_state({
-        selected,
-        highlighted,
-        centered,
-        height,
-        image_loaded,
-        hash,
-        beatmap: display_beatmap,
-        state,
-        flags
-    });
-
-    $: callbacks = {
-        on_click: handle_click,
-        on_contextmenu: handle_context,
-        on_remove,
-        on_download: handle_download
-    };
+    $: background = state?.background ?? "";
+    $: has_map = !!state?.beatmap && state.beatmap.temp == false;
 
     const debounced_load = debounce(async () => {
         if (!state || state.loading) {
@@ -194,11 +165,40 @@
 </script>
 
 {#if mode == "minimal" && display_beatmap}
-    <MinimalBeatmapCard {view_state} on_contextmenu={handle_context} />
+    <MinimalBeatmapCard beatmap={display_beatmap} on_contextmenu={handle_context} />
 {:else if !loaded}
     <div style={`height: ${height}px; width: 100%; background: rgba(17, 20, 31, 0.65);`}></div>
 {:else if mode == "radio"}
-    <RadioBeatmapCard {view_state} {callbacks} bind:image_element />
+    <RadioBeatmapCard
+        bind:image_element
+        beatmap={display_beatmap}
+        on_click={handle_click}
+        on_contextmenu={handle_context}
+        {flags}
+        {selected}
+        {highlighted}
+        {image_loaded}
+        {background}
+        {hash}
+        {has_map}
+        {on_remove}
+    />
 {:else}
-    <CardBeatmapCard {view_state} {callbacks} bind:image_element />
+    <CardBeatmapCard
+        bind:image_element
+        beatmap={display_beatmap}
+        on_click={handle_click}
+        on_contextmenu={handle_context}
+        on_download={handle_download}
+        {flags}
+        {selected}
+        {highlighted}
+        {centered}
+        {height}
+        {image_loaded}
+        {background}
+        {hash}
+        {has_map}
+        {on_remove}
+    />
 {/if}

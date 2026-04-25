@@ -14,7 +14,7 @@ import {
     StarRatingFilter
 } from "@shared/types";
 import { config } from "./config";
-import { throttle } from "../utils/timings";
+import { throttle } from "@shared/timing";
 import { collections } from "./collections";
 
 import LRU from "quick-lru";

@@ -1,6 +1,6 @@
 import { writable, get } from "svelte/store";
 import { edit_notification, finish_notification, notification_exists, show_notification } from "./notifications";
-import { throttle } from "../utils/timings";
+import { throttle } from "@shared/timing";
 import type { Writable } from "svelte/store";
 import type { UpdateProgress } from "@shared/types";
 

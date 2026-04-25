@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { debounce } from "../../../lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import { clamp } from "../../../lib/utils/utils";
 
     type RangeOnUpdate = [number, number]; // min, max

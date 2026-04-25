@@ -1,6 +1,7 @@
 import { BeatmapRow, ExtractedData, GenericResult } from "@shared/types";
 import { BaseTable, dbSchema } from "./database.js";
-import { get_window, throttle } from "../utils.js";
+import { get_window } from "../utils.js";
+import { throttle } from "@shared/timing.js";
 import { send_to_renderer } from "../ipc.js";
 import { BrowserWindow } from "electron";
 

@@ -172,7 +172,6 @@ export interface IMissingCache {
     last_checked_modified: number;
 }
 
-export type BeatmapUpdateReason = "filters" | "remove" | "manual" | "unknown";
 export const BEATMAP_CARD_ELEMENT = {
     STATUS: 1 << 0,
     STAR_RATING_TEXT: 1 << 1,
@@ -183,7 +182,7 @@ export const BEATMAP_CARD_ELEMENT = {
     ACTION_REMOVE: 1 << 6
 } as const;
 
+export type BeatmapUpdateReason = "filters" | "remove" | "manual" | "unknown";
 export type BeatmapCardElementFlag = (typeof BEATMAP_CARD_ELEMENT)[keyof typeof BEATMAP_CARD_ELEMENT];
 export type BeatmapCardElements = number;
-
 export type BeatmapCardMode = "card" | "minimal" | "radio";

@@ -1,7 +1,7 @@
 import { writable, get, type Writable } from "svelte/store";
 import type { ManagerConfig, ManagerMirror } from "@shared/types";
 import { string_is_valid } from "../utils/utils";
-import { throttle } from "../utils/timings";
+import { throttle } from "@shared/timing";
 import { show_notification } from "./notifications";
 
 const DEFAULT_CONFIG_FIELDS: ManagerConfig = {

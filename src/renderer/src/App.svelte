@@ -6,7 +6,7 @@
     import { show_notification } from "./lib/store/notifications";
     import { processing, processing_data } from "./lib/store/processor";
     import { is_dev_mode } from "./lib/utils/utils";
-    import { debounce } from "./lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import { downloader } from "./lib/store/downloader";
     import { get_osu_data } from "./lib/utils/collections";
 

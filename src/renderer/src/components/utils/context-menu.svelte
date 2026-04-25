@@ -2,7 +2,7 @@
     import { onMount, tick } from "svelte";
     import { fade, scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
-    import { debounce } from "../../lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import type { ContextMenuOption, MousePoint } from "@shared/types";
     import { context_menu_manager, type ActiveContextMenu } from "../../lib/store/context-menu";
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { config } from "../../../lib/store/config";
     import { get_audio_manager } from "../../../lib/store/audio";
-    import { debounce } from "../../../lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import { clamp } from "../../../lib/utils/utils";
 
     import Play from "../../icon/play.svelte";

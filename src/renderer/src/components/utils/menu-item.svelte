@@ -2,7 +2,7 @@
     import { onDestroy, tick } from "svelte";
     import { scale } from "svelte/transition";
     import { clamp } from "../../lib/utils/utils";
-    import { debounce } from "../../lib/utils/timings";
+    import { debounce } from "@shared/timing";
     import type { ContextMenuOption, MousePoint } from "@shared/types";
 
     export let item: ContextMenuOption;

@@ -1,63 +1,77 @@
 <script lang="ts">
-    import type { BeatmapCardCallbacks, BeatmapCardViewState } from "@shared/types";
+    import { get_formatted_star_rating, type BeatmapCardFlags } from "../../../lib/utils/beatmap-card";
     import { get_status_style } from "../../../lib/utils/card-utils";
+    import type { IBeatmapResult } from "@shared/types";
 
     import BeatmapControls from "../beatmap-controls.svelte";
 
-    export let view_state: BeatmapCardViewState;
-    export let callbacks: BeatmapCardCallbacks;
+    export let beatmap: IBeatmapResult | null = null;
+    export let flags: BeatmapCardFlags;
+    export let selected = false;
+    export let highlighted = false;
+    export let centered = false;
+    export let height = 100;
+    export let image_loaded = false;
+    export let background = "";
+    export let hash = "";
+    export let has_map = false;
     export let image_element: HTMLImageElement | null = null;
+    export let on_click: (event: MouseEvent) => void = null;
+    export let on_contextmenu: (event: MouseEvent) => void = null;
+    export let on_remove: (checksum: string) => void = null;
+    export let on_download: () => void = null;
 
-    $: status_style = get_status_style(view_state.beatmap?.status);
+    $: status_style = get_status_style(beatmap?.status);
+    $: formatted_star_rating = get_formatted_star_rating(beatmap);
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="beatmap-card"
-    style={`height: ${view_state.height}px;`}
-    class:selected={view_state.selected}
-    class:highlighted={view_state.highlighted}
-    class:temp={view_state.beatmap?.temp}
-    class:loaded={view_state.image_loaded}
-    onclick={callbacks.on_click}
-    oncontextmenu={callbacks.on_contextmenu}
+    style={`height: ${height}px;`}
+    class:selected
+    class:highlighted
+    class:temp={beatmap?.temp}
+    class:loaded={image_loaded}
+    onclick={on_click}
+    oncontextmenu={on_contextmenu}
 >
     <img
         class="beatmap-card-background"
-        class:loaded={view_state.image_loaded}
-        src={view_state.background}
+        class:loaded={image_loaded}
+        src={background}
         alt=""
         loading="lazy"
         decoding="async"
         bind:this={image_element}
     />
 
-    {#if view_state.show_extra_actions}
+    {#if flags.show_extra_actions}
         <BeatmapControls
-            beatmapset_id={view_state.beatmap?.beatmapset_id ?? -1}
-            show_remove={view_state.show_action_remove}
-            hash={view_state.hash}
-            has_map={view_state.has_map}
-            on_remove={callbacks.on_remove}
-            on_download={callbacks.on_download}
+            beatmapset_id={beatmap?.beatmapset_id ?? -1}
+            show_remove={flags.show_action_remove}
+            {hash}
+            {has_map}
+            {on_remove}
+            {on_download}
         />
     {/if}
 
-    <div class="beatmap-card-metadata" class:centered={view_state.centered}>
-        <div class="title">{view_state.beatmap?.title ?? "unknown"}</div>
-        <div class="artist">by {view_state.beatmap?.artist ?? "unknown"}</div>
-        <div class="creator">mapped by {view_state.beatmap?.creator ?? "unknown"}</div>
-        {#if view_state.show_status}
+    <div class="beatmap-card-metadata" class:centered>
+        <div class="title">{beatmap?.title ?? "unknown"}</div>
+        <div class="artist">by {beatmap?.artist ?? "unknown"}</div>
+        <div class="creator">mapped by {beatmap?.creator ?? "unknown"}</div>
+        {#if flags.show_status}
             <div class="beatmap-card-extra">
                 <span class="status" style={`background-color: ${status_style.background}; color: ${status_style.text};`}>
-                    {view_state.beatmap?.status ?? "unknown"}
+                    {beatmap?.status ?? "unknown"}
                 </span>
-                {#if view_state.show_bpm}
-                    <span class="bpm">{Math.round(view_state.beatmap?.bpm ?? 0)} bpm</span>
+                {#if flags.show_bpm}
+                    <span class="bpm">{Math.round(beatmap?.bpm ?? 0)} bpm</span>
                 {/if}
-                {#if view_state.show_star_rating}
-                    <span class="star-rating">★ {view_state.formatted_star_rating}</span>
+                {#if flags.show_star_rating}
+                    <span class="star-rating">★ {formatted_star_rating}</span>
                 {/if}
             </div>
         {/if}

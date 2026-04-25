@@ -1,26 +1,26 @@
 <script lang="ts">
-    import type { BeatmapCardViewState } from "@shared/types";
+    import type { IBeatmapResult } from "@shared/types";
     import { open_on_browser } from "../../../lib/utils/utils";
     import { get_diff_color, get_diff_text_color } from "../../../lib/utils/card-utils";
+    import { get_formatted_star_rating } from "../../../lib/utils/beatmap-card";
 
-    export let view_state: BeatmapCardViewState;
+    export let beatmap: IBeatmapResult | null = null;
     export let on_contextmenu: (event: MouseEvent) => void = null;
+
+    $: star_rating = beatmap?.star_rating ?? 0;
+    $: formatted_star_rating = get_formatted_star_rating(beatmap);
 
     const open_beatmapset = (event: MouseEvent) => {
         event.stopPropagation();
-        open_on_browser(view_state.beatmap?.beatmapset_id ?? -1);
+        open_on_browser(beatmap?.beatmapset_id ?? -1);
     };
 </script>
 
-<span
-    class="star-rating"
-    style={`color: ${get_diff_text_color(view_state.star_rating)}; background-color: ${get_diff_color(view_state.star_rating)};`}
->
-    ★ {view_state.formatted_star_rating}
+<span class="star-rating" style={`color: ${get_diff_text_color(star_rating)}; background-color: ${get_diff_color(star_rating)};`}>
+    ★ {formatted_star_rating}
 </span>
-
 <button tabindex="0" onclick={open_beatmapset} oncontextmenu={on_contextmenu}>
-    {view_state.beatmap?.difficulty ?? "unknown"}
+    {beatmap?.difficulty ?? "unknown"}
 </button>
 
 <style>

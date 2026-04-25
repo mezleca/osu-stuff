@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import { show_notification } from "./notifications";
-import { debounce } from "../utils/timings";
+import { debounce } from "@shared/timing";
 import { beatmap_cache, beatmapset_cache } from "../utils/beatmaps";
 import { BeatmapSetList } from "./beatmaps";
 

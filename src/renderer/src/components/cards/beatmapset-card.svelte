@@ -1,5 +1,7 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
+    import { get } from "svelte/store";
+    import { slide } from "svelte/transition";
     import { get_beatmapset_state } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmapset } from "../../lib/utils/beatmaps";
@@ -12,10 +14,8 @@
         sort_beatmaps_by_star_rating
     } from "../../lib/utils/beatmapset-card";
     import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
-    import { debounce } from "../../lib/utils/timings";
-    import { get } from "svelte/store";
-    import { slide } from "svelte/transition";
-    import { type IBeatmapResult, type BeatmapSetResult, type BeatmapSetComponentState } from "@shared/types";
+    import { debounce } from "@shared/timing";
+    import type { IBeatmapResult, BeatmapSetResult, BeatmapSetComponentState } from "@shared/types";
     import type { Writable } from "svelte/store";
 
     // components
@@ -47,7 +47,6 @@
     $: visible_hashes = get_visible_hashes(state, filtered_hashes);
 
     const debounced_load = debounce(async () => {
-        // if we're alreading loading, ignore
         if (!state || state.loading) {
             return;
         }
@@ -55,7 +54,6 @@
         state_store.update((val) => ({ ...val, loading: true }));
 
         try {
-            // if we already have the set, just update the background
             if (state.beatmapset) {
                 if (!state.background) {
                     state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmapset) }));
@@ -203,7 +201,6 @@
         onmouseleave={handle_mouseleave}
     >
         <div class="beatmap-card-header" style="height: {height}px;">
-            <!-- render background image -->
             <!-- svelte-ignore a11y_img_redundant_alt -->
             <img
                 src={state.background}
