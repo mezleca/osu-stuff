@@ -158,7 +158,8 @@
     }
 
     .beatmap-card-extra :global(*) {
-        font-size: 12px;
+        font-size: 11px;
+        font-family: "Torus Bold";
         text-transform: uppercase;
     }
 

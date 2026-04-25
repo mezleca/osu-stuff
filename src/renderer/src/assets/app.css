@@ -443,6 +443,10 @@ main {
     margin-top: 16px;
 }
 
+.modal-footer * {
+    font-family: "Torus Bold";
+}
+
 .primary-btn {
     background-color: var(--accent-color);
     color: white;

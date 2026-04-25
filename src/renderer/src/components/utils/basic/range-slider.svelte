@@ -1,83 +1,90 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onDestroy } from "svelte";
     import { debounce } from "@shared/timing";
     import { clamp } from "../../../lib/utils/utils";
 
-    type RangeOnUpdate = [number, number]; // min, max
+    const THUMB_SIZE = 32;
+    const HALF_THUMB_SIZE = THUMB_SIZE / 2;
+    const DEFAULT_STEP = 0.1;
+
+    type RangeOnUpdate = [number, number];
+    type RangeHandleType = "min" | "max";
 
     export let label = "";
     export let min = 0;
     export let max = 10;
     export let min_bound = 0;
     export let max_bound = 10;
+    export let step = DEFAULT_STEP;
     export let value: RangeOnUpdate = [0, 0];
-    export let on_update: (data: RangeOnUpdate) => {} = null;
+    export let on_update: ((data: RangeOnUpdate) => void) | null = null;
 
-    let container: any;
+    const get_percent = (current_value: number, range_start: number, range_end: number): number => {
+        const range_span = Math.max(range_end - range_start, 1);
+        return ((current_value - range_start) / range_span) * 100;
+    };
 
-    const update = () => {
-        if (!container) {
+    const get_position_style = (percent: number): string => {
+        return `calc(${HALF_THUMB_SIZE}px + (${percent} * (100% - ${THUMB_SIZE}px) / 100))`;
+    };
+
+    const get_fill_width_style = (start_percent: number, end_percent: number): string => {
+        const width_percent = Math.max(end_percent - start_percent, 0);
+        return `calc(${width_percent} * (100% - ${THUMB_SIZE}px) / 100)`;
+    };
+
+    const emit_update = () => {
+        if (Number.isNaN(min) || Number.isNaN(max)) {
             return;
         }
 
-        const range_span = max_bound - min_bound || 1;
-        const min_percent = ((min - min_bound) / range_span) * 100;
-        const max_percent = ((max - min_bound) / range_span) * 100;
-
-        const fill = container.querySelector(".fill");
-        const min_thumb = container.querySelector(".min-thumb");
-        const max_thumb = container.querySelector(".max-thumb");
-
-        fill.style.left = `${min_percent}%`;
-        fill.style.width = `${max_percent - min_percent}%`;
-
-        min_thumb.style.left = `${min_percent}%`;
-        max_thumb.style.left = `${max_percent}%`;
-
-        const usable_width = container.offsetWidth - 32;
-        const min_position = 16 + (min_percent / 100) * usable_width;
-        const max_position = 16 + (max_percent / 100) * usable_width;
-
-        min_thumb.style.left = `${min_position}px`;
-        max_thumb.style.left = `${max_position}px`;
-    };
-
-    const handle_min = (e) => {
-        const new_min = parseFloat(e.target.value);
-        const step = Math.abs(parseFloat(e.target.step) || 0.1);
-        min = clamp(new_min, min_bound, max - step);
-        update_fill();
-    };
-
-    const handle_max = (e) => {
-        const new_max = parseFloat(e.target.value);
-        const step = Math.abs(parseFloat(e.target.step) || 0.1);
-        max = clamp(new_max, min + step, max_bound);
-        update_fill();
+        on_update?.([min, max]);
+        value = [min, max];
     };
 
     const debounced_update = debounce(() => {
-        if (isNaN(min) || isNaN(min)) return;
-        if (on_update) on_update([min, max]);
-
-        value = [min, max];
+        emit_update();
     }, 50);
 
-    const update_fill = (event?: UIEvent) => {
-        tick().then(() => {
-            update();
-            if (!event) debounced_update();
-        });
+    const clamp_values = () => {
+        const normalized_step = Math.abs(step) || DEFAULT_STEP;
+        const clamped_min = clamp(min, min_bound, max_bound - normalized_step);
+        const clamped_max = clamp(max, min_bound + normalized_step, max_bound);
+        const next_min = clamp(clamped_min, min_bound, clamped_max - normalized_step);
+        const next_max = clamp(clamped_max, next_min + normalized_step, max_bound);
+
+        if (next_min != min) {
+            min = next_min;
+        }
+
+        if (next_max != max) {
+            max = next_max;
+        }
     };
 
-    onMount(() => {
-        update_fill();
-        window.addEventListener("resize", update_fill);
+    const handle_input = (handle_type: RangeHandleType, event: Event) => {
+        const target = event.currentTarget as HTMLInputElement;
+        const next_value = parseFloat(target.value);
+        const normalized_step = Math.abs(parseFloat(target.step) || step || DEFAULT_STEP);
 
-        return () => {
-            debounced_update.cancel();
-            window.removeEventListener("resize", update_fill);
-        };
+        if (handle_type == "min") {
+            min = clamp(next_value, min_bound, max - normalized_step);
+        } else {
+            max = clamp(next_value, min + normalized_step, max_bound);
+        }
+
+        debounced_update();
+    };
+
+    $: clamp_values();
+    $: min_percent = get_percent(min, min_bound, max_bound);
+    $: max_percent = get_percent(max, min_bound, max_bound);
+    $: min_position_style = get_position_style(min_percent);
+    $: max_position_style = get_position_style(max_percent);
+    $: fill_width_style = get_fill_width_style(min_percent, max_percent);
+
+    onDestroy(() => {
+        debounced_update.cancel();
     });
 </script>
 
@@ -86,13 +93,29 @@
         <!-- svelte-ignore a11y_label_has_associated_control -->
         <label class="field-label">{label}</label>
     {/if}
-    <div bind:this={container} class="slider-body">
+    <div class="slider-body">
         <div class="track"></div>
-        <div class="fill"></div>
-        <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={min} oninput={handle_min} class="range-input" />
-        <input type="range" min={min_bound} max={max_bound} step="0.1" bind:value={max} oninput={handle_max} class="range-input" />
-        <div class="min-thumb">{min.toFixed(1)}</div>
-        <div class="max-thumb">{max.toFixed(1)}</div>
+        <div class="fill" style:left={min_position_style} style:width={fill_width_style}></div>
+        <input
+            type="range"
+            min={min_bound}
+            max={max_bound}
+            {step}
+            bind:value={min}
+            oninput={(event) => handle_input("min", event)}
+            class="range-input"
+        />
+        <input
+            type="range"
+            min={min_bound}
+            max={max_bound}
+            {step}
+            bind:value={max}
+            oninput={(event) => handle_input("max", event)}
+            class="range-input"
+        />
+        <div class="min-thumb" style:left={min_position_style}>{min.toFixed(1)}</div>
+        <div class="max-thumb" style:left={max_position_style}>{max.toFixed(1)}</div>
     </div>
 </div>
 

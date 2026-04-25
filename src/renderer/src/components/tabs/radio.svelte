@@ -40,7 +40,7 @@
 
     $: selected = $selected_buffer[0];
     $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
-    $: card_elements = get_radio_card_elements(selected_collection);
+    $: card_elements = get_radio_card_elements();
     $: if (selected_collection) {
         list.set_target(selected_collection);
     }

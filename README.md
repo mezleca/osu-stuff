@@ -4,7 +4,16 @@
 </div>
 
 <p align="center">
-  <img src="https://github.com/mezleca/osu-stuff/blob/main/resources/preview.png">
+    <table>
+        <tr>
+            <td><img src="https://github.com/user-attachments/assets/970774ed-b71c-4e16-b722-edfa60994890" width="400"/></td>
+            <td><img src="https://github.com/user-attachments/assets/c8e897b4-ca7b-41f6-9a44-aca5a6820c71" width="400"/></td>
+        </tr>
+        <tr>
+            <td><img src="https://github.com/user-attachments/assets/48093539-a48e-45c0-97ec-a9a8ca625c2c" width="400"/></td>
+            <td><img src="https://github.com/user-attachments/assets/3a78fda7-1f5d-4d8f-a49f-3eded3b7b33b" width="400"/></td>
+        </tr>
+    </table>
 </p>
 
 ## wtf is osu-stuff
