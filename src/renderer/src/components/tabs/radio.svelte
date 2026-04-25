@@ -354,15 +354,8 @@
             <div class="filter-row">
                 <div class="results-count-inline">{total_beatmaps} beatmaps</div>
 
-                <div class="filter-chip">
-                    <span class="filter-label">sort</span>
-                    <Dropdown label={""} bind:selected_value={$sort} options={FILTER_DATA} />
-                </div>
-
-                <div class="filter-chip target-chip">
-                    <span class="filter-label">collection</span>
-                    <Dropdown label={""} bind:selected_value={selected_collection} options={collection_target_options} />
-                </div>
+                <Dropdown inline={true} label={"sort"} bind:selected_value={$sort} options={FILTER_DATA} />
+                <Dropdown inline={true} label={"collection / target"} bind:selected_value={selected_collection} options={collection_target_options} />
 
                 {#if $collection_should_update}
                     <button class="radio-update-btn" onclick={() => collections.update()}>update</button>
@@ -432,48 +425,6 @@
         font-size: 13px;
         font-family: "Torus SemiBold";
         white-space: nowrap;
-    }
-
-    .filter-chip {
-        min-width: 160px;
-        padding: 6px 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 6px;
-        background: rgba(18, 18, 18, 0.84);
-        backdrop-filter: blur(8px);
-    }
-
-    .target-chip {
-        min-width: 220px;
-    }
-
-    .filter-label {
-        flex-shrink: 0;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-    }
-
-    .filter-chip :global(.field-group) {
-        width: 100%;
-        margin: 0;
-    }
-
-    .filter-chip :global(.dropdown_trigger) {
-        padding: 3px 20px 3px 0;
-        border: none;
-        background: transparent;
-        min-height: 24px;
-    }
-
-    .filter-chip :global(.dropdown_trigger:hover),
-    .filter-chip :global(.dropdown_trigger.active) {
-        border: none;
-        background: transparent;
     }
 
     .radio-update-btn {

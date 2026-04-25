@@ -110,8 +110,6 @@
     <div class="config-content">
         <div class="config-fields">
             <div class="config-section">
-                <div class="section-title">osu! api</div>
-
                 <div class="field-group" id="osu_id">
                     <label class="field-label" for="osu_id_input">osu! id</label>
                     <div class="field-description">
@@ -152,8 +150,6 @@
             </div>
 
             <div class="config-section">
-                <div class="section-title">paths</div>
-
                 <div class="field-group" id="stable_path">
                     <!-- svelte-ignore a11y_label_has_associated_control -->
                     <label class="field-label">osu stable path</label>
@@ -257,13 +253,6 @@
         display: flex;
         flex-direction: column;
         gap: 14px;
-    }
-
-    .section-title {
-        color: var(--accent-color);
-        font-size: 15px;
-        font-family: "Torus Bold";
-        text-transform: lowercase;
     }
 
     .field-label {

@@ -8,8 +8,6 @@
 </script>
 
 <div class="checkbox-field" class:compact>
-    <div class="checkbox-spacer"></div>
-
     <label class="checkbox-wrapper" for={id}>
         <div class="checkbox">
             <input
@@ -33,16 +31,6 @@
     .checkbox-field {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-    }
-
-    .checkbox-spacer {
-        display: none;
-    }
-
-    .compact .checkbox-spacer {
-        height: 13px;
-        display: block;
     }
 
     .checkbox-wrapper {

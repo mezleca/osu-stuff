@@ -54,7 +54,7 @@
     {#if label != ""}
         <div
             class="field-label clickable-label"
-            style="margin-right: {inline ? '10px' : '0'}; align-self: {inline ? 'center' : 'auto'}; color: var(--text-secondary);"
+            style="align-self: {inline ? 'center' : 'auto'}; color: var(--text-secondary);"
             role="button"
             tabindex="0"
             onclick={toggle_dropdown}
@@ -69,21 +69,21 @@
         </div>
     {/if}
 
-    <div class="dropdown_container" bind:this={dropdown}>
-        <button class="dropdown_trigger" class:active={is_open} onclick={toggle_dropdown} type="button" bind:this={trigger}>
-            <span class="dropdown_text">{convert_special_key(String(selected_value)) || placeholder}</span>
-            <div class="dropdown_arrow" class:active={is_open}></div>
+    <div class="dropdown-container" bind:this={dropdown}>
+        <button class="dropdown-trigger" class:active={is_open} onclick={toggle_dropdown} type="button" bind:this={trigger}>
+            <span class="dropdown-label">{convert_special_key(String(selected_value)) || placeholder}</span>
+            <div class="dropdown-arrow" class:active={is_open}></div>
         </button>
 
         {#if is_open}
             <div
-                class="dropdown_menu"
+                class="dropdown-menu"
                 class:static={is_static}
                 transition:slide={{ duration: 100 }}
                 style={!is_static && trigger ? `min-width: ${trigger.offsetWidth}px;` : ""}
             >
                 {#each options as option}
-                    <button class="dropdown_item" onclick={() => select_option(option)} type="button">
+                    <button class="dropdown-item" onclick={() => select_option(option)} type="button">
                         {convert_special_key(String(option.label))}
                     </button>
                 {/each}
@@ -109,7 +109,7 @@
         cursor: pointer;
     }
 
-    .dropdown_container {
+    .dropdown-container {
         display: flex;
         flex-direction: column;
         position: relative;
@@ -118,41 +118,37 @@
         z-index: 5;
     }
 
-    .dropdown_trigger {
-        background: #181818;
+    .dropdown-trigger {
+        min-width: 160px;
         padding: 6px 10px;
-        padding-right: 28px;
-        width: 100%;
-        min-width: 0;
         display: flex;
         align-items: center;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        font-size: 13px;
-        color: var(--text-secondary);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        gap: 10px;
+        border: 1px solid var(--header-border-color);
         border-radius: 6px;
+        background: rgba(18, 18, 18, 0.84);
+        backdrop-filter: blur(8px);
         position: relative;
     }
 
-    .dropdown_trigger:hover {
+    .dropdown-trigger:hover {
         background: #222222;
         border-color: rgba(255, 255, 255, 0.1);
     }
 
-    .dropdown_trigger.active {
+    .dropdown-trigger.active {
         border-color: rgba(255, 255, 255, 0.14);
         background: #222222;
     }
 
-    .dropdown_text {
+    .dropdown-label {
+        flex-shrink: 0;
+        font-size: 13px;
         font-family: "Torus SemiBold";
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        color: var(--text-muted);
     }
 
-    .dropdown_arrow {
+    .dropdown-arrow {
         width: 0;
         height: 0;
         border-left: 4px solid transparent;
@@ -164,11 +160,11 @@
         flex-shrink: 0;
     }
 
-    .dropdown_arrow.active {
+    .dropdown-arrow.active {
         transform: rotate(180deg);
     }
 
-    .dropdown_menu {
+    .dropdown-menu {
         background: #181818;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 6px;
@@ -177,18 +173,18 @@
         max-height: 300px;
     }
 
-    .dropdown_menu:not(.static) {
+    .dropdown-menu:not(.static) {
         position: absolute;
         top: calc(100% + 4px);
         left: 0;
         z-index: 9999;
     }
 
-    .dropdown_menu.static {
+    .dropdown-menu.static {
         width: 100%;
     }
 
-    .dropdown_item {
+    .dropdown-item {
         padding: 8px 10px;
         cursor: pointer;
         transition: background 0.1s ease;
@@ -204,17 +200,18 @@
         text-overflow: ellipsis;
         font-family: "Torus SemiBold";
         display: block;
+        color: var(--text-color);
     }
 
-    .dropdown_item:last-child {
+    .dropdown-item:last-child {
         border-bottom: none;
     }
 
-    .dropdown_item:hover {
+    .dropdown-item:hover {
         background: rgba(255, 255, 255, 0.05);
     }
 
-    .dropdown_item:focus {
+    .dropdown-item:focus {
         outline: none;
         background: rgba(255, 255, 255, 0.05);
     }

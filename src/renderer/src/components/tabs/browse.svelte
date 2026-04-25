@@ -39,9 +39,9 @@
         <div class="content-header">
             <Search placeholder="search local beatmaps" value={$query} callback={(q) => list.set_query(q)} />
             <ExpandableMenu>
-                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
-                <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
-                <Dropdown label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
+                <Dropdown inline={true} label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
+                <Dropdown inline={true} label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
+                <Dropdown inline={true} label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>
         </div>

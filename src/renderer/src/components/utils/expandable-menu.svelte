@@ -62,7 +62,6 @@
 
     .expanded-menu.active {
         max-height: 300px;
-        padding: 10px;
         padding-left: 0;
         overflow: visible;
     }

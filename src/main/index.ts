@@ -127,10 +127,10 @@ async function createWindow() {
 
     // create the browser window.
     const mainWindow = get_window("main", {
-        width: 1100,
+        width: 1200,
         height: 800,
-        minWidth: 800,
-        minHeight: 600,
+        minWidth: 1024,
+        minHeight: 800,
         show: false,
         frame: false,
         autoHideMenuBar: true,

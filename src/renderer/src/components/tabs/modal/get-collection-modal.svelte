@@ -72,6 +72,14 @@
         added_players = added_players.filter((p) => p !== name);
     };
 
+    const handle_player_chip_click = (player_name: string, action_type: "toggle" | "remove") => {
+        if (action_type != "remove") {
+            return;
+        }
+
+        remove_player(player_name);
+    };
+
     const handle_legacy_import = async (location: string) => {
         fetching_status = "reading collection file...";
         const result = await get_legacy_collection_data(location);
@@ -524,12 +532,14 @@
                             </div>
 
                             {#if added_players.length > 0}
-                                <div class="added-players">
-                                    {#each added_players as player}
-                                        <div class="player-chip">
-                                            <span onclick={() => remove_player(player)}>{player}</span>
-                                        </div>
-                                    {/each}
+                                <div class="player-chips" style="margin-top: 10px;">
+                                    <ChipSelect
+                                        options={added_players}
+                                        selected={added_players}
+                                        columns={3}
+                                        action_type="remove"
+                                        on_chip_click={handle_player_chip_click}
+                                    />
                                 </div>
                             {/if}
                         </div>
@@ -617,30 +627,6 @@
         background-color: var(--accent-color);
         border-color: var(--accent-color);
         transform: scale(1.05);
-    }
-
-    .added-players {
-        display: flex;
-        flex-wrap: wrap;
-        margin-top: 10px;
-        gap: 8px;
-    }
-
-    .player-chip {
-        display: flex;
-        padding: 6px 14px;
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .player-chip:hover {
-        background-color: #ff4444;
-        border-color: #ff4444;
-        transform: translateY(-1px);
     }
 
     .client-init {
