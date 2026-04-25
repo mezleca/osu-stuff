@@ -101,8 +101,8 @@
     }
 
     .cover-frame {
-        width: 42px;
-        height: 42px;
+        width: 50px;
+        height: 50px;
         overflow: hidden;
         flex-shrink: 0;
         border-radius: 6px;

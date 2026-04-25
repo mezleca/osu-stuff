@@ -1,6 +1,6 @@
 {
     "name": "osu-stuff",
-    "version": "2.6.1",
+    "version": "2.7.0",
     "description": "yet another osu! manager",
     "homepage": "https://github.com/mezleca/osu-stuff",
     "main": "./out/main/index.js",
@@ -51,7 +51,7 @@
         "@types/archiver": "^7.0.0",
         "@types/chroma-js": "^3.1.2",
         "cross-env": "^10.1.0",
-        "electron": "^41.2.1",
+        "electron": "^41.2.2",
         "electron-builder": "^26.8.1",
         "prettier": "^3.8.1",
         "prettier-plugin-svelte": "^3.5.0",

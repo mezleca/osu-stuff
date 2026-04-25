@@ -298,12 +298,6 @@
         margin-bottom: 6px;
     }
 
-    .info-box-subtitle {
-        color: #cccccc;
-        font-size: 14px;
-        line-height: 1.4;
-    }
-
     .info-box-stats {
         display: grid;
         margin-top: 10px;

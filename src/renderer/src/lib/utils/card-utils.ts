@@ -13,7 +13,7 @@ const diff_spec = chroma
 
 const diff_text_spec = chroma.scale(["#F6F05C", "#FF8068", "#FF4E6F", "#C645B8", "#6563DE", "#4F148F"]).domain([9, 9.9, 10.6, 11.5, 12.4]);
 
-export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): string => {
+export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult, list: boolean = false): string => {
     if (!item) return PLACEHOLDER_IMAGE;
 
     if ("beatmapset_id" in item) {
@@ -21,7 +21,7 @@ export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): 
 
         // always check if we actually want to have local images
         if (config.get("local_images") === false) {
-            return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
+            return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/${list ? "list@2x.jpg" : "cover.jpg"}`;
         }
 
         if (beatmap.background) {
@@ -30,7 +30,7 @@ export const get_card_image_source = (item: IBeatmapResult | BeatmapSetResult): 
         }
 
         // fallback to web asset
-        return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/cover.jpg`;
+        return `https://assets.ppy.sh/beatmaps/${beatmap.beatmapset_id}/covers/${list ? "list@2x.jpg" : "cover.jpg"}`;
     }
 
     if ("online_id" in item) {

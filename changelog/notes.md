@@ -4,10 +4,11 @@ radio :D
 
 # new stuff
 
-- radio(ui): layout redesign, show update button after modification
 - ui: minor changes to dropdown, checkbox design
+- radio(ui): layout redesign, show update button after modification
+- beatmap-card: colored badges for status
 
-<img width="512" alt="Image" src="https://github.com/user-attachments/assets/090812e6-1109-4b44-96e1-2b6860a997a4" />
+<img width="800px" alt="Image" src="https://github.com/user-attachments/assets/93f72724-2b92-4eec-89e7-371f908b7451" />
 
 # bug fixes
 
