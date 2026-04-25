@@ -173,9 +173,9 @@ main {
 .sidebar-header {
     position: relative;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     display: flex;
-    padding: 15px 20px;
+    padding: 20px;
     flex-shrink: 0;
 }
 
@@ -189,8 +189,21 @@ main {
 
 .content-header {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     padding: 20px;
     border-bottom: 1px solid var(--header-border-color);
+}
+
+.content-header :global(.expand-container),
+.sidebar-header :global(.expand-container) {
+    width: 100%;
+}
+
+.content-header :global(.expanded-menu),
+.sidebar-header :global(.expanded-menu) {
+    width: 100%;
 }
 
 .beatmaps-container {
@@ -337,25 +350,6 @@ main {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.control-btn {
-    display: flex;
-    border: none;
-    border-radius: 4px;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: all 0.2s ease;
-    background-color: var(--bg-secondary);
-}
-
-.control-btn > * {
-    color: var(--text-muted);
-}
-
-.control-btn:hover {
-    color: var(--accent-color);
-}
-
 .search-box {
     position: relative;
 }
@@ -369,224 +363,6 @@ main {
     display: grid;
     grid-template-rows: repeat(auto-fill, minmax(350px, 1fr));
     gap: 16px;
-}
-
-/* CARDS */
-
-.beatmap-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    cursor: pointer;
-    border: 2px solid transparent;
-    border-radius: 6px;
-    transition:
-        height 0.2s ease-in-out,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-    contain: layout style paint;
-}
-
-.beatmap-card.temp {
-    border: 2px solid red;
-}
-
-.beatmap-card.selected,
-.beatmap-card.expanded {
-    border-color: var(--accent-color) !important;
-}
-
-.beatmap-card.highlighted {
-    border-color: var(--accent-hover);
-}
-
-.beatmap-card-background {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    filter: brightness(0.5);
-    object-fit: cover;
-    object-position: center;
-    transition: opacity 0.2s ease-in-out;
-    display: block;
-    min-height: 100px;
-    z-index: 1;
-}
-
-.beatmap-card-metadata {
-    position: relative;
-    z-index: 2;
-    flex: 1;
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    justify-content: center;
-}
-
-.beatmap-card-metadata.centered {
-    align-items: center;
-}
-
-.beatmap-card-extra {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    margin-top: 6px;
-}
-
-.beatmap-card-extra * {
-    font-size: 12px;
-    text-transform: uppercase;
-}
-
-.beatmap-card-extra > *:nth-child(2) {
-    margin-left: auto;
-}
-
-.beatmap-card-extra > .status {
-    background-color: var(--bg-primary);
-    color: var(--text-secondary);
-    border-radius: 6px;
-    padding: 4px 6px;
-}
-
-.beatmap-card .stat {
-    background: rgba(23, 23, 23, 0.75);
-    text-transform: uppercase;
-}
-
-.beatmap-card .stars {
-    color: var(--text-color);
-    font-size: 11px;
-}
-
-.beatmap-card .title {
-    font-size: 13px;
-    color: #fff;
-    margin: 0 0 2px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 280px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
-    font-family: "Torus Bold";
-}
-
-.beatmap-card .artist {
-    font-size: 12px;
-    color: #fff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 300px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
-    font-family: "Torus SemiBold";
-    margin-bottom: 2px;
-}
-
-.beatmap-card .creator {
-    font-size: 12px;
-    color: var(--text-secondary, #bbb);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 320px;
-    font-family: "Torus SemiBold";
-}
-
-/* MINIMAL BEATMAP CARD */
-
-.beatmap-difficulties {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    row-gap: 5px;
-    padding: 8px;
-    background: rgba(17, 20, 31);
-    border: none;
-    z-index: 999;
-    width: 100%;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.beatmap-difficulties > * {
-    font-size: 12px;
-    font-family: "Torus SemiBold";
-    min-width: 0;
-}
-
-.beatmap-difficulties > span {
-    height: max-content;
-    padding: 0px 8px;
-    border-radius: 6px;
-    margin-right: 6px;
-    color: black;
-}
-
-.beatmap-difficulties > button {
-    text-align: start;
-    margin: none;
-    background: none;
-    border: none;
-    border-radius: 0px;
-    padding: 0px;
-    transition: all 0.3s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.beatmap-difficulties > button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    cursor: pointer;
-}
-
-.small-card:hover .preview-btn {
-    opacity: 1;
-}
-
-.card-control {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 6px;
-    opacity: 1;
-    transition: all 0.3s ease;
-    z-index: 10;
-}
-
-.control-btn {
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    z-index: 3;
-    opacity: 0;
-    padding: 6px;
-}
-
-.beatmap-card:hover .control-btn {
-    opacity: 1;
-}
-
-.card-control .control-btn > * {
-    color: white;
-}
-
-.control-btn:hover {
-    transform: scale(1.05);
-    background-color: var(--header-bg-color);
 }
 
 .field-group:last-child {

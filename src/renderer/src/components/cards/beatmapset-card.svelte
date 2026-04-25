@@ -1,15 +1,22 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import type { IBeatmapResult, BeatmapSetResult } from "@shared/types";
-    import { type Writable } from "svelte/store";
-    import { type BeatmapSetComponentState, get_beatmapset_state } from "../../lib/store/beatmaps";
+    import { get_beatmapset_state } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
-    import { get_beatmap, get_beatmapset } from "../../lib/utils/beatmaps";
+    import { get_beatmapset } from "../../lib/utils/beatmaps";
     import { get_card_image_source } from "../../lib/utils/card-utils";
+    import {
+        BEATMAPSET_DIFFICULTY_CARD_ELEMENTS,
+        fetch_beatmaps_with_limit,
+        get_first_beatmap,
+        get_visible_hashes,
+        sort_beatmaps_by_star_rating
+    } from "../../lib/utils/beatmapset-card";
     import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
     import { debounce } from "../../lib/utils/timings";
     import { get } from "svelte/store";
     import { slide } from "svelte/transition";
+    import { type IBeatmapResult, type BeatmapSetResult, type BeatmapSetComponentState } from "@shared/types";
+    import type { Writable } from "svelte/store";
 
     // components
     import BeatmapCard from "./beatmap-card.svelte";
@@ -27,7 +34,6 @@
     export let height = 100;
 
     let state_store: Writable<BeatmapSetComponentState> | null = null;
-
     let expanded = false;
     let sorted_beatmaps: IBeatmapResult[] = [];
     let is_hovering = false;
@@ -38,10 +44,7 @@
 
     $: state = state_store ? $state_store : null;
     $: loaded = state && state.loaded == true;
-    $: visible_hashes =
-        state?.beatmapset?.beatmaps && filtered_hashes.length > 0
-            ? state.beatmapset.beatmaps.filter((hash) => filtered_hashes.includes(hash))
-            : (state?.beatmapset?.beatmaps ?? []);
+    $: visible_hashes = get_visible_hashes(state, filtered_hashes);
 
     const debounced_load = debounce(async () => {
         // if we're alreading loading, ignore
@@ -77,25 +80,6 @@
         }
     }, 50);
 
-    const fetch_beatmaps_with_limit = async (hashes: string[], concurrency: number): Promise<IBeatmapResult[]> => {
-        const results: IBeatmapResult[] = [];
-
-        for (let i = 0; i < hashes.length; i += concurrency) {
-            const batch = hashes.slice(i, i + concurrency);
-            const batch_result = await Promise.all(batch.map((hash) => get_beatmap(hash)));
-
-            for (let j = 0; j < batch_result.length; j++) {
-                const beatmap = batch_result[j];
-
-                if (beatmap != undefined) {
-                    results.push(beatmap);
-                }
-            }
-        }
-
-        return results;
-    };
-
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
 
@@ -120,15 +104,10 @@
     const debounced_hover = debounce(async () => {
         is_hovering = true;
 
-        // preload and sort beatmaps
         if (visible_hashes.length > 0 && sorted_beatmaps.length === 0) {
             const beatmaps = await fetch_beatmaps_with_limit(visible_hashes, 8);
-            sorted_beatmaps = beatmaps.sort((a, b) => (a?.star_rating || 0) - (b?.star_rating || 0));
-
-            // set first beatmap for controls
-            if (sorted_beatmaps.length > 0) {
-                first_beatmap = sorted_beatmaps[0];
-            }
+            sorted_beatmaps = sort_beatmaps_by_star_rating(beatmaps);
+            first_beatmap = get_first_beatmap(sorted_beatmaps);
         }
 
         expanded = true;
@@ -138,7 +117,6 @@
         debounced_hover.cancel();
         is_hovering = false;
 
-        // ignore event if we're on the context menu
         if (get(context_menu_manager.active)) {
             return;
         }
@@ -167,7 +145,6 @@
         }
     };
 
-    // collapse if context menu closes and we are not hovering
     const unsubscribe_context = context_menu_manager.active.subscribe((active) => {
         if (!active && !is_hovering) {
             handle_mouseleave();
@@ -238,7 +215,6 @@
                 bind:this={image_element}
             />
 
-            <!-- render controls -->
             {#if first_beatmap}
                 <BeatmapControls
                     beatmapset_id={state.beatmapset.online_id}
@@ -252,7 +228,6 @@
                 />
             {/if}
 
-            <!-- render set information -->
             <div class="beatmap-card-metadata">
                 <div class="title">{state.beatmapset.metadata?.title ?? "unknown"}</div>
                 <div class="artist">by {state.beatmapset.metadata?.artist ?? "unknown"}</div>
@@ -270,11 +245,10 @@
             </div>
         </div>
 
-        <!-- render difficulties when expanded -->
         {#if expanded && sorted_beatmaps.length > 0}
             <div class="beatmap-difficulties" onmouseenter={(e) => e.stopPropagation()} transition:slide={{ duration: 100 }}>
                 {#each sorted_beatmaps as beatmap}
-                    <BeatmapCard minimal={true} {beatmap} hash={beatmap.md5} show_control={false} />
+                    <BeatmapCard mode="minimal" {beatmap} hash={beatmap.md5} elements={BEATMAPSET_DIFFICULTY_CARD_ELEMENTS} />
                 {/each}
             </div>
         {/if}
@@ -284,6 +258,30 @@
 {/if}
 
 <style>
+    .beatmap-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        transition:
+            height 0.2s ease-in-out,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        contain: layout style paint;
+    }
+
+    .beatmap-card.selected,
+    .beatmap-card.expanded {
+        border-color: var(--accent-color);
+    }
+
+    .beatmap-card.highlighted {
+        border-color: var(--accent-hover);
+    }
+
     .expand-indicator {
         position: absolute;
         bottom: 0;
@@ -301,6 +299,99 @@
     }
 
     .beatmap-card-header > .beatmap-card-background {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         max-width: 100%;
+        min-height: 100px;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+        z-index: 1;
+        filter: brightness(0.5);
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .beatmap-card-metadata {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        padding: 12px 16px;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .beatmap-card-extra {
+        width: 100%;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .title {
+        max-width: 280px;
+        margin: 0 0 2px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus Bold";
+        font-size: 13px;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    }
+
+    .artist {
+        max-width: 300px;
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus SemiBold";
+        font-size: 12px;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    }
+
+    .creator {
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus SemiBold";
+        font-size: 12px;
+        color: var(--text-secondary, #bbb);
+    }
+
+    .beatmap-difficulties {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        row-gap: 5px;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        padding: 8px;
+        border: none;
+        background: rgba(17, 20, 31);
+        z-index: 999;
+    }
+
+    .beatmap-card :global(.card-control) {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+
+    .beatmap-card :global(.control-btn) {
+        opacity: 0;
+    }
+
+    .beatmap-card:hover :global(.control-btn),
+    .beatmap-card.expanded :global(.control-btn) {
+        opacity: 1;
     }
 </style>

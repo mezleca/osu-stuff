@@ -7,3 +7,4 @@ export * from "./types/downloader";
 export * from "./types/renderer";
 export * from "./types/logger";
 export * from "./types/web";
+export * from "./flags";

@@ -6,7 +6,7 @@
     // props
     export let options: { label: string | number; value: string | number }[] = [];
     export let label: string = "";
-    export let inline = true;
+    export let inline = false;
     export let selected_value: string | number;
     export let is_static = false;
     export let on_update: (value: string | number) => {} = null;
@@ -52,7 +52,19 @@
 
 <div class="field-group" style="display: flex; flex-direction: {inline ? 'row' : 'column'}; max-width: 100%; ">
     {#if label != ""}
-        <div class="field-label" style="margin-right: 10px; align-self: {inline ? 'center' : 'auto'}; color: var(--text-secondary);">
+        <div
+            class="field-label clickable-label"
+            style="margin-right: {inline ? '10px' : '0'}; align-self: {inline ? 'center' : 'auto'}; color: var(--text-secondary);"
+            role="button"
+            tabindex="0"
+            onclick={toggle_dropdown}
+            onkeydown={(event) => {
+                if (event.key == "Enter" || event.key == " ") {
+                    event.preventDefault();
+                    toggle_dropdown();
+                }
+            }}
+        >
             {convert_special_key(label)}
         </div>
     {/if}
@@ -81,39 +93,56 @@
 </div>
 
 <style>
+    .field-group {
+        gap: 6px;
+    }
+
+    .field-label {
+        margin-bottom: 0;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .clickable-label {
+        cursor: pointer;
+    }
+
     .dropdown_container {
         display: flex;
         flex-direction: column;
         position: relative;
         flex: 1 1 auto;
         min-width: 120px;
+        z-index: 5;
     }
 
     .dropdown_trigger {
-        background: #1a1a1a;
-        padding: 8px 12px;
-        padding-right: 32px;
+        background: #181818;
+        padding: 6px 10px;
+        padding-right: 28px;
         width: 100%;
         min-width: 0;
         display: flex;
         align-items: center;
         cursor: pointer;
         transition: all 0.15s ease;
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-secondary);
-        border: 1px solid #333;
-        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
         position: relative;
     }
 
     .dropdown_trigger:hover {
-        background: #252525;
-        border-color: #444;
+        background: #222222;
+        border-color: rgba(255, 255, 255, 0.1);
     }
 
     .dropdown_trigger.active {
-        border-color: #555;
-        background: #252525;
+        border-color: rgba(255, 255, 255, 0.14);
+        background: #222222;
     }
 
     .dropdown_text {
@@ -140,9 +169,9 @@
     }
 
     .dropdown_menu {
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 4px;
+        background: #181818;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         overflow-y: auto;
         max-height: 300px;
@@ -152,7 +181,7 @@
         position: absolute;
         top: calc(100% + 4px);
         left: 0;
-        z-index: 1000;
+        z-index: 9999;
     }
 
     .dropdown_menu.static {
@@ -160,16 +189,16 @@
     }
 
     .dropdown_item {
-        padding: 8px 12px;
+        padding: 8px 10px;
         cursor: pointer;
         transition: background 0.1s ease;
-        font-size: 14px;
+        font-size: 13px;
         border: none;
         background: transparent;
         color: var(--text-secondary);
         width: 100%;
         text-align: left;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -182,11 +211,11 @@
     }
 
     .dropdown_item:hover {
-        background: #252525;
+        background: rgba(255, 255, 255, 0.05);
     }
 
     .dropdown_item:focus {
         outline: none;
-        background: #252525;
+        background: rgba(255, 255, 255, 0.05);
     }
 </style>

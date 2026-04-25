@@ -79,6 +79,42 @@ export interface BeatmapComponentState {
     background: string;
 }
 
+export interface BeatmapCardViewState {
+    selected: boolean;
+    highlighted: boolean;
+    centered: boolean;
+    height: number;
+    image_loaded: boolean;
+    background: string;
+    hash: string;
+    beatmap: IBeatmapResult | null;
+    has_map: boolean;
+    show_status: boolean;
+    show_bpm: boolean;
+    show_star_rating: boolean;
+    show_extra_actions: boolean;
+    show_action_remove: boolean;
+    star_rating: number;
+    formatted_star_rating: string;
+}
+
+export interface BeatmapCardCallbacks {
+    on_click: ((event: MouseEvent) => void) | null;
+    on_contextmenu: ((event: MouseEvent) => void) | null;
+    on_remove: ((checksum: string) => void) | null;
+    on_download: ((checksum: string) => void) | null;
+}
+
+export interface VirtualListRef {
+    focus_selected: (force?: boolean) => void;
+    scroll_to_item: (index: number) => Promise<void>;
+}
+
+export interface BeatmapListRef {
+    focus_selected: (force?: boolean) => void;
+    get_total: () => number;
+}
+
 export interface BeatmapSetComponentState {
     beatmapset: BeatmapSetResult | null;
     beatmaps: IBeatmapResult[];
@@ -137,3 +173,17 @@ export interface IMissingCache {
 }
 
 export type BeatmapUpdateReason = "filters" | "remove" | "manual" | "unknown";
+export const BEATMAP_CARD_ELEMENT = {
+    STATUS: 1 << 0,
+    STAR_RATING_TEXT: 1 << 1,
+    BPM_TEXT: 1 << 2,
+    CONTEXT_MENU: 1 << 3,
+    CONTEXT_MENU_REMOVE: 1 << 4,
+    EXTRA_ACTIONS: 1 << 5,
+    ACTION_REMOVE: 1 << 6
+} as const;
+
+export type BeatmapCardElementFlag = (typeof BEATMAP_CARD_ELEMENT)[keyof typeof BEATMAP_CARD_ELEMENT];
+export type BeatmapCardElements = number;
+
+export type BeatmapCardMode = "card" | "minimal" | "radio";

@@ -314,7 +314,7 @@ class CollectionManager {
                 this.missing_cache.set(name, { ...cached, last_checked_modified: 0 });
             }
 
-            show_notification({ type: "success", text: "collections updated" });
+            show_notification({ type: "success", text: "updated" });
             this.needs_update.set(false);
             this.filter();
         } catch (error) {

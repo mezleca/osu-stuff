@@ -1,12 +1,12 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
 
-    import type { AudioDirection, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
+    import type { AudioDirection, BeatmapListRef, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other";
-    import { ALL_BEATMAPS_KEY } from "@shared/types";
-    import { format_time, url_to_media } from "../../lib/utils/utils";
+    import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT } from "@shared/types";
     import { debounce } from "../../lib/utils/timings";
+    import { get_radio_background_image, get_radio_card_elements, get_radio_collection_options, push_previous_if_new } from "../../lib/utils/radio";
     import { get_audio_manager } from "../../lib/store/audio";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { get_beatmap, remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
@@ -15,50 +15,38 @@
 
     // components
     import Search from "../utils/basic/search.svelte";
-    import RadioControl from "../utils/audio/radio-control.svelte";
+    import RadioTimeline from "./radio/timeline.svelte";
     import Dropdown from "../utils/basic/dropdown.svelte";
     import BeatmapList from "../beatmap-list.svelte";
 
     // @ts-ignore
-    import PLACEHOLDER_IMAGE from "@assets/images/fallback.png";
+    import FALLBACK_IMAGE from "@assets/images/fallback.png";
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
     const selected_store = collections.get_selected_store("radio");
+    const collection_should_update = collections.needs_update;
 
     const { selected_buffer, previous_buffer, query, sort, should_update, update_reason } = list;
 
     let selected_beatmap: IBeatmapResult | null = null;
-    let beatmap_list_ref: any;
+    let beatmap_list_ref: BeatmapListRef | null = null;
+    let selected: ISelectedBeatmap | null = null;
+    let selected_collection = ALL_BEATMAPS_KEY;
+    let bg = "";
+    let card_elements = BEATMAP_CARD_ELEMENT.CONTEXT_MENU | BEATMAP_CARD_ELEMENT.EXTRA_ACTIONS;
+    let total_beatmaps = 0;
+    let syncing_selected_id = "";
 
     $: selected = $selected_buffer[0];
     $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
-    $: bg = "";
+    $: card_elements = get_radio_card_elements(selected_collection);
     $: if (selected_collection) {
         list.set_target(selected_collection);
     }
 
-    const collection_target_options = [
-        { label: "all beatmaps", value: ALL_BEATMAPS_KEY },
-        ...collections.get_all().map((c) => ({ label: c.name, value: c.name }))
-    ];
-
-    const update_background_image = async () => {
-        if (!$config.radio_background) {
-            bg = "";
-            return;
-        }
-
-        if (!selected_beatmap) {
-            bg = "";
-            return;
-        }
-
-        const local = selected_beatmap.background ? url_to_media(selected_beatmap.background) : "";
-        const web = selected_beatmap.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${selected_beatmap.beatmapset_id}/covers/cover.jpg` : "";
-
-        bg = local != "" ? local : web;
-    };
+    $: collection_target_options = get_radio_collection_options(collections.get_all());
+    $: bg = get_radio_background_image(selected_beatmap, $config.radio_background);
 
     const debounced_update = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         list.set_target(selected_collection);
@@ -71,6 +59,7 @@
 
         const beatmaps = result.beatmaps.map((b) => b.md5);
         list.set_items(beatmaps);
+        update_total_beatmaps();
 
         if (selected?.id) {
             const selected_idx = beatmaps.indexOf(selected.id as string);
@@ -80,7 +69,6 @@
             }
         }
 
-        // focus on empty query
         if ($query == "" && reason != "remove") {
             await tick();
             beatmap_list_ref?.focus_selected(true);
@@ -164,21 +152,16 @@
     };
 
     const push_to_previous_if_new = (beatmap: ISelectedBeatmap) => {
-        list.previous_buffer.update((old) => {
-            const last = old[old.length - 1];
-            const already_last = !!last && last.id == beatmap.id && last.index == beatmap.index;
-
-            if (already_last) {
-                return old;
-            }
-
-            return [...old, beatmap];
-        });
+        list.previous_buffer.update((old) => push_previous_if_new(old, beatmap));
     };
 
     const focus_selected_in_list = async () => {
         await tick();
         beatmap_list_ref?.focus_selected(true);
+    };
+
+    const update_total_beatmaps = () => {
+        total_beatmaps = beatmap_list_ref?.get_total?.() ?? 0;
     };
 
     const set_selected_beatmap = (beatmap: ISelectedBeatmap) => {
@@ -214,60 +197,83 @@
         const new_items = current_items.filter((h) => h != hash);
 
         list.set_items(new_items);
+        update_total_beatmaps();
         collections.filter();
     };
 
     const remove_set_callback = async (id: number) => {
         const hashes = await remove_beatmapset_from_collection(id, selected_collection);
         const current_items = list.get_items();
-        const new_items = current_items.filter((md5) => hashes.includes(md5));
+        const new_items = current_items.filter((md5) => !hashes.includes(md5));
 
         list.set_items(new_items);
+        update_total_beatmaps();
         collections.filter();
     };
 
-    const load_beatmap = async () => {
-        push_to_previous_if_new(selected);
-        const result = await get_beatmap(selected.id as string);
+    const sync_selected_beatmap = async () => {
+        const selected_id = selected?.id as string | undefined;
 
-        if (!result) {
-            console.error("failed to load beatmap:", selected);
+        if (!selected_id || syncing_selected_id == selected_id) {
             return;
         }
 
-        selected_beatmap = result;
-        update_background_image();
+        syncing_selected_id = selected_id;
 
-        const audio_result = await audio.load_and_setup_audio(selected.id as string);
+        try {
+            const result = await get_beatmap(selected_id);
 
-        if (!audio_result) {
-            clear_loaded_beatmap();
-            console.error("failed to load audio...");
-            return;
+            if (!result) {
+                console.error("failed to load beatmap:", selected);
+                return;
+            }
+
+            if (selected?.id != selected_id) {
+                return;
+            }
+
+            selected_beatmap = result;
+
+            if (audio.get_state().id == selected_id) {
+                return;
+            }
+
+            push_to_previous_if_new(selected);
+
+            const audio_result = await audio.load_and_setup_audio(selected_id);
+
+            if (!audio_result) {
+                clear_loaded_beatmap();
+                console.error("failed to load audio...");
+                return;
+            }
+
+            if (selected?.id != selected_id) {
+                return;
+            }
+
+            await audio.play();
+        } finally {
+            if (syncing_selected_id == selected_id) {
+                syncing_selected_id = "";
+            }
         }
-
-        await audio.play();
     };
 
     const clear_loaded_beatmap = () => {
         selected_beatmap = null;
-        bg = "";
+        syncing_selected_id = "";
         audio.clean_audio();
     };
 
     $: {
-        // load the new beatmap if our state and current select doenst match
-        if (selected && selected?.index != -1 && audio.get_state().id != selected.id) {
-            load_beatmap();
-        }
-        // clear selected if we dont have anything
-        else if (!selected || selected?.id == -1) {
+        if (selected && selected?.index != -1) {
+            sync_selected_beatmap();
+        } else if (!selected || selected?.id == -1) {
             clear_loaded_beatmap();
         }
 
-        // update selection collection on change
         if (selected_collection && $selected_store.name != selected_collection) {
-            // fallback to all beatmaps if the collection was deleted
             if (selected_collection != ALL_BEATMAPS_KEY && !collections.has(selected_collection)) {
                 selected_collection = ALL_BEATMAPS_KEY;
             }
@@ -278,12 +284,6 @@
 
         if ($should_update) {
             debounced_update($should_update, $update_reason);
-        }
-
-        if ($config.radio_background) {
-            update_background_image();
-        } else {
-            bg = "";
         }
     }
 
@@ -296,17 +296,14 @@
             get_beatmap: get_beatmap_callback
         });
 
-        // always reset state if no beatmaps are selected
         if (selected?.index == -1) {
             audio.clean_audio();
         }
 
-        // select random
         const handle_random_id = input.on("f2", () => {
             trigger_random();
         });
 
-        // get previous random songs
         const handle_previous_id = input.on("shift+f2", async () => {
             const index = $previous_buffer.length - 2;
             const data = $previous_buffer[index];
@@ -328,11 +325,9 @@
             seek_by_seconds(SEEK_OFFSET_SECONDS);
         });
 
-        update_background_image();
-
-        // focus beatmap when list is ready
         tick().then(() => {
             beatmap_list_ref?.focus_selected(true);
+            update_total_beatmaps();
         });
 
         return () => {
@@ -347,61 +342,52 @@
 </script>
 
 <div class="content tab-content">
-    <div class="radio-container">
-        <div class="sidebar">
-            <div class="sidebar-header" style="z-index: 999999;">
+    <div
+        class="radio-container"
+        style:background-image={`linear-gradient(180deg, rgba(24, 16, 18, 0.96), rgba(14, 14, 14, 0.98)), url(${bg || FALLBACK_IMAGE})`}
+    >
+        <div class="radio-header">
+            <div class="search-slot">
                 <Search bind:value={$query} placeholder="search beatmaps" />
-                <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
-                <Dropdown label={"target"} bind:selected_value={selected_collection} options={collection_target_options} />
             </div>
-            <BeatmapList
-                bind:this={beatmap_list_ref}
-                on_remove={remove_callback}
-                on_remove_set={remove_set_callback}
-                list_manager={list}
-                carousel={false}
-                direction={"left"}
-                max_card_width={true}
-                simplified={true}
-            />
+
+            <div class="filter-row">
+                <div class="results-count-inline">{total_beatmaps} beatmaps</div>
+
+                <div class="filter-chip">
+                    <span class="filter-label">sort</span>
+                    <Dropdown label={""} bind:selected_value={$sort} options={FILTER_DATA} />
+                </div>
+
+                <div class="filter-chip target-chip">
+                    <span class="filter-label">collection</span>
+                    <Dropdown label={""} bind:selected_value={selected_collection} options={collection_target_options} />
+                </div>
+
+                {#if $collection_should_update}
+                    <button class="radio-update-btn" onclick={() => collections.update()}>update</button>
+                {/if}
+            </div>
         </div>
 
-        <div class="radio-data" class:no-bg={!bg}>
-            {#if bg}
-                <img class="radio-background" src={bg} onerror={() => (bg = PLACEHOLDER_IMAGE)} alt="" />
-            {/if}
-            <div class="radio-beatmap">
-                <div class="radio-beatmap-header">
-                    <div class="status">playing</div>
-                    <div class="status">{selected_beatmap?.status ?? "unknown"}</div>
-                </div>
-
-                <div class="song-info">
-                    <div class="title">{selected_beatmap?.title || "No song selected"}</div>
-                    <div class="artist">{selected_beatmap?.artist || ""}</div>
-                </div>
-
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-label">BPM</div>
-                        <div class="stat-value">{selected_beatmap?.bpm || "---"}</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">DURATION</div>
-                        <div class="stat-value">{selected_beatmap?.duration ? format_time(selected_beatmap?.duration) : "---"}</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">MAPPED BY</div>
-                        <div class="stat-value">{selected_beatmap?.creator || "---"}</div>
-                    </div>
-                </div>
-
-                <div class="radio-controls">
-                    {#if selected_beatmap?.md5}
-                        <RadioControl />
-                    {/if}
-                </div>
+        <div class="radio-content">
+            <div class="beatmap-list-panel">
+                <BeatmapList
+                    bind:this={beatmap_list_ref}
+                    height={70}
+                    on_remove={remove_callback}
+                    on_remove_set={remove_set_callback}
+                    list_manager={list}
+                    mode={"radio"}
+                    elements={card_elements}
+                    show_header={false}
+                    carousel={false}
+                    direction={"left"}
+                    max_card_width={true}
+                />
             </div>
+
+            <RadioTimeline />
         </div>
     </div>
 </div>
@@ -410,111 +396,119 @@
     .radio-container {
         width: 100%;
         height: 100%;
-        overflow: hidden;
-        display: flex;
-    }
-
-    .sidebar {
-        max-width: 40%;
-        z-index: 1;
-        background-color: rgba(18, 18, 18, 0.95);
-    }
-
-    .radio-data {
-        flex: 1;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .radio-data.no-bg {
-        background: linear-gradient(90deg, rgba(28, 24, 26, 1) 0%, rgba(33, 18, 22, 1) 100%);
-    }
-
-    .radio-beatmap {
-        border-radius: 4px;
-        padding: 24px;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        inset: 0;
         display: grid;
-        grid-template-rows: auto auto auto 1fr auto;
-        gap: 24px;
-        z-index: 1;
-    }
-
-    .radio-background {
-        position: absolute;
-        z-index: 0;
-        background-size: cover;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
         background-position: center;
-        background-repeat: no-repeat;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        filter: brightness(0.1);
+        background-size: cover;
     }
 
-    .radio-beatmap-header {
+    .radio-header {
+        position: relative;
+        z-index: 4;
         display: flex;
-        justify-content: space-between;
-        padding-bottom: 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+        padding: 20px 20px 0;
     }
 
-    .status {
-        color: var(--text-color);
-        font-size: 12px;
+    .search-slot {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .filter-row {
+        display: flex;
+        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .results-count-inline {
+        display: flex;
+        align-items: center;
+        color: var(--accent-color);
+        font-size: 13px;
+        font-family: "Torus SemiBold";
+        white-space: nowrap;
+    }
+
+    .filter-chip {
+        min-width: 160px;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        background: rgba(18, 18, 18, 0.84);
+        backdrop-filter: blur(8px);
+    }
+
+    .target-chip {
+        min-width: 220px;
+    }
+
+    .filter-label {
+        flex-shrink: 0;
+        font-size: 11px;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        opacity: 0.8;
-    }
-
-    .song-info .title {
-        font-size: 24px;
-        color: #ffffff;
-        margin-bottom: 8px;
-    }
-
-    .song-info .artist {
-        font-size: 18px;
         color: var(--text-muted);
     }
 
-    .stats {
-        display: flex;
-        justify-content: space-between;
-        gap: 24px;
-        padding: 16px;
-        background: rgba(19, 19, 19, 0.8);
-        backdrop-filter: blur(10px);
-        border-radius: 4px;
+    .filter-chip :global(.field-group) {
+        width: 100%;
+        margin: 0;
     }
 
-    .stat {
-        text-align: center;
+    .filter-chip :global(.dropdown_trigger) {
+        padding: 3px 20px 3px 0;
+        border: none;
+        background: transparent;
+        min-height: 24px;
+    }
+
+    .filter-chip :global(.dropdown_trigger:hover),
+    .filter-chip :global(.dropdown_trigger.active) {
+        border: none;
+        background: transparent;
+    }
+
+    .radio-update-btn {
+        margin-left: auto;
+        padding: 4px 8px;
+        font-size: 13px;
+        border: none;
+        border-radius: 6px;
+        background: var(--accent-color);
+        color: white;
+        font-family: "Torus SemiBold";
+        cursor: pointer;
+        transition:
+            transform 0.15s ease,
+            filter 0.15s ease;
+    }
+
+    .radio-update-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+    }
+
+    .radio-content {
         flex: 1;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        width: 100%;
+        gap: 14px;
+        padding: 10px 0 0;
+        min-width: 0;
     }
 
-    .stat:not(:last-child) {
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
-        padding-right: 12px;
-    }
-
-    .stat-label {
-        color: #666;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-    }
-
-    .stat-value {
-        color: #ffffff;
-        font-size: 16px;
-    }
-
-    .radio-controls {
-        align-self: end;
+    .beatmap-list-panel {
+        min-height: 0;
+        overflow: hidden;
+        background: transparent;
     }
 </style>

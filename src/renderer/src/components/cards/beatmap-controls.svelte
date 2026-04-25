@@ -115,7 +115,7 @@
     <!-- action button (right) -->
     {#if has_map && show_remove}
         <!-- user has the map and we allow remove action -->
-        <button class="control-btn close-btn" onclick={handle_remove}>
+        <button class="control-btn close-btn danger-btn" onclick={handle_remove}>
             <X />
         </button>
     {:else if !has_map}
@@ -131,3 +131,48 @@
         {/if}
     {/if}
 </div>
+
+<style>
+    .card-control {
+        display: flex;
+        gap: 6px;
+        opacity: 1;
+        z-index: 10;
+        transition: opacity 0.2s ease;
+    }
+
+    .control-btn {
+        padding: 6px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        z-index: 3;
+        transition:
+            transform 0.15s ease,
+            background-color 0.15s ease,
+            opacity 0.15s ease;
+    }
+
+    .control-btn :global(*) {
+        color: white;
+    }
+
+    .control-btn:hover {
+        transform: scale(1.05);
+        background-color: var(--header-bg-color);
+    }
+
+    .danger-btn {
+        margin-left: 4px;
+    }
+
+    .danger-btn:hover {
+        background-color: rgba(176, 47, 47, 0.25);
+    }
+</style>

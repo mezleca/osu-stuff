@@ -8,7 +8,7 @@
     import { string_is_valid } from "../../lib/utils/utils";
     import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
-    import type { ContextMenuOption } from "@shared/types";
+    import { ALL_BEATMAPS_KEY, ALL_STATUS_KEY, GameMode, type ContextMenuOption } from "@shared/types";
 
     let beatmaps: Array<{ md5: string }> = [];
     let download_id = 0;
@@ -131,7 +131,11 @@
 
     onMount(async () => {
         if (beatmaps.length == 0) {
-            const a = await window.api.invoke("client:search_beatmaps", { query: "", sort: "artist", unique: false });
+            const a = await window.api.invoke(
+                "client:search_beatmaps",
+                { query: "", sort: "artist", unique: false, status: ALL_STATUS_KEY, mode: GameMode.Osu },
+                ALL_BEATMAPS_KEY
+            );
             beatmaps = a.beatmaps;
         }
     });

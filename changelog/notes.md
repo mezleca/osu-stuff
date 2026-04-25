@@ -4,6 +4,11 @@ radio :D
 
 # new stuff
 
+- radio(ui): layout redesign, show update button after modification
+- ui: minor changes to dropdown, checkbox design
+
+<img width="512" alt="Image" src="https://github.com/user-attachments/assets/090812e6-1109-4b44-96e1-2b6860a997a4" />
+
 # bug fixes
 
 - radio: allow selecting random beatmap even if we didn't selected anything yet

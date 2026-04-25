@@ -21,10 +21,13 @@
         await config.set(key, value);
     };
 
+    const toggle_config_value = async (key: keyof ManagerConfig) => {
+        await config.set(key, !$config[key]);
+    };
+
     const handle_local_image_toggle = async () => {
         const value = $config.local_images;
 
-        // only show warning if we're enabling
         if (!value) {
             const confirmation = await quick_confirm(`local images means more memory usage. are you sure?`, {
                 submit: "yeah bro idc",
@@ -46,7 +49,7 @@
     };
 
     const handle_radio_background_toggle = async () => {
-        await config.set("radio_background", !$config.radio_background);
+        await toggle_config_value("radio_background");
     };
 
     const remove_mirror = async (name: string) => {
@@ -59,10 +62,7 @@
             return;
         }
 
-        // remove mirror from database
         await window.api.invoke("mirrors:delete", { name });
-
-        // sync config data
         await config.load();
     };
 
@@ -109,105 +109,115 @@
     <NewMirrorModal />
     <div class="config-content">
         <div class="config-fields">
-            <div class="field-group" id="osu_id">
-                <label class="field-label" for="osu_id_input">osu! id</label>
-                <div class="field-description">
-                    create a new OAuth application <a
-                        href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
-                        target="_blank"
-                        rel="noopener noreferrer">here</a
-                    > and paste the ID below
+            <div class="config-section">
+                <div class="section-title">osu! api</div>
+
+                <div class="field-group" id="osu_id">
+                    <label class="field-label" for="osu_id_input">osu! id</label>
+                    <div class="field-description">
+                        create a new OAuth application <a
+                            href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
+                            target="_blank"
+                            rel="noopener noreferrer">here</a
+                        > and paste the ID below
+                    </div>
+                    <input
+                        id="osu_id_input"
+                        type="password"
+                        class="text-input"
+                        placeholder="ex: 123"
+                        value={$config.osu_id}
+                        onchange={(e) => handle_text_change("osu_id", e.target.value)}
+                    />
                 </div>
-                <input
-                    id="osu_id_input"
-                    type="password"
-                    class="text-input"
-                    placeholder="ex: 123"
-                    value={$config.osu_id}
-                    onchange={(e) => handle_text_change("osu_id", e.target.value)}
-                />
-            </div>
 
-            <div class="field-group" id="osu_secret">
-                <label class="field-label" for="osu_secret_input">osu! secret</label>
-                <div class="field-description">
-                    create a new OAuth application <a
-                        href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
-                        target="_blank"
-                        rel="noopener noreferrer">here</a
-                    > and paste the SECRET below
+                <div class="field-group" id="osu_secret">
+                    <label class="field-label" for="osu_secret_input">osu! secret</label>
+                    <div class="field-description">
+                        create a new OAuth application <a
+                            href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
+                            target="_blank"
+                            rel="noopener noreferrer">here</a
+                        > and paste the SECRET below
+                    </div>
+                    <input
+                        id="osu_secret_input"
+                        type="password"
+                        class="text-input"
+                        placeholder="ex: 123"
+                        value={$config.osu_secret}
+                        onchange={(e) => handle_text_change("osu_secret", e.target.value)}
+                    />
                 </div>
-                <input
-                    id="osu_secret_input"
-                    type="password"
-                    class="text-input"
-                    placeholder="ex: 123"
-                    value={$config.osu_secret}
-                    onchange={(e) => handle_text_change("osu_secret", e.target.value)}
-                />
             </div>
 
-            <div class="field-group" id="stable_path">
-                <!-- svelte-ignore a11y_label_has_associated_control -->
-                <label class="field-label">osu stable path</label>
-                <div class="field-description">click to select your osu! stable path</div>
-                <InputDialog
-                    location={$config.stable_path}
-                    callback={(path) => handle_text_change("stable_path", path)}
-                    title={"stable directory"}
-                    type="openDirectory"
-                />
+            <div class="config-section">
+                <div class="section-title">paths</div>
+
+                <div class="field-group" id="stable_path">
+                    <!-- svelte-ignore a11y_label_has_associated_control -->
+                    <label class="field-label">osu stable path</label>
+                    <div class="field-description">click to select your osu! stable path</div>
+                    <InputDialog
+                        location={$config.stable_path}
+                        callback={(path) => handle_text_change("stable_path", path)}
+                        title={"stable directory"}
+                        type="openDirectory"
+                    />
+                </div>
+
+                <div class="field-group" id="lazer_path">
+                    <!-- svelte-ignore a11y_label_has_associated_control -->
+                    <label class="field-label">osu lazer path</label>
+                    <div class="field-description">click to select your osu! lazer path</div>
+                    <InputDialog
+                        location={$config.lazer_path}
+                        callback={(path) => handle_text_change("lazer_path", path)}
+                        title={"lazer directory"}
+                        type="openDirectory"
+                    />
+                </div>
+
+                <div class="field-group" id="stable_songs_path">
+                    <!-- svelte-ignore a11y_label_has_associated_control -->
+                    <label class="field-label">songs folder</label>
+                    <div class="field-description">click to select your osu! songs folder</div>
+                    <InputDialog
+                        location={$config.stable_songs_path}
+                        callback={(path) => handle_text_change("stable_songs_path", path)}
+                        title={"stable songs directory"}
+                        type="openDirectory"
+                    />
+                </div>
             </div>
 
-            <div class="field-group" id="lazer_path">
-                <!-- svelte-ignore a11y_label_has_associated_control -->
-                <label class="field-label">osu lazer path</label>
-                <div class="field-description">click to select your osu! lazer path</div>
-                <InputDialog
-                    location={$config.lazer_path}
-                    callback={(path) => handle_text_change("lazer_path", path)}
-                    title={"lazer directory"}
-                    type="openDirectory"
-                />
-            </div>
+            <div class="config-section">
+                <div class="field-group">
+                    <Checkbox
+                        onchange={handle_local_image_toggle}
+                        value={$config.local_images}
+                        label={"local images"}
+                        desc="enable local images on beatmap-cards instead of web assets"
+                    />
+                </div>
 
-            <div class="field-group" id="stable_songs_path">
-                <!-- svelte-ignore a11y_label_has_associated_control -->
-                <label class="field-label">songs folder</label>
-                <div class="field-description">click to select your osu! songs folder</div>
-                <InputDialog
-                    location={$config.stable_songs_path}
-                    callback={(path) => handle_text_change("stable_songs_path", path)}
-                    title={"stable songs directory"}
-                    type="openDirectory"
-                />
-            </div>
+                <div class="field-group">
+                    <Checkbox
+                        onchange={handle_lazer_mode_toggle}
+                        value={$config.lazer_mode}
+                        label={"lazer mode"}
+                        desc="enable to use your lazer collections / beatmaps"
+                    />
+                </div>
 
-            <div class="field-group">
-                <Checkbox
-                    onchange={handle_local_image_toggle}
-                    value={$config.local_images}
-                    label={"local images"}
-                    desc="enable local images on beatmap-cards instead of web assets"
-                />
-            </div>
-
-            <div class="field-group">
-                <Checkbox
-                    onchange={handle_lazer_mode_toggle}
-                    value={$config.lazer_mode}
-                    label={"lazer mode"}
-                    desc="enable to use your lazer collections / beatmaps"
-                />
-            </div>
-
-            <div class="field-group">
-                <Checkbox
-                    onchange={handle_radio_background_toggle}
-                    value={$config.radio_background}
-                    label={"radio background"}
-                    desc="enable background image in radio tab"
-                />
+                <div class="field-group">
+                    <Checkbox
+                        onchange={handle_radio_background_toggle}
+                        value={$config.radio_background}
+                        label={"radio background"}
+                        desc="enable background image in radio tab"
+                    />
+                </div>
             </div>
 
             <div class="config-buttons">
@@ -227,7 +237,6 @@
         <div class="info-box">
             <div class="info-box-header">
                 <div class="info-box-title">beatmap mirrors</div>
-                <div class="info-box-subtitle"></div>
             </div>
             <div class="info-box-stats">
                 {#each $mirrors as mirror}
@@ -244,6 +253,19 @@
 </div>
 
 <style>
+    .config-section {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .section-title {
+        color: var(--accent-color);
+        font-size: 15px;
+        font-family: "Torus Bold";
+        text-transform: lowercase;
+    }
+
     .field-label {
         color: var(--text-secondary);
     }
@@ -254,6 +276,11 @@
 
     .config-buttons > button {
         font-family: "Torus Bold";
+    }
+
+    .config-buttons {
+        display: grid;
+        gap: 10px;
     }
 
     .info-box {

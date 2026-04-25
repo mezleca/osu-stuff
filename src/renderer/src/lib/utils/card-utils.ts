@@ -57,6 +57,24 @@ export const get_diff_text_color = (rating: number): string => {
     return diff_text_spec(rating).hex();
 };
 
+const STATUS_TEXT_DEFAULT = "hsl(333 10% 25%)";
+const STATUS_TEXT_GRAVEYARD = "hsl(333 10% 40%)";
+
+const STATUS_COLORS: Record<string, { background: string; text: string }> = {
+    pending: { background: "hsl(45 92% 64%)", text: STATUS_TEXT_DEFAULT },
+    wip: { background: "hsl(20 92% 64%)", text: STATUS_TEXT_DEFAULT },
+    qualified: { background: "hsl(200 92% 64%)", text: STATUS_TEXT_DEFAULT },
+    approved: { background: "hsl(90 85% 58%)", text: STATUS_TEXT_DEFAULT },
+    ranked: { background: "hsl(90 85% 58%)", text: STATUS_TEXT_DEFAULT },
+    loved: { background: "hsl(333 92% 64%)", text: STATUS_TEXT_DEFAULT },
+    graveyard: { background: "hsl(0 0% 0%)", text: STATUS_TEXT_GRAVEYARD }
+};
+
+export const get_status_style = (status: string | null | undefined): { background: string; text: string } => {
+    const normalized_status = status?.toLowerCase?.() ?? "";
+    return STATUS_COLORS[normalized_status] ?? { background: "hsl(333 10% 20%)", text: "hsl(333 10% 80%)" };
+};
+
 export const get_placeholder_image = (): string => {
     return PLACEHOLDER_IMAGE;
 };

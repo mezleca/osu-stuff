@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import type { BeatmapUpdateReason } from "@shared/types";
+    import { BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
@@ -30,9 +30,16 @@
     import EmptyCollectionModal from "./modal/empty-collection-modal.svelte";
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
 
-    const list = get_beatmap_list("collections");
-    let beatmap_list_ref: any;
+    let beatmap_list_ref: BeatmapListRef | null = null;
+    let card_elements =
+        BEATMAP_CARD_ELEMENT.STATUS |
+        BEATMAP_CARD_ELEMENT.CONTEXT_MENU |
+        BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE |
+        BEATMAP_CARD_ELEMENT.EXTRA_ACTIONS |
+        BEATMAP_CARD_ELEMENT.STAR_RATING_TEXT |
+        BEATMAP_CARD_ELEMENT.BPM_TEXT;
 
+    const list = get_beatmap_list("collections");
     const { sort, query, status, mode, show_invalid, difficulty_range, should_update, selected_buffer, update_reason } = list;
 
     $: filtered_collections = collections.collections;
@@ -97,7 +104,7 @@
     const remove_set_callback = async (id: number) => {
         const hashes = await remove_beatmapset_from_collection(id, $selected_collection?.name ?? "");
         const current_items = list.get_items();
-        const new_items = current_items.filter((md5) => hashes.includes(md5));
+        const new_items = current_items.filter((md5) => !hashes.includes(md5));
 
         list.set_items(new_items);
         collections.filter();
@@ -277,7 +284,7 @@
                 <Dropdown label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
                 <Dropdown label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
                 <Dropdown label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
-                <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} />
+                <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} compact={true} />
                 <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
             </ExpandableMenu>
         </div>
@@ -290,6 +297,7 @@
             on_remove={remove_callback}
             on_remove_set={remove_set_callback}
             show_missing={true}
+            elements={card_elements}
         />
     </div>
 </div>
