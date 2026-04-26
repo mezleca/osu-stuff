@@ -2,6 +2,9 @@
 
 ## new stuff
 
+- radio(timeline): minor tweaks
+- radio(timeline): show current playing (focus on click)
+
 ## bug fixes
 
 - build: use correct worker path

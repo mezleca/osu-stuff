@@ -1,8 +1,10 @@
 <script lang="ts">
     import { config } from "../../../lib/store/config";
     import { get_audio_manager } from "../../../lib/store/audio";
-    import { debounce } from "@shared/timing";
     import { clamp } from "../../../lib/utils/utils";
+    import { get_card_image_source } from "../../../lib/utils/card-utils";
+
+    import type { IBeatmapResult } from "@shared/types";
 
     import Play from "../../icon/play.svelte";
     import Pause from "../../icon/pause.svelte";
@@ -17,17 +19,18 @@
 
     import ControlBar from "../../utils/basic/control-bar.svelte";
 
+    export let beatmap: IBeatmapResult | null = null;
+    export let on_selected_click: () => void = null;
+
     const audio_manager = get_audio_manager("radio");
     const random_store = audio_manager.random;
     const repeat_store = audio_manager.repeat;
+
     let audio_state = $audio_manager;
     let volume_open = false;
 
     $: audio_state = $audio_manager;
-
-    const close_volume = debounce(() => {
-        volume_open = false;
-    }, 120);
+    $: cover_image = beatmap ? get_card_image_source(beatmap, true) : "";
 
     const handle_play_pause = async () => {
         if (!audio_state.id || !audio_state.audio) {
@@ -48,50 +51,23 @@
         audio_manager.set_volume(clamped_volume);
         config.set("radio_volume", clamped_volume);
     };
-
-    const open_volume = () => {
-        close_volume.cancel();
-        volume_open = true;
-    };
-
-    const schedule_close_volume = () => {
-        close_volume();
-    };
 </script>
 
 <div class="radio-timeline">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="volume-anchor" onmouseenter={open_volume} onmouseleave={schedule_close_volume}>
-        <div class="volume-popover" class:open={volume_open} onmouseenter={open_volume} onmouseleave={schedule_close_volume}>
-            <div class="volume-track">
-                <ControlBar orientation="vertical" value_percent={audio_state.volume} on_change={set_volume} />
+    <div class="selected-section" onclick={on_selected_click}>
+        {#if beatmap}
+            <img class="cover" src={cover_image} alt="" />
+            <div class="metadata">
+                <span class="title">{beatmap.title}</span>
+                <span class="artist">{beatmap.artist}</span>
             </div>
-        </div>
-
-        <button class="icon-btn volume-btn" onclick={() => audio_manager.toggle_mute()}>
-            {#if audio_state.volume == 0}
-                <SpeakerMuted />
-            {:else if audio_state.volume < 50}
-                <SpeakerLow />
-            {:else}
-                <Speaker />
-            {/if}
-        </button>
+        {/if}
     </div>
 
-    <div class="progress-section">
-        <div class="progress-bar">
-            <ControlBar value_percent={audio_state.progress_bar_width} on_change={(percent) => audio_manager.seek(percent)} />
-        </div>
-
-        <div class="time-display">
-            <span>{audio_state.progress}</span>
-            <span>{audio_state.duration}</span>
-        </div>
-    </div>
-
-    <div class="controls-row">
-        <div class="transport-controls">
+    <div class="timeline-section">
+        <div class="controls">
             <button class="icon-btn" class:active={$random_store} onclick={audio_manager.toggle_random}>
                 <RandomIcon />
             </button>
@@ -118,49 +94,109 @@
                 <RepeatIcon />
             </button>
         </div>
+
+        <div class="progress">
+            <span>{audio_state.progress}</span>
+            <div class="progress-bar">
+                <ControlBar value_percent={audio_state.progress_bar_width} on_change={(percent) => audio_manager.seek(percent)} />
+            </div>
+            <span>{audio_state.duration}</span>
+        </div>
     </div>
+
+    <div class="extra-section">
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="volume-control" class:open={volume_open}>
+            <button class="icon-btn volume-btn" onclick={() => audio_manager.toggle_mute()}>
+                {#if audio_state.volume == 0}
+                    <SpeakerMuted />
+                {:else if audio_state.volume < 50}
+                    <SpeakerLow />
+                {:else}
+                    <Speaker />
+                {/if}
+            </button>
+
+            <ControlBar orientation="horizontal" value_percent={audio_state.volume} on_change={set_volume} />
+        </div>
+    </div>
+
+    <div class="controls-row"></div>
 </div>
 
 <style>
     .radio-timeline {
         position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding: 24px 28px 22px;
+        display: grid;
+        align-items: center;
+        grid-template-columns: 25% 50% 25%;
+        padding: 20px;
         border-radius: 0;
         background: rgba(14, 14, 14, 0.92);
         border-top: 1px solid rgba(255, 255, 255, 0.05);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
 
-    .volume-anchor {
-        position: absolute;
-        top: 0;
-        right: 12px;
+    .selected-section {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2;
-        transform: translateY(calc(-100% - 8px));
+        gap: 10px;
+        cursor: pointer;
     }
 
-    .progress-section {
+    .selected-section > .cover {
+        width: 64px;
+        height: 64px;
+        border-radius: 6px;
+    }
+
+    .selected-section > .metadata {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+    }
+
+    .metadata > .title {
+        font-size: 13px;
+        color: var(--text-color);
+    }
+
+    .metadata > .artist {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .metadata > .title,
+    .metadata > .artist {
+        font-family: "Torus SemiBold";
+    }
+
+    .timeline-section {
         display: flex;
         flex-direction: column;
         gap: 8px;
     }
 
+    .timeline-section > .controls {
+        align-self: center;
+    }
+
+    .timeline-section > .progress {
+        display: flex;
+        width: 75%;
+        align-items: center;
+        align-self: center;
+        gap: 5px;
+    }
+
+    .progress > span {
+        font-size: "Torus SemiBold";
+        font-size: 11px;
+    }
+
     .progress-bar {
         width: 100%;
         height: 6px;
-    }
-
-    .time-display {
-        display: flex;
-        justify-content: space-between;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 12px;
     }
 
     .controls-row {
@@ -170,42 +206,22 @@
         gap: 16px;
     }
 
-    .transport-controls {
+    .controls {
         display: flex;
         align-items: center;
         gap: 8px;
     }
 
-    .volume-popover {
-        position: absolute;
-        left: 50%;
-        bottom: calc(100% + 4px);
-        width: 36px;
-        height: 96px;
-        padding: 10px 0;
+    .extra-section {
         display: flex;
+        justify-content: end;
         align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        background: rgba(12, 12, 12, 0.96);
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-        opacity: 0;
-        pointer-events: none;
-        transform: translate(-50%, 4px);
-        transition:
-            opacity 0.15s ease,
-            transform 0.15s ease;
     }
 
-    .volume-popover.open {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translate(-50%, 0);
-    }
-
-    .volume-track {
-        width: 6px;
-        height: 100%;
+    .extra-section > .volume-control {
+        display: flex;
+        width: 128px;
+        align-items: center;
     }
 
     .icon-btn {
@@ -252,8 +268,12 @@
         height: 40px;
         padding: 8px;
         color: var(--text-muted);
-        background: rgba(12, 12, 12, 0.92);
         border-radius: 999px;
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+        box-shadow: none;
+    }
+
+    .volume-btn:hover {
+        background: none;
+        transform: none;
     }
 </style>

@@ -262,6 +262,10 @@
         audio.clean_audio();
     };
 
+    const handle_selected_click = () => {
+        beatmap_list_ref.focus_selected(true);
+    };
+
     $: {
         if (selected && selected?.index != -1) {
             sync_selected_beatmap();
@@ -380,7 +384,7 @@
                 />
             </div>
 
-            <RadioTimeline />
+            <RadioTimeline beatmap={selected_beatmap} on_selected_click={handle_selected_click} />
         </div>
     </div>
 </div>
