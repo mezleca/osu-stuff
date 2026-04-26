@@ -1,3 +1,13 @@
+# v2.7.2
+
+## new stuff
+
+## bug fixes
+
+- build: use correct worker path
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.7.1...v2.7.2
+
 # v2.7.1
 
 ## new stuff
