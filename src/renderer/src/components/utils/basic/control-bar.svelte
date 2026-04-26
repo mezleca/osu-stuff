@@ -5,28 +5,38 @@
 
     let is_vertical = false;
     let clamped_percent = 0;
+    let el: HTMLDivElement;
 
     $: is_vertical = orientation == "vertical";
     $: clamped_percent = Math.max(0, Math.min(100, value_percent));
 
-    const update = (event: MouseEvent) => {
-        if (!on_change) {
+    const calculate = (event: MouseEvent) => {
+        if (!on_change || !el) {
             return;
         }
 
-        const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+        const rect = el.getBoundingClientRect();
 
         if (is_vertical) {
-            on_change(1 - (event.clientY - rect.top) / rect.height);
-            return;
+            on_change(Math.max(0, Math.min(1, 1 - (event.clientY - rect.top) / rect.height)));
+        } else {
+            on_change(Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)));
         }
+    };
 
-        on_change((event.clientX - rect.left) / rect.width);
+    const onmousedown = (event: MouseEvent) => {
+        calculate(event);
+        window.addEventListener("mousemove", calculate);
+        window.addEventListener("mouseup", stop, { once: true });
+    };
+
+    const stop = () => {
+        window.removeEventListener("mousemove", calculate);
     };
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="control-bar" class:vertical={is_vertical} onmousedown={update}>
+<div bind:this={el} class="control-bar" class:vertical={is_vertical} {onmousedown}>
     <div class="control-fill" style={is_vertical ? `height: ${clamped_percent}%` : `width: ${clamped_percent}%`}></div>
 </div>
 

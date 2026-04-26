@@ -8,6 +8,7 @@
 ## bug fixes
 
 - build: use correct worker path
+- control-bar(volume, progress, etc...) now behaves like an actual slider...
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.7.1...v2.7.2
 

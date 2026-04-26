@@ -11,7 +11,7 @@
         </tr>
         <tr>
             <td><img src="https://github.com/user-attachments/assets/48093539-a48e-45c0-97ec-a9a8ca625c2c" width="400"/></td>
-            <td><img src="https://github.com/user-attachments/assets/3a78fda7-1f5d-4d8f-a49f-3eded3b7b33b" width="400"/></td>
+            <td><img src="https://github.com/user-attachments/assets/6b00de17-1f4a-4068-8cad-07f08b4f9f37" width="400"/></td>
         </tr>
     </table>
 </p>
