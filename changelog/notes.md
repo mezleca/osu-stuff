@@ -1,3 +1,13 @@
+# v2.7.3
+
+## bug fixes
+
+- radio(search): pressing escape while typing should not remove the "selected beatmap"
+- radio(beatmap-list): select-all(ctrl+a) was also modifying the first beatmap from "selected buffer" (a.k.a selected song)
+- beatmap-list: keep first selected from "selected buffer" after removing multiple selected by clicking on the first selected song (help i cant explain shit properly)
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.7.2...v2.7.3
+
 # v2.7.2
 
 ## new stuff

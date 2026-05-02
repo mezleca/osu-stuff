@@ -60,14 +60,17 @@
 
     const handle_card_click = async (event: MouseEvent, hash: string, index: number) => {
         const is_selected = selected?.id == hash;
+        const has_multi_selection = $selected_buffer.length > 1;
 
         if (event.ctrlKey) {
             list_manager.multi_select([{ id: hash, index }]);
         } else {
-            list_manager.clear_selected();
-
             if (is_selected) {
-                list_manager.clear_selected();
+                if (has_multi_selection) {
+                    list_manager.select({ id: hash, index });
+                } else {
+                    list_manager.clear_selected();
+                }
             } else {
                 list_manager.select({ id: hash, index });
                 await tick();
@@ -136,18 +139,21 @@
 
             const items = list_manager.get_items();
             const items_size = items.length;
-
-            let selected_len = $selected_buffer.length;
-
-            if (selected) {
-                selected_len++;
-            }
+            const selected_len = $selected_buffer.length;
 
             if (selected_len >= items_size) {
                 return;
             }
 
-            list_manager.selected_buffer.set(items.map((id, index) => ({ id, index })));
+            const next_selected = items.map((id, index) => ({ id, index }));
+
+            if (!selected) {
+                list_manager.selected_buffer.set(next_selected);
+                return;
+            }
+
+            const remaining = next_selected.filter((beatmap) => beatmap.id != selected.id);
+            list_manager.selected_buffer.set([selected, ...remaining]);
         });
 
         return () => {
