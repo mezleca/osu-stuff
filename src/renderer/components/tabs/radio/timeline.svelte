@@ -2,7 +2,7 @@
     import { config } from "../../../lib/store/config";
     import { get_audio_manager } from "../../../lib/store/audio";
     import { clamp, format_time } from "../../../lib/utils/utils";
-    import { get_card_image_source } from "../../../lib/utils/card-utils";
+    import { get_card_image_source, get_placeholder_image } from "../../../lib/utils/card-utils";
 
     import type { IBeatmapResult } from "@shared/types";
 
@@ -28,9 +28,14 @@
 
     let audio_state = $audio_manager;
     let volume_open = false;
+    let cover_loaded = false;
+    const placeholder_image = get_placeholder_image();
 
     $: audio_state = $audio_manager;
     $: cover_image = beatmap ? get_card_image_source(beatmap, true) : "";
+    $: if (cover_image) {
+        cover_loaded = false;
+    }
 
     const handle_play_pause = async () => {
         if (!audio_state.id || !audio_state.audio) {
@@ -58,7 +63,22 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="selected-section" onclick={on_selected_click}>
         {#if beatmap}
-            <img class="cover" src={cover_image} alt="" />
+            <div
+                class="cover-frame"
+                style={`background-image:
+                    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+                    url(${placeholder_image});`}
+            >
+                <img
+                    class="cover"
+                    class:loaded={cover_loaded}
+                    src={cover_image}
+                    loading="lazy"
+                    decoding="async"
+                    alt=""
+                    onload={() => (cover_loaded = true)}
+                />
+            </div>
             <div class="metadata">
                 <span class="title">{beatmap.title}</span>
                 <span class="artist">{beatmap.artist}</span>
@@ -146,10 +166,29 @@
         cursor: pointer;
     }
 
-    .selected-section > .cover {
+    .cover-frame {
+        position: relative;
         width: 64px;
         height: 64px;
+        overflow: hidden;
+        flex-shrink: 0;
         border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.06);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    .cover {
+        width: 100%;
+        height: 100%;
+        display: block;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .cover.loaded {
+        opacity: 1;
     }
 
     .selected-section > .metadata {

@@ -41,42 +41,75 @@
     let image_element: HTMLImageElement = null;
     let image_loaded = false;
     let last_filtered_hashes: string[] = filtered_hashes;
+    let bound_image_element: HTMLImageElement | null = null;
 
     $: state = state_store ? $state_store : null;
     $: loaded = state && state.loaded == true;
     $: visible_hashes = get_visible_hashes(state, filtered_hashes);
 
     const debounced_load = debounce(async () => {
-        if (!state || state.loading) {
+        const current_store = state_store;
+
+        if (!current_store) {
             return;
         }
 
-        state_store.update((val) => ({ ...val, loading: true }));
+        const current_state = get(current_store);
+
+        if (!current_state || current_state.loading) {
+            return;
+        }
+
+        const current_id = id;
+        const explicit_beatmapset = beatmapset;
+
+        current_store.update((val) => ({ ...val, loading: true }));
 
         try {
-            if (state.beatmapset) {
-                if (!state.background) {
-                    state_store.update((s) => ({ ...s, background: get_card_image_source(s.beatmapset) }));
+            if (current_state.beatmapset) {
+                if (!current_state.background) {
+                    current_store.update((store_state) => ({ ...store_state, background: get_card_image_source(store_state.beatmapset) }));
                 }
+
                 return;
             }
 
-            const result = beatmapset ?? (id != null ? await get_beatmapset(id) : null);
+            const result = explicit_beatmapset ?? (current_id != null ? await get_beatmapset(current_id) : null);
 
             if (result) {
-                state_store.update((s) => ({
-                    ...s,
+                current_store.update((store_state) => ({
+                    ...store_state,
                     beatmapset: result,
-                    background: !s.background ? get_card_image_source(result) : s.background
+                    background: !store_state.background ? get_card_image_source(result) : store_state.background
                 }));
             }
         } catch (err) {
-            console.error("failed to load beatmapset:", id, err);
-            state_store.update((s) => ({ ...s, beatmapset: null }));
+            console.error("failed to load beatmapset:", current_id, err);
+            current_store.update((store_state) => ({ ...store_state, beatmapset: null }));
         } finally {
-            state_store.update((s) => ({ ...s, loading: false, loaded: true }));
+            current_store.update((store_state) => ({ ...store_state, loading: false, loaded: true }));
         }
     }, 50);
+
+    const bind_image_events = () => {
+        if (bound_image_element == image_element) {
+            return;
+        }
+
+        if (bound_image_element) {
+            bound_image_element.onload = null;
+        }
+
+        bound_image_element = image_element;
+
+        if (!image_element) {
+            return;
+        }
+
+        image_element.onload = () => {
+            image_loaded = true;
+        };
+    };
 
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
@@ -159,9 +192,7 @@
             debounced_load();
         }
 
-        if (image_element) {
-            image_element.onload = () => (image_loaded = true);
-        }
+        bind_image_events();
     }
 
     $: {
@@ -177,6 +208,10 @@
         debounced_load.cancel();
         debounced_hover.cancel();
         unsubscribe_context();
+
+        if (bound_image_element) {
+            bound_image_element.onload = null;
+        }
 
         if (image_element) {
             image_element.src = "";

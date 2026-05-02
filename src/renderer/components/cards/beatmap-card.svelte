@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import type { Writable } from "svelte/store";
+    import { get, type Writable } from "svelte/store";
     import {
         BEATMAP_CARD_ELEMENT,
         type BeatmapCardElements,
@@ -38,6 +38,7 @@
     let image_loaded = false;
     let state: BeatmapComponentState | null = null;
     let last_hash = "";
+    let bound_image_element: HTMLImageElement | null = null;
 
     $: state = state_store ? $state_store : null;
     $: loaded = mode == "minimal" && !!beatmap ? true : state?.loaded == true;
@@ -47,18 +48,30 @@
     $: has_map = !!state?.beatmap && state.beatmap.temp == false;
 
     const debounced_load = debounce(async () => {
-        if (!state || state.loading) {
+        const current_store = state_store;
+
+        if (!current_store) {
             return;
         }
 
-        state_store.update((value) => ({ ...value, loading: true }));
+        const current_state = get(current_store);
+
+        if (!current_state || current_state.loading) {
+            return;
+        }
+
+        const current_hash = hash;
+        const explicit_beatmap = beatmap;
+        const current_mode = mode;
+
+        current_store.update((value) => ({ ...value, loading: true }));
 
         try {
-            if (state.beatmap) {
-                if (mode != "minimal" && state.background == "") {
-                    state_store.update((current_state) => ({
-                        ...current_state,
-                        background: get_card_image_source(current_state.beatmap)
+            if (current_state.beatmap) {
+                if (current_mode != "minimal" && current_state.background == "") {
+                    current_store.update((store_state) => ({
+                        ...store_state,
+                        background: get_card_image_source(store_state.beatmap)
                     }));
                 }
 
@@ -67,31 +80,60 @@
 
             let result: IBeatmapResult | null = null;
 
-            if (beatmap && !state.beatmap) {
-                result = beatmap;
+            if (explicit_beatmap && !current_state.beatmap) {
+                result = explicit_beatmap;
             }
 
             if (!result) {
-                result = await get_beatmap(hash);
+                result = await get_beatmap(current_hash);
             }
 
             if (!result) {
-                state_store.update((current_state) => ({ ...current_state, beatmap: null }));
+                current_store.update((store_state) => ({ ...store_state, beatmap: null }));
                 return;
             }
 
-            state_store.update((current_state) => ({
-                ...current_state,
+            current_store.update((store_state) => ({
+                ...store_state,
                 beatmap: result,
-                background: mode != "minimal" && current_state.background == "" ? get_card_image_source(result) : current_state.background
+                background: current_mode != "minimal" && store_state.background == "" ? get_card_image_source(result) : store_state.background
             }));
         } catch (error) {
             console.error("failed to load beatmap:", error);
-            state_store.update((current_state) => ({ ...current_state, beatmap: null }));
+            current_store.update((store_state) => ({ ...store_state, beatmap: null }));
         } finally {
-            state_store.update((current_state) => ({ ...current_state, loading: false, loaded: true }));
+            current_store.update((store_state) => ({ ...store_state, loading: false, loaded: true }));
         }
     }, 50);
+
+    const bind_image_events = () => {
+        if (bound_image_element == image_element) {
+            return;
+        }
+
+        if (bound_image_element) {
+            bound_image_element.onload = null;
+            bound_image_element.onerror = null;
+        }
+
+        bound_image_element = image_element;
+
+        if (!image_element) {
+            return;
+        }
+
+        image_element.onload = () => {
+            image_loaded = true;
+        };
+
+        image_element.onerror = () => {
+            if (!image_element) {
+                return;
+            }
+
+            image_element.src = get_placeholder_image();
+        };
+    };
 
     const handle_click = (event: MouseEvent) => {
         event.stopPropagation();
@@ -140,23 +182,16 @@
             debounced_load();
         }
 
-        if (image_element) {
-            image_element.onload = () => {
-                image_loaded = true;
-            };
-
-            image_element.onerror = () => {
-                if (!image_element) {
-                    return;
-                }
-
-                image_element.src = get_placeholder_image();
-            };
-        }
+        bind_image_events();
     }
 
     onDestroy(() => {
         debounced_load.cancel();
+
+        if (bound_image_element) {
+            bound_image_element.onload = null;
+            bound_image_element.onerror = null;
+        }
 
         if (image_element) {
             image_element.src = "";

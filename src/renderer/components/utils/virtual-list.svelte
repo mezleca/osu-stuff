@@ -215,6 +215,10 @@
     };
 
     const clear_scroll_animation = (): void => {
+        if (scroll_animation.animation_id) {
+            cancelAnimationFrame(scroll_animation.animation_id);
+        }
+
         scroll_animation.animation_id = null;
         scroll_animation.start_time = 0;
         scroll_animation.start_scroll = 0;
