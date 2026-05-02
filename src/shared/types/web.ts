@@ -42,9 +42,9 @@ export interface IOsuCollectorResult {
     checksums: string[];
 }
 
-export interface Handler {
+export interface WebInputHandler {
     id: number;
-    callback: () => void;
+    callback: () => boolean | void;
 }
 
 export interface IAudioState {

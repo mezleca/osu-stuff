@@ -16,17 +16,15 @@
     import Search from "../../icon/search-icon.svelte";
     import { debounce } from "@shared/timing";
 
-    let element: HTMLInputElement = null;
-
-    let {
-        value = $bindable(""),
-        placeholder = "",
-        callback = null
-    }: {
+    interface Props {
         value?: string;
         placeholder?: string;
         callback?: ((value: string) => void) | null;
-    } = $props();
+    }
+
+    let element: HTMLInputElement = null;
+
+    let { value = $bindable(""), placeholder = "", callback = null }: Props = $props();
 
     const reset_typing = debounce(() => set_search_typing(false), 50);
 

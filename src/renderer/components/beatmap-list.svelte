@@ -12,7 +12,7 @@
     } from "@shared/types";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
-    import { search_state, should_ignore_search_shortcuts } from "../lib/store/other.svelte";
+    import { should_ignore_search_shortcuts } from "../lib/store/other.svelte";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";

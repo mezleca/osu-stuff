@@ -1,4 +1,4 @@
-import type { Handler } from "@shared/types";
+import type { WebInputHandler } from "@shared/types";
 
 const BUTTON_TO_STRING: Record<number, string> = {
     [0]: "mouse1",
@@ -17,7 +17,7 @@ type HandlerCallback = () => boolean | void;
 
 class InputManager {
     keys: Set<string>;
-    handlers: Map<string, Handler[]>;
+    handlers: Map<string, WebInputHandler[]>;
     last_clicked_element: EventTarget | null;
     next_id: number;
 

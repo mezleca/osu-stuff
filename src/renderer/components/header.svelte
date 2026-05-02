@@ -10,8 +10,12 @@
     import Square from "./icon/square.svelte";
     import X from "./icon/x.svelte";
 
+    interface Props {
+        active?: boolean;
+    }
+
     const active_modals = fromStore(modals);
-    let { active = false }: { active?: boolean } = $props();
+    let { active = false }: Props = $props();
 
     const handle_active_tab = (tab: string) => {
         // if we're inside a modal ignore all pointer events
