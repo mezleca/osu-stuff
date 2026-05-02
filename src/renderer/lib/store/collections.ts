@@ -1,6 +1,6 @@
 import { writable, get, type Writable } from "svelte/store";
 import { show_notification } from "./notifications";
-import { is_special_key } from "./other";
+import { is_special_key } from "./other.svelte";
 import type { ICollectionResult } from "@shared/types";
 import type { ICollectionWithEdit, IMissingCache, ISelectedCollection } from "@shared/types";
 

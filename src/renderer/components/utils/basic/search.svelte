@@ -1,21 +1,75 @@
+<svelte:options runes={true} />
+
 <script lang="ts">
-    import { is_typing } from "../../../lib/store/other";
+    import { onMount } from "svelte";
+    import { input } from "../../../lib/store/input";
+    import { string_is_valid } from "../../../lib/utils/utils";
+    import {
+        blur_search_element,
+        reset_search_state,
+        set_search_element,
+        set_search_focused,
+        set_search_typing
+    } from "../../../lib/store/other.svelte";
 
     // search svg
     import Search from "../../icon/search-icon.svelte";
+    import { debounce } from "@shared/timing";
 
-    export let value = "";
-    export let placeholder = "";
-    export let callback: (value: string) => void = null;
+    let element: HTMLInputElement = null;
 
-    $: if (value != undefined) {
-        if (callback) callback(value);
-    }
+    let {
+        value = $bindable(""),
+        placeholder = "",
+        callback = null
+    }: {
+        value?: string;
+        placeholder?: string;
+        callback?: ((value: string) => void) | null;
+    } = $props();
+
+    const reset_typing = debounce(() => set_search_typing(false), 50);
+
+    $effect(() => {
+        if (!string_is_valid(value)) {
+            return;
+        }
+
+        if (callback) {
+            callback(value);
+        }
+
+        reset_typing();
+    });
+
+    onMount(() => {
+        set_search_element(element);
+
+        const handle_blur_id = input.on("escape", () => {
+            blur_search_element();
+            reset_search_state();
+            return true;
+        });
+
+        return () => {
+            set_search_element(null);
+            input.unregister(handle_blur_id);
+        };
+    });
 </script>
 
 <div class="search-container">
     <Search />
-    <input {placeholder} type="text" class="search-input" onfocus={() => is_typing.set(true)} onblur={() => is_typing.set(false)} bind:value />
+    <input
+        {placeholder}
+        class="search-input"
+        type="text"
+        bind:this={element}
+        bind:value
+        oninput={() => set_search_typing(true)}
+        onfocus={() => set_search_focused(true)}
+        onblur={reset_search_state}
+    />
 </div>
 
 <style>

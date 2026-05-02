@@ -13,7 +13,7 @@ const rename_key = (key: string) => {
     return key;
 };
 
-type HandlerCallback = () => void;
+type HandlerCallback = () => boolean | void;
 
 class InputManager {
     keys: Set<string>;
@@ -52,7 +52,11 @@ class InputManager {
 
         if (handlers) {
             for (const handler of handlers) {
-                handler.callback();
+                const consumed = handler.callback();
+
+                if (consumed) {
+                    return;
+                }
             }
         }
     }

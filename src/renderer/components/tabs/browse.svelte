@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { get_beatmapset_list } from "../../lib/store/beatmaps";
-    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
     import { debounce } from "@shared/timing";
 
     // components

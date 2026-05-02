@@ -1,8 +1,11 @@
+<svelte:options runes={true} />
+
 <script>
     import { onMount, tick } from "svelte";
+    import { fromStore } from "svelte/store";
     import { fade } from "svelte/transition";
     import { cubicOut } from "svelte/easing";
-    import { active_tab, is_maximized } from "./lib/store/other";
+    import { core_state, set_window_maximized } from "./lib/store/other.svelte";
     import { show_notification } from "./lib/store/notifications";
     import { processing, processing_data } from "./lib/store/processor";
     import { is_dev_mode } from "./lib/utils/utils";
@@ -30,15 +33,24 @@
     import Spinner from "./components/icon/spinner.svelte";
     import ContextMenu from "./components/utils/context-menu.svelte";
 
-    $: initialized = false;
-    $: processing_status = $processing_data?.status ?? "doing something";
-    $: processing_width = $processing_data?.length ? ($processing_data.index / $processing_data.length) * 100 : 0;
-    $: processing_progress = $processing_data?.large_text ?? "";
-    $: processing_small = $processing_data?.small_text ?? "";
+    const processing_state = fromStore(processing);
+    const processing_state_data = fromStore(processing_data);
+
+    let initialized = $state(false);
+
+    const is_maximized = $derived(core_state.window.maximized);
+    const active_tab = $derived(core_state.window.active_tab);
+    const is_processing = $derived(processing_state.current);
+    const processing_status = $derived(processing_state_data.current?.status ?? "doing something");
+    const processing_width = $derived(
+        processing_state_data.current?.length ? (processing_state_data.current.index / processing_state_data.current.length) * 100 : 0
+    );
+    const processing_progress = $derived(processing_state_data.current?.large_text ?? "");
+    const processing_small = $derived(processing_state_data.current?.small_text ?? "");
 
     const toggle_maximized = async () => {
         const state = await window.api.invoke("window:state");
-        $is_maximized = state == "maximized";
+        set_window_maximized(state == "maximized");
     };
 
     onMount(() => {
@@ -84,7 +96,7 @@
 </script>
 
 <main>
-    <div class="window-border" class:show={!$is_maximized}></div>
+    <div class="window-border" class:show={!is_maximized}></div>
 
     <!-- global components -->
     <Notifications />
@@ -102,7 +114,7 @@
     {/if}
 
     <!-- processing screen -->
-    {#if $processing}
+    {#if is_processing}
         <div class="processing-overlay" transition:fade={{ easing: cubicOut }}>
             <div class="processing-center">
                 <div class="processing-title">{processing_status}</div>
@@ -111,29 +123,29 @@
                 </div>
                 <div class="processing-text">{processing_progress}</div>
             </div>
-            {#if processing_data}
+            {#if processing_state_data.current}
                 <div class="processing-bottom-text">{processing_small}</div>
             {/if}
         </div>
     {/if}
 
     <!-- app header -->
-    <Header active={initialized && !$processing} />
+    <Header active={initialized && !is_processing} />
 
     <div class="main-container">
-        {#if $active_tab == "index"}
+        {#if active_tab == "index"}
             <Index />
-        {:else if $active_tab == "collections"}
+        {:else if active_tab == "collections"}
             <Collections />
-        {:else if $active_tab == "browse"}
+        {:else if active_tab == "browse"}
             <Browse />
-        {:else if $active_tab == "discover"}
+        {:else if active_tab == "discover"}
             <Discover />
-        {:else if $active_tab == "radio"}
+        {:else if active_tab == "radio"}
             <Radio />
-        {:else if $active_tab == "config"}
+        {:else if active_tab == "config"}
             <Config />
-        {:else if $active_tab == "status"}
+        {:else if active_tab == "status"}
             <Status />
         {/if}
     </div>

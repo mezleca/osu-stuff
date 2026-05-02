@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { slide } from "svelte/transition";
-    import { convert_special_key } from "../../../lib/store/other";
+    import { convert_special_key } from "../../../lib/store/other.svelte";
 
     // props
     export let options: { label: string | number; value: string | number }[] = [];

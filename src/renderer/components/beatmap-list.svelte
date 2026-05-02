@@ -12,7 +12,7 @@
     } from "@shared/types";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
-    import { is_typing } from "../lib/store/other";
+    import { search_state, should_ignore_search_shortcuts } from "../lib/store/other.svelte";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
@@ -36,6 +36,14 @@
     const { items, target, selected_buffer, id: list_id, total_missing } = list_manager;
 
     $: selected = $selected_buffer[0];
+
+    $: {
+        if ($target == ALL_BEATMAPS_KEY && has_flag(elements, BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE)) {
+            final_card_elements = remove_flag(elements, BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE);
+        } else {
+            final_card_elements = elements;
+        }
+    }
 
     export const focus_selected = (force: boolean = false) => {
         if (!virtual_ref) {
@@ -68,25 +76,17 @@
         }
     };
 
-    $: {
-        if ($target == ALL_BEATMAPS_KEY && has_flag(elements, BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE)) {
-            final_card_elements = remove_flag(elements, BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE);
-        } else {
-            final_card_elements = elements;
-        }
-    }
-
     onMount(() => {
         const handle_unselected_id = input.on("escape", () => {
+            if (should_ignore_search_shortcuts()) {
+                return;
+            }
+
             list_manager.selected_buffer.update((current) => (current.length > 1 ? [current[0]] : []));
         });
 
         const handle_arrow_left_id = input.on("arrowleft", () => {
-            if ($is_typing) {
-                return;
-            }
-
-            if (!selected) {
+            if (should_ignore_search_shortcuts() || !selected) {
                 return;
             }
 
@@ -108,11 +108,7 @@
         });
 
         const handle_arrow_right_id = input.on("arrowright", () => {
-            if ($is_typing) {
-                return;
-            }
-
-            if (!selected) {
+            if (should_ignore_search_shortcuts() || !selected) {
                 return;
             }
 
@@ -134,7 +130,7 @@
         });
 
         const handle_select_all_id = input.on("control+a", () => {
-            if ($is_typing) {
+            if (should_ignore_search_shortcuts()) {
                 return;
             }
 

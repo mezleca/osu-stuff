@@ -3,7 +3,7 @@
 
     import type { AudioDirection, BeatmapListRef, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
     import { collections } from "../../lib/store/collections";
-    import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other";
+    import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other.svelte";
     import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT } from "@shared/types";
     import { debounce } from "@shared/timing";
     import { get_radio_background_image, get_radio_card_elements, get_radio_collection_options, push_previous_if_new } from "../../lib/utils/radio";

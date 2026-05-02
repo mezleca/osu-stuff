@@ -2,7 +2,7 @@
     import { onMount, tick } from "svelte";
     import { BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
     import { collections } from "../../lib/store/collections";
-    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other";
+    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";

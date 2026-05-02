@@ -1,9 +1,10 @@
 import { get, type Writable, writable } from "svelte/store";
 import { show_notification } from "./notifications";
 import { show_progress_box, hide_progress_box } from "./progress_box";
-import type { IDownloadData, IDownloadProgress, IDownloadEvent, IDownloadedBeatmap } from "@shared/types";
 import { config } from "./config";
-import { active_tab } from "./other";
+import { core_state } from "./other.svelte";
+
+import type { IDownloadData, IDownloadProgress, IDownloadEvent, IDownloadedBeatmap } from "@shared/types";
 import type { GenericResult, IBeatmapResult } from "@shared/types";
 
 const DOWNLOAD_PROGRESS_ID = "download";
@@ -199,7 +200,7 @@ class Downloader {
             case "started":
             case "update": {
                 // hide progress box if we are on status tab
-                if (get(active_tab) == "status") {
+                if (core_state.window.active_tab == "status") {
                     hide_progress_box(DOWNLOAD_PROGRESS_ID);
                     break;
                 }

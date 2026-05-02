@@ -1,5 +1,8 @@
+<svelte:options runes={true} />
+
 <script lang="ts">
-    import { active_tab, is_maximized } from "../lib/store/other";
+    import { fromStore } from "svelte/store";
+    import { core_state, set_active_tab } from "../lib/store/other.svelte";
     import { modals } from "../lib/utils/modal";
 
     // icons
@@ -7,16 +10,16 @@
     import Square from "./icon/square.svelte";
     import X from "./icon/x.svelte";
 
-    $: active_modals = $modals;
+    const active_modals = fromStore(modals);
+    let { active = false }: { active?: boolean } = $props();
 
-    // props
-    export let active = false;
+    const handle_active_tab = (tab: string) => {
+        // if we're inside a modal ignore all pointer events
+        if (!active || active_modals.current.size != 0) {
+            return;
+        }
 
-    const set_active_tab = (tab: string) => {
-        // if we're inside a modal ignore any pointer event
-        if (!active || active_modals.size != 0) return;
-
-        $active_tab = tab;
+        set_active_tab(tab);
     };
 
     const tabs = ["collections", "browse", "discover", "radio", "config", "status"];
@@ -24,10 +27,15 @@
 
 <div class="header">
     <div class="header-left">
-        <button class="app-title" onclick={() => set_active_tab("index")}>osu-stuff</button>
+        <button class="app-title" onclick={() => handle_active_tab("index")}>osu-stuff</button>
         <div class="tabs">
             {#each tabs as tab}
-                <button class="tab" onclick={() => set_active_tab(tab)} class:active={$active_tab == tab} class:disabled={active_modals.size != 0}>
+                <button
+                    class="tab"
+                    onclick={() => handle_active_tab(tab)}
+                    class:active={core_state.window.active_tab == tab}
+                    class:disabled={active_modals.current.size != 0}
+                >
                     {tab}
                 </button>
             {/each}
@@ -41,7 +49,7 @@
         <!-- svelte-ignore a11y_consider_explicit_label -->
         <button
             class="window-btn maximize"
-            onclick={() => ($is_maximized ? window.api.invoke("window:unmaximize") : window.api.invoke("window:maximize"))}
+            onclick={() => (core_state.window.maximized ? window.api.invoke("window:unmaximize") : window.api.invoke("window:maximize"))}
         >
             <Square />
         </button>
