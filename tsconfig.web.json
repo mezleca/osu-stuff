@@ -1,9 +1,9 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
-    "src/renderer/src/env.d.ts",
-    "src/renderer/src/**/*",
-    "src/renderer/src/**/*.svelte",
+    "src/renderer/env.d.ts",
+    "src/renderer/**/*",
+    "src/renderer/**/*.svelte",
     "src/shared/**/*",
     "src/preload/*.d.ts"
   ],
@@ -15,7 +15,7 @@
         "./src/shared/*"
       ],
       "@assets/*": [
-        "./src/renderer/src/assets/*"
+        "./src/renderer/assets/*"
       ]
     },
     "verbatimModuleSyntax": false,

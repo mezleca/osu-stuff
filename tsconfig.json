@@ -23,7 +23,7 @@
         "./src/worker/*"
       ],
       "@assets/*": [
-        "./src/renderer/src/assets/*"
+        "./src/renderer/assets/*"
       ]
     }
   }

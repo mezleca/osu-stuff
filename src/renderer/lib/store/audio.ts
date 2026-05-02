@@ -1,20 +1,23 @@
 import { writable, get, type Writable } from "svelte/store";
-import { custom_fetch, format_time, get_local_audio } from "../utils/utils";
+import { custom_fetch, get_local_audio } from "../utils/utils";
 import { config } from "./config";
 import { AudioDirection, IBeatmapResult } from "@shared/types";
 
 const DEFAULT_VOLUME = 50;
 
+interface IAudioProgress {
+    current: number;
+    total: number;
+}
+
 interface IAudioState {
     beatmap: IBeatmapResult;
     audio: HTMLAudioElement | null;
+    progress: IAudioProgress;
     id: string | null;
     playing: boolean;
     ended: boolean;
     volume: number;
-    progress: string;
-    duration: string;
-    progress_bar_width: number;
     is_loading: boolean;
 }
 
@@ -28,15 +31,13 @@ interface IAudioNavigateOptions {
 }
 
 const DEFAULT_STATE: IAudioState = {
+    progress: { current: 0, total: 0 },
     beatmap: null,
     audio: null,
     id: null,
     playing: false,
     ended: false,
     volume: DEFAULT_VOLUME,
-    progress: "0:00",
-    duration: "0:00",
-    progress_bar_width: 0,
     is_loading: false
 };
 
@@ -98,7 +99,7 @@ class AudioManager {
 
         this.store.update((obj) => ({
             ...obj,
-            duration: format_time(duration),
+            progress: { current: obj.progress.current ?? 0, total: duration },
             is_loading: false
         }));
     };
@@ -116,7 +117,7 @@ class AudioManager {
         if (isFinite(duration) && duration > 0) {
             this.store.update((obj) => ({
                 ...obj,
-                duration: format_time(duration)
+                progress: { current: obj.progress.current ?? 0, total: duration }
             }));
         }
     };
@@ -129,14 +130,10 @@ class AudioManager {
             return;
         }
 
-        const current_time = target.currentTime ?? 0;
-        const duration = target.duration ?? 1;
+        const current = target.currentTime ?? 0;
+        const total = target.duration ?? 1;
 
-        this.store.update((obj) => ({
-            ...obj,
-            progress: format_time(current_time),
-            progress_bar_width: (current_time / duration) * 100
-        }));
+        this.store.update((obj) => ({ ...obj, progress: { current, total } }));
     };
 
     on_ended = async (event: Event) => {
@@ -152,8 +149,7 @@ class AudioManager {
         this.store.update((obj) => ({
             ...obj,
             playing: false,
-            ended: true,
-            progress_bar_width: 100
+            ended: true
         }));
 
         if (!this.is_preview) {
@@ -370,17 +366,17 @@ class AudioManager {
         }, 100);
     };
 
-    seek = (percent: number): void => {
+    seek = (value: number) => {
         const state = this.get_state();
 
         if (!state.audio || !isFinite(state.audio.duration)) {
             return;
         }
 
-        const target_time = percent * state.audio.duration;
-        state.audio.currentTime = target_time;
+        const target = value * state.audio.duration;
 
-        console.log(`[${this.id}] seeking to: ${format_time(target_time)} (${(percent * 100).toFixed(1)}%)`);
+        state.audio.currentTime = target;
+        state.progress.current = target;
     };
 
     set_volume = (volume: number, update_config: boolean = true): void => {
@@ -505,9 +501,7 @@ class AudioManager {
             audio: null,
             playing: false,
             is_loading: false,
-            duration: "0:00",
-            progress: "0:00",
-            progress_bar_width: 0,
+            progress: { current: 0, total: 0 },
             ended: false
         }));
     };

@@ -4,7 +4,7 @@ import path from "path";
 
 const SHARED_ALIAS = {
     "@shared": path.resolve(__dirname, "src/shared"),
-    "@assets": path.resolve(__dirname, "src/renderer/src/assets")
+    "@assets": path.resolve(__dirname, "src/renderer/assets")
 };
 
 export default defineConfig({

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { config } from "../../../lib/store/config";
     import { get_audio_manager } from "../../../lib/store/audio";
-    import { clamp } from "../../../lib/utils/utils";
+    import { clamp, format_time } from "../../../lib/utils/utils";
     import { get_card_image_source } from "../../../lib/utils/card-utils";
 
     import type { IBeatmapResult } from "@shared/types";
@@ -96,11 +96,14 @@
         </div>
 
         <div class="progress">
-            <span>{audio_state.progress}</span>
+            <span>{format_time(audio_state.progress.current)}</span>
             <div class="progress-bar">
-                <ControlBar value_percent={audio_state.progress_bar_width} on_change={(percent) => audio_manager.seek(percent)} />
+                <ControlBar
+                    value_percent={(audio_state.progress.current / audio_state.progress.total) * 100}
+                    on_change={(percent) => audio_manager.seek(percent)}
+                />
             </div>
-            <span>{audio_state.duration}</span>
+            <span>{format_time(audio_state.progress.total)}</span>
         </div>
     </div>
 
