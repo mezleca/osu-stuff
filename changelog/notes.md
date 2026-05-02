@@ -1,3 +1,11 @@
+# v2.7.4
+
+## bug fixes
+
+- electron: fix cors
+
+**Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.7.3...v2.7.4
+
 # v2.7.3
 
 ## new stuff
