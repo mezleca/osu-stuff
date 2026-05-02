@@ -58,7 +58,8 @@ const file_privileges: Privileges = {
     secure: true,
     stream: true,
     supportFetchAPI: true,
-    bypassCSP: true
+    bypassCSP: true,
+    corsEnabled: true
 };
 
 const DEVTOOLS_OPTIONS: OpenDevToolsOptions = {
