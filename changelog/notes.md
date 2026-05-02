@@ -1,5 +1,10 @@
 # v2.7.3
 
+## new stuff
+
+- radio(timeline): transition for current playing cover
+- updated dependencies
+
 ## bug fixes
 
 - radio(search): pressing escape while typing should not remove the "selected beatmap"
