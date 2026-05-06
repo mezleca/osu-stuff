@@ -190,11 +190,10 @@ async function createWindow() {
 
     // clients
     handle_ipc("client:initialize", async (_, force, client) => {
-        if (!core.initialized) {
-            return false;
-        }
+        if (!core.initialized) return { success: false, reason: "core is not initialized yet" };
         return initialize_client(force, client);
     });
+
     handle_ipc("client:is_initialized", (_, client) => is_client_initialized(client));
     handle_ipc("client:should_update", (_, client) => should_update(client));
     handle_ipc("client:get_player_name", (_, client) => get_player_name(client));

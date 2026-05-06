@@ -14,7 +14,8 @@ import {
     ALL_MODES_KEY,
     OsdbBeatmap,
     OsdbCollection,
-    OsdbData
+    OsdbData,
+    GenericResult
 } from "@shared/types";
 import { check_beatmap_difficulty, matches_beatmap, parse_query, ParsedQuery, sort_beatmaps, sort_beatmapset } from "../beatmaps";
 import { config } from "../../database/config";
@@ -664,7 +665,7 @@ export abstract class BaseClient implements IOsuClient {
     }
 
     // client based implementation
-    abstract initialize(force?: boolean): Promise<boolean>;
+    abstract initialize(force?: boolean): Promise<GenericResult<boolean>>;
     abstract get_player_name(): string;
     abstract delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
     abstract update_collection(): Promise<boolean>;

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { fade } from "svelte/transition";
     import { config } from "../../../lib/store/config";
     import { get_audio_manager } from "../../../lib/store/audio";
     import { clamp, format_time } from "../../../lib/utils/utils";
@@ -22,20 +23,17 @@
     export let beatmap: IBeatmapResult | null = null;
     export let on_selected_click: () => void = null;
 
+    const placeholder_image = get_placeholder_image();
+
     const audio_manager = get_audio_manager("radio");
     const random_store = audio_manager.random;
     const repeat_store = audio_manager.repeat;
 
     let audio_state = $audio_manager;
     let volume_open = false;
-    let cover_loaded = false;
-    const placeholder_image = get_placeholder_image();
 
     $: audio_state = $audio_manager;
-    $: cover_image = beatmap ? get_card_image_source(beatmap, true) : "";
-    $: if (cover_image) {
-        cover_loaded = false;
-    }
+    $: cover_src = beatmap ? get_card_image_source(beatmap, true) : placeholder_image;
 
     const handle_play_pause = async () => {
         if (!audio_state.id || !audio_state.audio) {
@@ -63,22 +61,12 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="selected-section" onclick={on_selected_click}>
         {#if beatmap}
-            <div
-                class="cover-frame"
-                style={`background-image:
-                    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-                    url(${placeholder_image});`}
-            >
-                <img
-                    class="cover"
-                    class:loaded={cover_loaded}
-                    src={cover_image}
-                    loading="lazy"
-                    decoding="async"
-                    alt=""
-                    onload={() => (cover_loaded = true)}
-                />
+            <div class="cover-frame" style="background-image: url({placeholder_image});">
+                {#key cover_src}
+                    <img class="cover" src={cover_src} transition:fade={{ duration: 100 }} alt="" />
+                {/key}
             </div>
+
             <div class="metadata">
                 <span class="title">{beatmap.title}</span>
                 <span class="artist">{beatmap.artist}</span>
@@ -171,24 +159,15 @@
         width: 64px;
         height: 64px;
         overflow: hidden;
-        flex-shrink: 0;
         border-radius: 6px;
-        background-color: rgba(255, 255, 255, 0.06);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
+        flex-shrink: 0;
     }
 
-    .cover {
+    .cover-frame > img {
         width: 100%;
         height: 100%;
-        display: block;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-
-    .cover.loaded {
-        opacity: 1;
+        inset: 0;
+        object-fit: cover;
     }
 
     .selected-section > .metadata {

@@ -1,4 +1,4 @@
-import type { ICollectionResult, IBeatmapResult, BeatmapSetResult, BeatmapFile, BeatmapRow } from "@shared/types";
+import type { ICollectionResult, IBeatmapResult, BeatmapSetResult, BeatmapFile, BeatmapRow, GenericResult } from "@shared/types";
 import { OsuCollectionDbParser, OsuDbParser } from "../parsers";
 import { BaseClient } from "./base";
 import { process_beatmap_task } from "../beatmap_worker";
@@ -19,39 +19,31 @@ class StableBeatmapClient extends BaseClient {
         super();
     }
 
-    initialize = async (force: boolean = false): Promise<boolean> => {
+    initialize = async (force: boolean = false): Promise<GenericResult<boolean>> => {
         if (this.initialized && !force) {
-            return true;
+            return { success: false, reason: "ignored" };
         }
 
         const osu_database_file = path.resolve(config.get().stable_path, "osu!.db");
         const collection_database_file = path.resolve(config.get().stable_path, "collection.db");
 
         if (!fs.existsSync(osu_database_file) || !fs.existsSync(collection_database_file)) {
-            console.error("failed to initialize stable client (missing database files)");
-            return false;
+            return { success: false, reason: "invalid database file" };
         }
 
         try {
             await this.osu_db_parser.parse(osu_database_file);
-        } catch (err) {
-            console.error("failed to parse osu!.db:", err);
-            return false;
-        }
-
-        try {
             await this.collection_db_parser.parse(collection_database_file);
         } catch (err) {
-            console.error("failed to parse collection.db:", err);
-            return false;
+            return { success: false, reason: "failed to parse beatmap file: " + err };
         }
+
+        const collections = new Map<string, ICollectionResult>();
+        const parsed_beatmapsets = new Map<number, BeatmapSetResult>();
 
         const osu_header = this.osu_db_parser.get_header();
         const beatmap_md5s = this.osu_db_parser.get_minimal_list();
-        const parsed_beatmapsets = new Map<number, BeatmapSetResult>();
-
         const collection_data = this.collection_db_parser.get();
-        const collections = new Map<string, ICollectionResult>();
 
         for (let i = 0; i < collection_data.collections.length; i++) {
             const collection = collection_data.collections[i];
@@ -64,6 +56,7 @@ class StableBeatmapClient extends BaseClient {
 
         this.player_name = osu_header.player_name;
         this.collections = collections;
+
         this.beatmaps.clear();
         this.beatmapsets.clear();
         this.beatmap_id_index.clear();
@@ -123,7 +116,8 @@ class StableBeatmapClient extends BaseClient {
 
         this.initialized = true;
         await this.process_beatmaps();
-        return true;
+
+        return { success: true, data: true };
     };
 
     private process_beatmaps = async (): Promise<void> => {

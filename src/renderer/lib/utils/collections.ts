@@ -21,8 +21,9 @@ export const get_osu_data = async (force_load: boolean = false) => {
     const client = config.get("lazer_mode") == true ? "lazer" : "stable";
     const init_result = await window.api.invoke("client:initialize", force_load, client);
 
-    if (!init_result) {
-        show_notification({ type: "error", text: "failed to initialize..." });
+    if (!init_result.success) {
+        // @ts-ignore
+        show_notification({ type: "error", text: `failed to initialize:\n${init_result.reason}` });
         return;
     }
 
@@ -30,13 +31,11 @@ export const get_osu_data = async (force_load: boolean = false) => {
     reset_beatmap_lists();
     reset_audio_manager();
 
-    // update data
+    // update collections data
     const result = await window.api.invoke("client:get_collections", client);
-
-    // add new collections
     collections.set(result);
 
-    // get update state
+    // sync update state
     const update_state = await window.api.invoke("client:should_update", client);
     collections.needs_update.set(update_state);
 };

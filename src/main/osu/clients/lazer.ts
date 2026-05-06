@@ -1,4 +1,13 @@
-import { IBeatmapResult, BeatmapSetResult, GameMode, LAZER_DATABASE_VERSION, BeatmapFile, BeatmapRow, lazer_status_from_code } from "@shared/types";
+import {
+    IBeatmapResult,
+    BeatmapSetResult,
+    GameMode,
+    LAZER_DATABASE_VERSION,
+    BeatmapFile,
+    BeatmapRow,
+    lazer_status_from_code,
+    GenericResult
+} from "@shared/types";
 import {
     BeatmapCollectionSchema,
     BeatmapDifficultySchema,
@@ -88,17 +97,16 @@ class LazerBeatmapClient extends BaseClient {
         super();
     }
 
-    initialize = async (force: boolean = false): Promise<boolean> => {
+    initialize = async (force: boolean = false): Promise<GenericResult<boolean>> => {
         if (this.instance && !force) {
-            return true;
+            return { success: false, reason: "ignored" };
         }
 
         const lazer_path = config.get().lazer_path ?? "";
         const realm_location = path.resolve(lazer_path, "client.realm");
 
         if (!fs.existsSync(realm_location)) {
-            console.warn("failed to find:", realm_location);
-            return false;
+            return { success: false, reason: "invalid realm location" };
         }
 
         if (!this.instance) {
@@ -130,7 +138,7 @@ class LazerBeatmapClient extends BaseClient {
         this.initialized = true;
         await this.process_beatmaps();
 
-        return true;
+        return { success: true, data: true };
     };
 
     private process_beatmaps = async (): Promise<void> => {

@@ -1,5 +1,6 @@
 import { Beatmapset } from "osu-api-extended/dist/types/v2/beatmaps_packs_details";
 import { v2 } from "osu-api-extended";
+import { GenericResult } from "./basic";
 
 /* CORE CONSTANTS */
 
@@ -301,9 +302,8 @@ export interface ISearchSetResponse {
     invalid: number[];
 }
 
-// TODO: get_beatmap_by<T>
 export interface IOsuClient {
-    initialize(force: boolean): Promise<boolean>;
+    initialize(force: boolean): Promise<GenericResult<boolean>>;
     get_player_name(): string;
     add_collection(name: string, beatmaps: string[]): boolean;
     rename_collection(old_name: string, new_name: string): boolean;

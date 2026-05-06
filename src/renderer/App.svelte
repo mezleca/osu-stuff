@@ -48,26 +48,19 @@
     const processing_progress = $derived(processing_state_data.current?.large_text ?? "");
     const processing_small = $derived(processing_state_data.current?.small_text ?? "");
 
-    const toggle_maximized = async () => {
+    const toggle_maximized = debounce(async () => {
         const state = await window.api.invoke("window:state");
         set_window_maximized(state == "maximized");
-    };
+    }, 100);
 
     onMount(() => {
-        const debounced_toggle_maximized = debounce(toggle_maximized, 150);
-
         (async () => {
             try {
-                // update maximzed state
-                await toggle_maximized();
+                toggle_maximized();
 
-                // check if we're on dev mode
                 is_dev_mode.set(await window.api.invoke("env:dev_mode"));
 
-                // initialize downloader events
                 await downloader.initialize();
-
-                // sync processing statet
                 const processing_state = await window.api.invoke("processor:state");
 
                 processing.set(processing_state.processing);
@@ -86,11 +79,11 @@
             }
         })();
 
-        window.addEventListener("resize", debounced_toggle_maximized);
+        window.addEventListener("resize", toggle_maximized);
 
         return () => {
-            window.removeEventListener("resize", debounced_toggle_maximized);
-            debounced_toggle_maximized.cancel();
+            window.removeEventListener("resize", toggle_maximized);
+            toggle_maximized.cancel();
         };
     });
 </script>

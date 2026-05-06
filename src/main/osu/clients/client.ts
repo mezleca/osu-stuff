@@ -13,6 +13,7 @@ import { BaseClient } from "./base";
 import { config } from "../../database/config";
 import { lazer_client } from "./lazer";
 import { stable_client } from "./stable";
+import { GenericResult } from "@shared/types";
 
 export const get_client = (custom_client: string = ""): BaseClient => {
     switch (custom_client) {
@@ -25,7 +26,7 @@ export const get_client = (custom_client: string = ""): BaseClient => {
     }
 };
 
-export const initialize_client = async (force: boolean = false, client: string = ""): Promise<boolean> => {
+export const initialize_client = async (force: boolean = false, client: string = ""): Promise<GenericResult<boolean>> => {
     return get_client(client).initialize(force);
 };
 
