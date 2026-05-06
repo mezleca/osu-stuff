@@ -5,8 +5,10 @@
     import { input } from "../../../lib/store/input";
     import { get_audio_manager } from "../../../lib/store/audio";
 
+    const INPUT_SCOPE = "beatmap-preview-modal";
     const radio_audio_manager = get_audio_manager("radio");
     let was_modal_open = false;
+    let deactivate_input_scope: (() => void) | null = null;
 
     $: active_modals = $modals;
     $: has_modal = active_modals.has(ModalType.beatmap_preview);
@@ -16,6 +18,7 @@
 
     $: if (has_modal && !was_modal_open) {
         was_modal_open = true;
+        deactivate_input_scope = input.activate_scope(INPUT_SCOPE);
 
         if (radio_audio_manager.get_state().playing) {
             radio_audio_manager.pause_until(() => !modals.has(ModalType.beatmap_preview));
@@ -24,6 +27,8 @@
 
     $: if (!has_modal && was_modal_open) {
         was_modal_open = false;
+        deactivate_input_scope?.();
+        deactivate_input_scope = null;
     }
 
     const cleanup = () => {
@@ -47,11 +52,19 @@
     };
 
     onMount(() => {
-        const handle_escape_id = input.on("escape", () => {
-            cleanup();
-        });
+        const handle_escape_id = input.on(
+            "escape",
+            () => {
+                cleanup();
+                return true;
+            },
+            {
+                scope: INPUT_SCOPE
+            }
+        );
 
         return () => {
+            deactivate_input_scope?.();
             input.unregister(handle_escape_id);
         };
     });

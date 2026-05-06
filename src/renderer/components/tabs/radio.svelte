@@ -306,6 +306,7 @@
 
         const handle_random_id = input.on("f2", () => {
             trigger_random();
+            return true;
         });
 
         const handle_previous_id = input.on("shift+f2", async () => {
@@ -313,20 +314,23 @@
             const data = $previous_buffer[index];
 
             if (!data) {
-                return;
+                return false;
             }
 
             list.select(data);
             list.previous_buffer.update((old) => (old.length > 0 ? old.slice(0, -1) : old));
             await focus_selected_in_list();
+            return true;
         });
 
         const handle_seek_backward_id = input.on("shift+arrowleft", () => {
             seek_by_seconds(-SEEK_OFFSET_SECONDS);
+            return true;
         });
 
         const handle_seek_forward_id = input.on("shift+arrowright", () => {
             seek_by_seconds(SEEK_OFFSET_SECONDS);
+            return true;
         });
 
         tick().then(() => {

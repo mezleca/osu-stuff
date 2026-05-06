@@ -21,7 +21,7 @@ class StableBeatmapClient extends BaseClient {
 
     initialize = async (force: boolean = false): Promise<GenericResult<boolean>> => {
         if (this.initialized && !force) {
-            return { success: false, reason: "ignored" };
+            return { success: true, data: true };
         }
 
         const osu_database_file = path.resolve(config.get().stable_path, "osu!.db");

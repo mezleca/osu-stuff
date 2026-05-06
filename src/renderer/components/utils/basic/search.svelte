@@ -1,20 +1,11 @@
 <svelte:options runes={true} />
 
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { input } from "../../../lib/store/input";
+    import { block_global_shortcuts } from "../../../lib/actions/input";
     import { string_is_valid } from "../../../lib/utils/utils";
-    import {
-        blur_search_element,
-        reset_search_state,
-        set_search_element,
-        set_search_focused,
-        set_search_typing
-    } from "../../../lib/store/other.svelte";
 
     // search svg
     import Search from "../../icon/search-icon.svelte";
-    import { debounce } from "@shared/timing";
 
     interface Props {
         value?: string;
@@ -26,7 +17,15 @@
 
     let { value = $bindable(""), placeholder = "", callback = null }: Props = $props();
 
-    const reset_typing = debounce(() => set_search_typing(false), 50);
+    const handle_keydown = (event: KeyboardEvent) => {
+        if (event.key != "Escape") {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        element.blur();
+    };
 
     $effect(() => {
         if (!string_is_valid(value)) {
@@ -36,38 +35,12 @@
         if (callback) {
             callback(value);
         }
-
-        reset_typing();
-    });
-
-    onMount(() => {
-        set_search_element(element);
-
-        const handle_blur_id = input.on("escape", () => {
-            blur_search_element();
-            reset_search_state();
-            return true;
-        });
-
-        return () => {
-            set_search_element(null);
-            input.unregister(handle_blur_id);
-        };
     });
 </script>
 
 <div class="search-container">
     <Search />
-    <input
-        {placeholder}
-        class="search-input"
-        type="text"
-        bind:this={element}
-        bind:value
-        oninput={() => set_search_typing(true)}
-        onfocus={() => set_search_focused(true)}
-        onblur={reset_search_state}
-    />
+    <input {placeholder} class="search-input" type="text" bind:this={element} bind:value use:block_global_shortcuts onkeydown={handle_keydown} />
 </div>
 
 <style>

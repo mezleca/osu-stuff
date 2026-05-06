@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { block_global_shortcuts } from "../../../lib/actions/input";
+
     export let id: string = crypto.randomUUID();
     export let onchange: (id: string, value: boolean) => void = null;
     export let value: boolean = false;
@@ -14,6 +16,7 @@
                 {id}
                 type="checkbox"
                 bind:checked={value}
+                use:block_global_shortcuts
                 onchange={() => {
                     if (onchange) onchange(id, value);
                 }}

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
     import { debounce } from "@shared/timing";
+    import { block_global_shortcuts } from "../../../lib/actions/input";
     import { clamp } from "../../../lib/utils/utils";
 
     const THUMB_SIZE = 32;
@@ -102,6 +103,7 @@
             max={max_bound}
             {step}
             bind:value={min}
+            use:block_global_shortcuts
             oninput={(event) => handle_input("min", event)}
             class="range-input"
         />
@@ -111,6 +113,7 @@
             max={max_bound}
             {step}
             bind:value={max}
+            use:block_global_shortcuts
             oninput={(event) => handle_input("max", event)}
             class="range-input"
         />

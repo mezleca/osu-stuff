@@ -1,6 +1,4 @@
-import type { WebInputHandler } from "@shared/types";
-
-const BUTTON_TO_STRING: Record<number, string> = {
+const BUTTON_KEYS: Record<number, string> = {
     [0]: "mouse1",
     [1]: "mouse3",
     [2]: "mouse2",
@@ -8,123 +6,189 @@ const BUTTON_TO_STRING: Record<number, string> = {
     [4]: "mouse5"
 };
 
-const rename_key = (key: string) => {
-    if (key == " ") return "space";
-    return key;
+export const INPUT_BLOCK_GLOBAL_SHORTCUTS = "data-input-block-global-shortcuts";
+
+const GLOBAL_SCOPE = "global";
+
+type InputEvent = KeyboardEvent | MouseEvent;
+type InputCallback = (event: InputEvent) => boolean | void;
+
+interface InputHandler {
+    id: number;
+    scope: string;
+    callback: InputCallback;
+}
+
+interface InputHandlerOptions {
+    scope?: string;
+}
+
+const normalize_key = (key: string): string => {
+    if (key == " ") {
+        return "space";
+    }
+
+    return key.toLowerCase().trim();
 };
 
-type HandlerCallback = () => boolean | void;
+const normalize_keys = (keys: string[]): string => {
+    const normalized: string[] = [];
+
+    for (const key of keys) {
+        normalized.push(normalize_key(key));
+    }
+
+    return normalized.sort().join("+");
+};
+
+const get_event_key = (event: InputEvent, mouse: boolean): string => {
+    if (mouse) {
+        return BUTTON_KEYS[(event as MouseEvent).button] ?? "";
+    }
+
+    return normalize_key((event as KeyboardEvent).key);
+};
+
+const is_blocked_by_dom = (event: Event): boolean => {
+    for (const target of event.composedPath()) {
+        if (!(target instanceof Element)) {
+            continue;
+        }
+
+        return target.closest(`[${INPUT_BLOCK_GLOBAL_SHORTCUTS}]`) != null;
+    }
+
+    return false;
+};
 
 class InputManager {
-    keys: Set<string>;
-    handlers: Map<string, WebInputHandler[]>;
-    last_clicked_element: EventTarget | null;
-    next_id: number;
+    private keys = new Set<string>();
+    private handlers = new Map<string, InputHandler[]>();
+    private active_scopes = new Set<string>();
+    private next_id = 0;
 
-    constructor() {
-        this.keys = new Set();
-        this.handlers = new Map();
-        this.last_clicked_element = null;
-        this.next_id = 0;
-    }
+    add(event: InputEvent, mouse: boolean = false): void {
+        const key = get_event_key(event, mouse);
 
-    add(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
-        const pressed_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : rename_key((event as KeyboardEvent).key.toLowerCase());
-
-        if (!pressed_key) {
+        if (key == "") {
+            console.warn("[input] unknown button", event);
             return;
         }
 
-        // if the key is already pressed, ignore
-        if (this.keys.has(pressed_key)) {
+        if (this.keys.has(key)) {
             return;
         }
 
-        this.keys.add(pressed_key);
+        this.keys.add(key);
 
-        if (mouse) {
-            this.last_clicked_element = event.target;
+        if (event.defaultPrevented || is_blocked_by_dom(event)) {
+            return;
         }
 
-        // sort so we dont have order issues
-        const current_comb = this._normalize_keys(Array.from(this.keys));
-        const handlers = this.handlers.get(current_comb);
+        const handlers = this.handlers.get(normalize_keys(Array.from(this.keys)));
 
-        if (handlers) {
-            for (const handler of handlers) {
-                const consumed = handler.callback();
+        if (!handlers) {
+            return;
+        }
 
-                if (consumed) {
-                    return;
-                }
+        for (let index = handlers.length - 1; index >= 0; index--) {
+            const handler = handlers[index];
+
+            if (!this.is_scope_active(handler.scope)) {
+                continue;
             }
+
+            if (!handler.callback(event)) {
+                continue;
+            }
+
+            event.preventDefault();
+            return;
         }
     }
 
-    remove(event: KeyboardEvent | MouseEvent, mouse?: boolean): void {
-        const released_key = mouse ? BUTTON_TO_STRING[(event as MouseEvent).button] : rename_key((event as KeyboardEvent).key.toLowerCase());
-
-        if (this.keys.has(released_key)) {
-            this.keys.delete(released_key);
-        }
+    remove(event: InputEvent, mouse: boolean = false): void {
+        this.keys.delete(get_event_key(event, mouse));
     }
 
-    is_pressed(keys: string): boolean {
-        const normalized = this._normalize_keys(keys.split("+"));
-        const current = this._normalize_keys(Array.from(this.keys));
-        return normalized == current;
-    }
-
-    on(keys: string, callback: HandlerCallback): number {
-        if (typeof keys != "string") {
-            console.log("[input] expected string on keys paramater");
+    on(keys: string, callback: InputCallback, options: InputHandlerOptions = {}): number {
+        if (keys.trim() == "") {
+            console.error("[input] expected non-empty keys");
             return -1;
         }
 
-        // sort so we dont have order issues
-        const normalized_keys = this._normalize_keys(keys.split("+"));
-        const handler_id = this.next_id++;
-        const existing = this.handlers.get(normalized_keys);
+        const normalized_keys = normalize_keys(keys.split("+"));
+        const id = this.next_id++;
+        const handler = {
+            id,
+            scope: options.scope ?? GLOBAL_SCOPE,
+            callback
+        };
+        const handlers = this.handlers.get(normalized_keys);
 
-        if (existing) {
-            existing.push({ id: handler_id, callback });
+        if (handlers) {
+            handlers.push(handler);
         } else {
-            this.handlers.set(normalized_keys, [{ id: handler_id, callback }]);
+            this.handlers.set(normalized_keys, [handler]);
         }
 
-        return handler_id;
+        return id;
     }
 
-    unregister(handler_id: number): void {
+    unregister(id: number): void {
         for (const [keys, handlers] of this.handlers.entries()) {
-            const index = handlers.findIndex((h) => h.id == handler_id);
-            if (index != -1) {
-                handlers.splice(index, 1);
-                if (handlers.length == 0) {
-                    this.handlers.delete(keys);
-                }
+            const index = handlers.findIndex((handler) => handler.id == id);
+
+            if (index == -1) {
+                continue;
+            }
+
+            handlers.splice(index, 1);
+
+            if (handlers.length == 0) {
+                this.handlers.delete(keys);
+            }
+
+            return;
+        }
+    }
+
+    activate_scope(scope: string): () => void {
+        if (scope.trim() == "") {
+            console.error("[input] expected non-empty scope");
+            return () => {};
+        }
+
+        if (scope == GLOBAL_SCOPE) {
+            return () => {};
+        }
+
+        this.active_scopes.add(scope);
+        let active = true;
+
+        return () => {
+            if (!active) {
                 return;
             }
-        }
+
+            active = false;
+            this.active_scopes.delete(scope);
+        };
     }
 
     reset(): void {
         this.keys.clear();
-        this.last_clicked_element = null;
     }
 
-    _normalize_keys(keys: string[]): string {
-        return keys
-            .map((k) => k.toLowerCase().trim())
-            .sort()
-            .join("+");
+    private is_scope_active(scope: string): boolean {
+        return scope == GLOBAL_SCOPE || this.active_scopes.has(scope);
     }
 }
 
 export const input = new InputManager();
 
-window.addEventListener("keydown", (e) => input.add(e));
-window.addEventListener("mousedown", (e) => input.add(e, true));
-window.addEventListener("keyup", (e) => input.remove(e));
-window.addEventListener("mouseup", (e) => input.remove(e, true));
+window.addEventListener("keydown", (event) => input.add(event));
+window.addEventListener("mousedown", (event) => input.add(event, true));
+window.addEventListener("keyup", (event) => input.remove(event));
+window.addEventListener("mouseup", (event) => input.remove(event, true));
 window.addEventListener("blur", () => input.reset());

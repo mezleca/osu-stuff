@@ -99,7 +99,7 @@ class LazerBeatmapClient extends BaseClient {
 
     initialize = async (force: boolean = false): Promise<GenericResult<boolean>> => {
         if (this.instance && !force) {
-            return { success: false, reason: "ignored" };
+            return { success: true, data: true };
         }
 
         const lazer_path = config.get().lazer_path ?? "";

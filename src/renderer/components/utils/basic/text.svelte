@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { input } from "../../../lib/store/input";
+    import { tick } from "svelte";
+    import { block_global_shortcuts } from "../../../lib/actions/input";
 
     // props
     export let value = "";
@@ -8,19 +8,17 @@
     export let edit = false;
 
     let id = crypto.randomUUID();
+    let edit_value = "";
+    let element: HTMLTextAreaElement = null;
+    let was_editing = false;
 
-    $: edit_value = "";
-    $: element = null;
+    const finish_edit = (next_value: string) => {
+        if (!update_callback) {
+            return;
+        }
 
-    // update via callback
-    const update_value = () => {
-        if (update_callback) update_callback(value, edit_value);
+        update_callback(value, next_value);
     };
-
-    // automatically focus on edit
-    $: if (element && edit) {
-        element.focus();
-    }
 
     const update_text_area_height = (event) => {
         const target = event.target;
@@ -28,26 +26,49 @@
         target.style.height = target.scrollHeight + "px";
     };
 
-    const release = () => {
-        if (!edit) return;
-        update_value();
+    const handle_keydown = (event: KeyboardEvent) => {
+        if (!edit) {
+            return;
+        }
+
+        const next_value = event.key == "Escape" ? value : edit_value;
+
+        if (event.key != "Escape" && event.key != "Enter") {
+            return;
+        }
+
+        edit_value = next_value;
+        finish_edit(next_value);
+
+        event.preventDefault();
+        event.stopPropagation();
     };
 
-    onMount(() => {
+    $: if (edit && !was_editing) {
+        was_editing = true;
         edit_value = value;
 
-        const handle_escape_id = input.on("escape", () => release());
-        const handle_enter_id = input.on("enter", () => release());
+        tick().then(() => {
+            element?.focus();
+        });
+    }
 
-        return () => {
-            input.unregister(handle_enter_id);
-            input.unregister(handle_escape_id);
-        };
-    });
+    $: if (!edit && was_editing) {
+        was_editing = false;
+    }
 </script>
 
 {#if edit}
-    <textarea bind:this={element} {id} class="text-edit" bind:value={edit_value} oninput={update_text_area_height} rows={1}></textarea>
+    <textarea
+        bind:this={element}
+        {id}
+        class="text-edit"
+        bind:value={edit_value}
+        use:block_global_shortcuts
+        onkeydown={handle_keydown}
+        oninput={update_text_area_height}
+        rows={1}
+    ></textarea>
 {:else}
     <span>{value}</span>
 {/if}

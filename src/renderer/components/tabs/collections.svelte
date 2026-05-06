@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
     import { BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
-    import { collections } from "../../lib/store/collections";
+    import { collections, type ICollectionWithEdit } from "../../lib/store/collections";
     import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
     import { get_beatmap_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
@@ -47,7 +47,7 @@
     $: collection_search = collections.query;
     $: collection_should_update = collections.needs_update;
 
-    const debounced_filter = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
+    const update_beatmaps = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         // only filter if we selected something
         if (!string_is_valid($selected_collection.name)) {
             return;
@@ -197,7 +197,21 @@
         }
     };
 
-    // update collection object on query updates
+    const handle_select = (collection: ICollectionWithEdit) => {
+        if (collection.edit) {
+            return;
+        }
+
+        const name = collection.name;
+
+        if ($selected_collection.name == name) {
+            enable_edit_mode(name);
+            return;
+        }
+
+        collections.select(name, "collections");
+    };
+
     $: if ($collection_search != undefined) {
         collections.filter();
     }
@@ -207,14 +221,14 @@
     }
 
     $: if ($selected_collection.name != undefined && $should_update) {
-        debounced_filter($should_update, $update_reason);
+        update_beatmaps($should_update, $update_reason);
     }
 
     onMount(() => {
         if (!$sort) $sort = "artist";
 
         if ($selected_collection.name && list.get_items().length == 0) {
-            debounced_filter();
+            update_beatmaps();
         }
 
         // focus beatmap when list is ready
@@ -225,7 +239,7 @@
         list.check_missing();
 
         return () => {
-            debounced_filter.cancel();
+            update_beatmaps.cancel();
         };
     });
 </script>
@@ -269,7 +283,7 @@
                             count={collection.beatmaps.length ?? 0}
                             edit={collection.edit}
                             selected={$selected_collection?.name == collection.name}
-                            on_select={() => collections.select(collection.name, "collections")}
+                            on_select={() => handle_select(collection)}
                             on_rename={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
                         />
                     </div>

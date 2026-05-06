@@ -4,6 +4,7 @@
     import { quick_confirm, modals, ModalType } from "../../lib/utils/modal";
     import { get_osu_data } from "../../lib/utils/collections";
     import { check_for_updates, start_update, update_progress } from "../../lib/store/update";
+    import { block_global_shortcuts } from "../../lib/actions/input";
     import type { ManagerConfig } from "@shared/types";
 
     // components
@@ -125,6 +126,7 @@
                         class="text-input"
                         placeholder="ex: 123"
                         value={$config.osu_id}
+                        use:block_global_shortcuts
                         onchange={(e) => handle_text_change("osu_id", e.target.value)}
                     />
                 </div>
@@ -144,6 +146,7 @@
                         class="text-input"
                         placeholder="ex: 123"
                         value={$config.osu_secret}
+                        use:block_global_shortcuts
                         onchange={(e) => handle_text_change("osu_secret", e.target.value)}
                     />
                 </div>

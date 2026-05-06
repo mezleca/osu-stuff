@@ -12,7 +12,6 @@
     } from "@shared/types";
     import { modals, ModalType } from "../lib/utils/modal";
     import { input } from "../lib/store/input";
-    import { should_ignore_search_shortcuts } from "../lib/store/other.svelte";
 
     import VirtualList from "./utils/virtual-list.svelte";
     import BeatmapCard from "./cards/beatmap-card.svelte";
@@ -81,79 +80,75 @@
 
     onMount(() => {
         const handle_unselected_id = input.on("escape", () => {
-            if (should_ignore_search_shortcuts()) {
-                return;
-            }
-
             list_manager.selected_buffer.update((current) => (current.length > 1 ? [current[0]] : []));
+            return true;
         });
 
         const handle_arrow_left_id = input.on("arrowleft", () => {
-            if (should_ignore_search_shortcuts() || !selected) {
-                return;
+            if (!selected) {
+                return false;
             }
 
             const items = list_manager.get_items();
             const current_idx = selected.index;
 
             if (current_idx == 0) {
-                return;
+                return false;
             }
 
             const next_idx = current_idx - 1;
             const id = items[next_idx];
 
             if (!id) {
-                return;
+                return false;
             }
 
             list_manager.select({ id, index: next_idx });
+            return true;
         });
 
         const handle_arrow_right_id = input.on("arrowright", () => {
-            if (should_ignore_search_shortcuts() || !selected) {
-                return;
+            if (!selected) {
+                return false;
             }
 
             const items = list_manager.get_items();
             const current_idx = selected.index;
 
             if (current_idx >= items.length - 1) {
-                return;
+                return false;
             }
 
             const next_idx = current_idx + 1;
             const id = items[next_idx];
 
             if (!id) {
-                return;
+                return false;
             }
 
             list_manager.select({ id, index: next_idx });
+            return true;
         });
 
         const handle_select_all_id = input.on("control+a", () => {
-            if (should_ignore_search_shortcuts()) {
-                return;
-            }
-
             const items = list_manager.get_items();
             const items_size = items.length;
             const selected_len = $selected_buffer.length;
 
             if (selected_len >= items_size) {
-                return;
+                return false;
             }
 
             const next_selected = items.map((id, index) => ({ id, index }));
 
             if (!selected) {
                 list_manager.selected_buffer.set(next_selected);
-                return;
+                return true;
             }
 
             const remaining = next_selected.filter((beatmap) => beatmap.id != selected.id);
             list_manager.selected_buffer.set([selected, ...remaining]);
+            return true;
         });
 
         return () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { block_global_shortcuts } from "../../../lib/actions/input";
     import { string_is_valid } from "../../../lib/utils/utils";
 
     export let location = "";
@@ -19,7 +20,7 @@
 </script>
 
 <div class="file-input-wrapper">
-    <input type="custom-file" class="file-input" onclick={show_dialog} />
+    <input type="custom-file" class="file-input" use:block_global_shortcuts onclick={show_dialog} />
     <div class="file-input-display">
         <div class="text">{!string_is_valid(location) ? "click to select" : location}</div>
     </div>

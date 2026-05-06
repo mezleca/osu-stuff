@@ -1,9 +1,7 @@
 import { ALL_BEATMAPS_KEY, ALL_MODES_KEY, ALL_STATUS_KEY, GameMode, IBeatmapResult } from "@shared/types";
-import { toStore } from "svelte/store";
 
 interface ICoreState {
     window: { active_tab: string; maximized: boolean; reset(): void };
-    search: { focused: boolean; typing: boolean; element: HTMLInputElement | null; reset(): void };
 }
 
 export const core_state: ICoreState = $state({
@@ -13,15 +11,6 @@ export const core_state: ICoreState = $state({
         reset() {
             core_state.window.active_tab = "index";
             core_state.window.maximized = false;
-        }
-    },
-    search: {
-        focused: false,
-        typing: false,
-        element: null,
-        reset() {
-            core_state.search.focused = false;
-            core_state.search.typing = false;
         }
     }
 });
@@ -37,44 +26,6 @@ export const set_window_maximized = (maximized: boolean) => {
 export const reset_window_state = () => {
     core_state.window.reset();
 };
-
-export const set_search_focused = (focused: boolean) => {
-    core_state.search.focused = focused;
-};
-
-export const set_search_typing = (typing: boolean) => {
-    core_state.search.typing = typing;
-};
-
-export const set_search_element = (element: HTMLInputElement | null) => {
-    core_state.search.element = element;
-};
-
-export const reset_search_state = () => {
-    core_state.search.reset();
-};
-
-export const blur_search_element = () => {
-    core_state.search.element?.blur();
-};
-
-export const search_has_dom_focus = () => {
-    if (!core_state.search.element) {
-        return false;
-    }
-
-    return document.activeElement == core_state.search.element;
-};
-
-export const should_ignore_search_shortcuts = () => {
-    if (search_has_dom_focus()) {
-        return true;
-    }
-
-    return core_state.search.focused || core_state.search.typing;
-};
-
-export const search_state = toStore(() => core_state.search);
 
 const DEFAULT_SORT_VALUES: (keyof IBeatmapResult)[] = ["artist", "title", "duration"];
 const DEFAULT_STATUS_VALUES = ["graveyard", "pending", "wip", "ranked", "qualified", "loved"];
