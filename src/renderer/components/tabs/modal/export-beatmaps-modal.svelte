@@ -10,11 +10,10 @@
     import CollectionCard from "../../cards/collection-card.svelte";
 
     let { is_exporting } = config;
-    let selected_collections: string[] = [];
+    let selected_collections = $state<string[]>([]);
 
-    $: all_collections = collections.all_collections;
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.export_beatmaps);
+    const all_collections = $derived(collections.all_collections);
+    const has_modal = $derived($modals.has(ModalType.export_beatmaps));
 
     const on_submit = async () => {
         if (selected_collections.length == 0) {

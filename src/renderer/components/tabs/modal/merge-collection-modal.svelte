@@ -5,12 +5,11 @@
     import Input from "../../utils/basic/input.svelte";
     import Buttons from "../../utils/basic/buttons.svelte";
 
-    let name = "";
-    let selected_collections: string[] = [];
+    let name = $state("");
+    let selected_collections = $state<string[]>([]);
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.merge_collection);
-    $: all_collections = collections.all_collections;
+    const all_collections = $derived(collections.all_collections);
+    const has_modal = $derived($modals.has(ModalType.merge_collection));
 
     const on_submit = async () => {
         if (selected_collections.length < 2) {

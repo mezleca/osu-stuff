@@ -4,13 +4,12 @@
     import { show_notification } from "../../../lib/store/notifications";
     import Input from "../../utils/basic/input.svelte";
 
-    let name = "";
-    let url = "";
-
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.new_mirror);
-
     const { mirrors } = config;
+
+    let name = $state("");
+    let url = $state("");
+
+    const has_modal = $derived($modals.has(ModalType.new_mirror));
 
     const on_submit = async () => {
         if (name == "" || url == "") {
@@ -20,6 +19,7 @@
 
         // check for duplicates
         const existing_mirror = $mirrors.find((m) => m.name == name);
+
         if (existing_mirror) {
             show_notification({ text: "mirror with this name already exists", type: "error" });
             return;

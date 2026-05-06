@@ -5,42 +5,29 @@
     import { input } from "../../../lib/store/input";
     import { get_audio_manager } from "../../../lib/store/audio";
 
-    const INPUT_SCOPE = "beatmap-preview-modal";
     const radio_audio_manager = get_audio_manager("radio");
-    let was_modal_open = false;
-    let deactivate_input_scope: (() => void) | null = null;
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.beatmap_preview);
-    $: beatmap_data = $beatmap_preview;
-    $: difficulty_id = beatmap_data?.online_id ?? 0;
-    $: preview_url = difficulty_id > 0 ? `https://preview.tryz.id.vn/?b=${difficulty_id}` : "";
+    const has_modal = $derived($modals.has(ModalType.beatmap_preview));
+    const difficulty_id = $derived($beatmap_preview?.online_id ?? 0);
+    const preview_url = $derived(difficulty_id > 0 ? `https://preview.tryz.id.vn/?b=${difficulty_id}` : "");
 
-    $: if (has_modal && !was_modal_open) {
-        was_modal_open = true;
-        deactivate_input_scope = input.activate_scope(INPUT_SCOPE);
-
-        if (radio_audio_manager.get_state().playing) {
+    // auto pause raudio if the modal is active
+    $effect(() => {
+        if (has_modal && radio_audio_manager.get_state().playing) {
             radio_audio_manager.pause_until(() => !modals.has(ModalType.beatmap_preview));
         }
-    }
-
-    $: if (!has_modal && was_modal_open) {
-        was_modal_open = false;
-        deactivate_input_scope?.();
-        deactivate_input_scope = null;
-    }
+    });
 
     const cleanup = () => {
         modals.hide(ModalType.beatmap_preview);
     };
 
     const open_on_browser = () => {
-        if (!beatmap_data?.beatmapset_id) {
+        if (!$beatmap_preview?.beatmapset_id) {
             return;
         }
 
-        window.api.invoke("shell:open", `https://osu.ppy.sh/beatmapsets/${beatmap_data.beatmapset_id}`);
+        window.api.invoke("shell:open", `https://osu.ppy.sh/beatmapsets/${$beatmap_preview.beatmapset_id}`);
     };
 
     const open_preview_on_browser = () => {
@@ -52,19 +39,12 @@
     };
 
     onMount(() => {
-        const handle_escape_id = input.on(
-            "escape",
-            () => {
-                cleanup();
-                return true;
-            },
-            {
-                scope: INPUT_SCOPE
-            }
-        );
+        const handle_escape_id = input.on("escape", () => {
+            cleanup();
+            return true;
+        });
 
         return () => {
-            deactivate_input_scope?.();
             input.unregister(handle_escape_id);
         };
     });
@@ -86,7 +66,7 @@
                 <div class="controls-container">
                     <div class="beatmap-info">
                         <span class="beatmap-title">
-                            {beatmap_data?.artist} - {beatmap_data?.title} [{beatmap_data?.difficulty}]
+                            {$beatmap_preview?.artist} - {$beatmap_preview?.title} [{$beatmap_preview?.difficulty}]
                         </span>
                         <div class="actions">
                             <button class="icon-button" onclick={open_preview_on_browser}>open preview</button>

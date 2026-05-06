@@ -5,30 +5,30 @@
     import { modals, ModalType } from "../../../lib/utils/modal";
     import { show_notification } from "../../../lib/store/notifications";
 
+    const { mirrors } = config;
+
     import CollectionCard from "../../cards/collection-card.svelte";
     import Spinner from "../../icon/spinner.svelte";
 
-    const mirrors = config.mirrors;
+    let missing_collections = $state<{ name: string; count: number }[]>([]);
+    let selected_collections = $state<string[]>([]);
+    let loading = $state(true);
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.missing_beatmaps);
-    $: has_mirrors = $mirrors.length > 0;
+    const has_modal = $derived($modals.has(ModalType.missing_beatmaps));
+    const has_mirrors = $derived($mirrors.length > 0);
 
-    let missing_collections: { name: string; count: number }[] = [];
-    let selected_collections: string[] = [];
-    let loading = true;
+    // fetch missing beatmaps if modal is selected
+    $effect(() => {
+        if (has_modal) {
+            loading = true;
 
-    const fetch_missing = async () => {
-        loading = true;
-        try {
-            missing_collections = await collections.get_missing();
-        } catch (error) {
-            console.error("[missing_beatmaps_modal] fetch error:", error);
-            show_notification({ type: "error", text: "failed to fetch missing beatmaps" });
-        } finally {
-            loading = false;
+            collections
+                .get_missing()
+                .then((result) => (missing_collections = result))
+                .catch(() => show_notification({ type: "error", text: "failed to fetch missing beatmaps" }))
+                .finally(() => (loading = false));
         }
-    };
+    });
 
     const toggle_selection = (name: string) => {
         if (selected_collections.includes(name)) {
@@ -86,10 +86,6 @@
         missing_collections = [];
         modals.hide(ModalType.missing_beatmaps);
     };
-
-    $: if (has_modal) {
-        fetch_missing();
-    }
 </script>
 
 {#if has_modal}

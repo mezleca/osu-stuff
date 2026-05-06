@@ -8,19 +8,12 @@ const BUTTON_KEYS: Record<number, string> = {
 
 export const INPUT_BLOCK_GLOBAL_SHORTCUTS = "data-input-block-global-shortcuts";
 
-const GLOBAL_SCOPE = "global";
-
 type InputEvent = KeyboardEvent | MouseEvent;
 type InputCallback = (event: InputEvent) => boolean | void;
 
 interface InputHandler {
     id: number;
-    scope: string;
     callback: InputCallback;
-}
-
-interface InputHandlerOptions {
-    scope?: string;
 }
 
 const normalize_key = (key: string): string => {
@@ -64,7 +57,6 @@ const is_blocked_by_dom = (event: Event): boolean => {
 class InputManager {
     private keys = new Set<string>();
     private handlers = new Map<string, InputHandler[]>();
-    private active_scopes = new Set<string>();
     private next_id = 0;
 
     add(event: InputEvent, mouse: boolean = false): void {
@@ -94,10 +86,6 @@ class InputManager {
         for (let index = handlers.length - 1; index >= 0; index--) {
             const handler = handlers[index];
 
-            if (!this.is_scope_active(handler.scope)) {
-                continue;
-            }
-
             if (!handler.callback(event)) {
                 continue;
             }
@@ -111,7 +99,7 @@ class InputManager {
         this.keys.delete(get_event_key(event, mouse));
     }
 
-    on(keys: string, callback: InputCallback, options: InputHandlerOptions = {}): number {
+    on(keys: string, callback: InputCallback): number {
         if (keys.trim() == "") {
             console.error("[input] expected non-empty keys");
             return -1;
@@ -119,11 +107,7 @@ class InputManager {
 
         const normalized_keys = normalize_keys(keys.split("+"));
         const id = this.next_id++;
-        const handler = {
-            id,
-            scope: options.scope ?? GLOBAL_SCOPE,
-            callback
-        };
+        const handler = { id, callback };
         const handlers = this.handlers.get(normalized_keys);
 
         if (handlers) {
@@ -153,35 +137,8 @@ class InputManager {
         }
     }
 
-    activate_scope(scope: string): () => void {
-        if (scope.trim() == "") {
-            console.error("[input] expected non-empty scope");
-            return () => {};
-        }
-
-        if (scope == GLOBAL_SCOPE) {
-            return () => {};
-        }
-
-        this.active_scopes.add(scope);
-        let active = true;
-
-        return () => {
-            if (!active) {
-                return;
-            }
-
-            active = false;
-            this.active_scopes.delete(scope);
-        };
-    }
-
     reset(): void {
         this.keys.clear();
-    }
-
-    private is_scope_active(scope: string): boolean {
-        return scope == GLOBAL_SCOPE || this.active_scopes.has(scope);
     }
 }
 

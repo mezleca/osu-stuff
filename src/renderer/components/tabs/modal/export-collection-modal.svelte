@@ -10,12 +10,11 @@
     import Dropdown from "../../utils/basic/dropdown.svelte";
     import CollectionCard from "../../cards/collection-card.svelte";
 
-    let selected_collections: string[] = [];
-    let type = "db";
+    let selected_collections = $state<string[]>([]);
+    let type = $state("db");
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.export_collection);
-    $: all_collections = collections.all_collections;
+    const all_collections = $derived(collections.all_collections);
+    const has_modal = $derived($modals.has(ModalType.export_collection));
 
     const on_submit = async () => {
         const to_export: ICollectionResult[] = [];

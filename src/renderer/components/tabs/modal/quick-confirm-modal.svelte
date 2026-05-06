@@ -1,8 +1,7 @@
 <script lang="ts">
     import { modals, ModalType, quick_confirm_options } from "../../../lib/utils/modal";
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.quick_confirm);
+    const has_modal = $derived($modals.has(ModalType.quick_confirm));
 
     const on_confirm = () => {
         if ($quick_confirm_options?.on_confirm) {

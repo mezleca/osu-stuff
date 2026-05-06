@@ -143,10 +143,6 @@
 
     const process_results = (results: ICollectionResult[]) => {
         pending_collections = results.filter((c) => !collections.has(c.name));
-        console.log(
-            "pending result:",
-            results.filter((c) => !collections.has(c.name))
-        );
         fetching_status = "";
     };
 
@@ -405,10 +401,6 @@
         }
     };
 
-    const on_cancel = () => {
-        cleanup();
-    };
-
     const cleanup = () => {
         collection_type = "osu!collector";
         collection_input = "";
@@ -426,18 +418,11 @@
     };
 
     onMount(() => {
-        const load_client_state = async () => {
-            try {
-                const value = await window.api.invoke("client:is_initialized", target_client);
-                is_target_initialized = value;
-            } catch (err) {
-                show_notification({ type: "error", text: err as string });
-            } finally {
-                is_client_loading = false;
-            }
-        };
-
-        load_client_state();
+        window.api
+            .invoke("client:is_initialized", target_client)
+            .then((value) => (is_target_initialized = value))
+            .catch((err: string) => show_notification({ type: "error", text: err }))
+            .finally(() => (is_client_loading = false));
     });
 </script>
 
@@ -569,7 +554,7 @@
 
                     <div class="actions actions-separator">
                         <button class="primary-btn" onclick={on_submit}>submit</button>
-                        <button onclick={on_cancel}>cancel</button>
+                        <button onclick={cleanup}>cancel</button>
                     </div>
                 </div>
             {/if}
