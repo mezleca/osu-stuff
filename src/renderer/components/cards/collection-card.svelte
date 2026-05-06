@@ -4,8 +4,11 @@
         count = 0,
         selected = false,
         edit = false,
+        special = false,
         on_select: () => void = null,
         on_rename: (old_name: string, new_name: string) => void = null;
+
+    $: has_count = count > 0;
 
     // components
     import Text from "../utils/basic/text.svelte";
@@ -14,12 +17,14 @@
     import Music from "../icon/music.svelte";
 </script>
 
-<button class="collection-item" onclick={on_select} class:active={selected} class:editing={edit}>
+<button class="collection-item" onclick={on_select} class:active={selected} class:editing={edit} class:special>
     <div class="collection-info">
         <Music />
         <Text value={name} {edit} update_callback={on_rename} />
     </div>
-    <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
+    {#if has_count}
+        <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
+    {/if}
 </button>
 
 <style>

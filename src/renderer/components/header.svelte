@@ -26,7 +26,7 @@
         set_active_tab(tab);
     };
 
-    const tabs = ["collections", "browse", "discover", "radio", "config", "status"];
+    const tabs = ["collections", "discover", "radio", "config", "status"];
 </script>
 
 <div class="header">

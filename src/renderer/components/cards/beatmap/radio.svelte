@@ -1,22 +1,24 @@
 <script lang="ts">
+    import { get_placeholder_image } from "../../../lib/utils/card-utils";
     import { format_time } from "../../../lib/utils/utils";
     import type { BeatmapCardFlags } from "../../../lib/utils/beatmap-card";
     import type { IBeatmapResult } from "@shared/types";
 
     import BeatmapControls from "../beatmap-controls.svelte";
+    import FadingImage from "../../utils/fading-image.svelte";
 
     export let beatmap: IBeatmapResult | null = null;
     export let flags: BeatmapCardFlags;
     export let selected = false;
     export let highlighted = false;
-    export let image_loaded = false;
     export let background = "";
     export let hash = "";
     export let has_map = false;
-    export let image_element: HTMLImageElement | null = null;
     export let on_click: (event: MouseEvent) => void = null;
     export let on_contextmenu: (event: MouseEvent) => void = null;
     export let on_remove: (checksum: string) => void = null;
+
+    const placeholder_image = get_placeholder_image();
 
     const format_bpm = (value: number): number => Math.floor(value) ?? 0;
 </script>
@@ -31,8 +33,8 @@
             </div>
         {/if}
 
-        <div class="cover-frame">
-            <img class="cover-image" class:loaded={image_loaded} src={background} alt="" loading="lazy" decoding="async" bind:this={image_element} />
+        <div class="cover-frame" style="background-image: url({placeholder_image});">
+            <FadingImage class_name="cover-image" src={background} fallback={placeholder_image} />
         </div>
 
         <div class="metadata">
@@ -94,10 +96,11 @@
         overflow: hidden;
         flex-shrink: 0;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.06);
+        background-position: center;
+        background-size: cover;
     }
 
-    .cover-image {
+    .cover-frame :global(.cover-image) {
         width: 100%;
         height: 100%;
         object-fit: cover;

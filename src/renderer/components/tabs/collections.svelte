@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
+    import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
     import { collections, type ICollectionWithEdit } from "../../lib/store/collections";
     import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
-    import { get_beatmap_list } from "../../lib/store/beatmaps";
+    import { get_beatmap_list, get_beatmapset_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
     import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
     import { context_separator, string_is_valid } from "../../lib/utils/utils";
@@ -21,6 +21,7 @@
     import Checkbox from "../utils/basic/checkbox.svelte";
 
     import BeatmapList from "../beatmap-list.svelte";
+    import BeatmapsetList from "../beatmapset-list.svelte";
 
     // modals
     import GetCollectionModal from "./modal/get-collection-modal.svelte";
@@ -40,16 +41,28 @@
         BEATMAP_CARD_ELEMENT.BPM_TEXT;
 
     const list = get_beatmap_list("collections");
+    const all_beatmapsets = get_beatmapset_list("collections-all");
+
     const { sort, query, status, mode, show_invalid, difficulty_range, should_update, selected_buffer, update_reason } = list;
+
+    // TOFIX:
+    const {
+        query: all_query,
+        status: all_status,
+        mode: all_mode,
+        sort: all_sort,
+        difficulty_range: all_difficulty_range,
+        should_update: all_should_update
+    } = all_beatmapsets;
 
     $: filtered_collections = collections.collections;
     $: selected_collection = collections.get_selected_store("collections");
     $: collection_search = collections.query;
     $: collection_should_update = collections.needs_update;
+    $: browsing_all_beatmaps = $selected_collection.name == ALL_BEATMAPS_KEY;
 
     const update_beatmaps = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
-        // only filter if we selected something
-        if (!string_is_valid($selected_collection.name)) {
+        if (!string_is_valid($selected_collection.name) || browsing_all_beatmaps) {
             return;
         }
 
@@ -89,6 +102,22 @@
                 beatmap_list_ref?.focus_selected(true);
             }
         }
+    }, SEARCH_DEBOUNCE_INTERVAL);
+
+    const update_all_beatmapsets = debounce(async (force: boolean = true) => {
+        const result = await all_beatmapsets.search(force);
+
+        if (!result) {
+            return;
+        }
+
+        const ids: number[] = [];
+
+        for (const beatmapset of result.beatmapsets) {
+            ids.push(beatmapset.online_id);
+        }
+
+        all_beatmapsets.set_items(ids);
     }, SEARCH_DEBOUNCE_INTERVAL);
 
     const remove_callback = async (hash: string) => {
@@ -212,16 +241,27 @@
         collections.select(name, "collections");
     };
 
+    const handle_select_all_beatmaps = () => {
+        collections.select(ALL_BEATMAPS_KEY, "collections");
+    };
+
     $: if ($collection_search != undefined) {
         collections.filter();
     }
 
-    $: if ($selected_collection.name) {
+    $: if ($selected_collection.name && !browsing_all_beatmaps) {
         list.set_target($selected_collection.name);
     }
 
-    $: if ($selected_collection.name != undefined && $should_update) {
+    $: if (!browsing_all_beatmaps && $selected_collection.name != undefined && $should_update) {
         update_beatmaps($should_update, $update_reason);
+    }
+
+    $: if (
+        browsing_all_beatmaps &&
+        ($all_query != undefined || $all_status || $all_sort || $all_difficulty_range || $all_mode || $all_should_update)
+    ) {
+        update_all_beatmapsets($all_should_update);
     }
 
     onMount(() => {
@@ -240,6 +280,7 @@
 
         return () => {
             update_beatmaps.cancel();
+            update_all_beatmapsets.cancel();
         };
     });
 </script>
@@ -268,6 +309,8 @@
             tabindex="0"
             oncontextmenu={(e) => show_context_menu(e, get_collections_options(), handle_collections_menu)}
         >
+            <CollectionCard name="all beatmaps" special={true} selected={browsing_all_beatmaps} on_select={handle_select_all_beatmaps} />
+
             <!-- show collections -->
             {#if $filtered_collections.length == 0}
                 <p>{$filtered_collections.length} results</p>
@@ -292,27 +335,40 @@
         </div>
     </div>
     <div class="manager-content">
-        <div class="content-header">
-            <Search bind:value={$query} placeholder="search beatmaps" />
-            <ExpandableMenu>
-                <Dropdown inline={true} label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
-                <Dropdown inline={true} label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
-                <Dropdown inline={true} label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
-                <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
-                <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} compact={true} />
-            </ExpandableMenu>
-        </div>
+        {#if browsing_all_beatmaps}
+            <div class="content-header">
+                <Search placeholder="search local beatmaps" value={$all_query} callback={(q) => all_beatmapsets.set_query(q)} />
+                <ExpandableMenu>
+                    <Dropdown inline={true} label={"sort by"} bind:selected_value={$all_sort} options={FILTER_DATA} />
+                    <Dropdown inline={true} label={"status"} bind:selected_value={$all_status} options={STATUS_DATA} />
+                    <Dropdown inline={true} label={"mode"} bind:selected_value={$all_mode} options={MODES_DATA} />
+                    <RangeSlider min={0} max={10} bind:value={$all_difficulty_range} />
+                </ExpandableMenu>
+            </div>
 
-        <!-- render beatmap list -->
-        <BeatmapList
-            bind:this={beatmap_list_ref}
-            carousel={true}
-            list_manager={list}
-            on_remove={remove_callback}
-            on_remove_set={remove_set_callback}
-            show_missing={true}
-            elements={card_elements}
-        />
+            <BeatmapsetList list_manager={all_beatmapsets} show_context={true} carousel={true} direction={"right"} extra={1} />
+        {:else}
+            <div class="content-header">
+                <Search bind:value={$query} placeholder="search beatmaps" />
+                <ExpandableMenu>
+                    <Dropdown inline={true} label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
+                    <Dropdown inline={true} label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
+                    <Dropdown inline={true} label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
+                    <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
+                    <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} compact={true} />
+                </ExpandableMenu>
+            </div>
+
+            <BeatmapList
+                bind:this={beatmap_list_ref}
+                carousel={true}
+                list_manager={list}
+                on_remove={remove_callback}
+                on_remove_set={remove_set_callback}
+                show_missing={true}
+                elements={card_elements}
+            />
+        {/if}
     </div>
 </div>
 

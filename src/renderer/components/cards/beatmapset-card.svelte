@@ -5,7 +5,7 @@
     import { get_beatmapset_state } from "../../lib/store/beatmaps";
     import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
     import { get_beatmapset } from "../../lib/utils/beatmaps";
-    import { get_card_image_source } from "../../lib/utils/card-utils";
+    import { get_card_image_source, get_placeholder_image } from "../../lib/utils/card-utils";
     import {
         BEATMAPSET_DIFFICULTY_CARD_ELEMENTS,
         fetch_beatmaps_with_limit,
@@ -21,6 +21,7 @@
     // components
     import BeatmapCard from "./beatmap-card.svelte";
     import BeatmapControls from "./beatmap-controls.svelte";
+    import FadingImage from "../utils/fading-image.svelte";
 
     export let id: number | null = null;
     export let beatmapset: BeatmapSetResult | null = null;
@@ -38,10 +39,8 @@
     let sorted_beatmaps: IBeatmapResult[] = [];
     let is_hovering = false;
     let first_beatmap: IBeatmapResult | null = null;
-    let image_element: HTMLImageElement = null;
-    let image_loaded = false;
     let last_filtered_hashes: string[] = filtered_hashes;
-    let bound_image_element: HTMLImageElement | null = null;
+    const placeholder_image = get_placeholder_image();
 
     $: state = state_store ? $state_store : null;
     $: loaded = state && state.loaded == true;
@@ -90,26 +89,6 @@
             current_store.update((store_state) => ({ ...store_state, loading: false, loaded: true }));
         }
     }, 50);
-
-    const bind_image_events = () => {
-        if (bound_image_element == image_element) {
-            return;
-        }
-
-        if (bound_image_element) {
-            bound_image_element.onload = null;
-        }
-
-        bound_image_element = image_element;
-
-        if (!image_element) {
-            return;
-        }
-
-        image_element.onload = () => {
-            image_loaded = true;
-        };
-    };
 
     const handle_context = async (e: MouseEvent) => {
         e?.preventDefault();
@@ -188,11 +167,8 @@
             expanded = false;
             sorted_beatmaps = [];
             first_beatmap = null;
-            image_loaded = false;
             debounced_load();
         }
-
-        bind_image_events();
     }
 
     $: {
@@ -208,14 +184,6 @@
         debounced_load.cancel();
         debounced_hover.cancel();
         unsubscribe_context();
-
-        if (bound_image_element) {
-            bound_image_element.onload = null;
-        }
-
-        if (image_element) {
-            image_element.src = "";
-        }
     });
 </script>
 
@@ -230,22 +198,14 @@
         class:selected
         class:expanded
         class:highlighted
-        class:loaded={image_loaded}
         oncontextmenu={handle_context}
         onmouseenter={debounced_hover}
         onmouseleave={handle_mouseleave}
     >
         <div class="beatmap-card-header" style="height: {height}px;">
-            <!-- svelte-ignore a11y_img_redundant_alt -->
-            <img
-                src={state.background}
-                class="beatmap-card-background"
-                class:loaded={image_loaded}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                bind:this={image_element}
-            />
+            <div class="beatmap-card-image-frame" style="background-image: url({placeholder_image});">
+                <FadingImage class_name="beatmap-card-background" src={state.background} fallback={placeholder_image} />
+            </div>
 
             {#if first_beatmap}
                 <BeatmapControls
@@ -330,9 +290,15 @@
         overflow: hidden;
     }
 
-    .beatmap-card-header > .beatmap-card-background {
+    .beatmap-card-image-frame {
         position: absolute;
         inset: 0;
+        z-index: 1;
+        background-position: center;
+        background-size: cover;
+    }
+
+    .beatmap-card-image-frame :global(.beatmap-card-background) {
         width: 100%;
         height: 100%;
         max-width: 100%;
@@ -340,9 +306,7 @@
         object-fit: cover;
         object-position: center;
         display: block;
-        z-index: 1;
         filter: brightness(0.5);
-        transition: opacity 0.2s ease-in-out;
     }
 
     .beatmap-card-metadata {

@@ -16,7 +16,6 @@
     // tabs
     import Collections from "./components/tabs/collections.svelte";
     import Discover from "./components/tabs/discover.svelte";
-    import Browse from "./components/tabs/browse.svelte";
     import Radio from "./components/tabs/radio.svelte";
     import Config from "./components/tabs/config.svelte";
     import Index from "./components/tabs/index.svelte";
@@ -130,8 +129,6 @@
             <Index />
         {:else if active_tab == "collections"}
             <Collections />
-        {:else if active_tab == "browse"}
-            <Browse />
         {:else if active_tab == "discover"}
             <Discover />
         {:else if active_tab == "radio"}

@@ -1,9 +1,10 @@
 <script lang="ts">
     import { get_formatted_star_rating, type BeatmapCardFlags } from "../../../lib/utils/beatmap-card";
-    import { get_status_style } from "../../../lib/utils/card-utils";
+    import { get_placeholder_image, get_status_style } from "../../../lib/utils/card-utils";
     import type { IBeatmapResult } from "@shared/types";
 
     import BeatmapControls from "../beatmap-controls.svelte";
+    import FadingImage from "../../utils/fading-image.svelte";
 
     export let beatmap: IBeatmapResult | null = null;
     export let flags: BeatmapCardFlags;
@@ -11,15 +12,15 @@
     export let highlighted = false;
     export let centered = false;
     export let height = 100;
-    export let image_loaded = false;
     export let background = "";
     export let hash = "";
     export let has_map = false;
-    export let image_element: HTMLImageElement | null = null;
     export let on_click: (event: MouseEvent) => void = null;
     export let on_contextmenu: (event: MouseEvent) => void = null;
     export let on_remove: (checksum: string) => void = null;
     export let on_download: () => void = null;
+
+    const placeholder_image = get_placeholder_image();
 
     $: status_style = get_status_style(beatmap?.status);
     $: formatted_star_rating = get_formatted_star_rating(beatmap);
@@ -33,19 +34,12 @@
     class:selected
     class:highlighted
     class:temp={beatmap?.temp}
-    class:loaded={image_loaded}
     onclick={on_click}
     oncontextmenu={on_contextmenu}
 >
-    <img
-        class="beatmap-card-background"
-        class:loaded={image_loaded}
-        src={background}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        bind:this={image_element}
-    />
+    <div class="beatmap-card-image-frame" style="background-image: url({placeholder_image});">
+        <FadingImage class_name="beatmap-card-background" src={background} fallback={placeholder_image} />
+    </div>
 
     {#if flags.show_extra_actions}
         <BeatmapControls
@@ -106,17 +100,22 @@
         border-color: var(--accent-hover);
     }
 
-    .beatmap-card-background {
+    .beatmap-card-image-frame {
         position: absolute;
+        inset: 0;
+        z-index: 1;
+        background-position: center;
+        background-size: cover;
+    }
+
+    .beatmap-card-image-frame :global(.beatmap-card-background) {
         width: 100%;
         height: 100%;
         min-height: 100px;
         object-fit: cover;
         object-position: center;
         display: block;
-        z-index: 1;
         filter: brightness(0.5);
-        transition: opacity 0.2s ease-in-out;
     }
 
     .beatmap-card :global(.card-control) {

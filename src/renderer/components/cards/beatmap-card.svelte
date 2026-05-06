@@ -13,11 +13,11 @@
     import { show_context_menu } from "../../lib/store/context-menu";
     import { debounce } from "@shared/timing";
     import { get_beatmap_card_flags, get_display_beatmap } from "../../lib/utils/beatmap-card";
-    import { get_placeholder_image, get_card_image_source } from "../../lib/utils/card-utils";
+    import { get_card_image_source } from "../../lib/utils/card-utils";
     import { get_beatmap } from "../../lib/utils/beatmaps";
     import { get_beatmap_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
 
-    import CardBeatmapCard from "./beatmap/card.svelte";
+    import DefaultBeatmapCard from "./beatmap/card.svelte";
     import MinimalBeatmapCard from "./beatmap/minimal.svelte";
     import RadioBeatmapCard from "./beatmap/radio.svelte";
 
@@ -34,11 +34,8 @@
     export let on_remove_set: (id: number) => void = null;
 
     let state_store: Writable<BeatmapComponentState> | null = null;
-    let image_element: HTMLImageElement | null = null;
-    let image_loaded = false;
     let state: BeatmapComponentState | null = null;
     let last_hash = "";
-    let bound_image_element: HTMLImageElement | null = null;
 
     $: state = state_store ? $state_store : null;
     $: loaded = mode == "minimal" && !!beatmap ? true : state?.loaded == true;
@@ -106,35 +103,6 @@
         }
     }, 50);
 
-    const bind_image_events = () => {
-        if (bound_image_element == image_element) {
-            return;
-        }
-
-        if (bound_image_element) {
-            bound_image_element.onload = null;
-            bound_image_element.onerror = null;
-        }
-
-        bound_image_element = image_element;
-
-        if (!image_element) {
-            return;
-        }
-
-        image_element.onload = () => {
-            image_loaded = true;
-        };
-
-        image_element.onerror = () => {
-            if (!image_element) {
-                return;
-            }
-
-            image_element.src = get_placeholder_image();
-        };
-    };
-
     const handle_click = (event: MouseEvent) => {
         event.stopPropagation();
 
@@ -175,27 +143,15 @@
         if (hash) {
             if (hash != last_hash) {
                 last_hash = hash;
-                image_loaded = false;
             }
 
             state_store = get_beatmap_state(hash);
             debounced_load();
         }
-
-        bind_image_events();
     }
 
     onDestroy(() => {
         debounced_load.cancel();
-
-        if (bound_image_element) {
-            bound_image_element.onload = null;
-            bound_image_element.onerror = null;
-        }
-
-        if (image_element) {
-            image_element.src = "";
-        }
     });
 </script>
 
@@ -205,22 +161,19 @@
     <div style={`height: ${height}px; width: 100%; background: rgba(17, 20, 31, 0.65);`}></div>
 {:else if mode == "radio"}
     <RadioBeatmapCard
-        bind:image_element
         beatmap={display_beatmap}
         on_click={handle_click}
         on_contextmenu={handle_context}
         {flags}
         {selected}
         {highlighted}
-        {image_loaded}
         {background}
         {hash}
         {has_map}
         {on_remove}
     />
 {:else}
-    <CardBeatmapCard
-        bind:image_element
+    <DefaultBeatmapCard
         beatmap={display_beatmap}
         on_click={handle_click}
         on_contextmenu={handle_context}
@@ -230,7 +183,6 @@
         {highlighted}
         {centered}
         {height}
-        {image_loaded}
         {background}
         {hash}
         {has_map}

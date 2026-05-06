@@ -55,12 +55,13 @@
 
     $: columns_mode = columns && columns > 1;
     $: carousel_enabled = carousel && !columns_mode;
-    $: rows_per_screen = columns_mode ? Math.ceil(count / Math.max(columns, 1)) : count > LARGE_LIST_THRESHOLD ? count + extra : count;
+    $: extra_rows = Math.max(0, extra);
+    $: item_rows = columns_mode ? Math.ceil(count / Math.max(columns, 1)) : count;
     $: item_height_with_padding = item_height + PADDING;
-    $: total_height = rows_per_screen * item_height_with_padding;
+    $: total_height = (item_rows + extra_rows) * item_height_with_padding;
     $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
     $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
-    $: end_index = Math.min(start_index + visible_count, rows_per_screen);
+    $: end_index = Math.min(start_index + visible_count, item_rows);
     $: visible_items = Math.max(0, end_index - start_index);
 
     const lerp = (start: number, end: number, factor: number): number => {
