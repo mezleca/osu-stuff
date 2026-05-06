@@ -25,24 +25,6 @@ import path from "path";
 import archiver from "archiver";
 import fs from "fs";
 
-const resolve_template_path = (...segments: string[]): string => {
-    const candidates: string[] = [];
-
-    if (process.resourcesPath) {
-        candidates.push(path.join(process.resourcesPath, ...segments));
-    }
-
-    candidates.push(path.resolve(...segments));
-
-    for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
-            return candidate;
-        }
-    }
-
-    return path.resolve(...segments);
-};
-
 export abstract class BaseClient implements IOsuClient {
     protected initialized: boolean = false;
 
@@ -232,20 +214,8 @@ export abstract class BaseClient implements IOsuClient {
     private write_osdb_collection = async (collections: ICollectionResult[]) => {
         const output_name = collections.map((c) => c.name).join("-") + `.osdb`;
         const location = path.resolve(config.get().export_path, output_name);
-        const template_location = resolve_template_path("resources", "templates", "osdb.osdb");
 
-        if (!fs.existsSync(template_location)) {
-            console.error("failed to export osdb (missing template):", template_location);
-            return false;
-        }
-
-        if (!fs.existsSync(path.dirname(location))) {
-            fs.mkdirSync(path.dirname(location), { recursive: true });
-        }
-
-        fs.copyFileSync(template_location, location);
-
-        const osdb_parser = new OsdbParser();
+        const osdb_parser = new OsdbParser(location);
         const osdb_collections: OsdbCollection[] = [];
 
         for (const collection of collections) {
@@ -288,7 +258,6 @@ export abstract class BaseClient implements IOsuClient {
         };
 
         try {
-            await osdb_parser.parse(location);
             osdb_parser.update(osdb_data);
             await osdb_parser.write();
             return true;
@@ -303,20 +272,8 @@ export abstract class BaseClient implements IOsuClient {
     private write_stable_collection = async (collections: ICollectionResult[]): Promise<boolean> => {
         const output_name = collections.map((c) => c.name).join("-") + `.db`;
         const location = path.resolve(config.get().export_path, output_name);
-        const template_location = path.resolve(config.get().stable_path, "collection.db");
 
-        if (!fs.existsSync(template_location)) {
-            console.error("failed to export collection.db (missing template):", template_location);
-            return false;
-        }
-
-        if (!fs.existsSync(path.dirname(location))) {
-            fs.mkdirSync(path.dirname(location), { recursive: true });
-        }
-
-        fs.copyFileSync(template_location, location);
-
-        const parser = new OsuCollectionDbParser();
+        const parser = new OsuCollectionDbParser(location);
         const collection_data = collections.map((collection) => ({
             name: collection.name,
             beatmaps_count: collection.beatmaps.length,
@@ -324,11 +281,11 @@ export abstract class BaseClient implements IOsuClient {
         }));
 
         try {
-            await parser.parse(location);
             parser.update({
                 collections: collection_data,
                 collections_count: collection_data.length
             });
+
             await parser.write();
             return true;
         } catch (err) {
@@ -342,6 +299,7 @@ export abstract class BaseClient implements IOsuClient {
     export_collections = async (collections: ICollectionResult[], type: string): Promise<boolean> => {
         return type == "osdb" ? this.write_osdb_collection(collections) : this.write_stable_collection(collections);
     };
+
     export_beatmapset = async (id: number): Promise<boolean> => {
         const files = await this.get_beatmapset_files(id);
 
@@ -478,6 +436,7 @@ export abstract class BaseClient implements IOsuClient {
 
         const previous_size = collection.beatmaps.length;
         const all_hashes = new Set([...collection.beatmaps, ...hashes]);
+
         collection.beatmaps = Array.from(all_hashes);
 
         if (all_hashes.size > previous_size) {
@@ -524,8 +483,6 @@ export abstract class BaseClient implements IOsuClient {
             }
         }
 
-        console.log(`has ${beatmap.md5}: ${set.beatmaps.includes(beatmap.md5)}`);
-
         if (!set.beatmaps.includes(beatmap.md5)) {
             set.beatmaps.push(beatmap.md5);
         }
@@ -550,6 +507,7 @@ export abstract class BaseClient implements IOsuClient {
 
     rename_collection(old_name: string, new_name: string): boolean {
         const collection = this.collections.get(old_name);
+
         if (!collection || this.collections.has(new_name)) {
             return false;
         }

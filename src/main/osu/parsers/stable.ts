@@ -299,6 +299,11 @@ export class OsuCollectionDbParser extends BinaryReader {
         collections: []
     };
 
+    constructor(location: string = "") {
+        super();
+        this.location = location;
+    }
+
     parse = async (location: string): Promise<this> => {
         const buffer = fs.readFileSync(location);
         this.set_buffer(buffer);
@@ -348,14 +353,7 @@ export class OsuCollectionDbParser extends BinaryReader {
     update = (patch: Partial<OsuCollectionDb>): this => {
         this.data = {
             ...this.data,
-            ...patch,
-            collections: patch.collections
-                ? patch.collections.map((collection) => ({
-                      name: collection.name,
-                      beatmaps_count: collection.beatmaps_count,
-                      beatmap_md5: [...collection.beatmap_md5]
-                  }))
-                : this.data.collections
+            ...patch
         };
 
         this.data.collections_count = this.data.collections.length;

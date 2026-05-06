@@ -21,40 +21,66 @@
     import Spinner from "../../icon/spinner.svelte";
 
     // general
-    let collection_type = "osu!collector";
-    let collection_input = "";
-    let fetching_status = "";
+    let collection_type = $state("osu!collector");
+    let collection_input = $state("");
+    let fetching_status = $state("");
 
     // osu!collector
-    let collection_url = "";
+    let collection_url = $state("");
 
     // file
-    let collection_location = "";
+    let collection_location = $state("");
 
     // client
-    let target_client = !!config.get("lazer_mode") ? "stable" : "lazer";
-    let is_client_loading = true;
-    let is_target_initialized = false;
+    let target_client = $state(!!config.get("lazer_mode") ? "stable" : "lazer");
+    let is_client_loading = $state(true);
+    let is_target_initialized = $state(false);
+    let is_client_fetched = $state(false);
+    let is_fetching_client = $state(false);
 
     // player
-    let added_players: string[] = [];
-    let player_input_value = "";
-    let selected_bm_status: string[] = ["ranked"];
-    let selected_bm_options: string[] = [];
-    let bm_difficulty_range: StarRatingFilter = [0, 10];
+    let added_players = $state<string[]>([]);
+    let player_input_value = $state("");
+    let selected_bm_status = $state<string[]>(["ranked"]);
+    let selected_bm_options = $state<string[]>([]);
+    let bm_difficulty_range = $state<StarRatingFilter>([0, 10]);
 
     // selection
-    let pending_collections: ICollectionResult[] = [];
-    let selected_collections: string[] = [];
+    let pending_collections = $state<ICollectionResult[]>([]);
+    let selected_collections = $state<string[]>([]);
 
     const { authenticated } = config;
 
     const collection_options = ["osu!collector", "client", "file", "player"].map((option) => ({ label: option, value: option }));
 
-    $: active_modals = $modals;
-    $: has_modal = active_modals.has(ModalType.get_collection);
-    $: collection_label =
-        collection_type == "player" ? "player name" : collection_type == "osu!collector" ? "collection name (optional)" : "collection name";
+    const has_modal = $derived($modals.has(ModalType.get_collection));
+    const has_pending = $derived(pending_collections.length > 0);
+    const collection_label = $derived(
+        collection_type == "player" ? "player name" : collection_type == "osu!collector" ? "collection name (optional)" : "collection name"
+    );
+
+    // auto fetch when entering client mode with a ready client
+    $effect(() => {
+        if (collection_type == "client" && !is_client_fetched && !is_fetching_client && !is_client_loading && has_modal && is_target_initialized) {
+            is_fetching_client = true;
+            handle_from_client();
+        }
+    });
+
+    // reset fetch flag when leaving client mode
+    $effect(() => {
+        if (collection_type != "client") {
+            is_client_fetched = false;
+        }
+    });
+
+    // change to osu!collector if player mode requires auth
+    $effect(() => {
+        if (collection_type == "player" && !$authenticated) {
+            show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
+            collection_type = "osu!collector";
+        }
+    });
 
     const add_player = () => {
         if (!player_input_value || player_input_value.trim().length == 0) {
@@ -62,9 +88,11 @@
         }
 
         const name = player_input_value.trim();
+
         if (!added_players.includes(name)) {
             added_players = [...added_players, name];
         }
+
         player_input_value = "";
     };
 
@@ -82,6 +110,7 @@
 
     const handle_legacy_import = async (location: string) => {
         fetching_status = "reading collection file...";
+
         const result = await get_legacy_collection_data(location);
 
         if (!result.success) {
@@ -95,6 +124,7 @@
 
     const handle_osdb_import = async (location: string) => {
         fetching_status = "reading osdb file...";
+
         const result = await get_osdb_data(location);
 
         if (!result.success) {
@@ -112,9 +142,11 @@
     };
 
     const process_results = (results: ICollectionResult[]) => {
-        // filter out collections that already exist
-        const filtered = results.filter((c) => !collections.has(c.name));
-        pending_collections = filtered;
+        pending_collections = results.filter((c) => !collections.has(c.name));
+        console.log(
+            "pending result:",
+            results.filter((c) => !collections.has(c.name))
+        );
         fetching_status = "";
     };
 
@@ -163,9 +195,8 @@
             fetching_status = "creating collection / adding beatmaps";
 
             const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
-
             const collection_name = string_is_valid(collection_input)
-                ? collection_input // fallback to generated name
+                ? collection_input
                 : `${
                       result.players.length == 1 ? result.players[0].username : result.players.map((p) => p.username).join(", ")
                   } - ${joined_options} (${joined_status})`.substring(0, 64);
@@ -394,31 +425,6 @@
         modals.hide(ModalType.get_collection);
     };
 
-    let is_client_fetched = false;
-    let is_fetching_client = false;
-
-    $: {
-        if (collection_type == "client" && !is_client_fetched && !is_fetching_client && !is_client_loading && has_modal) {
-            if (is_target_initialized) {
-                is_fetching_client = true;
-                handle_from_client();
-            }
-        }
-
-        if (collection_type != "client") {
-            is_client_fetched = false;
-            if (pending_collections.length > 0) {
-                pending_collections = [];
-                selected_collections = [];
-            }
-        }
-
-        if (collection_type == "player" && !$authenticated) {
-            show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
-            collection_type = "osu!collector";
-        }
-    }
-
     onMount(() => {
         const load_client_state = async () => {
             try {
@@ -447,7 +453,7 @@
                 </div>
             {/if}
 
-            {#if pending_collections.length > 0}
+            {#if has_pending}
                 <div class="pending-container">
                     <div class="header-row">
                         <h1 class="field-label">collections found</h1>

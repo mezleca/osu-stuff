@@ -136,6 +136,8 @@ class LazerBeatmapClient extends BaseClient {
         this.beatmapsets.clear();
 
         this.initialized = true;
+        this.should_update = false;
+
         await this.process_beatmaps();
 
         return { success: true, data: true };

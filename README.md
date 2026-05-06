@@ -25,8 +25,8 @@ a simple and useful app that gives you freedom to:
 - listen to beatmaps songs from your osu installation (radio tab)
 - a lot more...
 
-> [!NOTE]  
-> beatmaps downloaded with lazer mode on will be placed on your exports folder!
+> [!NOTE]
+> beatmaps downloaded on lazer mode will be placed on exports folder
 
 ## wanna help osu-stuff development?
 
@@ -55,7 +55,7 @@ sudo pacman -S gtk3 libnotify nss libxss alsa-lib libxtst dbus fuse libsndfile
 
 ### prerequisites
 
-- [node.js 25.x](https://nodejs.org/)
+- [node.js 24.x](https://nodejs.org/)
 - [git](https://git-scm.com/downloads)
 - [bun](https://bun.sh)
 

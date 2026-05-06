@@ -115,6 +115,8 @@ class StableBeatmapClient extends BaseClient {
         }
 
         this.initialized = true;
+        this.should_update = false;
+
         await this.process_beatmaps();
 
         return { success: true, data: true };

@@ -179,7 +179,7 @@
                 enable_edit_mode(id_parts[1]);
                 break;
             case "delete":
-                collections.remove(id_parts[1]);
+                collections.delete_collection(id_parts[1]);
                 break;
             case "export":
                 modals.show(ModalType.export_collection);

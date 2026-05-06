@@ -12,7 +12,7 @@
     export let carousel = false;
     export let columns = 0;
     export let extra = 0;
-    export let full_width = false;
+    export let max_width = false;
     export let show_context = false;
     export let show_remove = false;
     export let on_update: (index: number) => void = null;
@@ -39,7 +39,7 @@
         height={"100%"}
         item_height={height}
         buffer={5}
-        max_width={full_width}
+        {max_width}
         {extra}
         {columns}
         {carousel}

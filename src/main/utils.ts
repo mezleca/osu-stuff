@@ -14,6 +14,10 @@ interface PathResult {
     lazer_path: string;
 }
 
+export const is_dev_mode = (): boolean => {
+    return process.env?.NODE_ENV == "dev" || process.env?.NODE_ENV == "development";
+};
+
 export const is_audio = (file: string): boolean => {
     return audio_ext.includes(path.extname(file));
 };

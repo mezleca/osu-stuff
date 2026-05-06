@@ -2,7 +2,7 @@ import { app, shell, dialog, protocol, net, Privileges } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { config } from "./database/config";
 import { mirrors } from "./database/mirrors";
-import { get_window, get_app_path } from "./utils";
+import { get_window, get_app_path, is_dev_mode } from "./utils";
 import { fetch_manager } from "./fetch";
 import { handle_ipc } from "./ipc";
 import {
@@ -37,15 +37,15 @@ import {
 import { auth, v2 } from "osu-api-extended";
 import { beatmap_downloader } from "./osu/downloader";
 import { beatmap_exporter } from "./osu/exporter";
-import { is_dev_mode } from "./env";
 import { updater } from "./update";
 import { beatmap_processor } from "./database/processor";
 import { OpenDevToolsOptions } from "electron/utility";
 import { DatabaseManager } from "./database/database";
 import { OsdbParser, OsuCollectionDbParser } from "./osu/parsers";
 import { destroy_beatmap_pool } from "./osu/beatmap_worker";
-import type { GenericResult, ICollectionResult, OsdbData } from "@shared/types";
 import { core } from "./core";
+
+import type { GenericResult, ICollectionResult, OsdbData } from "@shared/types";
 
 import path from "path";
 import fs from "fs";

@@ -1,10 +1,17 @@
-import type { OsdbData } from "@shared/types";
 import { BinaryReader } from "./binary_reader";
+import type { OsdbData } from "@shared/types";
 
 import fs from "fs";
 import zlib from "zlib";
 
 const OSDB_FOOTER = "By Piotrekol";
+const DEFAULT_OSDB_DATA: OsdbData = Object.freeze({
+    version_string: "o!dm8min",
+    save_data: 0n,
+    last_editor: "",
+    count: 0,
+    collections: []
+});
 
 const map_version_to_code = (version: string): number => {
     switch (version) {
@@ -43,17 +50,17 @@ const uses_gzip_payload = (version_code: number): boolean => {
 
 export class OsdbParser extends BinaryReader {
     private location: string = "";
-    private data: OsdbData = {
-        version_string: "o!dm8min",
-        save_data: 0n,
-        last_editor: "",
-        count: 0,
-        collections: []
-    };
+    private data: OsdbData = { ...DEFAULT_OSDB_DATA };
+
+    constructor(location: string = "") {
+        super();
+        this.location = location;
+    }
 
     parse = async (location: string): Promise<this> => {
-        const raw = fs.readFileSync(location);
         this.location = location;
+
+        const raw = fs.readFileSync(location);
         this.set_buffer(raw);
 
         const version_string = this.plain_string();
@@ -106,6 +113,7 @@ export class OsdbParser extends BinaryReader {
             }
 
             const hash_only_beatmaps: string[] = [];
+
             if (version_code >= 3) {
                 const hashes_count = this.int();
                 for (let hash_index = 0; hash_index < hashes_count; hash_index++) {
@@ -122,6 +130,7 @@ export class OsdbParser extends BinaryReader {
         }
 
         const footer = this.plain_string();
+
         if (footer != OSDB_FOOTER) {
             throw new Error("invalid osdb footer");
         }
@@ -155,15 +164,7 @@ export class OsdbParser extends BinaryReader {
     update = (patch: Partial<OsdbData>): this => {
         this.data = {
             ...this.data,
-            ...patch,
-            collections: patch.collections
-                ? patch.collections.map((collection) => ({
-                      name: collection.name,
-                      online_id: collection.online_id,
-                      beatmaps: collection.beatmaps.map((beatmap) => ({ ...beatmap })),
-                      hash_only_beatmaps: [...collection.hash_only_beatmaps]
-                  }))
-                : this.data.collections
+            ...patch
         };
 
         this.data.count = this.data.collections.length;
@@ -180,6 +181,7 @@ export class OsdbParser extends BinaryReader {
         const is_minimal = is_minimal_version(version_string);
 
         const payload: Buffer[] = [];
+
         payload.push(this.write_long(this.data.save_data));
         payload.push(this.write_plain_string(this.data.last_editor));
         payload.push(this.write_int(this.data.collections.length));
@@ -250,12 +252,6 @@ export class OsdbParser extends BinaryReader {
     free = (): void => {
         this.location = "";
         this.set_buffer(Buffer.alloc(0));
-        this.data = {
-            version_string: "o!dm8min",
-            save_data: 0n,
-            last_editor: "",
-            count: 0,
-            collections: []
-        };
+        this.data = { ...DEFAULT_OSDB_DATA };
     };
 }

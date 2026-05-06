@@ -225,7 +225,7 @@ class CollectionManager {
         return true;
     }
 
-    async remove(name: string): Promise<void> {
+    private async remove(name: string): Promise<void> {
         for (const store of this.selected_states.values()) {
             const current = get(store);
 
@@ -344,15 +344,14 @@ class CollectionManager {
             const result = await window.api.invoke("client:delete_collection", name);
 
             if (!result) {
-                show_notification({ type: "error", text: `failed to delete collection: ${name}` });
+                show_notification({ type: "error", text: `failed to delete ${name}` });
                 return;
             }
 
             await this.remove(name);
-            show_notification({ type: "success", text: `collection "${name}" deleted` });
         } catch (error) {
             console.error("[collections] delete error:", error);
-            show_notification({ type: "error", text: "failed to delete collection" });
+            show_notification({ type: "error", text: `failed to delete ${name}\n${error}` });
         }
     }
 
