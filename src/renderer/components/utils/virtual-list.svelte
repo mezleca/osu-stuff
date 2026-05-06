@@ -20,7 +20,6 @@
     const SCROLL_DEBOUNCE_MS = 20;
     const SCROLL_ANIMATION_DURATION_MS = 250;
     const INSTANT_SCROLL_THRESHOLD = 2000;
-    const LARGE_LIST_THRESHOLD = 10;
 
     const CAROUSEL_CONFIG: CarouselConfig = {
         SCALE_THRESHOLD_NEAR: 0.5,

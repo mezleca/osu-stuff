@@ -7,6 +7,7 @@
     import Search from "../utils/basic/search.svelte";
     import Tags from "../utils/basic/tags.svelte";
     import BeatmapSetList from "../beatmapset-list.svelte";
+    import { onMount } from "svelte";
 
     const languages = discover.get_values("languages").map((name) => ({ label: name, value: name }));
     const categories = discover.get_values("categories").map((name) => ({ label: name, value: name }));
@@ -21,6 +22,11 @@
     $: category = $data.category;
     $: genre = $data.genre;
     $: mode = $data.mode;
+
+    onMount(() => {
+        const current_query = $data.query ?? "";
+        if (current_query.trim() == "") discover.update_query("");
+    });
 </script>
 
 <div class="content tab-content">
@@ -32,6 +38,7 @@
         <div class="manager-content">
             <div class="content-header">
                 <Search placeholder="search beatmaps" value={$data.query ?? ""} callback={(q) => discover.update_query(q)} />
+
                 <ExpandableMenu>
                     <Tags
                         options={languages}
@@ -69,6 +76,9 @@
 
             <!-- render beatmapset list -->
             <BeatmapSetList
+                columns={2}
+                carousel={false}
+                extra={1}
                 list_manager={discover}
                 on_update={(i) => {
                     // update list on last index
