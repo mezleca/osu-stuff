@@ -1,5 +1,3 @@
-<svelte:options runes={true} />
-
 <script lang="ts">
     import { block_global_shortcuts } from "../../../lib/actions/input";
     import { string_is_valid } from "../../../lib/utils/utils";

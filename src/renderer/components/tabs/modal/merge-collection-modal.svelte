@@ -1,18 +1,20 @@
 <script lang="ts">
+    import { SvelteMap } from "svelte/reactivity";
     import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
+    import type { ICollectionResult } from "@shared/types";
     import Input from "../../utils/basic/input.svelte";
-    import Buttons from "../../utils/basic/buttons.svelte";
+    import CollectionCard from "../../cards/collection-card.svelte";
 
     let name = $state("");
-    let selected_collections = $state<string[]>([]);
+    let selected_collections = new SvelteMap<string, ICollectionResult>();
 
     const all_collections = $derived(collections.all_collections);
     const has_modal = $derived($modals.has(ModalType.merge_collection));
 
     const on_submit = async () => {
-        if (selected_collections.length < 2) {
+        if (selected_collections.size < 2) {
             show_notification({ type: "error", text: "you need at least 2 or more collections my guy" });
             return;
         }
@@ -29,12 +31,9 @@
 
         const beatmaps: Set<string> = new Set();
 
-        for (const col_name of selected_collections) {
-            const collection = collections.get(col_name);
-            if (collection) {
-                for (const h of collection.beatmaps) {
-                    beatmaps.add(h);
-                }
+        for (const collection of selected_collections.values()) {
+            for (const hash of collection.beatmaps) {
+                beatmaps.add(hash);
             }
         }
 
@@ -49,9 +48,18 @@
         cleanup();
     };
 
+    const toggle_selection = (collection: ICollectionResult) => {
+        if (selected_collections.has(collection.name)) {
+            selected_collections.delete(collection.name);
+            return;
+        }
+
+        selected_collections.set(collection.name, collection);
+    };
+
     const cleanup = () => {
         name = "";
-        selected_collections = [];
+        selected_collections.clear();
         modals.hide(ModalType.merge_collection);
     };
 </script>
@@ -63,7 +71,17 @@
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             <Input label="name" bind:value={name} />
 
-            <Buttons label="collections to merge" options={$all_collections.map((c) => c.name)} bind:selected={selected_collections} />
+            <h1 class="field-label">collections to merge</h1>
+            <div class="collection-list">
+                {#each $all_collections as collection}
+                    <CollectionCard
+                        name={collection.name}
+                        count={collection.beatmaps.length}
+                        selected={selected_collections.has(collection.name)}
+                        on_select={() => toggle_selection(collection)}
+                    />
+                {/each}
+            </div>
 
             <div class="actions actions-separator">
                 <button onclick={on_submit}>merge</button>

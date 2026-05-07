@@ -3,6 +3,7 @@ import type { ManagerConfig, ManagerMirror } from "@shared/types";
 import { string_is_valid } from "../utils/utils";
 import { throttle } from "@shared/timing";
 import { show_notification } from "./notifications";
+import { core_state } from "./other.svelte";
 
 const DEFAULT_CONFIG_FIELDS: ManagerConfig = {
     _id: 0,
@@ -25,17 +26,11 @@ const show_failed_auth_warn = throttle(() => {
 class ConfigStore {
     data: Writable<ManagerConfig>;
     mirrors: Writable<ManagerMirror[]>;
-    fetching_token: Writable<boolean>;
-    authenticated: Writable<boolean>;
-    is_exporting: Writable<boolean>;
     private is_loading: boolean = false;
 
     constructor() {
         this.data = writable({ ...DEFAULT_CONFIG_FIELDS });
         this.mirrors = writable([]);
-        this.fetching_token = writable(false);
-        this.authenticated = writable(false);
-        this.is_exporting = writable(false);
         this.load();
     }
 
@@ -89,7 +84,7 @@ class ConfigStore {
     }
 
     is_authenticated(): boolean {
-        return get(this.authenticated);
+        return core_state.osu_web.authenticated;
     }
 
     get_all() {
@@ -117,11 +112,11 @@ class ConfigStore {
     }
 
     async update_access_token() {
-        if (get(this.fetching_token)) {
+        if (core_state.osu_web.fetching_token) {
             return;
         }
 
-        this.fetching_token.set(true);
+        core_state.osu_web.fetching_token = true;
 
         try {
             const id = this.get("osu_id");
@@ -129,7 +124,8 @@ class ConfigStore {
 
             if (!id || !string_is_valid(secret)) {
                 console.warn("skipping auth (invalid id / secret):", id, secret);
-                this.authenticated.set(false);
+                core_state.osu_web.authenticated = false;
+                core_state.osu_web.token = null;
                 return;
             }
 
@@ -141,23 +137,27 @@ class ConfigStore {
             });
 
             if (typeof result == "string") {
-                this.authenticated.set(true);
+                core_state.osu_web.authenticated = true;
+                core_state.osu_web.token = result;
                 return;
             }
 
             if (result.error) {
-                this.authenticated.set(false);
+                core_state.osu_web.authenticated = false;
+                core_state.osu_web.token = null;
                 show_failed_auth_warn();
                 return;
             }
 
-            this.authenticated.set(true);
+            core_state.osu_web.authenticated = true;
+            core_state.osu_web.token = null;
         } catch (err) {
             console.error("failed to login:", err as string);
             show_failed_auth_warn();
-            this.authenticated.set(false);
+            core_state.osu_web.authenticated = false;
+            core_state.osu_web.token = null;
         } finally {
-            this.fetching_token.set(false);
+            core_state.osu_web.fetching_token = false;
         }
     }
 }

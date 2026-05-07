@@ -1,12 +1,12 @@
 <script>
+    import { downloader } from "../../lib/store/downloader";
+
     // icons
     import Pause from "../icon/pause.svelte";
     import Play from "../icon/play.svelte";
     import X from "../icon/x.svelte";
 
-    import { downloader } from "../../lib/store/downloader";
-
-    $: downloads = downloader.data;
+    const downloads = downloader.data;
 </script>
 
 <div class="content tab-content" style="padding: 20px;">

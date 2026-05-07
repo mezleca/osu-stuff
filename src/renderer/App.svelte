@@ -1,5 +1,3 @@
-<svelte:options runes={true} />
-
 <script>
     import { onMount, tick } from "svelte";
     import { fromStore } from "svelte/store";

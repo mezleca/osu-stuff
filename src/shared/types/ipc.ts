@@ -52,22 +52,22 @@ export type DifficultySearchResult = Awaited<ReturnType<typeof v2.beatmaps.looku
 
 export interface IExportState {
     is_exporting: boolean;
+    id: string;
     current_index: number;
     total: number;
     current_beatmap: string;
 }
 
-export interface IExportUpdate {
-    current: number;
-    total: number;
-    text: string;
+export interface ExportOptions {
+    id: string;
+    collections: string[];
 }
 
-export interface IExportFinish {
-    success: boolean;
-    count?: number;
-    reason?: string;
-}
+export type ExportEvent =
+    | { id: string; type: "started"; total: number }
+    | { id: string; type: "progress"; current: number; total: number; text: string }
+    | { id: string; type: "finished"; count: number }
+    | { id: string; type: "stopped"; reason: string };
 
 export interface IpcSchema {
     invoke: {
@@ -319,11 +319,11 @@ export interface IpcSchema {
         };
         // exporter
         "exporter:start": {
-            params: [string[]];
+            params: ExportOptions;
             result: void;
         };
-        "exporter:cancel": {
-            params: undefined;
+        "exporter:stop": {
+            params: string;
             result: void;
         };
         "exporter:state": {
@@ -372,8 +372,7 @@ export interface IpcSchema {
     send: {
         "downloader:events": IDownloadEvent;
         "processor:events": IProcessorEvent;
-        "export:update": IExportUpdate;
-        "export:finish": IExportFinish;
+        "export:event": ExportEvent;
         "updater:new": UpdateInfo;
         "updater:checking": undefined;
         "updater:not_available": UpdateInfo | undefined;

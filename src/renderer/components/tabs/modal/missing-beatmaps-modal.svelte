@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { SvelteMap } from "svelte/reactivity";
     import { collections } from "../../../lib/store/collections";
     import { downloader } from "../../../lib/store/downloader";
     import { config } from "../../../lib/store/config";
@@ -10,8 +11,13 @@
     import CollectionCard from "../../cards/collection-card.svelte";
     import Spinner from "../../icon/spinner.svelte";
 
-    let missing_collections = $state<{ name: string; count: number }[]>([]);
-    let selected_collections = $state<string[]>([]);
+    interface MissingCollection {
+        name: string;
+        count: number;
+    }
+
+    let missing_collections = $state<MissingCollection[]>([]);
+    let selected_collections = new SvelteMap<string, MissingCollection>();
     let loading = $state(true);
 
     const has_modal = $derived($modals.has(ModalType.missing_beatmaps));
@@ -30,19 +36,25 @@
         }
     });
 
-    const toggle_selection = (name: string) => {
-        if (selected_collections.includes(name)) {
-            selected_collections = selected_collections.filter((c) => c != name);
-        } else {
-            selected_collections = [...selected_collections, name];
+    const toggle_selection = (collection: MissingCollection) => {
+        if (selected_collections.has(collection.name)) {
+            selected_collections.delete(collection.name);
+            return;
         }
+
+        selected_collections.set(collection.name, collection);
     };
 
     const toggle_all = () => {
-        if (selected_collections.length == missing_collections.length) {
-            selected_collections = [];
-        } else {
-            selected_collections = missing_collections.map((c) => c.name);
+        if (selected_collections.size == missing_collections.length) {
+            selected_collections.clear();
+            return;
+        }
+
+        selected_collections.clear();
+
+        for (const collection of missing_collections) {
+            selected_collections.set(collection.name, collection);
         }
     };
 
@@ -52,23 +64,27 @@
             return;
         }
 
-        if (selected_collections.length == 0) {
+        if (selected_collections.size == 0) {
             show_notification({ type: "warning", text: "select at least one collection" });
             return;
         }
 
         try {
-            for (const name of selected_collections) {
-                const missing_hashes = await window.api.invoke("client:get_missing_beatmaps", name);
+            for (const collection of selected_collections.values()) {
+                const missing_hashes = await window.api.invoke("client:get_missing_beatmaps", collection.name);
 
                 if (!missing_hashes || missing_hashes.length == 0) {
                     continue;
                 }
 
-                const beatmaps = missing_hashes.map((md5) => ({ md5 }));
+                const beatmaps: { md5: string }[] = [];
+
+                for (const md5 of missing_hashes) {
+                    beatmaps.push({ md5 });
+                }
 
                 await downloader.add({
-                    id: `missing: ${name}`,
+                    id: `missing: ${collection.name}`,
                     beatmaps
                 });
             }
@@ -82,7 +98,7 @@
     };
 
     const cleanup = () => {
-        selected_collections = [];
+        selected_collections.clear();
         missing_collections = [];
         modals.hide(ModalType.missing_beatmaps);
     };
@@ -96,7 +112,7 @@
                 <h1 class="field-label">missing beatmaps</h1>
                 {#if !loading && missing_collections.length > 0}
                     <button class="text-btn" onclick={toggle_all}>
-                        {selected_collections.length == missing_collections.length ? "unselect all" : "select all"}
+                        {selected_collections.size == missing_collections.length ? "unselect all" : "select all"}
                     </button>
                 {/if}
             </div>
@@ -118,8 +134,8 @@
                             <CollectionCard
                                 name={collection.name}
                                 count={collection.count}
-                                selected={selected_collections.includes(collection.name)}
-                                on_select={() => toggle_selection(collection.name)}
+                                selected={selected_collections.has(collection.name)}
+                                on_select={() => toggle_selection(collection)}
                             />
                         {/each}
                     </div>
@@ -129,7 +145,7 @@
             {#if !loading && missing_collections.length > 0}
                 <div class="modal-footer actions-separator">
                     <button class="primary-btn" onclick={handle_download} disabled={!has_mirrors}>
-                        download ({selected_collections.length})
+                        download ({selected_collections.size})
                     </button>
                     <button onclick={cleanup}>cancel</button>
                 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { SvelteMap } from "svelte/reactivity";
     import type { StarRatingFilter, ICollectionResult } from "@shared/types";
     import { show_notification } from "../../../lib/store/notifications";
     import { modals, ModalType } from "../../../lib/utils/modal";
@@ -7,6 +8,7 @@
     import { get_from_osu_collector, get_legacy_collection_data, get_osdb_data } from "../../../lib/utils/collections";
     import { get_player_data, type IPlayerOptions } from "../../../lib/utils/beatmaps";
     import { config } from "../../../lib/store/config";
+    import { core_state } from "../../../lib/store/other.svelte";
     import { string_is_valid } from "../../../lib/utils/utils";
 
     import Input from "../../utils/basic/input.svelte";
@@ -47,11 +49,14 @@
 
     // selection
     let pending_collections = $state<ICollectionResult[]>([]);
-    let selected_collections = $state<string[]>([]);
+    let selected_collections = new SvelteMap<string, ICollectionResult>();
 
-    const { authenticated } = config;
-
-    const collection_options = ["osu!collector", "client", "file", "player"].map((option) => ({ label: option, value: option }));
+    const collection_options = [
+        { label: "osu!collector", value: "osu!collector" },
+        { label: "client", value: "client" },
+        { label: "file", value: "file" },
+        { label: "player", value: "player" }
+    ];
 
     const has_modal = $derived($modals.has(ModalType.get_collection));
     const has_pending = $derived(pending_collections.length > 0);
@@ -76,7 +81,7 @@
 
     // change to osu!collector if player mode requires auth
     $effect(() => {
-        if (collection_type == "player" && !$authenticated) {
+        if (collection_type == "player" && !core_state.osu_web.authenticated) {
             show_notification({ type: "warning", text: "this feature needs you to be authenticated" });
             collection_type = "osu!collector";
         }
@@ -133,16 +138,42 @@
             return;
         }
 
-        const data = result.data.collections.map((c) => {
-            const hashes = c.hash_only_beatmaps.length > 0 ? c.hash_only_beatmaps : c.beatmaps.map((b) => b.checksum);
-            return { name: c.name, beatmaps: hashes, last_modified: 0 };
-        });
+        const data: ICollectionResult[] = [];
+
+        for (const collection of result.data.collections) {
+            const hashes: string[] = [];
+
+            if (collection.hash_only_beatmaps.length > 0) {
+                for (const hash of collection.hash_only_beatmaps) {
+                    hashes.push(hash);
+                }
+            } else {
+                for (const beatmap of collection.beatmaps) {
+                    hashes.push(beatmap.checksum);
+                }
+            }
+
+            data.push({ name: collection.name, beatmaps: hashes, last_modified: 0 });
+        }
 
         process_results(data);
     };
 
     const process_results = (results: ICollectionResult[]) => {
-        pending_collections = results.filter((c) => !collections.has(c.name));
+        const existing_names = new Set<string>();
+        const pending: ICollectionResult[] = [];
+
+        for (const collection of collections.get_all()) {
+            existing_names.add(collection.name);
+        }
+
+        for (const collection of results) {
+            if (!existing_names.has(collection.name)) {
+                pending.push(collection);
+            }
+        }
+
+        pending_collections = pending;
         fetching_status = "";
     };
 
@@ -190,12 +221,31 @@
 
             fetching_status = "creating collection / adding beatmaps";
 
-            const hashes = result.maps.map((b) => b.md5).filter((b) => b != undefined);
+            const hashes: string[] = [];
+
+            for (const beatmap of result.maps) {
+                if (beatmap.md5) {
+                    hashes.push(beatmap.md5);
+                }
+            }
+
+            let player_names = "";
+
+            if (result.players.length == 1) {
+                player_names = result.players[0].username;
+            } else {
+                const names: string[] = [];
+
+                for (const player of result.players) {
+                    names.push(player.username);
+                }
+
+                player_names = names.join(", ");
+            }
+
             const collection_name = string_is_valid(collection_input)
                 ? collection_input
-                : `${
-                      result.players.length == 1 ? result.players[0].username : result.players.map((p) => p.username).join(", ")
-                  } - ${joined_options} (${joined_status})`.substring(0, 64);
+                : `${player_names} - ${joined_options} (${joined_status})`.substring(0, 64);
 
             const create_result = await collections.create_collection(collection_name);
 
@@ -341,7 +391,7 @@
 
     const on_import_pending = async () => {
         try {
-            if (selected_collections.length == 0) {
+            if (selected_collections.size == 0) {
                 show_notification({ type: "warning", text: "select at least one collection" });
                 return;
             }
@@ -350,13 +400,7 @@
 
             let import_count = 0;
 
-            for (const name of selected_collections) {
-                const collection = pending_collections.find((c) => c.name == name);
-
-                if (!collection) {
-                    continue;
-                }
-
+            for (const collection of selected_collections.values()) {
                 const result = await collections.create_collection(collection.name);
 
                 // if we fail, just send a notification
@@ -367,7 +411,7 @@
                 }
 
                 // this cant fail btw
-                await collections.add_beatmaps(collection.name, collection.beatmaps);
+                await collections.add_beatmaps(collection.name, $state.snapshot(collection.beatmaps));
                 import_count++;
             }
 
@@ -385,20 +429,32 @@
         }
     };
 
-    const toggle_selection = (name: string) => {
-        if (selected_collections.includes(name)) {
-            selected_collections = selected_collections.filter((c) => c != name);
-        } else {
-            selected_collections = [...selected_collections, name];
+    const toggle_selection = (collection: ICollectionResult) => {
+        if (selected_collections.has(collection.name)) {
+            selected_collections.delete(collection.name);
+            return;
         }
+
+        selected_collections.set(collection.name, collection);
     };
 
     const toggle_all_selection = () => {
-        if (selected_collections.length === pending_collections.length) {
-            selected_collections = [];
-        } else {
-            selected_collections = pending_collections.map((c) => c.name);
+        if (selected_collections.size == pending_collections.length) {
+            selected_collections.clear();
+            return;
         }
+
+        selected_collections.clear();
+
+        for (const collection of pending_collections) {
+            selected_collections.set(collection.name, collection);
+        }
+    };
+
+    const back_to_collector = () => {
+        pending_collections = [];
+        collection_type = "osu!collector";
+        is_client_fetched = false;
     };
 
     const cleanup = () => {
@@ -412,7 +468,7 @@
         player_input_value = "";
         fetching_status = "";
         pending_collections = [];
-        selected_collections = [];
+        selected_collections.clear();
         is_client_fetched = false;
         modals.hide(ModalType.get_collection);
     };
@@ -443,7 +499,7 @@
                     <div class="header-row">
                         <h1 class="field-label">collections found</h1>
                         <button class="text-btn" onclick={toggle_all_selection}>
-                            {selected_collections.length === pending_collections.length ? "unselect all" : "select all"}
+                            {selected_collections.size == pending_collections.length ? "unselect all" : "select all"}
                         </button>
                     </div>
 
@@ -452,33 +508,21 @@
                             <CollectionCard
                                 name={collection.name}
                                 count={collection.beatmaps.length}
-                                selected={selected_collections.includes(collection.name)}
-                                on_select={() => toggle_selection(collection.name)}
+                                selected={selected_collections.has(collection.name)}
+                                on_select={() => toggle_selection(collection)}
                             />
                         {/each}
                     </div>
 
                     <div class="actions actions-separator">
-                        <button class="primary-btn" onclick={on_import_pending}>import ({selected_collections.length})</button>
-                        <button
-                            onclick={() => {
-                                pending_collections = [];
-                                collection_type = "osu!collector";
-                                is_client_fetched = false;
-                            }}>back</button
-                        >
+                        <button class="primary-btn" onclick={on_import_pending}>import ({selected_collections.size})</button>
+                        <button onclick={back_to_collector}>back</button>
                     </div>
                 </div>
             {:else if collection_type == "client" && is_client_fetched && pending_collections.length == 0 && fetching_status == ""}
                 <div class="empty-state">
                     <span>0 collections found :(</span>
-                    <button
-                        class="text-btn"
-                        onclick={() => {
-                            collection_type = "osu!collector";
-                            is_client_fetched = false;
-                        }}>back</button
-                    >
+                    <button class="text-btn" onclick={back_to_collector}>back</button>
                 </div>
             {:else}
                 <div class="form-container">
@@ -497,7 +541,7 @@
                         {:else if !is_target_initialized}
                             <div class="client-init">
                                 <span>{target_client} client is not initialized yet</span>
-                                <button class="primary-btn" onclick={() => handle_client_initialization()}>initialize</button>
+                                <button class="primary-btn" onclick={handle_client_initialization}>initialize</button>
                             </div>
                         {/if}
                     {/if}
@@ -516,8 +560,8 @@
                             <label class="field-label">player(s)</label>
 
                             <div class="player-input-row">
-                                <Input placeholder={"username"} bind:value={player_input_value} on_submit={() => add_player()} />
-                                <div class="add-button" onclick={() => add_player()}>
+                                <Input placeholder={"username"} bind:value={player_input_value} on_submit={add_player} />
+                                <div class="add-button" onclick={add_player}>
                                     <CrossIcon />
                                 </div>
                             </div>

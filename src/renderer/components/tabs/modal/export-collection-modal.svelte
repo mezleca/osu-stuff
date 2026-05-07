@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { SvelteMap } from "svelte/reactivity";
     import { modals, ModalType } from "../../../lib/utils/modal";
     import { collections } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
@@ -10,30 +11,20 @@
     import Dropdown from "../../utils/basic/dropdown.svelte";
     import CollectionCard from "../../cards/collection-card.svelte";
 
-    let selected_collections = $state<string[]>([]);
+    let selected_collections = new SvelteMap<string, ICollectionResult>();
     let type = $state("db");
 
     const all_collections = $derived(collections.all_collections);
     const has_modal = $derived($modals.has(ModalType.export_collection));
 
     const on_submit = async () => {
-        const to_export: ICollectionResult[] = [];
-
-        for (const name of selected_collections) {
-            const target = collections.get(name);
-
-            if (target) {
-                to_export.push(target);
-            }
-        }
-
-        if (to_export.length == 0) {
+        if (selected_collections.size == 0) {
             show_notification({ type: "error", text: "select at least one collection" });
             return;
         }
 
-        // TODO: generic result
-        const result = await export_collections(to_export, type);
+        const selected_snapshot = $state.snapshot(Array.from(selected_collections.values()));
+        const result = await export_collections(selected_snapshot, type);
 
         if (!result) {
             show_notification({ type: "error", text: "failed to export" });
@@ -44,16 +35,17 @@
         cleanup();
     };
 
-    const toggle_selection = (name: string) => {
-        if (selected_collections.includes(name)) {
-            selected_collections = selected_collections.filter((c) => c != name);
-        } else {
-            selected_collections = [...selected_collections, name];
+    const toggle_selection = (collection: ICollectionResult) => {
+        if (selected_collections.has(collection.name)) {
+            selected_collections.delete(collection.name);
+            return;
         }
+
+        selected_collections.set(collection.name, collection);
     };
 
     const cleanup = () => {
-        selected_collections = [];
+        selected_collections.clear();
         modals.hide(ModalType.export_collection);
     };
 </script>
@@ -70,8 +62,8 @@
                     <CollectionCard
                         name={collection.name}
                         count={collection.beatmaps.length}
-                        selected={selected_collections.includes(collection.name)}
-                        on_select={() => toggle_selection(collection.name)}
+                        selected={selected_collections.has(collection.name)}
+                        on_select={() => toggle_selection(collection)}
                     />
                 {/each}
             </div>

@@ -31,7 +31,7 @@ class Downloader {
     };
 
     add = async (download: IDownloadData) => {
-        if (!config.authenticated) {
+        if (!core_state.osu_web.authenticated) {
             show_notification({ type: "error", text: "not authenticated bro" });
             return;
         }
@@ -79,7 +79,7 @@ class Downloader {
     };
 
     single_download = async (beatmap: IDownloadedBeatmap, notify: boolean = true): Promise<GenericResult<IBeatmapResult>> => {
-        if (!config.authenticated) {
+        if (!core_state.osu_web.authenticated) {
             if (notify) {
                 show_notification({ type: "error", text: "not authenticated bro" });
             }

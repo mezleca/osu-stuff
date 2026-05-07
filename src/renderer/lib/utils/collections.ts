@@ -3,7 +3,15 @@ import { reset_audio_manager } from "../store/audio";
 import { collections } from "../store/collections";
 import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
-import type { GameMode, GenericResult, IBeatmapResult, ICollectionResult, IOsuCollectorCollection, IOsuCollectorTournament } from "@shared/types";
+import type {
+    ExportOptions,
+    GameMode,
+    GenericResult,
+    IBeatmapResult,
+    ICollectionResult,
+    IOsuCollectorCollection,
+    IOsuCollectorTournament
+} from "@shared/types";
 import type { IOsuCollectorResult } from "@shared/types";
 
 import { show_notification } from "../store/notifications";
@@ -177,14 +185,13 @@ export const export_collections = async (collections: ICollectionResult[], type:
     return window.api.invoke("client:export_collections", collections, type);
 };
 
-// TODO: parallel
-export const export_beatmaps = async (collections_name: string[]): Promise<GenericResult<number>> => {
-    if (!collections_name || collections_name.length == 0) {
+export const export_beatmaps = async (options: ExportOptions): Promise<GenericResult<number>> => {
+    if (options.collections.length == 0) {
         return { success: false, reason: "no collections selected" };
     }
 
     try {
-        await window.api.invoke("exporter:start", collections_name);
+        await window.api.invoke("exporter:start", options);
         return { success: true, data: 0 };
     } catch (err) {
         console.error(err);

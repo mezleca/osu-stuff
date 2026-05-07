@@ -4,7 +4,7 @@
     import type { AudioDirection, BeatmapListRef, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
     import { collections } from "../../lib/store/collections";
     import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other.svelte";
-    import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT } from "@shared/types";
+    import { ALL_BEATMAPS_KEY } from "@shared/types";
     import { debounce } from "@shared/timing";
     import { get_radio_background_image, get_radio_card_elements, get_radio_collection_options, push_previous_if_new } from "../../lib/utils/radio";
     import { get_audio_manager } from "../../lib/store/audio";
@@ -29,20 +29,15 @@
 
     const { selected_buffer, previous_buffer, query, sort, should_update, update_reason } = list;
 
-    let selected_beatmap: IBeatmapResult | null = null;
-    let beatmap_list_ref: BeatmapListRef | null = null;
-    let selected: ISelectedBeatmap | null = null;
-    let selected_collection = ALL_BEATMAPS_KEY;
-    let bg = "";
-    let card_elements = BEATMAP_CARD_ELEMENT.CONTEXT_MENU | BEATMAP_CARD_ELEMENT.EXTRA_ACTIONS;
-    let total_beatmaps = 0;
-    let syncing_selected_id = "";
+    let selected_beatmap = $state<IBeatmapResult | null>(null);
+    let beatmap_list_ref = $state<BeatmapListRef | null>(null);
+    let selected_collection = $state($selected_store.name || ALL_BEATMAPS_KEY);
+    let total_beatmaps = $state(0);
 
-    $: selected = $selected_buffer[0];
-    $: selected_collection = $selected_store.name || ALL_BEATMAPS_KEY;
-    $: card_elements = get_radio_card_elements(selected_collection);
-    $: collection_target_options = get_radio_collection_options(collections.get_all());
-    $: bg = get_radio_background_image(selected_beatmap, $config.radio_background);
+    const selected = $derived($selected_buffer[0] ?? null);
+    const card_elements = $derived(get_radio_card_elements(selected_collection));
+    const collection_target_options = $derived(get_radio_collection_options(collections.get_all()));
+    const bg = $derived(get_radio_background_image(selected_beatmap, $config.radio_background));
 
     const debounced_update = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         list.set_target(selected_collection);
@@ -207,58 +202,55 @@
         collections.filter();
     };
 
-    const sync_selected_beatmap = async () => {
-        const selected_id = selected?.id as string | undefined;
+    const is_selected_id_current = (selected_id: string): boolean => {
+        return $selected_buffer[0]?.id == selected_id;
+    };
 
-        if (!selected_id || syncing_selected_id == selected_id) {
+    const sync_selected_beatmap = async (target: ISelectedBeatmap) => {
+        const selected_id = target.id as string | undefined;
+
+        if (!selected_id) {
             return;
         }
 
-        syncing_selected_id = selected_id;
-
-        try {
-            const result = await get_beatmap(selected_id);
-
-            if (!result) {
-                console.error("failed to load beatmap:", selected);
-                return;
-            }
-
-            if (selected?.id != selected_id) {
-                return;
-            }
-
-            selected_beatmap = result;
-
-            if (audio.get_state().id == selected_id) {
-                return;
-            }
-
-            push_to_previous_if_new(selected);
-
-            const audio_result = await audio.load_and_setup_audio(selected_id);
-
-            if (!audio_result) {
-                clear_loaded_beatmap();
-                console.error("failed to load audio...");
-                return;
-            }
-
-            if (selected?.id != selected_id) {
-                return;
-            }
-
-            await audio.play();
-        } finally {
-            if (syncing_selected_id == selected_id) {
-                syncing_selected_id = "";
-            }
+        if (audio.get_state().id == selected_id) {
+            return;
         }
+
+        const result = await get_beatmap(selected_id);
+
+        if (!result) {
+            console.error("failed to load beatmap:", target);
+            return;
+        }
+
+        if (!is_selected_id_current(selected_id)) {
+            return;
+        }
+
+        selected_beatmap = result;
+        push_to_previous_if_new(target);
+
+        const audio_result = await audio.load_and_setup_audio(selected_id);
+
+        if (!audio_result) {
+            if (is_selected_id_current(selected_id)) {
+                clear_loaded_beatmap();
+            }
+
+            console.error("failed to load audio...");
+            return;
+        }
+
+        if (!is_selected_id_current(selected_id)) {
+            return;
+        }
+
+        await audio.play();
     };
 
     const clear_loaded_beatmap = () => {
         selected_beatmap = null;
-        syncing_selected_id = "";
         audio.clean_audio();
     };
 
@@ -266,13 +258,16 @@
         beatmap_list_ref.focus_selected(true);
     };
 
-    $: {
+    $effect(() => {
         if (selected && selected?.index != -1) {
-            sync_selected_beatmap();
-        } else if (!selected || selected?.id == -1) {
-            clear_loaded_beatmap();
+            sync_selected_beatmap(selected);
+            return;
         }
 
+        clear_loaded_beatmap();
+    });
+
+    $effect(() => {
         if (selected_collection) {
             list.set_target(selected_collection);
         }
@@ -285,11 +280,13 @@
             list.set_target(selected_collection);
             collections.select(selected_collection, "radio");
         }
+    });
 
+    $effect(() => {
         if ($should_update) {
             debounced_update($should_update, $update_reason);
         }
-    }
+    });
 
     onMount(() => {
         list.show_unique.set(true);
@@ -309,7 +306,7 @@
             return true;
         });
 
-        const handle_previous_id = input.on("shift+f2", async () => {
+        const handle_previous_id = input.on("shift+f2", () => {
             const index = $previous_buffer.length - 2;
             const data = $previous_buffer[index];
 
@@ -319,7 +316,9 @@
 
             list.select(data);
             list.previous_buffer.update((old) => (old.length > 0 ? old.slice(0, -1) : old));
-            await focus_selected_in_list();
+
+            focus_selected_in_list();
+
             return true;
         });
 

@@ -248,8 +248,8 @@ async function createWindow() {
     handle_ipc("downloader:remove", (_, id) => beatmap_downloader.remove_from_queue(id));
 
     // exporter
-    handle_ipc("exporter:start", (_, collections_name) => beatmap_exporter.start(collections_name));
-    handle_ipc("exporter:cancel", (_) => beatmap_exporter.cancel());
+    handle_ipc("exporter:start", (_, options) => beatmap_exporter.start(options));
+    handle_ipc("exporter:stop", (_, id) => beatmap_exporter.stop("cancelled by user", id));
     handle_ipc("exporter:state", (_) => beatmap_exporter.get_state());
 
     // reader (stable)

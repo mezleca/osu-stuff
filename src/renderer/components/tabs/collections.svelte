@@ -31,8 +31,8 @@
     import EmptyCollectionModal from "./modal/empty-collection-modal.svelte";
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
 
-    let beatmap_list_ref: BeatmapListRef | null = null;
-    let card_elements =
+    let beatmap_list_ref = $state<BeatmapListRef | null>(null);
+    const card_elements =
         BEATMAP_CARD_ELEMENT.STATUS |
         BEATMAP_CARD_ELEMENT.CONTEXT_MENU |
         BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE |
@@ -55,11 +55,11 @@
         should_update: all_should_update
     } = all_beatmapsets;
 
-    $: filtered_collections = collections.collections;
-    $: selected_collection = collections.get_selected_store("collections");
-    $: collection_search = collections.query;
-    $: collection_should_update = collections.needs_update;
-    $: browsing_all_beatmaps = $selected_collection.name == ALL_BEATMAPS_KEY;
+    const filtered_collections = collections.collections;
+    const selected_collection = collections.get_selected_store("collections");
+    const collection_search = collections.query;
+    const collection_should_update = collections.needs_update;
+    const browsing_all_beatmaps = $derived($selected_collection.name == ALL_BEATMAPS_KEY);
 
     const update_beatmaps = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
         if (!string_is_valid($selected_collection.name) || browsing_all_beatmaps) {
@@ -245,24 +245,41 @@
         collections.select(ALL_BEATMAPS_KEY, "collections");
     };
 
-    $: if ($collection_search != undefined) {
+    $effect(() => {
+        if ($collection_search == undefined) {
+            return;
+        }
+
         collections.filter();
-    }
+    });
 
-    $: if ($selected_collection.name && !browsing_all_beatmaps) {
+    $effect(() => {
+        if (!$selected_collection.name || browsing_all_beatmaps) {
+            return;
+        }
+
         list.set_target($selected_collection.name);
-    }
+    });
 
-    $: if (!browsing_all_beatmaps && $selected_collection.name != undefined && $should_update) {
+    $effect(() => {
+        if (browsing_all_beatmaps || $selected_collection.name == undefined || !$should_update) {
+            return;
+        }
+
         update_beatmaps($should_update, $update_reason);
-    }
+    });
 
-    $: if (
-        browsing_all_beatmaps &&
-        ($all_query != undefined || $all_status || $all_sort || $all_difficulty_range || $all_mode || $all_should_update)
-    ) {
+    $effect(() => {
+        const should_update_all =
+            browsing_all_beatmaps &&
+            ($all_query != undefined || $all_status || $all_sort || $all_difficulty_range || $all_mode || $all_should_update);
+
+        if (!should_update_all) {
+            return;
+        }
+
         update_all_beatmapsets($all_should_update);
-    }
+    });
 
     onMount(() => {
         if (!$sort) $sort = "artist";

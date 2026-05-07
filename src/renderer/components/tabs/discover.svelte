@@ -1,27 +1,26 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import { discover } from "../../lib/store/discover";
-    import { config } from "../../lib/store/config";
+    import { core_state } from "../../lib/store/other.svelte";
 
     // components
     import ExpandableMenu from "../utils/expandable-menu.svelte";
     import Search from "../utils/basic/search.svelte";
     import Tags from "../utils/basic/tags.svelte";
     import BeatmapSetList from "../beatmapset-list.svelte";
-    import { onMount } from "svelte";
 
     const languages = discover.get_values("languages").map((name) => ({ label: name, value: name }));
     const categories = discover.get_values("categories").map((name) => ({ label: name, value: name }));
     const genres = discover.get_values("genres").map((name) => ({ label: name, value: name }));
     const modes = discover.get_values("modes").map((name) => ({ label: name, value: name }));
 
-    const authenticated = config.authenticated;
+    const authenticated = $derived(core_state.osu_web.authenticated);
 
-    $: data = discover.data;
-
-    $: language = $data.language;
-    $: category = $data.category;
-    $: genre = $data.genre;
-    $: mode = $data.mode;
+    const data = discover.data;
+    const language = $derived($data.language);
+    const category = $derived($data.category);
+    const genre = $derived($data.genre);
+    const mode = $derived($data.mode);
 
     onMount(() => {
         const current_query = $data.query ?? "";
@@ -30,7 +29,7 @@
 </script>
 
 <div class="content tab-content">
-    {#if !$authenticated}
+    {#if !authenticated}
         <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
             <h1>not authenticated bro</h1>
         </div>

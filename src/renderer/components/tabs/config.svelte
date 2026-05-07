@@ -16,7 +16,18 @@
 
     const { mirrors } = config;
 
-    $: update_data = $update_progress;
+    const update_data = $derived($update_progress);
+    const update_button_text = $derived(
+        update_data.checking
+            ? "checking updates..."
+            : update_data.updating
+              ? "downloading update..."
+              : update_data.installing
+                ? "installing update..."
+                : update_data.available
+                  ? "update osu-stuff"
+                  : "check for updates"
+    );
 
     const handle_text_change = async (key: keyof ManagerConfig, value: string) => {
         await config.set(key, value);
@@ -93,15 +104,6 @@
 
         show_notification({ type: "success", text: "reloaded successfully" });
     };
-
-    $: update_button_text = update_data.available ? "update osu-stuff" : "check for updates";
-    $: if (update_data.checking) {
-        update_button_text = "checking updates...";
-    } else if (update_data.updating) {
-        update_button_text = "downloading update...";
-    } else if (update_data.installing) {
-        update_button_text = "installing update...";
-    }
 </script>
 
 <div class="content tab-content">

@@ -1,5 +1,3 @@
-<svelte:options runes={true} />
-
 <script lang="ts">
     import { fromStore } from "svelte/store";
     import { core_state, set_active_tab } from "../lib/store/other.svelte";

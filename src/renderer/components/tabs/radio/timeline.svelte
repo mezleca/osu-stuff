@@ -20,8 +20,7 @@
 
     import ControlBar from "../../utils/basic/control-bar.svelte";
 
-    export let beatmap: IBeatmapResult | null = null;
-    export let on_selected_click: () => void = null;
+    let { beatmap = null, on_selected_click = null }: { beatmap?: IBeatmapResult | null; on_selected_click?: (() => void) | null } = $props();
 
     const placeholder_image = get_placeholder_image();
 
@@ -29,11 +28,10 @@
     const random_store = audio_manager.random;
     const repeat_store = audio_manager.repeat;
 
-    let audio_state = $audio_manager;
-    let volume_open = false;
+    let volume_open = $state(false);
 
-    $: audio_state = $audio_manager;
-    $: cover_src = beatmap ? get_card_image_source(beatmap, true) : placeholder_image;
+    const audio_state = $derived($audio_manager);
+    const cover_src = $derived(beatmap ? get_card_image_source(beatmap, true) : placeholder_image);
 
     const handle_play_pause = async () => {
         if (!audio_state.id || !audio_state.audio) {

@@ -2,6 +2,8 @@ import { ALL_BEATMAPS_KEY, ALL_MODES_KEY, ALL_STATUS_KEY, GameMode, IBeatmapResu
 
 interface ICoreState {
     window: { active_tab: string; maximized: boolean; reset(): void };
+    export: { is_exporting: boolean };
+    osu_web: { authenticated: boolean; fetching_token: boolean; token: string | null };
 }
 
 export const core_state: ICoreState = $state({
@@ -12,6 +14,14 @@ export const core_state: ICoreState = $state({
             core_state.window.active_tab = "index";
             core_state.window.maximized = false;
         }
+    },
+    export: {
+        is_exporting: false
+    },
+    osu_web: {
+        authenticated: false,
+        fetching_token: false,
+        token: null
     }
 });
 
