@@ -55,7 +55,6 @@
     --header-height: 60px;
     --transition-delay: 0.3s;
     --context-fade-delay: 0.15s;
-    --bounce-transition: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 * {
@@ -114,18 +113,6 @@ main {
     height: 100vh;
     display: flex;
     flex-direction: column;
-}
-
-.row {
-    flex-direction: row !important;
-}
-
-.column {
-    flex-direction: column !important;
-}
-
-.fit {
-    width: fit-content !important;
 }
 
 .header {
@@ -511,8 +498,6 @@ main {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* SCROLLBAR CONFIG */
-
 ::-webkit-scrollbar {
     width: 12px;
 }
@@ -748,7 +733,6 @@ input[type="range"]::-moz-range-track {
     height: 6px;
 }
 
-/* LOADING SCREEN */
 .loading-screen {
     z-index: 99998;
     position: absolute;
@@ -769,53 +753,6 @@ input[type="range"]::-moz-range-track {
     font-family: "Torus Semibold";
 }
 
-/* STATUS COLORS */
-.unsubmitted {
-    background-color: white;
-}
-
-.ranked,
-.approved {
-    background-color: #6bfb70;
-}
-
-.pending {
-    background-color: rgb(233, 227, 67);
-}
-
-.qualified {
-    background-color: rgb(67, 181, 233);
-}
-
-.loved {
-    background-color: rgb(228, 67, 233);
-}
-
-/* SR COLORS */
-.sr1 {
-    background-color: #3eb5e1 !important;
-}
-
-.sr2 {
-    background-color: #c0e13e !important;
-}
-
-.sr3 {
-    background-color: #d03163 !important;
-}
-
-.sr4 {
-    background-color: #5c18b0 !important;
-}
-
-.sr5 {
-    background-color: #011275 !important;
-}
-
-.sr6 {
-    background-color: #222222 !important;
-}
-
 @media (max-width: 1200px) {
     .beatmap-card {
         width: 100%;
@@ -833,20 +770,6 @@ input[type="range"]::-moz-range-track {
 
     .tabs {
         gap: 20px;
-    }
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
-
-    100% {
-        transform: scale(1);
     }
 }
 
