@@ -1,6 +1,6 @@
 import { reset_beatmap_lists } from "../store/beatmaps";
 import { reset_audio_manager } from "../store/audio";
-import { collections } from "../store/collections";
+import { collection_manager } from "../store/collections";
 import { config } from "../store/config";
 import { custom_fetch, string_is_valid } from "./utils";
 import type {
@@ -41,11 +41,11 @@ export const get_osu_data = async (force_load: boolean = false) => {
 
     // update collections data
     const result = await window.api.invoke("client:get_collections", client);
-    collections.set(result);
+    collection_manager.set(result);
 
     // sync update state
     const update_state = await window.api.invoke("client:should_update", client);
-    collections.needs_update.set(update_state);
+    collection_manager.needs_update.set(update_state);
 };
 
 const get_tournament_maps = async (id: number): Promise<GenericResult<IBeatmapResult[]>> => {

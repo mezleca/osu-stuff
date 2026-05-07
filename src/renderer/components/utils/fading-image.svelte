@@ -1,45 +1,42 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
 
-    export let src = "";
-    export let fallback = "";
-    export let class_name = "";
-    export let alt = "";
+    interface Props {
+        src: string;
+        class_name: string;
+        fallback: string;
+        base_color?: string;
+    }
 
-    let display_src = "";
-    let load_id = 0;
+    let { src, fallback, class_name, base_color = "#1f1f1f" }: Props = $props();
 
-    $: if (!src) {
-        load_id++;
-        display_src = fallback;
-    } else {
-        const current_id = ++load_id;
-        const image = new Image();
+    let display_src = $state("");
+    let loaded = $state(false);
 
+    $effect(() => {
+        if (src == display_src) return;
+
+        loaded = false;
         display_src = "";
 
-        image.onload = () => {
-            if (current_id != load_id) {
-                return;
-            }
+        const image = new Image();
 
+        image.onload = () => {
             display_src = src;
+            loaded = true;
         };
 
         image.onerror = () => {
-            if (current_id != load_id) {
-                return;
-            }
-
             display_src = fallback;
+            loaded = true;
         };
 
         image.src = src;
-    }
+    });
 </script>
 
-{#if display_src}
-    {#key display_src}
-        <img class={class_name} src={display_src} {alt} loading="lazy" decoding="async" transition:fade={{ duration: 100 }} />
-    {/key}
+{#if !loaded}
+    <div style="width: 100%; height: 100%; background-color: {base_color};"></div>
+{:else}
+    <img class={class_name} src={display_src} alt="" in:fade={{ duration: 100 }} />
 {/if}

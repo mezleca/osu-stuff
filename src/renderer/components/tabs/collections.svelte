@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
     import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
-    import { collections, type ICollectionWithEdit } from "../../lib/store/collections";
+    import { collection_manager, type ICollectionWithEdit } from "../../lib/store/collections";
     import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
     import { get_beatmap_list, get_beatmapset_list } from "../../lib/store/beatmaps";
     import { show_notification } from "../../lib/store/notifications";
@@ -32,6 +32,7 @@
     import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
 
     let beatmap_list_ref = $state<BeatmapListRef | null>(null);
+
     const card_elements =
         BEATMAP_CARD_ELEMENT.STATUS |
         BEATMAP_CARD_ELEMENT.CONTEXT_MENU |
@@ -55,10 +56,10 @@
         should_update: all_should_update
     } = all_beatmapsets;
 
-    const filtered_collections = collections.collections;
-    const selected_collection = collections.get_selected_store("collections");
-    const collection_search = collections.query;
-    const collection_should_update = collections.needs_update;
+    const collections = collection_manager.collections;
+    const selected_collection = collection_manager.get_selected_store("collections");
+    const collection_search = collection_manager.query;
+    const collection_should_update = collection_manager.needs_update;
     const browsing_all_beatmaps = $derived($selected_collection.name == ALL_BEATMAPS_KEY);
 
     const update_beatmaps = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
@@ -127,7 +128,7 @@
         const new_items = current_items.filter((h) => h != hash);
 
         list.set_items(new_items);
-        collections.filter();
+        collection_manager.filter();
     };
 
     const remove_set_callback = async (id: number) => {
@@ -136,7 +137,7 @@
         const new_items = current_items.filter((md5) => !hashes.includes(md5));
 
         list.set_items(new_items);
-        collections.filter();
+        collection_manager.filter();
     };
 
     const get_collections_options = () => {
@@ -179,7 +180,7 @@
                 enable_edit_mode(id_parts[1]);
                 break;
             case "delete":
-                collections.delete_collection(id_parts[1]);
+                collection_manager.delete_collection(id_parts[1]);
                 break;
             case "export":
                 modals.show(ModalType.export_collection);
@@ -192,7 +193,7 @@
 
     const enable_edit_mode = (name: string) => {
         // get selected collection from context menu
-        const collection = collections.get(name);
+        const collection = collection_manager.get(name);
 
         if (!collection) {
             show_notification({ type: "error", text: "failed to get collection" });
@@ -201,12 +202,12 @@
 
         // update item
         collection.edit = true;
-        collections.replace(collection, true);
+        collection_manager.replace(collection, true);
     };
 
     const handle_rename_collection = async (old_name: string, new_name: string) => {
         // get selected collection from context menu
-        const collection = collections.get(old_name);
+        const collection = collection_manager.get(old_name);
 
         if (!collection) {
             show_notification({ type: "error", text: "failed to get collection" });
@@ -215,11 +216,11 @@
 
         if (old_name == new_name) {
             collection.edit = false;
-            collections.replace(collection, true);
+            collection_manager.replace(collection, true);
             return;
         }
 
-        const result = await collections.rename(old_name, new_name);
+        const result = await collection_manager.rename(old_name, new_name);
 
         if (!result) {
             show_notification({ type: "error", text: "failed to rename collection" });
@@ -238,11 +239,11 @@
             return;
         }
 
-        collections.select(name, "collections");
+        collection_manager.select(name, "collections");
     };
 
     const handle_select_all_beatmaps = () => {
-        collections.select(ALL_BEATMAPS_KEY, "collections");
+        collection_manager.select(ALL_BEATMAPS_KEY, "collections");
     };
 
     $effect(() => {
@@ -250,7 +251,7 @@
             return;
         }
 
-        collections.filter();
+        collection_manager.filter();
     });
 
     $effect(() => {
@@ -317,7 +318,7 @@
         <div class="sidebar-header">
             <Search bind:value={$collection_search} placeholder="search collections" />
             {#if $collection_should_update}
-                <button class="update-btn" onclick={() => collections.update()}>update</button>
+                <button class="update-btn" onclick={collection_manager.update}>update</button>
             {/if}
         </div>
         <div
@@ -329,10 +330,10 @@
             <CollectionCard name="all beatmaps" special={true} selected={browsing_all_beatmaps} on_select={handle_select_all_beatmaps} />
 
             <!-- show collections -->
-            {#if $filtered_collections.length == 0}
-                <p>{$filtered_collections.length} results</p>
+            {#if $collections.length == 0}
+                <p>0 results</p>
             {:else}
-                {#each $filtered_collections as collection}
+                {#each $collections as collection}
                     <div
                         role="button"
                         tabindex="0"

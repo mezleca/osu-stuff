@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import { show_notification } from "../store/notifications";
-import { collections } from "../store/collections";
+import { collection_manager } from "../store/collections";
 import { update_beatmap_lists } from "../store/beatmaps";
 import { quick_confirm } from "./modal";
 import { downloader } from "../store/downloader";
@@ -8,7 +8,8 @@ import type { BeatmapSetResult, IBeatmapResult, IMinimalBeatmapResult, UsersDeta
 
 import LRU from "quick-lru";
 
-const MAX_STAR_RATING_VALUE = 10; // lazer
+const MAX_STAR_RATING_VALUE = 10;
+const MAX_BEATMAP_LOOKUP = 100;
 
 // beatmap result that will be used on preview
 export const beatmap_preview = writable<IBeatmapResult | null>(null);
@@ -34,14 +35,6 @@ export const get_beatmap = async (id: string): Promise<IBeatmapResult | undefine
     return beatmap;
 };
 
-export const invalidate_beatmap = (id: string) => {
-    beatmap_cache.delete(id);
-};
-
-export const invalidate_beatmapset = (id: number) => {
-    beatmapset_cache.delete(id);
-};
-
 export const get_beatmapset = async (id: number): Promise<BeatmapSetResult | undefined> => {
     const cached = beatmapset_cache.get(id);
 
@@ -65,7 +58,7 @@ export const get_missing_beatmaps = async () => {
     let target_name: string = "";
 
     try {
-        for (const collection of get(collections.all_collections)) {
+        for (const collection of get(collection_manager.all_collections)) {
             // search for missing beatmaps on the current collection
             const invalid = await window.api.invoke("client:get_missing_beatmaps", collection.name);
 
@@ -220,14 +213,13 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
 
                 let all_beatmaps: IMinimalBeatmapResult[] = [];
                 let offset = 0;
-                const limit = 100;
                 let has_more = true;
 
                 while (has_more) {
                     const result = await window.api.invoke("web:user_beatmaps", {
                         type,
                         id: player.id,
-                        limit,
+                        limit: MAX_BEATMAP_LOOKUP,
                         offset
                     });
 
@@ -239,10 +231,10 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
                     const built_maps = result.flatMap(build_user_beatmaps);
                     all_beatmaps = [...all_beatmaps, ...built_maps];
 
-                    if (result.length < limit) {
+                    if (result.length < MAX_BEATMAP_LOOKUP) {
                         has_more = false;
                     } else {
-                        offset += limit;
+                        offset += MAX_BEATMAP_LOOKUP;
                     }
 
                     // stop if we reached or exceeded the expected count (if provided)
@@ -259,21 +251,21 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
                 const fetch_firsts = async () => {
                     let collected: any[] = [];
                     let offset = 0;
-                    const limit = 100;
+
                     const total = player.scores_first_count;
 
                     while (collected.length < total) {
                         const scores = await window.api.invoke("web:score_list_user_firsts", {
                             type: "user_firsts",
                             user_id: player.id,
-                            limit,
+                            limit: MAX_BEATMAP_LOOKUP,
                             offset
                         });
 
                         if (!Array.isArray(scores) || scores.length === 0) break;
                         collected = [...collected, ...scores];
-                        if (scores.length < limit) break;
-                        offset += limit;
+                        if (scores.length < MAX_BEATMAP_LOOKUP) break;
+                        offset += MAX_BEATMAP_LOOKUP;
                     }
                     return collected.map(build_score_beatmap);
                 };
@@ -286,22 +278,22 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
                 const fetch_bests = async () => {
                     let collected: any[] = [];
                     let offset = 0;
-                    const limit = 100;
+
                     const total = player.scores_best_count;
 
                     while (collected.length < total) {
                         const scores = await window.api.invoke("web:score_list_user_best", {
                             type: "user_best",
                             user_id: player.id,
-                            limit,
+                            limit: MAX_BEATMAP_LOOKUP,
                             offset
                         });
 
                         if (!Array.isArray(scores) || scores.length === 0) break;
                         collected = [...collected, ...scores];
 
-                        if (scores.length < limit) break;
-                        offset += limit;
+                        if (scores.length < MAX_BEATMAP_LOOKUP) break;
+                        offset += MAX_BEATMAP_LOOKUP;
                     }
                     return collected.map(build_score_beatmap);
                 };
@@ -396,7 +388,7 @@ export const get_player_data = async (data: IPlayerOptions): Promise<IPlayerData
 
 export const remove_beatmap_from_collection = async (md5: string, collection_name?: string): Promise<string> => {
     if (collection_name) {
-        collections.remove_beatmap(collection_name, md5);
+        collection_manager.remove_beatmap(collection_name, md5);
         await window.api.invoke("client:delete_beatmap", { md5, collection: collection_name });
     } else {
         await window.api.invoke("client:delete_beatmap", { md5 });
@@ -416,7 +408,7 @@ export const remove_beatmapset_from_collection = async (id: number, collection_n
     }
 
     for (const md5 of beatmapset.beatmaps) {
-        collections.remove_beatmap(collection_name, md5);
+        collection_manager.remove_beatmap(collection_name, md5);
         await window.api.invoke("client:delete_beatmap", { md5, collection: collection_name });
     }
 

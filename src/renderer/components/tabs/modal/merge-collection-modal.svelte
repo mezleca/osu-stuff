@@ -1,16 +1,17 @@
 <script lang="ts">
     import { SvelteMap } from "svelte/reactivity";
     import { modals, ModalType } from "../../../lib/utils/modal";
-    import { collections } from "../../../lib/store/collections";
+    import { collection_manager } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
-    import type { ICollectionResult } from "@shared/types";
     import Input from "../../utils/basic/input.svelte";
     import CollectionCard from "../../cards/collection-card.svelte";
+
+    import type { ICollectionResult } from "@shared/types";
 
     let name = $state("");
     let selected_collections = new SvelteMap<string, ICollectionResult>();
 
-    const all_collections = $derived(collections.all_collections);
+    const all_collections = $derived(collection_manager.all_collections);
     const has_modal = $derived($modals.has(ModalType.merge_collection));
 
     const on_submit = async () => {
@@ -24,7 +25,7 @@
             return;
         }
 
-        if (collections.get(name)) {
+        if (collection_manager.get(name)) {
             show_notification({ type: "error", text: "this collection already exists!" });
             return;
         }
@@ -37,14 +38,15 @@
             }
         }
 
-        const create_result = await collections.create_collection(name);
+        const create_result = await collection_manager.create_collection(name);
 
         if (!create_result) {
             return;
         }
 
         show_notification({ type: "success", text: `created ${name}` });
-        collections.add_beatmaps(name, Array.from(beatmaps.values()));
+        collection_manager.add_beatmaps(name, Array.from(beatmaps.values()));
+
         cleanup();
     };
 

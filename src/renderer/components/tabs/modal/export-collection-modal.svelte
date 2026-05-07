@@ -1,10 +1,11 @@
 <script lang="ts">
     import { SvelteMap } from "svelte/reactivity";
     import { modals, ModalType } from "../../../lib/utils/modal";
-    import { collections } from "../../../lib/store/collections";
+    import { collection_manager } from "../../../lib/store/collections";
     import { show_notification } from "../../../lib/store/notifications";
     import { export_collections } from "../../../lib/utils/collections";
     import { config } from "../../../lib/store/config";
+
     import type { ICollectionResult } from "@shared/types";
 
     // components
@@ -14,7 +15,7 @@
     let selected_collections = new SvelteMap<string, ICollectionResult>();
     let type = $state("db");
 
-    const all_collections = $derived(collections.all_collections);
+    const all_collections = $derived(collection_manager.all_collections);
     const has_modal = $derived($modals.has(ModalType.export_collection));
 
     const on_submit = async () => {

@@ -2,7 +2,7 @@
     import { onMount, tick } from "svelte";
 
     import type { AudioDirection, BeatmapListRef, BeatmapUpdateReason, IBeatmapResult, ISelectedBeatmap } from "@shared/types";
-    import { collections } from "../../lib/store/collections";
+    import { collection_manager } from "../../lib/store/collections";
     import { FILTER_DATA, SEARCH_DEBOUNCE_INTERVAL } from "../../lib/store/other.svelte";
     import { ALL_BEATMAPS_KEY } from "@shared/types";
     import { debounce } from "@shared/timing";
@@ -24,8 +24,8 @@
 
     const list = get_beatmap_list("radio");
     const audio = get_audio_manager("radio");
-    const selected_store = collections.get_selected_store("radio");
-    const collection_should_update = collections.needs_update;
+    const selected_store = collection_manager.get_selected_store("radio");
+    const collection_should_update = collection_manager.needs_update;
 
     const { selected_buffer, previous_buffer, query, sort, should_update, update_reason } = list;
 
@@ -36,7 +36,7 @@
 
     const selected = $derived($selected_buffer[0] ?? null);
     const card_elements = $derived(get_radio_card_elements(selected_collection));
-    const collection_target_options = $derived(get_radio_collection_options(collections.get_all()));
+    const collection_target_options = $derived(get_radio_collection_options(collection_manager.get_all()));
     const bg = $derived(get_radio_background_image(selected_beatmap, $config.radio_background));
 
     const debounced_update = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
@@ -189,7 +189,8 @@
 
         list.set_items(new_items);
         update_total_beatmaps();
-        collections.filter();
+
+        collection_manager.filter();
     };
 
     const remove_set_callback = async (id: number) => {
@@ -199,7 +200,8 @@
 
         list.set_items(new_items);
         update_total_beatmaps();
-        collections.filter();
+
+        collection_manager.filter();
     };
 
     const is_selected_id_current = (selected_id: string): boolean => {
@@ -210,10 +212,6 @@
         const selected_id = target.id as string | undefined;
 
         if (!selected_id) {
-            return;
-        }
-
-        if (audio.get_state().id == selected_id) {
             return;
         }
 
@@ -229,6 +227,11 @@
         }
 
         selected_beatmap = result;
+
+        if (audio.get_state().id == selected_id) {
+            return;
+        }
+
         push_to_previous_if_new(target);
 
         const audio_result = await audio.load_and_setup_audio(selected_id);
@@ -246,7 +249,7 @@
             return;
         }
 
-        await audio.play();
+        audio.play();
     };
 
     const clear_loaded_beatmap = () => {
@@ -273,12 +276,12 @@
         }
 
         if (selected_collection && $selected_store.name != selected_collection) {
-            if (selected_collection != ALL_BEATMAPS_KEY && !collections.has(selected_collection)) {
+            if (selected_collection != ALL_BEATMAPS_KEY && !collection_manager.has(selected_collection)) {
                 selected_collection = ALL_BEATMAPS_KEY;
             }
 
             list.set_target(selected_collection);
-            collections.select(selected_collection, "radio");
+            collection_manager.select(selected_collection, "radio");
         }
     });
 
@@ -365,7 +368,7 @@
                 <Dropdown inline={true} label={"collection / target"} bind:selected_value={selected_collection} options={collection_target_options} />
 
                 {#if $collection_should_update}
-                    <button class="radio-update-btn" onclick={() => collections.update()}>update</button>
+                    <button class="radio-update-btn" onclick={() => collection_manager.update()}>update</button>
                 {/if}
             </div>
         </div>

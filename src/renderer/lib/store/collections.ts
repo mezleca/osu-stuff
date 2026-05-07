@@ -386,4 +386,4 @@ class CollectionManager {
     }
 }
 
-export const collections = new CollectionManager();
+export const collection_manager = new CollectionManager();

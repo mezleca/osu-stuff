@@ -4,9 +4,6 @@
     import { get_audio_manager } from "../../../lib/store/audio";
     import { clamp, format_time } from "../../../lib/utils/utils";
     import { get_card_image_source, get_placeholder_image } from "../../../lib/utils/card-utils";
-
-    import type { IBeatmapResult } from "@shared/types";
-
     import Play from "../../icon/play.svelte";
     import Pause from "../../icon/pause.svelte";
     import RandomIcon from "../../icon/random-icon.svelte";
@@ -18,9 +15,17 @@
     import SpeakerLow from "../../icon/speaker-low.svelte";
     import Spinner from "../../icon/spinner.svelte";
 
+    import type { IBeatmapResult } from "@shared/types";
+
+    // components
     import ControlBar from "../../utils/basic/control-bar.svelte";
 
-    let { beatmap = null, on_selected_click = null }: { beatmap?: IBeatmapResult | null; on_selected_click?: (() => void) | null } = $props();
+    interface Props {
+        beatmap: IBeatmapResult | null;
+        on_selected_click?: () => void;
+    }
+
+    let { beatmap, on_selected_click }: Props = $props();
 
     const placeholder_image = get_placeholder_image();
 

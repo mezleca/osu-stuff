@@ -15,7 +15,7 @@ import {
 } from "@shared/types";
 import { config } from "./config";
 import { throttle } from "@shared/timing";
-import { collections } from "./collections";
+import { collection_manager } from "./collections";
 
 import LRU from "quick-lru";
 
@@ -106,7 +106,7 @@ export abstract class ListBase<T> {
     abstract reload(): Promise<void>;
 
     check_missing = throttle(async () => {
-        const count = await collections.get_total_missing();
+        const count = await collection_manager.get_total_missing();
         this.total_missing.set(count);
     }, 1000);
 
@@ -503,7 +503,7 @@ export const reset_beatmap_lists = () => {
 };
 
 const refresh_missing_badges = async (): Promise<void> => {
-    const count = await collections.get_total_missing();
+    const count = await collection_manager.get_total_missing();
 
     for (const list of beatmap_managers.values()) {
         list.total_missing.set(count);

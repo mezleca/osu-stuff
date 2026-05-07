@@ -1,11 +1,12 @@
-import type { ContextMenuOption, IBeatmapResult, BeatmapSetResult } from "@shared/types";
-import { collections } from "../store/collections";
+import { collection_manager } from "../store/collections";
 import { open_on_browser } from "./utils";
 import { edit_notification, finish_notification, notification_exists, show_notification } from "../store/notifications";
 import { config } from "../store/config";
 import { beatmap_preview } from "./beatmaps";
 import { modals, ModalType } from "./modal";
 import { get_beatmap_list } from "../store/beatmaps";
+
+import type { ContextMenuOption, IBeatmapResult, BeatmapSetResult } from "@shared/types";
 
 const EXPORT_CARD_NOTIFICATION_ID = "export:single_beatmapset";
 
@@ -19,7 +20,7 @@ const show_or_update_export_card_notification = (data: any) => {
 };
 
 export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show_remove: boolean): ContextMenuOption[] => {
-    const all_collections = collections.get_all();
+    const all_collections = collection_manager.get_all();
     const options: ContextMenuOption[] = [];
 
     if (beatmap) {
@@ -48,7 +49,7 @@ export const get_beatmap_context_options = (beatmap: IBeatmapResult | null, show
 };
 
 export const get_beatmapset_context_options = (show_remove: boolean): ContextMenuOption[] => {
-    const all_collections = collections.get_all();
+    const all_collections = collection_manager.get_all();
     const options: ContextMenuOption[] = [];
 
     options.push({ id: "browser", text: "open on browser" });
@@ -97,7 +98,7 @@ export const handle_card_context_action = async (
                 : [(beatmap as IBeatmapResult).md5];
 
             // add beatmaps to the target collection
-            await collections.add_beatmaps(collection, hashes);
+            await collection_manager.add_beatmaps(collection, hashes);
 
             // set update so if we're on another tab (e.g. browser) we dont have to wait for that
             get_beatmap_list("collections")?.set_update(true, "manual");

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { SvelteMap } from "svelte/reactivity";
-    import { collections } from "../../../lib/store/collections";
+    import { collection_manager } from "../../../lib/store/collections";
     import { downloader } from "../../../lib/store/downloader";
     import { config } from "../../../lib/store/config";
     import { modals, ModalType } from "../../../lib/utils/modal";
@@ -28,7 +28,7 @@
         if (has_modal) {
             loading = true;
 
-            collections
+            collection_manager
                 .get_missing()
                 .then((result) => (missing_collections = result))
                 .catch(() => show_notification({ type: "error", text: "failed to fetch missing beatmaps" }))

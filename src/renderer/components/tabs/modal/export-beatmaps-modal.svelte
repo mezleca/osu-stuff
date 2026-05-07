@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { SvelteMap } from "svelte/reactivity";
     import { modals, ModalType } from "../../../lib/utils/modal";
-    import { collections } from "../../../lib/store/collections";
+    import { collection_manager } from "../../../lib/store/collections";
     import { export_beatmaps } from "../../../lib/utils/collections";
     import { core_state } from "../../../lib/store/other.svelte";
     import { stop_export } from "../../../lib/store/export_progress";
@@ -17,7 +17,7 @@
 
     let selected_collections = new SvelteMap<string, ICollectionResult>();
 
-    const all_collections = $derived(collections.all_collections);
+    const all_collections = $derived(collection_manager.all_collections);
     const has_modal = $derived($modals.has(ModalType.export_beatmaps));
     const is_exporting = $derived(core_state.export.is_exporting);
 

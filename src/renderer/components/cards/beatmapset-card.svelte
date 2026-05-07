@@ -203,7 +203,7 @@
         onmouseleave={handle_mouseleave}
     >
         <div class="beatmap-card-header" style="height: {height}px;">
-            <div class="beatmap-card-image-frame" style="background-image: url({placeholder_image});">
+            <div class="beatmap-card-image-frame">
                 <FadingImage class_name="beatmap-card-background" src={state.background} fallback={placeholder_image} />
             </div>
 

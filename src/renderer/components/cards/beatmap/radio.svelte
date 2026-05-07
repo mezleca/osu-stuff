@@ -33,7 +33,7 @@
             </div>
         {/if}
 
-        <div class="cover-frame" style="background-image: url({placeholder_image});">
+        <div class="cover-frame">
             <FadingImage class_name="cover-image" src={background} fallback={placeholder_image} />
         </div>
 

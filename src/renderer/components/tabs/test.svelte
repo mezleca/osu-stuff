@@ -4,7 +4,7 @@
     import { context_menu_manager } from "../../lib/store/context-menu";
     import { downloader } from "../../lib/store/downloader";
     import { ModalType, modals } from "../../lib/utils/modal";
-    import { collections } from "../../lib/store/collections";
+    import { collection_manager } from "../../lib/store/collections";
     import { string_is_valid } from "../../lib/utils/utils";
     import { beatmap_preview, get_beatmap } from "../../lib/utils/beatmaps";
     import { config } from "../../lib/store/config";
@@ -14,15 +14,15 @@
     let download_id = 0;
 
     const add_download = () => {
-        const amt = Math.floor(Math.random() * 100) || 1;
+        const amt = Math.floor(Math.random() * 100) ?? 1;
         const test_beatmaps = beatmaps.splice(0, amt);
         downloader.add({ id: `test download (${download_id++})`, beatmaps: test_beatmaps });
     };
 
     const show_beatmap_preview = async () => {
         try {
-            // attempt to get a random ass beatmap
-            const c = collections.get_all();
+            // get a random ass beatmap
+            const c = collection_manager.get_all();
 
             for (const collection of c) {
                 if (collection.beatmaps.length === 0) continue;

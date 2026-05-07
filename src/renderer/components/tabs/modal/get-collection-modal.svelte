@@ -1,15 +1,16 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { SvelteMap } from "svelte/reactivity";
-    import type { StarRatingFilter, ICollectionResult } from "@shared/types";
     import { show_notification } from "../../../lib/store/notifications";
     import { modals, ModalType } from "../../../lib/utils/modal";
-    import { collections } from "../../../lib/store/collections";
+    import { collection_manager } from "../../../lib/store/collections";
     import { get_from_osu_collector, get_legacy_collection_data, get_osdb_data } from "../../../lib/utils/collections";
     import { get_player_data, type IPlayerOptions } from "../../../lib/utils/beatmaps";
     import { config } from "../../../lib/store/config";
     import { core_state } from "../../../lib/store/other.svelte";
     import { string_is_valid } from "../../../lib/utils/utils";
+
+    import type { StarRatingFilter, ICollectionResult } from "@shared/types";
 
     import Input from "../../utils/basic/input.svelte";
     import Dropdown from "../../utils/basic/dropdown.svelte";
@@ -163,7 +164,7 @@
         const existing_names = new Set<string>();
         const pending: ICollectionResult[] = [];
 
-        for (const collection of collections.get_all()) {
+        for (const collection of collection_manager.get_all()) {
             existing_names.add(collection.name);
         }
 
@@ -247,14 +248,14 @@
                 ? collection_input
                 : `${player_names} - ${joined_options} (${joined_status})`.substring(0, 64);
 
-            const create_result = await collections.create_collection(collection_name);
+            const create_result = await collection_manager.create_collection(collection_name);
 
             if (!create_result) {
                 return;
             }
 
             show_notification({ type: "success", text: `created ${collection_name}` });
-            await collections.add_beatmaps(collection_name, hashes);
+            await collection_manager.add_beatmaps(collection_name, hashes);
 
             cleanup();
         } catch (err) {
@@ -324,23 +325,21 @@
             const { name, checksums } = collection_data.data;
             const new_name = string_is_valid(collection_input) ? collection_input : name;
 
-            if (collections.get(new_name)) {
+            if (collection_manager.get(new_name)) {
                 show_notification({ type: "warning", text: new_name + " already exists!" });
                 return;
             }
 
             fetching_status = "creating collection...";
 
-            const create_result = await collections.create_collection(new_name);
+            const create_result = await collection_manager.create_collection(new_name);
 
             if (!create_result) {
                 return;
             }
 
             show_notification({ type: "success", text: `created ${new_name}` });
-
-            // this will not fail
-            await collections.add_beatmaps(new_name, checksums);
+            await collection_manager.add_beatmaps(new_name, checksums);
 
             cleanup();
         } catch (err) {
@@ -401,7 +400,7 @@
             let import_count = 0;
 
             for (const collection of selected_collections.values()) {
-                const result = await collections.create_collection(collection.name);
+                const result = await collection_manager.create_collection(collection.name);
 
                 // if we fail, just send a notification
                 // should be enough for now
@@ -410,8 +409,7 @@
                     continue;
                 }
 
-                // this cant fail btw
-                await collections.add_beatmaps(collection.name, $state.snapshot(collection.beatmaps));
+                await collection_manager.add_beatmaps(collection.name, $state.snapshot(collection.beatmaps));
                 import_count++;
             }
 
