@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import shutil
+import subprocess
+import platform
+import argparse
+
+from pathlib import Path
+
+CWD = Path.cwd()
+SYSTEM = platform.system()
+
+BUILD_DIR = CWD / "build"
+SOURCE_DIR = CWD
+BINARY_NAME = "osu-stuff"
+
+def run(cmd: str, check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
+    print(f"exec: {cmd}")
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        env=env,
+        capture_output=capture,
+        text=capture,
+        cwd=str(CWD) if SYSTEM == "Windows" else None,
+    )
+
+    if check and result.returncode != 0:
+        print(f"command failed with exit code {result.returncode}")
+        sys.exit(result.returncode)
+
+    return result.returncode, result.stdout or ""
+
+def tool_exists(tool: str) -> None:
+    if shutil.which(tool) is None:
+        raise Exception(f"{tool} not found in PATH")
+
+def cmake_list(items: list[str]) -> str:
+    return "\\;".join(items)
+
+def get_cpu_count() -> int:
+    if SYSTEM == "Linux":
+        result = subprocess.run("nproc", shell=True, capture_output=True, text=True)
+        cores = result.stdout.strip()
+        return int(cores) if cores.isdigit() else os.cpu_count() or 4
+    return os.cpu_count() or 4
+
+def read_cached_build_type() -> str | None:
+    cache = BUILD_DIR / "CMakeCache.txt"
+    if not cache.exists():
+        return None
+
+    for line in cache.read_text(errors="replace").splitlines():
+        if line.startswith("CMAKE_BUILD_TYPE:STRING="):
+            return line.split("=", 1)[1].strip().lower()
+
+    return None
+
+def init() -> int:
+    print("initializing submodules...")
+
+    if Path(".gitmodules").exists() and run("git submodule update --init --recursive", check=False)[0] != 0:
+        print("failed to initialize submodules")
+        return 1
+
+    tool_exists("cmake")
+    tool_exists("ninja")
+
+    if SYSTEM == "Windows":
+        tool_exists("gcc")
+        tool_exists("g++")
+        tool_exists("windres")
+    else:
+        tool_exists("clang")
+
+    return 0
+
+def format_code() -> int:
+    return run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")[0]
+
+def clean() -> int:
+    if not BUILD_DIR.exists():
+        print("build directory doesn't exist")
+        return 0
+
+    print("removing build directory...")
+
+    try:
+        shutil.rmtree(BUILD_DIR)
+        return 0
+    except PermissionError:
+        print("permission denied")
+        return 1
+
+def configure_linux(build_type: str) -> int:
+    cache = BUILD_DIR / "CMakeCache.txt"
+
+    if cache.exists():
+        cache.unlink()
+
+    BUILD_DIR.mkdir(exist_ok=True)
+    cmake_type = "Debug" if build_type == "debug" else "Release"
+    cmd = [
+        "cmake -Wno-dev -G Ninja",
+        f"-B {BUILD_DIR}",
+        f"-S {SOURCE_DIR}",
+        f"-DCMAKE_BUILD_TYPE={cmake_type}",
+        "-DCMAKE_C_COMPILER=clang",
+        "-DCMAKE_CXX_COMPILER=clang++",
+        f"-DOUTPUT_NAME={BINARY_NAME}",
+    ]
+    return run(" ".join(cmd))[0]
+
+def configure_windows(build_type: str) -> int:
+    cache = BUILD_DIR / "CMakeCache.txt"
+
+    if cache.exists():
+        cache.unlink()
+
+    BUILD_DIR.mkdir(exist_ok=True)
+
+    cmake_type = "Debug" if build_type == "debug" else "Release"
+
+    cmd = [
+        "cmake -Wno-dev -G Ninja",
+        f"-B {BUILD_DIR}",
+        f"-S {SOURCE_DIR}",
+        f"-DCMAKE_BUILD_TYPE={cmake_type}",
+        f"-DOUTPUT_NAME={BINARY_NAME}"
+    ]
+
+    return run(" ".join(cmd))[0]
+
+def configure(build_type: str, target_platform: str) -> int:
+    is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
+    is_linux   = target_platform == "linux"   or (target_platform == "auto" and SYSTEM == "Linux")
+
+    if is_windows:
+        return configure_windows(build_type)
+
+    if is_linux:
+        return configure_linux(build_type)
+
+    print(f"unsupported platform: {SYSTEM}")
+    return 1
+
+def build(build_type: str | None) -> int:
+    cached = read_cached_build_type()
+
+    if cached is None:
+        if configure(build_type or "release", "auto") != 0:
+            return 1
+    elif build_type is not None and build_type != cached:
+        if configure(build_type, "auto") != 0:
+            return 1
+
+    return run(f"ninja -C {BUILD_DIR} -j{get_cpu_count()}")[0]
+
+def run_binary() -> int:
+    candidates: list[Path] = []
+
+    if SYSTEM == "Linux":
+        candidates = [BUILD_DIR / BINARY_NAME, BUILD_DIR / f"{BINARY_NAME}.exe"]
+    elif SYSTEM == "Windows":
+        candidates = [
+            BUILD_DIR / f"{BINARY_NAME}.exe",
+            BUILD_DIR / "Release" / f"{BINARY_NAME}.exe",
+            BUILD_DIR / "Debug"   / f"{BINARY_NAME}.exe",
+        ]
+    else:
+        print(f"unsupported platform: {SYSTEM}")
+        return 1
+
+    binary = next((p for p in candidates if p.exists()), None)
+
+    if binary is None:
+        print("binary not found")
+        return 1
+
+    return run(str(binary))[0]
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="build script for c++ projects")
+
+    parser.add_argument("command", choices=["init", "configure", "format", "build", "clean", "run", "test"])
+    parser.add_argument("--type", choices=["debug", "release"], default=None, dest="build_type")
+    parser.add_argument("--platform", choices=["auto", "linux", "windows"], default="auto")
+    parser.add_argument("--run", action="store_true")
+
+    args = parser.parse_args()
+
+    commands = {
+        "init":      init,
+        "configure": lambda: configure(args.build_type or "release", args.platform),
+        "build":     lambda: build(args.build_type),
+        "format":    format_code,
+        "clean":     clean,
+        "run":       run_binary,
+        "test":      run_binary,
+    }
+
+    exit_code = commands[args.command]()
+
+    if args.command == "build" and exit_code == 0 and args.run:
+        exit_code = run_binary()
+
+    sys.exit(exit_code)
+
+if __name__ == "__main__":
+    main()

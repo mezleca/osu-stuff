@@ -1,0 +1,9 @@
+[submodule "vendor/imgui"]
+	path = vendor/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "vendor/utf8proc"]
+	path = vendor/utf8proc
+	url = https://github.com/JuliaStrings/utf8proc
+[submodule "vendor/miniz"]
+	path = vendor/miniz
+	url = https://github.com/richgel999/miniz
