@@ -126,6 +126,8 @@ def configure_linux(build_type: str) -> int:
         "cmake -Wno-dev -G Ninja",
         f"-B {BUILD_DIR}",
         f"-S {SOURCE_DIR}",
+        "-DREALM_NO_TESTS=ON",
+        "-DREALM_CPP_NO_TESTS=ON",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",

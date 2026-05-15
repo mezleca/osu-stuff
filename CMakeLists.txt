@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
+    set(OUTPUT_NAME "${PROJECT_NAME}")
+endif()
+
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
@@ -15,8 +19,8 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
+# manually build sdl on windows
 if(WIN32)
-    # manually build sdl on windows
     add_subdirectory(vendor/SDL)
 else()
     find_package(SDL3 REQUIRED)
@@ -35,8 +39,6 @@ add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
 
-include(FetchContent)
-
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
 
@@ -47,8 +49,9 @@ add_executable(${PROJECT_NAME}
     ${IMGUI_BACKEND_SOURCES}
 )
 
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUTPUT_NAME}")
+
 target_include_directories(${PROJECT_NAME} PRIVATE
-    vendor/*/include/
     vendor/imgui/
     vendor/imgui/backends
 )
@@ -82,21 +85,21 @@ if(MSVC)
 
     target_compile_options(cpprealm PRIVATE /Zc:preprocessor)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+
+        $<$<CONFIG:Debug>:-O0 -g3>
+        $<$<CONFIG:Release>:-O2 -DNDEBUG>
+    )
 endif()
 
+# https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
 if(WIN32)
-    # https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
         VERBATIM
     )
 endif()
-
-# TODO: clangd works fine without this on zed editor, still need to check vscode tought
-add_custom_target(copy_compile_commands ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_BINARY_DIR}/compile_commands.json
-    ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-)
