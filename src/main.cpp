@@ -1,8 +1,8 @@
 #include "ui/ui.hpp"
 
-#include <iostream>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
+#include <iostream>
 
 #define DEFAULT_WIDTH 1280
 #define DEFAULT_HEIGHT 720
@@ -24,8 +24,10 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-    SDL_WindowFlags window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-    SDL_Window* window = SDL_CreateWindow("osu-stuff", (int)(DEFAULT_WIDTH * main_scale), (int)(DEFAULT_HEIGHT * main_scale), window_flags);
+    SDL_WindowFlags window_flags =
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    SDL_Window* window = SDL_CreateWindow("osu-stuff", (int)(DEFAULT_WIDTH * main_scale),
+                                          (int)(DEFAULT_HEIGHT * main_scale), window_flags);
 
     if (window == nullptr) {
         std::cout << "SDL_CreateWindow(): " << SDL_GetError() << "\n";
@@ -52,7 +54,8 @@ int main() {
         while (SDL_PollEvent(&event)) {
             ui->process_sdl_event(&event);
             if (event.type == SDL_EVENT_QUIT) ui->exit();
-            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window)) ui->exit();
+            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window))
+                ui->exit();
         }
 
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {

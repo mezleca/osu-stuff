@@ -2,6 +2,7 @@
 
 #include "client.hpp"
 
+#include <filesystem>
 #include <vector>
 
 class StableClient : public ClientBase {
@@ -9,10 +10,13 @@ class StableClient : public ClientBase {
     explicit StableClient(ClientOptions options);
 
     [[nodiscard]] const char* player_name() const override;
-    [[nodiscard]] std::vector<std::string> search_beatmaps(const SearchOptions& options) override;
     [[nodiscard]] std::vector<std::string> get_missing_beatmaps(std::string_view collection_name) override;
+    [[nodiscard]] bool update_collection() override;
 
   private:
+    void load_beatmaps(const std::filesystem::path& database_path);
+    void load_collections(const std::filesystem::path& database_path);
+
     ClientOptions m_options;
     std::string m_player_name;
 };

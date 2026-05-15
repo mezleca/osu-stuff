@@ -122,7 +122,7 @@ struct HitObject {
     int end_time = 0;
 };
 
-struct OsuBeatmap {
+struct ParsedBeatmap {
     int version = 14;
     GeneralSection general;
     EditorSection editor;
@@ -192,10 +192,10 @@ inline const std::unordered_set<std::string>& get_special_keys() {
 }
 
 namespace beatmap_parser {
-bool parse(std::string location);
-bool write();
+    bool parse(std::string location);
+    bool write();
 
-inline OsuBeatmap* data;
-inline std::string location;
-inline std::string last_error;
+    inline ParsedBeatmap* data;
+    inline std::string location;
+    inline std::string last_error;
 }; // namespace beatmap_parser

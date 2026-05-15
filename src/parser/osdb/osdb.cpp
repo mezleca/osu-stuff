@@ -2,9 +2,9 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "osdb.hpp"
 #include "../../utils/binary.hpp"
 #include "../../utils/gzip.hpp"
+#include "osdb.hpp"
 
 static bool ends_with(const std::string& value, const char* suffix) {
     const size_t suffix_len = std::strlen(suffix);

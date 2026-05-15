@@ -41,10 +41,8 @@ void UI::render() {
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
-                                ImGuiWindowFlags_NoMove |
-                                ImGuiWindowFlags_NoResize |
-                                ImGuiWindowFlags_NoSavedSettings;
+    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
     static const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
     ImGui::SetNextWindowPos(viewport->WorkPos);

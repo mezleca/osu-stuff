@@ -16,6 +16,6 @@ struct OsuLegacyCollection {
 };
 
 namespace legacy_collection_parser {
-bool parse(const std::string location, OsuLegacyCollection* data);
-bool write(const std::string location, OsuLegacyCollection* data);
+    bool parse(const std::string location, OsuLegacyCollection* data);
+    bool write(const std::string location, OsuLegacyCollection* data);
 }; // namespace legacy_collection_parser

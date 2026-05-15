@@ -32,9 +32,9 @@ struct OsdbData {
 };
 
 namespace osdb_parser {
-bool parse(std::string location);
-bool write();
+    bool parse(std::string location);
+    bool write();
 
-inline OsdbData* data;
-inline std::string location("");
+    inline OsdbData* data;
+    inline std::string location("");
 }; // namespace osdb_parser

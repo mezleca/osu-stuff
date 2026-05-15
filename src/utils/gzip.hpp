@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 #include <miniz.h>
+#include <vector>
 
 namespace binary {
     inline bool gzip_decompress(const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
@@ -185,7 +185,8 @@ namespace binary {
             return false;
         }
 
-        // GZIP header: ID1=0x1F, ID2=0x8B, CM=0x08 (deflate), FLG=0, MTIME=0, XFL=0, OS=255 (unknown).
+        // GZIP header: ID1=0x1F, ID2=0x8B, CM=0x08 (deflate), FLG=0, MTIME=0, XFL=0,
+        // OS=255 (unknown).
         const uint8_t header[10] = {0x1F, 0x8B, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF};
 
         std::vector<uint8_t> temp_output;
@@ -227,4 +228,4 @@ namespace binary {
         output.swap(temp_output);
         return true;
     }
-}
+} // namespace binary

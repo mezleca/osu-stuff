@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace realm {
-struct db;
+    struct db;
 }
 
 class LazerClient : public ClientBase {
@@ -16,8 +16,8 @@ class LazerClient : public ClientBase {
     ~LazerClient() override;
 
     [[nodiscard]] const char* player_name() const override;
-    [[nodiscard]] std::vector<std::string> search_beatmaps(const SearchOptions& options) override;
     [[nodiscard]] std::vector<std::string> get_missing_beatmaps(std::string_view collection_name) override;
+    [[nodiscard]] bool update_collection() override;
 
   private:
     ClientOptions m_options;

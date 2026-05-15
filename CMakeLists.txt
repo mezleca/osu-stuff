@@ -5,115 +5,187 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
+    set(OUTPUT_NAME "${PROJECT_NAME}")
+endif()
+
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
 find_package(OpenGL REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(SDL3 QUIET)
-find_package(libuv QUIET)
 
-if(NOT libuv_FOUND)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBUV REQUIRED libuv)
+# manually build sdl on windows
+if(WIN32)
+    add_subdirectory(vendor/SDL)
+else()
+    find_package(SDL3 REQUIRED)
 endif()
 
+# setup imgui sources / backends
 file(GLOB IMGUI_CORE_SOURCES "vendor/imgui/*.cpp")
 set(IMGUI_BACKEND_SOURCES
     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
     "vendor/imgui/backends/imgui_impl_opengl3.cpp"
 )
 
+# setup submodules
+add_subdirectory(vendor/fmt)
 add_subdirectory(vendor/miniz)
+add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
 
-include(FetchContent)
-
-if(WIN32)
-    FetchContent_Declare(
-        cpprealm
-        URL "https://github.com/mezleca/rel-builds/releases/download/realm-cpp-2.2.0-2/realm-cpp-2.2.0-x64-windows-msvc-static.tar.gz"
-    )
-else()
-    FetchContent_Declare(
-        cpprealm
-        URL "https://github.com/mezleca/rel-builds/releases/download/realm-cpp-2.2.0-2/realm-cpp-2.2.0-x64-linux-clang-shared.tar.gz"
-    )
-endif()
-
-FetchContent_Populate(cpprealm)
-
-set(CPPREALM_INCLUDE_DIR "${cpprealm_SOURCE_DIR}/include")
-set(CPPREALM_LIBRARY_DIR "${cpprealm_SOURCE_DIR}/lib")
-
-if(WIN32)
-    set(CPPREALM_LIBRARY "${CPPREALM_LIBRARY_DIR}/cpprealm.lib")
-    file(GLOB CPPREALM_EXTRA_LIBRARIES CONFIGURE_DEPENDS "${CPPREALM_LIBRARY_DIR}/*.lib")
-else()
-    set(CPPREALM_LIBRARY "${CPPREALM_LIBRARY_DIR}/libcpprealm.a")
-    file(GLOB CPPREALM_EXTRA_LIBRARIES CONFIGURE_DEPENDS "${CPPREALM_LIBRARY_DIR}/*.a")
-endif()
-
-list(REMOVE_ITEM CPPREALM_EXTRA_LIBRARIES "${CPPREALM_LIBRARY}")
-
-add_library(cpprealm STATIC IMPORTED GLOBAL)
-set_target_properties(cpprealm PROPERTIES
-    IMPORTED_LOCATION "${CPPREALM_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${CPPREALM_INCLUDE_DIR}"
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
+    "src/clients/*.cpp"
+    "src/parser/*.cpp"
 )
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
+file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS
+    "src/clients/*.hpp"
+    "src/parser/*.hpp"
+    "src/schemas/*.hpp"
+    "src/utils/*.hpp"
+)
+
+add_library(${PROJECT_NAME}_core STATIC
+    ${CORE_SOURCES}
+    ${CORE_HEADERS}
+)
+
+target_link_libraries(${PROJECT_NAME}_core PUBLIC
+    cpprealm
+    miniz
+    utf8proc
+    fmt::fmt
+)
 
 add_executable(${PROJECT_NAME}
-    ${SOURCES}
-    ${HEADERS}
+    src/main.cpp
+    src/ui/ui.cpp
+    src/ui/ui.hpp
     ${IMGUI_CORE_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-    vendor/imgui
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUTPUT_NAME}")
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    vendor/imgui/
     vendor/imgui/backends
 )
 
-if(SDL3_FOUND AND TARGET SDL3::SDL3)
-    set(SDL3_LINK_TARGET SDL3::SDL3)
-else()
-    set(SDL3_LINK_TARGET ${SDL3_LIBRARIES})
-    target_include_directories(${PROJECT_NAME} PUBLIC ${SDL3_INCLUDE_DIRS})
-endif()
-
-if(libuv_FOUND AND TARGET libuv::libuv)
-    set(LIBUV_LINK_TARGET libuv::libuv)
-else()
-    set(LIBUV_LINK_TARGET ${LIBUV_LIBRARIES})
-    target_include_directories(${PROJECT_NAME} PUBLIC ${LIBUV_INCLUDE_DIRS})
-endif()
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    cpprealm
-    ${CPPREALM_EXTRA_LIBRARIES}
-    miniz
-    utf8proc
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    ZLIB::ZLIB
-    ${SDL3_LINK_TARGET}
-    ${LIBUV_LINK_TARGET}
+    ${PROJECT_NAME}_core
     OpenGL::GL
+    SDL3::SDL3
 )
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive-)
+    target_compile_definitions(${PROJECT_NAME}_core PRIVATE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        VC_EXTRALEAN
+    )
+
+    # set defs for osu-stuff app
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        VC_EXTRALEAN
+    )
+
+    # set options for osu-stuff core
+    target_compile_options(${PROJECT_NAME}_core PRIVATE
+        /W4
+        /EHsc
+        /utf-8
+        /wd5105
+        /Zc:preprocessor
+
+        $<$<CONFIG:Debug>:/Z7>
+        $<$<CONFIG:Release>:/O2 /DNDEBUG>
+    )
+
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        /W4
+        /EHsc
+        /utf-8
+        /wd5105
+        /Zc:preprocessor
+
+        $<$<CONFIG:Debug>:/Z7>
+        $<$<CONFIG:Release>:/O2 /DNDEBUG>
+    )
+
+    # TOFIX: is this actually needed? pretty sure realm-cpp already set this
+    target_compile_options(cpprealm PRIVATE /Zc:preprocessor)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(${PROJECT_NAME}_core PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+
+        $<$<CONFIG:Debug>:-O0 -g3>
+        $<$<CONFIG:Release>:-O2 -DNDEBUG>
+    )
+
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+
+        $<$<CONFIG:Debug>:-O0 -g3>
+        $<$<CONFIG:Release>:-O2 -DNDEBUG>
+    )
 endif()
 
-add_custom_target(copy_compile_commands ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_BINARY_DIR}/compile_commands.json
-    ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-)
+# https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
+if(WIN32)
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        VERBATIM
+    )
+endif()
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_subdirectory(vendor/realm-cpp/Catch2 EXCLUDE_FROM_ALL)
+
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
+    add_custom_target(${PROJECT_NAME}-test-data
+        COMMAND "${CMAKE_COMMAND}"
+            -DPROJECT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+            -DPROJECT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/fetch_test_data.cmake"
+        VERBATIM
+    )
+
+    add_executable(${PROJECT_NAME}-tests
+        ${TEST_SOURCES}
+    )
+
+    add_dependencies(${PROJECT_NAME}-tests ${PROJECT_NAME}-test-data)
+
+    target_link_libraries(${PROJECT_NAME}-tests PRIVATE
+        ${PROJECT_NAME}_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(${PROJECT_NAME}-tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vendor/realm-cpp/Catch2/extras")
+    include(Catch)
+
+    catch_discover_tests(${PROJECT_NAME}-tests
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}-tests>"
+        DISCOVERY_MODE PRE_TEST
+    )
+endif()

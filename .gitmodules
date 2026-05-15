@@ -7,3 +7,12 @@
 [submodule "vendor/miniz"]
 	path = vendor/miniz
 	url = https://github.com/richgel999/miniz
+[submodule "vendor/SDL"]
+	path = vendor/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "vendor/realm-cpp"]
+	path = vendor/realm-cpp
+	url = https://github.com/mezleca/realm-cpp
+[submodule "vendor/fmt"]
+	path = vendor/fmt
+	url = https://github.com/fmtlib/fmt

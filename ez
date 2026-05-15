@@ -24,6 +24,7 @@ def run(cmd: str, check: bool = True, env: dict | None = None, capture: bool = F
         env=env,
         capture_output=capture,
         text=capture,
+        encoding="utf-8",
         cwd=str(CWD) if SYSTEM == "Windows" else None,
     )
 
@@ -58,6 +59,25 @@ def read_cached_build_type() -> str | None:
 
     return None
 
+def load_msvc_env() -> dict:
+    env = os.environ.copy()
+    vcvarsall = get_vcvarsall_script()
+
+    if not vcvarsall:
+        print("warn: failed to get vcvarsall script")
+        return env
+
+    _, stdout = run(f'"{str(vcvarsall)}" x64 && set', capture=True)
+
+    for line in stdout.splitlines():
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        env[key] = value
+
+    return env
+
 def init() -> int:
     print("initializing submodules...")
 
@@ -69,16 +89,17 @@ def init() -> int:
     tool_exists("ninja")
 
     if SYSTEM == "Windows":
-        tool_exists("gcc")
-        tool_exists("g++")
-        tool_exists("windres")
+        if not get_vcvarsall_script():
+            print("vcvarsall.bat not found")
+            return 1
     else:
         tool_exists("clang")
 
     return 0
 
-def format_code() -> int:
-    return run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")[0]
+def format_code() -> None:
+    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")[0]
+    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")[0]
 
 def clean() -> int:
     if not BUILD_DIR.exists():
@@ -106,6 +127,8 @@ def configure_linux(build_type: str) -> int:
         "cmake -Wno-dev -G Ninja",
         f"-B {BUILD_DIR}",
         f"-S {SOURCE_DIR}",
+        "-DREALM_NO_TESTS=ON",
+        "-DREALM_CPP_NO_TESTS=ON",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
@@ -113,8 +136,22 @@ def configure_linux(build_type: str) -> int:
     ]
     return run(" ".join(cmd))[0]
 
+def get_vcvarsall_script():
+    candidates = (
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat")
+    )
+
+    for p in candidates:
+        if p.exists():
+            return p
+
+    return None
+
 def configure_windows(build_type: str) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
+    env = load_msvc_env()
 
     if cache.exists():
         cache.unlink()
@@ -127,11 +164,13 @@ def configure_windows(build_type: str) -> int:
         "cmake -Wno-dev -G Ninja",
         f"-B {BUILD_DIR}",
         f"-S {SOURCE_DIR}",
+        "-DREALM_NO_TESTS=ON",
+        "-DREALM_CPP_NO_TESTS=ON",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}"
     ]
 
-    return run(" ".join(cmd))[0]
+    return run(" ".join(cmd), env=env)[0]
 
 def configure(build_type: str, target_platform: str) -> int:
     is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
@@ -156,7 +195,8 @@ def build(build_type: str | None) -> int:
         if configure(build_type, "auto") != 0:
             return 1
 
-    return run(f"ninja -C {BUILD_DIR} -j{get_cpu_count()}")[0]
+    env = load_msvc_env() if SYSTEM == "Windows" else None
+    return run(f"cmake --build {BUILD_DIR} --parallel {get_cpu_count()}", env=env)[0]
 
 def run_binary() -> int:
     candidates: list[Path] = []
@@ -181,6 +221,19 @@ def run_binary() -> int:
 
     return run(str(binary))[0]
 
+def run_tests(build_type: str | None) -> int:
+    if build(build_type) != 0:
+        return 1
+
+    env = load_msvc_env() if SYSTEM == "Windows" else None
+    build_type_flag = ""
+
+    cached = read_cached_build_type()
+    if cached is not None:
+        build_type_flag = f" -C {'Debug' if cached == 'debug' else 'Release'}"
+
+    return run(f"ctest --test-dir {BUILD_DIR} --output-on-failure{build_type_flag}", env=env)[0]
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
 
@@ -198,7 +251,7 @@ def main() -> None:
         "format":    format_code,
         "clean":     clean,
         "run":       run_binary,
-        "test":      run_binary,
+        "test":      lambda: run_tests(args.build_type),
     }
 
     exit_code = commands[args.command]()
