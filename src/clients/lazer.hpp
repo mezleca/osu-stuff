@@ -11,18 +11,16 @@ struct db;
 }
 
 class LazerClient : public ClientBase {
-public:
-  explicit LazerClient(ClientOptions options);
-  ~LazerClient() override;
+  public:
+    explicit LazerClient(ClientOptions options);
+    ~LazerClient() override;
 
-  [[nodiscard]] const char *player_name() const override;
-  [[nodiscard]] std::vector<std::string>
-  search_beatmaps(const SearchOptions &options) override;
-  [[nodiscard]] std::vector<std::string>
-  get_missing_beatmaps(std::string_view collection_name) override;
+    [[nodiscard]] const char* player_name() const override;
+    [[nodiscard]] std::vector<std::string> search_beatmaps(const SearchOptions& options) override;
+    [[nodiscard]] std::vector<std::string> get_missing_beatmaps(std::string_view collection_name) override;
 
-private:
-  ClientOptions m_options;
-  std::string m_player_name;
-  std::unique_ptr<realm::db> m_realm;
+  private:
+    ClientOptions m_options;
+    std::string m_player_name;
+    std::unique_ptr<realm::db> m_realm;
 };
