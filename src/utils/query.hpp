@@ -1,25 +1,27 @@
 #pragma once
 
-#include <bitset>
 #include <climits>
+#include <string>
 #include <string_view>
 #include <vector>
 
 enum class QueryOp : int { INVALID = -1, EQ, NEQ, GT, LT, GTE, LTE };
 enum class ParseState : int { KEY = 0, VALUE };
 
-static constexpr std::bitset<256> make_op_start_table() {
-    std::bitset<256> table{};
+struct OpStartTable {
+    bool data[256]{};
 
-    table.set('>');
-    table.set('<');
-    table.set('=');
-    table.set('!');
+    constexpr OpStartTable() {
+        data['>'] = true;
+        data['<'] = true;
+        data['='] = true;
+        data['!'] = true;
+    }
 
-    return table;
-}
+    constexpr bool operator[](unsigned char c) const { return data[c]; }
+};
 
-static auto OP_START_TABLE = make_op_start_table();
+static constexpr OpStartTable OP_START_TABLE{};
 
 struct QueryToken {
     std::string key;

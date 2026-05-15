@@ -5,6 +5,7 @@
 #include "../schemas/lazer.hpp"
 
 #include <optional>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -110,7 +111,7 @@ struct OsuBeatmap {
     int beatmap_id = 0;
 
     void build_search() {
-        searchable = std::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
+        searchable = fmt::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
                                                              artist, artist_unicode, creator, difficulty, source, tags,
                                                              difficulty_id, beatmap_id);
     }

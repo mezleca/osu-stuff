@@ -98,7 +98,7 @@ std::vector<std::string> LazerClient::get_missing_beatmaps(std::string_view coll
         }
 
         for (const std::string& hash : collection->second->hashes) {
-            if (!m_beatmaps.contains(hash)) {
+            if (m_beatmaps.find(hash) != m_beatmaps.end()) {
                 missing.push_back(hash);
             }
         }
@@ -108,7 +108,7 @@ std::vector<std::string> LazerClient::get_missing_beatmaps(std::string_view coll
 
     for (const auto& [_, collection] : m_collections) {
         for (auto& hash : collection->hashes) {
-            if (!m_beatmaps.contains(hash)) {
+            if (m_beatmaps.find(hash) != m_beatmaps.end()) {
                 missing.push_back(hash);
             }
         }
