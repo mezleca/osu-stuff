@@ -8,5 +8,6 @@ DerivePointerAlignment: false
 IndentCaseLabels: true
 PointerAlignment: Left
 SortIncludes: false
+NamespaceIndentation: All
 FixNamespaceComments: true
 AlwaysBreakTemplateDeclarations: Yes

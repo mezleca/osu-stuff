@@ -2,7 +2,9 @@
 
 #include "../parser/legacy/legacy.hpp"
 #include "../schemas/lazer.hpp"
+#include "../utils/binary.hpp"
 #include "../utils/query.hpp"
+#include "./detail.hpp"
 
 #include <fmt/format.h>
 #include <optional>
@@ -10,21 +12,6 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-enum class BeatmapStatus : int {
-    UKNOWN = 0,
-    UNSUBMITTED,
-    GRAVEYARD,
-    WIP,
-    PENDING,
-    UNUSED,
-    RANKED,
-    APPROVED,
-    QUALIFIED,
-    LOVED
-};
-
-enum class Gamemode : int { OSU = 0, TAIKO, CATCH, MANIA };
 
 struct OsuCollection {
     std::string name;
@@ -37,7 +24,7 @@ struct OsuCollection {
     X(std::string, title)                                                                                              \
     X(std::string, creator)                                                                                            \
     X(std::string, difficulty)                                                                                         \
-    X(Gamemode, mode)                                                                                                  \
+    X(BeatmapGamemode, mode)                                                                                           \
     X(BeatmapStatus, status)                                                                                           \
     X(double, approach_rate, "ar")                                                                                     \
     X(double, circle_size, "cs")                                                                                       \
@@ -49,7 +36,7 @@ struct OsuCollection {
 struct OsuBeatmap {
     // stable -> result
     explicit OsuBeatmap(const LegacyBeatmap& b)
-        : artist(b.artist), title(b.title), creator(b.creator), difficulty(b.difficulty), mode((Gamemode)b.mode),
+        : artist(b.artist), title(b.title), creator(b.creator), difficulty(b.difficulty), mode((BeatmapGamemode)b.mode),
           status((BeatmapStatus)b.status), approach_rate(b.approach_rate), circle_size(b.circle_size),
           overall_difficulty(b.overall_difficulty), hp_drain(b.hp_drain), audio_file_name(b.audio_file_name),
           md5(b.md5), source(b.source), osu_file_name(b.osu_file_name), tags(b.tags), searchable(""),
@@ -61,30 +48,28 @@ struct OsuBeatmap {
     }
 
     // lazer -> result
-    explicit OsuBeatmap(const realm::Beatmap& b)
-        : artist(b.Metadata->Artist.value_or("")), title(b.Metadata->Title.value_or("")),
-          creator(b.Metadata->Author->Username.value_or("")), difficulty(b.DifficultyName.value_or("")),
-          mode([&]() -> Gamemode {
-              auto s = b.Ruleset->ShortName.value;
-              if (s == "taiko") return Gamemode::TAIKO;
-              if (s == "fruits") return Gamemode::CATCH;
-              if (s == "mania") return Gamemode::MANIA;
-              return Gamemode::OSU;
-          }()),
-          status((BeatmapStatus)b.Status), approach_rate(b.Difficulty->ApproachRate),
-          circle_size(b.Difficulty->CircleSize), overall_difficulty(b.Difficulty->OverallDifficulty),
-          hp_drain(b.Difficulty->DrainRate), audio_file_name(b.Metadata->AudioFile.value_or("")),
-          md5(b.MD5Hash.value_or("")), source(b.Metadata->Source.value_or("")), osu_file_name(""), // to be filled later
-          tags(b.Metadata->Tags.value_or("")), searchable(""), artist_unicode(b.Metadata->ArtistUnicode.value_or("")),
-          title_unicode(b.Metadata->TitleUnicode.value_or("")), last_modification_time([&]() -> int64_t {
-              if (!b.LastLocalUpdate.has_value()) return 0;
-              return std::chrono::duration_cast<std::chrono::milliseconds>(b.LastLocalUpdate->time_since_epoch())
-                  .count();
-          }()),
-          slider_velocity(b.Difficulty->SliderMultiplier), hitcircle(0), sliders((int)b.EndTimeObjectCount),
-          spinners(0), drain_time((int)b.Length), total_time((int)b.Length), duration(b.Length),
-          audio_preview_time((int)b.Metadata->PreviewTime), difficulty_id((int)b.OnlineID),
-          beatmap_id(b.BeatmapSet ? (int)b.BeatmapSet->OnlineID : 0) {
+    explicit OsuBeatmap(const realm::managed<realm::Beatmap>& b)
+        : artist(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Artist) : ""),
+          title(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Title) : ""),
+          creator(b.Metadata && b.Metadata->Author ? client_detail::detach_or_empty(b.Metadata->Author->Username) : ""),
+          difficulty(client_detail::detach_or_empty(b.DifficultyName)), mode(client_detail::detach_mode(b.Ruleset)),
+          status((BeatmapStatus)b.Status.detach()),
+          approach_rate(b.Difficulty ? b.Difficulty->ApproachRate.detach() : 0.0),
+          circle_size(b.Difficulty ? b.Difficulty->CircleSize.detach() : 0.0),
+          overall_difficulty(b.Difficulty ? b.Difficulty->OverallDifficulty.detach() : 0.0),
+          hp_drain(b.Difficulty ? b.Difficulty->DrainRate.detach() : 0.0),
+          audio_file_name(b.Metadata ? client_detail::detach_or_empty(b.Metadata->AudioFile) : ""),
+          md5(client_detail::detach_or_empty(b.MD5Hash)),
+          source(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Source) : ""), osu_file_name(""),
+          tags(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Tags) : ""), searchable(""),
+          artist_unicode(b.Metadata ? client_detail::detach_or_empty(b.Metadata->ArtistUnicode) : ""),
+          title_unicode(b.Metadata ? client_detail::detach_or_empty(b.Metadata->TitleUnicode) : ""),
+          last_modification_time(client_detail::detach_time_ms(b.LastLocalUpdate)),
+          slider_velocity(b.Difficulty ? b.Difficulty->SliderMultiplier.detach() : 0.0), hitcircle(0),
+          sliders((int)b.EndTimeObjectCount.detach()), spinners(0), drain_time((int)b.Length.detach()),
+          total_time((int)b.Length.detach()), duration(b.Length.detach()),
+          audio_preview_time(b.Metadata ? (int)b.Metadata->PreviewTime.detach() : 0),
+          difficulty_id((int)b.OnlineID.detach()), beatmap_id(b.BeatmapSet ? (int)b.BeatmapSet->OnlineID.detach() : 0) {
     }
 
 #define X(type, name, ...) type name;
@@ -111,8 +96,9 @@ struct OsuBeatmap {
     int beatmap_id = 0;
 
     void build_search() {
-        searchable = fmt::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode, artist, artist_unicode, creator,
-                                 difficulty, source, tags, difficulty_id, beatmap_id);
+        searchable = binary::normalize_and_lower(fmt::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
+                                                             artist, artist_unicode, creator, difficulty, source, tags,
+                                                             difficulty_id, beatmap_id));
     }
 };
 
@@ -148,22 +134,23 @@ class ClientBase {
     virtual ~ClientBase() = default;
 
     [[nodiscard]] virtual const char* player_name() const = 0;
-    [[nodiscard]] virtual std::vector<std::string> search_beatmaps(const SearchOptions& options) = 0;
+    [[nodiscard]] virtual std::vector<std::string> search_beatmaps(const SearchOptions& options);
     [[nodiscard]] virtual std::vector<std::string> get_missing_beatmaps(std::string_view collection_name) = 0;
-    [[nodiscard]] virtual OsuCollection* get_collection(std::string_view name) = 0;
-    [[nodiscard]] virtual bool add_collection(OsuCollection* collection) = 0;
-    [[nodiscard]] virtual bool delete_collection(std::string_view name) = 0;
-    [[nodiscard]] virtual bool update_collection() = 0;
-    [[nodiscard]] virtual OsuBeatmap* get_beatmap(std::string md5) = 0;
-    [[nodiscard]] virtual OsuBeatmap* get_beatmap_by_id(int id) = 0;
-    [[nodiscard]] virtual OsuBeatmapSet* get_beatmapset(int id) = 0;
-    [[nodiscard]] virtual std::vector<OsuCollection*> get_collections() = 0;
-
-    [[nodiscard]] std::vector<OsuBeatmap*> search_beatmaps(SearchOptions data);
+    [[nodiscard]] virtual OsuCollection* get_collection(std::string_view name);
+    [[nodiscard]] virtual bool add_collection(OsuCollection* collection);
+    [[nodiscard]] virtual bool delete_collection(std::string_view name);
+    [[nodiscard]] virtual bool update_collection();
+    [[nodiscard]] virtual OsuBeatmap* get_beatmap(std::string md5);
+    [[nodiscard]] virtual OsuBeatmap* get_beatmap_by_id(int id);
+    [[nodiscard]] virtual OsuBeatmapSet* get_beatmapset(int id);
+    [[nodiscard]] virtual std::vector<OsuCollection*> get_collections();
 
   protected:
+    [[nodiscard]] std::vector<OsuBeatmap*> filter_beatmaps(const SearchOptions& data);
+
     // TOFIX: move criteria related stuff to another class / struct
     void fill_criteria_table();
+    void rebuild_beatmapsets_from_beatmaps();
 
     void clear_criteria_table() {
         criteria_table.clear();

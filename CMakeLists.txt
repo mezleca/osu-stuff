@@ -39,12 +39,34 @@ add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
+    "src/clients/*.cpp"
+    "src/parser/*.cpp"
+)
+
+file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS
+    "src/clients/*.hpp"
+    "src/parser/*.hpp"
+    "src/schemas/*.hpp"
+    "src/utils/*.hpp"
+)
+
+add_library(${PROJECT_NAME}_core STATIC
+    ${CORE_SOURCES}
+    ${CORE_HEADERS}
+)
+
+target_link_libraries(${PROJECT_NAME}_core PUBLIC
+    cpprealm
+    miniz
+    utf8proc
+    fmt::fmt
+)
 
 add_executable(${PROJECT_NAME}
-    ${SOURCES}
-    ${HEADERS}
+    src/main.cpp
+    src/ui/ui.cpp
+    src/ui/ui.hpp
     ${IMGUI_CORE_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
 )
@@ -57,19 +79,35 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    cpprealm
-    miniz
-    utf8proc
-    fmt::fmt
+    ${PROJECT_NAME}_core
     OpenGL::GL
     SDL3::SDL3
 )
 
 if(MSVC)
+    target_compile_definitions(${PROJECT_NAME}_core PRIVATE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        VC_EXTRALEAN
+    )
+
+    # set defs for osu-stuff app
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         WIN32_LEAN_AND_MEAN
         NOMINMAX
         VC_EXTRALEAN
+    )
+
+    # set options for osu-stuff core
+    target_compile_options(${PROJECT_NAME}_core PRIVATE
+        /W4
+        /EHsc
+        /utf-8
+        /wd5105
+        /Zc:preprocessor
+
+        $<$<CONFIG:Debug>:/Z7>
+        $<$<CONFIG:Release>:/O2 /DNDEBUG>
     )
 
     target_compile_options(${PROJECT_NAME} PRIVATE
@@ -83,8 +121,18 @@ if(MSVC)
         $<$<CONFIG:Release>:/O2 /DNDEBUG>
     )
 
+    # TOFIX: is this actually needed? pretty sure realm-cpp already set this
     target_compile_options(cpprealm PRIVATE /Zc:preprocessor)
 else()
+    target_compile_options(${PROJECT_NAME}_core PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+
+        $<$<CONFIG:Debug>:-O0 -g3>
+        $<$<CONFIG:Release>:-O2 -DNDEBUG>
+    )
+
     target_compile_options(${PROJECT_NAME} PRIVATE
         -Wall
         -Wextra
@@ -101,5 +149,43 @@ if(WIN32)
         TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
         VERBATIM
+    )
+endif()
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_subdirectory(vendor/realm-cpp/Catch2 EXCLUDE_FROM_ALL)
+
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
+    add_custom_target(${PROJECT_NAME}-test-data
+        COMMAND "${CMAKE_COMMAND}"
+            -DPROJECT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+            -DPROJECT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/fetch_test_data.cmake"
+        VERBATIM
+    )
+
+    add_executable(${PROJECT_NAME}-tests
+        ${TEST_SOURCES}
+    )
+
+    add_dependencies(${PROJECT_NAME}-tests ${PROJECT_NAME}-test-data)
+
+    target_link_libraries(${PROJECT_NAME}-tests PRIVATE
+        ${PROJECT_NAME}_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(${PROJECT_NAME}-tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vendor/realm-cpp/Catch2/extras")
+    include(Catch)
+
+    catch_discover_tests(${PROJECT_NAME}-tests
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}-tests>"
+        DISCOVERY_MODE PRE_TEST
     )
 endif()

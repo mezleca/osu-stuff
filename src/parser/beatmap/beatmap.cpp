@@ -539,7 +539,7 @@ bool beatmap_parser::parse(std::string location) {
 
     const int parsed_version = parse_version(content);
 
-    *data = OsuBeatmap();
+    *data = ParsedBeatmap();
     data->version = parsed_version;
     data->general = parse_general(get_section(content, "General"));
     data->editor = parse_editor(get_section(content, "Editor"));

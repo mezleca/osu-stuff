@@ -2,40 +2,32 @@
 #include "../schemas/lazer.hpp"
 
 #include <cpprealm/db.hpp>
-
 #include <exception>
 #include <utility>
 
 std::unique_ptr<OsuCollection> make_collection(const realm::BeatmapCollection& collection) {
-    std::vector<std::string> hashes;
-    hashes.reserve(collection.BeatmapMD5Hashes.size());
+    auto result = std::make_unique<OsuCollection>();
+
+    result->name = collection.Name.value_or("");
+    result->hashes.reserve(collection.BeatmapMD5Hashes.size());
 
     for (auto& hash : collection.BeatmapMD5Hashes) {
-        if (hash) hashes.push_back(std::move(*hash));
+        if (hash) {
+            result->hashes.push_back(std::move(*hash));
+        }
     }
 
-    return std::make_unique<OsuCollection>(collection.Name.value_or(""), hashes);
+    return result;
 }
 
-std::unique_ptr<OsuBeatmap> make_beatmap(const realm::Beatmap& beatmap) {
-    return std::make_unique<OsuBeatmap>(beatmap);
-}
-
-std::unique_ptr<OsuBeatmapSet> make_beatmapset(const realm::BeatmapSet& beatmap) {
-    std::vector<OsuBeatmap*> beatmaps;
-
-    auto& ref = beatmap.Beatmaps[0];
-    if (!ref) return nullptr;
-
-    return std::make_unique<OsuBeatmapSet>(ref->Metadata->Artist.value_or(""),
-                                           ref->Metadata->ArtistUnicode.value_or(""), ref->Metadata->Title.value_or(""),
-                                           ref->Metadata->TitleUnicode.value_or(""),
-                                           ref->Metadata->Author->Username.value_or(""), ref->OnlineID, beatmaps);
+std::unique_ptr<OsuBeatmap> make_beatmap(const realm::managed<realm::Beatmap>& source) {
+    auto result = std::make_unique<OsuBeatmap>(source);
+    result->build_search();
+    return result;
 }
 
 LazerClient::LazerClient(ClientOptions options) : m_options(std::move(options)) {
     if (m_options.lazer_realm_path.empty()) {
-        // set_error("lazer_realm_path is required", RESULT_INVALID_ARGUMENT);
         return;
     }
 
@@ -58,20 +50,27 @@ LazerClient::LazerClient(ClientOptions options) : m_options(std::move(options)) 
         for (auto beatmap : beatmaps) {
             std::optional<std::string> md5 = beatmap.MD5Hash.detach();
 
-            if (md5 && !md5->empty()) {
-                auto b = make_beatmap(beatmap.detach());
-                m_beatmaps.emplace(std::string(*md5), std::move(b));
+            if (!md5 || md5->empty()) {
+                continue;
             }
+
+            auto stored = make_beatmap(beatmap);
+            m_beatmaps.emplace(*md5, std::move(stored));
         }
 
         auto collections = m_realm->objects<realm::BeatmapCollection>();
 
         for (auto collection : collections) {
-            auto c = make_collection(collection.detach());
-            m_collections.emplace(std::string(c->name), std::move(c));
+            auto stored = make_collection(collection.detach());
+            m_collections.emplace(stored->name, std::move(stored));
         }
-    } catch (const std::exception& error) {
-        // set_error(error.what(), RESULT_INTERNAL_ERROR);
+
+        rebuild_beatmapsets_from_beatmaps();
+        fill_criteria_table();
+    } catch (const std::exception&) {
+        m_beatmaps.clear();
+        m_collections.clear();
+        m_beatmapsets.clear();
     }
 }
 
@@ -81,36 +80,35 @@ const char* LazerClient::player_name() const {
     return m_player_name.c_str();
 }
 
-std::vector<std::string> LazerClient::search_beatmaps(const SearchOptions&) {
-    return {};
-}
-
 std::vector<std::string> LazerClient::get_missing_beatmaps(std::string_view collection_name) {
     std::vector<std::string> missing;
 
-    if (!collection_name.empty()) {
-        const auto collection = m_collections.find(std::string(collection_name));
-
-        if (collection == m_collections.end()) {
-            return {};
-        }
-
-        for (const std::string& hash : collection->second->hashes) {
-            if (m_beatmaps.find(hash) != m_beatmaps.end()) {
+    auto append_missing = [this, &missing](const OsuCollection& collection) {
+        for (const auto& hash : collection.hashes) {
+            if (m_beatmaps.find(hash) == m_beatmaps.end()) {
                 missing.push_back(hash);
             }
         }
+    };
 
+    if (!collection_name.empty()) {
+        const auto* collection = get_collection(collection_name);
+
+        if (collection == nullptr) {
+            return {};
+        }
+
+        append_missing(*collection);
         return missing;
     }
 
     for (const auto& [_, collection] : m_collections) {
-        for (auto& hash : collection->hashes) {
-            if (m_beatmaps.find(hash) != m_beatmaps.end()) {
-                missing.push_back(hash);
-            }
-        }
+        append_missing(*collection);
     }
 
     return missing;
+}
+
+bool LazerClient::update_collection() {
+    return false;
 }
