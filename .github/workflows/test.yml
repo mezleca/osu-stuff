@@ -1,0 +1,49 @@
+name: test
+
+on:
+    workflow_dispatch:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v6
+
+            - name: setup sccache
+              uses: mozilla-actions/sccache-action@v0.0.10
+
+            - name: install system dependencies (ubuntu)
+              if: runner.os == 'Linux'
+              run: |
+                sudo apt-get update
+                sudo apt-get update && sudo apt-get install -y \
+                build-essential cmake ninja-build libgl1-mesa-dev \
+                libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev \
+                libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+                libegl1-mesa-dev libdecor-0-dev libxtst-dev \
+
+            - name: build & install SDL3 (ubuntu 24.04 doesn't have it yet)
+              if: runner.os == 'Linux'
+              run: |
+                git clone --depth=1 --branch release-3.4.8 https://github.com/libsdl-org/SDL
+                cmake -S SDL -B SDL/build -DSDL_SHARED=ON -DSDL_STATIC=OFF
+                cmake --build SDL/build -j$(nproc)
+                sudo cmake --install SDL/build
+
+            - name: setup env
+              run: python ./ez init
+
+            - name: test
+              run: python ./ez test
+
+            - name: sccache stats
+              run: sccache --show-stats

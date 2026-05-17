@@ -1,4 +1,4 @@
-include("${PROJECT_SOURCE_DIR}/tests/cmake/assets.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/assets.cmake")
 
 set(TEST_ARCHIVE_DIR "${PROJECT_BINARY_DIR}/test-downloads")
 set(TEST_ARCHIVE_PATH "${TEST_ARCHIVE_DIR}/data.tar.gz")
