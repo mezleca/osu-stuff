@@ -15,6 +15,7 @@ SYSTEM = platform.system()
 BUILD_DIR = CWD / "build"
 SOURCE_DIR = CWD
 BINARY_NAME = "osu-stuff"
+IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 
 def run(cmd: str, check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
     print(f"exec: {cmd}")
@@ -166,6 +167,8 @@ def configure_windows(build_type: str) -> int:
         f"-S {SOURCE_DIR}",
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
+        f'{"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
+        f'{"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}"
     ]
@@ -235,6 +238,9 @@ def run_tests(build_type: str | None) -> int:
     return run(f"ctest --test-dir {BUILD_DIR} --output-on-failure{build_type_flag}", env=env)[0]
 
 def main() -> None:
+    if IS_CI:
+        print("[debug] running on ci :D")
+
     parser = argparse.ArgumentParser(description="build script for c++ projects")
 
     parser.add_argument("command", choices=["init", "configure", "format", "build", "clean", "run", "test"])

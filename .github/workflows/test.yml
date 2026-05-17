@@ -1,0 +1,34 @@
+name: test
+
+on:
+    workflow_dispatch:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v6
+
+            - name: setup sccache
+              uses: mozilla-actions/sccache-action@v0.10.0
+
+            - name: install system dependencies (ubuntu)
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential python3 make g++
+
+            - name: test
+              run: python ./ez test
+
+            - name: sccache stats
+              run: sccache --show-stats
