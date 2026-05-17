@@ -27,7 +27,9 @@ jobs:
                 sudo apt-get update
                 sudo apt-get update && sudo apt-get install -y \
                 build-essential cmake ninja-build libgl1-mesa-dev \
-                libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev
+                libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev \
+                libx11-dev \ libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+                libegl1-mesa-dev libdecor-0-dev \
 
             - name: build & install SDL3 (ubuntu 24.04 doesn't have it yet)
               if: runner.os == 'Linux'
