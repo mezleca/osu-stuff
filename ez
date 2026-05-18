@@ -3,7 +3,6 @@
 import os
 import sys
 import shutil
-import shlex
 import subprocess
 import platform
 import argparse
@@ -11,6 +10,7 @@ import tarfile
 import urllib.request
 
 from pathlib import Path
+from typing import Sequence
 
 CWD = Path.cwd()
 SYSTEM = platform.system()
@@ -31,11 +31,12 @@ TEST_DATA_MARKERS = (
     TEST_DATA_DIR / "lazer" / "client.realm",
 )
 
-def run(cmd: str, check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
-    print(f"exec: {cmd}")
+def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
+    display = cmd if isinstance(cmd, str) else subprocess.list2cmdline(list(cmd))
+    print(f"exec: {display}")
     result = subprocess.run(
         cmd,
-        shell=True,
+        shell=isinstance(cmd, str),
         env=env,
         capture_output=capture,
         text=capture,
@@ -62,9 +63,6 @@ def get_cpu_count() -> int:
         cores = result.stdout.strip()
         return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
-
-def join_cmd(parts: list[str]) -> str:
-    return shlex.join(parts)
 
 def build_configure_cmd(build_type: str) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
@@ -224,7 +222,7 @@ def configure_linux(build_type: str) -> int:
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
     ])
-    return run(join_cmd(cmd))[0]
+    return run(cmd)[0]
 
 def get_vcvarsall_script():
     candidates = (
@@ -248,7 +246,7 @@ def configure_windows(build_type: str) -> int:
 
     BUILD_DIR.mkdir(exist_ok=True)
     cmd = build_configure_cmd(build_type)
-    return run(join_cmd(cmd), env=env)[0]
+    return run(cmd, env=env)[0]
 
 def configure(build_type: str, target_platform: str) -> int:
     is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
@@ -274,7 +272,13 @@ def build(build_type: str | None) -> int:
             return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
-    return run(f"cmake --build {BUILD_DIR} --parallel {get_cpu_count()}", env=env)[0]
+    return run([
+        "cmake",
+        "--build",
+        str(BUILD_DIR),
+        "--parallel",
+        str(get_cpu_count()),
+    ], env=env)[0]
 
 def run_binary() -> int:
     candidates: list[Path] = []
@@ -306,13 +310,18 @@ def run_tests(build_type: str | None) -> int:
     ensure_test_data()
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
-    build_type_flag = ""
-
     cached = read_cached_build_type()
-    if cached is not None:
-        build_type_flag = f" -C {'Debug' if cached == 'debug' else 'Release'}"
+    cmd = [
+        "ctest",
+        "--test-dir",
+        str(BUILD_DIR),
+        "--output-on-failure",
+    ]
 
-    return run(f"ctest --test-dir {BUILD_DIR} --output-on-failure{build_type_flag}", env=env)[0]
+    if cached is not None:
+        cmd.extend(["-C", "Debug" if cached == "debug" else "Release"])
+
+    return run(cmd, env=env)[0]
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
