@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(USE_VENDORED_SDL "force vendored sdl" OFF)
+
 find_program(CCACHE_PROGRAM ccache)
 
 if(CCACHE_PROGRAM)
@@ -26,8 +28,7 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
-# manually build sdl on windows
-if(WIN32)
+if(WIN32 OR USE_VENDORED_SDL)
     add_subdirectory(vendor/SDL)
 else()
     find_package(SDL3 REQUIRED)

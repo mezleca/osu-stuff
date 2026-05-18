@@ -194,8 +194,11 @@ def configure_linux(build_type: str) -> int:
         f"-S {SOURCE_DIR}",
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
+        {"-DUSE_VENDORED_SDL=ON" if IS_CI else ""},
         "-DSDL_SHARED=ON",
         "-DSDL_STATIC=OFF",
+        {"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
+        {"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
@@ -235,8 +238,9 @@ def configure_windows(build_type: str) -> int:
         "-DREALM_CPP_NO_TESTS=ON",
         "-DSDL_SHARED=ON",
         "-DSDL_STATIC=OFF",
-        f'{"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
-        f'{"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
+        {"-DUSE_VENDORED_SDL=ON" if IS_CI else ""},
+        {"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
+        {"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}"
     ]

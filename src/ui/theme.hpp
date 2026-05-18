@@ -20,7 +20,7 @@ namespace ui_theme {
     constexpr ImVec4 BG_COLOR = ImVec4{30.0f / 255.0f, 30.0f / 255.0f, 30.0f / 255.0f, 1.0f};
     constexpr ImVec4 BG_SECONDARY_COLOR = ImVec4{42.0f / 255.0f, 42.0f / 255.0f, 42.0f / 255.0f, 1.0f};
     constexpr ImVec4 BG_TERTIARY_COLOR = ImVec4{26.0f / 255.0f, 26.0f / 255.0f, 26.0f / 255.0f, 1.0f};
-    constexpr ImVec4 HEADER_BG_COLOR = ImVec4{35.0f / 255.0f, 35.0f / 255.0f, 35.0f / 255.0f, 1.0f};
+    constexpr ImVec4 HEADER_BG_COLOR = ImVec4{36.0f / 255.0f, 36.0f / 255.0f, 36.0f / 255.0f, 1.0f};
     constexpr ImVec4 TEXT_COLOR = ImVec4{247.0f / 255.0f, 250.0f / 255.0f, 251.0f / 252.0f, 1.0f};
     constexpr ImVec4 TEXT_SECONDARY_COLOR = ImVec4{203.0f / 255.0f, 213.0f / 255.0f, 224.0f / 255.0f, 1.0f};
     constexpr ImVec4 BORDER_COLOR = ImVec4{51.0f / 255.0f, 51.0f / 255.0f, 51.0f / 255.0f, 1.0f};
