@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import platform
 import argparse
+import tarfile
+import urllib.request
 
 from pathlib import Path
 
@@ -16,6 +18,17 @@ BUILD_DIR = CWD / "build"
 SOURCE_DIR = CWD
 BINARY_NAME = "osu-stuff"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
+TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
+TESTS_BUILD_DIR = BUILD_DIR / "tests"
+TEST_ARCHIVE_DIR = TESTS_BUILD_DIR / "test-downloads"
+TEST_ARCHIVE_PATH = TEST_ARCHIVE_DIR / "data.tar.gz"
+TEST_EXTRACT_DIR = TESTS_BUILD_DIR / "data.extract"
+TEST_DATA_DIR = TESTS_BUILD_DIR / "data"
+TEST_DATA_MARKERS = (
+    TEST_DATA_DIR / "osu" / "osu!.db",
+    TEST_DATA_DIR / "osu" / "collection.db",
+    TEST_DATA_DIR / "lazer" / "client.realm",
+)
 
 def run(cmd: str, check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
     print(f"exec: {cmd}")
@@ -116,6 +129,57 @@ def clean() -> int:
         print("permission denied")
         return 1
 
+def has_test_data() -> bool:
+    return all(marker.exists() for marker in TEST_DATA_MARKERS)
+
+def resolve_test_data_source(root: Path) -> Path:
+    candidates = (
+        root / "tests" / ".data",
+        root / ".data",
+        root / "data",
+    )
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return root
+
+def download_test_data() -> None:
+    print(f"downloading test data from {TEST_DATA_URL}")
+    TEST_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(TEST_DATA_URL, TEST_ARCHIVE_PATH)
+
+def extract_test_data() -> None:
+    if TEST_EXTRACT_DIR.exists():
+        shutil.rmtree(TEST_EXTRACT_DIR)
+
+    TEST_EXTRACT_DIR.mkdir(parents=True, exist_ok=True)
+
+    with tarfile.open(TEST_ARCHIVE_PATH, "r:gz") as archive:
+        archive.extractall(TEST_EXTRACT_DIR)
+
+    source_dir = resolve_test_data_source(TEST_EXTRACT_DIR)
+
+    if TEST_DATA_DIR.exists():
+        shutil.rmtree(TEST_DATA_DIR)
+
+    shutil.move(str(source_dir), str(TEST_DATA_DIR))
+    shutil.rmtree(TEST_EXTRACT_DIR)
+
+def ensure_test_data() -> None:
+    if has_test_data():
+        return
+
+    if not TEST_ARCHIVE_PATH.exists():
+        download_test_data()
+
+    extract_test_data()
+
+    if not has_test_data():
+        print("test data is invalid after extraction...")
+        sys.exit(1)
+
 def configure_linux(build_type: str) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
 
@@ -130,6 +194,8 @@ def configure_linux(build_type: str) -> int:
         f"-S {SOURCE_DIR}",
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
+        "-DSDL_SHARED=ON",
+        "-DSDL_STATIC=OFF",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
@@ -167,6 +233,8 @@ def configure_windows(build_type: str) -> int:
         f"-S {SOURCE_DIR}",
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
+        "-DSDL_SHARED=ON",
+        "-DSDL_STATIC=OFF",
         f'{"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
         f'{"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""}',
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
@@ -228,6 +296,8 @@ def run_tests(build_type: str | None) -> int:
     if build(build_type) != 0:
         return 1
 
+    ensure_test_data()
+
     env = load_msvc_env() if SYSTEM == "Windows" else None
     build_type_flag = ""
 
@@ -238,9 +308,6 @@ def run_tests(build_type: str | None) -> int:
     return run(f"ctest --test-dir {BUILD_DIR} --output-on-failure{build_type_flag}", env=env)[0]
 
 def main() -> None:
-    if IS_CI:
-        print("[debug] running on ci :D")
-
     parser = argparse.ArgumentParser(description="build script for c++ projects")
 
     parser.add_argument("command", choices=["init", "configure", "format", "build", "clean", "run", "test"])
