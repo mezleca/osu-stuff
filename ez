@@ -24,11 +24,13 @@ TESTS_BUILD_DIR = BUILD_DIR / "tests"
 TEST_ARCHIVE_DIR = TESTS_BUILD_DIR / "test-downloads"
 TEST_ARCHIVE_PATH = TEST_ARCHIVE_DIR / "data.tar.gz"
 TEST_EXTRACT_DIR = TESTS_BUILD_DIR / "data.extract"
+TEST_DATA_CACHE_DIR = TESTS_BUILD_DIR / "test-data"
 TEST_DATA_DIR = TESTS_BUILD_DIR / "data"
+TEST_TEMP_DIR = TESTS_BUILD_DIR / "temp"
 TEST_DATA_MARKERS = (
-    TEST_DATA_DIR / "osu" / "osu!.db",
-    TEST_DATA_DIR / "osu" / "collection.db",
-    TEST_DATA_DIR / "lazer" / "client.realm",
+    TEST_DATA_CACHE_DIR / "osu" / "osu!.db",
+    TEST_DATA_CACHE_DIR / "osu" / "collection.db",
+    TEST_DATA_CACHE_DIR / "lazer" / "client.realm",
 )
 
 def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
@@ -53,9 +55,6 @@ def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, c
 def tool_exists(tool: str) -> None:
     if shutil.which(tool) is None:
         raise Exception(f"{tool} not found in PATH")
-
-def cmake_list(items: list[str]) -> str:
-    return "\\;".join(items)
 
 def get_cpu_count() -> int:
     if SYSTEM == "Linux":
@@ -191,10 +190,10 @@ def extract_test_data() -> None:
 
     source_dir = resolve_test_data_source(TEST_EXTRACT_DIR)
 
-    if TEST_DATA_DIR.exists():
-        shutil.rmtree(TEST_DATA_DIR)
+    if TEST_DATA_CACHE_DIR.exists():
+        shutil.rmtree(TEST_DATA_CACHE_DIR)
 
-    shutil.move(str(source_dir), str(TEST_DATA_DIR))
+    shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
     shutil.rmtree(TEST_EXTRACT_DIR)
 
 def ensure_test_data() -> None:
@@ -209,6 +208,23 @@ def ensure_test_data() -> None:
     if not has_test_data():
         print("test data is invalid after extraction...")
         sys.exit(1)
+
+def prepare_test_runtime_data() -> None:
+    if TEST_DATA_DIR.exists():
+        shutil.rmtree(TEST_DATA_DIR)
+
+    if TEST_TEMP_DIR.exists():
+        shutil.rmtree(TEST_TEMP_DIR)
+
+    shutil.copytree(TEST_DATA_CACHE_DIR, TEST_DATA_DIR)
+    TEST_TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+def cleanup_test_runtime_data() -> None:
+    if TEST_DATA_DIR.exists():
+        shutil.rmtree(TEST_DATA_DIR)
+
+    if TEST_TEMP_DIR.exists():
+        shutil.rmtree(TEST_TEMP_DIR)
 
 def configure_linux(build_type: str) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
@@ -308,6 +324,7 @@ def run_tests(build_type: str | None) -> int:
         return 1
 
     ensure_test_data()
+    prepare_test_runtime_data()
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
     cached = read_cached_build_type()
@@ -321,7 +338,10 @@ def run_tests(build_type: str | None) -> int:
     if cached is not None:
         cmd.extend(["-C", "Debug" if cached == "debug" else "Release"])
 
-    return run(cmd, env=env)[0]
+    try:
+        return run(cmd, env=env)[0]
+    finally:
+        cleanup_test_runtime_data()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")

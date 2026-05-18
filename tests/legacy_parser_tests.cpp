@@ -27,8 +27,8 @@ TEST_CASE("legacy parser roundtrip preserves osu db payload", "[parsers][legacy]
     auto input_path = test_helper::osu_root() / "osu!.db";
     REQUIRE(legacy_parser::parse(input_path, &original));
 
-    test_helper::TempDir temp_dir("osu-stuff-legacy");
-    auto output_path = temp_dir.path() / "osu!.db";
+    const auto output_path = test_helper::temp_root() / "legacy-roundtrip.osu!.db";
+    std::filesystem::remove(output_path);
     REQUIRE(legacy_parser::write(output_path, &original));
 
     OsuLegacyDatabase roundtrip;
@@ -65,8 +65,8 @@ TEST_CASE("legacy collection parser roundtrip preserves collection data", "[pars
     const auto input_path = (test_helper::osu_root() / "collection.db").string();
     REQUIRE(legacy_collection_parser::parse(input_path, &original));
 
-    test_helper::TempDir temp_dir("osu-stuff-collections");
-    const auto output_path = (temp_dir.path() / "collection.db").string();
+    const auto output_path = (test_helper::temp_root() / "legacy-roundtrip.collection.db").string();
+    std::filesystem::remove(output_path);
     REQUIRE(legacy_collection_parser::write(output_path, &original));
 
     OsuLegacyCollection roundtrip;

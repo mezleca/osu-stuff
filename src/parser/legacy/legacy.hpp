@@ -133,6 +133,6 @@ struct LegacyReplay : LegacyScoreBase {
 };
 
 namespace legacy_parser {
-    bool parse(std::filesystem::path& location, OsuLegacyDatabase* data);
-    bool write(std::filesystem::path& location, OsuLegacyDatabase* data);
+    bool parse(const std::filesystem::path& location, OsuLegacyDatabase* data);
+    bool write(const std::filesystem::path& location, OsuLegacyDatabase* data);
 }; // namespace legacy_parser

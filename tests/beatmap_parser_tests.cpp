@@ -33,8 +33,8 @@ TEST_CASE("beatmap parser preserves the important map fields", "[parsers][beatma
 
     REQUIRE(beatmap_parser::parse(input_path));
 
-    test_helper::TempDir temp_dir("osu-stuff-beatmap");
-    beatmap_parser::location = (temp_dir.path() / "roundtrip.osu").string();
+    beatmap_parser::location = (test_helper::temp_root() / "beatmap-roundtrip.osu").string();
+    std::filesystem::remove(beatmap_parser::location);
     REQUIRE(beatmap_parser::write());
 
     ParsedBeatmap roundtrip;

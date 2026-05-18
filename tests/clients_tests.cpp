@@ -19,11 +19,15 @@ constexpr const char* TEST_BEATMAP_HASH = "8e66c5e88adb59774e4eccca702fe242";
 
 std::unique_ptr<ClientBase> make_client(std::string_view backend, const std::string& root_override = "") {
     if (backend == "stable") {
-        const auto root = root_override.empty() ? test_helper::osu_root().string() : root_override;
-        return std::make_unique<StableClient>(ClientOptions{.osu_path = root});
+        return std::make_unique<StableClient>(ClientOptions{
+            .osu_path = root_override.empty() ? test_helper::osu_root().string() : root_override,
+            .lazer_realm_path = "",
+            .lazer_files_path = "",
+        });
     }
 
     return std::make_unique<LazerClient>(ClientOptions{
+        .osu_path = "",
         .lazer_realm_path = (test_helper::lazer_root() / "client.realm").string(),
         .lazer_files_path = (test_helper::lazer_root() / "files").string(),
     });
@@ -34,7 +38,16 @@ void check_client_state(ClientBase& client, int expected_beatmap_count) {
     REQUIRE_FALSE(collections.empty());
     REQUIRE(client.get_collection("glass beach") != nullptr);
 
-    const auto beatmaps = client.search_beatmaps(SearchOptions{.query = ""});
+    const auto beatmaps = client.search_beatmaps(SearchOptions{
+        .query = "",
+        .sort = "",
+        .status = "",
+        .mode = "",
+        .unique = false,
+        .has_duration = false,
+        .difficulty_min = 0.0,
+        .difficulty_max = 0.0,
+    });
     REQUIRE(static_cast<int>(beatmaps.size()) == expected_beatmap_count);
 
     const auto* beatmap = client.get_beatmap_by_id(TEST_BEATMAP_ID);
@@ -45,13 +58,40 @@ void check_client_state(ClientBase& client, int expected_beatmap_count) {
     REQUIRE(beatmapset != nullptr);
     REQUIRE(beatmapset->title == "dallas");
 
-    const auto glass_beach = client.search_beatmaps(SearchOptions{.query = "artist=\"glass beach\""});
+    const auto glass_beach = client.search_beatmaps(SearchOptions{
+        .query = "artist=\"glass beach\"",
+        .sort = "",
+        .status = "",
+        .mode = "",
+        .unique = false,
+        .has_duration = false,
+        .difficulty_min = 0.0,
+        .difficulty_max = 0.0,
+    });
     REQUIRE(static_cast<int>(glass_beach.size()) == GLASS_BEACH_RESULT_COUNT);
 
-    const auto filtered = client.search_beatmaps(SearchOptions{.query = "artist=\"glass beach\" ar>=8"});
+    const auto filtered = client.search_beatmaps(SearchOptions{
+        .query = "artist=\"glass beach\" ar>=8",
+        .sort = "",
+        .status = "",
+        .mode = "",
+        .unique = false,
+        .has_duration = false,
+        .difficulty_min = 0.0,
+        .difficulty_max = 0.0,
+    });
     REQUIRE_FALSE(filtered.empty());
 
-    const auto sorted_by_duration = client.search_beatmaps(SearchOptions{.query = "", .sort = "duration"});
+    const auto sorted_by_duration = client.search_beatmaps(SearchOptions{
+        .query = "",
+        .sort = "duration",
+        .status = "",
+        .mode = "",
+        .unique = false,
+        .has_duration = false,
+        .difficulty_min = 0.0,
+        .difficulty_max = 0.0,
+    });
     REQUIRE_FALSE(sorted_by_duration.empty());
 
     double last_duration = client.get_beatmap(sorted_by_duration.front())->duration.value_or(0.0);
@@ -65,7 +105,16 @@ void check_client_state(ClientBase& client, int expected_beatmap_count) {
         last_duration = current_duration;
     }
 
-    const auto with_duration = client.search_beatmaps(SearchOptions{.query = "", .has_duration = true});
+    const auto with_duration = client.search_beatmaps(SearchOptions{
+        .query = "",
+        .sort = "",
+        .status = "",
+        .mode = "",
+        .unique = false,
+        .has_duration = true,
+        .difficulty_min = 0.0,
+        .difficulty_max = 0.0,
+    });
     REQUIRE(with_duration.size() <= beatmaps.size());
 
     for (const auto& hash : with_duration) {
@@ -77,7 +126,10 @@ void check_client_state(ClientBase& client, int expected_beatmap_count) {
 }
 
 void check_temp_collection(ClientBase& client, bool expect_update_success, std::string_view name) {
-    OsuCollection collection{.name = std::string(name), .hashes = {TEST_BEATMAP_HASH}};
+    OsuCollection collection{
+        .name = std::string(name),
+        .hashes = {TEST_BEATMAP_HASH},
+    };
 
     REQUIRE(client.add_collection(&collection));
 
@@ -105,12 +157,14 @@ TEST_CASE("clients initialization", "[clients]") {
 }
 
 TEST_CASE("stable update_collection persists the in memory collections", "[clients]") {
-    test_helper::TempDir temp_dir("osu-stuff-stable-client");
-    const auto copied_root = temp_dir.path() / "osu";
+    const auto copied_root = test_helper::temp_root() / "stable-client";
+    std::filesystem::remove_all(copied_root);
     std::filesystem::copy(test_helper::osu_root(), copied_root, std::filesystem::copy_options::recursive);
-
     auto client = make_client("stable", copied_root.string());
-    OsuCollection collection{.name = "persisted collection", .hashes = {TEST_BEATMAP_HASH}};
+    OsuCollection collection{
+        .name = "persisted collection",
+        .hashes = {TEST_BEATMAP_HASH},
+    };
 
     REQUIRE(client->add_collection(&collection));
     REQUIRE(client->update_collection());
