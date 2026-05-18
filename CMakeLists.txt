@@ -62,6 +62,7 @@ add_library(osu-stuff-core OBJECT
 )
 
 target_include_directories(${PROJECT_NAME}-core PUBLIC
+    resources/fonts/
     src/
     vendor/imgui/
     vendor/imgui/backends

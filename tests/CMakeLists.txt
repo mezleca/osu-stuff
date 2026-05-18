@@ -1,13 +1,3 @@
-add_custom_target(test-data
-    COMMAND "${CMAKE_COMMAND}"
-        -DPROJECT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
-        -DPROJECT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_test_data.cmake"
-    VERBATIM
-)
-
-message(${CMAKE_CURRENT_SOURCE_DIR})
-
 add_executable(tests
     beatmap_parser_tests.cpp
     clients_tests.cpp
@@ -16,8 +6,6 @@ add_executable(tests
     test_helper.hpp
 )
 
-add_dependencies(tests test-data)
-
 target_link_libraries(tests PRIVATE
     osu-stuff-core
     Catch2::Catch2WithMain
@@ -25,6 +13,7 @@ target_link_libraries(tests PRIVATE
 
 target_include_directories(tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    $<TARGET_PROPERTY:osu-stuff-core,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 catch_discover_tests(tests
