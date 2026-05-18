@@ -63,14 +63,6 @@ def get_cpu_count() -> int:
         return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
 
-def resolve_sccache_launcher() -> str:
-    sccache_path = os.environ.get("SCCACHE_PATH", "").strip()
-
-    if sccache_path:
-        return sccache_path
-
-    return "sccache"
-
 def build_configure_cmd(build_type: str) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
     cmd = [
@@ -91,11 +83,10 @@ def build_configure_cmd(build_type: str) -> list[str]:
     ]
 
     if IS_CI:
-        sccache_launcher = resolve_sccache_launcher()
         cmd.extend([
             "-DUSE_VENDORED_SDL=ON",
-            f"-DCMAKE_C_COMPILER_LAUNCHER={sccache_launcher}",
-            f"-DCMAKE_CXX_COMPILER_LAUNCHER={sccache_launcher}",
+            "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
+            "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
         ])
 
     return cmd
