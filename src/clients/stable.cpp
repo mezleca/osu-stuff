@@ -6,6 +6,7 @@
 
 StableClient::StableClient(ClientOptions options) : m_options(std::move(options)) {
     if (m_options.osu_path.empty()) {
+        std::cout << "warn: empty osu path" << "\n";
         return;
     }
 

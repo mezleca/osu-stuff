@@ -6,8 +6,8 @@
 #include <cmath>
 
 TEST_CASE("osdb parser write / parse", "[parsers][osdb]") {
-    test_helper::TempDir temp_dir("osu-stuff-osdb");
-    const auto path = (temp_dir.path() / "collections.osdb").string();
+    const auto path = (test_helper::temp_root() / "collections.osdb").string();
+    std::filesystem::remove(path);
 
     OsdbData original;
     original.version_string = "o!dm8";
