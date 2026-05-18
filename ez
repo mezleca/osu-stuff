@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+import shlex
 import subprocess
 import platform
 import argparse
@@ -61,6 +62,37 @@ def get_cpu_count() -> int:
         cores = result.stdout.strip()
         return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
+
+def join_cmd(parts: list[str]) -> str:
+    return shlex.join(parts)
+
+def build_configure_cmd(build_type: str) -> list[str]:
+    cmake_type = "Debug" if build_type == "debug" else "Release"
+    cmd = [
+        "cmake",
+        "-Wno-dev",
+        "-G",
+        "Ninja",
+        "-B",
+        str(BUILD_DIR),
+        "-S",
+        str(SOURCE_DIR),
+        "-DREALM_NO_TESTS=ON",
+        "-DREALM_CPP_NO_TESTS=ON",
+        "-DSDL_SHARED=ON",
+        "-DSDL_STATIC=OFF",
+        f"-DCMAKE_BUILD_TYPE={cmake_type}",
+        f"-DOUTPUT_NAME={BINARY_NAME}",
+    ]
+
+    if IS_CI:
+        cmd.extend([
+            "-DUSE_VENDORED_SDL=ON",
+            "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
+            "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
+        ])
+
+    return cmd
 
 def read_cached_build_type() -> str | None:
     cache = BUILD_DIR / "CMakeCache.txt"
@@ -187,24 +219,12 @@ def configure_linux(build_type: str) -> int:
         cache.unlink()
 
     BUILD_DIR.mkdir(exist_ok=True)
-    cmake_type = "Debug" if build_type == "debug" else "Release"
-    cmd = [
-        "cmake -Wno-dev -G Ninja",
-        f"-B {BUILD_DIR}",
-        f"-S {SOURCE_DIR}",
-        "-DREALM_NO_TESTS=ON",
-        "-DREALM_CPP_NO_TESTS=ON",
-        {"-DUSE_VENDORED_SDL=ON" if IS_CI else ""},
-        "-DSDL_SHARED=ON",
-        "-DSDL_STATIC=OFF",
-        {"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
-        {"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
-        f"-DCMAKE_BUILD_TYPE={cmake_type}",
+    cmd = build_configure_cmd(build_type)
+    cmd.extend([
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
-        f"-DOUTPUT_NAME={BINARY_NAME}",
-    ]
-    return run(" ".join(cmd))[0]
+    ])
+    return run(join_cmd(cmd))[0]
 
 def get_vcvarsall_script():
     candidates = (
@@ -227,25 +247,8 @@ def configure_windows(build_type: str) -> int:
         cache.unlink()
 
     BUILD_DIR.mkdir(exist_ok=True)
-
-    cmake_type = "Debug" if build_type == "debug" else "Release"
-
-    cmd = [
-        "cmake -Wno-dev -G Ninja",
-        f"-B {BUILD_DIR}",
-        f"-S {SOURCE_DIR}",
-        "-DREALM_NO_TESTS=ON",
-        "-DREALM_CPP_NO_TESTS=ON",
-        "-DSDL_SHARED=ON",
-        "-DSDL_STATIC=OFF",
-        {"-DUSE_VENDORED_SDL=ON" if IS_CI else ""},
-        {"-DCMAKE_C_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
-        {"-DCMAKE_CXX_COMPILER_LAUNCHER=sccache" if IS_CI else ""},
-        f"-DCMAKE_BUILD_TYPE={cmake_type}",
-        f"-DOUTPUT_NAME={BINARY_NAME}"
-    ]
-
-    return run(" ".join(cmd), env=env)[0]
+    cmd = build_configure_cmd(build_type)
+    return run(join_cmd(cmd), env=env)[0]
 
 def configure(build_type: str, target_platform: str) -> int:
     is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
