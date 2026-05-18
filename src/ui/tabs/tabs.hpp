@@ -2,8 +2,11 @@
 
 #include <imgui.h>
 
-void render_index_tab(ImFont* font);
-void render_collections_tab(ImFont* font);
-void render_discover_tab(ImFont* font);
-void render_radio_tab(ImFont* font);
-void render_status_tab(ImFont* font);
+namespace tabs {
+    void render_index(ImFont* font);
+    void render_collections(ImFont* font);
+    void render_discover(ImFont* font);
+    void render_radio(ImFont* font);
+    void render_status(ImFont* font);
+    void render_config(ImFont* font);
+} // namespace tabs

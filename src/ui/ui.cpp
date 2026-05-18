@@ -1,4 +1,5 @@
 #include "ui.hpp"
+#include "ui/theme.hpp"
 #include "imgui.h"
 #include "ui/tabs/tabs.hpp"
 #include "ui/widgets/tab_button.hpp"
@@ -40,8 +41,14 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 
+    ImFontConfig font_cfg;
+    font_cfg.PixelSnapH = false;
+    font_cfg.OversampleH = 5;
+    font_cfg.OversampleV = 5;
+    font_cfg.RasterizerMultiply = 1.2f;
+
     colors[ImGuiCol_WindowBg] = ui_theme::BG_COLOR;
-    colors[ImGuiCol_ChildBg] = ui_theme::BG_PRIMARY_COLOR;
+    colors[ImGuiCol_ChildBg] = ui_theme::BG_SECONDARY_COLOR;
     colors[ImGuiCol_Border] = ui_theme::HEADER_BORDER_COLOR;
     colors[ImGuiCol_Separator] = ui_theme::HEADER_BORDER_COLOR;
     colors[ImGuiCol_Text] = ui_theme::TEXT_COLOR;
@@ -55,8 +62,8 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     colors[ImGuiCol_FrameBg] = ui_theme::BG_SECONDARY_COLOR;
     colors[ImGuiCol_FrameBgHovered] = ui_theme::BG_TERTIARY_COLOR;
     colors[ImGuiCol_FrameBgActive] = ui_theme::BUTTON_ACTIVE_COLOR;
-    colors[ImGuiCol_TitleBg] = ui_theme::BG_PRIMARY_COLOR;
-    colors[ImGuiCol_TitleBgActive] = ui_theme::BG_PRIMARY_COLOR;
+    colors[ImGuiCol_TitleBg] = ui_theme::BG_SECONDARY_COLOR;
+    colors[ImGuiCol_TitleBgActive] = ui_theme::BG_SECONDARY_COLOR;
     colors[ImGuiCol_CheckMark] = ui_theme::ACCENT_COLOR;
     colors[ImGuiCol_SliderGrab] = ui_theme::ACCENT_COLOR;
     colors[ImGuiCol_SliderGrabActive] = ui_theme::ACCENT_HOVER_COLOR;
@@ -64,7 +71,34 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui_ImplSDL3_InitForOpenGL(window, ctx);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    setup();
+    // initialize tab states
+    for (const auto& tab : m_tabs_str) {
+        TabButtonWidget state(tab);
+        state.show();
+        m_tabs.push_back(state);
+    }
+
+    // setup fonts
+    m_fonts[TORUS][FONT_SMALL] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 14.0f, &font_cfg);
+    m_fonts[TORUS][FONT_MEDIUM] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 20.0f, &font_cfg);
+    m_fonts[TORUS][FONT_LARGE] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 26.0f, &font_cfg);
+
+    m_fonts[TORUS_SEMI][FONT_SMALL] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 14.0f, &font_cfg);
+    m_fonts[TORUS_SEMI][FONT_MEDIUM] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 20.0f, &font_cfg);
+    m_fonts[TORUS_SEMI][FONT_LARGE] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 26.0f, &font_cfg);
+
+    m_fonts[TORUS_BOLD][FONT_SMALL] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 14.0f, &font_cfg);
+    m_fonts[TORUS_BOLD][FONT_MEDIUM] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 20.0f, &font_cfg);
+    m_fonts[TORUS_BOLD][FONT_LARGE] =
+        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 26.0f, &font_cfg);
 }
 
 UI::~UI() {
@@ -75,31 +109,6 @@ UI::~UI() {
 
 void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
-}
-
-void UI::setup() {
-    // initialize tab states
-    for (const auto& tab : m_tabs_str) {
-        TabButtonWidget state(tab);
-        state.show();
-        m_tabs.push_back(state);
-    }
-
-    // setup fonts
-    m_fonts[TORUS][FONT_SMALL] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 14.0f);
-    m_fonts[TORUS][FONT_MEDIUM] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 20.0f);
-    m_fonts[TORUS][FONT_LARGE] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 26.0f);
-
-    m_fonts[TORUS_SEMI][FONT_SMALL] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 14.0f);
-    m_fonts[TORUS_SEMI][FONT_MEDIUM] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 20.0f);
-    m_fonts[TORUS_SEMI][FONT_LARGE] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 26.0f);
-
-    m_fonts[TORUS_BOLD][FONT_SMALL] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 14.0f);
-    m_fonts[TORUS_BOLD][FONT_MEDIUM] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 20.0f);
-    m_fonts[TORUS_BOLD][FONT_LARGE] = io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 26.0f);
 }
 
 void UI::render() {
@@ -125,15 +134,13 @@ void UI::render() {
                                     ui_theme::LINE_OFFSET + ui_theme::LINE_HEIGHT;
         ImGui::PopFont();
 
-        // header (tab buttons + decorations)
+        // header
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ui_theme::HEADER_BG_COLOR);
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
         ImGui::BeginChild("header", ImVec2{available.x, header_height}, ImGuiChildFlags_None, ImGuiWindowFlags_None);
         {
             ImGui::SetCursorPos(ImVec2{ui_theme::HEADER_PADDING_X, ui_theme::HEADER_PADDING_Y});
-            ImGui::PushFont(m_fonts[TORUS_SEMI][FONT_MEDIUM]);
-
-            // tab buttons
+            ImGui::PushFont(m_fonts[TORUS_BOLD][FONT_MEDIUM]);
             {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
                     auto& tab = m_tabs[index];
@@ -148,14 +155,10 @@ void UI::render() {
                         m_tab = tab.name;
                     }
                 }
+
+                ImGui::Separator();
             }
             ImGui::PopFont();
-
-            // decorations
-            ImGui::SetCursorPos(ImVec2{available.x - ui_theme::HEADER_RIGHT_WIDTH - ui_theme::HEADER_PADDING_X,
-                                       ui_theme::HEADER_PADDING_Y});
-
-            ImGui::Text("X");
         }
         ImGui::EndChild();
         ImGui::PopStyleVar();
@@ -165,15 +168,17 @@ void UI::render() {
         ImGui::BeginChild("content", ImVec2{available.x, 0.0f}, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
         {
             if (m_tab == "index") {
-                render_index_tab(m_fonts[TORUS_BOLD][FONT_LARGE]);
+                tabs::render_index(m_fonts[TORUS_BOLD][FONT_LARGE]);
             } else if (m_tab == "collections") {
-                render_collections_tab(m_fonts[TORUS_BOLD][FONT_LARGE]);
+                tabs::render_collections(m_fonts[TORUS_BOLD][FONT_LARGE]);
             } else if (m_tab == "discover") {
-                render_discover_tab(m_fonts[TORUS_BOLD][FONT_LARGE]);
+                tabs::render_discover(m_fonts[TORUS_BOLD][FONT_LARGE]);
             } else if (m_tab == "radio") {
-                render_radio_tab(m_fonts[TORUS_BOLD][FONT_LARGE]);
+                tabs::render_radio(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            } else if (m_tab == "config") {
+                tabs::render_config(m_fonts[TORUS_BOLD][FONT_LARGE]);
             } else if (m_tab == "status") {
-                render_status_tab(m_fonts[TORUS_BOLD][FONT_LARGE]);
+                tabs::render_status(m_fonts[TORUS_BOLD][FONT_LARGE]);
             }
         }
         ImGui::EndChild();

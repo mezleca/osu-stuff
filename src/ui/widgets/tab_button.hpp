@@ -46,7 +46,7 @@ inline bool tab_button(TabButtonWidget& s, std::string_view label, bool selected
     const bool is_hovered = ImGui::IsItemHovered();
     s.set_anim_target("hover", is_hovered ? 1.0f : 0.0f);
 
-    if (draw_line) {
+    if (draw_line && !is_title) {
         const float line_t = s.get_anim("line");
         const float hover_t = s.get_anim("hover");
         const float width_t = selected ? line_t : hover_t;

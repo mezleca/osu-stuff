@@ -32,7 +32,6 @@ class UI {
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
 
-    void setup();
     void render();
     void process_sdl_event(SDL_Event* event);
 
@@ -46,7 +45,7 @@ class UI {
   private:
     bool m_done = false;
     std::string m_tab = "index";
-    std::vector<std::string> m_tabs_str = {"index", "collections", "discover", "radio", "status"};
+    std::vector<std::string> m_tabs_str = {"index", "collections", "discover", "radio", "config", "status"};
     std::vector<TabButtonWidget> m_tabs;
 
     ImGuiIO* io;
