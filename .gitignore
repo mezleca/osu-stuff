@@ -69,7 +69,9 @@ Testing/
 .cache/
 
 build/
+.flatpak-builder
 compile_commands.json
 dist/
+flatpak/org.mezleca.osu-stuff.png
 node_modules/
 __pycache__/

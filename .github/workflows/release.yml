@@ -1,0 +1,99 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "target platform"
+        required: true
+        default: "linux"
+        type: choice
+        options:
+          - "linux"
+          - "both"
+          - "windows"
+
+jobs:
+  build-flatpak:
+    if: ${{ github.event.inputs.platform == 'linux' || github.event.inputs.platform == 'both' }}
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libgl1-mesa-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libuv1-dev \
+            zlib1g-dev \
+            libx11-dev \
+            libxext-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxfixes-dev \
+            libxss-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libegl1-mesa-dev \
+            libdecor-0-dev \
+            libxtst-dev \
+            flatpak \
+            flatpak-builder \
+            desktop-file-utils \
+            appstream
+
+      - name: setup flatpak runtime
+        run: |
+          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive flathub \
+            org.freedesktop.Platform//25.08 \
+            org.freedesktop.Sdk//25.08 \
+            org.freedesktop.Sdk.Extension.llvm20//25.08
+
+      - name: setup env
+        run: ./ez init
+
+      - name: package flatpak
+        run: ./ez package --package-type flatpak
+
+      - name: upload flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: dist/osu-stuff.flatpak
+
+      - name: sccache stats
+        if: always()
+        run: sccache --show-stats
+
+  release:
+    if: ${{ github.event.inputs.platform == 'linux' || github.event.inputs.platform == 'both' }}
+    runs-on: ubuntu-latest
+    needs: build-flatpak
+
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: artifacts
+
+      - name: list artifacts
+        run: ls -la artifacts
+
+      - name: create or update release
+        run: echo "TODO"

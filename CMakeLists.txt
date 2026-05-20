@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 project(osu-stuff VERSION 3.0.0 LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_VENDORED_SDL "force vendored sdl" OFF)
+option(OSU_STUFF_BUILD_TESTS "build project tests" OFF)
+option(OSU_STUFF_USE_SYSTEM_DEPS "use system wide packages instead of the vendored one" OFF)
 
 find_program(CCACHE_PROGRAM ccache)
 
@@ -34,11 +38,25 @@ else()
     find_package(SDL3 REQUIRED)
 endif()
 
-add_subdirectory(vendor/Catch2 EXCLUDE_FROM_ALL)
-add_subdirectory(vendor/fmt)
-add_subdirectory(vendor/miniz)
-add_subdirectory(vendor/realm-cpp)
-add_subdirectory(vendor/utf8proc)
+if(OSU_STUFF_USE_SYSTEM_DEPS)
+    find_package(FMT CONFIG REQUIRED)
+    find_package(miniz CONFIG REQUIRED)
+    find_package(cpprealm CONFIG REQUIRED)
+    find_package(utf8proc CONFIG REQUIRED)
+
+    set(OSU_STUFF_MINIZ_TARGET miniz::miniz)
+    set(OSU_STUFF_CPPREALM_TARGET cpprealm)
+    set(OSU_STUFF_UTF8PROC_TARGET utf8proc::utf8proc)
+else()
+    add_subdirectory(vendor/fmt)
+    add_subdirectory(vendor/miniz)
+    add_subdirectory(vendor/realm-cpp)
+    add_subdirectory(vendor/utf8proc)
+
+    set(OSU_STUFF_MINIZ_TARGET miniz)
+    set(OSU_STUFF_CPPREALM_TARGET cpprealm)
+    set(OSU_STUFF_UTF8PROC_TARGET utf8proc)
+endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
@@ -69,9 +87,9 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
-    cpprealm
-    miniz
-    utf8proc
+    ${OSU_STUFF_CPPREALM_TARGET}
+    ${OSU_STUFF_MINIZ_TARGET}
+    ${OSU_STUFF_UTF8PROC_TARGET}
     fmt::fmt
     OpenGL::GL
     SDL3::SDL3
@@ -117,9 +135,21 @@ if(WIN32)
     )
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vendor/Catch2/extras")
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-include(Catch)
-include(CTest)
+install(DIRECTORY resources/
+    DESTINATION ${CMAKE_INSTALL_BINDIR}/resources
+)
 
-add_subdirectory(tests)
+if(OSU_STUFF_BUILD_TESTS)
+    add_subdirectory(vendor/Catch2 EXCLUDE_FROM_ALL)
+
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vendor/Catch2/extras")
+
+    include(Catch)
+    include(CTest)
+
+    add_subdirectory(tests)
+endif()
