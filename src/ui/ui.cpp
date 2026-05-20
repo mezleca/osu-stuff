@@ -8,10 +8,6 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 
-#include <Torus_Bold.hpp>
-#include <Torus_SemiBold.hpp>
-#include <Torus_Regular.hpp>
-
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
@@ -79,26 +75,21 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     }
 
     // setup fonts
-    m_fonts[TORUS][FONT_SMALL] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 14.0f, &font_cfg);
-    m_fonts[TORUS][FONT_MEDIUM] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 20.0f, &font_cfg);
-    m_fonts[TORUS][FONT_LARGE] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_REGULAR, TORUS_REGULAR_SIZE, 26.0f, &font_cfg);
+    m_fonts[TORUS][FONT_SMALL] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 14.0f, &font_cfg);
+    m_fonts[TORUS][FONT_MEDIUM] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 20.0f, &font_cfg);
+    m_fonts[TORUS][FONT_LARGE] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 26.0f, &font_cfg);
 
     m_fonts[TORUS_SEMI][FONT_SMALL] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 14.0f, &font_cfg);
+        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 14.0f, &font_cfg);
     m_fonts[TORUS_SEMI][FONT_MEDIUM] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 20.0f, &font_cfg);
+        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 20.0f, &font_cfg);
     m_fonts[TORUS_SEMI][FONT_LARGE] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_SEMIBOLD, TORUS_SEMIBOLD_SIZE, 26.0f, &font_cfg);
+        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 26.0f, &font_cfg);
 
-    m_fonts[TORUS_BOLD][FONT_SMALL] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 14.0f, &font_cfg);
+    m_fonts[TORUS_BOLD][FONT_SMALL] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 14.0f, &font_cfg);
     m_fonts[TORUS_BOLD][FONT_MEDIUM] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 20.0f, &font_cfg);
-    m_fonts[TORUS_BOLD][FONT_LARGE] =
-        io->Fonts->AddFontFromMemoryCompressedTTF(C_TORUS_BOLD, TORUS_BOLD_SIZE, 26.0f, &font_cfg);
+        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 20.0f, &font_cfg);
+    m_fonts[TORUS_BOLD][FONT_LARGE] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 26.0f, &font_cfg);
 }
 
 UI::~UI() {

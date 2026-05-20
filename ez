@@ -19,6 +19,7 @@ BUILD_DIR = CWD / "build"
 SOURCE_DIR = CWD
 BINARY_NAME = "osu-stuff"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
+
 TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
 TESTS_BUILD_DIR = BUILD_DIR / "tests"
 TEST_ARCHIVE_DIR = TESTS_BUILD_DIR / "test-downloads"
@@ -32,6 +33,9 @@ TEST_DATA_MARKERS = (
     TEST_DATA_CACHE_DIR / "osu" / "collection.db",
     TEST_DATA_CACHE_DIR / "lazer" / "client.realm",
 )
+
+RESOURCES_DIR = CWD / "resources"
+RESOURCES_FINAL_DIR = BUILD_DIR / "resources"
 
 def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
     display = cmd if isinstance(cmd, str) else subprocess.list2cmdline(list(cmd))
@@ -288,13 +292,19 @@ def build(build_type: str | None) -> int:
             return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
-    return run([
+    code, _ = run([
         "cmake",
         "--build",
         str(BUILD_DIR),
         "--parallel",
         str(get_cpu_count()),
-    ], env=env)[0]
+    ], env=env)
+
+    prepare_resources()
+    return code
+
+def prepare_resources():
+    shutil.copytree(RESOURCES_DIR, RESOURCES_FINAL_DIR, dirs_exist_ok=True)
 
 def run_binary() -> int:
     candidates: list[Path] = []
