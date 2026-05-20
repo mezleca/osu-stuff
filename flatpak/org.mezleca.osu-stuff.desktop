@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=osu-stuff
+Comment=yet another osu! manager
+Exec=osu-stuff
+Type=Application
+Icon=org.mezleca.osu-stuff
+Categories=Utility;
+Terminal=false
+StartupNotify=true

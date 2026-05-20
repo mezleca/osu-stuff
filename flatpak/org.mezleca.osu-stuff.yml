@@ -1,0 +1,99 @@
+id: org.mezleca.osu-stuff
+runtime: org.freedesktop.Platform
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm20
+command: osu-stuff
+finish-args:
+    - "--share=network"
+    - "--socket=wayland"
+    - "--socket=fallback-x11"
+    - "--socket=pulseaudio"
+    - "--device=all"
+    - "--filesystem=home:ro"
+    - "--filesystem=~/.local/share/osu-stuff:create" # config / bs
+
+build-options:
+  append-path: /usr/lib/sdk/llvm20/bin
+  prepend-ld-library-path: /usr/lib/sdk/llvm20/lib
+  build-args:
+    - "--share=network" # ream downloads openssl even if i set FETCH_MISSING_DEPENDENCIES to off...
+  env:
+    CC: clang
+    CXX: clang++
+
+modules:
+  - name: flatpak-assets
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 org.mezleca.osu-stuff.desktop /app/share/applications/org.mezleca.osu-stuff.desktop
+      - install -Dm644 org.mezleca.osu-stuff.metainfo.xml /app/share/metainfo/org.mezleca.osu-stuff.metainfo.xml
+      - install -Dm644 org.mezleca.osu-stuff.png /app/share/icons/hicolor/512x512/apps/org.mezleca.osu-stuff.png
+    sources:
+      - type: dir
+        path: .
+
+  - name: libuv
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+        - "-DBUILD_TESTING=OFF"
+    sources:
+      - type: dir
+        path: ../vendor/libuv
+
+  - name: realm-cpp
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - "-Wno-dev"
+      - "-DCMAKE_BUILD_TYPE=Release"
+      - "-DREALM_BUILD_LIB_ONLY=ON"
+      - "-DREALM_NO_TESTS=ON"
+      - "-DREALM_CPP_NO_TESTS=ON"
+    sources:
+      - type: dir
+        path: ../vendor/realm-cpp
+
+  - name: sdl3
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+        - "-DSDL_TESTS=OFF"
+        - "-DSDL_EXAMPLES=OFF"
+    sources:
+      - type: dir
+        path: ../vendor/SDL
+
+  - name: fmt
+    buildsystem: cmake-ninja
+    builddir: true
+    sources:
+      - type: dir
+        path: ../vendor/fmt
+
+  - name: miniz
+    buildsystem: cmake-ninja
+    builddir: true
+    sources:
+      - type: dir
+        path: ../vendor/miniz
+
+  - name: utf8proc
+    buildsystem: cmake-ninja
+    builddir: true
+    sources:
+      - type: dir
+        path: ../vendor/utf8proc
+
+  - name: osu-stuff
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+        - "-Wno-dev"
+        - "-DCMAKE_BUILD_TYPE=Release"
+        - "-DOSU_STUFF_USE_SYSTEM_DEPS=ON"
+    sources:
+      - type: dir
+        path: ..

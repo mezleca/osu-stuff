@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.mezleca.osu-stuff</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.mezleca">
+    <name>mezleca</name>
+  </developer>
+  <name>osu-stuff</name>
+  <summary>Yet another osu! manager</summary>
+  <url type="homepage">https://github.com/mezleca/osu-stuff</url>
+  <description>
+    <p>
+      A simple and useful app that gives you freedom to manage osu! stable and
+      lazer data from one place.
+    </p>
+    <ul>
+      <li>Manage your lazer and stable collections (import, export, merge, etc...).</li>
+      <li>Download beatmaps (missing beatmaps from collections, from players, etc...).</li>
+      <li>Listen to beatmap songs from your osu! installation (radio tab).</li>
+      <li>A lot more...</li>
+    </ul>
+  </description>
+  <content_rating type="oars-1.0"/>
+  <launchable type="desktop-id">org.mezleca.osu-stuff.desktop</launchable>
+</component>

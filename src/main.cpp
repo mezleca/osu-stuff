@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
+#include <filesystem>
 #include <iostream>
 
 #define DEFAULT_WIDTH 1280
@@ -11,6 +12,10 @@ int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         std::cout << " SDL_Init(): " << SDL_GetError() << "\n";
         return 1;
+    }
+
+    if (const char* base_path = SDL_GetBasePath()) {
+        std::filesystem::current_path(base_path);
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
