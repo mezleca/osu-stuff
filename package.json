@@ -54,7 +54,7 @@
         "electron": "^41.5.0",
         "electron-builder": "^26.8.1",
         "prettier": "^3.8.1",
-        "prettier-plugin-svelte": "^3.5.0",
+        "prettier-plugin-svelte": "^4.0.0",
         "svelte": "^5.53.7",
         "svelte-check": "^4.4.4",
         "svelte-preprocess": "^6.0.3",
