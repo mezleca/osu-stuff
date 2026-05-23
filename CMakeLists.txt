@@ -9,7 +9,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_VENDORED_SDL "force vendored sdl" OFF)
 option(OSU_STUFF_BUILD_TESTS "build project tests" OFF)
-option(OSU_STUFF_USE_SYSTEM_DEPS "use system wide packages instead of the vendored one" OFF)
 
 find_program(CCACHE_PROGRAM ccache)
 
@@ -38,23 +37,9 @@ else()
     find_package(SDL3 REQUIRED)
 endif()
 
-if(OSU_STUFF_USE_SYSTEM_DEPS)
-    find_package(miniz CONFIG REQUIRED)
-    find_package(cpprealm CONFIG REQUIRED)
-    find_package(utf8proc CONFIG REQUIRED)
-
-    set(OSU_STUFF_MINIZ_TARGET miniz::miniz)
-    set(OSU_STUFF_CPPREALM_TARGET cpprealm)
-    set(OSU_STUFF_UTF8PROC_TARGET utf8proc::utf8proc)
-else()
-    add_subdirectory(vendor/miniz)
-    add_subdirectory(vendor/realm-cpp)
-    add_subdirectory(vendor/utf8proc)
-
-    set(OSU_STUFF_MINIZ_TARGET miniz)
-    set(OSU_STUFF_CPPREALM_TARGET cpprealm)
-    set(OSU_STUFF_UTF8PROC_TARGET utf8proc)
-endif()
+add_subdirectory(vendor/miniz)
+add_subdirectory(vendor/realm-cpp)
+add_subdirectory(vendor/utf8proc)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
@@ -85,9 +70,9 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
-    ${OSU_STUFF_CPPREALM_TARGET}
-    ${OSU_STUFF_MINIZ_TARGET}
-    ${OSU_STUFF_UTF8PROC_TARGET}
+    miniz
+    cpprealm
+    utf8proc
     OpenGL::GL
     SDL3::SDL3
 )
