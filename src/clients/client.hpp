@@ -7,7 +7,7 @@
 #include "../utils/binary.hpp"
 #include "./detail.hpp"
 
-#include <fmt/format.h>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -89,7 +89,7 @@ struct OsuBeatmap {
     BeatmapStatus status{};
 
     void build_search() {
-        searchable = binary::normalize_and_lower(fmt::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
+        searchable = binary::normalize_and_lower(std::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
                                                              artist, artist_unicode, creator, difficulty, source, tags,
                                                              difficulty_id, beatmap_id));
     }

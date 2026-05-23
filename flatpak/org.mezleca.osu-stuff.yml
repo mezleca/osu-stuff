@@ -66,13 +66,6 @@ modules:
       - type: dir
         path: ../vendor/SDL
 
-  - name: fmt
-    buildsystem: cmake-ninja
-    builddir: true
-    sources:
-      - type: dir
-        path: ../vendor/fmt
-
   - name: miniz
     buildsystem: cmake-ninja
     builddir: true

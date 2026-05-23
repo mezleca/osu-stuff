@@ -39,7 +39,6 @@ else()
 endif()
 
 if(OSU_STUFF_USE_SYSTEM_DEPS)
-    find_package(FMT CONFIG REQUIRED)
     find_package(miniz CONFIG REQUIRED)
     find_package(cpprealm CONFIG REQUIRED)
     find_package(utf8proc CONFIG REQUIRED)
@@ -48,7 +47,6 @@ if(OSU_STUFF_USE_SYSTEM_DEPS)
     set(OSU_STUFF_CPPREALM_TARGET cpprealm)
     set(OSU_STUFF_UTF8PROC_TARGET utf8proc::utf8proc)
 else()
-    add_subdirectory(vendor/fmt)
     add_subdirectory(vendor/miniz)
     add_subdirectory(vendor/realm-cpp)
     add_subdirectory(vendor/utf8proc)
@@ -90,7 +88,6 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     ${OSU_STUFF_CPPREALM_TARGET}
     ${OSU_STUFF_MINIZ_TARGET}
     ${OSU_STUFF_UTF8PROC_TARGET}
-    fmt::fmt
     OpenGL::GL
     SDL3::SDL3
 )
