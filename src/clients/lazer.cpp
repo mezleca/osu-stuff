@@ -66,7 +66,6 @@ LazerClient::LazerClient(ClientOptions options) : m_options(std::move(options)) 
         }
 
         rebuild_beatmapsets_from_beatmaps();
-        fill_criteria_table();
     } catch (const std::exception&) {
         m_beatmaps.clear();
         m_collections.clear();
