@@ -18,7 +18,7 @@ build-options:
   append-path: /usr/lib/sdk/llvm20/bin
   prepend-ld-library-path: /usr/lib/sdk/llvm20/lib
   build-args:
-    - "--share=network" # ream downloads openssl even if i set FETCH_MISSING_DEPENDENCIES to off...
+    - "--share=network" # realm downloads openssl even if i set FETCH_MISSING_DEPENDENCIES to off...
   env:
     CC: clang
     CXX: clang++
@@ -34,6 +34,7 @@ modules:
       - type: dir
         path: .
 
+  # realm needs that
   - name: libuv
     buildsystem: cmake-ninja
     builddir: true
@@ -43,57 +44,12 @@ modules:
       - type: dir
         path: ../vendor/libuv
 
-  - name: realm-cpp
-    buildsystem: cmake-ninja
-    builddir: true
-    config-opts:
-      - "-Wno-dev"
-      - "-DCMAKE_BUILD_TYPE=Release"
-      - "-DREALM_BUILD_LIB_ONLY=ON"
-      - "-DREALM_NO_TESTS=ON"
-      - "-DREALM_CPP_NO_TESTS=ON"
-    sources:
-      - type: dir
-        path: ../vendor/realm-cpp
-
-  - name: sdl3
-    buildsystem: cmake-ninja
-    builddir: true
-    config-opts:
-        - "-DSDL_TESTS=OFF"
-        - "-DSDL_EXAMPLES=OFF"
-    sources:
-      - type: dir
-        path: ../vendor/SDL
-
-  - name: fmt
-    buildsystem: cmake-ninja
-    builddir: true
-    sources:
-      - type: dir
-        path: ../vendor/fmt
-
-  - name: miniz
-    buildsystem: cmake-ninja
-    builddir: true
-    sources:
-      - type: dir
-        path: ../vendor/miniz
-
-  - name: utf8proc
-    buildsystem: cmake-ninja
-    builddir: true
-    sources:
-      - type: dir
-        path: ../vendor/utf8proc
-
   - name: osu-stuff
     buildsystem: cmake-ninja
     builddir: true
     config-opts:
         - "-Wno-dev"
         - "-DCMAKE_BUILD_TYPE=Release"
-        - "-DOSU_STUFF_USE_SYSTEM_DEPS=ON"
     sources:
       - type: dir
         path: ..

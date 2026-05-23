@@ -5,7 +5,7 @@
 
 #include <string>
 #include <imgui.h>
-#include <fmt/format.h>
+#include <format>
 
 struct TabButtonWidget : WidgetState {
     std::string name = "";
@@ -42,8 +42,9 @@ inline bool tab_button(TabButtonWidget& s, std::string_view label, bool selected
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_Text, (selected || is_title) ? ui_theme::ACCENT_COLOR : ui_theme::TEXT_COLOR);
 
-    const bool is_pressed = ImGui::Button(fmt::format("{}##tab", label, s.name).c_str());
+    const bool is_pressed = ImGui::Button(std::format("{}##tab", label).c_str());
     const bool is_hovered = ImGui::IsItemHovered();
+
     s.set_anim_target("hover", is_hovered ? 1.0f : 0.0f);
 
     if (draw_line && !is_title) {

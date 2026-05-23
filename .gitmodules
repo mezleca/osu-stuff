@@ -13,9 +13,6 @@
 [submodule "vendor/realm-cpp"]
 	path = vendor/realm-cpp
 	url = https://github.com/mezleca/realm-cpp
-[submodule "vendor/fmt"]
-	path = vendor/fmt
-	url = https://github.com/fmtlib/fmt
 [submodule "vendor/Catch2"]
 	path = vendor/Catch2
 	url = https://github.com/catchorg/Catch2
