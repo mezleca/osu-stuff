@@ -75,8 +75,6 @@ def build_configure_cmd(build_type: str, build_tests: bool = False) -> list[str]
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
         f"-DOSU_STUFF_BUILD_TESTS={'ON' if build_tests else 'OFF'}",
-        "-DSDL_SHARED=ON",
-        "-DSDL_STATIC=OFF",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}",
     ]

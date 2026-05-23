@@ -1,5 +1,4 @@
 #include "stable.hpp"
-
 #include "../parser/legacy/legacy_collection.hpp"
 
 #include <utility>
@@ -15,8 +14,6 @@ StableClient::StableClient(ClientOptions options) : m_options(std::move(options)
     load_beatmaps(osu_path / "osu!.db");
     load_collections(osu_path / "collection.db");
     rebuild_beatmapsets_from_beatmaps();
-
-    fill_criteria_table();
 }
 
 const char* StableClient::player_name() const {
