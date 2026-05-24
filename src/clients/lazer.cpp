@@ -79,7 +79,7 @@ const char* LazerClient::player_name() const {
     return m_player_name.c_str();
 }
 
-std::vector<std::string> LazerClient::get_missing_beatmaps(std::string_view collection_name) {
+std::vector<std::string> LazerClient::fetch_missing_beatmaps_from_collections(std::string_view collection_name) {
     std::vector<std::string> missing;
 
     auto append_missing = [this, &missing](const OsuCollection& collection) {

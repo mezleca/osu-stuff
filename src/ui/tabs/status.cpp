@@ -2,7 +2,6 @@
 #include "../theme.hpp"
 
 void tabs::render_status(ImFont* font) {
-    ImGui::SetCursorPos(ImVec2{ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
     ImGui::PushFont(font);
     ImGui::TextUnformatted("status");
     ImGui::PopFont();

@@ -23,7 +23,7 @@ struct OpStartTable {
     }
 };
 
-static constexpr OpStartTable OP_START_TABLE{};
+constexpr OpStartTable OP_START_TABLE{};
 
 struct QueryToken {
     std::string key;

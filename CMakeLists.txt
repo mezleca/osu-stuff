@@ -29,15 +29,24 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(SQLITECPP_BUILD_TESTS OFF)
+
 find_package(OpenGL REQUIRED)
 
-if(WIN32 OR USE_VENDORED_SDL)
-    add_subdirectory(vendor/SDL)
+if(WIN32)
+    set(SQLITECPP_INTERNAL_SQLITE ON)
+
+    if (NOT USE_VENDORED_SDL)
+        add_subdirectory(vendor/SDL)
+    else()
+        find_package(SDL3 REQUIRED)
+    endif()
 else()
     find_package(SDL3 REQUIRED)
 endif()
 
 add_subdirectory(vendor/miniz)
+add_subdirectory(vendor/sqlitecpp)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
 
@@ -48,6 +57,11 @@ file(GLOB IMGUI_CORE_SOURCES "vendor/imgui/*.cpp")
 set(IMGUI_BACKEND_SOURCES
     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
     "vendor/imgui/backends/imgui_impl_opengl3.cpp"
+)
+
+set(IMGUI_CPP_WRAPPER
+    "vendor/imgui/misc/cpp/imgui_stdlib.cpp"
+    "vendor/imgui/misc/cpp/imgui_stdlib.h"
 )
 
 list(FILTER SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
@@ -61,18 +75,22 @@ add_library(osu-stuff-core OBJECT
     ${HEADERS}
     ${IMGUI_CORE_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
+    ${IMGUI_CPP_WRAPPER}
 )
 
 target_include_directories(${PROJECT_NAME}-core PUBLIC
     src/
     vendor/imgui/
     vendor/imgui/backends
+    vendor/imgui/misc/cpp/
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
     miniz
     cpprealm
     utf8proc
+    SQLiteCpp
+    sqlite3
     OpenGL::GL
     SDL3::SDL3
 )

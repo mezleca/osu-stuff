@@ -115,22 +115,28 @@ void UI::render() {
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
     ImGui::Begin("##osu-stuff", nullptr, flags);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
         ImGui::PushFont(m_fonts[TORUS_SEMI][FONT_MEDIUM]);
-        const float header_height = ImGui::GetFrameHeight() + (ui_theme::HEADER_PADDING_Y * 2.0f) +
-                                    ui_theme::LINE_OFFSET + ui_theme::LINE_HEIGHT;
+        const float font_height = ImGui::GetFrameHeight();
         ImGui::PopFont();
 
         // header
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ui_theme::HEADER_BG_COLOR);
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
-        ImGui::BeginChild("header", ImVec2{available.x, header_height}, ImGuiChildFlags_None, ImGuiWindowFlags_None);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
+
+        const ImVec2 header_cursor_start = ImGui::GetCursorPos();
+        const float header_size_y = font_height + ui_theme::CONTENT_PADDING * 2;
+
+        ImGui::BeginChild("header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding,
+                          ImGuiWindowFlags_None);
         {
-            ImGui::SetCursorPos(ImVec2{ui_theme::HEADER_PADDING_X, ui_theme::HEADER_PADDING_Y});
             ImGui::PushFont(m_fonts[TORUS_BOLD][FONT_MEDIUM]);
             {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
@@ -146,36 +152,37 @@ void UI::render() {
                         m_tab = tab.name;
                     }
                 }
-
-                ImGui::Separator();
             }
             ImGui::PopFont();
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
 
-        // tab content
-        ImGui::BeginChild("content", ImVec2{available.x, 0.0f}, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
-        {
-            if (m_tab == "index") {
-                tabs::render_index(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            } else if (m_tab == "collections") {
-                tabs::render_collections(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            } else if (m_tab == "discover") {
-                tabs::render_discover(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            } else if (m_tab == "radio") {
-                tabs::render_radio(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            } else if (m_tab == "config") {
-                tabs::render_config(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            } else if (m_tab == "status") {
-                tabs::render_status(m_fonts[TORUS_BOLD][FONT_LARGE]);
-            }
+            auto* dl = ImGui::GetWindowDrawList();
+            dl->Flags |= ImDrawListFlags_AntiAliasedLines;
+
+            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_size_y - 1.0f};
+            ImVec2 header_line_end = {available.x, header_line_start.y};
+
+            dl->AddLine(header_line_start, header_line_end, ImColor(ui_theme::HEADER_BORDER_COLOR), 1.0f);
         }
         ImGui::EndChild();
+        ImGui::PopStyleVar(3);
+        ImGui::PopStyleColor(1);
+
+        if (m_tab == "index") {
+            tabs::render_index(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        } else if (m_tab == "collections") {
+            tabs::render_collections(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        } else if (m_tab == "discover") {
+            tabs::render_discover(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        } else if (m_tab == "radio") {
+            tabs::render_radio(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        } else if (m_tab == "config") {
+            tabs::render_config(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        } else if (m_tab == "status") {
+            tabs::render_status(m_fonts[TORUS_BOLD][FONT_LARGE]);
+        }
     }
     ImGui::End();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
 
     ImGui::Render();
 

@@ -19,3 +19,6 @@
 [submodule "vendor/libuv"]
 	path = vendor/libuv
 	url = https://github.com/libuv/libuv
+[submodule "vendor/sqlitecpp"]
+	path = vendor/sqlitecpp
+	url = https://github.com/SRombauts/SQLiteCpp

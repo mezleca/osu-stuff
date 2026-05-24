@@ -128,7 +128,8 @@ class ClientBase {
 
     [[nodiscard]] virtual const char* player_name() const = 0;
     [[nodiscard]] virtual std::vector<std::string> search_beatmaps(const SearchOptions& options);
-    [[nodiscard]] virtual std::vector<std::string> get_missing_beatmaps(std::string_view collection_name) = 0;
+    [[nodiscard]] virtual std::vector<std::string>
+    fetch_missing_beatmaps_from_collections(std::string_view collection_name) = 0;
     [[nodiscard]] virtual OsuCollection* get_collection(std::string_view name);
     [[nodiscard]] virtual bool add_collection(OsuCollection* collection);
     [[nodiscard]] virtual bool delete_collection(std::string_view name);
