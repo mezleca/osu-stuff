@@ -7,7 +7,7 @@
 #include <initializer_list>
 #include <ranges>
 
-static constexpr float DEFAULT_RANGE_TOLERANCE = 0.05f;
+constexpr float DEFAULT_RANGE_TOLERANCE = 0.05f;
 
 [[nodiscard]] auto trim_spaces(std::string_view value) -> std::string {
     size_t start = 0;

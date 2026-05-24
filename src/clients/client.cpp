@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-static constexpr std::string_view SORT_ARTIST = "artist";
-static constexpr std::string_view SORT_CREATOR = "creator";
-static constexpr std::string_view SORT_DIFFICULTY = "difficulty";
-static constexpr std::string_view SORT_DURATION = "duration";
+constexpr std::string_view SORT_ARTIST = "artist";
+constexpr std::string_view SORT_CREATOR = "creator";
+constexpr std::string_view SORT_DIFFICULTY = "difficulty";
+constexpr std::string_view SORT_DURATION = "duration";
 
 [[nodiscard]] static auto normalized_sort_value(std::string_view value) -> std::string {
     return binary::normalize_and_lower(value);
