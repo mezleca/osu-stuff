@@ -50,7 +50,7 @@ jobs:
             should_create_release: ${{ steps.check_release.outputs.should_create_release }}
         steps:
             - name: checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
 
             - name: setup bun
               uses: oven-sh/setup-bun@v2
@@ -115,7 +115,7 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
             - name: checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
 
             - name: setup bun
               uses: oven-sh/setup-bun@v2
@@ -161,7 +161,7 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
             - name: checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
 
             - name: setup bun
               uses: oven-sh/setup-bun@v2
