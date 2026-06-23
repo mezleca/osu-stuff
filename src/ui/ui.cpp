@@ -7,6 +7,7 @@
 #include <SDL3/SDL_opengl.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
+#include <iostream>
 
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
@@ -74,22 +75,47 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
         m_tabs.push_back(state);
     }
 
-    // setup fonts
-    m_fonts[TORUS][FONT_SMALL] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 14.0f, &font_cfg);
-    m_fonts[TORUS][FONT_MEDIUM] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 20.0f, &font_cfg);
-    m_fonts[TORUS][FONT_LARGE] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Regular.ttf", 26.0f, &font_cfg);
+    // initialize / preload some fonts
+    m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", io);
+    m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", io);
+    m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", io);
 
-    m_fonts[TORUS_SEMI][FONT_SMALL] =
-        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 14.0f, &font_cfg);
-    m_fonts[TORUS_SEMI][FONT_MEDIUM] =
-        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 20.0f, &font_cfg);
-    m_fonts[TORUS_SEMI][FONT_LARGE] =
-        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-SemiBold.ttf", 26.0f, &font_cfg);
+    for (auto& font : m_fonts) {
+        font.load(FONT_SMALL);
+        font.load(FONT_MEDIUM);
+        font.load(FONT_LARGE);
+    }
+}
 
-    m_fonts[TORUS_BOLD][FONT_SMALL] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 14.0f, &font_cfg);
-    m_fonts[TORUS_BOLD][FONT_MEDIUM] =
-        io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 20.0f, &font_cfg);
-    m_fonts[TORUS_BOLD][FONT_LARGE] = io->Fonts->AddFontFromFileTTF("resources/fonts/Torus-Bold.ttf", 26.0f, &font_cfg);
+void UIFont::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io) {
+    m_font_location = location;
+    m_cfg = cfg;
+    m_io = io;
+}
+
+ImFont* UIFont::load_font_variation(int size) {
+    std::cout << "[ui] loading " << m_font_location << " (" << size << ")\n";
+
+    ImFont* font = m_io->Fonts->AddFontFromFileTTF(m_font_location.c_str(), static_cast<float>(size), &m_cfg);
+
+    if (font != nullptr) {
+        m_fonts[size] = font;
+    }
+
+    return font;
+}
+
+bool UIFont::load(int size) {
+    if (m_font_location.empty()) {
+        return false;
+    }
+
+    if (load_font_variation(size) == nullptr) {
+        std::cout << "[ui] failed to load " << m_font_location << " (" << size << ")\n";
+        return false;
+    }
+
+    return true;
 }
 
 UI::~UI() {
@@ -111,6 +137,9 @@ void UI::render() {
                                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
     static const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
+    auto torus_bold = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
+    auto torus_semi = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
+
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
@@ -121,7 +150,7 @@ void UI::render() {
     ImGui::Begin("##osu-stuff", nullptr, flags);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
-        ImGui::PushFont(m_fonts[TORUS_SEMI][FONT_MEDIUM]);
+        ImGui::PushFont(torus_bold);
         const float font_height = ImGui::GetFrameHeight();
         ImGui::PopFont();
 
@@ -137,7 +166,7 @@ void UI::render() {
         ImGui::BeginChild("header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding,
                           ImGuiWindowFlags_None);
         {
-            ImGui::PushFont(m_fonts[TORUS_BOLD][FONT_MEDIUM]);
+            ImGui::PushFont(torus_bold);
             {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
                     auto& tab = m_tabs[index];
@@ -167,19 +196,23 @@ void UI::render() {
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
 
+        ImGui::PushFont(torus_semi);
+
         if (m_tab == "index") {
-            tabs::render_index(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_index();
         } else if (m_tab == "collections") {
-            tabs::render_collections(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_collections();
         } else if (m_tab == "discover") {
-            tabs::render_discover(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_discover();
         } else if (m_tab == "radio") {
-            tabs::render_radio(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_radio();
         } else if (m_tab == "config") {
-            tabs::render_config(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_config();
         } else if (m_tab == "status") {
-            tabs::render_status(m_fonts[TORUS_BOLD][FONT_LARGE]);
+            tabs::render_status();
         }
+
+        ImGui::PopFont();
     }
     ImGui::End();
     ImGui::PopStyleVar(3);

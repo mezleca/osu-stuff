@@ -1,8 +1,6 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
 
-void tabs::render_discover(ImFont* font) {
-    ImGui::PushFont(font);
+void tabs::render_discover() {
     ImGui::TextUnformatted("discover");
-    ImGui::PopFont();
 }

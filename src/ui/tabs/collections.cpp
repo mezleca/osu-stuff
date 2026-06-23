@@ -5,9 +5,7 @@
 
 #include <string>
 
-void tabs::render_collections(ImFont* font) {
-    ImGui::PushFont(font);
-
+void tabs::render_collections() {
     static std::string shit = "0";
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
@@ -42,6 +40,4 @@ void tabs::render_collections(ImFont* font) {
         ImGui::Text("collection data");
     }
     custom_imgui::end_child(beatmaps_child_state, BORDER_NONE, ImColor(ui_theme::BORDER_COLOR), 1.0f);
-
-    ImGui::PopFont();
 }

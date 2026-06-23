@@ -1,8 +1,6 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
 
-void tabs::render_index(ImFont* font) {
-    ImGui::PushFont(font);
+void tabs::render_index() {
     ImGui::TextUnformatted("osu-stuff");
-    ImGui::PopFont();
 }

@@ -1,8 +1,6 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
 
-void tabs::render_radio(ImFont* font) {
-    ImGui::PushFont(font);
+void tabs::render_radio() {
     ImGui::TextUnformatted("radio");
-    ImGui::PopFont();
 }
