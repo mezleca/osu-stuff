@@ -11,6 +11,8 @@ namespace ui_theme {
     constexpr float HEADER_RIGHT_WIDTH = 180.0f;
     constexpr float CONTENT_PADDING = 12.0f;
 
+    constexpr float BOX_ROUNDING = 4.0f;
+
     constexpr float LINE_HEIGHT = 2.0f;
     constexpr float LINE_OFFSET = 1.0f;
     constexpr float HOVER_LINE_ALPHA = 0.35f;

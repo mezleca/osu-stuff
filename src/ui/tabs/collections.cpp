@@ -3,6 +3,7 @@
 #include "../theme.hpp"
 #include "../custom.hpp"
 
+#include <iostream>
 #include <string>
 
 CollectionTab::CollectionTab() : UITab() {
@@ -22,12 +23,20 @@ CollectionTab::~CollectionTab() {
 }
 
 void CollectionTab::render() {
-    static std::string shit = "0";
+    static bool set_collection_size = false;
+    static std::string shit = "";
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
 
-    if (m_collection_child_state->m_size.x == 0 && m_collection_child_state->m_size.y == 0) {
+    // set initial size for collection child
+    if (!set_collection_size) {
         m_collection_child_state->m_size = {25.0f * available.x / 100.f, available.y};
+        set_collection_size = true;
+    }
+
+    // ensure we have enough space for the data stuff
+    if (m_collection_child_state->m_size.x > available.x / 2) {
+        m_collection_child_state->m_size.x = available.x / 2;
     }
 
     m_beatmaps_child_state->m_size = {available.x - m_collection_child_state->m_size.x, available.y};

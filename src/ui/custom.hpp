@@ -21,9 +21,8 @@ struct ChildState {
 
     ImVec2 m_drag_start;
     ImVec2 m_size;
-    ImVec2 m_saved_size;
+    ImVec2 m_previous_size;
 
-    float m_drag_offset;
     bool m_dragging;
 
     customChildResize m_resize = CHILD_RESIZE_NONE;
