@@ -1,12 +1,9 @@
-#include "tabs.hpp"
+#include "detail.hpp"
 #include "../theme.hpp"
 #include "../custom.hpp"
 
 IndexTab::IndexTab() {
     m_id = "index";
-}
-
-IndexTab::~IndexTab() {
 }
 
 void IndexTab::render() {

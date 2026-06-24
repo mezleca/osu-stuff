@@ -16,7 +16,12 @@ enum class BeatmapStatus : int {
     LOVED
 };
 
-enum class BeatmapGamemode : int { OSU = 0, TAIKO, CATCH, MANIA };
+enum class BeatmapGamemode : int {
+    OSU = 0,
+    TAIKO,
+    CATCH,
+    MANIA
+};
 
 namespace realm {
     struct Ruleset;

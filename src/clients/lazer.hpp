@@ -11,7 +11,7 @@ namespace realm {
 }
 
 class LazerClient : public ClientBase {
-  public:
+public:
     explicit LazerClient(ClientOptions options);
     ~LazerClient() override;
 
@@ -20,7 +20,7 @@ class LazerClient : public ClientBase {
     fetch_missing_beatmaps_from_collections(std::string_view collection_name) override;
     [[nodiscard]] bool update_collection() override;
 
-  private:
+private:
     ClientOptions m_options;
     std::string m_player_name;
     std::unique_ptr<realm::db> m_realm;

@@ -1,12 +1,9 @@
-#include "tabs.hpp"
+#include "detail.hpp"
 #include "../theme.hpp"
 #include "../custom.hpp"
 
 DiscoverTab::DiscoverTab() {
     m_id = "discover";
-}
-
-DiscoverTab::~DiscoverTab() {
 }
 
 void DiscoverTab::render() {

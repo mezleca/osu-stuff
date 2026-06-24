@@ -1,8 +1,6 @@
 #include "ui.hpp"
 #include "ui/theme.hpp"
 #include "imgui.h"
-#include "ui/tabs/tabs.hpp"
-#include "ui/widgets/tab_button.hpp"
 
 #include <SDL3/SDL_opengl.h>
 #include <imgui_impl_opengl3.h>
@@ -15,8 +13,8 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui::CreateContext();
     io = &ImGui::GetIO();
 
-    io->IniFilename = NULL;
-    io->LogFilename = NULL;
+    io->IniFilename = nullptr;
+    io->LogFilename = nullptr;
 
     ImGui::StyleColorsDark();
 
@@ -69,12 +67,9 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
     // initialize tabs
-    m_tabs.push_back(std::pair{new TabButtonWidget("index"), new IndexTab()});
-    m_tabs.push_back(std::pair{new TabButtonWidget("collections"), new CollectionTab()});
-    m_tabs.push_back(std::pair{new TabButtonWidget("discover"), new DiscoverTab()});
-    m_tabs.push_back(std::pair{new TabButtonWidget("radio"), new RadioTab()});
-    m_tabs.push_back(std::pair{new TabButtonWidget("config"), new ConfigTab()});
-    m_tabs.push_back(std::pair{new TabButtonWidget("status"), new StatusTab()});
+    for (auto& tab : create_default_tabs()) {
+        m_tabs.emplace_back(custom_imgui::TabButtonState{}, std::move(tab));
+    }
 
     // initialize / preload some fonts
     m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", io);
@@ -172,8 +167,8 @@ void UI::render() {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
                     auto& pair = m_tabs[index];
 
-                    TabButtonWidget* button = pair.first;
-                    UITab* tab = pair.second;
+                    auto& button = pair.first;
+                    UITab* tab = pair.second.get();
 
                     std::string current_id = m_current_tab != nullptr ? m_current_tab->m_id : "";
 
@@ -184,7 +179,7 @@ void UI::render() {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    if (tab_button(button, label, current_id == tab->m_id, true, is_title)) {
+                    if (custom_imgui::tab_button(button, label, current_id == tab->m_id, true, is_title)) {
                         m_current_tab = tab;
                     }
                 }

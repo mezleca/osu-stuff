@@ -5,8 +5,19 @@
 #include <string_view>
 #include <vector>
 
-enum class QueryOp : int { INVALID = -1, EQ, NEQ, GT, LT, GTE, LTE };
-enum class ParseState : int { KEY = 0, VALUE };
+enum class QueryOp : int {
+    INVALID = -1,
+    EQ,
+    NEQ,
+    GT,
+    LT,
+    GTE,
+    LTE
+};
+enum class ParseState : int {
+    KEY = 0,
+    VALUE
+};
 
 struct OpStartTable {
     bool data[256]{};

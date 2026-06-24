@@ -1,12 +1,9 @@
-#include "tabs.hpp"
+#include "detail.hpp"
 #include "../theme.hpp"
 #include "../custom.hpp"
 
 StatusTab::StatusTab() {
     m_id = "status";
-}
-
-StatusTab::~StatusTab() {
 }
 
 void StatusTab::render() {

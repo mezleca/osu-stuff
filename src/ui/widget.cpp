@@ -1,56 +1,31 @@
 #include "widget.hpp"
 #include "../utils/math.hpp"
 
-#include <imgui.h>
+static constexpr float HIDDEN_ALPHA_THRESHOLD = 0.001f;
 
-static auto get_anim_entry(std::unordered_map<std::string, WidgetAnim>& anims, std::string_view name) -> WidgetAnim& {
-    return anims.try_emplace(std::string(name), WidgetAnim{}).first->second;
+void AnimatedFloat::tick(float target, float speed, float dt) {
+    value = math_utils::exp_lerp(value, target, speed, dt);
 }
 
-static auto find_anim_entry(const std::unordered_map<std::string, WidgetAnim>& anims, std::string_view name)
-    -> const WidgetAnim* {
-    const auto it = anims.find(std::string(name));
-
-    if (it == anims.end()) {
-        return nullptr;
-    }
-
-    return &it->second;
+void AnimatedFloat::set(float new_value) {
+    value = new_value;
 }
 
-void WidgetState::configure_anim(std::string_view name, float initial_value, float speed) {
-    auto& anim = get_anim_entry(anims, name);
-    anim.value = initial_value;
-    anim.target = initial_value;
-    anim.speed = speed;
+void AnimatedColor::tick(ImVec4 target, float speed, float dt) {
+    value.x = math_utils::exp_lerp(value.x, target.x, speed, dt);
+    value.y = math_utils::exp_lerp(value.y, target.y, speed, dt);
+    value.z = math_utils::exp_lerp(value.z, target.z, speed, dt);
+    value.w = math_utils::exp_lerp(value.w, target.w, speed, dt);
 }
 
-void WidgetState::set_anim_target(std::string_view name, float target, float speed) {
-    auto& anim = get_anim_entry(anims, name);
-    anim.target = target;
-    anim.speed = speed;
+void AnimatedColor::set(ImVec4 new_value) {
+    value = new_value;
 }
 
-void WidgetState::set_anim_value(std::string_view name, float value) {
-    auto& anim = get_anim_entry(anims, name);
-    anim.value = value;
-    anim.target = value;
+void WidgetState::tick(float speed, float dt) {
+    alpha.tick(visible ? 1.0f : 0.0f, speed, dt);
 }
 
-float WidgetState::get_anim(std::string_view name, float fallback) const {
-    const auto* anim = find_anim_entry(anims, name);
-
-    if (anim == nullptr) {
-        return fallback;
-    }
-
-    return anim->value;
-}
-
-void WidgetState::tick() {
-    const float dt = ImGui::GetIO().DeltaTime;
-
-    for (auto& [_, anim] : anims) {
-        anim.value = exp_lerp(anim.value, anim.target, anim.speed, dt);
-    }
+bool WidgetState::is_hidden() const {
+    return !visible && alpha.value <= HIDDEN_ALPHA_THRESHOLD;
 }

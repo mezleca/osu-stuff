@@ -83,6 +83,7 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
     vendor/imgui/
     vendor/imgui/backends
     vendor/imgui/misc/cpp/
+    vendor/stb/
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC

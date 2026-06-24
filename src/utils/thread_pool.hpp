@@ -19,19 +19,19 @@ struct TaskBase {
 
 template <typename F>
 struct Task : TaskBase {
-  public:
+public:
     explicit Task(F&& f) : func(std::move(f)) {
     }
     void execute() {
         func();
     }
 
-  private:
+private:
     F func;
 };
 
 struct ThreadPool {
-  public:
+public:
     void initialize();
     ~ThreadPool();
 
@@ -60,7 +60,7 @@ struct ThreadPool {
         return result;
     }
 
-  private:
+private:
     bool stop = false;
     std::vector<std::thread> workers;
     std::queue<std::unique_ptr<TaskBase>> tasks;

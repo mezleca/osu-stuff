@@ -1,15 +1,22 @@
 #pragma once
 
-#include "ui/widgets/tab_button.hpp"
+#include "ui/custom.hpp"
+#include "ui/tabs/tabs.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
 #include <imgui.h>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-enum UIFonts { TORUS = 0, TORUS_SEMI, TORUS_BOLD, FONT_COUNT };
+enum UIFonts {
+    TORUS = 0,
+    TORUS_SEMI,
+    TORUS_BOLD,
+    FONT_COUNT
+};
 enum UIFontVar : int32_t {
     FONT_EXTRA_SMALL = 10,
     FONT_SMALL = 14,
@@ -19,7 +26,7 @@ enum UIFontVar : int32_t {
 };
 
 struct UIFont {
-  public:
+public:
     void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
 
     [[nodiscard]]
@@ -35,7 +42,7 @@ struct UIFont {
 
     bool load(int size);
 
-  private:
+private:
     ImFont* load_font_variation(int size);
 
     ImGuiIO* m_io;
@@ -47,7 +54,7 @@ struct UIFont {
 struct UITab;
 
 class UI {
-  public:
+public:
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
 
@@ -61,10 +68,10 @@ class UI {
         m_done = true;
     };
 
-  private:
+private:
     bool m_done = false;
     UITab* m_current_tab = nullptr;
-    std::vector<std::pair<TabButtonWidget*, UITab*>> m_tabs;
+    std::vector<std::pair<custom_imgui::TabButtonState, std::unique_ptr<UITab>>> m_tabs;
     ImGuiIO* io;
     UIFont m_fonts[FONT_COUNT];
 };

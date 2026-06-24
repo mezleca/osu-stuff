@@ -7,7 +7,16 @@
 #include <unordered_set>
 #include <vector>
 
-enum OSU_SECTIONS { General = 0, Editor, Metadata, Difficulty, Events, TimingPoints, Colours, HitObjects };
+enum OSU_SECTIONS {
+    General = 0,
+    Editor,
+    Metadata,
+    Difficulty,
+    Events,
+    TimingPoints,
+    Colours,
+    HitObjects
+};
 
 struct GeneralSection {
     std::string audio_filename;

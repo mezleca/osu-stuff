@@ -123,7 +123,7 @@ struct SearchOptions {
 };
 
 class ClientBase {
-  public:
+public:
     virtual ~ClientBase() = default;
 
     [[nodiscard]] virtual const char* player_name() const = 0;
@@ -139,7 +139,7 @@ class ClientBase {
     [[nodiscard]] virtual OsuBeatmapSet* get_beatmapset(int id);
     [[nodiscard]] virtual std::vector<OsuCollection*> get_collections();
 
-  protected:
+protected:
     [[nodiscard]] std::vector<OsuBeatmap*> filter_beatmaps(const SearchOptions& data);
     [[nodiscard]] virtual bool matches_filter(const OsuBeatmap& beatmap) const;
 

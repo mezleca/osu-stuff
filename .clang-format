@@ -1,6 +1,9 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 120
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None

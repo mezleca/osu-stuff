@@ -22,3 +22,6 @@
 [submodule "vendor/sqlitecpp"]
 	path = vendor/sqlitecpp
 	url = https://github.com/SRombauts/SQLiteCpp
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/nothings/stb

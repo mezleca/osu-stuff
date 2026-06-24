@@ -7,7 +7,7 @@
 #include <vector>
 
 struct BeatmapWriter {
-  public:
+public:
     void section(const std::string& name) {
         out << "[" << name << "]\n";
     }
@@ -81,6 +81,6 @@ struct BeatmapWriter {
         return ss.str();
     }
 
-  private:
+private:
     std::ostringstream out;
 };

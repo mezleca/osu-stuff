@@ -4,9 +4,10 @@
 #include <SDL3/SDL_opengl.h>
 #include <filesystem>
 #include <iostream>
+#include <memory>
 
-#define DEFAULT_WIDTH 1280
-#define DEFAULT_HEIGHT 720
+static constexpr int DEFAULT_WIDTH = 1280;
+static constexpr int DEFAULT_HEIGHT = 720;
 
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
@@ -36,6 +37,7 @@ int main() {
 
     if (window == nullptr) {
         std::cout << "SDL_CreateWindow(): " << SDL_GetError() << "\n";
+        SDL_Quit();
         return 1;
     }
 
@@ -43,6 +45,8 @@ int main() {
 
     if (gl_context == nullptr) {
         std::cout << "SDL_GL_CreateContext(): " << SDL_GetError() << "\n";
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return 1;
     }
 
@@ -51,16 +55,19 @@ int main() {
     SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_ShowWindow(window);
 
-    auto ui = new UI(&gl_context, window);
+    auto ui = std::make_unique<UI>(&gl_context, window);
 
     while (!ui->is_done()) {
         SDL_Event event;
 
         while (SDL_PollEvent(&event)) {
             ui->process_sdl_event(&event);
-            if (event.type == SDL_EVENT_QUIT) ui->exit();
-            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window))
+            if (event.type == SDL_EVENT_QUIT) {
                 ui->exit();
+            }
+            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window)) {
+                ui->exit();
+            }
         }
 
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
@@ -72,6 +79,8 @@ int main() {
 
         SDL_GL_SwapWindow(window);
     }
+
+    ui.reset();
 
     SDL_GL_DestroyContext(gl_context);
     SDL_DestroyWindow(window);

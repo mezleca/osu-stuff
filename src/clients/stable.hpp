@@ -6,7 +6,7 @@
 #include <vector>
 
 class StableClient : public ClientBase {
-  public:
+public:
     explicit StableClient(ClientOptions options);
 
     [[nodiscard]] const char* player_name() const override;
@@ -14,7 +14,7 @@ class StableClient : public ClientBase {
     fetch_missing_beatmaps_from_collections(std::string_view collection_name) override;
     [[nodiscard]] bool update_collection() override;
 
-  private:
+private:
     void load_beatmaps(const std::filesystem::path& database_path);
     void load_collections(const std::filesystem::path& database_path);
 
