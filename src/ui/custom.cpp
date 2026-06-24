@@ -1,8 +1,9 @@
+#include "./custom.hpp"
+#include "./theme.hpp"
 #include "imgui.h"
-#include "ui.hpp"
 
+#include <format>
 #include <imgui_stdlib.h>
-#include <iostream>
 
 void custom_imgui::search_input(std::string_view label, std::string& input) {
     ImGui::InputText(std::format("##{}", label).c_str(), &input);
@@ -27,33 +28,42 @@ void custom_imgui::end_child(ChildState* state, customChildBorder flags, ImU32 c
     auto min = ImGui::GetItemRectMin();
     auto max = ImGui::GetItemRectMax();
 
-    // TODO: support horizontal borders
-    if (state != nullptr) {
+    if (state != nullptr && (state->m_resize & CHILD_RESIZE_X || state->m_resize & CHILD_RESIZE_Y)) {
         const bool is_mouse_down = ImGui::IsMouseDown(ImGuiMouseButton_Left);
 
         if (state->m_dragging) {
             if (is_mouse_down) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
 
-                state->m_drag_offset = state->m_drag_start.x - ImGui::GetMousePos().x;
-                state->m_size.x = state->m_saved_size.x - state->m_drag_offset;
+                if (state->m_resizing & CHILD_RESIZE_X) {
+                    state->m_drag_offset = state->m_drag_start.x - ImGui::GetMousePos().x;
+                    state->m_size.x = state->m_saved_size.x - state->m_drag_offset;
+                } else if (state->m_resize & CHILD_RESIZE_Y) {
+                    state->m_drag_offset = state->m_drag_start.y - ImGui::GetMousePos().y;
+                    state->m_size.y = state->m_saved_size.y - state->m_drag_offset;
+                }
             } else {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
                 state->m_dragging = false;
                 state->m_drag_offset = 0.0f;
                 state->m_drag_start = {0.0f, 0.0f};
+                state->m_resizing = CHILD_RESIZE_NONE;
             }
         } else {
-            const bool is_hovering_rect = ImGui::IsMouseHoveringRect({max.x - 20.0f, min.y}, max);
+            const bool is_hovering_x = ImGui::IsMouseHoveringRect({max.x - 20.0f, min.y}, max);
+            const bool is_hovering_y = ImGui::IsMouseHoveringRect({min.x, max.y - 20.0f}, max);
 
-            if (is_mouse_down && is_hovering_rect) {
+            if (is_mouse_down && (is_hovering_x || is_hovering_y)) {
                 state->m_dragging = true;
                 state->m_drag_offset = 0.0f;
                 state->m_drag_start = ImGui::GetMousePos();
                 state->m_saved_size = state->m_size;
-            } else if (is_hovering_rect) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                state->m_resizing = is_hovering_x ? CHILD_RESIZE_X : CHILD_RESIZE_Y;
+            } else if (is_hovering_x) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            } else if (is_hovering_y) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
             }
         }
     }

@@ -68,12 +68,13 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui_ImplSDL3_InitForOpenGL(window, ctx);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    // initialize tab states
-    for (const auto& tab : m_tabs_str) {
-        TabButtonWidget state(tab);
-        state.show();
-        m_tabs.push_back(state);
-    }
+    // initialize tabs
+    m_tabs.push_back(std::pair{new TabButtonWidget("index"), new IndexTab()});
+    m_tabs.push_back(std::pair{new TabButtonWidget("collections"), new CollectionTab()});
+    m_tabs.push_back(std::pair{new TabButtonWidget("discover"), new DiscoverTab()});
+    m_tabs.push_back(std::pair{new TabButtonWidget("radio"), new RadioTab()});
+    m_tabs.push_back(std::pair{new TabButtonWidget("config"), new ConfigTab()});
+    m_tabs.push_back(std::pair{new TabButtonWidget("status"), new StatusTab()});
 
     // initialize / preload some fonts
     m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", io);
@@ -169,16 +170,22 @@ void UI::render() {
             ImGui::PushFont(torus_bold);
             {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
-                    auto& tab = m_tabs[index];
-                    const char* label = tab.name == "index" ? "osu-stuff" : tab.name.c_str();
-                    const bool is_title = tab.name == "index";
+                    auto& pair = m_tabs[index];
+
+                    TabButtonWidget* button = pair.first;
+                    UITab* tab = pair.second;
+
+                    std::string current_id = m_current_tab != nullptr ? m_current_tab->m_id : "";
+
+                    const char* label = tab->m_id == "index" ? "osu-stuff" : tab->m_id.c_str();
+                    const bool is_title = tab->m_id == "index";
 
                     if (index > 0) {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    if (tab_button(tab, label, m_tab == tab.name, true, is_title)) {
-                        m_tab = tab.name;
+                    if (tab_button(button, label, current_id == tab->m_id, true, is_title)) {
+                        m_current_tab = tab;
                     }
                 }
             }
@@ -198,18 +205,8 @@ void UI::render() {
 
         ImGui::PushFont(torus_semi);
 
-        if (m_tab == "index") {
-            tabs::render_index();
-        } else if (m_tab == "collections") {
-            tabs::render_collections();
-        } else if (m_tab == "discover") {
-            tabs::render_discover();
-        } else if (m_tab == "radio") {
-            tabs::render_radio();
-        } else if (m_tab == "config") {
-            tabs::render_config();
-        } else if (m_tab == "status") {
-            tabs::render_status();
+        if (m_current_tab != nullptr) {
+            m_current_tab->render();
         }
 
         ImGui::PopFont();

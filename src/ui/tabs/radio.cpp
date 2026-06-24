@@ -1,6 +1,14 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
+#include "../custom.hpp"
 
-void tabs::render_radio() {
+RadioTab::RadioTab() {
+    m_id = "radio";
+}
+
+RadioTab::~RadioTab() {
+}
+
+void RadioTab::render() {
     ImGui::TextUnformatted("radio");
 }

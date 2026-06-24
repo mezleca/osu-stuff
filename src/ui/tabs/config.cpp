@@ -1,6 +1,14 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
+#include "../custom.hpp"
 
-void tabs::render_config() {
+ConfigTab::ConfigTab() {
+    m_id = "config";
+}
+
+ConfigTab::~ConfigTab() {
+}
+
+void ConfigTab::render() {
     ImGui::TextUnformatted("config");
 }

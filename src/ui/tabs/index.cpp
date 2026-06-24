@@ -1,6 +1,14 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
+#include "../custom.hpp"
 
-void tabs::render_index() {
+IndexTab::IndexTab() {
+    m_id = "index";
+}
+
+IndexTab::~IndexTab() {
+}
+
+void IndexTab::render() {
     ImGui::TextUnformatted("osu-stuff");
 }

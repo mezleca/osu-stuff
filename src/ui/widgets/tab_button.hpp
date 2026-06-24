@@ -17,25 +17,25 @@ struct TabButtonWidget : WidgetState {
     }
 };
 
-inline bool tab_button(TabButtonWidget& s, std::string_view label, bool selected, bool draw_line, bool is_title) {
+inline bool tab_button(TabButtonWidget* s, std::string_view label, bool selected, bool draw_line, bool is_title) {
     if (selected) {
-        const float hover_t = s.get_anim("hover");
-        const float line_t = s.get_anim("line");
+        const float hover_t = s->get_anim("hover");
+        const float line_t = s->get_anim("line");
 
         if (line_t < hover_t) {
-            s.set_anim_value("line", hover_t);
+            s->set_anim_value("line", hover_t);
         }
     }
 
-    s.set_anim_target("alpha", s.visible ? 1.0f : 0.0f);
-    s.set_anim_target("line", selected ? 1.0f : 0.0f);
-    s.tick();
+    s->set_anim_target("alpha", s->visible ? 1.0f : 0.0f);
+    s->set_anim_target("line", selected ? 1.0f : 0.0f);
+    s->tick();
 
-    if (s.is_hidden()) {
+    if (s->is_hidden()) {
         return false;
     }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, s.get_anim("alpha", 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, s->get_anim("alpha", 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 6.0f});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{});
@@ -45,11 +45,11 @@ inline bool tab_button(TabButtonWidget& s, std::string_view label, bool selected
     const bool is_pressed = ImGui::Button(std::format("{}##tab", label).c_str());
     const bool is_hovered = ImGui::IsItemHovered();
 
-    s.set_anim_target("hover", is_hovered ? 1.0f : 0.0f);
+    s->set_anim_target("hover", is_hovered ? 1.0f : 0.0f);
 
     if (draw_line && !is_title) {
-        const float line_t = s.get_anim("line");
-        const float hover_t = s.get_anim("hover");
+        const float line_t = s->get_anim("line");
+        const float hover_t = s->get_anim("hover");
         const float width_t = selected ? line_t : hover_t;
         const float visible_t = selected ? line_t : (hover_t * ui_theme::HOVER_LINE_ALPHA);
 

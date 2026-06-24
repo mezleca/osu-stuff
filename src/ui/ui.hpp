@@ -1,23 +1,13 @@
 #pragma once
 
-#include "imgui.h"
 #include "ui/widgets/tab_button.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
-#include <memory>
+#include <imgui.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-enum customChildBorder : uint8_t {
-    BORDER_NONE = 0,
-    BORDER_LEFT = 1 << 0,
-    BORDER_TOP = 1 << 1,
-    BORDER_RIGHT = 1 << 2,
-    BORDER_BOTTOM = 1 << 3,
-    BORDER_ALL = 1 << 4,
-};
 
 enum UIFonts { TORUS = 0, TORUS_SEMI, TORUS_BOLD, FONT_COUNT };
 enum UIFontVar : int32_t {
@@ -44,6 +34,7 @@ struct UIFont {
     }
 
     bool load(int size);
+
   private:
     ImFont* load_font_variation(int size);
 
@@ -53,23 +44,7 @@ struct UIFont {
     ImFontConfig m_cfg;
 };
 
-struct ChildState {
-    std::string m_id;
-
-    ImVec2 m_drag_start;
-    ImVec2 m_size;
-    ImVec2 m_saved_size;
-
-    float m_drag_offset;
-    bool m_dragging;
-};
-
-namespace custom_imgui {
-    void search_input(std::string_view label, std::string& input);
-    void line(ImVec2 a, ImVec2 b, ImU32 color, float thickness);
-    bool begin_child(ChildState* state, ImGuiChildFlags child_flags = 0, ImGuiWindowFlags window_flags = 0);
-    void end_child(ChildState* state, customChildBorder flags, ImU32 color, float thickness = 1.0f);
-}; // namespace custom_imgui
+struct UITab;
 
 class UI {
   public:
@@ -88,10 +63,8 @@ class UI {
 
   private:
     bool m_done = false;
-    std::string m_tab = "index";
-    std::vector<std::string> m_tabs_str = {"index", "collections", "discover", "radio", "config", "status"};
-    std::vector<TabButtonWidget> m_tabs;
-
+    UITab* m_current_tab = nullptr;
+    std::vector<std::pair<TabButtonWidget*, UITab*>> m_tabs;
     ImGuiIO* io;
     UIFont m_fonts[FONT_COUNT];
 };

@@ -1,6 +1,14 @@
 #include "tabs.hpp"
 #include "../theme.hpp"
+#include "../custom.hpp"
 
-void tabs::render_discover() {
+DiscoverTab::DiscoverTab() {
+    m_id = "discover";
+}
+
+DiscoverTab::~DiscoverTab() {
+}
+
+void DiscoverTab::render() {
     ImGui::TextUnformatted("discover");
 }
