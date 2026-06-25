@@ -1,0 +1,415 @@
+<script lang="ts">
+    import { onMount, tick } from "svelte";
+    import { ALL_BEATMAPS_KEY, BEATMAP_CARD_ELEMENT, type BeatmapListRef, type BeatmapUpdateReason } from "@shared/types";
+    import { collection_manager, type ICollectionWithEdit } from "../../lib/store/collections";
+    import { FILTER_DATA, MODES_DATA, SEARCH_DEBOUNCE_INTERVAL, STATUS_DATA } from "../../lib/store/other.svelte";
+    import { get_beatmap_list, get_beatmapset_list } from "../../lib/store/beatmaps";
+    import { show_notification } from "../../lib/store/notifications";
+    import { remove_beatmap_from_collection, remove_beatmapset_from_collection } from "../../lib/utils/beatmaps";
+    import { context_separator, string_is_valid } from "../../lib/utils/utils";
+    import { debounce } from "@shared/timing";
+    import { modals, ModalType } from "../../lib/utils/modal";
+    import { show_context_menu } from "../../lib/store/context-menu";
+
+    // components
+    import Add from "../utils/add.svelte";
+    import Search from "../utils/basic/search.svelte";
+    import CollectionCard from "../cards/collection-card.svelte";
+    import Dropdown from "../utils/basic/dropdown.svelte";
+    import ExpandableMenu from "../utils/expandable-menu.svelte";
+    import RangeSlider from "../utils/basic/range-slider.svelte";
+    import Checkbox from "../utils/basic/checkbox.svelte";
+
+    import BeatmapList from "../beatmap-list.svelte";
+    import BeatmapsetList from "../beatmapset-list.svelte";
+
+    // modals
+    import GetCollectionModal from "./modal/get-collection-modal.svelte";
+    import MergeCollectionModal from "./modal/merge-collection-modal.svelte";
+    import ExportCollectionModal from "./modal/export-collection-modal.svelte";
+    import ExportBeatmapsModal from "./modal/export-beatmaps-modal.svelte";
+    import EmptyCollectionModal from "./modal/empty-collection-modal.svelte";
+    import QuickConfirmModal from "./modal/quick-confirm-modal.svelte";
+
+    let beatmap_list_ref = $state<BeatmapListRef | null>(null);
+
+    const card_elements =
+        BEATMAP_CARD_ELEMENT.STATUS |
+        BEATMAP_CARD_ELEMENT.CONTEXT_MENU |
+        BEATMAP_CARD_ELEMENT.CONTEXT_MENU_REMOVE |
+        BEATMAP_CARD_ELEMENT.EXTRA_ACTIONS |
+        BEATMAP_CARD_ELEMENT.STAR_RATING_TEXT |
+        BEATMAP_CARD_ELEMENT.BPM_TEXT;
+
+    const list = get_beatmap_list("collections");
+    const all_beatmapsets = get_beatmapset_list("collections-all");
+
+    const { sort, query, status, mode, show_invalid, difficulty_range, should_update, selected_buffer, update_reason } = list;
+
+    // TOFIX:
+    const {
+        query: all_query,
+        status: all_status,
+        mode: all_mode,
+        sort: all_sort,
+        difficulty_range: all_difficulty_range,
+        should_update: all_should_update
+    } = all_beatmapsets;
+
+    const collections = collection_manager.collections;
+    const selected_collection = collection_manager.get_selected_store("collections");
+    const collection_search = collection_manager.query;
+    const collection_should_update = collection_manager.needs_update;
+    const browsing_all_beatmaps = $derived($selected_collection.name == ALL_BEATMAPS_KEY);
+
+    const update_beatmaps = debounce(async (force: boolean = false, reason: BeatmapUpdateReason = "unknown") => {
+        if (!string_is_valid($selected_collection.name) || browsing_all_beatmaps) {
+            return;
+        }
+
+        list.set_target($selected_collection.name);
+
+        const result = await list.search(force);
+        const hashes: Set<string> = new Set();
+
+        for (const beatmap of result.beatmaps) {
+            hashes.add(beatmap.md5);
+        }
+
+        if ($show_invalid) {
+            for (const hash of result.invalid) {
+                hashes.add(hash);
+            }
+        }
+
+        if (result) {
+            const items = Array.from(hashes.values());
+            list.set_items(items);
+
+            const selected = $selected_buffer[0];
+
+            if (selected?.id) {
+                const selected_idx = items.indexOf(selected.id as string);
+
+                if (selected_idx != -1 && selected.index != selected_idx) {
+                    list.select({ id: selected.id, index: selected_idx });
+                } else if (selected_idx == -1) {
+                    list.clear_selected();
+                }
+            }
+
+            if ($query == "" && reason != "remove") {
+                await tick();
+                beatmap_list_ref?.focus_selected(true);
+            }
+        }
+    }, SEARCH_DEBOUNCE_INTERVAL);
+
+    const update_all_beatmapsets = debounce(async (force: boolean = true) => {
+        const result = await all_beatmapsets.search(force);
+
+        if (!result) {
+            return;
+        }
+
+        const ids: number[] = [];
+
+        for (const beatmapset of result.beatmapsets) {
+            ids.push(beatmapset.online_id);
+        }
+
+        all_beatmapsets.set_items(ids);
+    }, SEARCH_DEBOUNCE_INTERVAL);
+
+    const remove_callback = async (hash: string) => {
+        await remove_beatmap_from_collection(hash, $selected_collection?.name ?? "");
+
+        const current_items = list.get_items();
+        const new_items = current_items.filter((h) => h != hash);
+
+        list.set_items(new_items);
+        collection_manager.filter();
+    };
+
+    const remove_set_callback = async (id: number) => {
+        const hashes = await remove_beatmapset_from_collection(id, $selected_collection?.name ?? "");
+        const current_items = list.get_items();
+        const new_items = current_items.filter((md5) => !hashes.includes(md5));
+
+        list.set_items(new_items);
+        collection_manager.filter();
+    };
+
+    const get_collections_options = () => {
+        return [{ id: "empty", text: "create collection" }];
+    };
+
+    const get_collection_options = (collection) => {
+        return [
+            { id: "merge", text: "merge collections" },
+            { id: `rename${context_separator}${collection.name}`, text: "rename collection" },
+            { id: `export${context_separator}${collection.name}`, text: "export collections" },
+            { id: "export beatmaps", text: "export beatmaps" },
+            { id: `delete${context_separator}${collection.name}`, text: "delete" }
+        ];
+    };
+
+    /* --- HANDLERS --- */
+
+    const handle_collections_menu = async (item) => {
+        const id = item.id;
+
+        switch (id) {
+            case "empty":
+                modals.show(ModalType.empty_collection);
+                break;
+            default:
+                break;
+        }
+    };
+
+    const handle_collection_menu = async (item) => {
+        const id_parts = item.id.split(context_separator);
+        const type = id_parts[0];
+
+        switch (type) {
+            case "merge":
+                modals.show(ModalType.merge_collection);
+                break;
+            case "rename":
+                enable_edit_mode(id_parts[1]);
+                break;
+            case "delete":
+                collection_manager.delete_collection(id_parts[1]);
+                break;
+            case "export":
+                modals.show(ModalType.export_collection);
+                break;
+            case "export beatmaps":
+                modals.show(ModalType.export_beatmaps);
+                break;
+        }
+    };
+
+    const enable_edit_mode = (name: string) => {
+        // get selected collection from context menu
+        const collection = collection_manager.get(name);
+
+        if (!collection) {
+            show_notification({ type: "error", text: "failed to get collection" });
+            return;
+        }
+
+        // update item
+        collection.edit = true;
+        collection_manager.replace(collection, true);
+    };
+
+    const handle_rename_collection = async (old_name: string, new_name: string) => {
+        // get selected collection from context menu
+        const collection = collection_manager.get(old_name);
+
+        if (!collection) {
+            show_notification({ type: "error", text: "failed to get collection" });
+            return;
+        }
+
+        if (old_name == new_name) {
+            collection.edit = false;
+            collection_manager.replace(collection, true);
+            return;
+        }
+
+        const result = await collection_manager.rename(old_name, new_name);
+
+        if (!result) {
+            show_notification({ type: "error", text: "failed to rename collection" });
+        }
+    };
+
+    const handle_select = (collection: ICollectionWithEdit) => {
+        if (collection.edit) {
+            return;
+        }
+
+        const name = collection.name;
+
+        if ($selected_collection.name == name) {
+            enable_edit_mode(name);
+            return;
+        }
+
+        collection_manager.select(name, "collections");
+    };
+
+    const handle_select_all_beatmaps = () => {
+        collection_manager.select(ALL_BEATMAPS_KEY, "collections");
+    };
+
+    $effect(() => {
+        if ($collection_search == undefined) {
+            return;
+        }
+
+        collection_manager.filter();
+    });
+
+    $effect(() => {
+        if (!$selected_collection.name || browsing_all_beatmaps) {
+            return;
+        }
+
+        list.set_target($selected_collection.name);
+    });
+
+    $effect(() => {
+        if (browsing_all_beatmaps || $selected_collection.name == undefined || !$should_update) {
+            return;
+        }
+
+        update_beatmaps($should_update, $update_reason);
+    });
+
+    $effect(() => {
+        const should_update_all =
+            browsing_all_beatmaps &&
+            ($all_query != undefined || $all_status || $all_sort || $all_difficulty_range || $all_mode || $all_should_update);
+
+        if (!should_update_all) {
+            return;
+        }
+
+        update_all_beatmapsets($all_should_update);
+    });
+
+    onMount(() => {
+        if (!$sort) $sort = "artist";
+
+        if ($selected_collection.name && list.get_items().length == 0) {
+            update_beatmaps();
+        }
+
+        // focus beatmap when list is ready
+        tick().then(() => {
+            beatmap_list_ref?.focus_selected(true);
+        });
+
+        list.check_missing();
+
+        return () => {
+            update_beatmaps.cancel();
+            update_all_beatmapsets.cancel();
+        };
+    });
+</script>
+
+<div class="content tab-content">
+    <!-- more options -->
+    <Add callback={() => modals.show(ModalType.get_collection)} />
+
+    <GetCollectionModal />
+    <MergeCollectionModal />
+    <ExportCollectionModal />
+    <ExportBeatmapsModal />
+    <EmptyCollectionModal />
+    <QuickConfirmModal />
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <Search bind:value={$collection_search} placeholder="search collections" />
+            {#if $collection_should_update}
+                <button class="update-btn" onclick={collection_manager.update}>update</button>
+            {/if}
+        </div>
+        <div
+            class="collections"
+            role="button"
+            tabindex="0"
+            oncontextmenu={(e) => show_context_menu(e, get_collections_options(), handle_collections_menu)}
+        >
+            <CollectionCard name="all beatmaps" special={true} selected={browsing_all_beatmaps} on_select={handle_select_all_beatmaps} />
+
+            <!-- show collections -->
+            {#if $collections.length == 0}
+                <p>0 results</p>
+            {:else}
+                {#each $collections as collection}
+                    <div
+                        role="button"
+                        tabindex="0"
+                        oncontextmenu={(e) => show_context_menu(e, get_collection_options(collection), handle_collection_menu)}
+                    >
+                        <CollectionCard
+                            name={collection.name}
+                            count={collection.beatmaps.length ?? 0}
+                            edit={collection.edit}
+                            selected={$selected_collection?.name == collection.name}
+                            on_select={() => handle_select(collection)}
+                            on_rename={(old_name, new_name) => handle_rename_collection(old_name, new_name)}
+                        />
+                    </div>
+                {/each}
+            {/if}
+        </div>
+    </div>
+    <div class="manager-content">
+        {#if browsing_all_beatmaps}
+            <div class="content-header">
+                <Search placeholder="search local beatmaps" value={$all_query} callback={(q) => all_beatmapsets.set_query(q)} />
+                <ExpandableMenu>
+                    <Dropdown inline={true} label={"sort by"} bind:selected_value={$all_sort} options={FILTER_DATA} />
+                    <Dropdown inline={true} label={"status"} bind:selected_value={$all_status} options={STATUS_DATA} />
+                    <Dropdown inline={true} label={"mode"} bind:selected_value={$all_mode} options={MODES_DATA} />
+                    <RangeSlider min={0} max={10} bind:value={$all_difficulty_range} />
+                </ExpandableMenu>
+            </div>
+
+            <BeatmapsetList list_manager={all_beatmapsets} show_context={true} carousel={true} direction={"right"} extra={1} />
+        {:else}
+            <div class="content-header">
+                <Search bind:value={$query} placeholder="search beatmaps" />
+                <ExpandableMenu>
+                    <Dropdown inline={true} label={"sort by"} bind:selected_value={$sort} options={FILTER_DATA} />
+                    <Dropdown inline={true} label={"status"} bind:selected_value={$status} options={STATUS_DATA} />
+                    <Dropdown inline={true} label={"mode"} bind:selected_value={$mode} options={MODES_DATA} />
+                    <RangeSlider min={0} max={10} bind:value={$difficulty_range} />
+                    <Checkbox bind:value={$show_invalid} label={"show missing beatmaps"} compact={true} />
+                </ExpandableMenu>
+            </div>
+
+            <BeatmapList
+                bind:this={beatmap_list_ref}
+                carousel={true}
+                list_manager={list}
+                on_remove={remove_callback}
+                on_remove_set={remove_set_callback}
+                show_missing={true}
+                elements={card_elements}
+            />
+        {/if}
+    </div>
+</div>
+
+<style>
+    :global(.collections) {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 10px 70px 10px;
+        height: 100%;
+    }
+
+    :global(.collections p) {
+        text-align: center;
+    }
+
+    .update-btn {
+        background: var(--accent-color);
+        border: none;
+        font-family: "Torus SemiBold";
+    }
+
+    .update-btn:hover {
+        border: none;
+        transform: scale(1.02);
+    }
+</style>

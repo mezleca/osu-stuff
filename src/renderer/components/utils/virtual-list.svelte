@@ -1,0 +1,524 @@
+<script lang="ts">
+    import type { CarouselConfig, CarouselTransform, ScrollAnimationState } from "@shared/types";
+    import { onMount, tick } from "svelte";
+
+    export let items: any[] = [];
+    export let count: number = 0;
+    export let item_height: number = 100;
+    export let buffer: number = 5;
+    export let extra: number = 0;
+    export let height: string = "100%";
+    export let carousel: boolean = false;
+    export let max_width: boolean = false;
+    export let key: string = crypto.randomUUID();
+    export let direction: "left" | "right" | "center" = "right";
+    export let on_update: ((index: number) => void) | null = null;
+    export let selected: number = -1;
+    export let columns: number | null = null;
+
+    const PADDING = 6;
+    const SCROLL_DEBOUNCE_MS = 20;
+    const SCROLL_ANIMATION_DURATION_MS = 250;
+    const INSTANT_SCROLL_THRESHOLD = 2000;
+
+    const CAROUSEL_CONFIG: CarouselConfig = {
+        SCALE_THRESHOLD_NEAR: 0.5,
+        SCALE_THRESHOLD_FAR: 2.5,
+        FADE_RANGE: 2.0,
+        SCALE_FULL: 1.0,
+        SCALE_MINIMUM: 0.92,
+        HOVER_MARGIN: 20,
+        PUSH_RANGE: 15,
+        PUSH_STRENGTH: 10
+    };
+
+    let container: HTMLDivElement;
+    let hovered_item: number = -1;
+    let container_height: number = 0;
+    let scroll_top: number = 0;
+    let animation_frame_id: number | null = null;
+    let scroll_timeout: ReturnType<typeof setTimeout> | null = null;
+    let is_scrolling: boolean = false;
+    let pending_focus_update: boolean = false;
+    let last_focused_selected: number = -1;
+
+    let scroll_animation: ScrollAnimationState = {
+        animation_id: null,
+        start_time: 0,
+        duration: SCROLL_ANIMATION_DURATION_MS,
+        start_scroll: 0,
+        target_scroll: 0
+    };
+
+    let element_cache = new WeakMap<Element, string>();
+
+    $: columns_mode = columns && columns > 1;
+    $: carousel_enabled = carousel && !columns_mode;
+    $: extra_rows = Math.max(0, extra);
+    $: item_rows = columns_mode ? Math.ceil(count / Math.max(columns, 1)) : count;
+    $: item_height_with_padding = item_height + PADDING;
+    $: total_height = (item_rows + extra_rows) * item_height_with_padding;
+    $: start_index = Math.max(0, Math.floor(scroll_top / item_height_with_padding) - buffer);
+    $: visible_count = Math.ceil(container_height / item_height_with_padding) + buffer * 2;
+    $: end_index = Math.min(start_index + visible_count, item_rows);
+    $: visible_items = Math.max(0, end_index - start_index);
+
+    const lerp = (start: number, end: number, factor: number): number => {
+        return start + (end - start) * factor;
+    };
+
+    const ease_out_quint = (elapsed: number, duration: number): number => {
+        const t = elapsed / duration;
+        return 1 - Math.pow(1 - t, 5);
+    };
+
+    const calculate_carousel_transform = (
+        distance_from_center: number,
+        item_height: number,
+        item_index: number,
+        hovered_index: number,
+        selected_index: number
+    ): CarouselTransform => {
+        const normalized_distance = distance_from_center / item_height;
+        let scale = CAROUSEL_CONFIG.SCALE_FULL;
+        let x_offset = 0;
+        let y_offset = 0;
+
+        // gentle scale falloff for depth effect
+        if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_NEAR) {
+            scale = CAROUSEL_CONFIG.SCALE_FULL;
+        } else if (normalized_distance <= CAROUSEL_CONFIG.SCALE_THRESHOLD_FAR) {
+            const fade_factor = (normalized_distance - CAROUSEL_CONFIG.SCALE_THRESHOLD_NEAR) / CAROUSEL_CONFIG.FADE_RANGE;
+            scale = lerp(CAROUSEL_CONFIG.SCALE_FULL, CAROUSEL_CONFIG.SCALE_MINIMUM, fade_factor);
+        } else {
+            scale = CAROUSEL_CONFIG.SCALE_MINIMUM;
+        }
+
+        const is_hovered = item_index == hovered_index;
+        const is_selected = item_index == selected_index;
+
+        // x_offset: selected or hovered items move horizontally
+        if (is_hovered || is_selected) {
+            const multiplier = direction == "right" ? -1 : direction == "left" ? 1 : 0;
+            x_offset = CAROUSEL_CONFIG.HOVER_MARGIN * multiplier;
+        }
+
+        // y_offset: ALL items get pushed away from hovered item
+        if (hovered_index >= 0 && !is_hovered) {
+            const distance = Math.abs(item_index - hovered_index);
+
+            if (distance <= CAROUSEL_CONFIG.PUSH_RANGE) {
+                const normalized = distance / CAROUSEL_CONFIG.PUSH_RANGE;
+                const push_factor = Math.pow(1 - normalized, 2.0);
+                const direction_multiplier = item_index > hovered_index ? 1 : -1;
+                y_offset = push_factor * CAROUSEL_CONFIG.PUSH_STRENGTH * direction_multiplier;
+            }
+        }
+
+        return { scale, x_offset, y_offset };
+    };
+
+    const update_carousel_effect = (): void => {
+        if (!carousel_enabled || !container) {
+            return;
+        }
+
+        const center_y = scroll_top + container_height / 2;
+        const elements = [...container.querySelectorAll(".item")];
+
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i] as HTMLElement;
+            const item_index = start_index + i;
+
+            if (!element || item_index >= count) {
+                continue;
+            }
+
+            const item_center_y = item_index * item_height_with_padding + item_height_with_padding / 2;
+            const distance_from_center = Math.abs(item_center_y - center_y);
+
+            const { scale, x_offset, y_offset } = calculate_carousel_transform(
+                distance_from_center,
+                item_height_with_padding,
+                item_index,
+                hovered_item,
+                selected
+            );
+
+            const cache_key = `${item_index}-${scale.toFixed(3)}-${x_offset.toFixed(1)}-${y_offset.toFixed(1)}`;
+            const cached_state = element_cache.get(element);
+
+            if (cached_state != cache_key) {
+                const height_px = Math.round(item_height_with_padding * scale);
+                element.style.height = `${height_px}px`;
+                element.style.setProperty("--scale-x", scale.toString());
+                element.style.setProperty("--x-offset", `${x_offset}px`);
+                element.style.setProperty("--y-offset", `${y_offset}px`);
+
+                element_cache.set(element, cache_key);
+            }
+        }
+    };
+
+    const carousel_update = (): void => {
+        if (animation_frame_id) {
+            return;
+        }
+
+        animation_frame_id = requestAnimationFrame(() => {
+            update_carousel_effect();
+            animation_frame_id = null;
+        });
+    };
+
+    const handle_scroll = (e: Event): void => {
+        scroll_top = (e.target as HTMLElement).scrollTop;
+
+        if (scroll_timeout) {
+            clearTimeout(scroll_timeout);
+        }
+
+        is_scrolling = true;
+
+        scroll_timeout = setTimeout(() => {
+            is_scrolling = false;
+
+            if (pending_focus_update) {
+                pending_focus_update = false;
+                focus_selected(true);
+            }
+
+            if (carousel_enabled) {
+                carousel_update();
+            }
+        }, SCROLL_DEBOUNCE_MS);
+
+        if (carousel_enabled) {
+            carousel_update();
+        }
+    };
+
+    const handle_mouse_enter = (index: number): void => {
+        if (hovered_item == index) return;
+        hovered_item = index;
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
+    };
+
+    const handle_mouse_leave = (): void => {
+        if (hovered_item == -1) return;
+        hovered_item = -1;
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
+    };
+
+    const clear_scroll_animation = (): void => {
+        if (scroll_animation.animation_id) {
+            cancelAnimationFrame(scroll_animation.animation_id);
+        }
+
+        scroll_animation.animation_id = null;
+        scroll_animation.start_time = 0;
+        scroll_animation.start_scroll = 0;
+    };
+
+    const animate_scroll = (current_time: number): void => {
+        if (!container) {
+            return;
+        }
+
+        if (!scroll_animation.start_time) {
+            scroll_animation.start_time = current_time;
+            scroll_animation.start_scroll = container.scrollTop;
+        }
+
+        const elapsed = current_time - scroll_animation.start_time;
+
+        if (elapsed < scroll_animation.duration) {
+            const t = ease_out_quint(elapsed, scroll_animation.duration);
+            const new_scroll = lerp(scroll_animation.start_scroll, scroll_animation.target_scroll, t);
+            container.scrollTop = new_scroll;
+            scroll_animation.animation_id = requestAnimationFrame(animate_scroll);
+        } else {
+            container.scrollTop = scroll_animation.target_scroll;
+            clear_scroll_animation();
+        }
+    };
+
+    export const scroll_to_item = async (index: number): Promise<void> => {
+        if (index < 0 || index >= count) {
+            return;
+        }
+
+        await tick();
+
+        if (!container) {
+            return;
+        }
+
+        clear_scroll_animation();
+
+        scroll_animation.target_scroll = columns_mode
+            ? Math.floor(index / columns!) * item_height_with_padding - container_height / 2 + item_height_with_padding / 2
+            : index * item_height_with_padding - container_height / 2 + item_height_with_padding / 2;
+
+        scroll_animation.target_scroll = Math.max(0, Math.min(scroll_animation.target_scroll, total_height - container_height));
+
+        const distance = Math.abs(scroll_animation.target_scroll - container.scrollTop);
+
+        if (distance > INSTANT_SCROLL_THRESHOLD) {
+            container.scrollTo({
+                top: scroll_animation.target_scroll,
+                behavior: "instant"
+            });
+        } else {
+            scroll_animation.animation_id = requestAnimationFrame(animate_scroll);
+        }
+    };
+
+    export const focus_selected = (force: boolean = false): void => {
+        if (selected < 0 || selected >= count) {
+            return;
+        }
+
+        if (is_scrolling) {
+            pending_focus_update = true;
+            return;
+        }
+
+        if (!force && selected === last_focused_selected) {
+            return;
+        }
+
+        last_focused_selected = selected;
+        scroll_to_item(selected);
+    };
+
+    const get_column_items = (row_index: number): number[] => {
+        const items: number[] = [];
+        const start_item = row_index * columns!;
+
+        for (let col = 0; col < columns!; col++) {
+            const item_index = start_item + col;
+            if (item_index < count) {
+                items.push(item_index);
+            }
+        }
+        return items;
+    };
+
+    const update_height = (): void => {
+        if (container) {
+            container_height = container.clientHeight;
+        }
+
+        if (carousel_enabled && !is_scrolling) {
+            carousel_update();
+        }
+    };
+
+    const notify_visible_updates = (): void => {
+        if (!on_update || visible_items <= 0) {
+            return;
+        }
+
+        if (columns_mode) {
+            for (let row_index = start_index; row_index < end_index; row_index++) {
+                const column_items = get_column_items(row_index);
+
+                for (let i = 0; i < column_items.length; i++) {
+                    on_update(column_items[i]);
+                }
+            }
+
+            return;
+        }
+
+        for (let item_index = start_index; item_index < end_index; item_index++) {
+            on_update(item_index);
+        }
+    };
+
+    const reset = (): void => {
+        element_cache = new WeakMap();
+        hovered_item = -1;
+    };
+
+    $: if (carousel_enabled && visible_items > 0) {
+        carousel_update();
+    }
+
+    $: if (on_update && visible_items > 0) {
+        notify_visible_updates();
+    }
+
+    $: if (key) {
+        reset();
+    }
+
+    onMount(() => {
+        update_height();
+
+        return () => {
+            if (animation_frame_id) {
+                cancelAnimationFrame(animation_frame_id);
+            }
+
+            clear_scroll_animation();
+
+            if (scroll_timeout) {
+                clearTimeout(scroll_timeout);
+            }
+        };
+    });
+</script>
+
+<svelte:window on:resize={update_height} />
+
+<div
+    bind:this={container}
+    class="virtual-list"
+    class:osu-mode={carousel_enabled}
+    class:columns-mode={columns_mode}
+    style="height: {height};"
+    on:scroll={handle_scroll}
+    bind:clientHeight={container_height}
+>
+    <div class="spacer" style="height: {total_height}px;"></div>
+    {#each Array(visible_items) as _, i (items[start_index + i] ?? start_index + i)}
+        {@const actual_index = start_index + i}
+        {@const key = items[actual_index] ?? actual_index}
+        {@const top_pos = actual_index * item_height_with_padding}
+        {@const z_index = count - actual_index}
+
+        {#if columns_mode}
+            {@const row_index = start_index + i}
+            {@const column_items = get_column_items(row_index)}
+            {@const row_top_pos = row_index * item_height_with_padding}
+
+            <div
+                class="row-container"
+                style="
+                    display: grid;
+                    grid-template-columns: repeat({columns}, 1fr);
+                    gap: 8px;
+                    width: 100%;
+                    position: absolute;
+                    top: {row_top_pos}px;
+                    left: 0;
+                    right: 0;
+                    z-index: {count - row_index};
+                "
+                data-index={row_index}
+            >
+                {#each column_items as item_index}
+                    <div
+                        id={key}
+                        class="item {direction} column-item"
+                        style="width: 100%;"
+                        on:mouseenter={() => handle_mouse_enter(item_index)}
+                        on:mouseleave={handle_mouse_leave}
+                        role="button"
+                        tabindex="0"
+                    >
+                        <slot index={item_index} />
+                    </div>
+                {/each}
+            </div>
+        {:else}
+            <div
+                id={key}
+                class="item {direction}"
+                class:carousel-effect={carousel_enabled}
+                style="
+                    position: absolute;
+                    top: {top_pos}px;
+                    width: {max_width ? (carousel_enabled ? '98' : '100') : '80'}%;
+                    transform-origin: {direction};
+                    z-index: {z_index};
+                "
+                on:mouseenter={() => handle_mouse_enter(actual_index)}
+                on:mouseleave={handle_mouse_leave}
+                data-index={actual_index}
+                role="button"
+                tabindex="0"
+            >
+                <slot index={actual_index} />
+            </div>
+        {/if}
+    {/each}
+</div>
+
+<style>
+    .virtual-list {
+        isolation: isolate;
+        position: relative;
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: auto;
+        overscroll-behavior: contain;
+    }
+
+    .spacer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        pointer-events: none;
+    }
+
+    .item {
+        cursor: pointer;
+        overflow: visible;
+    }
+
+    .item.center {
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+    }
+
+    .item.right {
+        right: 0;
+        left: auto;
+        margin: 0;
+    }
+
+    .item.left {
+        left: 0;
+        right: auto;
+        margin: 0;
+    }
+
+    .row-container {
+        width: 100%;
+        padding: 0 4px;
+        contain: layout;
+    }
+
+    .column-item {
+        border-radius: 4px;
+    }
+
+    .carousel-effect {
+        will-change: transform;
+        transform: scaleX(var(--scale-x, 1)) translateX(var(--x-offset, 0px)) translateY(var(--y-offset, 0px));
+        transition:
+            transform 600ms cubic-bezier(0.23, 1, 0.32, 1),
+            opacity 100ms ease-out;
+        contain: layout style;
+    }
+
+    .osu-mode {
+        will-change: scroll-position;
+    }
+
+    @media (max-width: 768px) {
+        .virtual-list::-webkit-scrollbar {
+            width: 4px;
+        }
+    }
+</style>

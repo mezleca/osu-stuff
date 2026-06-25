@@ -1,0 +1,74 @@
+appId: com.osu-stuff.app
+productName: osu-stuff
+compression: normal
+electronLanguages:
+    - en-US
+
+directories:
+    buildResources: resources
+
+asarUnpack:
+    - "**/*.node"
+    - "out/worker/**.mjs"
+    - "node_modules/@rel-packages/audio-utils/**"
+    - "node_modules/node-gyp-build/**"
+    - "!**/node_modules/realm/prebuilds/**"
+
+extraResources:
+    - from: resources
+      to: resources
+
+files:
+    - out/**
+    - package.json
+    - "!**/node_modules/realm/prebuilds/android/**"
+    - "!**/node_modules/realm/prebuilds/apple/**"
+    - "!**/node_modules/electron/**"
+    - "!**/.vscode/*"
+    - "!src/*"
+    - "!electron.vite.config.{js,ts,mjs,cjs}"
+    - "!svelte.config.mjs"
+    - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+    - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+    - "!tests/"
+    - "!scripts/"
+    - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+    - "!**/*.map"
+    - "!**/demo/**"
+    - "!**/examples/**"
+    - "!**/docs/**"
+    - "!**/test/**"
+    - "!**/tests/**"
+    - "!**/__tests__/**"
+    - "!**/better-sqlite3/deps/**"
+win:
+    icon: icon.ico
+    executableName: osu-stuff
+
+nsis:
+    artifactName: ${name}-${version}-setup.${ext}
+    shortcutName: ${productName}
+    uninstallDisplayName: ${productName}
+    createDesktopShortcut: always
+
+linux:
+    icon: icon.png
+    target:
+        - AppImage
+        - pacman
+        - deb
+    maintainer: https://github.com/mezleca
+    category: Utility
+    desktop:
+        entry:
+            StartupWMClass: osu-stuff
+
+appImage:
+    artifactName: ${name}-${version}.${ext}
+
+publish:
+    provider: github
+    owner: mezleca
+    repo: osu-stuff
+
+npmRebuild: true

@@ -1,0 +1,83 @@
+<script lang="ts">
+    // props
+    export let name = "",
+        count = 0,
+        selected = false,
+        edit = false,
+        special = false,
+        on_select: () => void = null,
+        on_rename: (old_name: string, new_name: string) => void = null;
+
+    $: has_count = count > 0;
+
+    // components
+    import Text from "../utils/basic/text.svelte";
+
+    // icons
+    import Music from "../icon/music.svelte";
+</script>
+
+<button class="collection-item" onclick={on_select} class:active={selected} class:editing={edit} class:special>
+    <div class="collection-info">
+        <Music />
+        <Text value={name} {edit} update_callback={on_rename} />
+    </div>
+    {#if has_count}
+        <span class="collection-count">{count} {count == 1 ? "map" : "maps"}</span>
+    {/if}
+</button>
+
+<style>
+    .collection-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px;
+        margin-bottom: 4px;
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .collection-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        transform: translateX(2px);
+    }
+
+    .collection-item.active {
+        background: rgba(255, 64, 129, 0.15);
+        border-color: var(--accent-color-half);
+        transform: translateX(4px);
+    }
+
+    .collection-item.editing {
+        border-color: rgb(243, 213, 81);
+    }
+
+    .collection-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        overflow: hidden;
+        font-family: "Torus SemiBold";
+    }
+
+    :global(.music-icon) {
+        width: 14px;
+        height: 14px;
+        color: var(--accent-color2);
+        transition: color 0.2s ease;
+    }
+
+    .collection-count {
+        color: #666;
+        font-size: 12px;
+        white-space: nowrap;
+        margin-left: 5px;
+        font-family: "Torus Bold";
+    }
+</style>

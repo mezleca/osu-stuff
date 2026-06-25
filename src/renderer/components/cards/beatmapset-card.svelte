@@ -1,0 +1,393 @@
+<script lang="ts">
+    import { onDestroy } from "svelte";
+    import { get } from "svelte/store";
+    import { slide } from "svelte/transition";
+    import { get_beatmapset_state } from "../../lib/store/beatmaps";
+    import { get_beatmapset_context_options, handle_card_context_action } from "../../lib/utils/card-context-menu";
+    import { get_beatmapset } from "../../lib/utils/beatmaps";
+    import { get_card_image_source, get_placeholder_image } from "../../lib/utils/card-utils";
+    import {
+        BEATMAPSET_DIFFICULTY_CARD_ELEMENTS,
+        fetch_beatmaps_with_limit,
+        get_first_beatmap,
+        get_visible_hashes,
+        sort_beatmaps_by_star_rating
+    } from "../../lib/utils/beatmapset-card";
+    import { show_context_menu, context_menu_manager } from "../../lib/store/context-menu";
+    import { debounce } from "@shared/timing";
+    import type { IBeatmapResult, BeatmapSetResult, BeatmapSetComponentState } from "@shared/types";
+    import type { Writable } from "svelte/store";
+
+    // components
+    import BeatmapCard from "./beatmap-card.svelte";
+    import BeatmapControls from "./beatmap-controls.svelte";
+    import FadingImage from "../utils/fading-image.svelte";
+
+    export let id: number | null = null;
+    export let beatmapset: BeatmapSetResult | null = null;
+    export let show_context = true;
+    export let show_remove = true;
+    export let show_expand = true;
+    export let selected = false;
+    export let highlighted = false;
+    export let filtered_hashes: string[] = [];
+    export let on_remove: (id: number) => {} = null;
+    export let height = 100;
+
+    let state_store: Writable<BeatmapSetComponentState> | null = null;
+    let expanded = false;
+    let sorted_beatmaps: IBeatmapResult[] = [];
+    let is_hovering = false;
+    let first_beatmap: IBeatmapResult | null = null;
+    let last_filtered_hashes: string[] = filtered_hashes;
+    const placeholder_image = get_placeholder_image();
+
+    $: state = state_store ? $state_store : null;
+    $: loaded = state && state.loaded == true;
+    $: visible_hashes = get_visible_hashes(state, filtered_hashes);
+
+    const debounced_load = debounce(async () => {
+        const current_store = state_store;
+
+        if (!current_store) {
+            return;
+        }
+
+        const current_state = get(current_store);
+
+        if (!current_state || current_state.loading) {
+            return;
+        }
+
+        const current_id = id;
+        const explicit_beatmapset = beatmapset;
+
+        current_store.update((val) => ({ ...val, loading: true }));
+
+        try {
+            if (current_state.beatmapset) {
+                if (!current_state.background) {
+                    current_store.update((store_state) => ({ ...store_state, background: get_card_image_source(store_state.beatmapset) }));
+                }
+
+                return;
+            }
+
+            const result = explicit_beatmapset ?? (current_id != null ? await get_beatmapset(current_id) : null);
+
+            if (result) {
+                current_store.update((store_state) => ({
+                    ...store_state,
+                    beatmapset: result,
+                    background: !store_state.background ? get_card_image_source(result) : store_state.background
+                }));
+            }
+        } catch (err) {
+            console.error("failed to load beatmapset:", current_id, err);
+            current_store.update((store_state) => ({ ...store_state, beatmapset: null }));
+        } finally {
+            current_store.update((store_state) => ({ ...store_state, loading: false, loaded: true }));
+        }
+    }, 50);
+
+    const handle_context = async (e: MouseEvent) => {
+        e?.preventDefault();
+
+        if (!show_context) {
+            return;
+        }
+
+        const current_set = state.beatmapset;
+
+        if (!current_set) {
+            return;
+        }
+
+        const options = get_beatmapset_context_options(show_remove);
+
+        show_context_menu(e, options, (item) => {
+            const item_split = item.id.split("-");
+            handle_card_context_action(item_split[0], item_split[1], current_set, on_remove, null, visible_hashes);
+        });
+    };
+
+    const debounced_hover = debounce(async () => {
+        is_hovering = true;
+
+        if (visible_hashes.length > 0 && sorted_beatmaps.length === 0) {
+            const beatmaps = await fetch_beatmaps_with_limit(visible_hashes, 8);
+            sorted_beatmaps = sort_beatmaps_by_star_rating(beatmaps);
+            first_beatmap = get_first_beatmap(sorted_beatmaps);
+        }
+
+        expanded = true;
+    }, 200);
+
+    const handle_mouseleave = () => {
+        debounced_hover.cancel();
+        is_hovering = false;
+
+        if (get(context_menu_manager.active)) {
+            return;
+        }
+
+        expanded = false;
+    };
+
+    const mark_beatmap_as_downloaded = (checksum: string) => {
+        if (!checksum) {
+            return;
+        }
+
+        const index = sorted_beatmaps.findIndex((beatmap) => beatmap.md5 == checksum);
+
+        if (index == -1) {
+            return;
+        }
+
+        const updated = { ...sorted_beatmaps[index], temp: false };
+        const next = [...sorted_beatmaps];
+        next[index] = updated;
+        sorted_beatmaps = next;
+
+        if (first_beatmap?.md5 == checksum) {
+            first_beatmap = updated;
+        }
+    };
+
+    const unsubscribe_context = context_menu_manager.active.subscribe((active) => {
+        if (!active && !is_hovering) {
+            handle_mouseleave();
+        }
+    });
+
+    $: {
+        if (id != null && Number.isFinite(id)) {
+            state_store = get_beatmapset_state(id);
+            expanded = false;
+            sorted_beatmaps = [];
+            first_beatmap = null;
+            debounced_load();
+        }
+    }
+
+    $: {
+        if (filtered_hashes !== last_filtered_hashes) {
+            last_filtered_hashes = filtered_hashes;
+            sorted_beatmaps = [];
+            first_beatmap = null;
+            expanded = false;
+        }
+    }
+
+    onDestroy(() => {
+        debounced_load.cancel();
+        debounced_hover.cancel();
+        unsubscribe_context();
+    });
+</script>
+
+{#if !loaded}
+    <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.65);"></div>
+{:else if state.beatmapset}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="beatmap-card"
+        style="min-height: {height}px;"
+        class:selected
+        class:expanded
+        class:highlighted
+        oncontextmenu={handle_context}
+        onmouseenter={debounced_hover}
+        onmouseleave={handle_mouseleave}
+    >
+        <div class="beatmap-card-header" style="height: {height}px;">
+            <div class="beatmap-card-image-frame">
+                <FadingImage class_name="beatmap-card-background" src={state.background} fallback={placeholder_image} />
+            </div>
+
+            {#if first_beatmap}
+                <BeatmapControls
+                    beatmapset_id={state.beatmapset.online_id}
+                    hash={first_beatmap.md5}
+                    has_map={!first_beatmap.temp}
+                    {show_remove}
+                    on_download={mark_beatmap_as_downloaded}
+                    on_remove={() => {
+                        if (on_remove) on_remove(state.beatmapset.online_id);
+                    }}
+                />
+            {/if}
+
+            <div class="beatmap-card-metadata">
+                <div class="title">{state.beatmapset.metadata?.title ?? "unknown"}</div>
+                <div class="artist">by {state.beatmapset.metadata?.artist ?? "unknown"}</div>
+                <div class="creator">mapped by {state.beatmapset.metadata?.creator ?? "unknown"}</div>
+
+                {#if show_expand}
+                    <div class="beatmap-card-extra">
+                        {#if visible_hashes.length > 0}
+                            <div class="expand-indicator">
+                                {expanded ? "▼" : "▶"}
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        </div>
+
+        {#if expanded && sorted_beatmaps.length > 0}
+            <div class="beatmap-difficulties" onmouseenter={(e) => e.stopPropagation()} transition:slide={{ duration: 100 }}>
+                {#each sorted_beatmaps as beatmap}
+                    <BeatmapCard mode="minimal" {beatmap} hash={beatmap.md5} elements={BEATMAPSET_DIFFICULTY_CARD_ELEMENTS} />
+                {/each}
+            </div>
+        {/if}
+    </div>
+{:else}
+    <div style="height: {height}px; width: 100%; background: rgba(17, 20, 31, 0.35);"></div>
+{/if}
+
+<style>
+    .beatmap-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        transition:
+            height 0.2s ease-in-out,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        contain: layout style paint;
+    }
+
+    .beatmap-card.selected,
+    .beatmap-card.expanded {
+        border-color: var(--accent-color);
+    }
+
+    .beatmap-card.highlighted {
+        border-color: var(--accent-hover);
+    }
+
+    .expand-indicator {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        padding: 4px 8px;
+        user-select: none;
+        opacity: 0.5;
+    }
+
+    .beatmap-card-header {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .beatmap-card-image-frame {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background-position: center;
+        background-size: cover;
+    }
+
+    .beatmap-card-image-frame :global(.beatmap-card-background) {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        min-height: 100px;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+        filter: brightness(0.5);
+    }
+
+    .beatmap-card-metadata {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        padding: 12px 16px;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .beatmap-card-extra {
+        width: 100%;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .title {
+        max-width: 280px;
+        margin: 0 0 2px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus Bold";
+        font-size: 13px;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    }
+
+    .artist {
+        max-width: 300px;
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus SemiBold";
+        font-size: 12px;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    }
+
+    .creator {
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Torus SemiBold";
+        font-size: 12px;
+        color: var(--text-secondary, #bbb);
+    }
+
+    .beatmap-difficulties {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        row-gap: 5px;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        padding: 8px;
+        border: none;
+        background: rgba(17, 20, 31);
+        z-index: 999;
+    }
+
+    .beatmap-card :global(.card-control) {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+
+    .beatmap-card :global(.control-btn) {
+        opacity: 0;
+    }
+
+    .beatmap-card:hover :global(.control-btn),
+    .beatmap-card.expanded :global(.control-btn) {
+        opacity: 1;
+    }
+</style>

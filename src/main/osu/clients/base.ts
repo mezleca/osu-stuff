@@ -1,0 +1,633 @@
+import {
+    IOsuClient,
+    IBeatmapFilter,
+    IBeatmapResult,
+    BeatmapSetResult,
+    ICollectionResult,
+    BeatmapFile,
+    gamemode_to_code,
+    ISearchResponse,
+    ISearchSetResponse,
+    IBeatmapSetFilter,
+    ALL_BEATMAPS_KEY,
+    ALL_STATUS_KEY,
+    ALL_MODES_KEY,
+    OsdbBeatmap,
+    OsdbCollection,
+    OsdbData,
+    GenericResult
+} from "@shared/types";
+import { check_beatmap_difficulty, matches_beatmap, parse_query, ParsedQuery, sort_beatmaps, sort_beatmapset } from "../beatmaps";
+import { config } from "../../database/config";
+import { OsdbParser, OsuCollectionDbParser } from "../parsers";
+
+import path from "path";
+import archiver from "archiver";
+import fs from "fs";
+
+export abstract class BaseClient implements IOsuClient {
+    protected initialized: boolean = false;
+
+    // in memory shit
+    beatmaps: Map<string, IBeatmapResult> = new Map();
+    beatmapsets: Map<number, BeatmapSetResult> = new Map();
+    collections: Map<string, ICollectionResult> = new Map();
+    pending_deletion: Set<string> = new Set();
+    pending_collection_removals: Map<string, Set<string>> = new Map();
+
+    // main state
+    should_update: boolean = false;
+
+    // temp storage for beatmaps
+    protected temp_beatmaps: Map<string, IBeatmapResult> = new Map();
+    protected temp_beatmapsets: Map<number, BeatmapSetResult> = new Map();
+
+    protected get_collection_timestamp(): number {
+        return Date.now();
+    }
+
+    protected mark_collection_modified(collection_name: string): void {
+        const collection = this.collections.get(collection_name);
+        if (!collection) {
+            return;
+        }
+
+        collection.last_modified = this.get_collection_timestamp();
+    }
+
+    protected reset_collection_modifications(): void {
+        for (const collection of this.collections.values()) {
+            collection.last_modified = 0;
+        }
+    }
+
+    is_initialized = (): boolean => {
+        return this.initialized;
+    };
+
+    protected remove_beatmap_from_collection(collection_name: string, md5: string): boolean {
+        const collection = this.collections.get(collection_name);
+
+        if (!collection) {
+            return false;
+        }
+
+        const previous_length = collection.beatmaps.length;
+        collection.beatmaps = collection.beatmaps.filter((hash) => hash != md5);
+
+        if (collection.beatmaps.length == previous_length) {
+            return false;
+        }
+
+        this.mark_collection_modified(collection_name);
+        this.should_update = true;
+        return true;
+    }
+
+    filter_beatmap = (beatmap: IBeatmapResult, query: ParsedQuery, options: IBeatmapFilter): boolean => {
+        const selected_status = options.status ?? ALL_STATUS_KEY;
+        const selected_mode = (options.mode as string) ?? ALL_MODES_KEY;
+
+        if (beatmap.beatmapset_id == -1) return false;
+        if (options.has_duration && beatmap.duration == -1) return false;
+        if (options.difficulty_range && !check_beatmap_difficulty(beatmap, options.difficulty_range)) return false;
+        if (options.query && !matches_beatmap(beatmap, query)) return false;
+        if (selected_status != ALL_STATUS_KEY && beatmap.status.toLowerCase() != selected_status.toLowerCase()) return false;
+        if (selected_mode != ALL_MODES_KEY && beatmap.mode != selected_mode) return false;
+        return true;
+    };
+
+    search_beatmaps = async (options: IBeatmapFilter, target: string = ALL_BEATMAPS_KEY): Promise<ISearchResponse> => {
+        // unify both database beatmaps / recently download in a single map
+        const beatmaps = target != ALL_BEATMAPS_KEY ? this.collections.get(target)?.beatmaps : this.get_beatmaps().map((b) => b.md5);
+
+        if (!beatmaps || beatmaps?.length == 0) {
+            return { beatmaps: [], invalid: [] };
+        }
+
+        const unique_ids: Set<string> = new Set();
+        const valid_beatmaps: IBeatmapResult[] = [];
+        const invalid_beatmaps: string[] = [];
+        const parsed_query = parse_query(options.query ?? "");
+
+        for (const checksum of beatmaps) {
+            const beatmap = await this.get_beatmap_by_md5(checksum);
+
+            if (!beatmap) {
+                invalid_beatmaps.push(checksum);
+                continue;
+            }
+
+            // get unique id (or creator a new one if not available)
+            const unique_id = beatmap?.unique_id ? beatmap.unique_id : `${beatmap.beatmapset_id}_${beatmap?.audio ?? "unknown"}`;
+
+            // first, check if we already have that unique beatmap stored
+            if (options.unique && unique_ids.has(unique_id)) {
+                continue;
+            }
+
+            // now check for the other filters
+            const is_valid_beatmap = this.filter_beatmap(beatmap, parsed_query, options);
+
+            if (!is_valid_beatmap) {
+                invalid_beatmaps.push(checksum);
+                continue;
+            }
+
+            valid_beatmaps.push(beatmap);
+            unique_ids.add(unique_id);
+        }
+
+        const minified_result = options.sort
+            ? sort_beatmaps(valid_beatmaps, options.sort).map((b) => ({ md5: b.md5 }))
+            : valid_beatmaps.map((b) => ({ md5: b.md5 }));
+
+        return {
+            beatmaps: minified_result,
+            invalid: invalid_beatmaps
+        };
+    };
+
+    search_beatmapsets = async (options: IBeatmapSetFilter): Promise<ISearchSetResponse> => {
+        // unify both database sets / recently download in a single map
+        const unified_maps = new Map([...this.beatmapsets, ...this.temp_beatmapsets]);
+
+        if (unified_maps.size == 0) {
+            return { beatmapsets: [], invalid: [] };
+        }
+
+        // if a beatmapset has any diff that matches the current
+        // add it here
+        const valid_beatmapsets: BeatmapSetResult[] = [];
+        // also store the invalid ones for later
+        const invalid_beatmapsets: number[] = [];
+        const parsed_query = parse_query(options.query ?? "");
+
+        for (const [id, beatmapset] of unified_maps) {
+            // fetch stored beatmaps from beatmapset
+            const { beatmaps } = await this.fetch_beatmaps(beatmapset.beatmaps);
+
+            // add as invalid if we didn't find anything
+            if (beatmaps.length == 0) {
+                invalid_beatmapsets.push(id);
+                continue;
+            }
+
+            // also store valid beatmaps to check later
+            const valid_beatmaps: string[] = [];
+
+            for (const beatmap of beatmaps) {
+                const is_valid_beatmap = this.filter_beatmap(beatmap, parsed_query, {
+                    query: options.query,
+                    mode: options.mode,
+                    status: options.status,
+                    sort: options.sort,
+                    unique: false
+                });
+
+                if (!is_valid_beatmap) {
+                    continue;
+                }
+
+                valid_beatmaps.push(beatmap.md5);
+            }
+
+            // add as invalid if all of the beatmaps dont match
+            if (valid_beatmaps.length == 0) {
+                invalid_beatmapsets.push(id);
+            } else {
+                valid_beatmapsets.push({
+                    online_id: beatmapset.online_id,
+                    metadata: beatmapset.metadata,
+                    beatmaps: valid_beatmaps,
+                    temp: beatmapset.temp
+                });
+            }
+        }
+
+        return {
+            beatmapsets: options.sort ? sort_beatmapset(valid_beatmapsets, options.sort) : valid_beatmapsets,
+            invalid: invalid_beatmapsets
+        };
+    };
+
+    private write_osdb_collection = async (collections: ICollectionResult[]) => {
+        const output_name = collections.map((c) => c.name).join("-") + `.osdb`;
+        const location = path.resolve(config.get().export_path, output_name);
+
+        const osdb_parser = new OsdbParser(location);
+        const osdb_collections: OsdbCollection[] = [];
+
+        for (const collection of collections) {
+            const beatmaps: OsdbBeatmap[] = [];
+
+            for (const hash of collection.beatmaps) {
+                const beatmap = await this.get_beatmap_by_md5(hash);
+
+                if (!beatmap) {
+                    continue;
+                }
+
+                beatmaps.push({
+                    difficulty_id: beatmap.online_id,
+                    beatmapset_id: beatmap.beatmapset_id,
+                    artist: beatmap.artist,
+                    title: beatmap.title,
+                    difficulty: beatmap.difficulty,
+                    checksum: beatmap.md5,
+                    user_comment: "",
+                    mode: gamemode_to_code(beatmap.mode),
+                    difficulty_rating: beatmap.star_rating
+                });
+            }
+
+            osdb_collections.push({
+                name: collection.name,
+                online_id: 0,
+                beatmaps,
+                hash_only_beatmaps: collection.beatmaps
+            });
+        }
+
+        const osdb_data: OsdbData = {
+            version_string: "o!dm8min",
+            save_data: 0n,
+            last_editor: this.get_player_name(),
+            count: osdb_collections.length,
+            collections: osdb_collections
+        };
+
+        try {
+            osdb_parser.update(osdb_data);
+            await osdb_parser.write();
+            return true;
+        } catch (err) {
+            console.error("failed to export osdb:", err);
+            return false;
+        } finally {
+            osdb_parser.free();
+        }
+    };
+
+    private write_stable_collection = async (collections: ICollectionResult[]): Promise<boolean> => {
+        const output_name = collections.map((c) => c.name).join("-") + `.db`;
+        const location = path.resolve(config.get().export_path, output_name);
+
+        const parser = new OsuCollectionDbParser(location);
+        const collection_data = collections.map((collection) => ({
+            name: collection.name,
+            beatmaps_count: collection.beatmaps.length,
+            beatmap_md5: collection.beatmaps
+        }));
+
+        try {
+            parser.update({
+                collections: collection_data,
+                collections_count: collection_data.length
+            });
+
+            await parser.write();
+            return true;
+        } catch (err) {
+            console.error("failed to export collection.db:", err);
+            return false;
+        } finally {
+            parser.free();
+        }
+    };
+
+    export_collections = async (collections: ICollectionResult[], type: string): Promise<boolean> => {
+        return type == "osdb" ? this.write_osdb_collection(collections) : this.write_stable_collection(collections);
+    };
+
+    export_beatmapset = async (id: number): Promise<boolean> => {
+        const files = await this.get_beatmapset_files(id);
+
+        if (files.length == 0) {
+            console.error("export_beatmapset: couldn't get beatmap files...");
+            return false;
+        }
+
+        const archive = archiver("zip", {
+            zlib: { level: 6 }
+        });
+
+        const output_path = path.resolve(config.get().export_path, `${id}.osz`);
+
+        if (!fs.existsSync(path.dirname(output_path))) {
+            fs.mkdirSync(path.dirname(output_path), { recursive: true });
+        }
+
+        const output = fs.createWriteStream(output_path);
+
+        return new Promise((resolve, reject) => {
+            output.on("close", () => {
+                console.log(`export_beatmapset: exported ${archive.pointer()} bytes to ${output_path}`);
+                resolve(true);
+            });
+
+            archive.on("error", (err) => {
+                console.error("export_beatmapset: archiver error", err);
+                reject(false);
+            });
+
+            archive.pipe(output);
+
+            let has_osu_file = false;
+
+            for (const file of files) {
+                if (!fs.existsSync(file.location)) {
+                    console.warn("export_beatmapset: file not found", file.location);
+
+                    // panic if missing .osu file
+                    if (path.extname(file.name) == ".osu") {
+                        console.error("export_beatmapset: missing .osu file, aborting");
+                        archive.abort();
+                        reject(false);
+                        return;
+                    }
+
+                    continue;
+                }
+
+                const stats = fs.statSync(file.location);
+
+                if (stats.isDirectory()) {
+                    console.warn("export_beatmapset: skipping directory:", file.location);
+                    continue;
+                }
+
+                if (path.extname(file.name) == ".osu") {
+                    has_osu_file = true;
+                }
+
+                archive.file(file.location, { name: file.name });
+            }
+
+            if (!has_osu_file) {
+                console.error("export_beatmapset: no .osu files found, aborting");
+                archive.abort();
+                reject(false);
+                return;
+            }
+
+            archive.finalize();
+        });
+    };
+
+    get_missing_beatmaps = async (name: string | null): Promise<string[]> => {
+        let hashes: string[] = [];
+
+        if (name) {
+            hashes = this.get_collection(name)?.beatmaps ?? [];
+        } else {
+            const collections = this.get_collections();
+            const unique_hashes = new Set<string>();
+
+            for (const collection of collections) {
+                for (const hash of collection.beatmaps) {
+                    if (hash) {
+                        unique_hashes.add(hash);
+                    }
+                }
+            }
+
+            hashes = Array.from(unique_hashes);
+        }
+
+        if (hashes.length == 0) {
+            return [];
+        }
+
+        const missing_beatmaps: string[] = [];
+        const MAX_CONCURRENT_CHECKS = 64;
+
+        for (let i = 0; i < hashes.length; i += MAX_CONCURRENT_CHECKS) {
+            const batch = hashes.slice(i, i + MAX_CONCURRENT_CHECKS);
+            const results = await Promise.all(
+                batch.map(async (md5) => {
+                    const beatmap = await this.get_beatmap_by_md5(md5);
+                    if (!beatmap || beatmap.temp) {
+                        return md5;
+                    }
+                    return null;
+                })
+            );
+
+            for (const md5 of results) {
+                if (md5) {
+                    missing_beatmaps.push(md5);
+                }
+            }
+        }
+
+        if (missing_beatmaps.length > 0) {
+            console.log(`[client] found ${missing_beatmaps.length} missing beatmaps out of ${hashes.length} checked`);
+        }
+
+        return missing_beatmaps;
+    };
+
+    add_beatmaps_to_collection(collection_name: string, hashes: string[]): boolean {
+        const collection = this.collections.get(collection_name);
+        if (!collection) {
+            return false;
+        }
+
+        const previous_size = collection.beatmaps.length;
+        const all_hashes = new Set([...collection.beatmaps, ...hashes]);
+
+        collection.beatmaps = Array.from(all_hashes);
+
+        if (all_hashes.size > previous_size) {
+            this.mark_collection_modified(collection_name);
+            this.should_update = true;
+        }
+
+        return true;
+    }
+
+    add_beatmap(beatmap: IBeatmapResult): boolean {
+        this.temp_beatmaps.set(beatmap.md5, beatmap);
+
+        const set_id = beatmap.beatmapset_id;
+        let set = this.temp_beatmapsets.get(set_id);
+
+        if (!set) {
+            // check if we already have the set in memory
+            const real_set = this.beatmapsets.get(set_id);
+
+            if (real_set) {
+                // if we have, clone it to add the new difficulty
+                set = {
+                    ...real_set,
+                    beatmaps: [...real_set.beatmaps],
+                    temp: true
+                };
+
+                this.temp_beatmapsets.set(set_id, set);
+            } else {
+                // otherwise, create a new one
+                set = {
+                    online_id: set_id,
+                    metadata: {
+                        artist: beatmap.artist,
+                        title: beatmap.title,
+                        creator: beatmap.creator
+                    },
+                    beatmaps: [],
+                    temp: true
+                };
+
+                this.temp_beatmapsets.set(set_id, set);
+            }
+        }
+
+        if (!set.beatmaps.includes(beatmap.md5)) {
+            set.beatmaps.push(beatmap.md5);
+        }
+
+        return true;
+    }
+
+    add_beatmapset(beatmapset: BeatmapSetResult): boolean {
+        this.temp_beatmapsets.set(beatmapset.online_id, beatmapset);
+        return true;
+    }
+
+    add_collection(name: string, beatmaps: string[]): boolean {
+        if (this.collections.has(name)) {
+            return false;
+        }
+
+        this.collections.set(name, { name, beatmaps, last_modified: this.get_collection_timestamp() });
+        this.should_update = true;
+        return true;
+    }
+
+    rename_collection(old_name: string, new_name: string): boolean {
+        const collection = this.collections.get(old_name);
+
+        if (!collection || this.collections.has(new_name)) {
+            return false;
+        }
+
+        this.collections.delete(old_name);
+        this.collections.set(new_name, { ...collection, name: new_name, last_modified: this.get_collection_timestamp() });
+        this.should_update = true;
+        return true;
+    }
+
+    delete_collection(name: string): boolean {
+        const result = this.collections.delete(name);
+
+        if (result) {
+            this.should_update = true;
+        }
+
+        return result;
+    }
+
+    get_collection(name: string): ICollectionResult | undefined {
+        return this.collections.get(name);
+    }
+
+    get_collections(): ICollectionResult[] {
+        return Array.from(this.collections.values());
+    }
+
+    has_beatmap(md5: string): boolean {
+        return this.beatmaps.has(md5) || this.temp_beatmaps.has(md5);
+    }
+
+    has_beatmapset(id: number): boolean {
+        return this.beatmapsets.has(id) || this.temp_beatmapsets.has(id);
+    }
+
+    has_beatmapsets(ids: number[]): boolean[] {
+        return ids.map((id) => this.has_beatmapset(id));
+    }
+
+    async get_beatmap_by_md5(md5: string): Promise<IBeatmapResult | undefined> {
+        return this.beatmaps.get(md5) || this.temp_beatmaps.get(md5);
+    }
+
+    async get_beatmap_by_id(id: number): Promise<IBeatmapResult | undefined> {
+        for (const beatmap of this.beatmaps.values()) {
+            if (beatmap.online_id == id) {
+                return beatmap;
+            }
+        }
+
+        for (const beatmap of this.temp_beatmaps.values()) {
+            if (beatmap.online_id == id) {
+                return beatmap;
+            }
+        }
+
+        return undefined;
+    }
+
+    async fetch_beatmaps(checksums: string[]): Promise<{ beatmaps: IBeatmapResult[]; invalid: string[] }> {
+        const beatmaps: IBeatmapResult[] = [];
+        const invalid: string[] = [];
+
+        for (const md5 of checksums) {
+            const beatmap = this.beatmaps.get(md5) ?? this.temp_beatmaps.get(md5);
+
+            if (!beatmap) {
+                invalid.push(md5);
+                continue;
+            }
+
+            beatmaps.push(beatmap);
+        }
+
+        return { beatmaps, invalid };
+    }
+
+    async fetch_beatmapsets(ids: number[]): Promise<{ beatmaps: BeatmapSetResult[]; invalid: number[] }> {
+        const beatmaps: BeatmapSetResult[] = [];
+        const invalid: number[] = [];
+
+        for (const id of ids) {
+            const beatmapset = this.beatmapsets.get(id) ?? this.temp_beatmapsets.get(id);
+
+            if (!beatmapset) {
+                invalid.push(id);
+                continue;
+            }
+
+            beatmaps.push(beatmapset);
+        }
+
+        return { beatmaps, invalid };
+    }
+
+    get_beatmaps(): IBeatmapResult[] {
+        return [...this.temp_beatmaps.values(), ...this.beatmaps.values()];
+    }
+
+    get_beatmapsets(): BeatmapSetResult[] {
+        return [...this.temp_beatmapsets.values(), ...this.beatmapsets.values()];
+    }
+
+    async get_beatmapset(set_id: number): Promise<BeatmapSetResult | undefined> {
+        let set = this.temp_beatmapsets.get(set_id);
+
+        if (set) {
+            return set;
+        }
+
+        return this.beatmapsets.get(set_id);
+    }
+
+    // client based implementation
+    abstract initialize(force?: boolean): Promise<GenericResult<boolean>>;
+    abstract get_player_name(): string;
+    abstract delete_beatmap(options: { md5: string; collection?: string }): Promise<boolean>;
+    abstract update_collection(): Promise<boolean>;
+    abstract get_beatmap_files(md5: string): Promise<BeatmapFile[]>;
+    abstract get_beatmapset_files(id: number): Promise<BeatmapFile[]>;
+    abstract dispose(): Promise<void>;
+}

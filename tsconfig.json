@@ -1,0 +1,30 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.web.json"
+    },
+    {
+      "path": "./tsconfig.test.json"
+    }
+  ],
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@worker/*": [
+        "./src/worker/*"
+      ],
+      "@assets/*": [
+        "./src/renderer/assets/*"
+      ]
+    }
+  }
+}

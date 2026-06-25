@@ -1,0 +1,22 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": [
+    "electron.vite.config.*",
+    "src/main/**/*",
+    "src/main/env.d.ts",
+    "src/worker/**/*",
+    "src/preload/**/*",
+    "src/shared/**/*"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "paths": {
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@worker/*": [
+        "./src/worker/*"
+      ]
+    }
+  }
+}
