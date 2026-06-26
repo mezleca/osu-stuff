@@ -19,6 +19,7 @@ BUILD_DIR = CWD / "build"
 DIST_DIR = CWD / "dist"
 BINARY_NAME = "osu-stuff"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
+SDL_PKG_CONFIG_NAME = "sdl3"
 
 TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
 TESTS_BUILD_DIR = BUILD_DIR / "tests"
@@ -61,7 +62,35 @@ def get_cpu_count() -> int:
         return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
 
-def build_configure_cmd(build_type: str, build_tests: bool = False) -> list[str]:
+def has_system_sdl3() -> bool:
+    if SYSTEM != "Linux":
+        return False
+
+    if shutil.which("pkg-config") is None:
+        return False
+
+    result = subprocess.run(
+        ["pkg-config", "--exists", SDL_PKG_CONFIG_NAME],
+        cwd=str(CWD),
+    )
+    return result.returncode == 0
+
+def should_use_vendored_sdl(target_platform: str) -> bool:
+    if target_platform == "windows":
+        return True
+
+    if target_platform == "linux":
+        return not has_system_sdl3()
+
+    if SYSTEM == "Windows":
+        return True
+
+    if SYSTEM == "Linux":
+        return not has_system_sdl3()
+
+    return False
+
+def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
     cmd = [
         "cmake",
@@ -77,11 +106,11 @@ def build_configure_cmd(build_type: str, build_tests: bool = False) -> list[str]
         f"-DOSU_STUFF_BUILD_TESTS={'ON' if build_tests else 'OFF'}",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}",
+        f"-DUSE_VENDORED_SDL={'ON' if use_vendored_sdl else 'OFF'}",
     ]
 
     if IS_CI:
         cmd.extend([
-            "-DUSE_VENDORED_SDL=ON",
             "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
             "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
         ])
@@ -120,13 +149,43 @@ def is_build_configured() -> bool:
 
     return True
 
+def get_vcvarsall_script() -> Path | None:
+    candidates = [
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat"),
+    ]
+
+    vswhere = Path("C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe")
+    if vswhere.exists():
+        _, stdout = run([
+            str(vswhere),
+            "-latest",
+            "-products",
+            "*",
+            "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "-property",
+            "installationPath",
+        ], check=False, capture=True)
+        installation_path = stdout.strip()
+        if installation_path:
+            candidates.insert(0, Path(installation_path) / "VC/Auxiliary/Build/vcvarsall.bat")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return None
+
 def load_msvc_env() -> dict:
     env = os.environ.copy()
     vcvarsall = get_vcvarsall_script()
 
-    if not vcvarsall:
-        print("warn: failed to get vcvarsall script")
-        return env
+    if vcvarsall is None:
+        print("vcvarsall.bat not found")
+        sys.exit(1)
 
     _, stdout = run(f'"{str(vcvarsall)}" x64 && set', capture=True)
 
@@ -150,7 +209,7 @@ def init() -> int:
     tool_exists("ninja")
 
     if SYSTEM == "Windows":
-        if not get_vcvarsall_script():
+        if get_vcvarsall_script() is None:
             print("vcvarsall.bat not found")
             return 1
     else:
@@ -257,34 +316,21 @@ def cleanup_test_runtime_data() -> None:
     if test_temp_dir.exists():
         shutil.rmtree(test_temp_dir)
 
-def configure_linux(build_type: str, build_tests: bool = False) -> int:
+def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
 
     if cache.exists():
         cache.unlink()
 
     BUILD_DIR.mkdir(exist_ok=True)
-    cmd = build_configure_cmd(build_type, build_tests)
+    cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
     cmd.extend([
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
     ])
     return run(cmd)[0]
 
-def get_vcvarsall_script():
-    candidates = (
-        Path("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat"),
-        Path("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Auxiliary/Build/vcvarsall.bat"),
-        Path("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat")
-    )
-
-    for p in candidates:
-        if p.exists():
-            return p
-
-    return None
-
-def configure_windows(build_type: str, build_tests: bool = False) -> int:
+def configure_windows(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
     env = load_msvc_env()
 
@@ -292,18 +338,19 @@ def configure_windows(build_type: str, build_tests: bool = False) -> int:
         cache.unlink()
 
     BUILD_DIR.mkdir(exist_ok=True)
-    cmd = build_configure_cmd(build_type, build_tests)
+    cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
     return run(cmd, env=env)[0]
 
 def configure(build_type: str, target_platform: str, build_tests: bool = False) -> int:
     is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
     is_linux   = target_platform == "linux"   or (target_platform == "auto" and SYSTEM == "Linux")
+    use_vendored_sdl = should_use_vendored_sdl(target_platform)
 
     if is_windows:
-        return configure_windows(build_type, build_tests)
+        return configure_windows(build_type, build_tests, use_vendored_sdl)
 
     if is_linux:
-        return configure_linux(build_type, build_tests)
+        return configure_linux(build_type, build_tests, use_vendored_sdl)
 
     print(f"unsupported platform: {SYSTEM}")
     return 1

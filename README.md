@@ -4,8 +4,8 @@
 </div>
 
 > [!WARNING]
-> osu-stuff is currently being rewritten (c++)<br>
-> if you wanna build or contribute for v2 (typescript + electron), make sure to check [v2](https://github.com/mezleca/osu-stuff/tree/v2) branch 
+> osu-stuff is currently being rewritten in c++<br>
+> if you wanna build or contribute for v2 (typescript + electron), use the [v2](https://github.com/mezleca/osu-stuff/tree/v2) branch 
 
 <p align="center">
     <table>

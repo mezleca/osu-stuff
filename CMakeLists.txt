@@ -33,17 +33,37 @@ set(SQLITECPP_BUILD_TESTS OFF)
 
 find_package(OpenGL REQUIRED)
 
+function(configure_sdl)
+    if(USE_VENDORED_SDL)
+        add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
+        return()
+    endif()
+
+    find_package(SDL3 QUIET CONFIG)
+
+    if(SDL3_FOUND)
+        return()
+    endif()
+
+    find_package(PkgConfig QUIET)
+
+    if(PkgConfig_FOUND)
+        pkg_check_modules(SDL3_PKG QUIET IMPORTED_TARGET sdl3)
+        if(SDL3_PKG_FOUND)
+            add_library(SDL3::SDL3 INTERFACE IMPORTED)
+            set_property(TARGET SDL3::SDL3 PROPERTY INTERFACE_LINK_LIBRARIES PkgConfig::SDL3_PKG)
+            return()
+        endif()
+    endif()
+
+    message(FATAL_ERROR "SDL3 not found.")
+endfunction()
+
 if(WIN32)
     set(SQLITECPP_INTERNAL_SQLITE ON)
-
-    if (NOT USE_VENDORED_SDL)
-        add_subdirectory(vendor/SDL)
-    else()
-        find_package(SDL3 REQUIRED)
-    endif()
-else()
-    find_package(SDL3 REQUIRED)
 endif()
+
+configure_sdl()
 
 add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/sqlitecpp)
@@ -96,6 +116,15 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     SDL3::SDL3
 )
 
+# https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
+if(WIN32 AND TARGET SDL3::SDL3-shared)
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        VERBATIM
+    )
+endif()
+
 if(MSVC)
     string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
     string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
@@ -112,9 +141,6 @@ if(MSVC)
         /utf-8
         /wd5105
         /Zc:preprocessor
-
-        $<$<CONFIG:Debug>:/Z7>
-        $<$<CONFIG:Release>:/O2 /DNDEBUG>
     )
 else()
     target_compile_options(${PROJECT_NAME}-core PUBLIC
@@ -124,15 +150,6 @@ else()
 
         $<$<CONFIG:Debug>:-O0 -g3>
         $<$<CONFIG:Release>:-O2 -DNDEBUG>
-    )
-endif()
-
-# https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
-if(WIN32)
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-        VERBATIM
     )
 endif()
 
