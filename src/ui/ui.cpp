@@ -1,7 +1,10 @@
 #include "ui.hpp"
-#include "ui/theme.hpp"
-#include "imgui.h"
+#include "tabs/detail.hpp"
+#include "theme.hpp"
+#include "modal.hpp"
 
+#include <algorithm>
+#include <imgui.h>
 #include <SDL3/SDL_opengl.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
@@ -11,10 +14,10 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
     ImGui::CreateContext();
-    io = &ImGui::GetIO();
+    m_io = &ImGui::GetIO();
 
-    io->IniFilename = nullptr;
-    io->LogFilename = nullptr;
+    m_io->IniFilename = nullptr;
+    m_io->LogFilename = nullptr;
 
     ImGui::StyleColorsDark();
 
@@ -66,15 +69,18 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui_ImplSDL3_InitForOpenGL(window, ctx);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    // initialize tabs
-    for (auto& tab : create_default_tabs()) {
-        m_tabs.emplace_back(custom_imgui::TabButtonState{}, std::move(tab));
-    }
+    // create / intitialize tabs
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<IndexTab>()});
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<CollectionTab>()});
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<DiscoverTab>()});
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<RadioTab>()});
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<ConfigTab>()});
+    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<StatusTab>()});
 
     // initialize / preload some fonts
-    m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", io);
-    m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", io);
-    m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", io);
+    m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", m_io);
+    m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
+    m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
 
     for (auto& font : m_fonts) {
         font.load(FONT_SMALL);
@@ -87,6 +93,90 @@ void UIFont::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io
     m_font_location = location;
     m_cfg = cfg;
     m_io = io;
+}
+
+bool UI::is_modal_focused(UIModal* modal) const {
+    if (m_modals.empty()) {
+        return false;
+    }
+
+    return m_modals.back() == modal;
+}
+
+bool UI::has_modal(std::string_view id) const {
+    return std::any_of(m_modals.begin(), m_modals.end(), [id](const UIModal* modal) { return modal->m_id == id; });
+}
+
+UIModal* UI::focused_modal() const {
+    if (m_modals.empty()) {
+        return nullptr;
+    }
+
+    return m_modals.back();
+}
+
+void UI::show_modal(UIModal* modal, bool wipe) {
+    if (modal == nullptr) {
+        return;
+    }
+
+    if (wipe) {
+        clear_modals();
+    }
+
+    m_modals.push_back(modal);
+}
+
+bool UI::remove_modal(std::string_view id) {
+    bool removed = false;
+
+    for (auto it = m_modals.begin(); it != m_modals.end();) {
+        UIModal* modal = *it;
+
+        if (modal->m_id != id) {
+            it++;
+            continue;
+        }
+
+        modal->on_remove();
+        it = m_modals.erase(it);
+        removed = true;
+    }
+
+    return removed;
+}
+
+bool UI::remove_focused_modal() {
+    UIModal* modal = focused_modal();
+
+    if (modal == nullptr) {
+        return false;
+    }
+
+    modal->on_remove();
+    m_modals.pop_back();
+    return true;
+}
+
+void UI::clear_modals() {
+    for (UIModal* modal : m_modals) {
+        modal->on_remove();
+    }
+
+    m_modals.clear();
+}
+
+void UI::handle_escape() {
+    if (!ImGui::IsKeyDown(ImGuiKey_Escape)) {
+        return;
+    }
+
+    UIModal* modal = focused_modal();
+
+    if (modal != nullptr) {
+        modal->on_escape();
+        return;
+    }
 }
 
 ImFont* UIFont::load_font_variation(int size) {
@@ -211,7 +301,7 @@ void UI::render() {
 
     ImGui::Render();
 
-    glViewport(0, 0, (int)io->DisplaySize.x, (int)io->DisplaySize.y);
+    glViewport(0, 0, static_cast<int>(m_io->DisplaySize.x), static_cast<int>(m_io->DisplaySize.y));
     glClearColor(ui_theme::BG_COLOR.x, ui_theme::BG_COLOR.y, ui_theme::BG_COLOR.z, ui_theme::BG_COLOR.w);
     glClear(GL_COLOR_BUFFER_BIT);
 

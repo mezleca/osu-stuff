@@ -17,6 +17,7 @@ enum UIFonts {
     TORUS_BOLD,
     FONT_COUNT
 };
+
 enum UIFontVar : int32_t {
     FONT_EXTRA_SMALL = 10,
     FONT_SMALL = 14,
@@ -52,6 +53,7 @@ private:
 };
 
 struct UITab;
+struct UIModal;
 
 class UI {
 public:
@@ -68,10 +70,24 @@ public:
         m_done = true;
     };
 
+    // modals
+    [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
+    [[nodiscard]] bool has_modal(std::string_view id) const;
+    [[nodiscard]] UIModal* focused_modal() const;
+    [[nodiscard]] size_t modal_count() {
+        return m_modals.size();
+    }
+    [[nodiscard]] bool remove_modal(std::string_view id);
+    [[nodiscard]] bool remove_focused_modal();
+    void show_modal(UIModal* modal, bool wipe = false);
+    void clear_modals();
+    void handle_escape();
+
 private:
+    ImGuiIO* m_io;
+    std::vector<std::pair<custom_imgui::TabButtonState, std::unique_ptr<UITab>>> m_tabs;
+    std::vector<UIModal*> m_modals;
     bool m_done = false;
     UITab* m_current_tab = nullptr;
-    std::vector<std::pair<custom_imgui::TabButtonState, std::unique_ptr<UITab>>> m_tabs;
-    ImGuiIO* io;
     UIFont m_fonts[FONT_COUNT];
 };
