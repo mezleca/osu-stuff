@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
 #include <string>
-#include <vector>
 
 struct UITab {
     explicit UITab() = default;
@@ -12,5 +10,3 @@ struct UITab {
     virtual ~UITab();
     virtual void render() = 0;
 };
-
-[[nodiscard]] std::vector<std::unique_ptr<UITab>> create_default_tabs();
