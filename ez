@@ -46,7 +46,7 @@ def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, c
     )
 
     if check and result.returncode != 0:
-        print(f"command failed with exit code {result.returncode}")
+        print(f"[ez] command failed with exit code {result.returncode}")
         sys.exit(result.returncode)
 
     return result.returncode, result.stdout or ""
@@ -109,10 +109,10 @@ def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored
         f"-DUSE_VENDORED_SDL={'ON' if use_vendored_sdl else 'OFF'}",
     ]
 
-    if IS_CI:
+    if IS_CI and SYSTEM != "Windows":
         cmd.extend([
             "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
-            "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
+            "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
         ])
 
     return cmd
@@ -184,7 +184,7 @@ def load_msvc_env() -> dict:
     vcvarsall = get_vcvarsall_script()
 
     if vcvarsall is None:
-        print("vcvarsall.bat not found")
+        print("[ez] vcvarsall.bat not found")
         sys.exit(1)
 
     _, stdout = run(f'"{str(vcvarsall)}" x64 && set', capture=True)
@@ -199,10 +199,10 @@ def load_msvc_env() -> dict:
     return env
 
 def init() -> int:
-    print("initializing submodules...")
+    print("[ez] initializing submodules...")
 
     if Path(".gitmodules").exists() and run("git submodule update --init --recursive", check=False)[0] != 0:
-        print("failed to initialize submodules")
+        print("[ez] failed to initialize submodules")
         return 1
 
     tool_exists("cmake")
@@ -210,7 +210,7 @@ def init() -> int:
 
     if SYSTEM == "Windows":
         if get_vcvarsall_script() is None:
-            print("vcvarsall.bat not found")
+            print("[ez] vcvarsall.bat not found")
             return 1
     else:
         tool_exists("clang")
@@ -223,16 +223,16 @@ def format_code() -> None:
 
 def clean() -> int:
     if not BUILD_DIR.exists():
-        print("build directory doesn't exist")
+        print("[ez] build directory doesn't exist")
         return 0
 
-    print("removing build directory...")
+    print("[ez] removing build directory...")
 
     try:
         shutil.rmtree(BUILD_DIR)
         return 0
     except PermissionError:
-        print("permission denied")
+        print("[ez] permission denied")
         return 1
 
 def has_test_data() -> bool:
@@ -258,7 +258,7 @@ def resolve_test_data_source(root: Path) -> Path:
 def download_test_data() -> None:
     test_archive_dir = TESTS_BUILD_DIR / "test-downloads"
     test_archive_path = test_archive_dir / "data.tar.gz"
-    print(f"downloading test data from {TEST_DATA_URL}")
+    print(f"[ez] downloading test data from {TEST_DATA_URL}")
     test_archive_dir.mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(TEST_DATA_URL, test_archive_path)
 
@@ -292,7 +292,7 @@ def ensure_test_data() -> None:
     extract_test_data()
 
     if not has_test_data():
-        print("test data is invalid after extraction...")
+        print("[ez] test data is invalid after extraction...")
         sys.exit(1)
 
 def prepare_test_runtime_data() -> None:
@@ -352,7 +352,7 @@ def configure(build_type: str, target_platform: str, build_tests: bool = False) 
     if is_linux:
         return configure_linux(build_type, build_tests, use_vendored_sdl)
 
-    print(f"unsupported platform: {SYSTEM}")
+    print(f"[ez] unsupported platform: {SYSTEM}")
     return 1
 
 def build(build_type: str | None) -> int:
@@ -422,14 +422,14 @@ def package(package_type: str | None) -> int:
         return package_flatpak()
 
     if selected_package_type == "inno":
-        print("not implemented yet")
+        print("[ez] not implemented yet")
         return 1
 
     if selected_package_type == "portable":
-        print("not implemented yet")
+        print("[ez] not implemented yet")
         return 1
 
-    print(f"unsupported package type: {selected_package_type}")
+    print(f"[ez] unsupported package type: {selected_package_type}")
     return 1
 
 def prepare_resources():
@@ -447,13 +447,13 @@ def run_binary() -> int:
             BUILD_DIR / "Debug"   / f"{BINARY_NAME}.exe",
         ]
     else:
-        print(f"unsupported platform: {SYSTEM}")
+        print(f"[ez] unsupported platform: {SYSTEM}")
         return 1
 
     binary = next((p for p in candidates if p.exists()), None)
 
     if binary is None:
-        print("binary not found")
+        print("[ez] binary not found")
         return 1
 
     return run(str(binary))[0]

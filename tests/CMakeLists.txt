@@ -17,6 +17,15 @@ target_include_directories(tests PRIVATE
     $<TARGET_PROPERTY:osu-stuff-core,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
+if(WIN32)
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:tests>
+            $<TARGET_FILE_DIR:tests>
+        COMMAND_EXPAND_LISTS
+    )
+endif()
+
 catch_discover_tests(tests
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:tests>"
     DISCOVERY_MODE PRE_TEST

@@ -14,6 +14,7 @@ enum class QueryOp : int {
     GTE,
     LTE
 };
+
 enum class ParseState : int {
     KEY = 0,
     VALUE

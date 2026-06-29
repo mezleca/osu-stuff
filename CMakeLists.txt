@@ -1,37 +1,8 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(osu-stuff VERSION 3.0.0 LANGUAGES CXX)
-
-include(GNUInstallDirs)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_VENDORED_SDL "force vendored sdl" OFF)
 option(OSU_STUFF_BUILD_TESTS "build project tests" OFF)
-
-find_program(CCACHE_PROGRAM ccache)
-
-if(CCACHE_PROGRAM)
-    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
-    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
-endif()
-
-if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
-    set(OUTPUT_NAME "${PROJECT_NAME}")
-endif()
-
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-endif()
-
-if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
-
-set(SQLITECPP_BUILD_TESTS OFF)
-
-find_package(OpenGL REQUIRED)
 
 function(configure_sdl)
     if(USE_VENDORED_SDL)
@@ -59,7 +30,26 @@ function(configure_sdl)
     message(FATAL_ERROR "SDL3 not found.")
 endfunction()
 
-if(WIN32)
+include(GNUInstallDirs)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
+    set(OUTPUT_NAME "${PROJECT_NAME}")
+endif()
+
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(SQLITECPP_BUILD_TESTS OFF)
+
+find_package(OpenGL REQUIRED)
+
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     set(SQLITECPP_INTERNAL_SQLITE ON)
 endif()
 
@@ -126,9 +116,6 @@ if(WIN32 AND TARGET SDL3::SDL3-shared)
 endif()
 
 if(MSVC)
-    string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-    string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-
     target_compile_definitions(${PROJECT_NAME}-core PUBLIC
         WIN32_LEAN_AND_MEAN
         NOMINMAX
