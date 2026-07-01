@@ -83,7 +83,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
 
     for (const char* texture : textures) {
         std::filesystem::path location = texture_location / std::format("{}.png", texture);
-        const char* location_str = location.c_str();
+        std::string location_str = location.string();
 
         auto result = custom_imgui::load_texture_from_file(location_str);
 

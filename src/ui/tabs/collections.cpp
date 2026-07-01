@@ -3,7 +3,6 @@
 #include "../custom.hpp"
 #include "../ui.hpp"
 
-#include <iostream>
 #include <string>
 
 static constexpr float COLLECTION_PANEL_WIDTH_PERCENT = 25.0f;
