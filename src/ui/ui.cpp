@@ -83,15 +83,17 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
 
     for (const char* texture : textures) {
         std::filesystem::path location = texture_location / std::format("{}.png", texture);
-        auto result = custom_imgui::load_texture_from_file(location.c_str());
+        const char* location_str = location.c_str();
+
+        auto result = custom_imgui::load_texture_from_file(location_str);
 
         if (result.has_value()) {
-            std::cout << std::format("[ui] loaded texture: {} from {} ({}, {})", texture, location.c_str(),
+            std::cout << std::format("[ui] loaded texture: {} from {} ({}, {})", texture, location_str,
                                      result->m_width, result->m_height)
                       << "\n";
             m_textures.emplace(texture, result.value());
         } else {
-            std::cout << std::format("[ui] failed to load texture: {}", location.c_str()) << "\n";
+            std::cout << std::format("[ui] failed to load texture: {}", location_str) << "\n";
         }
     }
 

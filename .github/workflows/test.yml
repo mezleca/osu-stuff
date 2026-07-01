@@ -56,5 +56,5 @@ jobs:
               run: python ./ez test
 
             - name: sccache stats
-              if: always()
+              if: runner.os == 'Linux'
               run: sccache --show-stats
