@@ -1,10 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <filesystem>
 #include <imgui.h>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 
@@ -26,6 +24,39 @@ enum customChildResize : uint8_t {
     CHILD_RESIZE_ALL = 1 << 2
 };
 
+struct TabButtonStyle {
+    AnimatedFloat line_alpha;
+    AnimatedFloat line_width;
+    AnimatedColor text_color = {ui_theme::TEXT_COLOR};
+};
+
+struct TabButtonState : WidgetState {
+    TabButtonStyle style;
+};
+
+struct ImageTexture {
+    uint32_t m_id = 0;
+    int m_width = 0;
+    int m_height = 0;
+};
+
+struct InputState {
+    explicit InputState(ImageTexture texture);
+
+    std::string m_label = "";
+    std::string m_value = "";
+
+    ImColor m_border_color = {51, 51, 51, 255};
+    ImColor m_text_color = {240, 240, 240, 255};
+
+    ImVec2 m_size = {120, 30};
+
+    ImageTexture m_search_texture;
+
+    bool m_focused = false;
+    bool m_fit_width = false;
+};
+
 struct ChildState {
     std::string m_id;
 
@@ -44,28 +75,11 @@ struct ChildState {
 };
 
 namespace custom_imgui {
-    struct TabButtonStyle {
-        AnimatedFloat line_alpha;
-        AnimatedFloat line_width;
-        AnimatedColor text_color = {ui_theme::TEXT_COLOR};
-    };
-
-    struct TabButtonState : WidgetState {
-        TabButtonStyle style;
-    };
-
-    struct ImageTexture {
-        uint32_t m_id = 0;
-        int m_width = 0;
-        int m_height = 0;
-    };
-
-    void search_input(std::string_view label, std::string& input);
+    void search_input(InputState* state);
     void line(ImVec2 a, ImVec2 b, ImU32 color, float thickness);
     bool begin_child(ChildState& state, ImGuiChildFlags child_flags = 0, ImGuiWindowFlags window_flags = 0);
     void end_child(ChildState& state, float thickness = 1.0f);
-    [[nodiscard]] std::optional<ImageTexture> load_texture_from_file(const std::filesystem::path& path);
-    [[nodiscard]] std::optional<ImageTexture> load_texture_from_memory(std::span<const unsigned char> data);
+    std::optional<ImageTexture> load_texture_from_file(std::string_view);
     void destroy_texture(ImageTexture& texture);
     void image(const ImageTexture& texture, ImVec2 size = {0.0f, 0.0f});
     bool tab_button(TabButtonState& state, std::string_view label, bool selected, bool draw_line, bool is_title);

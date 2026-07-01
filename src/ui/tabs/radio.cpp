@@ -2,7 +2,7 @@
 #include "../theme.hpp"
 #include "../custom.hpp"
 
-RadioTab::RadioTab() {
+RadioTab::RadioTab(UI* ui) : UITab(ui) {
     m_id = "radio";
 }
 

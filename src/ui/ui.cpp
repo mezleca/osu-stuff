@@ -2,12 +2,14 @@
 #include "tabs/detail.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
+#include "custom.hpp"
 
 #include <algorithm>
+#include <format>
 #include <imgui.h>
-#include <SDL3/SDL_opengl.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
+#include <filesystem>
 #include <iostream>
 
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
@@ -69,24 +71,43 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     ImGui_ImplSDL3_InitForOpenGL(window, ctx);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    // create / intitialize tabs
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<IndexTab>()});
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<CollectionTab>()});
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<DiscoverTab>()});
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<RadioTab>()});
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<ConfigTab>()});
-    m_tabs.push_back({custom_imgui::TabButtonState{}, std::make_unique<StatusTab>()});
-
-    // initialize / preload some fonts
+    // initialize / preload font variations
     m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", m_io);
     m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
     m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
+
+    // initialize textures
+    const char* textures[] = {"search-white"};
+
+    std::filesystem::path texture_location = "resources/icons/ui/";
+
+    for (const char* texture : textures) {
+        std::filesystem::path location = texture_location / std::format("{}.png", texture);
+        auto result = custom_imgui::load_texture_from_file(location.c_str());
+
+        if (result.has_value()) {
+            std::cout << std::format("[ui] loaded texture: {} from {} ({}, {})", texture, location.c_str(),
+                                     result->m_width, result->m_height)
+                      << "\n";
+            m_textures.emplace(texture, result.value());
+        } else {
+            std::cout << std::format("[ui] failed to load texture: {}", location.c_str()) << "\n";
+        }
+    }
 
     for (auto& font : m_fonts) {
         font.load(FONT_SMALL);
         font.load(FONT_MEDIUM);
         font.load(FONT_LARGE);
     }
+
+    // create / intitialize tabs
+    m_tabs.push_back({TabButtonState{}, std::make_unique<IndexTab>(this)});
+    m_tabs.push_back({TabButtonState{}, std::make_unique<CollectionTab>(this)});
+    m_tabs.push_back({TabButtonState{}, std::make_unique<DiscoverTab>(this)});
+    m_tabs.push_back({TabButtonState{}, std::make_unique<RadioTab>(this)});
+    m_tabs.push_back({TabButtonState{}, std::make_unique<ConfigTab>(this)});
+    m_tabs.push_back({TabButtonState{}, std::make_unique<StatusTab>(this)});
 }
 
 void UIFont::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io) {

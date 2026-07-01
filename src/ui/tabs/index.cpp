@@ -2,7 +2,7 @@
 #include "../theme.hpp"
 #include "../custom.hpp"
 
-IndexTab::IndexTab() {
+IndexTab::IndexTab(UI* ui) : UITab(ui) {
     m_id = "index";
 }
 

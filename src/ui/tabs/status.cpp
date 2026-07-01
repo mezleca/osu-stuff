@@ -2,7 +2,7 @@
 #include "../theme.hpp"
 #include "../custom.hpp"
 
-StatusTab::StatusTab() {
+StatusTab::StatusTab(UI* ui) : UITab(ui) {
     m_id = "status";
 }
 

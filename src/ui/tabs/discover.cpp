@@ -2,7 +2,7 @@
 #include "../theme.hpp"
 #include "../custom.hpp"
 
-DiscoverTab::DiscoverTab() {
+DiscoverTab::DiscoverTab(UI* ui) : UITab(ui) {
     m_id = "discover";
 }
 

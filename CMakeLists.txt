@@ -55,6 +55,7 @@ endif()
 
 configure_sdl()
 
+add_subdirectory(vendor/glad)
 add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/sqlitecpp)
 add_subdirectory(vendor/realm-cpp)
@@ -97,13 +98,14 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
+    OpenGL::GL
+    glad
+    SDL3::SDL3
     miniz
     cpprealm
     utf8proc
     SQLiteCpp
     sqlite3
-    OpenGL::GL
-    SDL3::SDL3
 )
 
 # https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location

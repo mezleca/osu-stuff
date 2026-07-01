@@ -3,6 +3,7 @@
 #include "ui/custom.hpp"
 #include "ui/tabs/tabs.hpp"
 
+#include <glad/gl.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
 #include <imgui.h>
@@ -55,7 +56,7 @@ private:
 struct UITab;
 struct UIModal;
 
-class UI {
+struct UI {
 public:
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
@@ -69,6 +70,17 @@ public:
     void exit() {
         m_done = true;
     };
+
+    // textures
+    [[nodiscard]] ImageTexture get_texture(std::string_view id) {
+        auto it = m_textures.find(id.data());
+
+        if (it == m_textures.end()) {
+            return {};
+        }
+
+        return it->second;
+    }
 
     // modals
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
@@ -84,10 +96,11 @@ public:
     void handle_escape();
 
 private:
-    ImGuiIO* m_io;
-    std::vector<std::pair<custom_imgui::TabButtonState, std::unique_ptr<UITab>>> m_tabs;
+    std::unordered_map<std::string, ImageTexture> m_textures;
+    std::vector<std::pair<TabButtonState, std::unique_ptr<UITab>>> m_tabs;
     std::vector<UIModal*> m_modals;
     bool m_done = false;
+    ImGuiIO* m_io;
     UITab* m_current_tab = nullptr;
     UIFont m_fonts[FONT_COUNT];
 };

@@ -1,44 +1,47 @@
 #pragma once
-
 #include "tabs.hpp"
 #include "../custom.hpp"
 
+#include <memory>
+
 struct IndexTab : public UITab {
-    explicit IndexTab();
+    explicit IndexTab(UI* ui);
     ~IndexTab() override = default;
     void render() override;
 };
 
 struct CollectionTab : public UITab {
-    explicit CollectionTab();
+    explicit CollectionTab(UI* ui);
     ~CollectionTab() override = default;
     void render() override;
 
 private:
     ChildState m_collection_child_state;
     ChildState m_beatmaps_child_state;
+    std::unique_ptr<InputState> m_collection_input_state;
+    std::unique_ptr<InputState> m_beatmaps_input_state;
 };
 
 struct DiscoverTab : public UITab {
-    explicit DiscoverTab();
+    explicit DiscoverTab(UI* ui);
     ~DiscoverTab() override = default;
     void render() override;
 };
 
 struct RadioTab : public UITab {
-    explicit RadioTab();
+    explicit RadioTab(UI* ui);
     ~RadioTab() override = default;
     void render() override;
 };
 
 struct ConfigTab : public UITab {
-    explicit ConfigTab();
+    explicit ConfigTab(UI* ui);
     ~ConfigTab() override = default;
     void render() override;
 };
 
 struct StatusTab : public UITab {
-    explicit StatusTab();
+    explicit StatusTab(UI* ui);
     ~StatusTab() override = default;
     void render() override;
 };

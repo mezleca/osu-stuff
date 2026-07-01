@@ -2,18 +2,15 @@
 #include "./theme.hpp"
 #include "../utils/math.hpp"
 
+#include <optional>
+#include <string_view>
+#include <algorithm>
+#include <format>
+#include <glad/gl.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
-#include <SDL3/SDL_opengl.h>
-#include <algorithm>
-#include <fstream>
-#include <format>
-#include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
-#include <iostream>
-#include <vector>
 
 static constexpr float MIN_CHILD_SIZE = 32.0f;
 static constexpr float CHILD_RESIZE_HANDLE_SIZE = 20.0f;
@@ -22,15 +19,15 @@ static constexpr float TAB_TEXT_COLOR_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ALPHA_ANIM_SPEED = 18.0f;
 
-static bool is_texture_valid(const custom_imgui::ImageTexture& texture) {
+static bool is_texture_valid(const ImageTexture& texture) {
     return texture.m_id != 0 && texture.m_width > 0 && texture.m_height > 0;
 }
 
-static ImTextureID imgui_texture_id(const custom_imgui::ImageTexture& texture) {
+static ImTextureID imgui_texture_id(const ImageTexture& texture) {
     return static_cast<ImTextureID>(texture.m_id);
 }
 
-static ImVec2 texture_size(const custom_imgui::ImageTexture& texture) {
+static ImVec2 texture_size(const ImageTexture& texture) {
     return {static_cast<float>(texture.m_width), static_cast<float>(texture.m_height)};
 }
 
@@ -43,66 +40,81 @@ static void delete_gl_texture(uint32_t texture_id) {
     glDeleteTextures(1, &gl_texture_id);
 }
 
-static std::optional<custom_imgui::ImageTexture> create_texture_from_pixels(const unsigned char* pixels, int width,
-                                                                            int height) {
-    if (pixels == nullptr || width <= 0 || height <= 0) {
+std::optional<ImageTexture> load_texture_from_memory(const void* data, size_t data_size) {
+    int image_width = 0;
+    int image_height = 0;
+
+    unsigned char* image_data =
+        stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
+
+    if (image_data == NULL) {
         return std::nullopt;
     }
 
-    GLint previous_texture = 0;
-    GLint previous_unpack_alignment = 0;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previous_texture);
-    glGetIntegerv(GL_UNPACK_ALIGNMENT, &previous_unpack_alignment);
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
 
-    GLuint texture_id = 0;
-    glGenTextures(1, &texture_id);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, previous_unpack_alignment);
-    glBindTexture(GL_TEXTURE_2D, previous_texture);
+    // Upload pixels into texture
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
 
-    custom_imgui::ImageTexture texture;
-    texture.m_id = texture_id;
-    texture.m_width = width;
-    texture.m_height = height;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(image_data);
+
+    ImageTexture texture;
+
+    texture.m_id = image_texture;
+    texture.m_width = image_width;
+    texture.m_height = image_height;
+
     return texture;
 }
 
-static std::optional<std::vector<unsigned char>> read_binary_file(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
+std::optional<ImageTexture> custom_imgui::load_texture_from_file(std::string_view file_name) {
+    FILE* f = fopen(file_name.data(), "rb");
 
-    if (!file) {
-        std::cout << "[ui] failed to open image file: " << path << "\n";
+    if (f == NULL) {
         return std::nullopt;
     }
 
-    const std::streamsize size = file.tellg();
+    fseek(f, 0, SEEK_END);
 
-    if (size <= 0) {
-        std::cout << "[ui] image file is empty: " << path << "\n";
+    long file_size = ftell(f);
+
+    if (file_size == -1) {
         return std::nullopt;
     }
 
-    std::vector<unsigned char> data(static_cast<std::size_t>(size));
-    file.seekg(0, std::ios::beg);
+    fseek(f, 0, SEEK_SET);
+    void* file_data = IM_ALLOC(file_size);
+    fread(file_data, 1, file_size, f);
+    fclose(f);
 
-    if (!file.read(reinterpret_cast<char*>(data.data()), size)) {
-        std::cout << "[ui] failed to read image file: " << path << "\n";
-        return std::nullopt;
-    }
-
-    return data;
+    auto ret = load_texture_from_memory(file_data, file_size);
+    IM_FREE(file_data);
+    return ret;
 }
 
-static custom_imgui::TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bool selected,
-                                                                bool is_title) {
-    custom_imgui::TabButtonStyle style;
+void custom_imgui::destroy_texture(ImageTexture& texture) {
+    delete_gl_texture(texture.m_id);
+
+    texture.m_id = 0;
+    texture.m_width = 0;
+    texture.m_height = 0;
+}
+
+static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bool selected, bool is_title) {
+    TabButtonStyle style;
 
     style.text_color.set((selected || is_title) ? ui_theme::ACCENT_COLOR : ui_theme::TEXT_COLOR);
 
@@ -129,7 +141,7 @@ static custom_imgui::TabButtonStyle get_tab_button_target_style(bool visible, bo
     return style;
 }
 
-static void tick_tab_button_style(custom_imgui::TabButtonState& state, const custom_imgui::TabButtonStyle& target) {
+static void tick_tab_button_style(TabButtonState& state, const TabButtonStyle& target) {
     const float dt = ImGui::GetIO().DeltaTime;
 
     state.tick(TAB_ALPHA_ANIM_SPEED, dt);
@@ -138,30 +150,77 @@ static void tick_tab_button_style(custom_imgui::TabButtonState& state, const cus
     state.style.text_color.tick(target.text_color.value, TAB_TEXT_COLOR_ANIM_SPEED, dt);
 }
 
-void custom_imgui::search_input(std::string_view label, std::string& input) {
-    ImGui::InputText(std::format("##{}", label).c_str(), &input);
+InputState::InputState(ImageTexture texture) {
+    m_search_texture = texture;
+}
 
-    const bool is_active = ImGui::IsItemActive();
-    const bool is_hovered = ImGui::IsItemHovered();
+// custom widgets
 
-    auto min = ImGui::GetItemRectMin();
-    auto max = ImGui::GetItemRectMax();
+void custom_imgui::search_input(InputState* state) {
+    static const float icon_size = 20.0f;
 
-    auto color = ImColor(ui_theme::BORDER_COLOR);
+    const ImVec2 available = ImGui::GetContentRegionAvail();
 
-    if (is_active) {
-        color = ImColor(ui_theme::ACCENT_COLOR);
-    } else if (is_hovered) {
-        color = ImColor(ui_theme::ACCENT_HOVER_COLOR);
+    auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    auto child_flags =
+        ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
+
+    auto label = std::format("##{}", state->m_label);
+    ImVec2 size = state->m_size;
+
+    if (state->m_fit_width) {
+        size.x = available.x;
     }
 
+    size.y = 0.0f;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
+
+    auto border_color = ImColor(state->m_border_color);
+
+    ImGui::BeginChild(label.c_str(), size, child_flags, window_flags);
+    {
+        const float frame_height = ImGui::GetFrameHeight();
+        const float row_height = ImMax(icon_size, frame_height);
+        const float row_start_y = ImGui::GetCursorPosY();
+
+        ImGui::SetCursorPosY(row_start_y + (row_height - icon_size) * 0.5f);
+        image(state->m_search_texture, {icon_size, icon_size});
+
+        ImGui::SameLine(0.0f, 5.0f);
+        ImGui::SetCursorPosY(row_start_y + (row_height - frame_height) * 0.5f);
+
+        ImGui::SetNextItemWidth(size.x);
+        ImGui::InputText(label.c_str(), &state->m_value);
+
+        const bool is_active = ImGui::IsItemActive();
+        const bool is_hovered = ImGui::IsItemHovered();
+
+        if (is_active) {
+            border_color = ImColor(ui_theme::ACCENT_COLOR);
+        } else if (is_hovered) {
+            border_color = ImColor(ui_theme::ACCENT_HOVER_COLOR);
+        }
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar(1);
+    ImGui::PopStyleColor(3);
+
+    const ImVec2 rect_min = ImGui::GetItemRectMin();
+    const ImVec2 rect_max = ImGui::GetItemRectMax();
+
     auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(min, max, color, ui_theme::BOX_ROUNDING, 2.0f);
+    dl->Flags |= ImDrawListFlags_AntiAliasedLinesUseTex;
+
+    dl->AddRect(rect_min, rect_max, border_color, ui_theme::BOX_ROUNDING, 0, 4.0f);
 }
 
 void custom_imgui::line(ImVec2 a, ImVec2 b, ImU32 color, float thickness) {
     auto* dl = ImGui::GetWindowDrawList();
-    dl->Flags |= ImDrawListFlags_AntiAliasedLines;
+    dl->Flags |= ImDrawListFlags_AntiAliasedLinesUseTex;
     dl->AddLine(a, b, color, thickness);
 }
 
@@ -257,51 +316,6 @@ void custom_imgui::end_child(ChildState& state, float thickness) {
             dl->AddLine({max.x, min.y}, {max.x, max.y}, state.m_border_color, thickness);
         }
     };
-}
-
-std::optional<custom_imgui::ImageTexture> custom_imgui::load_texture_from_file(const std::filesystem::path& path) {
-    const auto data = read_binary_file(path);
-
-    if (!data.has_value()) {
-        return std::nullopt;
-    }
-
-    return load_texture_from_memory(*data);
-}
-
-std::optional<custom_imgui::ImageTexture> custom_imgui::load_texture_from_memory(std::span<const unsigned char> data) {
-    if (data.empty()) {
-        std::cout << "[ui] failed to load image: empty image data\n";
-        return std::nullopt;
-    }
-
-    int width = 0;
-    int height = 0;
-    int channels = 0;
-    unsigned char* pixels =
-        stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
-
-    if (pixels == nullptr) {
-        std::cout << "[ui] failed to decode image: " << stbi_failure_reason() << "\n";
-        return std::nullopt;
-    }
-
-    auto texture = create_texture_from_pixels(pixels, width, height);
-    stbi_image_free(pixels);
-
-    if (!texture.has_value()) {
-        std::cout << "[ui] failed to upload image texture\n";
-    }
-
-    return texture;
-}
-
-void custom_imgui::destroy_texture(ImageTexture& texture) {
-    delete_gl_texture(texture.m_id);
-
-    texture.m_id = 0;
-    texture.m_width = 0;
-    texture.m_height = 0;
 }
 
 void custom_imgui::image(const ImageTexture& texture, ImVec2 size) {
