@@ -16,7 +16,7 @@ struct AnimatedColor {
     void set(ImVec4 new_value);
 };
 
-struct WidgetState {
+struct WidgetStyle {
     bool visible = true;
     AnimatedFloat alpha;
 

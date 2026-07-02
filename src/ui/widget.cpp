@@ -22,10 +22,10 @@ void AnimatedColor::set(ImVec4 new_value) {
     value = new_value;
 }
 
-void WidgetState::tick(float speed, float dt) {
+void WidgetStyle::tick(float speed, float dt) {
     alpha.tick(visible ? 1.0f : 0.0f, speed, dt);
 }
 
-bool WidgetState::is_hidden() const {
+bool WidgetStyle::is_hidden() const {
     return !visible && alpha.value <= HIDDEN_ALPHA_THRESHOLD;
 }

@@ -15,6 +15,8 @@
 #include "widget.hpp"
 #include "theme.hpp"
 
+struct IconTexture;
+
 enum customChildBorder : uint8_t {
     BORDER_NONE = 0,
     BORDER_LEFT = 1 << 0,
@@ -31,14 +33,56 @@ enum customChildResize : uint8_t {
     CHILD_RESIZE_ALL = 1 << 2
 };
 
-struct TabButtonStyle {
+struct TabButtonStyle : WidgetStyle {
     AnimatedFloat line_alpha;
     AnimatedFloat line_width;
     AnimatedColor text_color = {ui_theme::TEXT_COLOR};
 };
 
-struct TabButtonState : WidgetState {
+struct TabButtonState : WidgetStyle {
     TabButtonStyle style;
+};
+
+struct SearchInputStyle : WidgetStyle {
+    AnimatedColor m_border_color = {ui_theme::BORDER_COLOR};
+
+    ImColor m_text_color = {240, 240, 240, 255};
+    ImColor m_icon_color = {120, 120, 120, 255};
+};
+
+struct InputState : WidgetStyle {
+    explicit InputState(IconTexture* texture);
+
+    // data
+    std::string m_label = "";
+    std::string m_value = "";
+
+    // animated stuff
+    SearchInputStyle style;
+
+    ImVec2 m_size = {120, 30};
+
+    IconTexture* m_search_texture;
+
+    bool m_focused = false;
+    bool m_fit_width = false;
+};
+
+struct ChildState {
+    std::string m_id;
+
+    ImColor m_border_color = {120, 120, 120, 255};
+
+    ImVec2 m_last_click_pos = {0.0f, 0.0f};
+    ImVec2 m_drag_start = {0.0f, 0.0f};
+    ImVec2 m_size = {0.0f, 0.0f};
+    ImVec2 m_previous_size = {0.0f, 0.0f};
+
+    bool m_dragging = false;
+
+    customChildBorder m_border = BORDER_NONE;
+    customChildResize m_resize = CHILD_RESIZE_NONE;
+    customChildResize m_resizing = CHILD_RESIZE_NONE;
 };
 
 struct IconTexture {
@@ -68,41 +112,6 @@ public:
 private:
     std::unordered_map<std::string, std::pair<GLuint, std::unique_ptr<lunasvg::Bitmap>>> m_bitmaps;
     std::unique_ptr<lunasvg::Document> m_document;
-};
-
-struct InputState {
-    explicit InputState(IconTexture* texture);
-
-    std::string m_label = "";
-    std::string m_value = "";
-
-    ImColor m_border_color = {51, 51, 51, 255};
-    ImColor m_text_color = {240, 240, 240, 255};
-    ImColor m_icon_color = {120, 120, 120, 255};
-
-    ImVec2 m_size = {120, 30};
-
-    IconTexture* m_search_texture;
-
-    bool m_focused = false;
-    bool m_fit_width = false;
-};
-
-struct ChildState {
-    std::string m_id;
-
-    ImColor m_border_color = {120, 120, 120, 255};
-
-    ImVec2 m_last_click_pos = {0.0f, 0.0f};
-    ImVec2 m_drag_start = {0.0f, 0.0f};
-    ImVec2 m_size = {0.0f, 0.0f};
-    ImVec2 m_previous_size = {0.0f, 0.0f};
-
-    bool m_dragging = false;
-
-    customChildBorder m_border = BORDER_NONE;
-    customChildResize m_resize = CHILD_RESIZE_NONE;
-    customChildResize m_resizing = CHILD_RESIZE_NONE;
 };
 
 namespace custom_imgui {

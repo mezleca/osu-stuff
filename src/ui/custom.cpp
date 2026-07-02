@@ -12,23 +12,10 @@
 
 static constexpr float MIN_CHILD_SIZE = 32.0f;
 static constexpr float CHILD_RESIZE_HANDLE_SIZE = 20.0f;
-static constexpr float TAB_ALPHA_ANIM_SPEED = 12.0f;
+static constexpr float ALPHA_ANIM_SPEED = 12.0f;
 static constexpr float TAB_TEXT_COLOR_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ALPHA_ANIM_SPEED = 18.0f;
-
-static void delete_gl_texture(uint32_t texture_id) {
-    if (texture_id == 0) {
-        return;
-    }
-
-    GLuint gl_texture_id = texture_id;
-    glDeleteTextures(1, &gl_texture_id);
-}
-
-void custom_imgui::destroy_texture(uint32_t id) {
-    delete_gl_texture(id);
-}
 
 static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bool selected, bool is_title) {
     TabButtonStyle style;
@@ -61,10 +48,23 @@ static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bo
 static void tick_tab_button_style(TabButtonState& state, const TabButtonStyle& target) {
     const float dt = ImGui::GetIO().DeltaTime;
 
-    state.tick(TAB_ALPHA_ANIM_SPEED, dt);
+    state.tick(ALPHA_ANIM_SPEED, dt);
     state.style.line_alpha.tick(target.line_alpha.value, TAB_LINE_ALPHA_ANIM_SPEED, dt);
     state.style.line_width.tick(target.line_width.value, TAB_LINE_ANIM_SPEED, dt);
     state.style.text_color.tick(target.text_color.value, TAB_TEXT_COLOR_ANIM_SPEED, dt);
+}
+
+static void delete_gl_texture(uint32_t texture_id) {
+    if (texture_id == 0) {
+        return;
+    }
+
+    GLuint gl_texture_id = texture_id;
+    glDeleteTextures(1, &gl_texture_id);
+}
+
+void custom_imgui::destroy_texture(uint32_t id) {
+    delete_gl_texture(id);
 }
 
 // TODO: move to its own file...
@@ -110,8 +110,8 @@ void custom_imgui::image(IconTexture* texture, ImVec2 size, ImColor color) {
 }
 
 void custom_imgui::search_input(InputState* state) {
-    static const float icon_size = 18.0f;
-
+    const float icon_size = 18.0f;
+    const float dt = ImGui::GetIO().DeltaTime;
     const ImVec2 available = ImGui::GetContentRegionAvail();
 
     auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
@@ -133,7 +133,7 @@ void custom_imgui::search_input(InputState* state) {
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
 
-    auto border_color = ImColor(state->m_border_color);
+    auto border_color = ImColor(ui_theme::BORDER_COLOR);
 
     ImGui::BeginChild(label.c_str(), size, child_flags, window_flags);
     {
@@ -142,7 +142,7 @@ void custom_imgui::search_input(InputState* state) {
         const float row_start_y = ImGui::GetCursorPosY();
 
         ImGui::SetCursorPosY(row_start_y + (row_height - icon_size) * 0.5f);
-        image(state->m_search_texture, {icon_size, icon_size}, state->m_icon_color);
+        image(state->m_search_texture, {icon_size, icon_size}, state->style.m_icon_color);
 
         ImGui::SameLine(0.0f, 10.0f);
         ImGui::SetCursorPosY(row_start_y + (row_height - frame_height) * 0.5f);
@@ -163,11 +163,14 @@ void custom_imgui::search_input(InputState* state) {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
 
+    state->tick(ALPHA_ANIM_SPEED, dt);
+    state->style.m_border_color.tick(border_color, ALPHA_ANIM_SPEED * 2, dt);
+
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();
 
     auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(rect_min, rect_max, border_color, ui_theme::BOX_ROUNDING, 0, 4.0f);
+    dl->AddRect(rect_min, rect_max, ImColor(state->style.m_border_color.value), ui_theme::BOX_ROUNDING, 0, 4.0f);
 }
 
 void custom_imgui::line(ImVec2 a, ImVec2 b, ImU32 color, float thickness) {
