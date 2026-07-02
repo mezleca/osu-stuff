@@ -1,7 +1,5 @@
 #pragma once
 
-#include "theme.hpp"
-
 #include <imgui.h>
 
 struct AnimatedFloat {

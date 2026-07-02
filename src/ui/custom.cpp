@@ -1,14 +1,12 @@
 #include "./custom.hpp"
-#include "./theme.hpp"
 #include "../utils/math.hpp"
+#include "imgui.h"
+#include "ui/theme.hpp"
 
-#include <optional>
+#include <stdexcept>
 #include <string_view>
 #include <algorithm>
 #include <format>
-#include <glad/gl.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
@@ -19,18 +17,6 @@ static constexpr float TAB_TEXT_COLOR_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ANIM_SPEED = 14.0f;
 static constexpr float TAB_LINE_ALPHA_ANIM_SPEED = 18.0f;
 
-static bool is_texture_valid(const ImageTexture& texture) {
-    return texture.m_id != 0 && texture.m_width > 0 && texture.m_height > 0;
-}
-
-static ImTextureID imgui_texture_id(const ImageTexture& texture) {
-    return static_cast<ImTextureID>(texture.m_id);
-}
-
-static ImVec2 texture_size(const ImageTexture& texture) {
-    return {static_cast<float>(texture.m_width), static_cast<float>(texture.m_height)};
-}
-
 static void delete_gl_texture(uint32_t texture_id) {
     if (texture_id == 0) {
         return;
@@ -40,77 +26,8 @@ static void delete_gl_texture(uint32_t texture_id) {
     glDeleteTextures(1, &gl_texture_id);
 }
 
-std::optional<ImageTexture> load_texture_from_memory(const void* data, size_t data_size) {
-    int image_width = 0;
-    int image_height = 0;
-
-    unsigned char* image_data =
-        stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
-
-    if (image_data == NULL) {
-        return std::nullopt;
-    }
-
-    // Create a OpenGL texture identifier
-    GLuint image_texture;
-    glGenTextures(1, &image_texture);
-    glBindTexture(GL_TEXTURE_2D, image_texture);
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Upload pixels into texture
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(image_data);
-
-    ImageTexture texture;
-
-    texture.m_id = image_texture;
-    texture.m_width = image_width;
-    texture.m_height = image_height;
-
-    return texture;
-}
-
-std::optional<ImageTexture> custom_imgui::load_texture_from_file(std::string_view file_name) {
-    FILE* f = fopen(file_name.data(), "rb");
-
-    if (f == NULL) {
-        return std::nullopt;
-    }
-
-    fseek(f, 0, SEEK_END);
-
-    long file_size = ftell(f);
-
-    if (file_size == -1) {
-        return std::nullopt;
-    }
-
-    fseek(f, 0, SEEK_SET);
-    void* file_data = IM_ALLOC(file_size);
-    fread(file_data, 1, file_size, f);
-    fclose(f);
-
-    auto ret = load_texture_from_memory(file_data, file_size);
-    IM_FREE(file_data);
-    return ret;
-}
-
-void custom_imgui::destroy_texture(ImageTexture& texture) {
-    delete_gl_texture(texture.m_id);
-
-    texture.m_id = 0;
-    texture.m_width = 0;
-    texture.m_height = 0;
+void custom_imgui::destroy_texture(uint32_t id) {
+    delete_gl_texture(id);
 }
 
 static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bool selected, bool is_title) {
@@ -150,14 +67,50 @@ static void tick_tab_button_style(TabButtonState& state, const TabButtonStyle& t
     state.style.text_color.tick(target.text_color.value, TAB_TEXT_COLOR_ANIM_SPEED, dt);
 }
 
-InputState::InputState(ImageTexture texture) {
+// TODO: move to its own file...
+IconTexture::IconTexture(std::filesystem::path& location) {
+    auto document = lunasvg::Document::loadFromFile(location.string());
+
+    // TODO: replace with some placeholder document? idk
+    if (document == nullptr) {
+        throw std::runtime_error(std::format("[IconTexture] failed to find {}", location.string()));
+    }
+
+    m_document = std::move(document);
+}
+
+GLuint IconTexture::load(uint8_t* data, int w, int h) {
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Upload bitmap into texture
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    return image_texture;
+}
+
+InputState::InputState(IconTexture* texture) {
     m_search_texture = texture;
 }
 
 // custom widgets
 
+void custom_imgui::image(IconTexture* texture, ImVec2 size, ImColor color) {
+    GLuint id = texture->get(static_cast<int>(size.x), static_cast<int>(size.y));
+    ImGui::ImageWithBg(static_cast<ImTextureID>(id), size, {0, 0}, {1, 1}, ImColor(0, 0, 0, 0), color);
+}
+
 void custom_imgui::search_input(InputState* state) {
-    static const float icon_size = 20.0f;
+    static const float icon_size = 18.0f;
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
 
@@ -175,6 +128,7 @@ void custom_imgui::search_input(InputState* state) {
     size.y = 0.0f;
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 2.0f});
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
@@ -188,9 +142,9 @@ void custom_imgui::search_input(InputState* state) {
         const float row_start_y = ImGui::GetCursorPosY();
 
         ImGui::SetCursorPosY(row_start_y + (row_height - icon_size) * 0.5f);
-        image(state->m_search_texture, {icon_size, icon_size});
+        image(state->m_search_texture, {icon_size, icon_size}, state->m_icon_color);
 
-        ImGui::SameLine(0.0f, 5.0f);
+        ImGui::SameLine(0.0f, 10.0f);
         ImGui::SetCursorPosY(row_start_y + (row_height - frame_height) * 0.5f);
 
         ImGui::SetNextItemWidth(size.x);
@@ -206,15 +160,13 @@ void custom_imgui::search_input(InputState* state) {
         }
     }
     ImGui::EndChild();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
 
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();
 
     auto* dl = ImGui::GetWindowDrawList();
-    dl->Flags |= ImDrawListFlags_AntiAliasedLinesUseTex;
-
     dl->AddRect(rect_min, rect_max, border_color, ui_theme::BOX_ROUNDING, 0, 4.0f);
 }
 
@@ -316,18 +268,6 @@ void custom_imgui::end_child(ChildState& state, float thickness) {
             dl->AddLine({max.x, min.y}, {max.x, max.y}, state.m_border_color, thickness);
         }
     };
-}
-
-void custom_imgui::image(const ImageTexture& texture, ImVec2 size) {
-    if (!is_texture_valid(texture)) {
-        return;
-    }
-
-    if (size.x <= 0.0f || size.y <= 0.0f) {
-        size = texture_size(texture);
-    }
-
-    ImGui::Image(imgui_texture_id(texture), size);
 }
 
 bool custom_imgui::tab_button(TabButtonState& state, std::string_view label, bool selected, bool draw_line,

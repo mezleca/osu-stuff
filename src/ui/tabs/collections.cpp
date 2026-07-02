@@ -19,7 +19,7 @@ CollectionTab::CollectionTab(UI* ui) : UITab(ui) {
 
     m_beatmaps_child_state.m_id = "##collection-beatmaps";
 
-    auto search_icon = m_ui->get_texture("search-white");
+    auto search_icon = m_ui->get_texture("search-icon");
 
     m_collection_input_state = std::make_unique<InputState>(search_icon);
     m_beatmaps_input_state = std::make_unique<InputState>(search_icon);

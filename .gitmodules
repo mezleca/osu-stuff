@@ -28,3 +28,6 @@
 [submodule "vendor/glad"]
 	path = vendor/glad
 	url = https://github.com/mezleca/glad
+[submodule "vendor/lunasvg"]
+	path = vendor/lunasvg
+	url = https://github.com/sammycage/lunasvg

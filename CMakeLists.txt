@@ -57,6 +57,7 @@ configure_sdl()
 
 add_subdirectory(vendor/glad)
 add_subdirectory(vendor/miniz)
+add_subdirectory(vendor/lunasvg)
 add_subdirectory(vendor/sqlitecpp)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
@@ -106,6 +107,7 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     utf8proc
     SQLiteCpp
     sqlite3
+    lunasvg
 )
 
 # https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location

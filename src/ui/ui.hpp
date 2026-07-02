@@ -72,14 +72,14 @@ public:
     };
 
     // textures
-    [[nodiscard]] ImageTexture get_texture(std::string_view id) {
+    [[nodiscard]] IconTexture* get_texture(std::string_view id) {
         auto it = m_textures.find(id.data());
 
         if (it == m_textures.end()) {
             return {};
         }
 
-        return it->second;
+        return it->second.get();
     }
 
     // modals
@@ -96,7 +96,7 @@ public:
     void handle_escape();
 
 private:
-    std::unordered_map<std::string, ImageTexture> m_textures;
+    std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
     std::vector<std::pair<TabButtonState, std::unique_ptr<UITab>>> m_tabs;
     std::vector<UIModal*> m_modals;
     bool m_done = false;

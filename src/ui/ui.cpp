@@ -76,25 +76,24 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
     m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
 
-    // initialize textures
-    const char* textures[] = {"search-white"};
+    // initialize textures (svgs)
+    const char* textures[] = {"search-icon"};
 
     std::filesystem::path texture_location = "resources/icons/ui/";
 
-    for (const char* texture : textures) {
-        std::filesystem::path location = texture_location / std::format("{}.png", texture);
+    for (const char* name : textures) {
+        std::filesystem::path location = texture_location / std::format("{}.svg", name);
         std::string location_str = location.string();
 
-        auto result = custom_imgui::load_texture_from_file(location_str);
+        std::cout << std::format("[ui] loading svg: {}\n", location_str);
+        auto texture = std::make_unique<IconTexture>(location);
 
-        if (result.has_value()) {
-            std::cout << std::format("[ui] loaded texture: {} from {} ({}, {})", texture, location_str,
-                                     result->m_width, result->m_height)
-                      << "\n";
-            m_textures.emplace(texture, result.value());
-        } else {
-            std::cout << std::format("[ui] failed to load texture: {}", location_str) << "\n";
-        }
+        // preload some variants
+        texture->get(16, 16);
+        texture->get(18, 18);
+        texture->get(32, 32);
+
+        m_textures.emplace(name, std::move(texture));
     }
 
     for (auto& font : m_fonts) {
