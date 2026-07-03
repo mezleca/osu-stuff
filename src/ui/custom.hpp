@@ -68,6 +68,34 @@ struct InputState : WidgetStyle {
     bool m_fit_width = false;
 };
 
+struct CollectionCardStyle : WidgetStyle {
+    AnimatedColor m_border_color = {ui_theme::TRANSPARENT};
+    AnimatedColor m_bg_color = {ui_theme::TRANSPARENT};
+
+    ImColor m_text_color = ui_theme::TEXT_COLOR;
+    ImColor m_icon_color = ui_theme::ACCENT_COLOR;
+};
+
+struct UIFont;
+
+struct CollectionCardState : WidgetStyle {
+    explicit CollectionCardState(IconTexture* texture);
+
+    // data
+    std::string m_name = "";
+
+    // animated stuff
+    CollectionCardStyle style;
+
+    ImVec2 m_size = {150, 50};
+    ImFont* m_font;
+    ImFont* m_font_small;
+    IconTexture* m_music_texture;
+
+    bool m_focused = false;
+    bool m_selected = false;
+};
+
 struct ChildState {
     std::string m_id;
 
@@ -116,6 +144,7 @@ private:
 
 namespace custom_imgui {
     void search_input(InputState* state);
+    bool collection_card(CollectionCardState* state, int count);
     void line(ImVec2 a, ImVec2 b, ImU32 color, float thickness);
     bool begin_child(ChildState& state, ImGuiChildFlags child_flags = 0, ImGuiWindowFlags window_flags = 0);
     void end_child(ChildState& state, float thickness = 1.0f);

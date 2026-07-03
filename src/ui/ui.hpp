@@ -95,6 +95,8 @@ public:
     void clear_modals();
     void handle_escape();
 
+    UIFont m_fonts[FONT_COUNT];
+
 private:
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
     std::vector<std::pair<TabButtonState, std::unique_ptr<UITab>>> m_tabs;
@@ -102,5 +104,4 @@ private:
     bool m_done = false;
     ImGuiIO* m_io;
     UITab* m_current_tab = nullptr;
-    UIFont m_fonts[FONT_COUNT];
 };

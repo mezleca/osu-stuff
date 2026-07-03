@@ -47,7 +47,20 @@ void CollectionTab::render() {
     custom_imgui::begin_child(m_collection_child_state, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
     {
         custom_imgui::search_input(m_collection_input_state.get());
-        ImGui::Text("a");
+
+        static CollectionCardState* card_test;
+
+        if (card_test == nullptr) {
+            auto texture = m_ui->get_texture("music-icon");
+            card_test = new CollectionCardState(texture);
+            card_test->m_name = "Penis";
+            card_test->m_font = m_ui->m_fonts[TORUS_SEMI].get(18);
+            card_test->m_font_small = m_ui->m_fonts[TORUS_SEMI].get(14);
+        }
+
+        if (custom_imgui::collection_card(card_test, 123)) {
+            card_test->m_selected = !card_test->m_selected;
+        }
     }
     custom_imgui::end_child(m_collection_child_state, 1.0f);
 

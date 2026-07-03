@@ -1,6 +1,7 @@
 #include "./custom.hpp"
 #include "../utils/math.hpp"
 #include "imgui.h"
+#include "ui.hpp"
 #include "ui/theme.hpp"
 
 #include <stdexcept>
@@ -98,34 +99,39 @@ GLuint IconTexture::load(uint8_t* data, int w, int h) {
     return image_texture;
 }
 
-InputState::InputState(IconTexture* texture) {
-    m_search_texture = texture;
-}
-
-// custom widgets
+// TODO: move custom widgets to its own fils
 
 void custom_imgui::image(IconTexture* texture, ImVec2 size, ImColor color) {
     GLuint id = texture->get(static_cast<int>(size.x), static_cast<int>(size.y));
     ImGui::ImageWithBg(static_cast<ImTextureID>(id), size, {0, 0}, {1, 1}, ImColor(0, 0, 0, 0), color);
 }
 
+InputState::InputState(IconTexture* texture) {
+    m_search_texture = texture;
+}
+
 void custom_imgui::search_input(InputState* state) {
     const float icon_size = 18.0f;
     const float dt = ImGui::GetIO().DeltaTime;
-    const ImVec2 available = ImGui::GetContentRegionAvail();
+
+    ImVec2 size = state->m_size;
+
+    {
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+
+        if (state->m_fit_width) {
+            size.x = available.x;
+        }
+
+        // let imgui grow
+        size.y = 0.0f;
+    }
+
+    auto label = std::format("##{}", state->m_label);
 
     auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     auto child_flags =
         ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
-
-    auto label = std::format("##{}", state->m_label);
-    ImVec2 size = state->m_size;
-
-    if (state->m_fit_width) {
-        size.x = available.x;
-    }
-
-    size.y = 0.0f;
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 2.0f});
@@ -137,15 +143,15 @@ void custom_imgui::search_input(InputState* state) {
 
     ImGui::BeginChild(label.c_str(), size, child_flags, window_flags);
     {
+        const ImVec2 available = ImGui::GetContentRegionAvail();
         const float frame_height = ImGui::GetFrameHeight();
-        const float row_height = ImMax(icon_size, frame_height);
         const float row_start_y = ImGui::GetCursorPosY();
 
-        ImGui::SetCursorPosY(row_start_y + (row_height - icon_size) * 0.5f);
+        ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
         image(state->m_search_texture, {icon_size, icon_size}, state->style.m_icon_color);
 
         ImGui::SameLine(0.0f, 10.0f);
-        ImGui::SetCursorPosY(row_start_y + (row_height - frame_height) * 0.5f);
+        ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
         ImGui::SetNextItemWidth(size.x);
         ImGui::InputText(label.c_str(), &state->m_value);
@@ -163,7 +169,6 @@ void custom_imgui::search_input(InputState* state) {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
 
-    state->tick(ALPHA_ANIM_SPEED, dt);
     state->style.m_border_color.tick(border_color, ALPHA_ANIM_SPEED * 2, dt);
 
     const ImVec2 rect_min = ImGui::GetItemRectMin();
@@ -171,6 +176,101 @@ void custom_imgui::search_input(InputState* state) {
 
     auto* dl = ImGui::GetWindowDrawList();
     dl->AddRect(rect_min, rect_max, ImColor(state->style.m_border_color.value), ui_theme::BOX_ROUNDING, 0, 4.0f);
+}
+
+CollectionCardState::CollectionCardState(IconTexture* texture) {
+    m_music_texture = texture;
+}
+
+// TODO: return pair for (0 -> left clicked, 1 -> right clicked)
+// TOFIX: image / name / count doenst feel vertically centered at all
+bool custom_imgui::collection_card(CollectionCardState* state, int count) {
+    const float icon_size = 16.0f;
+    const float dt = ImGui::GetIO().DeltaTime;
+
+    ImVec2 size = state->m_size;
+
+    // collection card will always use the full width
+    {
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+        size.x = available.x;
+    }
+
+    auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    auto child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
+
+    auto border_color = state->m_selected ? ui_theme::ACCENT_COLOR_HALF : ui_theme::TRANSPARENT;
+    auto bg_color = state->m_selected ? ui_theme::ACCENT_COLOR_SECONDARY : ui_theme::TRANSPARENT;
+
+    auto label = std::format("##collection-{}-{}", state->m_name, (void*)state);
+
+    state->style.m_border_color.tick(border_color, ALPHA_ANIM_SPEED * 2, dt);
+    state->style.m_bg_color.tick(bg_color, ALPHA_ANIM_SPEED * 2, dt);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, state->style.m_bg_color.value);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
+
+    const std::string count_text = std::format("{} {}", count, count == 1 ? "map" : "maps");
+
+    // calc text size
+    ImGui::PushFont(state->m_font_small);
+    auto count_size = ImGui::CalcTextSize(count_text.c_str());
+    ImGui::PopFont();
+
+    ImGui::PushFont(state->m_font);
+    auto name_size = ImGui::CalcTextSize(state->m_name.c_str());
+    ImGui::PopFont();
+
+    ImGui::BeginChild(label.c_str(), size, child_flags, window_flags);
+    {
+        ImGui::PushFont(state->m_font);
+
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+        const float row_start_y = ImGui::GetCursorPosY();
+
+        // music icon
+        {
+            ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
+            image(state->m_music_texture, {icon_size, icon_size}, state->style.m_icon_color);
+        }
+
+        // name
+        {
+            ImGui::SameLine(0.0f, 10.0f);
+            ImGui::SetCursorPosY(row_start_y + (available.y - name_size.y) * 0.5f);
+            ImGui::TextUnformatted(state->m_name.c_str());
+        }
+
+        // count
+        {
+            ImGui::SameLine();
+
+            ImGui::SetCursorPosX(available.x - count_size.x);
+            ImGui::SetCursorPosY(row_start_y + (available.y - count_size.y) * 0.5f);
+
+            ImGui::PushFont(state->m_font_small);
+            ImGui::TextUnformatted(count_text.c_str());
+            ImGui::PopFont();
+        }
+
+        ImGui::PopFont();
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(4);
+
+    const ImVec2 rect_min = ImGui::GetItemRectMin();
+    const ImVec2 rect_max = ImGui::GetItemRectMax();
+
+    auto* dl = ImGui::GetWindowDrawList();
+    dl->AddRect(rect_min, rect_max, ImColor(state->style.m_border_color.value), ui_theme::BOX_ROUNDING, 0, 1.0f);
+
+    return ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(rect_min, rect_max);
 }
 
 void custom_imgui::line(ImVec2 a, ImVec2 b, ImU32 color, float thickness) {

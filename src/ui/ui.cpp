@@ -77,7 +77,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
 
     // initialize textures (svgs)
-    const char* textures[] = {"search-icon"};
+    const char* textures[] = {"search-icon", "music-icon"};
 
     std::filesystem::path texture_location = "resources/icons/ui/";
 

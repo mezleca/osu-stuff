@@ -18,7 +18,9 @@ namespace ui_theme {
     constexpr float HOVER_LINE_ALPHA = 0.35f;
 
     constexpr ImVec4 ACCENT_COLOR = ImVec4{233.0f / 255.0f, 30.0f / 255.0f, 115.0f / 255.0f, 1.0f};
+    constexpr ImVec4 ACCENT_COLOR_HALF = ImVec4{233.0f / 255.0f, 30.0f / 255.0f, 142.0f / 255.0f, 0.59f};
     constexpr ImVec4 ACCENT_HOVER_COLOR = ImVec4{240.0f / 255.0f, 98.0f / 255.0f, 146.0f / 255.0f, 1.0f};
+    constexpr ImVec4 ACCENT_COLOR_SECONDARY = ImVec4{255.0f / 255.0f, 64.0f / 255.0f, 129.0f / 255.0f, 0.5f};
     constexpr ImVec4 BG_COLOR = ImVec4{30.0f / 255.0f, 30.0f / 255.0f, 30.0f / 255.0f, 1.0f};
     constexpr ImVec4 BG_SECONDARY_COLOR = ImVec4{42.0f / 255.0f, 42.0f / 255.0f, 42.0f / 255.0f, 1.0f};
     constexpr ImVec4 BG_TERTIARY_COLOR = ImVec4{26.0f / 255.0f, 26.0f / 255.0f, 26.0f / 255.0f, 1.0f};
