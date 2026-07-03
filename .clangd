@@ -1,0 +1,10 @@
+CompileFlags:
+  Remove: [-mno-direct-extern-access]
+
+---
+If:
+  PathMatch: ".*/(imgui|realm-cpp|vendor)/.*"
+Diagnostics:
+  Suppress: "*"
+Index:
+  Background: Skip
