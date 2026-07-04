@@ -93,14 +93,11 @@ def should_use_vendored_sdl(target_platform: str) -> bool:
 def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
     cmd = [
-        "cmake",
-        "-Wno-dev",
-        "-G",
-        "Ninja",
-        "-B",
-        str(BUILD_DIR),
-        "-S",
-        str(CWD),
+        "cmake", 
+        "-Wno-dev", "-Wunused-variable", "-Wunused-function", 
+        "-G", "Ninja",
+        "-B", str(BUILD_DIR), 
+        "-S", str(CWD),
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
         f"-DOSU_STUFF_BUILD_TESTS={'ON' if build_tests else 'OFF'}",

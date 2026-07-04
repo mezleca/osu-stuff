@@ -1,5 +1,6 @@
 #include "search.hpp"
 #include "../custom.hpp"
+#include "../ui.hpp"
 
 #include <imgui_stdlib.h>
 #include <format>
@@ -7,8 +8,12 @@
 static constexpr float ALPHA_ANIM_SPEED = 12.0f;
 
 SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon) : UIWidget(ui, "search-input") {
+    m_state.m_label = {static_cast<void*>(this)};
+
     if (icon) {
         m_icon = icon;
+    } else {
+        m_icon = m_ui->get_texture("default");
     }
 }
 
@@ -29,8 +34,6 @@ void SearchInputWidget::show() {
         size.y = 0.0f;
     }
 
-    auto label = std::format("##{}", m_state.m_label);
-
     auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     auto child_flags =
         ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
@@ -43,7 +46,7 @@ void SearchInputWidget::show() {
 
     auto border_color = ImColor(ui_theme::BORDER_COLOR);
 
-    ImGui::BeginChild(label.c_str(), size, child_flags, window_flags);
+    ImGui::BeginChild(m_state.m_label.c_str(), size, child_flags, window_flags);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
         const float frame_height = ImGui::GetFrameHeight();
@@ -56,7 +59,7 @@ void SearchInputWidget::show() {
         ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
         ImGui::SetNextItemWidth(size.x);
-        ImGui::InputText(label.c_str(), &m_state.m_value);
+        ImGui::InputText(m_state.m_label.c_str(), &m_state.m_value);
 
         const bool is_active = ImGui::IsItemActive();
         const bool is_hovered = ImGui::IsItemHovered();

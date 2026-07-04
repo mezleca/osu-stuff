@@ -3,6 +3,7 @@
 #include "../../utils/math.hpp"
 
 #include <string>
+#include <format>
 #include <imgui.h>
 
 struct AnimatedFloat {
@@ -49,10 +50,43 @@ struct WidgetStyle {
 struct UI;
 
 struct UIWidget {
-    explicit UIWidget(UI* ui, std::string_view id) : m_id(id), m_ui(ui) {};
+    explicit UIWidget(UI* ui, std::string id) : m_id(id), m_ui(ui) {};
 
     std::string m_id;
     UI* m_ui;
 };
 
-namespace ui_widget {};
+template <typename... Args>
+struct FormattedText {
+public:
+    explicit FormattedText(std::string fmt) : m_fmt(std::move(fmt)) {
+    }
+
+    FormattedText& operator=(std::tuple<Args...> new_values) {
+        if (!m_has_value || new_values != m_values) {
+            m_values = std::move(new_values);
+            recompute();
+            m_has_value = true;
+        }
+        return *this;
+    }
+
+    const char* c_str() const {
+        return m_cached.c_str();
+    }
+    const std::string& str() const {
+        return m_cached;
+    }
+
+private:
+    void recompute() {
+        m_cached = std::apply(
+            [this](auto const&... vals) { return std::vformat(m_fmt, std::make_format_args(vals...)); }, m_values);
+    }
+
+    std::string m_fmt;
+    std::tuple<Args...> m_values{};
+    std::string m_cached;
+
+    bool m_has_value = false;
+};

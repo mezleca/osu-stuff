@@ -1,14 +1,10 @@
 #pragma once
 
-#include <glad/gl.h>
 #include <imgui.h>
-#include <lunasvg.h>
 #include <cstdint>
 #include <format>
-#include <memory>
 #include <string>
 #include <unordered_map>
-#include <filesystem>
 #include <utility>
 
 #include "theme.hpp"
@@ -46,35 +42,6 @@ struct ChildState {
     customChildBorder m_border = BORDER_NONE;
     customChildResize m_resize = CHILD_RESIZE_NONE;
     customChildResize m_resizing = CHILD_RESIZE_NONE;
-};
-
-struct IconTexture {
-public:
-    explicit IconTexture(std::filesystem::path& location);
-
-    GLuint get(int width, int height) {
-        auto key = std::format("{}x{}", width, height);
-        auto it = m_bitmaps.find(key);
-
-        if (it != m_bitmaps.end()) {
-            return it->second.first;
-        }
-
-        auto bitmap_data = m_document->renderToBitmap(width, height);
-        bitmap_data.convertToRGBA();
-
-        auto bitmap = std::make_unique<lunasvg::Bitmap>(bitmap_data);
-        auto id = load(bitmap->data(), width, height);
-
-        m_bitmaps.emplace(key, std::make_pair(id, std::move(bitmap)));
-        return id;
-    }
-
-    GLuint load(uint8_t* data, int width, int height);
-
-private:
-    std::unordered_map<std::string, std::pair<GLuint, std::unique_ptr<lunasvg::Bitmap>>> m_bitmaps;
-    std::unique_ptr<lunasvg::Document> m_document;
 };
 
 namespace custom_imgui {

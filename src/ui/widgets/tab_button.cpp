@@ -1,4 +1,5 @@
 #include "tab_button.hpp"
+#include "../ui.hpp"
 
 #include <format>
 
@@ -35,13 +36,15 @@ static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bo
     return style;
 }
 
-TabButtonWidget::TabButtonWidget(UI* ui, std::string_view name, bool is_title, IconTexture* icon)
+TabButtonWidget::TabButtonWidget(UI* ui, std::string name, bool is_title, IconTexture* icon)
     : UIWidget(ui, "tab-button") {
     m_state.m_is_title = is_title;
-    m_state.m_label = name;
+    m_state.m_name = {name};
 
     if (icon) {
         m_icon = icon;
+    } else {
+        m_icon = m_ui->get_texture("default");
     }
 }
 
@@ -57,11 +60,11 @@ void TabButtonWidget::show(bool selected) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_Text, m_state.m_style.m_text_color.value);
 
-    const bool is_pressed = ImGui::Button(std::format("{}##tab", m_state.m_label).c_str());
+    const bool is_pressed = ImGui::Button(m_state.m_name.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
 
     if (is_pressed && on_click) {
-        on_click(m_id);
+        on_click();
     }
 
     // tick button style

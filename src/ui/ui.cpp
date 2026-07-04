@@ -1,7 +1,9 @@
 #include "ui.hpp"
 #include "tabs/detail.hpp"
+#include "widgets/tab_button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
+#include "texture/icon.hpp"
 
 #include <algorithm>
 #include <format>
@@ -9,6 +11,17 @@
 #include <imgui_impl_sdl3.h>
 #include <filesystem>
 #include <iostream>
+
+static const std::string DEFAULT_WARN_SVG = R"(
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="800px" 
+        height="800px" 
+        viewBox="0 0 25 25" 
+        fill="none"
+    >
+        <path d="M12.5 10V14M12.5 17V15.5M14.2483 5.64697L20.8493 17.5287C21.5899 18.8618 20.6259 20.5 19.101 20.5H5.89903C4.37406 20.5 3.41013 18.8618 4.15072 17.5287L10.7517 5.64697C11.5137 4.27535 13.4863 4.27535 14.2483 5.64697Z" stroke="#ffffff" stroke-width="1.2"/>
+    </svg>)";
 
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
@@ -76,8 +89,13 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
 
     // initialize textures (svgs)
     const char* textures[] = {"search-icon", "music-icon"};
-
     std::filesystem::path texture_location = "resources/icons/ui/";
+
+    auto default_texture = std::make_unique<IconTexture>(DEFAULT_WARN_SVG);
+    default_texture->get(16, 16);
+    default_texture->get(18, 18);
+    default_texture->get(32, 32);
+    m_textures.emplace("default", std::move(default_texture));
 
     for (const char* name : textures) {
         std::filesystem::path location = texture_location / std::format("{}.svg", name);
@@ -110,8 +128,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
 
     for (auto& pair : m_tabs) {
         TabButtonWidget& widget = pair.first;
-
-        widget.on_click = [&](std::string_view _) { m_current_tab = pair.second.get(); };
+        widget.on_click = [&]() { m_current_tab = pair.second.get(); };
     }
 }
 
@@ -119,6 +136,17 @@ UI::~UI() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
+}
+
+[[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
+    auto it = m_textures.find(id.data());
+
+    if (it == m_textures.end()) {
+        std::cout << "[ui] failed to find " << id << " (returning default svg)\n";
+        return m_textures.at("default").get();
+    }
+
+    return it->second.get();
 }
 
 bool UI::is_modal_focused(UIModal* modal) const {

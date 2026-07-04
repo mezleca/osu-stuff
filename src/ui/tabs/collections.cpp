@@ -25,16 +25,17 @@ CollectionTab::CollectionTab(UI* ui) : UITab(ui) {
 
     m_collection_input = std::make_unique<SearchInputWidget>(m_ui, search_icon);
     m_beatmaps_input = std::make_unique<SearchInputWidget>(m_ui, search_icon);
-    m_collection_card = std::make_unique<CollectionCardWidget>(m_ui, music_icon);
+    m_collection_card = std::make_unique<CollectionCardWidget>(m_ui, "Penis", music_icon);
 
-    m_collection_card->m_state.m_name = "Penis";
+    m_collection_card->on_click = [&]() {
+        std::cout << "clicked on a card\n";
 
-    m_collection_card->on_click = [&](std::string_view name) {
-        std::cout << "clicked on card " << name << "\n";
+        m_collection_card->m_state.m_name = "Penis 2";
+        m_collection_card->m_state.m_count = "999 maps";
         m_collection_card->m_state.m_selected = !m_collection_card->m_state.m_selected;
     };
 
-    m_collection_card->on_context = [](std::string_view name) { std::cout << "context on card " << name << "\n"; };
+    m_collection_card->on_context = []() { std::cout << "context on a card \n"; };
 
     m_collection_input->m_state.m_fit_width = true;
 }
@@ -62,7 +63,7 @@ void CollectionTab::render() {
     custom_imgui::begin_child(m_collection_child_state, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
     {
         m_collection_input->show();
-        m_collection_card->show(123);
+        m_collection_card->show();
     }
     custom_imgui::end_child(m_collection_child_state, 1.0f);
 

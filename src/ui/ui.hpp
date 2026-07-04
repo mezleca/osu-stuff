@@ -3,7 +3,6 @@
 #include "custom.hpp"
 #include "tabs/tabs.hpp"
 #include "fonts/font.hpp"
-#include "widgets/tab_button.hpp"
 
 #include <glad/gl.h>
 #include <imgui.h>
@@ -15,6 +14,7 @@
 #include <vector>
 
 struct UIModal;
+struct TabButtonWidget;
 
 struct UI {
 public:
@@ -32,15 +32,7 @@ public:
     };
 
     // textures
-    [[nodiscard]] IconTexture* get_texture(std::string_view id) {
-        auto it = m_textures.find(id.data());
-
-        if (it == m_textures.end()) {
-            return {};
-        }
-
-        return it->second.get();
-    }
+    [[nodiscard]] IconTexture* get_texture(std::string_view id);
 
     // modals
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;

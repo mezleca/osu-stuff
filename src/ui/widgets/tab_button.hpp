@@ -14,20 +14,19 @@ struct TabButtonStyle : WidgetStyle {
 
 struct TabButtonState : WidgetStyle {
     TabButtonStyle m_style;
-
-    std::string m_label = "unknown";
+    FormattedText<std::string> m_name{"{}##-tab-button"};
 
     bool m_draw_line = true;
     bool m_is_title = false;
 };
 
 struct TabButtonWidget : public UIWidget {
-    explicit TabButtonWidget(UI* ui, std::string_view name, bool is_title = false, IconTexture* texture = nullptr);
+    explicit TabButtonWidget(UI* ui, std::string name, bool is_title = false, IconTexture* texture = nullptr);
 
     void show(bool selected);
 
     TabButtonState m_state = {};
-    std::function<void(std::string)> on_click;
+    std::function<void()> on_click;
 
     IconTexture* m_icon = nullptr;
 };

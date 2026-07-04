@@ -5,6 +5,8 @@
 #include "../widgets/search.hpp"
 #include "../widgets/collection_card.hpp"
 
+#include <memory>
+
 struct IndexTab : public UITab {
     explicit IndexTab(UI* ui);
     ~IndexTab() override = default;

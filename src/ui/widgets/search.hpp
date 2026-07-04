@@ -1,8 +1,6 @@
 #include "widget.hpp"
 #include "../theme.hpp"
 
-#include <functional>
-
 struct IconTexture;
 
 struct SearchInputStyle : WidgetStyle {
@@ -14,7 +12,7 @@ struct SearchInputStyle : WidgetStyle {
 
 struct SearchInputState : WidgetStyle {
     // data
-    std::string m_label = "input";
+    FormattedText<void*> m_label{"##{}-search-input"};
     std::string m_value = "";
 
     // animated stuff
@@ -32,7 +30,5 @@ struct SearchInputWidget : public UIWidget {
     void show();
 
     SearchInputState m_state = {};
-    std::function<void(std::string)> on_click;
-
     IconTexture* m_icon = nullptr;
 };
