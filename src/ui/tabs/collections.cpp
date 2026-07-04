@@ -12,7 +12,9 @@ static constexpr float MAX_COLLECTION_PANEL_WIDTH_FACTOR = 2.0f;
 
 CollectionTab::CollectionTab(UI* ui) : UITab(ui) {
     m_id = "collections";
+}
 
+void CollectionTab::setup() {
     m_collection_child_state.m_id = "##collections";
     m_collection_child_state.m_resize = CHILD_RESIZE_X;
     m_collection_child_state.m_border = BORDER_RIGHT;
@@ -36,11 +38,16 @@ CollectionTab::CollectionTab(UI* ui) : UITab(ui) {
     };
 
     m_collection_card->on_context = []() { std::cout << "context on a card \n"; };
-
     m_collection_input->m_state.m_fit_width = true;
+
+    m_initialized = true;
 }
 
 void CollectionTab::render() {
+    if (!m_initialized) {
+        return;
+    }
+
     static bool set_collection_child_x = false;
     static std::string collection_search;
 

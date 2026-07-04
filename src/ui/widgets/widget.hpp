@@ -56,6 +56,8 @@ struct UIWidget {
     UI* m_ui;
 };
 
+// TODO: ImGuiText (store and compute text size using the UIFont)
+
 template <typename... Args>
 struct FormattedText {
 public:
@@ -74,6 +76,7 @@ public:
     const char* c_str() const {
         return m_cached.c_str();
     }
+
     const std::string& str() const {
         return m_cached;
     }

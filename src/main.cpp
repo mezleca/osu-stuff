@@ -9,6 +9,24 @@
 static constexpr int DEFAULT_WIDTH = 1280;
 static constexpr int DEFAULT_HEIGHT = 720;
 
+void counter_update(FrameCounter& counter) {
+    const Uint64 now = SDL_GetPerformanceCounter();
+    counter.frame_count++;
+
+    if (counter.last_time == 0) {
+        counter.last_time = now;
+        return;
+    }
+
+    const double elapsed_seconds = (double)(now - counter.last_time) / (double)SDL_GetPerformanceFrequency();
+
+    if (elapsed_seconds >= 1.0) {
+        counter.current_fps = (double)counter.frame_count / elapsed_seconds;
+        counter.frame_count = 0;
+        counter.last_time = now;
+    }
+}
+
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         std::cout << " SDL_Init(): " << SDL_GetError() << "\n";
@@ -30,8 +48,7 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-    SDL_WindowFlags window_flags =
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    SDL_WindowFlags window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
     SDL_Window* window = SDL_CreateWindow("osu-stuff", (int)(DEFAULT_WIDTH * main_scale),
                                           (int)(DEFAULT_HEIGHT * main_scale), window_flags);
 
@@ -102,8 +119,9 @@ int main() {
         }
 
         ui->render();
-
         SDL_GL_SwapWindow(window);
+
+        counter_update(ui->m_counter);
     }
 
     ui.reset();

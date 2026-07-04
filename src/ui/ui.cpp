@@ -23,7 +23,7 @@ static const std::string DEFAULT_WARN_SVG = R"(
         <path d="M12.5 10V14M12.5 17V15.5M14.2483 5.64697L20.8493 17.5287C21.5899 18.8618 20.6259 20.5 19.101 20.5H5.89903C4.37406 20.5 3.41013 18.8618 4.15072 17.5287L10.7517 5.64697C11.5137 4.27535 13.4863 4.27535 14.2483 5.64697Z" stroke="#ffffff" stroke-width="1.2"/>
     </svg>)";
 
-UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
+UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
     ImGui::CreateContext();
@@ -241,17 +241,40 @@ void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
+void UI::show_debug_ui() {
+    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings;
+
+    ImGui::Begin("##debug-ui", nullptr, flags);
+    {
+        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
+        {
+            ImGui::TextUnformatted(std::format("fps: {}", std::floor(get_fps())).c_str());
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
 void UI::render() {
+    SDL_WindowFlags w_flags = SDL_GetWindowFlags(m_window);
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
     static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus;
     static const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
     auto torus_bold = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
     auto torus_semi = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
+
+    bool window_focused = w_flags & SDL_WINDOW_INPUT_FOCUS;
+
+    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
+        m_counter.show_ui = !m_counter.show_ui;
+    }
 
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -313,6 +336,7 @@ void UI::render() {
         ImGui::PushFont(torus_semi);
 
         if (m_current_tab != nullptr) {
+            if (!m_current_tab->m_initialized) m_current_tab->setup();
             m_current_tab->render();
         }
 
@@ -320,6 +344,10 @@ void UI::render() {
     }
     ImGui::End();
     ImGui::PopStyleVar(3);
+
+    if (m_counter.show_ui) {
+        show_debug_ui();
+    }
 
     ImGui::Render();
 

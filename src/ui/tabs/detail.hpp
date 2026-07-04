@@ -10,12 +10,16 @@
 struct IndexTab : public UITab {
     explicit IndexTab(UI* ui);
     ~IndexTab() override = default;
+
+    void setup() override;
     void render() override;
 };
 
 struct CollectionTab : public UITab {
     explicit CollectionTab(UI* ui);
     ~CollectionTab() override = default;
+
+    void setup() override;
     void render() override;
 
 private:
@@ -29,23 +33,30 @@ private:
 struct DiscoverTab : public UITab {
     explicit DiscoverTab(UI* ui);
     ~DiscoverTab() override = default;
+
+    void setup() override;
     void render() override;
 };
 
 struct RadioTab : public UITab {
     explicit RadioTab(UI* ui);
     ~RadioTab() override = default;
+
+    void setup() override;
     void render() override;
 };
 
 struct ConfigTab : public UITab {
     explicit ConfigTab(UI* ui);
     ~ConfigTab() override = default;
+    void setup() override;
     void render() override;
 };
 
 struct StatusTab : public UITab {
     explicit StatusTab(UI* ui);
     ~StatusTab() override = default;
+
+    void setup() override;
     void render() override;
 };
