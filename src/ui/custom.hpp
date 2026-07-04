@@ -7,12 +7,10 @@
 #include <format>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <filesystem>
 #include <utility>
 
-#include "widget.hpp"
 #include "theme.hpp"
 
 struct IconTexture;
@@ -31,69 +29,6 @@ enum customChildResize : uint8_t {
     CHILD_RESIZE_X = 1 << 0,
     CHILD_RESIZE_Y = 1 << 1,
     CHILD_RESIZE_ALL = 1 << 2
-};
-
-struct TabButtonStyle : WidgetStyle {
-    AnimatedFloat line_alpha;
-    AnimatedFloat line_width;
-    AnimatedColor text_color = {ui_theme::TEXT_COLOR};
-};
-
-struct TabButtonState : WidgetStyle {
-    TabButtonStyle style;
-};
-
-struct SearchInputStyle : WidgetStyle {
-    AnimatedColor m_border_color = {ui_theme::BORDER_COLOR};
-
-    ImColor m_text_color = {240, 240, 240, 255};
-    ImColor m_icon_color = {120, 120, 120, 255};
-};
-
-struct InputState : WidgetStyle {
-    explicit InputState(IconTexture* texture);
-
-    // data
-    std::string m_label = "";
-    std::string m_value = "";
-
-    // animated stuff
-    SearchInputStyle style;
-
-    ImVec2 m_size = {120, 30};
-
-    IconTexture* m_search_texture;
-
-    bool m_focused = false;
-    bool m_fit_width = false;
-};
-
-struct CollectionCardStyle : WidgetStyle {
-    AnimatedColor m_border_color = {ui_theme::TRANSPARENT};
-    AnimatedColor m_bg_color = {ui_theme::TRANSPARENT};
-
-    ImColor m_text_color = ui_theme::TEXT_COLOR;
-    ImColor m_icon_color = ui_theme::ACCENT_COLOR;
-};
-
-struct UIFont;
-
-struct CollectionCardState : WidgetStyle {
-    explicit CollectionCardState(IconTexture* texture);
-
-    // data
-    std::string m_name = "";
-
-    // animated stuff
-    CollectionCardStyle style;
-
-    ImVec2 m_size = {150, 50};
-    ImFont* m_font;
-    ImFont* m_font_small;
-    IconTexture* m_music_texture;
-
-    bool m_focused = false;
-    bool m_selected = false;
 };
 
 struct ChildState {
@@ -143,12 +78,9 @@ private:
 };
 
 namespace custom_imgui {
-    void search_input(InputState* state);
-    bool collection_card(CollectionCardState* state, int count);
     void line(ImVec2 a, ImVec2 b, ImU32 color, float thickness);
     bool begin_child(ChildState& state, ImGuiChildFlags child_flags = 0, ImGuiWindowFlags window_flags = 0);
     void end_child(ChildState& state, float thickness = 1.0f);
     void destroy_texture(uint32_t id);
     void image(IconTexture* texture, ImVec2 size = {0.0f, 0.0f}, ImColor color = ui_theme::TEXT_COLOR);
-    bool tab_button(TabButtonState& state, std::string_view label, bool selected, bool draw_line, bool is_title);
 }; // namespace custom_imgui

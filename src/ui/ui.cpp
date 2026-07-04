@@ -2,11 +2,9 @@
 #include "tabs/detail.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
-#include "custom.hpp"
 
 #include <algorithm>
 #include <format>
-#include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 #include <filesystem>
@@ -103,18 +101,24 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) {
     }
 
     // create / intitialize tabs
-    m_tabs.push_back({TabButtonState{}, std::make_unique<IndexTab>(this)});
-    m_tabs.push_back({TabButtonState{}, std::make_unique<CollectionTab>(this)});
-    m_tabs.push_back({TabButtonState{}, std::make_unique<DiscoverTab>(this)});
-    m_tabs.push_back({TabButtonState{}, std::make_unique<RadioTab>(this)});
-    m_tabs.push_back({TabButtonState{}, std::make_unique<ConfigTab>(this)});
-    m_tabs.push_back({TabButtonState{}, std::make_unique<StatusTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "osu-stuff", true}, std::make_unique<IndexTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "collections"}, std::make_unique<CollectionTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "discover"}, std::make_unique<DiscoverTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "radio"}, std::make_unique<RadioTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "config"}, std::make_unique<ConfigTab>(this)});
+    m_tabs.push_back({TabButtonWidget{this, "status"}, std::make_unique<StatusTab>(this)});
+
+    for (auto& pair : m_tabs) {
+        TabButtonWidget& widget = pair.first;
+
+        widget.on_click = [&](std::string_view _) { m_current_tab = pair.second.get(); };
+    }
 }
 
-void UIFont::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io) {
-    m_font_location = location;
-    m_cfg = cfg;
-    m_io = io;
+UI::~UI() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
 }
 
 bool UI::is_modal_focused(UIModal* modal) const {
@@ -135,6 +139,10 @@ UIModal* UI::focused_modal() const {
     }
 
     return m_modals.back();
+}
+
+size_t UI::modal_count() {
+    return m_modals.size();
 }
 
 void UI::show_modal(UIModal* modal, bool wipe) {
@@ -201,37 +209,6 @@ void UI::handle_escape() {
     }
 }
 
-ImFont* UIFont::load_font_variation(int size) {
-    std::cout << "[ui] loading " << m_font_location << " (" << size << ")\n";
-
-    ImFont* font = m_io->Fonts->AddFontFromFileTTF(m_font_location.c_str(), static_cast<float>(size), &m_cfg);
-
-    if (font != nullptr) {
-        m_fonts[size] = font;
-    }
-
-    return font;
-}
-
-bool UIFont::load(int size) {
-    if (m_font_location.empty()) {
-        return false;
-    }
-
-    if (load_font_variation(size) == nullptr) {
-        std::cout << "[ui] failed to load " << m_font_location << " (" << size << ")\n";
-        return false;
-    }
-
-    return true;
-}
-
-UI::~UI() {
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
-}
-
 void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
@@ -279,21 +256,16 @@ void UI::render() {
                 for (std::size_t index = 0; index < m_tabs.size(); ++index) {
                     auto& pair = m_tabs[index];
 
-                    auto& button = pair.first;
+                    TabButtonWidget& button_widget = pair.first;
                     UITab* tab = pair.second.get();
 
                     std::string current_id = m_current_tab != nullptr ? m_current_tab->m_id : "";
-
-                    const char* label = tab->m_id == "index" ? "osu-stuff" : tab->m_id.c_str();
-                    const bool is_title = tab->m_id == "index";
 
                     if (index > 0) {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    if (custom_imgui::tab_button(button, label, current_id == tab->m_id, true, is_title)) {
-                        m_current_tab = tab;
-                    }
+                    button_widget.show(current_id == tab->m_id);
                 }
             }
             ImGui::PopFont();

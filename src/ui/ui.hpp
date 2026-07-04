@@ -1,59 +1,19 @@
 #pragma once
 
-#include "ui/custom.hpp"
-#include "ui/tabs/tabs.hpp"
+#include "custom.hpp"
+#include "tabs/tabs.hpp"
+#include "fonts/font.hpp"
+#include "widgets/tab_button.hpp"
 
 #include <glad/gl.h>
+#include <imgui.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
-#include <imgui.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-enum UIFonts {
-    TORUS = 0,
-    TORUS_SEMI,
-    TORUS_BOLD,
-    FONT_COUNT
-};
-
-enum UIFontVar : int32_t {
-    FONT_EXTRA_SMALL = 10,
-    FONT_SMALL = 14,
-    FONT_MEDIUM = 20,
-    FONT_LARGE = 26,
-    FONT_EXTRA_LARGE = 32
-};
-
-struct UIFont {
-public:
-    void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
-
-    [[nodiscard]]
-    ImFont* get(int size) {
-        auto font_it = m_fonts.find(size);
-
-        if (font_it == m_fonts.end()) {
-            return load_font_variation(size);
-        }
-
-        return font_it->second;
-    }
-
-    bool load(int size);
-
-private:
-    ImFont* load_font_variation(int size);
-
-    ImGuiIO* m_io;
-    std::string m_font_location;
-    std::unordered_map<int, ImFont*> m_fonts;
-    ImFontConfig m_cfg;
-};
-
-struct UITab;
 struct UIModal;
 
 struct UI {
@@ -86,9 +46,7 @@ public:
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
     [[nodiscard]] bool has_modal(std::string_view id) const;
     [[nodiscard]] UIModal* focused_modal() const;
-    [[nodiscard]] size_t modal_count() {
-        return m_modals.size();
-    }
+    [[nodiscard]] size_t modal_count();
     [[nodiscard]] bool remove_modal(std::string_view id);
     [[nodiscard]] bool remove_focused_modal();
     void show_modal(UIModal* modal, bool wipe = false);
@@ -99,7 +57,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
-    std::vector<std::pair<TabButtonState, std::unique_ptr<UITab>>> m_tabs;
+    std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
     std::vector<UIModal*> m_modals;
     bool m_done = false;
     ImGuiIO* m_io;

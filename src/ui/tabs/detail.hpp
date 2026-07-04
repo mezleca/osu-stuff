@@ -1,8 +1,9 @@
 #pragma once
+
 #include "tabs.hpp"
 #include "../custom.hpp"
-
-#include <memory>
+#include "../widgets/search.hpp"
+#include "../widgets/collection_card.hpp"
 
 struct IndexTab : public UITab {
     explicit IndexTab(UI* ui);
@@ -18,8 +19,9 @@ struct CollectionTab : public UITab {
 private:
     ChildState m_collection_child_state;
     ChildState m_beatmaps_child_state;
-    std::unique_ptr<InputState> m_collection_input_state;
-    std::unique_ptr<InputState> m_beatmaps_input_state;
+    std::unique_ptr<SearchInputWidget> m_collection_input;
+    std::unique_ptr<SearchInputWidget> m_beatmaps_input;
+    std::unique_ptr<CollectionCardWidget> m_collection_card;
 };
 
 struct DiscoverTab : public UITab {
