@@ -7,9 +7,7 @@
 constexpr float ALPHA_ANIM_SPEED = 25.0f;
 
 CollectionCardWidget::CollectionCardWidget(UI* ui, std::string name, IconTexture* icon)
-    : UIWidget(ui, "collection-card") {
-    m_state.m_name = name;
-    m_state.m_count = "0 maps";
+    : UIWidget(ui, "collection-card"), m_name(name), m_count("0 maps") {
     m_state.m_font = m_ui->m_fonts[TORUS_SEMI].get(18);
     m_state.m_font_small = m_ui->m_fonts[TORUS_SEMI].get(14);
 
@@ -49,16 +47,7 @@ void CollectionCardWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
 
-    // calc text size
-    ImGui::PushFont(m_state.m_font_small);
-    auto count_size = ImGui::CalcTextSize(m_state.m_count.c_str());
-    ImGui::PopFont();
-
-    ImGui::PushFont(m_state.m_font);
-    auto name_size = ImGui::CalcTextSize(m_state.m_name.c_str());
-    ImGui::PopFont();
-
-    ImGui::BeginChild(m_state.m_name.c_str(), size, child_flags, window_flags);
+    ImGui::BeginChild(m_name.c_str(), size, child_flags, window_flags);
     {
         ImGui::PushFont(m_state.m_font);
 
@@ -74,19 +63,19 @@ void CollectionCardWidget::show() {
         // name
         {
             ImGui::SameLine(0.0f, 10.0f);
-            ImGui::SetCursorPosY(row_start_y + (available.y - name_size.y) * 0.5f);
-            ImGui::TextUnformatted(m_state.m_name.c_str());
+            ImGui::SetCursorPosY(row_start_y + (available.y - m_name.text_size().y) * 0.5f);
+            ImGui::TextUnformatted(m_name.c_str());
         }
 
         // count
         {
+            ImGui::PushFont(m_state.m_font_small);
             ImGui::SameLine();
 
-            ImGui::SetCursorPosX(available.x - count_size.x);
-            ImGui::SetCursorPosY(row_start_y + (available.y - count_size.y) * 0.5f);
+            ImGui::SetCursorPosX(available.x - m_count.text_size().x);
+            ImGui::SetCursorPosY(row_start_y + (available.y - m_count.text_size().y) * 0.5f);
 
-            ImGui::PushFont(m_state.m_font_small);
-            ImGui::TextUnformatted(m_state.m_count.c_str());
+            ImGui::TextUnformatted(m_count.c_str());
             ImGui::PopFont();
         }
 

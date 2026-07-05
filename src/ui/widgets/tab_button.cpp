@@ -37,9 +37,8 @@ static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bo
 }
 
 TabButtonWidget::TabButtonWidget(UI* ui, std::string name, bool is_title, IconTexture* icon)
-    : UIWidget(ui, "tab-button") {
+    : UIWidget(ui, "tab-button"), m_name(name) {
     m_state.m_is_title = is_title;
-    m_state.m_name = {name};
 
     if (icon) {
         m_icon = icon;
@@ -60,7 +59,7 @@ void TabButtonWidget::show(bool selected) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_Text, m_state.m_style.m_text_color.value);
 
-    const bool is_pressed = ImGui::Button(m_state.m_name.c_str());
+    const bool is_pressed = ImGui::Button(m_name.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
 
     if (is_pressed && on_click) {

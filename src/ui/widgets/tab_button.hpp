@@ -14,7 +14,6 @@ struct TabButtonStyle : WidgetStyle {
 
 struct TabButtonState : WidgetStyle {
     TabButtonStyle m_style;
-    FormattedText<std::string> m_name{"{}##-tab-button"};
 
     bool m_draw_line = true;
     bool m_is_title = false;
@@ -26,7 +25,7 @@ struct TabButtonWidget : public UIWidget {
     void show(bool selected);
 
     TabButtonState m_state = {};
+    UICachedText<std::string> m_name;
     std::function<void()> on_click;
-
     IconTexture* m_icon = nullptr;
 };

@@ -12,7 +12,6 @@ struct SearchInputStyle : WidgetStyle {
 
 struct SearchInputState : WidgetStyle {
     // data
-    FormattedText<void*> m_label{"##{}-search-input"};
     std::string m_value = "";
 
     // animated stuff
@@ -30,5 +29,6 @@ struct SearchInputWidget : public UIWidget {
     void show();
 
     SearchInputState m_state = {};
+    UICachedFormat<void*> m_label;
     IconTexture* m_icon = nullptr;
 };

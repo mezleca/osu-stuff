@@ -7,8 +7,9 @@
 
 static constexpr float ALPHA_ANIM_SPEED = 12.0f;
 
-SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon) : UIWidget(ui, "search-input") {
-    m_state.m_label = {static_cast<void*>(this)};
+SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon)
+    : UIWidget(ui, "search-input"), m_label("##{}-search-input") {
+    m_label.set({static_cast<void*>(this)});
 
     if (icon) {
         m_icon = icon;
@@ -46,7 +47,7 @@ void SearchInputWidget::show() {
 
     auto border_color = ImColor(ui_theme::BORDER_COLOR);
 
-    ImGui::BeginChild(m_state.m_label.c_str(), size, child_flags, window_flags);
+    ImGui::BeginChild(m_label.c_str(), size, child_flags, window_flags);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
         const float frame_height = ImGui::GetFrameHeight();
@@ -59,7 +60,7 @@ void SearchInputWidget::show() {
         ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
         ImGui::SetNextItemWidth(size.x);
-        ImGui::InputText(m_state.m_label.c_str(), &m_state.m_value);
+        ImGui::InputText(m_label.c_str(), &m_state.m_value);
 
         const bool is_active = ImGui::IsItemActive();
         const bool is_hovered = ImGui::IsItemHovered();

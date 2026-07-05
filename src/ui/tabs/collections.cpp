@@ -32,8 +32,8 @@ void CollectionTab::setup() {
     m_collection_card->on_click = [&]() {
         std::cout << "clicked on a card\n";
 
-        m_collection_card->m_state.m_name = "Penis 2";
-        m_collection_card->m_state.m_count = "999 maps";
+        m_collection_card->m_name.set("Penis 2");
+        m_collection_card->m_count.set("999 maps");
         m_collection_card->m_state.m_selected = !m_collection_card->m_state.m_selected;
     };
 

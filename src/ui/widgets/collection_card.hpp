@@ -16,10 +16,6 @@ struct CollectionCardStyle : WidgetStyle {
 struct CollectionCardState : WidgetStyle {
     CollectionCardStyle m_style;
 
-    // data
-    std::string m_name = "unknown";
-    std::string m_count = "0 maps";
-
     // animated stuff
     CollectionCardStyle style;
 
@@ -37,9 +33,9 @@ struct CollectionCardWidget : public UIWidget {
     void show();
 
     CollectionCardState m_state = {};
-
+    UICachedText<std::string> m_name;
+    UICachedText<std::string> m_count;
     std::function<void()> on_click;
     std::function<void()> on_context;
-
     IconTexture* m_icon = nullptr;
 };
