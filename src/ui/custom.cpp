@@ -46,6 +46,7 @@ void custom_imgui::end_child(ChildState& state, float thickness) {
 
     if (state.m_resize & CHILD_RESIZE_X || state.m_resize & CHILD_RESIZE_Y || state.m_resize & CHILD_RESIZE_ALL) {
         const bool is_mouse_down = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+        const ImVec2 handle_min = {max.x - CHILD_RESIZE_HANDLE_SIZE, max.y - CHILD_RESIZE_HANDLE_SIZE};
 
         if (state.m_dragging) {
             ImGuiWindow* root = ImGui::GetCurrentWindow()->RootWindow;
@@ -57,7 +58,8 @@ void custom_imgui::end_child(ChildState& state, float thickness) {
                 if (state.m_resizing & CHILD_RESIZE_X) {
                     float delta = mouse_pos.x - state.m_drag_start.x;
                     state.m_size.x = std::clamp(state.m_previous_size.x + delta, MIN_CHILD_SIZE, root->Size.x);
-                } else if (state.m_resizing & CHILD_RESIZE_Y) {
+                }
+                if (state.m_resizing & CHILD_RESIZE_Y) {
                     float delta = mouse_pos.y - state.m_drag_start.y;
                     state.m_size.y = std::clamp(state.m_previous_size.y + delta, MIN_CHILD_SIZE, root->Size.y);
                 }
@@ -76,51 +78,59 @@ void custom_imgui::end_child(ChildState& state, float thickness) {
                 state.m_last_click_pos = {0.0f, 0.0f};
             }
 
-            const bool is_hovering_x = ImGui::IsMouseHoveringRect({max.x - CHILD_RESIZE_HANDLE_SIZE, min.y}, max);
-            const bool is_hovering_y = ImGui::IsMouseHoveringRect({min.x, max.y - CHILD_RESIZE_HANDLE_SIZE}, max);
+            const bool is_hovering_handle = ImGui::IsMouseHoveringRect(handle_min, max);
 
-            const bool should_drag_x = state.m_last_click_pos.x > max.x - CHILD_RESIZE_HANDLE_SIZE &&
-                                       state.m_last_click_pos.x < max.x && state.m_last_click_pos.y > min.y &&
-                                       state.m_last_click_pos.y < max.y;
+            const bool should_drag_handle = state.m_last_click_pos.x > handle_min.x &&
+                                            state.m_last_click_pos.x < max.x &&
+                                            state.m_last_click_pos.y > handle_min.y && state.m_last_click_pos.y < max.y;
 
-            const bool should_drag_y = state.m_last_click_pos.x > min.x && state.m_last_click_pos.x < max.x &&
-                                       state.m_last_click_pos.y > max.y - CHILD_RESIZE_HANDLE_SIZE &&
-                                       state.m_last_click_pos.y < max.y;
-
-            if (is_mouse_down && (should_drag_x || should_drag_y)) {
+            if (is_mouse_down && should_drag_handle) {
                 state.m_dragging = true;
                 state.m_drag_start = ImGui::GetMousePos();
                 state.m_previous_size = state.m_size;
-                state.m_resizing = should_drag_x ? CHILD_RESIZE_X : CHILD_RESIZE_Y;
-            } else if (is_hovering_x) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            } else if (is_hovering_y) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                state.m_resizing = state.m_resize;
+            } else if (is_hovering_handle) {
+                if (state.m_resize & CHILD_RESIZE_X && state.m_resize & CHILD_RESIZE_Y) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                } else if (state.m_resize & CHILD_RESIZE_X) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                } else if (state.m_resize & CHILD_RESIZE_Y) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                }
             }
         }
-    }
-
-    if (state.m_border == BORDER_NONE) {
-        return;
     }
 
     ImDrawList* dl = ImGui::GetForegroundDrawList();
     dl->Flags |= ImDrawListFlags_AntiAliasedLines;
 
-    if (state.m_border & BORDER_ALL) {
-        dl->AddRect(min, max, state.m_border_color, 0.0f, 0, thickness);
-    } else {
-        if (state.m_border & BORDER_TOP) {
-            dl->AddLine({min.x, min.y}, {max.x, min.y}, state.m_border_color, thickness);
+    // draw child borders
+    if (!(state.m_border & BORDER_NONE)) {
+        if (state.m_border & BORDER_ALL) {
+            dl->AddRect(min, max, state.m_border_color, 0.0f, 0, thickness);
+        } else {
+            if (state.m_border & BORDER_TOP) {
+                dl->AddLine({min.x, min.y}, {max.x, min.y}, state.m_border_color, thickness);
+            }
+            if (state.m_border & BORDER_BOTTOM) {
+                dl->AddLine({min.x, max.y}, {max.x, max.y}, state.m_border_color, thickness);
+            }
+            if (state.m_border & BORDER_LEFT) {
+                dl->AddLine({min.x, min.y}, {min.x, max.y}, state.m_border_color, thickness);
+            }
+            if (state.m_border & BORDER_RIGHT) {
+                dl->AddLine({max.x, min.y}, {max.x, max.y}, state.m_border_color, thickness);
+            }
         }
-        if (state.m_border & BORDER_BOTTOM) {
-            dl->AddLine({min.x, max.y}, {max.x, max.y}, state.m_border_color, thickness);
+    }
+
+    // draw resize borders
+    if (!(state.m_resize & CHILD_RESIZE_NONE)) {
+        float offset = 1;
+
+        for (int i = 0; i < 5; i++) {
+            dl->AddLine({max.x - offset, max.y}, {max.x, max.y - offset}, state.m_border_color, 1.0f);
+            offset += 3;
         }
-        if (state.m_border & BORDER_LEFT) {
-            dl->AddLine({min.x, min.y}, {min.x, max.y}, state.m_border_color, thickness);
-        }
-        if (state.m_border & BORDER_RIGHT) {
-            dl->AddLine({max.x, min.y}, {max.x, max.y}, state.m_border_color, thickness);
-        }
-    };
+    }
 }
