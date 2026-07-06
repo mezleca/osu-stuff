@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug osu-stuff (Linux)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/osu-stuff",
+            "cwd": "${workspaceFolder}/build",
+            "preLaunchTask": "build-osu-stuff"
+        },
+        {
+            "name": "Debug osu-stuff (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/osu-stuff.exe",
+            "cwd": "${workspaceFolder}/build",
+            "preLaunchTask": "build-osu-stuff",
+            "console": "integratedTerminal"
+        }
+    ]
+}
