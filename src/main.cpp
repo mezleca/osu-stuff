@@ -11,7 +11,7 @@ static constexpr int DEFAULT_HEIGHT = 720;
 
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
-        std::cout << " SDL_Init(): " << SDL_GetError() << "\n";
+        SDL_Log("SDL_Init(): %s", SDL_GetError());
         return 1;
     }
 

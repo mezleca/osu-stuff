@@ -25,6 +25,19 @@ if(WIN32)
             $<TARGET_FILE_DIR:tests>
         COMMAND_EXPAND_LISTS
     )
+
+    target_compile_options(tests PRIVATE
+        /W4
+        /EHsc
+        /utf-8
+        /wd5105
+        /Zc:preprocessor
+    )
+else()
+    target_compile_options(tests PRIVATE
+        -Wpedantic
+        -Wunused-lambda-capture
+    )
 endif()
 
 catch_discover_tests(tests
