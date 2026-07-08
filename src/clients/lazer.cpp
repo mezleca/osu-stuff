@@ -35,10 +35,11 @@ LazerClient::LazerClient(ClientOptions options) : m_options(std::move(options)) 
     config.set_path(m_options.lazer_realm_path);
     config.set_schema_mode(realm::db_config::schema_mode::read_only);
 
-    m_realm = std::make_unique<realm::db>(
-        realm::open<realm::BeatmapDifficulty, realm::BeatmapUserSettings, realm::RealmUser, realm::Ruleset, realm::File,
-                    realm::RealmNamedFileUsage, realm::BeatmapMetadata, realm::BeatmapCollection, realm::BeatmapSet,
-                    realm::Beatmap>(config));
+    m_realm =
+        std::make_unique<realm::db>(realm::open<
+                                    realm::BeatmapDifficulty, realm::BeatmapUserSettings, realm::RealmUser,
+                                    realm::Ruleset, realm::File, realm::RealmNamedFileUsage, realm::BeatmapMetadata,
+                                    realm::BeatmapCollection, realm::BeatmapSet, realm::Beatmap>(config));
 
     if (!m_realm) {
         return;

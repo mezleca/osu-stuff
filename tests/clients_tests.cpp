@@ -160,8 +160,9 @@ TEST_CASE("stable update_collection persists the in memory collections", "[clien
     OsuLegacyCollection database;
     REQUIRE(legacy_collection_parser::parse((copied_root / "collection.db").string(), &database));
 
-    const auto it = std::find_if(database.collections.begin(), database.collections.end(),
-                                 [](const auto& item) { return item.name == "persisted collection"; });
+    const auto it = std::find_if(database.collections.begin(), database.collections.end(), [](const auto& item) {
+        return item.name == "persisted collection";
+    });
 
     REQUIRE(it != database.collections.end());
     REQUIRE(it->beatmap_md5 == std::vector<std::string>{TEST_BEATMAP_HASH});

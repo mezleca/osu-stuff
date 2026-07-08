@@ -10,7 +10,10 @@ AllowShortFunctionsOnASingleLine: None
 DerivePointerAlignment: false
 IndentCaseLabels: true
 PointerAlignment: Left
+AlignAfterOpenBracket: BlockIndent
 SortIncludes: false
 NamespaceIndentation: All
 FixNamespaceComments: true
 AlwaysBreakTemplateDeclarations: Yes
+AlignTrailingComments:
+    Kind: Leave

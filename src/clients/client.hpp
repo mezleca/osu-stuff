@@ -89,9 +89,12 @@ struct OsuBeatmap {
     BeatmapStatus status{};
 
     void build_search() {
-        searchable = binary::normalize_and_lower(std::format("{} {} {} {} {} {} {} {} {} {}", title, title_unicode,
-                                                             artist, artist_unicode, creator, difficulty, source, tags,
-                                                             difficulty_id, beatmap_id));
+        searchable = binary::normalize_and_lower(
+            std::format(
+                "{} {} {} {} {} {} {} {} {} {}", title, title_unicode, artist, artist_unicode, creator, difficulty,
+                source, tags, difficulty_id, beatmap_id
+            )
+        );
     }
 };
 

@@ -33,8 +33,9 @@ void custom_imgui::line(ImVec2 a, ImVec2 b, ImU32 color, float thickness) {
 
 bool custom_imgui::begin_child(ChildState& state, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
-    return ImGui::BeginChild(state.m_id.c_str(), state.m_size, child_flags | ImGuiChildFlags_AlwaysUseWindowPadding,
-                             window_flags);
+    return ImGui::BeginChild(
+        state.m_id.c_str(), state.m_size, child_flags | ImGuiChildFlags_AlwaysUseWindowPadding, window_flags
+    );
 }
 
 void custom_imgui::end_child(ChildState& state, float thickness) {

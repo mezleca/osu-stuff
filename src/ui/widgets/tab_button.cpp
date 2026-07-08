@@ -92,9 +92,10 @@ void TabButtonWidget::show(bool selected) {
             ImVec4 line_color = ui_theme::ACCENT_COLOR;
             line_color.w *= line_alpha;
 
-            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2{line_x, line_y},
-                                                      ImVec2{line_x + line_width, line_y + ui_theme::LINE_HEIGHT},
-                                                      ImGui::ColorConvertFloat4ToU32(line_color));
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                ImVec2{line_x, line_y}, ImVec2{line_x + line_width, line_y + ui_theme::LINE_HEIGHT},
+                ImGui::ColorConvertFloat4ToU32(line_color)
+            );
         }
     }
 

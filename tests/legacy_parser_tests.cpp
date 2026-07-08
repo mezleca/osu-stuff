@@ -48,14 +48,17 @@ TEST_CASE("legacy parser read collection.db", "[parsers][legacy]") {
     REQUIRE(database.collections_count == static_cast<int>(database.collections.size()));
     REQUIRE(database.collections.size() >= 2);
 
-    const auto glass_beach = std::find_if(database.collections.begin(), database.collections.end(),
-                                          [](const auto& item) { return item.name == "glass beach"; });
+    const auto glass_beach =
+        std::find_if(database.collections.begin(), database.collections.end(), [](const auto& item) {
+            return item.name == "glass beach";
+        });
     REQUIRE(glass_beach != database.collections.end());
     REQUIRE(glass_beach->beatmaps_count == 10);
     REQUIRE(glass_beach->beatmap_md5.front() == "6737a1d011bd8ea8b008aff294147f33");
 
-    const auto monet = std::find_if(database.collections.begin(), database.collections.end(),
-                                    [](const auto& item) { return item.name == "monet"; });
+    const auto monet = std::find_if(database.collections.begin(), database.collections.end(), [](const auto& item) {
+        return item.name == "monet";
+    });
     REQUIRE(monet != database.collections.end());
     REQUIRE(monet->beatmaps_count == 1);
 }

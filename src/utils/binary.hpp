@@ -58,14 +58,17 @@ namespace binary {
         } else if constexpr (sizeof(U) == 2) {
             uvalue = static_cast<U>((uvalue >> 8) | (uvalue << 8));
         } else if constexpr (sizeof(U) == 4) {
-            uvalue = static_cast<U>(((uvalue & 0x000000FFu) << 24) | ((uvalue & 0x0000FF00u) << 8) |
-                                    ((uvalue & 0x00FF0000u) >> 8) | ((uvalue & 0xFF000000u) >> 24));
+            uvalue = static_cast<U>(
+                ((uvalue & 0x000000FFu) << 24) | ((uvalue & 0x0000FF00u) << 8) | ((uvalue & 0x00FF0000u) >> 8) |
+                ((uvalue & 0xFF000000u) >> 24)
+            );
         } else if constexpr (sizeof(U) == 8) {
-            uvalue =
-                static_cast<U>(((uvalue & 0x00000000000000FFull) << 56) | ((uvalue & 0x000000000000FF00ull) << 40) |
-                               ((uvalue & 0x0000000000FF0000ull) << 24) | ((uvalue & 0x00000000FF000000ull) << 8) |
-                               ((uvalue & 0x000000FF00000000ull) >> 8) | ((uvalue & 0x0000FF0000000000ull) >> 24) |
-                               ((uvalue & 0x00FF000000000000ull) >> 40) | ((uvalue & 0xFF00000000000000ull) >> 56));
+            uvalue = static_cast<U>(
+                ((uvalue & 0x00000000000000FFull) << 56) | ((uvalue & 0x000000000000FF00ull) << 40) |
+                ((uvalue & 0x0000000000FF0000ull) << 24) | ((uvalue & 0x00000000FF000000ull) << 8) |
+                ((uvalue & 0x000000FF00000000ull) >> 8) | ((uvalue & 0x0000FF0000000000ull) >> 24) |
+                ((uvalue & 0x00FF000000000000ull) >> 40) | ((uvalue & 0xFF00000000000000ull) >> 56)
+            );
         }
         return static_cast<T>(uvalue);
     }
@@ -345,7 +348,8 @@ namespace binary {
         // UTF8PROC_DECOMPOSE = NFD, UTF8PROC_CASEFOLD = case folding
         utf8proc_ssize_t len = utf8proc_map(
             reinterpret_cast<const utf8proc_uint8_t*>(s.data()), static_cast<utf8proc_ssize_t>(s.size()), &result,
-            static_cast<utf8proc_option_t>(UTF8PROC_DECOMPOSE | UTF8PROC_CASEFOLD | UTF8PROC_NLF2LS));
+            static_cast<utf8proc_option_t>(UTF8PROC_DECOMPOSE | UTF8PROC_CASEFOLD | UTF8PROC_NLF2LS)
+        );
 
         if (len < 0 || !result) {
             return std::string(s);

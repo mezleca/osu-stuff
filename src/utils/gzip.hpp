@@ -154,8 +154,9 @@ namespace binary {
                                            (static_cast<mz_ulong>(data[footer_offset + 7]) << 24);
 
             const size_t member_output_offset = temp_output.size() - static_cast<size_t>(stream.total_out);
-            const mz_ulong actual_crc = mz_crc32(MZ_CRC32_INIT, temp_output.data() + member_output_offset,
-                                                 static_cast<size_t>(stream.total_out));
+            const mz_ulong actual_crc = mz_crc32(
+                MZ_CRC32_INIT, temp_output.data() + member_output_offset, static_cast<size_t>(stream.total_out)
+            );
 
             if (actual_crc != expected_crc) {
                 return false;
@@ -180,8 +181,9 @@ namespace binary {
         stream.next_in = const_cast<unsigned char*>(input.data());
         stream.avail_in = static_cast<mz_uint32>(input.size());
 
-        if (mz_deflateInit2(&stream, MZ_BEST_COMPRESSION, MZ_DEFLATED, -MZ_DEFAULT_WINDOW_BITS, 8,
-                            MZ_DEFAULT_STRATEGY) != MZ_OK) {
+        if (mz_deflateInit2(
+                &stream, MZ_BEST_COMPRESSION, MZ_DEFLATED, -MZ_DEFAULT_WINDOW_BITS, 8, MZ_DEFAULT_STRATEGY
+            ) != MZ_OK) {
             return false;
         }
 

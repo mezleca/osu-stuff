@@ -178,7 +178,8 @@ bool osdb_parser::write() {
     const int64_t save_time = data->save_data != 0
                                   ? data->save_data
                                   : static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                             std::chrono::system_clock::now().time_since_epoch())
+                                                             std::chrono::system_clock::now().time_since_epoch()
+                                    )
                                                              .count());
 
     data->count = static_cast<int>(data->collections.size());

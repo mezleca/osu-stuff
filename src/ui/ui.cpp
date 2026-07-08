@@ -298,8 +298,9 @@ void UI::render() {
         const ImVec2 header_cursor_start = ImGui::GetCursorPos();
         const float header_size_y = font_height + ui_theme::CONTENT_PADDING * 2;
 
-        ImGui::BeginChild("header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding,
-                          ImGuiWindowFlags_None);
+        ImGui::BeginChild(
+            "header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None
+        );
         {
             ImGui::PushFont(torus_bold);
             {

@@ -25,10 +25,12 @@ std::string string_set_to_string(const std::set<std::string>& set, std::string_v
 bool OsuAPI::authenticate(OsuAuthRequest req) {
     auto header = cpr::Header{{"Accept", "application/json"}};
 
-    auto auth_parameters = cpr::Payload{{"client_id", req.client_id},
-                                        {"client_secret", req.client_secret},
-                                        {"grant_type", req.grant_type},
-                                        {"scope", string_set_to_string(req.scope, " ")}};
+    auto auth_parameters = cpr::Payload{
+        {"client_id", req.client_id},
+        {"client_secret", req.client_secret},
+        {"grant_type", req.grant_type},
+        {"scope", string_set_to_string(req.scope, " ")}
+    };
 
     auto response = cpr::Post(AUTH_URL, header, auth_parameters);
 

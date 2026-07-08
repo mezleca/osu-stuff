@@ -259,8 +259,10 @@ static DifficultySection parse_difficulty(const std::vector<std::string_view>& l
     return s;
 }
 
-void parse_events(const std::vector<std::string_view>& lines, std::optional<EventBackground>& bg,
-                  std::optional<EventVideo>& vid, std::vector<EventBreak>& breaks) {
+void parse_events(
+    const std::vector<std::string_view>& lines, std::optional<EventBackground>& bg, std::optional<EventVideo>& vid,
+    std::vector<EventBreak>& breaks
+) {
     for (const auto& line : lines) {
         auto parts = split_view(line, ',');
         if (parts.empty()) {
@@ -338,8 +340,10 @@ static ColourSection parse_colours(const std::vector<std::string_view>& lines) {
             continue;
         }
 
-        std::array<int, 3> color = {binary::convert_to<int>(parts[0], 0), binary::convert_to<int>(parts[1], 0),
-                                    binary::convert_to<int>(parts[2], 0)};
+        std::array<int, 3> color = {
+            binary::convert_to<int>(parts[0], 0), binary::convert_to<int>(parts[1], 0),
+            binary::convert_to<int>(parts[2], 0)
+        };
 
         if (key.find("Combo") != std::string_view::npos) {
             s.combos.push_back(color);
@@ -405,7 +409,8 @@ static std::vector<HitObject> parse_hit_objects(const std::vector<std::string_vi
                     auto point = split_view(curve_parts[i], ':');
                     if (point.size() >= 2) {
                         ho.curve_points.push_back(
-                            {binary::convert_to<int>(point[0], 0), binary::convert_to<int>(point[1], 0)});
+                            {binary::convert_to<int>(point[0], 0), binary::convert_to<int>(point[1], 0)}
+                        );
                     }
                 }
             }
@@ -427,7 +432,8 @@ static std::vector<HitObject> parse_hit_objects(const std::vector<std::string_vi
                     auto set = split_view(ep, ':');
                     if (set.size() >= 2) {
                         ho.edge_sets.push_back(
-                            {binary::convert_to<int>(set[0], 0), binary::convert_to<int>(set[1], 0)});
+                            {binary::convert_to<int>(set[0], 0), binary::convert_to<int>(set[1], 0)}
+                        );
                     }
                 }
             } else {
@@ -657,8 +663,10 @@ bool beatmap_parser::write() {
 
     if (data->video.has_value()) {
         const auto& v = data->video.value();
-        writer.line("Video," + std::to_string(v.start_time) + ",\"" + v.filename + "\"," + std::to_string(v.x_offset) +
-                    "," + std::to_string(v.y_offset));
+        writer.line(
+            "Video," + std::to_string(v.start_time) + ",\"" + v.filename + "\"," + std::to_string(v.x_offset) + "," +
+            std::to_string(v.y_offset)
+        );
     }
 
     if (data->background.has_value()) {
@@ -675,10 +683,11 @@ bool beatmap_parser::write() {
     writer.section("TimingPoints");
 
     for (const auto& tp : data->timing_points) {
-        writer.line(std::to_string(tp.time) + "," + BeatmapWriter::format_double(tp.beat_length) + "," +
-                    std::to_string(tp.meter) + "," + std::to_string(tp.sample_set) + "," +
-                    std::to_string(tp.sample_index) + "," + std::to_string(tp.volume) + "," +
-                    std::to_string(tp.uninherited) + "," + std::to_string(tp.effects));
+        writer.line(
+            std::to_string(tp.time) + "," + BeatmapWriter::format_double(tp.beat_length) + "," +
+            std::to_string(tp.meter) + "," + std::to_string(tp.sample_set) + "," + std::to_string(tp.sample_index) +
+            "," + std::to_string(tp.volume) + "," + std::to_string(tp.uninherited) + "," + std::to_string(tp.effects)
+        );
     }
 
     writer.blank();
@@ -687,14 +696,17 @@ bool beatmap_parser::write() {
 
     for (size_t i = 0; i < data->colours.combos.size(); i++) {
         const auto& c = data->colours.combos[i];
-        writer.line("Combo" + std::to_string(i + 1) + " : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," +
-                    std::to_string(c[2]));
+        writer.line(
+            "Combo" + std::to_string(i + 1) + " : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," +
+            std::to_string(c[2])
+        );
     }
 
     if (data->colours.slider_track_override.has_value()) {
         const auto& c = data->colours.slider_track_override.value();
-        writer.line("SliderTrackOverride : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," +
-                    std::to_string(c[2]));
+        writer.line(
+            "SliderTrackOverride : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," + std::to_string(c[2])
+        );
     }
 
     if (data->colours.slider_border.has_value()) {

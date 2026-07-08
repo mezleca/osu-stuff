@@ -144,8 +144,9 @@ std::vector<std::string> ClientBase::search_beatmaps(const SearchOptions& option
     std::vector<std::string> hashes;
     std::vector<OsuBeatmap*> beatmaps = filter_beatmaps(options);
 
-    std::sort(beatmaps.begin(), beatmaps.end(),
-              [&options](OsuBeatmap* left, OsuBeatmap* right) { return compare_beatmaps(left, right, options.sort); });
+    std::sort(beatmaps.begin(), beatmaps.end(), [&options](OsuBeatmap* left, OsuBeatmap* right) {
+        return compare_beatmaps(left, right, options.sort);
+    });
 
     hashes.reserve(beatmaps.size());
 

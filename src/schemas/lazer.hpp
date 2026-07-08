@@ -16,8 +16,9 @@ namespace realm {
         double SliderTickRate = 0.0;
     };
 
-    REALM_EMBEDDED_SCHEMA(BeatmapDifficulty, DrainRate, CircleSize, OverallDifficulty, ApproachRate, SliderMultiplier,
-                          SliderTickRate);
+    REALM_EMBEDDED_SCHEMA(
+        BeatmapDifficulty, DrainRate, CircleSize, OverallDifficulty, ApproachRate, SliderMultiplier, SliderTickRate
+    );
 
     struct BeatmapUserSettings {
         double Offset = 0.0;
@@ -71,8 +72,10 @@ namespace realm {
         std::vector<std::optional<std::string>> UserTags;
     };
 
-    REALM_SCHEMA(BeatmapMetadata, Title, TitleUnicode, Artist, ArtistUnicode, Author, Source, Tags, PreviewTime,
-                 AudioFile, BackgroundFile, UserTags);
+    REALM_SCHEMA(
+        BeatmapMetadata, Title, TitleUnicode, Artist, ArtistUnicode, Author, Source, Tags, PreviewTime, AudioFile,
+        BackgroundFile, UserTags
+    );
 
     struct BeatmapCollection {
         realm::primary_key<realm::uuid> ID;
@@ -99,8 +102,10 @@ namespace realm {
         bool Protected = false;
     };
 
-    REALM_SCHEMA(BeatmapSet, ID, OnlineID, DateAdded, DateSubmitted, DateRanked, Beatmaps, Files, Status, DeletePending,
-                 Hash, Protected);
+    REALM_SCHEMA(
+        BeatmapSet, ID, OnlineID, DateAdded, DateSubmitted, DateRanked, Beatmaps, Files, Status, DeletePending, Hash,
+        Protected
+    );
 
     struct Beatmap {
         realm::primary_key<realm::uuid> ID;
@@ -128,7 +133,9 @@ namespace realm {
         std::optional<double> EditorTimestamp;
     };
 
-    REALM_SCHEMA(Beatmap, ID, DifficultyName, Ruleset, Difficulty, Metadata, UserSettings, BeatmapSet, OnlineID, Length,
-                 BPM, Hash, StarRating, MD5Hash, OnlineMD5Hash, LastLocalUpdate, LastOnlineUpdate, Status, Hidden,
-                 EndTimeObjectCount, TotalObjectCount, LastPlayed, BeatDivisor, EditorTimestamp);
+    REALM_SCHEMA(
+        Beatmap, ID, DifficultyName, Ruleset, Difficulty, Metadata, UserSettings, BeatmapSet, OnlineID, Length, BPM,
+        Hash, StarRating, MD5Hash, OnlineMD5Hash, LastLocalUpdate, LastOnlineUpdate, Status, Hidden, EndTimeObjectCount,
+        TotalObjectCount, LastPlayed, BeatDivisor, EditorTimestamp
+    );
 } // namespace realm

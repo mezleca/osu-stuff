@@ -138,8 +138,11 @@ public:
 
 private:
     void recompute_text() {
-        set_text(std::apply([this](auto const&... vals) { return std::vformat(m_fmt, std::make_format_args(vals...)); },
-                            m_values));
+        set_text(
+            std::apply(
+                [this](auto const&... vals) { return std::vformat(m_fmt, std::make_format_args(vals...)); }, m_values
+            )
+        );
     }
 
     std::string m_fmt;

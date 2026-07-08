@@ -66,8 +66,8 @@ static void write_int_float_pair(std::vector<uint8_t>& buffer, const LegacyFloat
     }
 }
 
-static void write_star_ratings(std::vector<uint8_t>& buffer, const std::vector<LegacyFloatPair>& ratings,
-                               bool use_float) {
+static void
+write_star_ratings(std::vector<uint8_t>& buffer, const std::vector<LegacyFloatPair>& ratings, bool use_float) {
     binary::write_i32(buffer, static_cast<int>(ratings.size()));
 
     for (const auto& rating : ratings) {
