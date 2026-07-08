@@ -36,6 +36,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CPR_CURL_USE_LIBPSL FALSE)
+set(CPR_CURL_USE_LIBPSL FALSE CACHE BOOL "" FORCE)
+
 if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
     set(OUTPUT_NAME "${PROJECT_NAME}")
 endif()
@@ -48,6 +51,14 @@ set(SQLITECPP_BUILD_TESTS OFF)
 
 find_package(OpenGL REQUIRED)
 
+# force system curl on linux
+if(LINUX)
+    set(CPR_USE_SYSTEM_CURL ON CACHE BOOL "" FORCE)
+    find_package(CURL REQUIRED)
+else()
+    set(CPR_USE_SYSTEM_CURL OFF CACHE BOOL "" FORCE)
+endif()
+
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     set(SQLITECPP_INTERNAL_SQLITE ON)
@@ -56,6 +67,8 @@ endif()
 configure_sdl()
 
 add_subdirectory(vendor/glad)
+add_subdirectory(vendor/json)
+add_subdirectory(vendor/cpr)
 add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/lunasvg)
 add_subdirectory(vendor/sqlitecpp)
@@ -99,6 +112,7 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
+    CURL::libcurl
     OpenGL::GL
     glad
     SDL3::SDL3
@@ -108,6 +122,8 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     SQLiteCpp
     sqlite3
     lunasvg
+    cpr
+    nlohmann_json
 )
 
 # https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
