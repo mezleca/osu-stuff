@@ -9,7 +9,7 @@
             "command": "sh",
             "args": [
                 "-c",
-                "./ez build"
+                "./ez build --type='debug'"
             ],
             "cwd": "$ZED_WORKTREE_ROOT"
         }

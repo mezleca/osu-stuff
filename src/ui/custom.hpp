@@ -2,10 +2,7 @@
 
 #include <imgui.h>
 #include <cstdint>
-#include <format>
 #include <string>
-#include <unordered_map>
-#include <utility>
 
 #include "theme.hpp"
 

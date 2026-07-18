@@ -3,9 +3,27 @@
 #include "../ui.hpp"
 
 #include <imgui_stdlib.h>
-#include <format>
 
 static constexpr float ALPHA_ANIM_SPEED = 12.0f;
+
+SearchInputState::SearchInputState() : WidgetState() {
+    set_for_all_styles([](WidgetStyle& style) {
+        UIWidgetColor icon_color;
+        icon_color.value = {120, 120, 120, 255};
+        icon_color.speed = ALPHA_ANIM_SPEED;
+        style.border_color.speed = ALPHA_ANIM_SPEED * 2.0f;
+        style.vars.set("icon_color", icon_color);
+    });
+
+    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
+    WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
+
+    hover_style.vars.get<UIWidgetColor>("icon_color").value().value = {150, 150, 150, 255};
+    hover_style.border_color.value = ui_theme::ACCENT_COLOR;
+    active_style.border_color.value = ui_theme::ACCENT_COLOR;
+
+    snap_to_style(WidgetStyleType::DEFAULT);
+}
 
 SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon)
     : UIWidget(ui, "search-input"), m_label("##{}-search-input") {
@@ -19,11 +37,15 @@ SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon)
 }
 
 void SearchInputWidget::show() {
+    if (!m_state.is_visible()) {
+        return;
+    }
+
     const float icon_size = 18.0f;
     const float dt = ImGui::GetIO().DeltaTime;
+    const WidgetStyle& style = m_state.get_style();
 
     ImVec2 size = m_state.m_size;
-
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
@@ -45,41 +67,41 @@ void SearchInputWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
 
-    auto border_color = ImColor(ui_theme::BORDER_COLOR);
-
     ImGui::BeginChild(m_label.c_str(), size, child_flags, window_flags);
-    {
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-        const float frame_height = ImGui::GetFrameHeight();
-        const float row_start_y = ImGui::GetCursorPosY();
+    
+    const ImVec2 available = ImGui::GetContentRegionAvail();
+    const float frame_height = ImGui::GetFrameHeight();
+    const float row_start_y = ImGui::GetCursorPosY();
 
-        ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-        custom_imgui::image(m_icon, {icon_size, icon_size}, m_state.style.m_icon_color);
+    ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
+    custom_imgui::image(m_icon, {icon_size, icon_size}, style.vars.get<UIWidgetColor>("icon_color").value().value);
 
-        ImGui::SameLine(0.0f, 10.0f);
-        ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
+    ImGui::SameLine(0.0f, 10.0f);
+    ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
-        ImGui::SetNextItemWidth(size.x);
-        ImGui::InputText(m_label.c_str(), &m_state.m_value);
+    ImGui::SetNextItemWidth(size.x);
+    ImGui::InputText(m_label.c_str(), &m_state.m_value);
 
-        const bool is_active = ImGui::IsItemActive();
-        const bool is_hovered = ImGui::IsItemHovered();
-
-        if (is_active) {
-            border_color = ImColor(ui_theme::ACCENT_COLOR);
-        } else if (is_hovered) {
-            border_color = ImColor(ui_theme::ACCENT_HOVER_COLOR);
-        }
-    }
+    const bool is_active = ImGui::IsItemActive();
+    const bool is_hovered = ImGui::IsItemHovered();
+    
     ImGui::EndChild();
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
 
-    m_state.style.m_border_color.tick(border_color, ALPHA_ANIM_SPEED * 2, dt);
+    if (is_active) {
+        m_state.set_style(WidgetStyleType::ACTIVE);
+    } else if (is_hovered) {
+        m_state.set_style(WidgetStyleType::HOVER);
+    } else {
+        m_state.set_style(WidgetStyleType::DEFAULT);
+    }
+
+    m_state.update(dt);
 
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();
 
     auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(rect_min, rect_max, ImColor(m_state.style.m_border_color.value), ui_theme::BOX_ROUNDING, 0, 4.0f);
+    dl->AddRect(rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, 4.0f);
 }

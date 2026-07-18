@@ -7,7 +7,7 @@
             "command": "sh",
             "args": [
                 "-c",
-                "./ez build"
+                "./ez build --type='debug'"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

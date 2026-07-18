@@ -15,9 +15,9 @@
 static const std::string DEFAULT_WARN_SVG = R"(
     <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="800px" 
-        height="800px" 
-        viewBox="0 0 25 25" 
+        width="800px"
+        height="800px"
+        viewBox="0 0 25 25"
         fill="none"
     >
         <path d="M12.5 10V14M12.5 17V15.5M14.2483 5.64697L20.8493 17.5287C21.5899 18.8618 20.6259 20.5 19.101 20.5H5.89903C4.37406 20.5 3.41013 18.8618 4.15072 17.5287L10.7517 5.64697C11.5137 4.27535 13.4863 4.27535 14.2483 5.64697Z" stroke="#ffffff" stroke-width="1.2"/>
@@ -316,7 +316,7 @@ void UI::render() {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    button_widget.show(current_id == tab->m_id);
+                    button_widget.show(current_id == tab->m_id || index == 0);
                 }
             }
             ImGui::PopFont();
