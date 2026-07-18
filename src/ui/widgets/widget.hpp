@@ -288,7 +288,9 @@ public:
     }
 
     [[nodiscard]] bool is_visible() const {
-        return visible && current_opacity.value >= VISIBILITY_OPACITY_THRESHOLD;
+        return visible &&
+               (opacity >= VISIBILITY_OPACITY_THRESHOLD ||
+                current_opacity.value >= VISIBILITY_OPACITY_THRESHOLD);
     }
 
     void set_visible(bool value) {
