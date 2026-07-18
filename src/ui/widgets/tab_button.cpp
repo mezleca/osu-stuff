@@ -10,8 +10,6 @@ TabButtonState::TabButtonState() : WidgetState() {
         style.color.speed = 14.0f;
     });
 
-    WidgetStyle& default_style = get_style(WidgetStyleType::DEFAULT);
-    WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
     WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
 
     auto set_var_float_for_style = [&](WidgetStyleType type, const std::string& key, float value, float speed) {
@@ -63,8 +61,6 @@ void TabButtonWidget::show(bool selected) {
 
     const bool is_pressed = ImGui::Button(m_name.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
-
-    auto current_style_type = m_state.get_style_type();
 
     if (is_pressed && on_click) {
         on_click();
