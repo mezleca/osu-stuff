@@ -2,6 +2,22 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
+TEST_CASE("tick actually writes the interpolated value back", "[UIWidgetColor]") {
+    UIWidgetColor current;
+    UIWidgetColor target;
+
+    current.set(ImVec4{0.0f, 0.0f, 0.0f, 1.0f});
+
+    target.set(ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
+    target.set_speed(8.0f);
+
+    for (int i = 0; i < 1000; ++i) {
+        current.tick(target, 1.0f / 60.0f);
+    }
+
+    REQUIRE(current.is_close(target, 0.01f));
+}
+
 TEST_CASE("StyleVariableStore set/get", "[VariableStore]") {
     StyleVariableStore store;
 
@@ -85,7 +101,7 @@ TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") 
     }
 
     SECTION("color converges") {
-        REQUIRE(state.get_style().color.value.x == Catch::Approx(1.0f).margin(0.01f));
+        REQUIRE(state.get_style().color.get().x == Catch::Approx(1.0f).margin(0.01f));
     }
 
     SECTION("float var converges") {

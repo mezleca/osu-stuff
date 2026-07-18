@@ -64,7 +64,7 @@ void CollectionCardWidget::show() {
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.background_color.value);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.background_color.get());
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);

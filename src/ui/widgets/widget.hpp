@@ -54,22 +54,34 @@ struct UIWidgetFloat : UIWidgetValue<float> {
     }
 };
 
-struct UIWidgetColor : UIWidgetValue<ImVec4> {
+struct UIWidgetColor : UIWidgetValue<ImColor> {
     void tick(const UIWidgetColor& target, float dt) {
         if (target.speed <= 0.0f) {
             value = target.value;
             return;
         }
 
-        value.x = math_utils::exp_lerp(value.x, target.value.x, target.speed, dt);
-        value.y = math_utils::exp_lerp(value.y, target.value.y, target.speed, dt);
-        value.z = math_utils::exp_lerp(value.z, target.value.z, target.speed, dt);
-        value.w = math_utils::exp_lerp(value.w, target.value.w, target.speed, dt);
+        ImVec4 col = value.Value;
+        const ImVec4& target_col = target.value.Value;
+
+        col.x = math_utils::exp_lerp(col.x, target_col.x, target.speed, dt);
+        col.y = math_utils::exp_lerp(col.y, target_col.y, target.speed, dt);
+        col.z = math_utils::exp_lerp(col.z, target_col.z, target.speed, dt);
+        col.w = math_utils::exp_lerp(col.w, target_col.w, target.speed, dt);
+
+        value.Value = col;
     }
 
     bool is_close(const UIWidgetColor& target, float epsilon) const {
-        return std::fabs(value.x - target.value.x) <= epsilon && std::fabs(value.y - target.value.y) <= epsilon &&
-               std::fabs(value.z - target.value.z) <= epsilon && std::fabs(value.w - target.value.w) <= epsilon;
+        const ImVec4& col = value.Value;
+        const ImVec4& target_col = target.value.Value;
+
+        return std::fabs(col.x - target_col.x) <= epsilon && std::fabs(col.y - target_col.y) <= epsilon &&
+               std::fabs(col.z - target_col.z) <= epsilon && std::fabs(col.w - target_col.w) <= epsilon;
+    }
+
+    ImVec4 get() const {
+        return value.Value;
     }
 };
 
@@ -173,9 +185,7 @@ public:
     UIWidgetColor border_color;
     UIWidgetColor background_color;
 
-    static WidgetStyle lerp(const WidgetStyle& from, const WidgetStyle& target, float dt) {
-        WidgetStyle style = from;
-
+    static void lerp(WidgetStyle& style, const WidgetStyle& target, float dt) {
         style.color.tick(target.color, dt);
         style.border_color.tick(target.border_color, dt);
         style.background_color.tick(target.background_color, dt);
@@ -198,14 +208,14 @@ public:
                 value
             );
         }
+    }
 
+    void adopt_missing_keys_from(const WidgetStyle& target) {
         for (const auto& [key, target_value] : target.vars.vars) {
-            if (!style.vars.vars.contains(key)) {
-                style.vars.vars.emplace(key, target_value);
+            if (!vars.vars.contains(key)) {
+                vars.vars.emplace(key, target_value);
             }
         }
-
-        return style;
     }
 
     bool is_close_to(const WidgetStyle& target, float epsilon) const {
@@ -314,7 +324,7 @@ public:
         const WidgetStyle& to = styles[static_cast<size_t>(transition_data.to)];
 
         transition_data.elapsed += dt;
-        current_style = WidgetStyle::lerp(current_style, to, dt);
+        WidgetStyle::lerp(current_style, to, dt);
 
         if (current_style.is_close_to(to, TRANSITION_SETTLE_EPSILON)) {
             transition_data.end();
@@ -326,6 +336,7 @@ public:
             return;
         }
 
+        current_style.adopt_missing_keys_from(styles[static_cast<size_t>(type)]);
         transition_data.start(transition_data.to, type);
     }
 
