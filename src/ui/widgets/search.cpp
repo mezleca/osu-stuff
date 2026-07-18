@@ -70,7 +70,7 @@ void SearchInputWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
 
     ImGui::BeginChild(m_label.c_str(), size, child_flags, window_flags);
-    
+
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const float frame_height = ImGui::GetFrameHeight();
     const float row_start_y = ImGui::GetCursorPosY();
@@ -86,7 +86,7 @@ void SearchInputWidget::show() {
 
     const bool is_active = ImGui::IsItemActive();
     const bool is_hovered = ImGui::IsItemHovered();
-    
+
     ImGui::EndChild();
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);

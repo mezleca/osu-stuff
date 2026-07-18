@@ -1,8 +1,7 @@
+#include "parser/osdb/osdb.hpp"
+#include "helper.hpp"
+
 #include <catch2/catch_test_macros.hpp>
-
-#include "../src/parser/osdb/osdb.hpp"
-#include "test_helper.hpp"
-
 #include <cmath>
 
 TEST_CASE("osdb parser write / parse", "[parsers][osdb]") {

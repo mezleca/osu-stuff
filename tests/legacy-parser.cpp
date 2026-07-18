@@ -1,9 +1,8 @@
+#include "parser/legacy/legacy.hpp"
+#include "parser/legacy/legacy_collection.hpp"
+#include "helper.hpp"
+
 #include <catch2/catch_test_macros.hpp>
-
-#include "../src/parser/legacy/legacy.hpp"
-#include "../src/parser/legacy/legacy_collection.hpp"
-#include "test_helper.hpp"
-
 #include <algorithm>
 
 TEST_CASE("legacy parser read osu.db", "[parsers][legacy]") {
