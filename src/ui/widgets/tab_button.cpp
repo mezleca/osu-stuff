@@ -1,39 +1,36 @@
 #include "tab_button.hpp"
 #include "../ui.hpp"
 
-#include <format>
+static constexpr float TAB_LINE_ALPHA_SPEED = 18.0f;
+static constexpr float TAB_WIDTH_SPEED = 14.0f;
 
-static constexpr float ALPHA_ANIM_SPEED = 12.0f;
-static constexpr float TAB_TEXT_COLOR_ANIM_SPEED = 14.0f;
-static constexpr float TAB_LINE_ANIM_SPEED = 14.0f;
-static constexpr float TAB_LINE_ALPHA_ANIM_SPEED = 18.0f;
+TabButtonState::TabButtonState() : WidgetState() {
+    set_for_all_styles([&](WidgetStyle& style) {
+        style.color.value = ui_theme::TEXT_COLOR;
+        style.color.speed = 14.0f;
+    });
 
-static TabButtonStyle get_tab_button_target_style(bool visible, bool hovered, bool selected, bool is_title) {
-    TabButtonStyle style;
+    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
 
-    style.m_text_color.set((selected || is_title) ? ui_theme::ACCENT_COLOR : ui_theme::TEXT_COLOR);
+    auto set_var_float_for_style = [&](WidgetStyleType type, const std::string& key, float value, float speed) {
+        WidgetStyle& style = get_style(type);
+        UIWidgetFloat val;
+        val.value = value;
+        val.speed = speed;
+        style.vars.set(key, val);
+    };
 
-    if (!visible) {
-        style.m_line_alpha.value = 0.0f;
-        style.m_line_width.value = 0.0f;
-        return style;
-    }
+    // line bullshit
+    set_var_float_for_style(WidgetStyleType::DEFAULT, "line_alpha", 0.0f, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(WidgetStyleType::DEFAULT, "line_width", 0.0f, TAB_WIDTH_SPEED);
+    set_var_float_for_style(WidgetStyleType::HOVER, "line_alpha", ui_theme::HOVER_LINE_ALPHA, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(WidgetStyleType::HOVER, "line_width", 1.0f, TAB_WIDTH_SPEED);
+    set_var_float_for_style(WidgetStyleType::ACTIVE, "line_alpha", 1.0f, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(WidgetStyleType::ACTIVE, "line_width", 1.0f, TAB_WIDTH_SPEED);
 
-    if (selected) {
-        style.m_line_alpha.value = 1.0f;
-        style.m_line_width.value = 1.0f;
-        return style;
-    }
+    active_style.color.value = ui_theme::ACCENT_COLOR;
 
-    if (hovered) {
-        style.m_line_alpha.value = ui_theme::HOVER_LINE_ALPHA;
-        style.m_line_width.value = 1.0f;
-        return style;
-    }
-
-    style.m_line_alpha.value = 0.0f;
-    style.m_line_width.value = 0.0f;
-    return style;
+    snap_to_style(WidgetStyleType::DEFAULT);
 }
 
 TabButtonWidget::TabButtonWidget(UI* ui, std::string name, bool is_title, IconTexture* icon)
@@ -48,16 +45,19 @@ TabButtonWidget::TabButtonWidget(UI* ui, std::string name, bool is_title, IconTe
 }
 
 void TabButtonWidget::show(bool selected) {
-    if (m_state.is_hidden()) {
+    if (!m_state.is_visible()) {
         return;
     }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, m_state.alpha.value);
+    const float dt = ImGui::GetIO().DeltaTime;
+    const WidgetStyle& style = m_state.get_style();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, m_state.get_opacity());
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 6.0f});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
-    ImGui::PushStyleColor(ImGuiCol_Text, m_state.m_style.m_text_color.value);
+    ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
 
     const bool is_pressed = ImGui::Button(m_name.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
@@ -66,31 +66,19 @@ void TabButtonWidget::show(bool selected) {
         on_click();
     }
 
-    // tick button style
-    {
-        const float dt = ImGui::GetIO().DeltaTime;
-        auto target = get_tab_button_target_style(m_state.visible, is_hovered, selected, m_state.m_is_title);
-
-        m_state.tick(ALPHA_ANIM_SPEED, dt);
-
-        m_state.m_style.m_line_width.tick(target.m_line_width.value, TAB_LINE_ANIM_SPEED, dt);
-        m_state.m_style.m_line_alpha.tick(target.m_line_alpha.value, TAB_LINE_ALPHA_ANIM_SPEED, dt);
-        m_state.m_style.m_text_color.tick(target.m_text_color.value, TAB_TEXT_COLOR_ANIM_SPEED, dt);
-    }
-
     if (m_state.m_draw_line && !m_state.m_is_title) {
-        const float line_alpha = m_state.m_style.m_line_alpha.value;
-        const float line_width_t = m_state.m_style.m_line_width.value;
+        auto line_alpha = style.vars.get<UIWidgetFloat>("line_alpha").value();
+        auto line_width_t = style.vars.get<UIWidgetFloat>("line_width").value();
 
-        if (line_alpha > 0.0f) {
+        if (line_alpha.value > 0.0f) {
             const ImVec2 rect_min = ImGui::GetItemRectMin();
             const ImVec2 rect_max = ImGui::GetItemRectMax();
             const float full_width = rect_max.x - rect_min.x;
-            const float line_width = full_width * math_utils::smoothstep(line_width_t);
+            const float line_width = full_width * math_utils::smoothstep(line_width_t.value);
             const float line_x = rect_min.x + ((full_width - line_width) * 0.5f);
             const float line_y = rect_max.y + ui_theme::LINE_OFFSET;
             ImVec4 line_color = ui_theme::ACCENT_COLOR;
-            line_color.w *= line_alpha;
+            line_color.w *= line_alpha.value;
 
             ImGui::GetWindowDrawList()->AddRectFilled(
                 ImVec2{line_x, line_y}, ImVec2{line_x + line_width, line_y + ui_theme::LINE_HEIGHT},
@@ -101,4 +89,14 @@ void TabButtonWidget::show(bool selected) {
 
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(4);
+
+    if (is_pressed || selected) {
+        m_state.set_style(WidgetStyleType::ACTIVE);
+    } else if (is_hovered) {
+        m_state.set_style(WidgetStyleType::HOVER);
+    } else {
+        m_state.set_style(WidgetStyleType::DEFAULT);
+    }
+
+    m_state.update(dt);
 }

@@ -1,23 +1,11 @@
 #include "widget.hpp"
-#include "../theme.hpp"
 
 #include <functional>
 
 struct IconTexture;
 
-struct CollectionCardStyle : WidgetStyle {
-    AnimatedColor m_border_color = {ui_theme::TRANSPARENT};
-    AnimatedColor m_bg_color = {ui_theme::TRANSPARENT};
-
-    ImColor m_text_color = ui_theme::TEXT_COLOR;
-    ImColor m_icon_color = ui_theme::ACCENT_COLOR;
-};
-
-struct CollectionCardState : WidgetStyle {
-    CollectionCardStyle m_style;
-
-    // animated stuff
-    CollectionCardStyle style;
+struct CollectionCardState : public WidgetState {
+    explicit CollectionCardState();
 
     ImVec2 m_size = {150, 50};
     ImFont* m_font;
@@ -32,9 +20,9 @@ struct CollectionCardWidget : public UIWidget {
 
     void show();
 
-    CollectionCardState m_state = {};
-    UICachedText<std::string> m_name;
-    UICachedText<std::string> m_count;
+    CollectionCardState m_state;
+    UIText<std::string> m_name;
+    UIText<std::string> m_count;
     std::function<void()> on_click;
     std::function<void()> on_context;
     IconTexture* m_icon = nullptr;

@@ -1,7 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
+#include "parser/beatmap/beatmap.hpp"
+#include "helper.hpp"
 
-#include "../src/parser/beatmap/beatmap.hpp"
-#include "test_helper.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("beatmap parser read", "[parsers][beatmap]") {
     ParsedBeatmap beatmap;

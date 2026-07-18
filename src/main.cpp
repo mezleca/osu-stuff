@@ -49,8 +49,9 @@ int main() {
 
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
     SDL_WindowFlags window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
-    SDL_Window* window = SDL_CreateWindow("osu-stuff", (int)(DEFAULT_WIDTH * main_scale),
-                                          (int)(DEFAULT_HEIGHT * main_scale), window_flags);
+    SDL_Window* window = SDL_CreateWindow(
+        "osu-stuff", (int)(DEFAULT_WIDTH * main_scale), (int)(DEFAULT_HEIGHT * main_scale), window_flags
+    );
 
     if (window == nullptr) {
         std::cout << "SDL_CreateWindow(): " << SDL_GetError() << "\n";

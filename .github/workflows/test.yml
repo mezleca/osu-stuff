@@ -53,7 +53,10 @@ jobs:
                SCCACHE_GHA_ENABLED: "true"
 
             - name: test
-              run: python ./ez test
+              run: python ./ez tests
+              env:
+                  OSU_ID: ${{ secrets.OSU_ID }}
+                  OSU_SECRET: ${{ secrets.OSU_SECRET }}
 
             - name: sccache stats
               if: runner.os == 'Linux'

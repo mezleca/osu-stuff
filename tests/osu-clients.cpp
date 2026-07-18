@@ -1,14 +1,13 @@
+#include "clients/lazer.hpp"
+#include "clients/stable.hpp"
+#include "parser/legacy/legacy_collection.hpp"
+#include "helper.hpp"
+
+#include <catch2/catch_test_macros.hpp>
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <string_view>
-
-#include <catch2/catch_test_macros.hpp>
-
-#include "../src/clients/lazer.hpp"
-#include "../src/clients/stable.hpp"
-#include "../src/parser/legacy/legacy_collection.hpp"
-#include "test_helper.hpp"
 
 constexpr int STABLE_BEATMAP_COUNT = 47;
 constexpr int LAZER_BEATMAP_COUNT = 48;

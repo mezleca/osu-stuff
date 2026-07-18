@@ -1,10 +1,11 @@
 add_executable(tests
-    beatmap_parser_tests.cpp
-    clients_tests.cpp
-    legacy_parser_tests.cpp
-    stuff_utils.cpp
-    osdb_parser_tests.cpp
-    test_helper.hpp
+    beatmap-parser.cpp
+    osu-clients.cpp
+    legacy-parser.cpp
+    osdb-parser.cpp
+    ui-widgets.cpp
+    utils.cpp
+    helper.hpp
 )
 
 target_link_libraries(tests PRIVATE

@@ -2,9 +2,7 @@
 #include "ui/theme.hpp"
 #include "texture/icon.hpp"
 
-#include <stdexcept>
 #include <algorithm>
-#include <format>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 

@@ -36,7 +36,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CPR_CURL_USE_LIBPSL FALSE)
+set(SQLITECPP_BUILD_TESTS OFF)
 set(CPR_CURL_USE_LIBPSL FALSE CACHE BOOL "" FORCE)
 
 if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
@@ -47,7 +47,11 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(SQLITECPP_BUILD_TESTS OFF)
+if(MSVC)
+    add_compile_options(/W4 /EHsc /utf-8 /wd5105 /Zc:preprocessor)
+else()
+    add_compile_options(-Wall -Wextra -Wdeprecated-copy-with-user-provided-copy)
+endif()
 
 find_package(OpenGL REQUIRED)
 
@@ -93,9 +97,9 @@ list(FILTER SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUTPUT_NAME}")
-target_link_libraries(${PROJECT_NAME} PRIVATE osu-stuff-core)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-core)
 
-add_library(osu-stuff-core OBJECT
+add_library(${PROJECT_NAME}-core OBJECT
     ${SOURCES}
     ${HEADERS}
     ${IMGUI_CORE_SOURCES}
@@ -141,19 +145,12 @@ if(MSVC)
         NOMINMAX
         VC_EXTRALEAN
     )
-
-    target_compile_options(${PROJECT_NAME}-core PUBLIC
-        /W4
-        /EHsc
-        /utf-8
-        /wd5105
-        /Zc:preprocessor
-    )
 else()
     target_compile_options(${PROJECT_NAME}-core PUBLIC
-        -Wall
-        -Wextra
         -Wpedantic
+        -Wunused-variable
+        -Wunused-function
+        -Wunused-lambda-capture
 
         $<$<CONFIG:Debug>:-O0 -g3>
         $<$<CONFIG:Release>:-O2 -DNDEBUG>

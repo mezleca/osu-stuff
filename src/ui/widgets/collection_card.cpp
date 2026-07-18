@@ -2,9 +2,32 @@
 #include "../ui.hpp"
 #include "../custom.hpp"
 
-#include <format>
+constexpr float ALPHA_ANIM_SPEED = 12.0f;
 
-constexpr float ALPHA_ANIM_SPEED = 25.0f;
+CollectionCardState::CollectionCardState() : WidgetState() {
+    set_for_all_styles([](WidgetStyle& style) {
+        UIWidgetColor icon_color;
+        icon_color.value = ui_theme::ACCENT_COLOR;
+        icon_color.speed = ALPHA_ANIM_SPEED;
+        style.vars.set("icon_color", icon_color);
+
+        style.border_color.value = ui_theme::TRANSPARENT;
+        style.border_color.speed = ALPHA_ANIM_SPEED;
+
+        style.background_color.value = ui_theme::TRANSPARENT;
+        style.background_color.speed = ALPHA_ANIM_SPEED;
+    });
+
+    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
+    WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
+
+    active_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
+    active_style.background_color.value = ui_theme::ACCENT_COLOR_SECONDARY;
+
+    hover_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
+
+    snap_to_style(WidgetStyleType::DEFAULT);
+}
 
 CollectionCardWidget::CollectionCardWidget(UI* ui, std::string name, IconTexture* icon)
     : UIWidget(ui, "collection-card"), m_name(name), m_count("0 maps") {
@@ -19,8 +42,13 @@ CollectionCardWidget::CollectionCardWidget(UI* ui, std::string name, IconTexture
 }
 
 void CollectionCardWidget::show() {
+    if (!m_state.is_visible()) {
+        return;
+    }
+
     const float icon_size = 16.0f;
     const float dt = ImGui::GetIO().DeltaTime;
+    const WidgetStyle& style = m_state.get_style();
 
     ImVec2 size = m_state.m_size;
 
@@ -33,16 +61,10 @@ void CollectionCardWidget::show() {
     auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     auto child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
 
-    auto border_color = m_state.m_selected ? ui_theme::ACCENT_COLOR_HALF : ui_theme::TRANSPARENT;
-    auto bg_color = m_state.m_selected ? ui_theme::ACCENT_COLOR_SECONDARY : ui_theme::TRANSPARENT;
-
-    m_state.style.m_border_color.tick(border_color, ALPHA_ANIM_SPEED, dt);
-    m_state.style.m_bg_color.tick(bg_color, ALPHA_ANIM_SPEED, dt);
-
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, m_state.style.m_bg_color.value);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.background_color.get());
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
@@ -57,7 +79,9 @@ void CollectionCardWidget::show() {
         // music icon
         {
             ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-            custom_imgui::image(m_icon, {icon_size, icon_size}, m_state.style.m_icon_color);
+            custom_imgui::image(
+                m_icon, {icon_size, icon_size}, style.vars.get<UIWidgetColor>("icon_color").value().value
+            );
         }
 
         // name
@@ -85,19 +109,26 @@ void CollectionCardWidget::show() {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(4);
 
+    m_state.update(dt);
+
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();
 
     bool hovering_rect = ImGui::IsMouseHoveringRect(rect_min, rect_max);
 
-    if (on_click && hovering_rect && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        on_click();
+    if (hovering_rect) {
+        if (on_click && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) on_click();
+        if (on_context && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) on_context();
     }
 
-    if (on_context && hovering_rect && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-        on_context();
+    if (m_state.m_selected) {
+        m_state.set_style(WidgetStyleType::ACTIVE);
+    } else if (hovering_rect) {
+        m_state.set_style(WidgetStyleType::HOVER);
+    } else {
+        m_state.set_style(WidgetStyleType::DEFAULT);
     }
 
     auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(rect_min, rect_max, ImColor(m_state.style.m_border_color.value), ui_theme::BOX_ROUNDING, 0, 1.0f);
+    dl->AddRect(rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, 1.0f);
 }

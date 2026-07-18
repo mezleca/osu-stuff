@@ -94,8 +94,6 @@ def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored
     cmake_type = "Debug" if build_type == "debug" else "Release"
     cmd = [
         "cmake",
-        "-Wno-author", "-Wunused-variable", "-Wunused-function", "-Wunused-lambda-capture",
-        "-Wdeprecated-copy-with-user-provided-copy", "-Wunused-lambda-capture",
         "-G", "Ninja",
         "-B", str(BUILD_DIR),
         "-S", str(CWD),
@@ -496,7 +494,7 @@ def run_tests(build_type: str | None) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
 
-    parser.add_argument("command", choices=["init", "configure", "format", "build", "package", "clean", "run", "test"])
+    parser.add_argument("command", choices=["init", "configure", "format", "build", "package", "clean", "run", "tests"])
     parser.add_argument("--type", choices=["debug", "release"], default=None, dest="build_type")
     parser.add_argument("--package-type", choices=["flatpak", "inno", "portable"], default=None, dest="package_type")
     parser.add_argument("--platform", choices=["auto", "linux", "windows"], default="auto")
@@ -516,7 +514,7 @@ def main() -> None:
         "format":    format_code,
         "clean":     clean,
         "run":       run_binary,
-        "test":      lambda: run_tests(args.build_type),
+        "tests":      lambda: run_tests(args.build_type),
     }
 
     exit_code = commands[args.command]()

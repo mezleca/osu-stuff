@@ -1,5 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
+#include "utils/thread_pool.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -8,8 +9,6 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
-
-#include "utils/thread_pool.hpp"
 
 constexpr int TASK_COUNT = 16;
 constexpr int PRODUCER_COUNT = 4;
