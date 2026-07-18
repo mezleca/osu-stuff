@@ -18,7 +18,9 @@ SearchInputState::SearchInputState() : WidgetState() {
     WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
     WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
 
-    hover_style.vars.get<UIWidgetColor>("icon_color").value().value = {150, 150, 150, 255};
+    auto hover_icon_color = hover_style.vars.get<UIWidgetColor>("icon_color").value();
+    hover_icon_color.value = ImColor(150, 150, 150, 255).Value;
+    hover_style.vars.set("icon_color", hover_icon_color);
     hover_style.border_color.value = ui_theme::ACCENT_COLOR;
     active_style.border_color.value = ui_theme::ACCENT_COLOR;
 
