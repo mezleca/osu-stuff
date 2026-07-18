@@ -7,7 +7,7 @@ constexpr float ALPHA_ANIM_SPEED = 12.0f;
 CollectionCardState::CollectionCardState() : WidgetState() {
     set_for_all_styles([](WidgetStyle& style) {
         UIWidgetColor icon_color;
-        icon_color.value = {120, 120, 120, 255};
+        icon_color.value = ui_theme::ACCENT_COLOR;
         icon_color.speed = ALPHA_ANIM_SPEED;
         style.vars.set("icon_color", icon_color);
 
