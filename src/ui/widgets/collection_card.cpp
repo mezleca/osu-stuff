@@ -116,11 +116,14 @@ void CollectionCardWidget::show() {
 
     bool hovering_rect = ImGui::IsMouseHoveringRect(rect_min, rect_max);
 
+    if (hovering_rect) {
+        if (on_click && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) on_click();
+        if (on_context && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) on_context();
+    }
+
     if (m_state.m_selected) {
         m_state.set_style(WidgetStyleType::ACTIVE);
     } else if (hovering_rect) {
-        if (on_click && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) on_click();
-        if (on_context && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) on_context();
         m_state.set_style(WidgetStyleType::HOVER);
     } else {
         m_state.set_style(WidgetStyleType::DEFAULT);
