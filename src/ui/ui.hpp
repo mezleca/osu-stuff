@@ -13,6 +13,7 @@
 #include <vector>
 
 class UIModal;
+class UINotification;
 class IconTexture;
 class TabButtonWidget;
 class UITab;
@@ -69,12 +70,21 @@ public:
     void clear_modals();
     void handle_escape();
 
+    // notifications
+    void add_notification(std::unique_ptr<UINotification> notification);
+    [[nodiscard]] UINotification* get_notification(size_t index);
+    [[nodiscard]] const UINotification* get_notification(size_t index) const;
+    [[nodiscard]] size_t notification_count() const;
+    [[nodiscard]] bool remove_notification(size_t index);
+    void clear_notifications();
+
 private:
     FrameCounter m_counter;
     UIFont m_fonts[FONT_COUNT];
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
     std::vector<std::unique_ptr<UIModal>> m_modals;
+    std::vector<std::unique_ptr<UINotification>> m_notifications;
     bool m_done = false;
     SDL_Window* m_window;
     ImGuiIO* m_io;

@@ -3,6 +3,7 @@
 #include "widgets/tab_button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
+#include "widgets/notification.hpp"
 #include "texture/icon.hpp"
 
 #include <algorithm>
@@ -259,6 +260,47 @@ void UI::handle_escape() {
         modal->on_escape();
         return;
     }
+}
+
+void UI::add_notification(std::unique_ptr<UINotification> notification) {
+    if (notification == nullptr) {
+        return;
+    }
+
+    m_notifications.push_back(std::move(notification));
+}
+
+UINotification* UI::get_notification(size_t index) {
+    if (index >= m_notifications.size()) {
+        return nullptr;
+    }
+
+    return m_notifications[index].get();
+}
+
+const UINotification* UI::get_notification(size_t index) const {
+    if (index >= m_notifications.size()) {
+        return nullptr;
+    }
+
+    return m_notifications[index].get();
+}
+
+size_t UI::notification_count() const {
+    return m_notifications.size();
+}
+
+bool UI::remove_notification(size_t index) {
+    if (index >= m_notifications.size()) {
+        return false;
+    }
+
+    m_notifications.erase(m_notifications.begin() + index);
+    return true;
+}
+
+void UI::clear_notifications() {
+    m_notifications.clear();
 }
 
 void UI::process_sdl_event(SDL_Event* event) {
