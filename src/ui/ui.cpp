@@ -12,6 +12,17 @@
 #include <imgui_impl_sdl3.h>
 #include <filesystem>
 #include <iostream>
+#include <cstdlib>
+
+static UI* CURRENT_UI = nullptr;
+
+UI& ui::current() {
+    if (CURRENT_UI == nullptr) {
+        std::abort();
+    }
+
+    return *CURRENT_UI;
+}
 
 static const std::string DEFAULT_WARN_SVG = R"(
     <svg
@@ -29,6 +40,8 @@ static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags_NoDecoration |
                                                  ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
+    CURRENT_UI = this;
+
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
     ImGui::CreateContext();
@@ -124,12 +137,12 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     }
 
     // create / intitialize tabs
-    m_tabs.push_back({TabButtonWidget{this, "osu-stuff", true}, std::make_unique<IndexTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "collections"}, std::make_unique<CollectionTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "discover"}, std::make_unique<DiscoverTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "radio"}, std::make_unique<RadioTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "config"}, std::make_unique<ConfigTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "status"}, std::make_unique<StatusTab>(this)});
+    m_tabs.push_back({TabButtonWidget{"osu-stuff", true}, std::make_unique<IndexTab>()});
+    m_tabs.push_back({TabButtonWidget{"collections"}, std::make_unique<CollectionTab>()});
+    m_tabs.push_back({TabButtonWidget{"discover"}, std::make_unique<DiscoverTab>()});
+    m_tabs.push_back({TabButtonWidget{"radio"}, std::make_unique<RadioTab>()});
+    m_tabs.push_back({TabButtonWidget{"config"}, std::make_unique<ConfigTab>()});
+    m_tabs.push_back({TabButtonWidget{"status"}, std::make_unique<StatusTab>()});
 
     m_current_tab = m_tabs.front().second.get();
 
@@ -158,6 +171,7 @@ void UI::update_counter() {
 }
 
 UI::~UI() {
+    CURRENT_UI = nullptr;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();

@@ -1,13 +1,17 @@
 #include "search.hpp"
-#include "../custom.hpp"
 #include "../ui.hpp"
+#include "../theme.hpp"
 
 #include <imgui_stdlib.h>
 
 static constexpr float ALPHA_ANIM_SPEED = 12.0f;
 
-SearchInputState::SearchInputState() : WidgetState() {
-    set_for_all_styles([](WidgetStyle& style) {
+SearchInputWidget::SearchInputWidget(std::string& value, IconTexture* icon)
+    : UIWidget("search-input"), m_label("##{}-search-input"), m_value(&value), m_icon(icon), m_icon_image(icon) {
+
+    UI& ui = ui::current();
+
+    state().set_for_all_styles([](UIStyle& style) {
         UIWidgetColor icon_color;
         icon_color.value = {120, 120, 120, 255};
         icon_color.speed = ALPHA_ANIM_SPEED;
@@ -15,44 +19,46 @@ SearchInputState::SearchInputState() : WidgetState() {
         style.variables().set("icon_color", icon_color);
     });
 
-    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
-    WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
+    UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
+    UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
 
     UIWidgetColor* hover_icon_color = hover_style.variables().get<UIWidgetColor>("icon_color");
+
     if (hover_icon_color != nullptr) {
         hover_icon_color->value = ImColor(150, 150, 150, 255).Value;
     }
+
     hover_style.border_color.value = ui_theme::ACCENT_COLOR;
     active_style.border_color.value = ui_theme::ACCENT_COLOR;
 
-    snap_to_style(WidgetStyleType::DEFAULT);
-}
-
-SearchInputWidget::SearchInputWidget(UI* ui, std::string& value, IconTexture* icon)
-    : UIWidget(ui, "search-input"), m_label("##{}-search-input"), m_value(&value) {
+    state().snap_to_style(UIStyleType::DEFAULT);
     m_label.set({static_cast<void*>(this)});
 
-    if (icon) {
-        m_icon = icon;
-    } else {
-        m_icon = m_ui->get_texture("default");
+    if (m_icon == nullptr) {
+        m_icon = ui.get_texture("default");
     }
+
+    m_icon_image.set_texture(m_icon);
+}
+
+void SearchInputWidget::set_fit_width(bool value) {
+    m_fit_width = value;
 }
 
 void SearchInputWidget::show() {
-    if (!m_state.is_visible()) {
+    if (!state().is_visible()) {
         return;
     }
 
     const float icon_size = 18.0f;
     const float dt = ImGui::GetIO().DeltaTime;
-    const WidgetStyle& style = m_state.get_style();
+    const UIStyle& style = state().get_style();
 
-    ImVec2 size = m_state.m_size;
+    ImVec2 size = m_size;
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
-        if (m_state.m_fit_width) {
+        if (m_fit_width) {
             size.x = available.x;
         }
 
@@ -78,7 +84,9 @@ void SearchInputWidget::show() {
 
     ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
     const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
-    custom_imgui::image(m_icon, {icon_size, icon_size}, icon_color != nullptr ? icon_color->value : ImColor{});
+    m_icon_image.set_size({icon_size, icon_size});
+    m_icon_image.set_color(icon_color != nullptr ? icon_color->value : ImColor{});
+    m_icon_image.show();
 
     ImGui::SameLine(0.0f, 10.0f);
     ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
@@ -94,14 +102,14 @@ void SearchInputWidget::show() {
     ImGui::PopStyleColor(3);
 
     if (is_active) {
-        m_state.set_style(WidgetStyleType::ACTIVE);
+        state().set_style(UIStyleType::ACTIVE);
     } else if (is_hovered) {
-        m_state.set_style(WidgetStyleType::HOVER);
+        state().set_style(UIStyleType::HOVER);
     } else {
-        m_state.set_style(WidgetStyleType::DEFAULT);
+        state().set_style(UIStyleType::DEFAULT);
     }
 
-    m_state.update(dt);
+    state().update(dt);
 
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();

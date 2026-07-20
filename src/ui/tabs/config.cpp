@@ -1,8 +1,6 @@
 #include "detail.hpp"
-#include "../theme.hpp"
-#include "../custom.hpp"
 
-ConfigTab::ConfigTab(UI* ui) : UITab(ui) {
+ConfigTab::ConfigTab() {
     m_id = "config";
 }
 

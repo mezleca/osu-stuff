@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../../utils/math.hpp"
+#include "../../../utils/math.hpp"
 
 #include <cmath>
-#include <cstdint>
 #include <string>
 #include <utility>
 #include <variant>

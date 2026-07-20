@@ -17,6 +17,11 @@ class UINotification;
 class IconTexture;
 class TabButtonWidget;
 class UITab;
+class UI;
+
+namespace ui {
+    UI& current();
+}
 
 struct FrameCounter {
     Uint64 last_time = 0;

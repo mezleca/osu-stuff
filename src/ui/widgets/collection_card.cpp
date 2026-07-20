@@ -1,11 +1,17 @@
 #include "collection_card.hpp"
 #include "../ui.hpp"
-#include "../custom.hpp"
+#include "../theme.hpp"
 
 constexpr float ALPHA_ANIM_SPEED = 12.0f;
 
-CollectionCardState::CollectionCardState() : WidgetState() {
-    set_for_all_styles([](WidgetStyle& style) {
+CollectionCardWidget::CollectionCardWidget(std::string name, IconTexture* icon)
+    : UIWidget("collection-card"), m_name(name), m_count("0 maps"), m_icon(icon), m_icon_image(icon) {
+
+    UI& ui = ui::current();
+    UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
+    UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
+
+    state().set_for_all_styles([](UIStyle& style) {
         UIWidgetColor icon_color;
         icon_color.value = ui_theme::ACCENT_COLOR;
         icon_color.speed = ALPHA_ANIM_SPEED;
@@ -18,39 +24,45 @@ CollectionCardState::CollectionCardState() : WidgetState() {
         style.background_color.speed = ALPHA_ANIM_SPEED;
     });
 
-    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
-    WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
-
     active_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
     active_style.background_color.value = ui_theme::ACCENT_COLOR_SECONDARY;
 
     hover_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
 
-    snap_to_style(WidgetStyleType::DEFAULT);
+    state().snap_to_style(UIStyleType::DEFAULT);
+    ImFont* font = ui.get_font(TORUS_SEMI).get(18);
+    m_font_small = ui.get_font(TORUS_SEMI).get(14);
+    state().set_for_all_styles([font](UIStyle& style) { style.font = font; });
+
+    if (m_icon == nullptr) {
+        m_icon = ui.get_texture("default");
+    }
+
+    m_icon_image.set_texture(m_icon);
 }
 
-CollectionCardWidget::CollectionCardWidget(UI* ui, std::string name, IconTexture* icon)
-    : UIWidget(ui, "collection-card"), m_name(name), m_count("0 maps") {
-    m_state.m_font = m_ui->get_font(TORUS_SEMI).get(18);
-    m_state.m_font_small = m_ui->get_font(TORUS_SEMI).get(14);
+void CollectionCardWidget::set_selected(bool value) {
+    m_selected = value;
+}
 
-    if (icon) {
-        m_icon = icon;
-    } else {
-        m_icon = m_ui->get_texture("default");
-    }
+void CollectionCardWidget::toggle_selected() {
+    m_selected = !m_selected;
+}
+
+bool CollectionCardWidget::is_selected() const {
+    return m_selected;
 }
 
 void CollectionCardWidget::show() {
-    if (!m_state.is_visible()) {
+    if (!state().is_visible()) {
         return;
     }
 
     const float icon_size = 16.0f;
     const float dt = ImGui::GetIO().DeltaTime;
-    const WidgetStyle& style = m_state.get_style();
+    const UIStyle& style = state().get_style();
 
-    ImVec2 size = m_state.m_size;
+    ImVec2 size = m_size;
 
     // collection card will always use the full width
     {
@@ -71,7 +83,7 @@ void CollectionCardWidget::show() {
 
     ImGui::BeginChild(m_name.c_str(), size, child_flags, window_flags);
     {
-        ImGui::PushFont(m_state.m_font);
+        ImGui::PushFont(style.font);
 
         const ImVec2 available = ImGui::GetContentRegionAvail();
         const float row_start_y = ImGui::GetCursorPosY();
@@ -80,7 +92,9 @@ void CollectionCardWidget::show() {
         {
             ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
             const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
-            custom_imgui::image(m_icon, {icon_size, icon_size}, icon_color != nullptr ? icon_color->value : ImColor{});
+            m_icon_image.set_size({icon_size, icon_size});
+            m_icon_image.set_color(icon_color != nullptr ? icon_color->value : ImColor{});
+            m_icon_image.show();
         }
 
         // name
@@ -92,7 +106,7 @@ void CollectionCardWidget::show() {
 
         // count
         {
-            ImGui::PushFont(m_state.m_font_small);
+            ImGui::PushFont(m_font_small);
             ImGui::SameLine();
 
             ImGui::SetCursorPosX(available.x - m_count.text_size().x);
@@ -108,7 +122,7 @@ void CollectionCardWidget::show() {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(4);
 
-    m_state.update(dt);
+    state().update(dt);
 
     const ImVec2 rect_min = ImGui::GetItemRectMin();
     const ImVec2 rect_max = ImGui::GetItemRectMax();
@@ -120,12 +134,12 @@ void CollectionCardWidget::show() {
         if (m_oncontext && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) m_oncontext();
     }
 
-    if (m_state.m_selected) {
-        m_state.set_style(WidgetStyleType::ACTIVE);
+    if (m_selected) {
+        state().set_style(UIStyleType::ACTIVE);
     } else if (hovering_rect) {
-        m_state.set_style(WidgetStyleType::HOVER);
+        state().set_style(UIStyleType::HOVER);
     } else {
-        m_state.set_style(WidgetStyleType::DEFAULT);
+        state().set_style(UIStyleType::DEFAULT);
     }
 
     auto* dl = ImGui::GetWindowDrawList();

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "widget.hpp"
+#include "base/widget.hpp"
+#include "base/text.hpp"
 
 #include <functional>
 #include <cstdint>
@@ -12,26 +13,20 @@ enum class NotificationType : int32_t {
     ACTION
 };
 
-struct NotificationState : public WidgetState {
-    explicit NotificationState();
-
-    ImFont* m_font;
-    ImVec2 m_size = {64.0f, 64.0f};
-};
-
-class UINotification {
+class UINotification : public UIWidget {
 public:
+    UINotification() : UIWidget("notification") {
+    }
+
     virtual ~UINotification() = default;
 
     virtual void render() = 0;
     [[nodiscard]] virtual NotificationType get_type() const = 0;
-
-    NotificationState m_state;
 };
 
-class DefaultNotification : public UINotification, public UIWidget {
+class DefaultNotification : public UINotification {
 public:
-    explicit DefaultNotification(UI* ui, std::string text);
+    explicit DefaultNotification(std::string text);
 
     void render() override;
     [[nodiscard]] NotificationType get_type() const override {

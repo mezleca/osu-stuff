@@ -1,25 +1,24 @@
 #pragma once
 
-#include "widget.hpp"
+#include "base/widget.hpp"
+#include "base/text.hpp"
+#include "image.hpp"
 
 class IconTexture;
 
-struct SearchInputState : public WidgetState {
-    explicit SearchInputState();
-
-    ImVec2 m_size = {120, 30};
-    bool m_focused = false;
-    bool m_fit_width = false;
-};
-
 class SearchInputWidget : public UIWidget {
 public:
-    explicit SearchInputWidget(UI* ui, std::string& value, IconTexture* icon = nullptr);
+    explicit SearchInputWidget(std::string& value, IconTexture* icon = nullptr);
 
     void show();
+    void set_fit_width(bool value);
 
-    SearchInputState m_state;
     UITextFormatted<void*> m_label;
     std::string* m_value;
     IconTexture* m_icon = nullptr;
+    UIImageWidget m_icon_image;
+
+private:
+    ImVec2 m_size = {120.0f, 30.0f};
+    bool m_fit_width = false;
 };

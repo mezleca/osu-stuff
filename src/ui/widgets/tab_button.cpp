@@ -5,16 +5,17 @@
 static constexpr float TAB_LINE_ALPHA_SPEED = 18.0f;
 static constexpr float TAB_WIDTH_SPEED = 14.0f;
 
-TabButtonState::TabButtonState() : WidgetState() {
-    set_for_all_styles([&](WidgetStyle& style) {
+TabButtonWidget::TabButtonWidget(std::string name, bool is_title, IconTexture* icon)
+    : UIWidget("tab-button"), m_name(name), m_icon(icon), m_is_title(is_title) {
+    state().set_for_all_styles([&](UIStyle& style) {
         style.color.value = ui_theme::TEXT_COLOR;
         style.color.speed = 14.0f;
     });
 
-    WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
+    UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
 
-    auto set_var_float_for_style = [&](WidgetStyleType type, const std::string& key, float value, float speed) {
-        WidgetStyle& style = get_style(type);
+    auto set_var_float_for_style = [&](UIStyleType type, const std::string& key, float value, float speed) {
+        UIStyle& style = state().get_style(type);
         UIWidgetFloat val;
         val.value = value;
         val.speed = speed;
@@ -22,38 +23,31 @@ TabButtonState::TabButtonState() : WidgetState() {
     };
 
     // line bullshit
-    set_var_float_for_style(WidgetStyleType::DEFAULT, "line_alpha", 0.0f, TAB_LINE_ALPHA_SPEED);
-    set_var_float_for_style(WidgetStyleType::DEFAULT, "line_width", 0.0f, TAB_WIDTH_SPEED);
-    set_var_float_for_style(WidgetStyleType::HOVER, "line_alpha", ui_theme::HOVER_LINE_ALPHA, TAB_LINE_ALPHA_SPEED);
-    set_var_float_for_style(WidgetStyleType::HOVER, "line_width", 1.0f, TAB_WIDTH_SPEED);
-    set_var_float_for_style(WidgetStyleType::ACTIVE, "line_alpha", 1.0f, TAB_LINE_ALPHA_SPEED);
-    set_var_float_for_style(WidgetStyleType::ACTIVE, "line_width", 1.0f, TAB_WIDTH_SPEED);
+    set_var_float_for_style(UIStyleType::DEFAULT, "line_alpha", 0.0f, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(UIStyleType::DEFAULT, "line_width", 0.0f, TAB_WIDTH_SPEED);
+    set_var_float_for_style(UIStyleType::HOVER, "line_alpha", ui_theme::HOVER_LINE_ALPHA, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(UIStyleType::HOVER, "line_width", 1.0f, TAB_WIDTH_SPEED);
+    set_var_float_for_style(UIStyleType::ACTIVE, "line_alpha", 1.0f, TAB_LINE_ALPHA_SPEED);
+    set_var_float_for_style(UIStyleType::ACTIVE, "line_width", 1.0f, TAB_WIDTH_SPEED);
 
     active_style.color.value = ui_theme::ACCENT_COLOR;
 
-    snap_to_style(WidgetStyleType::DEFAULT);
-}
+    state().snap_to_style(UIStyleType::DEFAULT);
 
-TabButtonWidget::TabButtonWidget(UI* ui, std::string name, bool is_title, IconTexture* icon)
-    : UIWidget(ui, "tab-button"), m_name(name) {
-    m_state.m_is_title = is_title;
-
-    if (icon) {
-        m_icon = icon;
-    } else {
-        m_icon = m_ui->get_texture("default");
+    if (m_icon == nullptr) {
+        m_icon = ui::current().get_texture("default");
     }
 }
 
 void TabButtonWidget::show(bool selected) {
-    if (!m_state.is_visible()) {
+    if (!state().is_visible()) {
         return;
     }
 
     const float dt = ImGui::GetIO().DeltaTime;
-    const WidgetStyle& style = m_state.get_style();
+    const UIStyle& style = state().get_style();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, m_state.get_opacity());
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 6.0f});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{});
@@ -67,7 +61,7 @@ void TabButtonWidget::show(bool selected) {
         m_onclick();
     }
 
-    if (m_state.m_draw_line && !m_state.m_is_title) {
+    if (m_draw_line && !m_is_title) {
         const UIWidgetFloat* line_alpha = style.variables().get<UIWidgetFloat>("line_alpha");
         const UIWidgetFloat* line_width_t = style.variables().get<UIWidgetFloat>("line_width");
 
@@ -92,12 +86,12 @@ void TabButtonWidget::show(bool selected) {
     ImGui::PopStyleColor(4);
 
     if (is_pressed || selected) {
-        m_state.set_style(WidgetStyleType::ACTIVE);
+        state().set_style(UIStyleType::ACTIVE);
     } else if (is_hovered) {
-        m_state.set_style(WidgetStyleType::HOVER);
+        state().set_style(UIStyleType::HOVER);
     } else {
-        m_state.set_style(WidgetStyleType::DEFAULT);
+        state().set_style(UIStyleType::DEFAULT);
     }
 
-    m_state.update(dt);
+    state().update(dt);
 }
