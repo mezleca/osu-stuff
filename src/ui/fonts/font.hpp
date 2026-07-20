@@ -20,7 +20,7 @@ enum UIFontVar : int32_t {
     FONT_EXTRA_LARGE = 32
 };
 
-struct UIFont {
+class UIFont {
 public:
     void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
 

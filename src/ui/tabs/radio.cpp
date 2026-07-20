@@ -7,11 +7,11 @@ RadioTab::RadioTab(UI* ui) : UITab(ui) {
 }
 
 void RadioTab::setup() {
-    m_initialized = true;
+    mark_initialized();
 }
 
 void RadioTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 

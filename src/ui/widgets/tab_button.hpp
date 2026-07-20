@@ -2,8 +2,8 @@
 
 #include <functional>
 
-struct IconTexture;
-struct UI;
+class IconTexture;
+class UI;
 
 struct TabButtonState : public WidgetState {
     explicit TabButtonState();
@@ -12,13 +12,14 @@ struct TabButtonState : public WidgetState {
     bool m_is_title = false;
 };
 
-struct TabButtonWidget : public UIWidget {
+class TabButtonWidget : public UIWidget {
+public:
     explicit TabButtonWidget(UI* ui, std::string name, bool is_title = false, IconTexture* texture = nullptr);
 
     void show(bool selected);
 
     TabButtonState m_state;
     UIText<std::string> m_name;
-    std::function<void()> on_click;
+    std::function<void()> m_onclick;
     IconTexture* m_icon = nullptr;
 };

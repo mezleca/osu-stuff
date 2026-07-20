@@ -25,11 +25,11 @@ void CollectionTab::setup() {
     auto search_icon = m_ui->get_texture("search-icon");
     auto music_icon = m_ui->get_texture("music-icon");
 
-    m_collection_input = std::make_unique<SearchInputWidget>(m_ui, search_icon);
-    m_beatmaps_input = std::make_unique<SearchInputWidget>(m_ui, search_icon);
+    m_collection_input = std::make_unique<SearchInputWidget>(m_ui, m_collection_search, search_icon);
+    m_beatmaps_input = std::make_unique<SearchInputWidget>(m_ui, m_beatmaps_search, search_icon);
     m_collection_card = std::make_unique<CollectionCardWidget>(m_ui, "Penis", music_icon);
 
-    m_collection_card->on_click = [&]() {
+    m_collection_card->m_onclick = [&]() {
         std::cout << "clicked on a card\n";
 
         m_collection_card->m_name.set("Penis 2");
@@ -37,25 +37,21 @@ void CollectionTab::setup() {
         m_collection_card->m_state.m_selected = !m_collection_card->m_state.m_selected;
     };
 
-    m_collection_card->on_context = []() { std::cout << "context on a card \n"; };
+    m_collection_card->m_oncontext = []() { std::cout << "context on a card \n"; };
     m_collection_input->m_state.m_fit_width = true;
 
-    m_initialized = true;
+    mark_initialized();
 }
 
 void CollectionTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 
-    static bool set_collection_child_x = false;
-    static std::string collection_search;
-
     const ImVec2 available = ImGui::GetContentRegionAvail();
 
-    if (!set_collection_child_x) {
+    if (m_collection_child_state.m_size.x <= 0.0f) {
         m_collection_child_state.m_size.x = COLLECTION_PANEL_WIDTH_PERCENT * available.x / PERCENT_DIVISOR;
-        set_collection_child_x = true;
     }
 
     m_collection_child_state.m_size.y = available.y;

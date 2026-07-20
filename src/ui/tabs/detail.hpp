@@ -7,7 +7,8 @@
 
 #include <memory>
 
-struct IndexTab : public UITab {
+class IndexTab : public UITab {
+public:
     explicit IndexTab(UI* ui);
     ~IndexTab() override = default;
 
@@ -15,7 +16,8 @@ struct IndexTab : public UITab {
     void render() override;
 };
 
-struct CollectionTab : public UITab {
+class CollectionTab : public UITab {
+public:
     explicit CollectionTab(UI* ui);
     ~CollectionTab() override = default;
 
@@ -28,9 +30,12 @@ private:
     std::unique_ptr<SearchInputWidget> m_collection_input;
     std::unique_ptr<SearchInputWidget> m_beatmaps_input;
     std::unique_ptr<CollectionCardWidget> m_collection_card;
+    std::string m_collection_search;
+    std::string m_beatmaps_search;
 };
 
-struct DiscoverTab : public UITab {
+class DiscoverTab : public UITab {
+public:
     explicit DiscoverTab(UI* ui);
     ~DiscoverTab() override = default;
 
@@ -38,7 +43,8 @@ struct DiscoverTab : public UITab {
     void render() override;
 };
 
-struct RadioTab : public UITab {
+class RadioTab : public UITab {
+public:
     explicit RadioTab(UI* ui);
     ~RadioTab() override = default;
 
@@ -46,14 +52,16 @@ struct RadioTab : public UITab {
     void render() override;
 };
 
-struct ConfigTab : public UITab {
+class ConfigTab : public UITab {
+public:
     explicit ConfigTab(UI* ui);
     ~ConfigTab() override = default;
     void setup() override;
     void render() override;
 };
 
-struct StatusTab : public UITab {
+class StatusTab : public UITab {
+public:
     explicit StatusTab(UI* ui);
     ~StatusTab() override = default;
 

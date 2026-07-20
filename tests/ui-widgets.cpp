@@ -24,17 +24,17 @@ TEST_CASE("StyleVariableStore set/get", "[VariableStore]") {
     store.set("rounding", UIWidgetFloat{4.0f, 0.0f});
     store.set("rounding", UIWidgetFloat{8.0f, 0.0f});
 
-    auto v = store.get<UIWidgetFloat>("rounding");
+    const UIWidgetFloat* v = store.get<UIWidgetFloat>("rounding");
 
-    REQUIRE(v.has_value());
-    REQUIRE(v.value().value == 8.0f);
+    REQUIRE(v != nullptr);
+    REQUIRE(v->value == 8.0f);
 
-    SECTION("wrong type returns nullopt") {
-        REQUIRE_FALSE(store.get<UIWidgetInt>("rounding").has_value());
+    SECTION("wrong type returns null") {
+        REQUIRE(store.get<UIWidgetInt>("rounding") == nullptr);
     }
 
-    SECTION("missing key returns nullopt") {
-        REQUIRE_FALSE(store.get<UIWidgetFloat>("missing").has_value());
+    SECTION("missing key returns null") {
+        REQUIRE(store.get<UIWidgetFloat>("missing") == nullptr);
     }
 }
 
@@ -43,13 +43,13 @@ TEST_CASE("set_for_all_styles applies to every style slot", "[WidgetState]") {
 
     state.set_for_all_styles([](WidgetStyle& style) {
         style.color.set_speed(10.0f);
-        style.vars.set("rounding", UIWidgetFloat{4.0f, 0.0f});
+        style.variables().set("rounding", UIWidgetFloat{4.0f, 0.0f});
     });
 
     for (int i = 0; i < static_cast<int>(WidgetStyleType::_COUNT); ++i) {
         WidgetStyle& s = state.get_style(static_cast<WidgetStyleType>(i));
         REQUIRE(s.color.speed == 10.0f);
-        REQUIRE(s.vars.get<UIWidgetFloat>("rounding").value().value == 4.0f);
+        REQUIRE(s.variables().get<UIWidgetFloat>("rounding")->value == 4.0f);
     }
 }
 
@@ -60,23 +60,23 @@ TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") 
     state.get_style(WidgetStyleType::HOVER).color.set({1.0f, 0.0f, 0.0f, 1.0f});
     state.get_style(WidgetStyleType::HOVER).color.set_speed(8.0f);
 
-    state.get_style(WidgetStyleType::HOVER).vars.set("rounding", UIWidgetFloat{10.0f, 8.0f});
-    state.get_style(WidgetStyleType::DEFAULT).vars.set("rounding", UIWidgetFloat{0.0f, 0.0f});
+    state.get_style(WidgetStyleType::HOVER).variables().set("rounding", UIWidgetFloat{10.0f, 8.0f});
+    state.get_style(WidgetStyleType::DEFAULT).variables().set("rounding", UIWidgetFloat{0.0f, 0.0f});
 
-    state.get_style(WidgetStyleType::HOVER).vars.set("enabled", UIWidgetBool{true});
-    state.get_style(WidgetStyleType::DEFAULT).vars.set("enabled", UIWidgetBool{false});
+    state.get_style(WidgetStyleType::HOVER).variables().set("enabled", UIWidgetBool{true});
+    state.get_style(WidgetStyleType::DEFAULT).variables().set("enabled", UIWidgetBool{false});
 
     UIWidgetVec2 hover_offset;
     hover_offset.value = {5.0f, 5.0f};
     hover_offset.speed = 8.0f;
-    state.get_style(WidgetStyleType::HOVER).vars.set("offset", hover_offset);
+    state.get_style(WidgetStyleType::HOVER).variables().set("offset", hover_offset);
 
     UIWidgetVec2 default_offset;
     default_offset.value = {0.0f, 0.0f};
-    state.get_style(WidgetStyleType::DEFAULT).vars.set("offset", default_offset);
+    state.get_style(WidgetStyleType::DEFAULT).variables().set("offset", default_offset);
 
-    state.get_style(WidgetStyleType::HOVER).vars.set("count", UIWidgetInt{100, 8.0f});
-    state.get_style(WidgetStyleType::DEFAULT).vars.set("count", UIWidgetInt{0, 0.0f});
+    state.get_style(WidgetStyleType::HOVER).variables().set("count", UIWidgetInt{100, 8.0f});
+    state.get_style(WidgetStyleType::DEFAULT).variables().set("count", UIWidgetInt{0, 0.0f});
 
     state.snap_to_style(WidgetStyleType::DEFAULT);
     state.set_style(WidgetStyleType::HOVER);
@@ -97,7 +97,7 @@ TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") 
     REQUIRE(settled);
 
     SECTION("discrete type snaps immediately") {
-        REQUIRE(state.get_style().vars.get<UIWidgetBool>("enabled").value().value == true);
+        REQUIRE(state.get_style().variables().get<UIWidgetBool>("enabled")->value == true);
     }
 
     SECTION("color converges") {
@@ -106,16 +106,16 @@ TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") 
 
     SECTION("float var converges") {
         REQUIRE(
-            state.get_style().vars.get<UIWidgetFloat>("rounding").value().value == Catch::Approx(10.0f).margin(0.1f)
+            state.get_style().variables().get<UIWidgetFloat>("rounding")->value == Catch::Approx(10.0f).margin(0.1f)
         );
     }
 
     SECTION("vec2 var converges") {
-        REQUIRE(state.get_style().vars.get<UIWidgetVec2>("offset").value().value.x == Catch::Approx(5.0f).margin(0.1f));
+        REQUIRE(state.get_style().variables().get<UIWidgetVec2>("offset")->value.x == Catch::Approx(5.0f).margin(0.1f));
     }
 
     SECTION("int var reaches exact target") {
-        REQUIRE(state.get_style().vars.get<UIWidgetInt>("count").value().value == 100);
+        REQUIRE(state.get_style().variables().get<UIWidgetInt>("count")->value == 100);
     }
 }
 
@@ -161,15 +161,15 @@ TEST_CASE("UIWidgetInt interpolates gradually", "[ui_widget_int]") {
 TEST_CASE("a var introduced only on the target style still appears after transition", "[widget_state][regression]") {
     WidgetState state;
 
-    state.get_style(WidgetStyleType::DEFAULT).vars.set("line_alpha", UIWidgetFloat{0.0f, 18.0f});
-    state.get_style(WidgetStyleType::HOVER).vars.set("line_alpha", UIWidgetFloat{1.0f, 18.0f});
+    state.get_style(WidgetStyleType::DEFAULT).variables().set("line_alpha", UIWidgetFloat{0.0f, 18.0f});
+    state.get_style(WidgetStyleType::HOVER).variables().set("line_alpha", UIWidgetFloat{1.0f, 18.0f});
 
-    REQUIRE_FALSE(state.get_style().vars.get<UIWidgetFloat>("line_alpha").has_value());
+    REQUIRE(state.get_style().variables().get<UIWidgetFloat>("line_alpha") == nullptr);
 
     state.set_style(WidgetStyleType::HOVER);
     state.update(1.0f / 60.0f); // first transition frame
 
-    REQUIRE(state.get_style().vars.get<UIWidgetFloat>("line_alpha").has_value());
+    REQUIRE(state.get_style().variables().get<UIWidgetFloat>("line_alpha") != nullptr);
 }
 
 TEST_CASE("UIText caches and only recomputes on value change", "[ui_text]") {

@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <filesystem>
 
-struct IconTexture {
+class IconTexture {
 public:
     explicit IconTexture(std::filesystem::path& location);
     explicit IconTexture(std::string_view location);

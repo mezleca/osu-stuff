@@ -7,11 +7,11 @@ IndexTab::IndexTab(UI* ui) : UITab(ui) {
 }
 
 void IndexTab::setup() {
-    m_initialized = true;
+    mark_initialized();
 }
 
 void IndexTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 

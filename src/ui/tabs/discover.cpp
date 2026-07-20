@@ -7,11 +7,11 @@ DiscoverTab::DiscoverTab(UI* ui) : UITab(ui) {
 }
 
 void DiscoverTab::setup() {
-    m_initialized = true;
+    mark_initialized();
 }
 
 void DiscoverTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 

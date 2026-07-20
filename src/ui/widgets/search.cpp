@@ -12,23 +12,24 @@ SearchInputState::SearchInputState() : WidgetState() {
         icon_color.value = {120, 120, 120, 255};
         icon_color.speed = ALPHA_ANIM_SPEED;
         style.border_color.speed = ALPHA_ANIM_SPEED * 2.0f;
-        style.vars.set("icon_color", icon_color);
+        style.variables().set("icon_color", icon_color);
     });
 
     WidgetStyle& active_style = get_style(WidgetStyleType::ACTIVE);
     WidgetStyle& hover_style = get_style(WidgetStyleType::HOVER);
 
-    auto hover_icon_color = hover_style.vars.get<UIWidgetColor>("icon_color").value();
-    hover_icon_color.value = ImColor(150, 150, 150, 255).Value;
-    hover_style.vars.set("icon_color", hover_icon_color);
+    UIWidgetColor* hover_icon_color = hover_style.variables().get<UIWidgetColor>("icon_color");
+    if (hover_icon_color != nullptr) {
+        hover_icon_color->value = ImColor(150, 150, 150, 255).Value;
+    }
     hover_style.border_color.value = ui_theme::ACCENT_COLOR;
     active_style.border_color.value = ui_theme::ACCENT_COLOR;
 
     snap_to_style(WidgetStyleType::DEFAULT);
 }
 
-SearchInputWidget::SearchInputWidget(UI* ui, IconTexture* icon)
-    : UIWidget(ui, "search-input"), m_label("##{}-search-input") {
+SearchInputWidget::SearchInputWidget(UI* ui, std::string& value, IconTexture* icon)
+    : UIWidget(ui, "search-input"), m_label("##{}-search-input"), m_value(&value) {
     m_label.set({static_cast<void*>(this)});
 
     if (icon) {
@@ -76,13 +77,14 @@ void SearchInputWidget::show() {
     const float row_start_y = ImGui::GetCursorPosY();
 
     ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-    custom_imgui::image(m_icon, {icon_size, icon_size}, style.vars.get<UIWidgetColor>("icon_color").value().value);
+    const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
+    custom_imgui::image(m_icon, {icon_size, icon_size}, icon_color != nullptr ? icon_color->value : ImColor{});
 
     ImGui::SameLine(0.0f, 10.0f);
     ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
     ImGui::SetNextItemWidth(size.x);
-    ImGui::InputText(m_label.c_str(), &m_state.m_value);
+    ImGui::InputText(m_label.c_str(), m_value);
 
     const bool is_active = ImGui::IsItemActive();
     const bool is_hovered = ImGui::IsItemHovered();

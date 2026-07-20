@@ -7,11 +7,11 @@ StatusTab::StatusTab(UI* ui) : UITab(ui) {
 }
 
 void StatusTab::setup() {
-    m_initialized = true;
+    mark_initialized();
 }
 
 void StatusTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 
