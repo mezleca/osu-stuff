@@ -7,11 +7,11 @@ ConfigTab::ConfigTab(UI* ui) : UITab(ui) {
 }
 
 void ConfigTab::setup() {
-    m_initialized = true;
+    mark_initialized();
 }
 
 void ConfigTab::render() {
-    if (!m_initialized) {
+    if (!is_initialized()) {
         return;
     }
 

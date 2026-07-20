@@ -6,9 +6,9 @@
 
 #include "theme.hpp"
 
-struct IconTexture;
+class IconTexture;
 
-enum customChildBorder : uint8_t {
+enum CustomChildBorder : uint8_t {
     BORDER_NONE = 0,
     BORDER_LEFT = 1 << 0,
     BORDER_TOP = 1 << 1,
@@ -17,7 +17,7 @@ enum customChildBorder : uint8_t {
     BORDER_ALL = 1 << 4,
 };
 
-enum customChildResize : uint8_t {
+enum CustomChildResize : uint8_t {
     CHILD_RESIZE_NONE,
     CHILD_RESIZE_X = 1 << 0,
     CHILD_RESIZE_Y = 1 << 1,
@@ -36,9 +36,9 @@ struct ChildState {
 
     bool m_dragging = false;
 
-    customChildBorder m_border = BORDER_NONE;
-    customChildResize m_resize = CHILD_RESIZE_NONE;
-    customChildResize m_resizing = CHILD_RESIZE_NONE;
+    CustomChildBorder m_border = BORDER_NONE;
+    CustomChildResize m_resize = CHILD_RESIZE_NONE;
+    CustomChildResize m_resizing = CHILD_RESIZE_NONE;
 };
 
 namespace custom_imgui {

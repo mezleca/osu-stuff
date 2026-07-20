@@ -1,4 +1,5 @@
 #include "tab_button.hpp"
+#include "../theme.hpp"
 #include "../ui.hpp"
 
 static constexpr float TAB_LINE_ALPHA_SPEED = 18.0f;
@@ -17,7 +18,7 @@ TabButtonState::TabButtonState() : WidgetState() {
         UIWidgetFloat val;
         val.value = value;
         val.speed = speed;
-        style.vars.set(key, val);
+        style.variables().set(key, val);
     };
 
     // line bullshit
@@ -62,23 +63,23 @@ void TabButtonWidget::show(bool selected) {
     const bool is_pressed = ImGui::Button(m_name.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
 
-    if (is_pressed && on_click) {
-        on_click();
+    if (is_pressed && m_onclick) {
+        m_onclick();
     }
 
     if (m_state.m_draw_line && !m_state.m_is_title) {
-        auto line_alpha = style.vars.get<UIWidgetFloat>("line_alpha").value();
-        auto line_width_t = style.vars.get<UIWidgetFloat>("line_width").value();
+        const UIWidgetFloat* line_alpha = style.variables().get<UIWidgetFloat>("line_alpha");
+        const UIWidgetFloat* line_width_t = style.variables().get<UIWidgetFloat>("line_width");
 
-        if (line_alpha.value > 0.0f) {
+        if (line_alpha != nullptr && line_width_t != nullptr && line_alpha->value > 0.0f) {
             const ImVec2 rect_min = ImGui::GetItemRectMin();
             const ImVec2 rect_max = ImGui::GetItemRectMax();
             const float full_width = rect_max.x - rect_min.x;
-            const float line_width = full_width * math_utils::smoothstep(line_width_t.value);
+            const float line_width = full_width * math_utils::smoothstep(line_width_t->value);
             const float line_x = rect_min.x + ((full_width - line_width) * 0.5f);
             const float line_y = rect_max.y + ui_theme::LINE_OFFSET;
             ImVec4 line_color = ui_theme::ACCENT_COLOR;
-            line_color.w *= line_alpha.value;
+            line_color.w *= line_alpha->value;
 
             ImGui::GetWindowDrawList()->AddRectFilled(
                 ImVec2{line_x, line_y}, ImVec2{line_x + line_width, line_y + ui_theme::LINE_HEIGHT},

@@ -9,7 +9,7 @@ CollectionCardState::CollectionCardState() : WidgetState() {
         UIWidgetColor icon_color;
         icon_color.value = ui_theme::ACCENT_COLOR;
         icon_color.speed = ALPHA_ANIM_SPEED;
-        style.vars.set("icon_color", icon_color);
+        style.variables().set("icon_color", icon_color);
 
         style.border_color.value = ui_theme::TRANSPARENT;
         style.border_color.speed = ALPHA_ANIM_SPEED;
@@ -31,8 +31,8 @@ CollectionCardState::CollectionCardState() : WidgetState() {
 
 CollectionCardWidget::CollectionCardWidget(UI* ui, std::string name, IconTexture* icon)
     : UIWidget(ui, "collection-card"), m_name(name), m_count("0 maps") {
-    m_state.m_font = m_ui->m_fonts[TORUS_SEMI].get(18);
-    m_state.m_font_small = m_ui->m_fonts[TORUS_SEMI].get(14);
+    m_state.m_font = m_ui->get_font(TORUS_SEMI).get(18);
+    m_state.m_font_small = m_ui->get_font(TORUS_SEMI).get(14);
 
     if (icon) {
         m_icon = icon;
@@ -79,9 +79,8 @@ void CollectionCardWidget::show() {
         // music icon
         {
             ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-            custom_imgui::image(
-                m_icon, {icon_size, icon_size}, style.vars.get<UIWidgetColor>("icon_color").value().value
-            );
+            const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
+            custom_imgui::image(m_icon, {icon_size, icon_size}, icon_color != nullptr ? icon_color->value : ImColor{});
         }
 
         // name
@@ -117,8 +116,8 @@ void CollectionCardWidget::show() {
     bool hovering_rect = ImGui::IsMouseHoveringRect(rect_min, rect_max);
 
     if (hovering_rect) {
-        if (on_click && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) on_click();
-        if (on_context && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) on_context();
+        if (m_onclick && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) m_onclick();
+        if (m_oncontext && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) m_oncontext();
     }
 
     if (m_state.m_selected) {

@@ -130,9 +130,29 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     m_tabs.push_back({TabButtonWidget{this, "config"}, std::make_unique<ConfigTab>(this)});
     m_tabs.push_back({TabButtonWidget{this, "status"}, std::make_unique<StatusTab>(this)});
 
-    for (auto& pair : m_tabs) {
-        TabButtonWidget& widget = pair.first;
-        widget.on_click = [&]() { m_current_tab = pair.second.get(); };
+    m_current_tab = m_tabs.front().second.get();
+
+    for (auto& [button, tab] : m_tabs) {
+        button.m_onclick = [this, tab = tab.get()]() { m_current_tab = tab; };
+    }
+}
+
+void UI::update_counter() {
+    const Uint64 now = SDL_GetPerformanceCounter();
+    m_counter.frame_count++;
+
+    if (m_counter.last_time == 0) {
+        m_counter.last_time = now;
+        return;
+    }
+
+    const double elapsed_seconds =
+        static_cast<double>(now - m_counter.last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
+
+    if (elapsed_seconds >= 1.0) {
+        m_counter.current_fps = static_cast<double>(m_counter.frame_count) / elapsed_seconds;
+        m_counter.frame_count = 0;
+        m_counter.last_time = now;
     }
 }
 
@@ -143,7 +163,7 @@ UI::~UI() {
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
-    auto it = m_textures.find(id.data());
+    auto it = m_textures.find(std::string{id});
 
     if (it == m_textures.end()) {
         std::cout << "[ui] failed to find " << id << " (returning default svg)\n";
@@ -158,11 +178,11 @@ bool UI::is_modal_focused(UIModal* modal) const {
         return false;
     }
 
-    return m_modals.back() == modal;
+    return m_modals.back().get() == modal;
 }
 
 bool UI::has_modal(std::string_view id) const {
-    return std::any_of(m_modals.begin(), m_modals.end(), [id](const UIModal* modal) { return modal->m_id == id; });
+    return std::any_of(m_modals.begin(), m_modals.end(), [id](const auto& modal) { return modal->id() == id; });
 }
 
 UIModal* UI::focused_modal() const {
@@ -170,14 +190,14 @@ UIModal* UI::focused_modal() const {
         return nullptr;
     }
 
-    return m_modals.back();
+    return m_modals.back().get();
 }
 
-size_t UI::modal_count() {
+size_t UI::modal_count() const {
     return m_modals.size();
 }
 
-void UI::show_modal(UIModal* modal, bool wipe) {
+void UI::show_modal(std::unique_ptr<UIModal> modal, bool wipe) {
     if (modal == nullptr) {
         return;
     }
@@ -186,16 +206,16 @@ void UI::show_modal(UIModal* modal, bool wipe) {
         clear_modals();
     }
 
-    m_modals.push_back(modal);
+    m_modals.push_back(std::move(modal));
 }
 
 bool UI::remove_modal(std::string_view id) {
     bool removed = false;
 
     for (auto it = m_modals.begin(); it != m_modals.end();) {
-        UIModal* modal = *it;
+        UIModal* modal = it->get();
 
-        if (modal->m_id != id) {
+        if (modal->id() != id) {
             it++;
             continue;
         }
@@ -221,7 +241,7 @@ bool UI::remove_focused_modal() {
 }
 
 void UI::clear_modals() {
-    for (UIModal* modal : m_modals) {
+    for (const auto& modal : m_modals) {
         modal->on_remove();
     }
 
@@ -310,13 +330,11 @@ void UI::render() {
                     TabButtonWidget& button_widget = pair.first;
                     UITab* tab = pair.second.get();
 
-                    std::string current_id = m_current_tab != nullptr ? m_current_tab->m_id : "";
-
                     if (index > 0) {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    button_widget.show(current_id == tab->m_id || index == 0);
+                    button_widget.show(m_current_tab == tab || index == 0);
                 }
             }
             ImGui::PopFont();
@@ -336,7 +354,7 @@ void UI::render() {
         ImGui::PushFont(torus_bold);
 
         if (m_current_tab != nullptr) {
-            if (!m_current_tab->m_initialized) m_current_tab->setup();
+            if (!m_current_tab->is_initialized()) m_current_tab->setup();
             m_current_tab->render();
         }
 

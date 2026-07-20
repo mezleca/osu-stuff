@@ -1,20 +1,21 @@
 #pragma once
 
-#include "custom.hpp"
-#include "tabs/tabs.hpp"
 #include "fonts/font.hpp"
 
 #include <glad/gl.h>
 #include <imgui.h>
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-struct UIModal;
-struct TabButtonWidget;
+class UIModal;
+class IconTexture;
+class TabButtonWidget;
+class UITab;
 
 struct FrameCounter {
     Uint64 last_time = 0;
@@ -23,7 +24,7 @@ struct FrameCounter {
     bool show_ui = false;
 };
 
-struct UI {
+class UI {
 public:
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
@@ -32,15 +33,26 @@ public:
     void render();
     void process_sdl_event(SDL_Event* event);
 
-    bool is_done() {
+    [[nodiscard]] bool is_done() const {
         return m_done;
     }
+
     void exit() {
         m_done = true;
-    };
+    }
 
-    double get_fps() {
+    [[nodiscard]] double get_fps() const {
         return m_counter.current_fps;
+    }
+
+    void update_counter();
+
+    [[nodiscard]] UIFont& get_font(UIFonts type) {
+        return m_fonts[type];
+    }
+
+    [[nodiscard]] const UIFont& get_font(UIFonts type) const {
+        return m_fonts[type];
     }
 
     // textures
@@ -50,20 +62,19 @@ public:
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
     [[nodiscard]] bool has_modal(std::string_view id) const;
     [[nodiscard]] UIModal* focused_modal() const;
-    [[nodiscard]] size_t modal_count();
+    [[nodiscard]] size_t modal_count() const;
     [[nodiscard]] bool remove_modal(std::string_view id);
     [[nodiscard]] bool remove_focused_modal();
-    void show_modal(UIModal* modal, bool wipe = false);
+    void show_modal(std::unique_ptr<UIModal> modal, bool wipe = false);
     void clear_modals();
     void handle_escape();
 
-    UIFont m_fonts[FONT_COUNT];
-    FrameCounter m_counter;
-
 private:
+    FrameCounter m_counter;
+    UIFont m_fonts[FONT_COUNT];
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
-    std::vector<UIModal*> m_modals;
+    std::vector<std::unique_ptr<UIModal>> m_modals;
     bool m_done = false;
     SDL_Window* m_window;
     ImGuiIO* m_io;
