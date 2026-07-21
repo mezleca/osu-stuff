@@ -396,7 +396,6 @@ void UI::render() {
             ImGui::PopFont();
 
             auto* dl = ImGui::GetWindowDrawList();
-            dl->Flags |= ImDrawListFlags_AntiAliasedLines;
 
             ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_size_y - 1.0f};
             ImVec2 header_line_end = {available.x, header_line_start.y};

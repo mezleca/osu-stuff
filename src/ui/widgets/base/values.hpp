@@ -61,6 +61,10 @@ struct UIWidgetColor : UIWidgetValue<ImColor> {
     ImVec4 get() const {
         return value.Value;
     }
+
+    ImColor get_col() const {
+        return value;
+    }
 };
 
 struct UIWidgetVec2 : UIWidgetValue<ImVec2> {

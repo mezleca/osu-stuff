@@ -26,12 +26,11 @@ CollectionCardWidget::CollectionCardWidget(std::string name, IconTexture* icon)
 
     active_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
     active_style.background_color.value = ui_theme::ACCENT_COLOR_SECONDARY;
-
     hover_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
 
-    state().snap_to_style(UIStyleType::DEFAULT);
     ImFont* font = ui.get_font(TORUS_SEMI).get(18);
     m_font_small = ui.get_font(TORUS_SEMI).get(14);
+
     state().set_for_all_styles([font](UIStyle& style) { style.font = font; });
 
     if (m_icon == nullptr) {
@@ -39,6 +38,8 @@ CollectionCardWidget::CollectionCardWidget(std::string name, IconTexture* icon)
     }
 
     m_icon_image.set_texture(m_icon);
+
+    state().snap_to_style(UIStyleType::DEFAULT);
 }
 
 void CollectionCardWidget::set_selected(bool value) {

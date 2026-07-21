@@ -4,6 +4,7 @@
 #include "../widgets/text.hpp"
 #include "../widgets/collection_card.hpp"
 #include "../widgets/search.hpp"
+#include "../widgets/button.hpp"
 
 #include <string>
 #include <iostream>
@@ -23,6 +24,10 @@ void CollectionTab::setup() {
     auto collection_input = std::make_unique<SearchInputWidget>(m_collection_search, search_icon);
     auto collection_card = std::make_unique<CollectionCardWidget>("Penis", music_icon);
 
+    auto add_notification_button = std::make_unique<UIButtonWidget>("add notification");
+
+    add_notification_button->on_click = []() { std::cout << "adding notification\n"; };
+
     CollectionCardWidget* collection_card_ptr = collection_card.get();
 
     collection_card_ptr->m_onclick = [collection_card_ptr]() {
@@ -37,11 +42,15 @@ void CollectionTab::setup() {
     collection_input->set_fit_width(true);
 
     m_collection_layout = std::make_unique<UIChildLayout>("##collections");
+
     m_collection_layout->set_resize(LAYOUT_RESIZE_X);
+
     m_collection_layout->style().border = UI_BORDER_RIGHT;
     m_collection_layout->style().border_color.value = ImColor(ui_theme::BORDER_COLOR);
+
     m_collection_layout->add(std::move(collection_input));
     m_collection_layout->add(std::move(collection_card));
+    m_collection_layout->add(std::move(add_notification_button));
 
     m_beatmaps_layout = std::make_unique<UIChildLayout>("##collection-beatmaps");
     m_beatmaps_layout->add(std::make_unique<UITextWidget>("collection data"));

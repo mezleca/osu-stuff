@@ -50,9 +50,11 @@ void SearchInputWidget::show() {
         return;
     }
 
-    const float icon_size = 18.0f;
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
+
+    const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
+    const float icon_size = 18.0f;
 
     ImVec2 size = m_size;
     {
@@ -83,7 +85,7 @@ void SearchInputWidget::show() {
     const float row_start_y = ImGui::GetCursorPosY();
 
     ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-    const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
+
     m_icon_image.set_size({icon_size, icon_size});
     m_icon_image.set_color(icon_color != nullptr ? icon_color->value : ImColor{});
     m_icon_image.show();

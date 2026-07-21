@@ -20,15 +20,16 @@ public:
 
     virtual ~UINotification() = default;
 
-    virtual void render() = 0;
+    virtual void show() = 0;
     [[nodiscard]] virtual NotificationType get_type() const = 0;
 };
 
-class DefaultNotification : public UINotification {
+class DefaultNotificationWidget : public UINotification {
 public:
-    explicit DefaultNotification(std::string text);
+    explicit DefaultNotificationWidget(std::string text);
 
-    void render() override;
+    void show() override;
+
     [[nodiscard]] NotificationType get_type() const override {
         return m_type;
     }

@@ -27,12 +27,16 @@ enum class UIStyleType : int32_t {
 
 class UIStyle {
 public:
-    uint8_t border = UI_BORDER_NONE;
-    float border_thickness = 1.0f;
     ImFont* font = nullptr;
+
+    float border_thickness = 1.0f;
+    float border_radius = 4.0f;
+
     UIWidgetColor color;
     UIWidgetColor border_color;
     UIWidgetColor background_color;
+
+    uint8_t border = UI_BORDER_NONE;
 
     template <typename T>
     void set_variable(std::string_view key, T value) {
