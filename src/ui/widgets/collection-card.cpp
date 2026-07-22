@@ -1,4 +1,4 @@
-#include "collection_card.hpp"
+#include "collection-card.hpp"
 #include "../ui.hpp"
 #include "../theme.hpp"
 
@@ -36,9 +36,7 @@ CollectionCardWidget::CollectionCardWidget(std::string name)
     m_icon.set_texture(music_icon);
     m_icon.set_size(ICON_SIZE);
 
-    m_icon.state().set_for_all_styles([&](UIStyle& style) {
-        style.color.set(ui_theme::ACCENT_COLOR);
-    });
+    m_icon.state().set_for_all_styles([&](UIStyle& style) { style.color.set(ui_theme::ACCENT_COLOR); });
 
     state().snap_to_style(UIStyleType::DEFAULT);
     m_icon.state().snap_to_style(UIStyleType::DEFAULT);

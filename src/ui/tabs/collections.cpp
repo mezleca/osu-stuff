@@ -2,7 +2,7 @@
 #include "../theme.hpp"
 #include "../ui.hpp"
 #include "../widgets/text.hpp"
-#include "../widgets/collection_card.hpp"
+#include "../widgets/collection-card.hpp"
 #include "../widgets/search.hpp"
 #include "../widgets/button.hpp"
 

@@ -1,6 +1,6 @@
 #include "ui.hpp"
 #include "tabs/detail.hpp"
-#include "widgets/tab_button.hpp"
+#include "widgets/tab-button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
 #include "widgets/notification.hpp"
@@ -137,7 +137,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     }
 
     // create / intitialize tabs
-    m_tabs.push_back({TabButtonWidget{"osu-stuff", true}, std::make_unique<IndexTab>()});
+    m_tabs.push_back({TabButtonWidget{"osu-stuff", false, true}, std::make_unique<IndexTab>()});
     m_tabs.push_back({TabButtonWidget{"collections"}, std::make_unique<CollectionTab>()});
     m_tabs.push_back({TabButtonWidget{"discover"}, std::make_unique<DiscoverTab>()});
     m_tabs.push_back({TabButtonWidget{"radio"}, std::make_unique<RadioTab>()});
@@ -147,7 +147,13 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     m_current_tab = m_tabs.front().second.get();
 
     for (auto& [button, tab] : m_tabs) {
-        button.m_onclick = [this, tab = tab.get()]() { m_current_tab = tab; };
+        button.m_onclick = [this, cur_tab = tab.get()]() {
+            for (auto& [widget, tab] : m_tabs) {
+                widget.set_selected(tab.get() == cur_tab);
+            }
+
+            m_current_tab = cur_tab;
+        };
     }
 }
 
@@ -384,13 +390,12 @@ void UI::render() {
                     auto& pair = m_tabs[index];
 
                     TabButtonWidget& button_widget = pair.first;
-                    UITab* tab = pair.second.get();
 
                     if (index > 0) {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    button_widget.show(m_current_tab == tab || index == 0);
+                    button_widget.show();
                 }
             }
             ImGui::PopFont();
