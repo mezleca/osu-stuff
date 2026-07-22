@@ -6,6 +6,7 @@
 
 static constexpr float MIN_CHILD_SIZE = 32.0f;
 static constexpr float CHILD_RESIZE_HANDLE_SIZE = 20.0f;
+static constexpr float RESIZE_INDICATOR_DISTANCE = 4.0f;
 
 UIChildLayout::UIChildLayout(std::string id) : UIObject(std::move(id)) {
 }
@@ -111,39 +112,44 @@ void UIChildLayout::draw_borders() {
 
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
+    const auto border_color = style().border_color.get_col();
+    const auto border_thickness = style().border_thickness;
+
     if (style().border != UI_BORDER_NONE) {
         if (style().border & UI_BORDER_ALL) {
-            draw_list->AddRect(min, max, style().border_color.value, 0.0f, 0, style().border_thickness);
+            draw_list->AddRect(min, max, border_color, 0.0f, 0, border_thickness);
         } else {
             if (style().border & UI_BORDER_TOP) {
                 draw_list->AddLine(
-                    {min.x, min.y}, {max.x, min.y}, style().border_color.value, style().border_thickness
+                    {min.x, min.y}, {max.x, min.y}, border_color, border_thickness
                 );
             }
             if (style().border & UI_BORDER_BOTTOM) {
                 draw_list->AddLine(
-                    {min.x, max.y}, {max.x, max.y}, style().border_color.value, style().border_thickness
+                    {min.x, max.y}, {max.x, max.y}, border_color, border_thickness
                 );
             }
             if (style().border & UI_BORDER_LEFT) {
                 draw_list->AddLine(
-                    {min.x, min.y}, {min.x, max.y}, style().border_color.value, style().border_thickness
+                    {min.x, min.y}, {min.x, max.y}, border_color, border_thickness
                 );
             }
             if (style().border & UI_BORDER_RIGHT) {
                 draw_list->AddLine(
-                    {max.x, min.y}, {max.x, max.y}, style().border_color.value, style().border_thickness
+                    {max.x, min.y}, {max.x, max.y}, border_color, border_thickness
                 );
             }
         }
     }
 
     if (m_resize != LAYOUT_RESIZE_NONE) {
-        const ImColor indicator_color = ImColor(65, 65, 65, 255);
+        const ImColor resize_out_color = ImColor(20, 20, 20, 255);
 
-        for (int index = 0; index < 3; ++index) {
-            const float distance = 2.0f + static_cast<float>(index) * 4.0f;
-            draw_list->AddLine({max.x - distance, max.y}, {max.x, max.y - distance}, indicator_color, 1.0f);
+        for (int i = 0; i < 3; ++i) {
+            const float distance = 3.0f + static_cast<float>(i) * RESIZE_INDICATOR_DISTANCE;
+
+            draw_list->AddLine({max.x - distance, max.y}, {max.x, max.y - distance}, border_color, border_thickness);
+            draw_list->AddLine({max.x - distance + border_thickness + 0.5f, max.y}, {max.x, max.y - distance + border_thickness + 0.5f}, resize_out_color, border_thickness);
         }
     }
 }
