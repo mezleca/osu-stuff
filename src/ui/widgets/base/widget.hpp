@@ -11,7 +11,6 @@ public:
     explicit UIWidget(std::string id) : UIObject(std::move(id)) {
     }
 
-protected:
     [[nodiscard]] WidgetState& state() {
         if (m_state == nullptr) {
             m_state = std::make_unique<WidgetState>();

@@ -18,11 +18,8 @@ CollectionTab::CollectionTab() {
 }
 
 void CollectionTab::setup() {
-    auto search_icon = ui::current().get_texture("search-icon");
-    auto music_icon = ui::current().get_texture("music-icon");
-
-    auto collection_input = std::make_unique<SearchInputWidget>(m_collection_search, search_icon);
-    auto collection_card = std::make_unique<CollectionCardWidget>("Penis", music_icon);
+    auto collection_input = std::make_unique<SearchInputWidget>(m_collection_search);
+    auto collection_card = std::make_unique<CollectionCardWidget>("Collection");
 
     auto add_notification_button = std::make_unique<UIButtonWidget>("add notification");
 
@@ -33,7 +30,7 @@ void CollectionTab::setup() {
     collection_card_ptr->m_onclick = [collection_card_ptr]() {
         std::cout << "clicked on a card\n";
 
-        collection_card_ptr->m_name.set("Penis 2");
+        collection_card_ptr->m_name.set("Collection 2");
         collection_card_ptr->m_count.set("999 maps");
         collection_card_ptr->toggle_selected();
     };

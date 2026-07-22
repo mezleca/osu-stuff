@@ -3,19 +3,24 @@
 #include "../theme.hpp"
 
 constexpr float ALPHA_ANIM_SPEED = 12.0f;
+constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
 
-CollectionCardWidget::CollectionCardWidget(std::string name, IconTexture* icon)
-    : UIWidget("collection-card"), m_name(name), m_count("0 maps"), m_icon(icon), m_icon_image(icon) {
+CollectionCardWidget::CollectionCardWidget(std::string name)
+    : UIWidget("collection-card"), m_name(name), m_count("0 maps") {
 
     UI& ui = ui::current();
     UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
     UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
 
-    state().set_for_all_styles([](UIStyle& style) {
-        UIWidgetColor icon_color;
-        icon_color.value = ui_theme::ACCENT_COLOR;
-        icon_color.speed = ALPHA_ANIM_SPEED;
-        style.variables().set("icon_color", icon_color);
+    auto music_icon = ui.get_texture("music-icon");
+
+    ImFont* font = ui.get_font(TORUS_SEMI).get(18);
+    m_font_small = ui.get_font(TORUS_SEMI).get(14);
+
+    state().set_for_all_styles([&](UIStyle& style) {
+        style.font = font;
+
+        style.border_thickness = 2.0f;
 
         style.border_color.value = ui_theme::TRANSPARENT;
         style.border_color.speed = ALPHA_ANIM_SPEED;
@@ -28,18 +33,15 @@ CollectionCardWidget::CollectionCardWidget(std::string name, IconTexture* icon)
     active_style.background_color.value = ui_theme::ACCENT_COLOR_SECONDARY;
     hover_style.border_color.value = ui_theme::ACCENT_COLOR_HALF;
 
-    ImFont* font = ui.get_font(TORUS_SEMI).get(18);
-    m_font_small = ui.get_font(TORUS_SEMI).get(14);
+    m_icon.set_texture(music_icon);
+    m_icon.set_size(ICON_SIZE);
 
-    state().set_for_all_styles([font](UIStyle& style) { style.font = font; });
-
-    if (m_icon == nullptr) {
-        m_icon = ui.get_texture("default");
-    }
-
-    m_icon_image.set_texture(m_icon);
+    m_icon.state().set_for_all_styles([&](UIStyle& style) {
+        style.color.set(ui_theme::ACCENT_COLOR);
+    });
 
     state().snap_to_style(UIStyleType::DEFAULT);
+    m_icon.state().snap_to_style(UIStyleType::DEFAULT);
 }
 
 void CollectionCardWidget::set_selected(bool value) {
@@ -59,7 +61,6 @@ void CollectionCardWidget::show() {
         return;
     }
 
-    const float icon_size = 16.0f;
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
 
@@ -91,11 +92,8 @@ void CollectionCardWidget::show() {
 
         // music icon
         {
-            ImGui::SetCursorPosY(row_start_y + (available.y - icon_size) * 0.5f);
-            const UIWidgetColor* icon_color = style.variables().get<UIWidgetColor>("icon_color");
-            m_icon_image.set_size({icon_size, icon_size});
-            m_icon_image.set_color(icon_color != nullptr ? icon_color->value : ImColor{});
-            m_icon_image.show();
+            ImGui::SetCursorPosY(row_start_y + (available.y - m_icon.get_size().y) * 0.5f);
+            m_icon.show();
         }
 
         // name
@@ -144,5 +142,7 @@ void CollectionCardWidget::show() {
     }
 
     auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, 1.0f);
+    dl->AddRect(
+        rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, style.border_thickness
+    );
 }

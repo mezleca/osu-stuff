@@ -3,7 +3,6 @@
 #include "../theme.hpp"
 
 UIButtonWidget::UIButtonWidget(std::string text, ImVec2 size) : UIWidget("button"), m_text(text), m_size(size) {
-
     UI& ui = ui::current();
 
     auto torus_semi = ui.get_font(TORUS_SEMI).get(16);

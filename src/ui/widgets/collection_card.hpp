@@ -10,7 +10,7 @@ class IconTexture;
 
 class CollectionCardWidget : public UIWidget {
 public:
-    explicit CollectionCardWidget(std::string name, IconTexture* icon = nullptr);
+    explicit CollectionCardWidget(std::string name);
 
     void show();
     void set_selected(bool value);
@@ -21,8 +21,7 @@ public:
     UIText<std::string> m_count;
     std::function<void()> m_onclick;
     std::function<void()> m_oncontext;
-    IconTexture* m_icon = nullptr;
-    UIImageWidget m_icon_image;
+    UIImageWidget m_icon;
 
 private:
     ImVec2 m_size = {150.0f, 50.0f};

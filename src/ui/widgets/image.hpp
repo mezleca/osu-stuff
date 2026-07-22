@@ -1,15 +1,14 @@
 #pragma once
 
-#include "../object.hpp"
+#include "base/widget.hpp"
 
 #include <imgui.h>
 
 class IconTexture;
 
-class UIImageWidget : public UIObject {
+class UIImageWidget : public UIWidget {
 public:
-    explicit UIImageWidget(IconTexture* texture = nullptr) : m_texture(texture) {
-    }
+    explicit UIImageWidget(IconTexture* texture = nullptr);
 
     void set_texture(IconTexture* texture) {
         m_texture = texture;
@@ -19,8 +18,8 @@ public:
         m_size = size;
     }
 
-    void set_color(ImColor color) {
-        m_color = color;
+    ImVec2 get_size() const {
+        return m_size;
     }
 
     void show() override;
@@ -28,5 +27,4 @@ public:
 private:
     IconTexture* m_texture = nullptr;
     ImVec2 m_size = {0.0f, 0.0f};
-    ImColor m_color = ImColor(255, 255, 255, 255);
 };
