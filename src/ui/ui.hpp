@@ -23,7 +23,7 @@ namespace ui {
     UI& current();
 }
 
-struct FrameCounter {
+struct UIDebug {
     Uint64 last_time = 0;
     Uint64 frame_count = 0;
     double current_fps = 0.0;
@@ -35,7 +35,6 @@ public:
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
 
-    void show_debug_ui();
     void render();
     void process_sdl_event(SDL_Event* event);
 
@@ -48,7 +47,7 @@ public:
     }
 
     [[nodiscard]] double get_fps() const {
-        return m_counter.current_fps;
+        return m_debug.current_fps;
     }
 
     void update_counter();
@@ -87,7 +86,7 @@ public:
     void clear_notifications();
 
 private:
-    FrameCounter m_counter;
+    UIDebug m_debug;
     UIFont m_fonts[FONT_COUNT];
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;

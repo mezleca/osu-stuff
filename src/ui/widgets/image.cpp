@@ -5,7 +5,6 @@
 
 UIImageWidget::UIImageWidget(IconTexture* texture) : UIWidget("image"), m_texture(texture) {
     state().set_for_all_styles([&](UIStyle& style) { style.color.set(ui_theme::TEXT_COLOR); });
-
     state().snap_to_style(UIStyleType::DEFAULT);
 }
 

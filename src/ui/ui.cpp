@@ -1,10 +1,12 @@
 #include "ui.hpp"
+#include "constants.hpp"
 #include "tabs/detail.hpp"
 #include "widgets/tab-button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
 #include "widgets/notification.hpp"
 #include "texture/icon.hpp"
+#include "texture/svg.hpp"
 
 #include <algorithm>
 #include <format>
@@ -14,38 +16,21 @@
 #include <iostream>
 #include <cstdlib>
 
-static UI* CURRENT_UI = nullptr;
+namespace fs = std::filesystem;
+
+static UI* current_ui = nullptr;
+static UITextFormatted<size_t> more_notification_text("{} more...");
 
 UI& ui::current() {
-    if (CURRENT_UI == nullptr) {
+    if (current_ui == nullptr) {
         std::abort();
     }
 
-    return *CURRENT_UI;
+    return *current_ui;
 }
 
-static const std::string DEFAULT_WARN_SVG = R"(
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="800px"
-        height="800px"
-        viewBox="0 0 25 25"
-        fill="none"
-    >
-        <path d="M12.5 10V14M12.5 17V15.5M14.2483 5.64697L20.8493 17.5287C21.5899 18.8618 20.6259 20.5 19.101 20.5H5.89903C4.37406 20.5 3.41013 18.8618 4.15072 17.5287L10.7517 5.64697C11.5137 4.27535 13.4863 4.27535 14.2483 5.64697Z" stroke="#ffffff" stroke-width="1.2"/>
-    </svg>)";
-
-static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                                                 ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-static constexpr ImGuiWindowFlags NOTIFICATION_OVERLAY_FLAGS =
-    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-    ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs |
-    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
-    CURRENT_UI = this;
+    current_ui = this;
 
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
@@ -61,6 +46,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
+    // ui items / widgets
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
     style.FrameRounding = 4.0f;
@@ -72,8 +58,11 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     style.ItemSpacing = ImVec2{10.0f, 10.0f};
     style.ItemInnerSpacing = ImVec2{8.0f, 6.0f};
     style.CellPadding = ImVec2{0.0f, 0.0f};
+
+    // make lines look normal
     style.CircleTessellationMaxError = 0.10f;
     style.AntiAliasedLinesUseTex = false;
+
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 
@@ -112,31 +101,33 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
     m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
 
-    // initialize textures (svgs)
-    const char* textures[] = {"search-icon", "music-icon"};
-    std::filesystem::path texture_location = "resources/icons/ui/";
+    // load textures (svgs)
+    fs::path textures_location = "resources/icons/ui/";
 
-    auto default_texture = std::make_unique<IconTexture>(DEFAULT_WARN_SVG);
-    default_texture->get(16, 16);
-    default_texture->get(18, 18);
-    default_texture->get(32, 32);
-    m_textures.emplace("default", std::move(default_texture));
+    m_textures.emplace("default", std::make_unique<IconTexture>(DEFAULT_WARN_SVG));
 
-    for (const char* name : textures) {
-        std::filesystem::path location = texture_location / std::format("{}.svg", name);
-        std::string location_str = location.string();
+    if (fs::exists(textures_location)) {
+        for (const auto& entry : fs::directory_iterator(textures_location)) {
+            auto path = entry.path();
 
-        std::cout << std::format("[ui] loading svg: {}\n", location_str);
-        auto texture = std::make_unique<IconTexture>(location);
+            if (!fs::is_regular_file(entry.status())) continue;
+            if (path.extension() != ".svg") continue;
 
-        // preload some variants
-        texture->get(16, 16);
-        texture->get(18, 18);
-        texture->get(32, 32);
+            auto texture = std::make_unique<IconTexture>(path);
 
-        m_textures.emplace(name, std::move(texture));
+            texture->get(16, 16);
+            texture->get(18, 18);
+            texture->get(32, 32);
+
+            if (texture->get_id() == "") {
+                std::cout << "[warn] failed to get class id from " << path.string() << "\n";
+            }
+
+            m_textures.emplace(texture->get_id(), std::move(texture));
+        }
     }
 
+    // load font variants
     for (auto& font : m_fonts) {
         font.load(FONT_SMALL);
         font.load(FONT_MEDIUM);
@@ -166,25 +157,25 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
 
 void UI::update_counter() {
     const Uint64 now = SDL_GetPerformanceCounter();
-    m_counter.frame_count++;
+    m_debug.frame_count++;
 
-    if (m_counter.last_time == 0) {
-        m_counter.last_time = now;
+    if (m_debug.last_time == 0) {
+        m_debug.last_time = now;
         return;
     }
 
     const double elapsed_seconds =
-        static_cast<double>(now - m_counter.last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
+        static_cast<double>(now - m_debug.last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
 
     if (elapsed_seconds >= 1.0) {
-        m_counter.current_fps = static_cast<double>(m_counter.frame_count) / elapsed_seconds;
-        m_counter.frame_count = 0;
-        m_counter.last_time = now;
+        m_debug.current_fps = static_cast<double>(m_debug.frame_count) / elapsed_seconds;
+        m_debug.frame_count = 0;
+        m_debug.last_time = now;
     }
 }
 
 UI::~UI() {
-    CURRENT_UI = nullptr;
+    current_ui = nullptr;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
@@ -342,20 +333,6 @@ void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void UI::show_debug_ui() {
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings;
-
-    ImGui::Begin("##debug-ui", nullptr, flags);
-    {
-        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
-        {
-            ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
-}
-
 void UI::render() {
     SDL_WindowFlags w_flags = SDL_GetWindowFlags(m_window);
 
@@ -369,7 +346,7 @@ void UI::render() {
     bool window_focused = w_flags & SDL_WINDOW_INPUT_FOCUS;
 
     if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-        m_counter.show_ui = !m_counter.show_ui;
+        m_debug.show_ui = !m_debug.show_ui;
     }
 
     float header_end_height = 0.0f;
@@ -384,7 +361,7 @@ void UI::render() {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ui_theme::BG_COLOR);
 
     // render ui content
-    ImGui::Begin("##osu-stuff", nullptr, WINDOW_FLAGS);
+    ImGui::Begin("##osu-stuff", nullptr, constants::WINDOW_FLAGS);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
@@ -452,31 +429,54 @@ void UI::render() {
     ImGui::SetNextWindowBgAlpha(0.0f);
 
     // render notifications
-    ImGui::Begin("##notifications-overlay", nullptr, NOTIFICATION_OVERLAY_FLAGS);
+    ImGui::Begin("##notifications-overlay", nullptr, constants::NOTIFICATION_OVERLAY_FLAGS);
     {
         const ImVec2 window_pos = ImGui::GetWindowPos();
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
         float x_offset = window_pos.x + available.x - 5.0f;
-        float y_offset = window_pos.y + header_end_height + 5.0f;
+        float y_offset = window_pos.y + header_end_height + 10.0f;
+
+        size_t index = 0;
 
         // render notifications
         for (auto it = m_notifications.rbegin(); it != m_notifications.rend(); ++it) {
-            auto* notification = it->get();
+            if (y_offset + 100.0f > available.y) {
+                ImGui::PushFont(torus_bold);
 
-            const auto& size = notification->state().get_size();
+                more_notification_text.set(m_notifications.size() - index);
+                const ImVec2 text_size = more_notification_text.text_size();
+
+                ImGui::SetCursorPos({x_offset - text_size.x, y_offset + 5.0f});
+
+                ImGui::TextUnformatted(more_notification_text.c_str());
+                ImGui::PopFont();
+                break;
+            }
+
+            UINotification* notification = it->get();
+            const ImVec2& size = notification->state().get_size();
 
             notification->set_offset({x_offset - size.x, y_offset});
             notification->show();
 
             y_offset += size.y + 10.0f;
+            index++;
         }
     }
     ImGui::End();
 
     // render debug ui
-    if (m_counter.show_ui) {
-        show_debug_ui();
+    if (m_debug.show_ui) {
+        ImGui::Begin("##debug-ui", nullptr, ImGuiWindowFlags_NoSavedSettings);
+        {
+            ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
+            {
+                ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
     }
 
     ImGui::Render();

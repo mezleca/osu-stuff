@@ -2,20 +2,24 @@
 #include "base/text.hpp"
 #include "../ui.hpp"
 #include "../theme.hpp"
+#include "../constants.hpp"
 
 DefaultNotificationWidget::DefaultNotificationWidget(std::string text) : UINotification(), m_text(text) {
     UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
     UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
 
+    ImFont* torus_semi = ui::current().get_font(UIFonts::TORUS_SEMI).get(16);
+
     m_offset.speed = 20.0f;
     m_current_offset.speed = 20.0f;
 
-    state().set_for_all_styles([](UIStyle& style) {
+    state().set_for_all_styles([torus_semi](UIStyle& style) {
         style.color.set(ui_theme::TEXT_COLOR);
         style.border_color.set(ui_theme::BORDER_COLOR);
         style.border_radius = 4.0f;
         style.border_thickness = 1.0f;
         style.border_color.speed = 20.0f;
+        style.font = torus_semi;
     });
 
     active_style.border_color.set(ui_theme::ACCENT_COLOR);
@@ -28,8 +32,6 @@ void DefaultNotificationWidget::show() {
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
 
-    const auto window_flags =
-        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse;
     const auto child_flags =
         ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
 
@@ -42,11 +44,13 @@ void DefaultNotificationWidget::show() {
     ImGui::SetCursorPos(m_current_offset.value);
 
     ImGui::PushID(this);
-    ImGui::BeginChild("##ui-notification", {0.0f, 0.0f}, child_flags, window_flags);
+    ImGui::BeginChild("##ui-notification", {0.0f, 0.0f}, child_flags, constants::WIDGET_WINDOW_FLAGS);
+    ImGui::PushFont(style.font);
     ImGui::TextUnformatted(m_text.c_str());
 
     ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
 
+    ImGui::PopFont();
     ImGui::EndChild();
     ImGui::PopID();
 

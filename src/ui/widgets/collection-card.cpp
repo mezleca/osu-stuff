@@ -1,6 +1,7 @@
 #include "collection-card.hpp"
 #include "../ui.hpp"
 #include "../theme.hpp"
+#include "../constants.hpp"
 
 constexpr float ALPHA_ANIM_SPEED = 12.0f;
 constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
@@ -70,9 +71,6 @@ void CollectionCardWidget::show() {
         size.x = available.x;
     }
 
-    auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-    auto child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
-
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
@@ -80,8 +78,11 @@ void CollectionCardWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
+    ImGui::PushID(this);
 
-    ImGui::BeginChild(m_name.c_str(), size, child_flags, window_flags);
+    ImGui::BeginChild(
+        "##collection-card", size, ImGuiChildFlags_AlwaysUseWindowPadding, constants::WIDGET_WINDOW_FLAGS
+    );
     {
         ImGui::PushFont(style.font);
 
@@ -118,10 +119,9 @@ void CollectionCardWidget::show() {
         ImGui::PopFont();
     }
     ImGui::EndChild();
+    ImGui::PopID();
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(4);
-
-    state().update(dt);
 
     bool hovering_rect = ImGui::IsItemHovered();
 
@@ -137,4 +137,6 @@ void CollectionCardWidget::show() {
     } else {
         state().set_style(UIStyleType::DEFAULT);
     }
+
+    state().update(dt);
 }

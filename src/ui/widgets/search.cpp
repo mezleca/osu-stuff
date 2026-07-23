@@ -1,6 +1,7 @@
 #include "search.hpp"
 #include "../ui.hpp"
 #include "../theme.hpp"
+#include "../constants.hpp"
 
 #include <imgui_stdlib.h>
 
@@ -64,8 +65,7 @@ void SearchInputWidget::show() {
         size.y = 0.0f;
     }
 
-    auto window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-    auto child_flags =
+    const auto child_flags =
         ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
@@ -74,8 +74,9 @@ void SearchInputWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
+    ImGui::PushID(this);
 
-    ImGui::BeginChild(m_label.c_str(), size, child_flags, window_flags);
+    ImGui::BeginChild("##search-input", size, child_flags, constants::WIDGET_WINDOW_FLAGS);
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const float frame_height = ImGui::GetFrameHeight();
@@ -97,6 +98,7 @@ void SearchInputWidget::show() {
     ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
 
     ImGui::EndChild();
+    ImGui::PopID();
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(3);
 
