@@ -4,13 +4,22 @@
 #include "../theme.hpp"
 
 DefaultNotificationWidget::DefaultNotificationWidget(std::string text) : UINotification(), m_text(text) {
-    state().set_for_all_styles([&](UIStyle& style) {
-        UIWidgetFloat offset = {};
-        offset.value = 0.0f;
-        offset.speed = 5.0f;
+    UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
+    UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
 
-        style.set_variable("offset", offset);
+    m_offset.speed = 20.0f;
+    m_current_offset.speed = 20.0f;
+
+    state().set_for_all_styles([](UIStyle& style) {
+        style.color.set(ui_theme::TEXT_COLOR);
+        style.border_color.set(ui_theme::BORDER_COLOR);
+        style.border_radius = 4.0f;
+        style.border_thickness = 1.0f;
+        style.border_color.speed = 20.0f;
     });
+
+    active_style.border_color.set(ui_theme::ACCENT_COLOR);
+    hover_style.border_color.set(ui_theme::ACCENT_COLOR);
 
     state().snap_to_style(UIStyleType::DEFAULT);
 }
@@ -19,16 +28,41 @@ void DefaultNotificationWidget::show() {
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImColor(255, 0, 0, 255).Value);
-    ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
-    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
-    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
+    const auto window_flags =
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse;
+    const auto child_flags =
+        ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
 
-    ImGui::Begin(m_text.c_str());
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, style.border_radius);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8.0f, 16.0f});
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
+    ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ui_theme::BG_COLOR);
+
+    ImGui::SetCursorPos(m_current_offset.value);
+
+    ImGui::PushID(this);
+    ImGui::BeginChild("##ui-notification", {0.0f, 0.0f}, child_flags, window_flags);
     ImGui::TextUnformatted(m_text.c_str());
-    ImGui::End();
 
-    ImGui::PopStyleColor(4);
+    ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
 
+    ImGui::EndChild();
+    ImGui::PopID();
+
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+
+    if (ImGui::IsItemActive()) {
+        state().set_style(UIStyleType::ACTIVE);
+    } else if (ImGui::IsItemHovered()) {
+        state().set_style(UIStyleType::HOVER);
+    } else {
+        state().set_style(UIStyleType::DEFAULT);
+    }
+
+    m_current_offset.tick(m_offset, dt);
     state().update(dt);
+
+    ImGui::Dummy(ImGui::GetItemRectSize());
 }

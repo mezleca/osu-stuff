@@ -54,22 +54,32 @@ public:
     }
 
     [[nodiscard]] float get_opacity() const {
+        if (first_frame) {
+            return 0.0f;
+        }
+
         return current_opacity.value;
+    }
+
+    const ImVec2& get_size() {
+        return size;
     }
 
     void update(float dt) {
         current_opacity.tick(UIWidgetFloat{opacity, OPACITY_TRANSITION_SPEED}, dt);
-        if (transition_data.done) {
-            return;
+
+        if (!transition_data.done) {
+            const UIStyle& target_style = styles[static_cast<size_t>(transition_data.to)];
+            transition_data.elapsed += dt;
+            UIStyle::lerp(current_style, target_style, dt);
+
+            if (current_style.is_close_to(target_style, TRANSITION_SETTLE_EPSILON)) {
+                transition_data.end();
+            }
         }
 
-        const UIStyle& target_style = styles[static_cast<size_t>(transition_data.to)];
-        transition_data.elapsed += dt;
-        UIStyle::lerp(current_style, target_style, dt);
-
-        if (current_style.is_close_to(target_style, TRANSITION_SETTLE_EPSILON)) {
-            transition_data.end();
-        }
+        size = ImGui::GetItemRectSize();
+        first_frame = false;
     }
 
     void set_style(UIStyleType type) {
@@ -102,9 +112,11 @@ public:
 
 private:
     StyleTransitionData transition_data;
-    float opacity = 1.0f;
     UIWidgetFloat current_opacity;
     UIStyle styles[static_cast<size_t>(UIStyleType::_COUNT)];
     UIStyle current_style;
+    ImVec2 size = {0.0f, 0.0f};
+    float opacity = 1.0f;
     bool visible = true;
+    bool first_frame = false;
 };

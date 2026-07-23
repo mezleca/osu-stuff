@@ -75,7 +75,7 @@ void CollectionCardWidget::show() {
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
-
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
     ImGui::PushStyleColor(ImGuiCol_ChildBg, style.background_color.get());
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
@@ -113,18 +113,17 @@ void CollectionCardWidget::show() {
             ImGui::PopFont();
         }
 
+        ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
+
         ImGui::PopFont();
     }
     ImGui::EndChild();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(4);
 
     state().update(dt);
 
-    const ImVec2 rect_min = ImGui::GetItemRectMin();
-    const ImVec2 rect_max = ImGui::GetItemRectMax();
-
-    bool hovering_rect = ImGui::IsMouseHoveringRect(rect_min, rect_max);
+    bool hovering_rect = ImGui::IsItemHovered();
 
     if (hovering_rect) {
         if (m_onclick && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) m_onclick();
@@ -138,9 +137,4 @@ void CollectionCardWidget::show() {
     } else {
         state().set_style(UIStyleType::DEFAULT);
     }
-
-    auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(
-        rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, style.border_thickness
-    );
 }

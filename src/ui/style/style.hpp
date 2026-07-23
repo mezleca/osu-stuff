@@ -3,9 +3,7 @@
 #include "variables.hpp"
 
 #include <cstdint>
-#include <string_view>
 #include <type_traits>
-#include <utility>
 #include <variant>
 
 enum UIObjectBorder : uint8_t {
@@ -37,11 +35,6 @@ public:
     UIWidgetColor background_color;
 
     uint8_t border = UI_BORDER_NONE;
-
-    template <typename T>
-    void set_variable(std::string_view key, T value) {
-        m_vars.set(key, std::move(value));
-    }
 
     [[nodiscard]] StyleVariableStore& variables() {
         return m_vars;

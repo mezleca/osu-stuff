@@ -39,6 +39,11 @@ static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags_NoDecoration |
                                                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
                                                  ImGuiWindowFlags_NoBringToFrontOnFocus;
 
+static constexpr ImGuiWindowFlags NOTIFICATION_OVERLAY_FLAGS =
+    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+    ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs |
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     CURRENT_UI = this;
 
@@ -67,6 +72,8 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     style.ItemSpacing = ImVec2{10.0f, 10.0f};
     style.ItemInnerSpacing = ImVec2{8.0f, 6.0f};
     style.CellPadding = ImVec2{0.0f, 0.0f};
+    style.CircleTessellationMaxError = 0.10f;
+    style.AntiAliasedLinesUseTex = false;
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 
@@ -323,6 +330,14 @@ void UI::clear_notifications() {
     m_notifications.clear();
 }
 
+void UI::draw_child_rect(ImColor color, float radius, float thickness) {
+    const ImVec2 win_pos = ImGui::GetWindowPos();
+    const ImVec2 win_size = ImGui::GetWindowSize();
+
+    auto* dl = ImGui::GetWindowDrawList();
+    dl->AddRect(win_pos, ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y), color, radius, 0, thickness);
+}
+
 void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
@@ -357,6 +372,8 @@ void UI::render() {
         m_counter.show_ui = !m_counter.show_ui;
     }
 
+    float header_end_height = 0.0f;
+
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
@@ -364,9 +381,13 @@ void UI::render() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ui_theme::BG_COLOR);
+
+    // render ui content
     ImGui::Begin("##osu-stuff", nullptr, WINDOW_FLAGS);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
+
         ImGui::PushFont(torus_bold);
         const float font_height = ImGui::GetFrameHeight();
         ImGui::PopFont();
@@ -378,10 +399,11 @@ void UI::render() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
 
         const ImVec2 header_cursor_start = ImGui::GetCursorPos();
-        const float header_size_y = font_height + ui_theme::CONTENT_PADDING * 2;
+        header_end_height = font_height + ui_theme::CONTENT_PADDING * 2;
 
         ImGui::BeginChild(
-            "header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None
+            "header", ImVec2{available.x, header_end_height}, ImGuiChildFlags_AlwaysUseWindowPadding,
+            ImGuiWindowFlags_None
         );
         {
             ImGui::PushFont(torus_bold);
@@ -402,7 +424,7 @@ void UI::render() {
 
             auto* dl = ImGui::GetWindowDrawList();
 
-            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_size_y - 1.0f};
+            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_end_height - 1.0f};
             ImVec2 header_line_end = {available.x, header_line_start.y};
 
             dl->AddLine(header_line_start, header_line_end, ImColor(ui_theme::HEADER_BORDER_COLOR), 1.0f);
@@ -413,6 +435,7 @@ void UI::render() {
 
         ImGui::PushFont(torus_bold);
 
+        // render current tab
         if (m_current_tab != nullptr) {
             if (!m_current_tab->is_initialized()) m_current_tab->setup();
             m_current_tab->render();
@@ -421,8 +444,37 @@ void UI::render() {
         ImGui::PopFont();
     }
     ImGui::End();
+    ImGui::PopStyleColor(1);
     ImGui::PopStyleVar(3);
 
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowBgAlpha(0.0f);
+
+    // render notifications
+    ImGui::Begin("##notifications-overlay", nullptr, NOTIFICATION_OVERLAY_FLAGS);
+    {
+        const ImVec2 window_pos = ImGui::GetWindowPos();
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+
+        float x_offset = window_pos.x + available.x - 5.0f;
+        float y_offset = window_pos.y + header_end_height + 5.0f;
+
+        // render notifications
+        for (auto it = m_notifications.rbegin(); it != m_notifications.rend(); ++it) {
+            auto* notification = it->get();
+
+            const auto& size = notification->state().get_size();
+
+            notification->set_offset({x_offset - size.x, y_offset});
+            notification->show();
+
+            y_offset += size.y + 10.0f;
+        }
+    }
+    ImGui::End();
+
+    // render debug ui
     if (m_counter.show_ui) {
         show_debug_ui();
     }

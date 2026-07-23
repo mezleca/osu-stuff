@@ -19,9 +19,13 @@ void UIImageWidget::show() {
     const UIStyle& style = state().get_style();
     const GLuint texture_id = m_texture->get(static_cast<int>(m_size.x), static_cast<int>(m_size.y));
 
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
+
     ImGui::ImageWithBg(
         static_cast<ImTextureID>(texture_id), m_size, {0, 0}, {1, 1}, ImColor(0, 0, 0, 0), style.color.get_col()
     );
+
+    ImGui::PopStyleVar(1);
 
     state().update(dt);
 }

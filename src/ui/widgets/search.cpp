@@ -70,6 +70,7 @@ void SearchInputWidget::show() {
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, ui_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 2.0f});
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ui_theme::TRANSPARENT);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
@@ -93,8 +94,10 @@ void SearchInputWidget::show() {
     const bool is_active = ImGui::IsItemActive();
     const bool is_hovered = ImGui::IsItemHovered();
 
+    ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
+
     ImGui::EndChild();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(3);
 
     if (is_active) {
@@ -109,10 +112,4 @@ void SearchInputWidget::show() {
     }
 
     state().update(dt);
-
-    const ImVec2 rect_min = ImGui::GetItemRectMin();
-    const ImVec2 rect_max = ImGui::GetItemRectMax();
-
-    auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(rect_min, rect_max, ImColor(style.border_color.value), ui_theme::BOX_ROUNDING, 0, 4.0f);
 }

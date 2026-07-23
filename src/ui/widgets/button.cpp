@@ -40,8 +40,6 @@ void UIButtonWidget::show() {
     ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
     ImGui::PushFont(style.font);
 
-    auto dl = ImGui::GetWindowDrawList();
-
     const bool is_pressed = ImGui::Button(m_text.c_str());
     const bool is_hovered = ImGui::IsItemHovered();
     const bool is_active = ImGui::IsItemActive();
@@ -64,8 +62,9 @@ void UIButtonWidget::show() {
 
     state().update(dt);
 
-    auto min = ImGui::GetItemRectMin();
-    auto max = ImGui::GetItemRectMax();
+    const auto min = ImGui::GetItemRectMin();
+    const auto max = ImGui::GetItemRectMax();
 
+    auto* dl = ImGui::GetWindowDrawList();
     dl->AddRect(min, max, style.border_color.get_col(), style.border_radius, style.border_thickness);
 }

@@ -3,10 +3,6 @@
 #include <string>
 #include <string_view>
 
-namespace ui_modal_id {
-    static constexpr std::string_view TEST = "test";
-} // namespace ui_modal_id
-
 class UIModal {
 public:
     explicit UIModal(std::string_view id) : m_id(id) {

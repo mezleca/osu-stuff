@@ -16,12 +16,26 @@ enum class NotificationType : int32_t {
 class UINotification : public UIWidget {
 public:
     UINotification() : UIWidget("notification") {
+        m_current_offset.speed = 0.0f;
+        m_offset.speed = 20.0f;
     }
 
     virtual ~UINotification() = default;
-
     virtual void show() = 0;
+
     [[nodiscard]] virtual NotificationType get_type() const = 0;
+
+    const UIWidgetVec2& get_offset() {
+        return m_offset;
+    }
+
+    void set_offset(ImVec2 value) {
+        m_offset.set(value);
+    }
+
+protected:
+    UIWidgetVec2 m_offset;
+    UIWidgetVec2 m_current_offset;
 };
 
 class DefaultNotificationWidget : public UINotification {

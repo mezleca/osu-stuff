@@ -61,6 +61,9 @@ public:
         return m_fonts[type];
     }
 
+    // draw helpers
+    void draw_child_rect(ImColor border_color, float radius = 4.0f, float thickness = 1.0f);
+
     // textures
     [[nodiscard]] IconTexture* get_texture(std::string_view id);
 

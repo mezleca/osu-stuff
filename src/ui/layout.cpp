@@ -120,24 +120,16 @@ void UIChildLayout::draw_borders() {
             draw_list->AddRect(min, max, border_color, 0.0f, 0, border_thickness);
         } else {
             if (style().border & UI_BORDER_TOP) {
-                draw_list->AddLine(
-                    {min.x, min.y}, {max.x, min.y}, border_color, border_thickness
-                );
+                draw_list->AddLine({min.x, min.y}, {max.x, min.y}, border_color, border_thickness);
             }
             if (style().border & UI_BORDER_BOTTOM) {
-                draw_list->AddLine(
-                    {min.x, max.y}, {max.x, max.y}, border_color, border_thickness
-                );
+                draw_list->AddLine({min.x, max.y}, {max.x, max.y}, border_color, border_thickness);
             }
             if (style().border & UI_BORDER_LEFT) {
-                draw_list->AddLine(
-                    {min.x, min.y}, {min.x, max.y}, border_color, border_thickness
-                );
+                draw_list->AddLine({min.x, min.y}, {min.x, max.y}, border_color, border_thickness);
             }
             if (style().border & UI_BORDER_RIGHT) {
-                draw_list->AddLine(
-                    {max.x, min.y}, {max.x, max.y}, border_color, border_thickness
-                );
+                draw_list->AddLine({max.x, min.y}, {max.x, max.y}, border_color, border_thickness);
             }
         }
     }
@@ -149,7 +141,10 @@ void UIChildLayout::draw_borders() {
             const float distance = 3.0f + static_cast<float>(i) * RESIZE_INDICATOR_DISTANCE;
 
             draw_list->AddLine({max.x - distance, max.y}, {max.x, max.y - distance}, border_color, border_thickness);
-            draw_list->AddLine({max.x - distance + border_thickness + 0.5f, max.y}, {max.x, max.y - distance + border_thickness + 0.5f}, resize_out_color, border_thickness);
+            draw_list->AddLine(
+                {max.x - distance + border_thickness + 0.5f, max.y},
+                {max.x, max.y - distance + border_thickness + 0.5f}, resize_out_color, border_thickness
+            );
         }
     }
 }

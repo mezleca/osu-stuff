@@ -4,7 +4,6 @@
 
 #include <cmath>
 #include <string>
-#include <utility>
 #include <variant>
 #include <imgui.h>
 
@@ -14,7 +13,7 @@ struct UIWidgetValue {
     float speed = 0.0f;
 
     void set(ValueT new_value) {
-        value = std::move(new_value);
+        value = new_value;
     }
 
     void set_speed(float new_speed) {

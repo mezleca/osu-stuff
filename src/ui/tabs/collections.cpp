@@ -2,6 +2,7 @@
 #include "../theme.hpp"
 #include "../ui.hpp"
 #include "../widgets/text.hpp"
+#include "../widgets/notification.hpp"
 #include "../widgets/collection-card.hpp"
 #include "../widgets/search.hpp"
 #include "../widgets/button.hpp"
@@ -23,7 +24,12 @@ void CollectionTab::setup() {
 
     auto add_notification_button = std::make_unique<UIButtonWidget>("add notification");
 
-    add_notification_button->on_click = []() { std::cout << "adding notification\n"; };
+    // TODO: notification manager
+    add_notification_button->on_click = [&]() {
+        auto notification = std::make_unique<DefaultNotificationWidget>("something");
+        ui::current().add_notification(std::move(notification));
+        std::cout << "adding notification\n";
+    };
 
     CollectionCardWidget* collection_card_ptr = collection_card.get();
 
