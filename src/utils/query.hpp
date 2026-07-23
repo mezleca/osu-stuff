@@ -3,6 +3,7 @@
 #include <climits>
 #include <string>
 #include <string_view>
+#include <set>
 #include <vector>
 
 enum class QueryOp : int {
@@ -196,6 +197,24 @@ namespace query {
                     m_state.reset();
                 } break;
             }
+        }
+
+        return result;
+    }
+
+    inline std::string string_set_to_string(const std::set<std::string>& set, std::string_view del) {
+        std::string result;
+        size_t total_bytes = 0;
+
+        for (const auto& value : set) {
+            total_bytes += value.size();
+        }
+
+        total_bytes += del.size() * (set.size() - 1);
+        result.reserve(total_bytes);
+
+        for (const auto& value : set) {
+            result += value;
         }
 
         return result;
