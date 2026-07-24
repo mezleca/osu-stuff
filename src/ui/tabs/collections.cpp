@@ -15,6 +15,9 @@ static constexpr float COLLECTION_PANEL_WIDTH_PERCENT = 25.0f;
 static constexpr float PERCENT_DIVISOR = 100.0f;
 static constexpr float MAX_COLLECTION_PANEL_WIDTH_FACTOR = 2.0f;
 
+static constexpr const char* text_small = "somethingf";
+static constexpr const char* text_big = "somethingfdsjmkkkkkkkkkkkkkkkkkkkkkkkkkefjsnfdsnjkfdsnj ndjflsdfnlj";
+
 CollectionTab::CollectionTab() {
     m_id = "collections";
 }
@@ -29,7 +32,8 @@ void CollectionTab::setup() {
 
     // TODO: notification manager
     add_notification_button->on_click = [notification_manager]() {
-        auto notification = std::make_unique<LogNotificationWidget>(LogNotificationLevel::INFO, "something");
+        auto text = notification_manager->count() == 0 ? text_small : text_big;
+        auto notification = std::make_unique<LogNotificationWidget>(LogNotificationLevel::INFO, text);
 
         if (notification_manager->add(std::move(notification))) {
             std::cout << "added notification\n";

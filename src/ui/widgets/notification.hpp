@@ -2,6 +2,7 @@
 
 #include "base/widget.hpp"
 #include "base/text.hpp"
+#include "image.hpp"
 
 #include <functional>
 #include <cstdint>
@@ -20,6 +21,7 @@ public:
 
     virtual ~UINotification() = default;
     virtual void show() = 0;
+    virtual void close() = 0;
 
     [[nodiscard]] UINotificationType get_type() const {
         return m_type;
@@ -45,6 +47,7 @@ protected:
     UIWidgetVec2 m_offset;
     UIWidgetVec2 m_current_offset;
     UINotificationType m_type;
+    bool m_closing = false;
 };
 
 enum class LogNotificationLevel : int32_t {
@@ -59,6 +62,7 @@ public:
     explicit LogNotificationWidget(LogNotificationLevel level, std::string text);
 
     void show() override;
+    void close() override;
     void set_text(std::string_view text) {
         m_text.set(text.data());
     }
@@ -67,6 +71,7 @@ public:
     std::function<void()> m_onclose = nullptr;
 
 private:
+    UIImageWidget m_icon;
     UIText<std::string> m_text;
     LogNotificationLevel m_level;
 };

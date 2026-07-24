@@ -19,7 +19,6 @@
 namespace fs = std::filesystem;
 
 static UI* current_ui = nullptr;
-static UITextFormatted<size_t> more_notification_text("{} more...");
 
 UI& ui::current() {
     if (current_ui == nullptr) {
@@ -419,8 +418,7 @@ void UI::render() {
         const ImVec2 window_pos = ImGui::GetWindowPos();
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
-        m_notification_manager->set_offset({window_pos.x + available.x - 5.0f, window_pos.y + 10.0f});
-
+        m_notification_manager->set_offset({window_pos.x + available.x - 5.0f, header_end_height + 10.0f});
         m_notification_manager->render();
     }
     ImGui::End();

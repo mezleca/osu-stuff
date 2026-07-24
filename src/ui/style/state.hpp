@@ -2,9 +2,9 @@
 
 #include "style.hpp"
 
-static constexpr float OPACITY_TRANSITION_SPEED = 12.0f;
-static constexpr float TRANSITION_SETTLE_EPSILON = 0.002f;
-static constexpr float VISIBILITY_OPACITY_THRESHOLD = 0.001f;
+static constexpr float OPACITY_TRANSITION_SPEED = 15.0f;
+static constexpr float TRANSITION_SETTLE_EPSILON = 0.003f;
+static constexpr float VISIBILITY_OPACITY_THRESHOLD = 0.002f;
 
 struct StyleTransitionData {
     float elapsed = 0.0f;

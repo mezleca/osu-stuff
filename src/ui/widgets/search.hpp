@@ -15,9 +15,9 @@ public:
 
     UITextFormatted<void*> m_label;
     std::string* m_value;
-    UIImageWidget m_icon;
 
 private:
+    UIImageWidget m_icon;
     ImVec2 m_size = {120.0f, 30.0f};
     bool m_fit_width = false;
 };
