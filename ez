@@ -51,13 +51,19 @@ def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, c
 
     return result.returncode, result.stdout or ""
 
+def clear_dir(dir: Path) -> None:
+    if os.path.islink(dir):
+        os.unlink(dir)
+    else:
+        shutil.rmtree(dir)
+
 def tool_exists(tool: str) -> None:
     if shutil.which(tool) is None:
         raise Exception(f"{tool} not found in PATH")
 
 def get_cpu_count() -> int:
     if SYSTEM == "Linux":
-        result = subprocess.run("nproc", shell=True, capture_output=True, text=True)
+        result = subprocess.run("nproc", shell=True, capture_output=True, text=True, check=False)
         cores = result.stdout.strip()
         return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
@@ -71,7 +77,7 @@ def has_system_sdl3() -> bool:
 
     result = subprocess.run(
         ["pkg-config", "--exists", SDL_PKG_CONFIG_NAME],
-        cwd=str(CWD),
+        cwd=str(CWD), check=False
     )
     return result.returncode == 0
 
@@ -140,10 +146,7 @@ def is_build_configured() -> bool:
     if not cache.exists():
         return False
 
-    if not (BUILD_DIR / "build.ninja").exists():
-        return False
-
-    return True
+    return (BUILD_DIR / "build.ninja").exists()
 
 def get_vcvarsall_script() -> Path | None:
     candidates = [
@@ -225,7 +228,7 @@ def clean() -> int:
     print("[ez] removing build directory...")
 
     try:
-        shutil.rmtree(BUILD_DIR)
+        clear_dir(BUILD_DIR)
         return 0
     except PermissionError:
         print("[ez] permission denied")
@@ -261,8 +264,9 @@ def download_test_data() -> None:
 def extract_test_data() -> None:
     test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
     test_extract_dir = TESTS_BUILD_DIR / "data.extract"
+
     if test_extract_dir.exists():
-        shutil.rmtree(test_extract_dir)
+        clear_dir(test_extract_dir)
 
     test_extract_dir.mkdir(parents=True, exist_ok=True)
 
@@ -272,13 +276,14 @@ def extract_test_data() -> None:
     source_dir = resolve_test_data_source(test_extract_dir)
 
     if TEST_DATA_CACHE_DIR.exists():
-        shutil.rmtree(TEST_DATA_CACHE_DIR)
+        clear_dir(TEST_DATA_CACHE_DIR)
 
     shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
-    shutil.rmtree(test_extract_dir)
+    clear_dir(test_extract_dir)
 
 def ensure_test_data() -> None:
     test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
+
     if has_test_data():
         return
 
@@ -294,11 +299,12 @@ def ensure_test_data() -> None:
 def prepare_test_runtime_data() -> None:
     test_data_dir = TESTS_BUILD_DIR / "data"
     test_temp_dir = TESTS_BUILD_DIR / "temp"
+
     if test_data_dir.exists():
-        shutil.rmtree(test_data_dir)
+        clear_dir(test_data_dir)
 
     if test_temp_dir.exists():
-        shutil.rmtree(test_temp_dir)
+        clear_dir(test_temp_dir)
 
     shutil.copytree(TEST_DATA_CACHE_DIR, test_data_dir)
     test_temp_dir.mkdir(parents=True, exist_ok=True)
@@ -306,11 +312,12 @@ def prepare_test_runtime_data() -> None:
 def cleanup_test_runtime_data() -> None:
     test_data_dir = TESTS_BUILD_DIR / "data"
     test_temp_dir = TESTS_BUILD_DIR / "temp"
+
     if test_data_dir.exists():
-        shutil.rmtree(test_data_dir)
+        clear_dir(test_data_dir)
 
     if test_temp_dir.exists():
-        shutil.rmtree(test_temp_dir)
+        clear_dir(test_temp_dir)
 
 def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
@@ -357,16 +364,14 @@ def build(build_type: str | None) -> int:
     selected_build_type = build_type or cached_build_type or "release"
     should_build_tests = selected_build_type == "debug"
 
-    if not is_build_configured():
-        if configure(selected_build_type, "auto", build_tests=should_build_tests) != 0:
-            return 1
-    elif (
+    needs_configure = not is_build_configured() or (
         selected_build_type != cached_build_type
         or cached_build_tests is None
         or cached_build_tests != should_build_tests
-    ):
-        if configure(selected_build_type, "auto", build_tests=should_build_tests) != 0:
-            return 1
+    )
+
+    if needs_configure and configure(selected_build_type, "auto", build_tests=should_build_tests) != 0:
+        return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
     code, _ = run([
@@ -454,10 +459,19 @@ def run_binary() -> int:
 
     return run(str(binary))[0]
 
-def run_tests(build_type: str | None) -> int:
-    selected_build_type = build_type or read_cached_build_type() or "release"
+def build_tests(build_type: str | None) -> int:
+    cached_build_type = read_cached_build_type()
+    cached_build_tests = read_cached_build_tests()
+    selected_build_type = build_type or cached_build_type or "release"
 
-    if configure(selected_build_type, "auto", build_tests=True) != 0:
+    needs_configure = (
+        not is_build_configured()
+        or selected_build_type != cached_build_type
+        or cached_build_tests is None
+        or cached_build_tests is not True
+    )
+
+    if needs_configure and configure(selected_build_type, "auto", build_tests=True) != 0:
         return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
@@ -469,13 +483,14 @@ def run_tests(build_type: str | None) -> int:
         str(get_cpu_count()),
     ], env=env)
 
-    if code != 0:
-        return 1
+    return code != 0
 
+def run_tests(build_type: str | None) -> int:
     ensure_test_data()
     prepare_test_runtime_data()
 
     cached = read_cached_build_type()
+    env = load_msvc_env() if SYSTEM == "Windows" else None
     cmd = [
         "ctest",
         "--test-dir",
@@ -494,7 +509,7 @@ def run_tests(build_type: str | None) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
 
-    parser.add_argument("command", choices=["init", "configure", "format", "build", "package", "clean", "run", "tests"])
+    parser.add_argument("command", choices=["init", "configure", "format", "build", "build-tests", "package", "clean", "run", "tests"])
     parser.add_argument("--type", choices=["debug", "release"], default=None, dest="build_type")
     parser.add_argument("--package-type", choices=["flatpak", "inno", "portable"], default=None, dest="package_type")
     parser.add_argument("--platform", choices=["auto", "linux", "windows"], default="auto")
@@ -510,6 +525,7 @@ def main() -> None:
             build_tests=(args.build_type or "release") == "debug",
         ),
         "build":     lambda: build(args.build_type),
+        "build-tests":     lambda: build_tests(args.build_type),
         "package":   lambda: package(args.package_type),
         "format":    format_code,
         "clean":     clean,

@@ -78,7 +78,10 @@ public:
             }
         }
 
-        size = ImGui::GetItemRectSize();
+        if (ImGui::GetCurrentContext() != nullptr) {
+            size = ImGui::GetItemRectSize();
+        }
+
         first_frame = false;
     }
 
