@@ -1,5 +1,6 @@
 #include "detail.hpp"
 #include "../theme.hpp"
+#include "../managers/notification-manager.hpp"
 #include "../ui.hpp"
 #include "../widgets/text.hpp"
 #include "../widgets/notification.hpp"
@@ -19,16 +20,20 @@ CollectionTab::CollectionTab() {
 }
 
 void CollectionTab::setup() {
+    auto* notification_manager = ui::current().notification_manager();
+
     auto collection_input = std::make_unique<SearchInputWidget>(m_collection_search);
     auto collection_card = std::make_unique<CollectionCardWidget>("Collection");
 
     auto add_notification_button = std::make_unique<UIButtonWidget>("add notification");
 
     // TODO: notification manager
-    add_notification_button->on_click = [&]() {
-        auto notification = std::make_unique<DefaultNotificationWidget>("something");
-        ui::current().add_notification(std::move(notification));
-        std::cout << "adding notification\n";
+    add_notification_button->on_click = [notification_manager]() {
+        auto notification = std::make_unique<LogNotificationWidget>(LogNotificationLevel::INFO, "something");
+
+        if (notification_manager->add(std::move(notification))) {
+            std::cout << "added notification\n";
+        }
     };
 
     CollectionCardWidget* collection_card_ptr = collection_card.get();

@@ -1,10 +1,10 @@
 #include "ui.hpp"
+#include "managers/notification-manager.hpp"
 #include "constants.hpp"
 #include "tabs/detail.hpp"
 #include "widgets/tab-button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
-#include "widgets/notification.hpp"
 #include "texture/icon.hpp"
 #include "texture/svg.hpp"
 
@@ -153,32 +153,62 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
             m_current_tab = cur_tab;
         };
     }
-}
 
-void UI::update_counter() {
-    const Uint64 now = SDL_GetPerformanceCounter();
-    m_debug.frame_count++;
-
-    if (m_debug.last_time == 0) {
-        m_debug.last_time = now;
-        return;
-    }
-
-    const double elapsed_seconds =
-        static_cast<double>(now - m_debug.last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
-
-    if (elapsed_seconds >= 1.0) {
-        m_debug.current_fps = static_cast<double>(m_debug.frame_count) / elapsed_seconds;
-        m_debug.frame_count = 0;
-        m_debug.last_time = now;
-    }
+    m_notification_manager = new UINotificationManager();
 }
 
 UI::~UI() {
     current_ui = nullptr;
+    m_notification_manager = nullptr;
+    m_current_tab = nullptr;
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
+}
+
+void UIDebug::update() {
+    const Uint64 now = SDL_GetPerformanceCounter();
+    m_frame_count++;
+
+    if (m_last_time == 0) {
+        m_last_time = now;
+        return;
+    }
+
+    const double elapsed_seconds =
+        static_cast<double>(now - m_last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
+
+    if (elapsed_seconds >= 1.0) {
+        m_current_fps = static_cast<double>(m_frame_count) / elapsed_seconds;
+        m_frame_count = 0;
+        m_last_time = now;
+    }
+}
+
+void UIDebug::handle_keydown(SDL_Window* window) {
+    SDL_WindowFlags window_flags = SDL_GetWindowFlags(window);
+    bool window_focused = window_flags & SDL_WINDOW_INPUT_FOCUS;
+
+    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
+        m_show_ui = !m_show_ui;
+    }
+}
+
+void UIDebug::render() {
+    if (!m_show_ui) {
+        return;
+    }
+
+    ImGui::Begin("##debug-ui", nullptr, ImGuiWindowFlags_NoSavedSettings);
+    {
+        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
+        {
+            ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
@@ -280,47 +310,6 @@ void UI::handle_escape() {
     }
 }
 
-void UI::add_notification(std::unique_ptr<UINotification> notification) {
-    if (notification == nullptr) {
-        return;
-    }
-
-    m_notifications.push_back(std::move(notification));
-}
-
-UINotification* UI::get_notification(size_t index) {
-    if (index >= m_notifications.size()) {
-        return nullptr;
-    }
-
-    return m_notifications[index].get();
-}
-
-const UINotification* UI::get_notification(size_t index) const {
-    if (index >= m_notifications.size()) {
-        return nullptr;
-    }
-
-    return m_notifications[index].get();
-}
-
-size_t UI::notification_count() const {
-    return m_notifications.size();
-}
-
-bool UI::remove_notification(size_t index) {
-    if (index >= m_notifications.size()) {
-        return false;
-    }
-
-    m_notifications.erase(m_notifications.begin() + index);
-    return true;
-}
-
-void UI::clear_notifications() {
-    m_notifications.clear();
-}
-
 void UI::draw_child_rect(ImColor color, float radius, float thickness) {
     const ImVec2 win_pos = ImGui::GetWindowPos();
     const ImVec2 win_size = ImGui::GetWindowSize();
@@ -334,20 +323,16 @@ void UI::process_sdl_event(SDL_Event* event) {
 }
 
 void UI::render() {
-    SDL_WindowFlags w_flags = SDL_GetWindowFlags(m_window);
-
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
+    // update debugger
+    m_debug.handle_keydown(m_window);
+    m_debug.update();
+
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImFont* torus_bold = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
-
-    bool window_focused = w_flags & SDL_WINDOW_INPUT_FOCUS;
-
-    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-        m_debug.show_ui = !m_debug.show_ui;
-    }
 
     float header_end_height = 0.0f;
 
@@ -434,50 +419,14 @@ void UI::render() {
         const ImVec2 window_pos = ImGui::GetWindowPos();
         const ImVec2 available = ImGui::GetContentRegionAvail();
 
-        float x_offset = window_pos.x + available.x - 5.0f;
-        float y_offset = window_pos.y + header_end_height + 10.0f;
+        m_notification_manager->set_offset({window_pos.x + available.x - 5.0f, window_pos.y + 10.0f});
 
-        size_t index = 0;
-
-        // render notifications
-        for (auto it = m_notifications.rbegin(); it != m_notifications.rend(); ++it) {
-            if (y_offset + 100.0f > available.y) {
-                ImGui::PushFont(torus_bold);
-
-                more_notification_text.set(m_notifications.size() - index);
-                const ImVec2 text_size = more_notification_text.text_size();
-
-                ImGui::SetCursorPos({x_offset - text_size.x, y_offset + 5.0f});
-
-                ImGui::TextUnformatted(more_notification_text.c_str());
-                ImGui::PopFont();
-                break;
-            }
-
-            UINotification* notification = it->get();
-            const ImVec2& size = notification->state().get_size();
-
-            notification->set_offset({x_offset - size.x, y_offset});
-            notification->show();
-
-            y_offset += size.y + 10.0f;
-            index++;
-        }
+        m_notification_manager->render();
     }
     ImGui::End();
 
     // render debug ui
-    if (m_debug.show_ui) {
-        ImGui::Begin("##debug-ui", nullptr, ImGuiWindowFlags_NoSavedSettings);
-        {
-            ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
-            {
-                ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
-            }
-            ImGui::EndChild();
-        }
-        ImGui::End();
-    }
+    m_debug.render();
 
     ImGui::Render();
 

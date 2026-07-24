@@ -4,7 +4,8 @@
 #include "../theme.hpp"
 #include "../constants.hpp"
 
-DefaultNotificationWidget::DefaultNotificationWidget(std::string text) : UINotification(), m_text(text) {
+LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::string text)
+    : UINotification(UINotificationType::LOG), m_text(text), m_level(level) {
     UIStyle& hover_style = state().get_style(UIStyleType::HOVER);
     UIStyle& active_style = state().get_style(UIStyleType::ACTIVE);
 
@@ -28,12 +29,29 @@ DefaultNotificationWidget::DefaultNotificationWidget(std::string text) : UINotif
     state().snap_to_style(UIStyleType::DEFAULT);
 }
 
-void DefaultNotificationWidget::show() {
+static ImColor get_border_by_level(LogNotificationLevel level) {
+    switch (level) {
+        case LogNotificationLevel::INFO:
+            return ui_theme::BLUE;
+        case LogNotificationLevel::ERROR:
+            return ui_theme::RED;
+        case LogNotificationLevel::WARN:
+            return ui_theme::YELLOW;
+        case LogNotificationLevel::PLACEHOLDER:
+            return ui_theme::ACCENT_COLOR;
+    }
+
+    return ui_theme::TRANSPARENT;
+}
+
+void LogNotificationWidget::show() {
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
 
     const auto child_flags =
         ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
+
+    bool clicked = false;
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, style.border_radius);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8.0f, 16.0f});
@@ -45,19 +63,24 @@ void DefaultNotificationWidget::show() {
 
     ImGui::PushID(this);
     ImGui::BeginChild("##ui-notification", {0.0f, 0.0f}, child_flags, constants::WIDGET_WINDOW_FLAGS);
-    ImGui::PushFont(style.font);
-    ImGui::TextUnformatted(m_text.c_str());
+    {
+        ImGui::PushFont(style.font);
+        ImGui::TextUnformatted(m_text.c_str());
 
-    bool clicked = ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+        clicked = ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+        ui::current().draw_child_rect(get_border_by_level(m_level), style.border_radius, style.border_thickness);
 
-    ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
-
-    ImGui::PopFont();
+        ImGui::PopFont();
+    }
     ImGui::EndChild();
     ImGui::PopID();
 
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
+
+    if (clicked && m_onclick) {
+        m_onclick();
+    }
 
     if (ImGui::IsItemActive()) {
         state().set_style(UIStyleType::ACTIVE);

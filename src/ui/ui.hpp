@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
+class UINotificationManager;
 class UIModal;
-class UINotification;
 class IconTexture;
 class TabButtonWidget;
 class UITab;
@@ -23,11 +23,24 @@ namespace ui {
     UI& current();
 }
 
-struct UIDebug {
-    Uint64 last_time = 0;
-    Uint64 frame_count = 0;
-    double current_fps = 0.0;
-    bool show_ui = false;
+// UIDebug will be used to debug widgets, view / change its properties, etc...
+// for that to happen, we will need to store the widget ptr somewhere in the ui
+// and maybe use references on styling properties?
+class UIDebug {
+public:
+    [[nodiscard]] double get_fps() const {
+        return m_current_fps;
+    }
+
+    void render();
+    void update();
+    void handle_keydown(SDL_Window* window);
+
+private:
+    Uint64 m_last_time = 0;
+    Uint64 m_frame_count = 0;
+    double m_current_fps = 0.0;
+    bool m_show_ui = false;
 };
 
 class UI {
@@ -46,11 +59,9 @@ public:
         m_done = true;
     }
 
-    [[nodiscard]] double get_fps() const {
-        return m_debug.current_fps;
+    UINotificationManager* notification_manager() {
+        return m_notification_manager;
     }
-
-    void update_counter();
 
     [[nodiscard]] UIFont& get_font(UIFonts type) {
         return m_fonts[type];
@@ -67,6 +78,7 @@ public:
     [[nodiscard]] IconTexture* get_texture(std::string_view id);
 
     // modals
+    // TODO: ModalManager
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
     [[nodiscard]] bool has_modal(std::string_view id) const;
     [[nodiscard]] UIModal* focused_modal() const;
@@ -77,23 +89,15 @@ public:
     void clear_modals();
     void handle_escape();
 
-    // notifications
-    void add_notification(std::unique_ptr<UINotification> notification);
-    [[nodiscard]] UINotification* get_notification(size_t index);
-    [[nodiscard]] const UINotification* get_notification(size_t index) const;
-    [[nodiscard]] size_t notification_count() const;
-    [[nodiscard]] bool remove_notification(size_t index);
-    void clear_notifications();
-
 private:
-    UIDebug m_debug;
     UIFont m_fonts[FONT_COUNT];
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
+    UIDebug m_debug;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
     std::vector<std::unique_ptr<UIModal>> m_modals;
-    std::vector<std::unique_ptr<UINotification>> m_notifications;
-    bool m_done = false;
+    UINotificationManager* m_notification_manager;
     SDL_Window* m_window;
     ImGuiIO* m_io;
     UITab* m_current_tab = nullptr;
+    bool m_done = false;
 };

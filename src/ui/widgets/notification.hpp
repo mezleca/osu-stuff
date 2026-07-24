@@ -6,16 +6,14 @@
 #include <functional>
 #include <cstdint>
 
-enum class NotificationType : int32_t {
-    DEFAULT,
-    ALERT,
-    ERROR,
+enum class UINotificationType : int32_t {
+    LOG,
     ACTION
 };
 
 class UINotification : public UIWidget {
 public:
-    UINotification() : UIWidget("notification") {
+    UINotification(UINotificationType type) : UIWidget("notification"), m_type(type) {
         m_current_offset.speed = 0.0f;
         m_offset.speed = 20.0f;
     }
@@ -23,35 +21,52 @@ public:
     virtual ~UINotification() = default;
     virtual void show() = 0;
 
-    [[nodiscard]] virtual NotificationType get_type() const = 0;
+    [[nodiscard]] UINotificationType get_type() const {
+        return m_type;
+    };
 
     const UIWidgetVec2& get_offset() {
         return m_offset;
     }
 
-    void set_offset(ImVec2 value) {
+    const UIWidgetVec2& get_target_offset() {
+        return m_current_offset;
+    }
+
+    void set_offset(ImVec2 value, bool instant = false) {
         m_offset.set(value);
+
+        if (instant) {
+            m_current_offset.set(value);
+        }
     }
 
 protected:
     UIWidgetVec2 m_offset;
     UIWidgetVec2 m_current_offset;
+    UINotificationType m_type;
 };
 
-class DefaultNotificationWidget : public UINotification {
+enum class LogNotificationLevel : int32_t {
+    INFO = 0,
+    WARN,
+    ERROR,
+    PLACEHOLDER
+};
+
+class LogNotificationWidget : public UINotification {
 public:
-    explicit DefaultNotificationWidget(std::string text);
+    explicit LogNotificationWidget(LogNotificationLevel level, std::string text);
 
     void show() override;
-
-    [[nodiscard]] NotificationType get_type() const override {
-        return m_type;
+    void set_text(std::string_view text) {
+        m_text.set(text.data());
     }
 
-    std::function<void(UINotification*)> m_onconfirm = nullptr;
-    std::function<void(UINotification*)> m_oncancel = nullptr;
+    std::function<void()> m_onclick = nullptr;
+    std::function<void()> m_onclose = nullptr;
 
 private:
     UIText<std::string> m_text;
-    NotificationType m_type = NotificationType::DEFAULT;
+    LogNotificationLevel m_level;
 };
