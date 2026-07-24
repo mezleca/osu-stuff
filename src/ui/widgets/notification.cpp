@@ -48,6 +48,8 @@ void DefaultNotificationWidget::show() {
     ImGui::PushFont(style.font);
     ImGui::TextUnformatted(m_text.c_str());
 
+    bool clicked = ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+
     ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
 
     ImGui::PopFont();

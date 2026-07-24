@@ -483,9 +483,12 @@ def build_tests(build_type: str | None) -> int:
         str(get_cpu_count()),
     ], env=env)
 
-    return code != 0
+    return code == 0
 
 def run_tests(build_type: str | None) -> int:
+    if not build_tests(build_type):
+        return 0
+
     ensure_test_data()
     prepare_test_runtime_data()
 
