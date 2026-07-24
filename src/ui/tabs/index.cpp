@@ -1,8 +1,6 @@
 #include "detail.hpp"
-#include "../theme.hpp"
-#include "../custom.hpp"
 
-IndexTab::IndexTab(UI* ui) : UITab(ui) {
+IndexTab::IndexTab() {
     m_id = "index";
 }
 

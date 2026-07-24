@@ -22,7 +22,7 @@ enum UIFontVar : int32_t {
 
 class UIFont {
 public:
-    void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
+    void initialize(ImFontConfig cfg, std::string location, ImGuiIO* io);
 
     [[nodiscard]]
     ImFont* get(int size) {

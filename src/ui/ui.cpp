@@ -1,9 +1,12 @@
 #include "ui.hpp"
+#include "managers/notification-manager.hpp"
+#include "constants.hpp"
 #include "tabs/detail.hpp"
-#include "widgets/tab_button.hpp"
+#include "widgets/tab-button.hpp"
 #include "theme.hpp"
 #include "modal.hpp"
 #include "texture/icon.hpp"
+#include "texture/svg.hpp"
 
 #include <algorithm>
 #include <format>
@@ -11,23 +14,23 @@
 #include <imgui_impl_sdl3.h>
 #include <filesystem>
 #include <iostream>
+#include <cstdlib>
 
-static const std::string DEFAULT_WARN_SVG = R"(
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="800px"
-        height="800px"
-        viewBox="0 0 25 25"
-        fill="none"
-    >
-        <path d="M12.5 10V14M12.5 17V15.5M14.2483 5.64697L20.8493 17.5287C21.5899 18.8618 20.6259 20.5 19.101 20.5H5.89903C4.37406 20.5 3.41013 18.8618 4.15072 17.5287L10.7517 5.64697C11.5137 4.27535 13.4863 4.27535 14.2483 5.64697Z" stroke="#ffffff" stroke-width="1.2"/>
-    </svg>)";
+namespace fs = std::filesystem;
 
-static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                                                 ImGuiWindowFlags_NoBringToFrontOnFocus;
+static UI* current_ui = nullptr;
+
+UI& ui::current() {
+    if (current_ui == nullptr) {
+        std::abort();
+    }
+
+    return *current_ui;
+}
 
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
+    current_ui = this;
+
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
     ImGui::CreateContext();
@@ -42,6 +45,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
+    // ui items / widgets
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
     style.FrameRounding = 4.0f;
@@ -53,6 +57,11 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     style.ItemSpacing = ImVec2{10.0f, 10.0f};
     style.ItemInnerSpacing = ImVec2{8.0f, 6.0f};
     style.CellPadding = ImVec2{0.0f, 0.0f};
+
+    // make lines look normal
+    style.CircleTessellationMaxError = 0.10f;
+    style.AntiAliasedLinesUseTex = false;
+
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 
@@ -91,31 +100,33 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
     m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
 
-    // initialize textures (svgs)
-    const char* textures[] = {"search-icon", "music-icon"};
-    std::filesystem::path texture_location = "resources/icons/ui/";
+    // load textures (svgs)
+    fs::path textures_location = "resources/icons/ui/";
 
-    auto default_texture = std::make_unique<IconTexture>(DEFAULT_WARN_SVG);
-    default_texture->get(16, 16);
-    default_texture->get(18, 18);
-    default_texture->get(32, 32);
-    m_textures.emplace("default", std::move(default_texture));
+    m_textures.emplace("default", std::make_unique<IconTexture>(DEFAULT_WARN_SVG));
 
-    for (const char* name : textures) {
-        std::filesystem::path location = texture_location / std::format("{}.svg", name);
-        std::string location_str = location.string();
+    if (fs::exists(textures_location)) {
+        for (const auto& entry : fs::directory_iterator(textures_location)) {
+            auto path = entry.path();
 
-        std::cout << std::format("[ui] loading svg: {}\n", location_str);
-        auto texture = std::make_unique<IconTexture>(location);
+            if (!fs::is_regular_file(entry.status())) continue;
+            if (path.extension() != ".svg") continue;
 
-        // preload some variants
-        texture->get(16, 16);
-        texture->get(18, 18);
-        texture->get(32, 32);
+            auto texture = std::make_unique<IconTexture>(path);
 
-        m_textures.emplace(name, std::move(texture));
+            texture->get(16, 16);
+            texture->get(18, 18);
+            texture->get(32, 32);
+
+            if (texture->get_id() == "") {
+                std::cout << "[warn] failed to get class id from " << path.string() << "\n";
+            }
+
+            m_textures.emplace(texture->get_id(), std::move(texture));
+        }
     }
 
+    // load font variants
     for (auto& font : m_fonts) {
         font.load(FONT_SMALL);
         font.load(FONT_MEDIUM);
@@ -123,43 +134,80 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     }
 
     // create / intitialize tabs
-    m_tabs.push_back({TabButtonWidget{this, "osu-stuff", true}, std::make_unique<IndexTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "collections"}, std::make_unique<CollectionTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "discover"}, std::make_unique<DiscoverTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "radio"}, std::make_unique<RadioTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "config"}, std::make_unique<ConfigTab>(this)});
-    m_tabs.push_back({TabButtonWidget{this, "status"}, std::make_unique<StatusTab>(this)});
+    m_tabs.push_back({TabButtonWidget{"osu-stuff", false, true}, std::make_unique<IndexTab>()});
+    m_tabs.push_back({TabButtonWidget{"collections"}, std::make_unique<CollectionTab>()});
+    m_tabs.push_back({TabButtonWidget{"discover"}, std::make_unique<DiscoverTab>()});
+    m_tabs.push_back({TabButtonWidget{"radio"}, std::make_unique<RadioTab>()});
+    m_tabs.push_back({TabButtonWidget{"config"}, std::make_unique<ConfigTab>()});
+    m_tabs.push_back({TabButtonWidget{"status"}, std::make_unique<StatusTab>()});
 
     m_current_tab = m_tabs.front().second.get();
 
     for (auto& [button, tab] : m_tabs) {
-        button.m_onclick = [this, tab = tab.get()]() { m_current_tab = tab; };
+        button.m_onclick = [this, cur_tab = tab.get()]() {
+            for (auto& [widget, tab] : m_tabs) {
+                widget.set_selected(tab.get() == cur_tab);
+            }
+
+            m_current_tab = cur_tab;
+        };
     }
+
+    m_notification_manager = new UINotificationManager();
 }
 
-void UI::update_counter() {
-    const Uint64 now = SDL_GetPerformanceCounter();
-    m_counter.frame_count++;
+UI::~UI() {
+    current_ui = nullptr;
+    m_notification_manager = nullptr;
+    m_current_tab = nullptr;
 
-    if (m_counter.last_time == 0) {
-        m_counter.last_time = now;
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+}
+
+void UIDebug::update() {
+    const Uint64 now = SDL_GetPerformanceCounter();
+    m_frame_count++;
+
+    if (m_last_time == 0) {
+        m_last_time = now;
         return;
     }
 
     const double elapsed_seconds =
-        static_cast<double>(now - m_counter.last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
+        static_cast<double>(now - m_last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
 
     if (elapsed_seconds >= 1.0) {
-        m_counter.current_fps = static_cast<double>(m_counter.frame_count) / elapsed_seconds;
-        m_counter.frame_count = 0;
-        m_counter.last_time = now;
+        m_current_fps = static_cast<double>(m_frame_count) / elapsed_seconds;
+        m_frame_count = 0;
+        m_last_time = now;
     }
 }
 
-UI::~UI() {
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
+void UIDebug::handle_keydown(SDL_Window* window) {
+    SDL_WindowFlags window_flags = SDL_GetWindowFlags(window);
+    bool window_focused = window_flags & SDL_WINDOW_INPUT_FOCUS;
+
+    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
+        m_show_ui = !m_show_ui;
+    }
+}
+
+void UIDebug::render() {
+    if (!m_show_ui) {
+        return;
+    }
+
+    ImGui::Begin("##debug-ui", nullptr, ImGuiWindowFlags_NoSavedSettings);
+    {
+        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
+        {
+            ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
@@ -261,39 +309,31 @@ void UI::handle_escape() {
     }
 }
 
+void UI::draw_child_rect(ImColor color, float radius, float thickness) {
+    const ImVec2 win_pos = ImGui::GetWindowPos();
+    const ImVec2 win_size = ImGui::GetWindowSize();
+
+    auto* dl = ImGui::GetWindowDrawList();
+    dl->AddRect(win_pos, ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y), color, radius, 0, thickness);
+}
+
 void UI::process_sdl_event(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void UI::show_debug_ui() {
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings;
-
-    ImGui::Begin("##debug-ui", nullptr, flags);
-    {
-        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
-        {
-            ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
-}
-
 void UI::render() {
-    SDL_WindowFlags w_flags = SDL_GetWindowFlags(m_window);
-
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
+    // update debugger
+    m_debug.handle_keydown(m_window);
+    m_debug.update();
+
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImFont* torus_bold = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
 
-    bool window_focused = w_flags & SDL_WINDOW_INPUT_FOCUS;
-
-    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-        m_counter.show_ui = !m_counter.show_ui;
-    }
+    float header_end_height = 0.0f;
 
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -302,9 +342,13 @@ void UI::render() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    ImGui::Begin("##osu-stuff", nullptr, WINDOW_FLAGS);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ui_theme::BG_COLOR);
+
+    // render ui content
+    ImGui::Begin("##osu-stuff", nullptr, constants::WINDOW_FLAGS);
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
+
         ImGui::PushFont(torus_bold);
         const float font_height = ImGui::GetFrameHeight();
         ImGui::PopFont();
@@ -316,10 +360,11 @@ void UI::render() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
 
         const ImVec2 header_cursor_start = ImGui::GetCursorPos();
-        const float header_size_y = font_height + ui_theme::CONTENT_PADDING * 2;
+        header_end_height = font_height + ui_theme::CONTENT_PADDING * 2;
 
         ImGui::BeginChild(
-            "header", ImVec2{available.x, header_size_y}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None
+            "header", ImVec2{available.x, header_end_height}, ImGuiChildFlags_AlwaysUseWindowPadding,
+            ImGuiWindowFlags_None
         );
         {
             ImGui::PushFont(torus_bold);
@@ -328,21 +373,19 @@ void UI::render() {
                     auto& pair = m_tabs[index];
 
                     TabButtonWidget& button_widget = pair.first;
-                    UITab* tab = pair.second.get();
 
                     if (index > 0) {
                         ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
                     }
 
-                    button_widget.show(m_current_tab == tab || index == 0);
+                    button_widget.show();
                 }
             }
             ImGui::PopFont();
 
             auto* dl = ImGui::GetWindowDrawList();
-            dl->Flags |= ImDrawListFlags_AntiAliasedLines;
 
-            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_size_y - 1.0f};
+            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_end_height - 1.0f};
             ImVec2 header_line_end = {available.x, header_line_start.y};
 
             dl->AddLine(header_line_start, header_line_end, ImColor(ui_theme::HEADER_BORDER_COLOR), 1.0f);
@@ -353,6 +396,7 @@ void UI::render() {
 
         ImGui::PushFont(torus_bold);
 
+        // render current tab
         if (m_current_tab != nullptr) {
             if (!m_current_tab->is_initialized()) m_current_tab->setup();
             m_current_tab->render();
@@ -361,11 +405,26 @@ void UI::render() {
         ImGui::PopFont();
     }
     ImGui::End();
+    ImGui::PopStyleColor(1);
     ImGui::PopStyleVar(3);
 
-    if (m_counter.show_ui) {
-        show_debug_ui();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowBgAlpha(0.0f);
+
+    // render notifications
+    ImGui::Begin("##notifications-overlay", nullptr, constants::NOTIFICATION_OVERLAY_FLAGS);
+    {
+        const ImVec2 window_pos = ImGui::GetWindowPos();
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+
+        m_notification_manager->set_offset({window_pos.x + available.x - 5.0f, header_end_height + 10.0f});
+        m_notification_manager->render();
     }
+    ImGui::End();
+
+    // render debug ui
+    m_debug.render();
 
     ImGui::Render();
 

@@ -1,4 +1,6 @@
-#include "ui/widgets/widget.hpp"
+#include "ui/style/state.hpp"
+#include "ui/widgets/base/text.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
@@ -41,13 +43,13 @@ TEST_CASE("StyleVariableStore set/get", "[VariableStore]") {
 TEST_CASE("set_for_all_styles applies to every style slot", "[WidgetState]") {
     WidgetState state;
 
-    state.set_for_all_styles([](WidgetStyle& style) {
+    state.set_for_all_styles([](UIStyle& style) {
         style.color.set_speed(10.0f);
         style.variables().set("rounding", UIWidgetFloat{4.0f, 0.0f});
     });
 
-    for (int i = 0; i < static_cast<int>(WidgetStyleType::_COUNT); ++i) {
-        WidgetStyle& s = state.get_style(static_cast<WidgetStyleType>(i));
+    for (int i = 0; i < static_cast<int>(UIStyleType::_COUNT); ++i) {
+        UIStyle& s = state.get_style(static_cast<UIStyleType>(i));
         REQUIRE(s.color.speed == 10.0f);
         REQUIRE(s.variables().get<UIWidgetFloat>("rounding")->value == 4.0f);
     }
@@ -56,39 +58,37 @@ TEST_CASE("set_for_all_styles applies to every style slot", "[WidgetState]") {
 TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") {
     WidgetState state;
 
-    state.get_style(WidgetStyleType::DEFAULT).color.set({0.0f, 0.0f, 0.0f, 1.0f});
-    state.get_style(WidgetStyleType::HOVER).color.set({1.0f, 0.0f, 0.0f, 1.0f});
-    state.get_style(WidgetStyleType::HOVER).color.set_speed(8.0f);
+    state.get_style(UIStyleType::DEFAULT).color.set({0.0f, 0.0f, 0.0f, 1.0f});
+    state.get_style(UIStyleType::HOVER).color.set({1.0f, 0.0f, 0.0f, 1.0f});
+    state.get_style(UIStyleType::HOVER).color.set_speed(8.0f);
 
-    state.get_style(WidgetStyleType::HOVER).variables().set("rounding", UIWidgetFloat{10.0f, 8.0f});
-    state.get_style(WidgetStyleType::DEFAULT).variables().set("rounding", UIWidgetFloat{0.0f, 0.0f});
+    state.get_style(UIStyleType::HOVER).variables().set("rounding", UIWidgetFloat{10.0f, 8.0f});
+    state.get_style(UIStyleType::DEFAULT).variables().set("rounding", UIWidgetFloat{0.0f, 0.0f});
 
-    state.get_style(WidgetStyleType::HOVER).variables().set("enabled", UIWidgetBool{true});
-    state.get_style(WidgetStyleType::DEFAULT).variables().set("enabled", UIWidgetBool{false});
+    state.get_style(UIStyleType::HOVER).variables().set("enabled", UIWidgetBool{true});
+    state.get_style(UIStyleType::DEFAULT).variables().set("enabled", UIWidgetBool{false});
 
     UIWidgetVec2 hover_offset;
     hover_offset.value = {5.0f, 5.0f};
     hover_offset.speed = 8.0f;
-    state.get_style(WidgetStyleType::HOVER).variables().set("offset", hover_offset);
+    state.get_style(UIStyleType::HOVER).variables().set("offset", hover_offset);
 
     UIWidgetVec2 default_offset;
     default_offset.value = {0.0f, 0.0f};
-    state.get_style(WidgetStyleType::DEFAULT).variables().set("offset", default_offset);
+    state.get_style(UIStyleType::DEFAULT).variables().set("offset", default_offset);
 
-    state.get_style(WidgetStyleType::HOVER).variables().set("count", UIWidgetInt{100, 8.0f});
-    state.get_style(WidgetStyleType::DEFAULT).variables().set("count", UIWidgetInt{0, 0.0f});
+    state.get_style(UIStyleType::HOVER).variables().set("count", UIWidgetInt{100, 8.0f});
+    state.get_style(UIStyleType::DEFAULT).variables().set("count", UIWidgetInt{0, 0.0f});
 
-    state.snap_to_style(WidgetStyleType::DEFAULT);
-    state.set_style(WidgetStyleType::HOVER);
+    state.snap_to_style(UIStyleType::DEFAULT);
+    state.set_style(UIStyleType::HOVER);
 
     bool settled = false;
 
     for (int i = 0; i < 10000; ++i) {
         state.update(1.0f / 60.0f);
 
-        if (state.get_style().is_close_to(
-                state.get_style(WidgetStyleType::HOVER), WidgetState::TRANSITION_SETTLE_EPSILON
-            )) {
+        if (state.get_style().is_close_to(state.get_style(UIStyleType::HOVER), TRANSITION_SETTLE_EPSILON)) {
             settled = true;
             break;
         }
@@ -121,11 +121,11 @@ TEST_CASE("transition reaches target and settles", "[WidgetState][transition]") 
 
 TEST_CASE("set_style is a no-op when already targeting that style", "[widget_state]") {
     WidgetState state;
-    state.set_style(WidgetStyleType::HOVER);
+    state.set_style(UIStyleType::HOVER);
     state.update(0.016f);
     float opacity_before = state.get_opacity();
 
-    state.set_style(WidgetStyleType::HOVER);
+    state.set_style(UIStyleType::HOVER);
     state.update(0.016f);
 
     REQUIRE(state.get_opacity() == opacity_before);
@@ -161,12 +161,12 @@ TEST_CASE("UIWidgetInt interpolates gradually", "[ui_widget_int]") {
 TEST_CASE("a var introduced only on the target style still appears after transition", "[widget_state][regression]") {
     WidgetState state;
 
-    state.get_style(WidgetStyleType::DEFAULT).variables().set("line_alpha", UIWidgetFloat{0.0f, 18.0f});
-    state.get_style(WidgetStyleType::HOVER).variables().set("line_alpha", UIWidgetFloat{1.0f, 18.0f});
+    state.get_style(UIStyleType::DEFAULT).variables().set("line_alpha", UIWidgetFloat{0.0f, 18.0f});
+    state.get_style(UIStyleType::HOVER).variables().set("line_alpha", UIWidgetFloat{1.0f, 18.0f});
 
     REQUIRE(state.get_style().variables().get<UIWidgetFloat>("line_alpha") == nullptr);
 
-    state.set_style(WidgetStyleType::HOVER);
+    state.set_style(UIStyleType::HOVER);
     state.update(1.0f / 60.0f); // first transition frame
 
     REQUIRE(state.get_style().variables().get<UIWidgetFloat>("line_alpha") != nullptr);

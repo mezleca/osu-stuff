@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void UIFont::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io) {
+void UIFont::initialize(ImFontConfig cfg, std::string location, ImGuiIO* io) {
     m_font_location = location;
     m_cfg = cfg;
     m_io = io;

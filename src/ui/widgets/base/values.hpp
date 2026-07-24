@@ -1,11 +1,9 @@
 #pragma once
 
-#include "../../utils/math.hpp"
+#include "../../../utils/math.hpp"
 
 #include <cmath>
-#include <cstdint>
 #include <string>
-#include <utility>
 #include <variant>
 #include <imgui.h>
 
@@ -15,7 +13,7 @@ struct UIWidgetValue {
     float speed = 0.0f;
 
     void set(ValueT new_value) {
-        value = std::move(new_value);
+        value = new_value;
     }
 
     void set_speed(float new_speed) {
@@ -61,6 +59,10 @@ struct UIWidgetColor : UIWidgetValue<ImColor> {
 
     ImVec4 get() const {
         return value.Value;
+    }
+
+    ImColor get_col() const {
+        return value;
     }
 };
 

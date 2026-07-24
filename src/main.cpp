@@ -103,8 +103,6 @@ int main() {
 
         ui->render();
         SDL_GL_SwapWindow(window);
-
-        ui->update_counter();
     }
 
     ui.reset();

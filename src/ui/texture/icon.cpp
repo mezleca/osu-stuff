@@ -1,23 +1,32 @@
 #include "icon.hpp"
 
+#include <string>
 #include <format>
 
+using namespace lunasvg;
+
 IconTexture::IconTexture(std::filesystem::path& location) {
-    auto document = lunasvg::Document::loadFromFile(location.string());
+    std::unique_ptr<Document> document = Document::loadFromFile(location.string());
 
     if (document == nullptr) {
         throw std::runtime_error(std::format("[IconTexture] failed to find {}", location.string()));
     }
 
+    Element element = document->documentElement();
+    m_id = element.getAttribute("class");
+
     m_document = std::move(document);
 }
 
 IconTexture::IconTexture(std::string_view content) {
-    auto document = lunasvg::Document::loadFromData(content.data());
+    std::unique_ptr<Document> document = Document::loadFromData(content.data());
 
     if (document == nullptr) {
         throw std::runtime_error(std::format("[IconTexture] failed to load svg from data"));
     }
+
+    Element element = document->documentElement();
+    m_id = element.getAttribute("class");
 
     m_document = std::move(document);
 }

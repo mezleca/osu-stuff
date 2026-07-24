@@ -12,16 +12,35 @@
 #include <unordered_map>
 #include <vector>
 
+class UINotificationManager;
 class UIModal;
 class IconTexture;
 class TabButtonWidget;
 class UITab;
+class UI;
 
-struct FrameCounter {
-    Uint64 last_time = 0;
-    Uint64 frame_count = 0;
-    double current_fps = 0.0;
-    bool show_ui = false;
+namespace ui {
+    UI& current();
+}
+
+// UIDebug will be used to debug widgets, view / change its properties, etc...
+// for that to happen, we will need to store the widget ptr somewhere in the ui
+// and maybe use references on styling properties?
+class UIDebug {
+public:
+    [[nodiscard]] double get_fps() const {
+        return m_current_fps;
+    }
+
+    void render();
+    void update();
+    void handle_keydown(SDL_Window* window);
+
+private:
+    Uint64 m_last_time = 0;
+    Uint64 m_frame_count = 0;
+    double m_current_fps = 0.0;
+    bool m_show_ui = false;
 };
 
 class UI {
@@ -29,7 +48,6 @@ public:
     UI(SDL_GLContext* context, SDL_Window* window);
     ~UI();
 
-    void show_debug_ui();
     void render();
     void process_sdl_event(SDL_Event* event);
 
@@ -41,11 +59,9 @@ public:
         m_done = true;
     }
 
-    [[nodiscard]] double get_fps() const {
-        return m_counter.current_fps;
+    UINotificationManager* notification_manager() {
+        return m_notification_manager;
     }
-
-    void update_counter();
 
     [[nodiscard]] UIFont& get_font(UIFonts type) {
         return m_fonts[type];
@@ -55,10 +71,14 @@ public:
         return m_fonts[type];
     }
 
+    // draw helpers
+    void draw_child_rect(ImColor border_color, float radius = 4.0f, float thickness = 1.0f);
+
     // textures
     [[nodiscard]] IconTexture* get_texture(std::string_view id);
 
     // modals
+    // TODO: ModalManager
     [[nodiscard]] bool is_modal_focused(UIModal* modal) const;
     [[nodiscard]] bool has_modal(std::string_view id) const;
     [[nodiscard]] UIModal* focused_modal() const;
@@ -70,13 +90,14 @@ public:
     void handle_escape();
 
 private:
-    FrameCounter m_counter;
     UIFont m_fonts[FONT_COUNT];
     std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
+    UIDebug m_debug;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
     std::vector<std::unique_ptr<UIModal>> m_modals;
-    bool m_done = false;
+    UINotificationManager* m_notification_manager;
     SDL_Window* m_window;
     ImGuiIO* m_io;
     UITab* m_current_tab = nullptr;
+    bool m_done = false;
 };

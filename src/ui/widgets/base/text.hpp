@@ -26,6 +26,15 @@ public:
         m_size_dirty = true;
     }
 
+    void set_wrap(float wrap_end) {
+        if (m_wrap_end == wrap_end) {
+            return;
+        }
+
+        m_wrap_end = wrap_end;
+        m_size_dirty = true;
+    }
+
     ImVec2 text_size(ImFont* font) {
         if (font != nullptr && font != m_font) {
             m_font = font;
@@ -51,22 +60,19 @@ protected:
 
 private:
     void recompute_size() {
-        if (m_font != nullptr) {
-            ImGui::PushFont(m_font);
-        }
+        auto* font = m_font != nullptr ? m_font : ImGui::GetFont();
+        ImGui::PushFont(font);
 
-        m_text_size = ImGui::CalcTextSize(m_text.c_str());
+        m_text_size = ImGui::CalcTextSize(m_text.c_str(), NULL, false, m_wrap_end);
 
-        if (m_font != nullptr) {
-            ImGui::PopFont();
-        }
-
+        ImGui::PopFont();
         m_size_dirty = false;
     }
 
     std::string m_text;
     ImFont* m_font = nullptr;
     ImVec2 m_text_size;
+    float m_wrap_end = -1.0f;
     bool m_size_dirty = true;
 };
 

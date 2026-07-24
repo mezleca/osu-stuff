@@ -31,5 +31,9 @@ namespace ui_theme {
     constexpr ImVec4 HEADER_BORDER_COLOR = ImVec4{94.0f / 255.0f, 94.0f / 255.0f, 94.0f / 255.0f, 0.25f};
     constexpr ImVec4 BUTTON_ACTIVE_COLOR = ImVec4{233.0f / 255.0f, 30.0f / 255.0f, 99.0f / 255.0f, 0.28f};
 
+    constexpr ImVec4 RED = ImVec4(255.0f / 255.0f, 66.0f / 255.0f, 66.0f / 255.0f, 255.0f / 255.0f);
+    constexpr ImVec4 BLUE = ImVec4(100.0f / 255.0f, 180.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f);
+    constexpr ImVec4 YELLOW = ImVec4(255.0f / 255.0f, 255.0f / 255.0f, 95.0f / 255.0f, 255.0f / 255.0f);
+
     constexpr ImVec4 TRANSPARENT = ImVec4{0.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 0.0f};
 } // namespace ui_theme
