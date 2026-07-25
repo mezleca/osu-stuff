@@ -3,6 +3,7 @@
 #include "variables.hpp"
 
 #include <cstdint>
+#include <cmath>
 #include <type_traits>
 #include <variant>
 
@@ -45,6 +46,10 @@ public:
     }
 
     static void lerp(UIStyle& style, const UIStyle& target, float dt) {
+        style.font = target.font;
+        style.border_thickness = target.border_thickness;
+        style.border_radius = target.border_radius;
+        style.border = target.border;
         style.color.tick(target.color, dt);
         style.border_color.tick(target.border_color, dt);
         style.background_color.tick(target.background_color, dt);
@@ -83,6 +88,12 @@ public:
     }
 
     bool is_close_to(const UIStyle& target, float epsilon) const {
+        if (font != target.font || border != target.border ||
+            std::abs(border_thickness - target.border_thickness) > epsilon ||
+            std::abs(border_radius - target.border_radius) > epsilon) {
+            return false;
+        }
+
         if (!color.is_close(target.color, epsilon) || !border_color.is_close(target.border_color, epsilon) ||
             !background_color.is_close(target.background_color, epsilon)) {
             return false;

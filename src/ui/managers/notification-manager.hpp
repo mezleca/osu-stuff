@@ -29,12 +29,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool remove(UINotification* to_remove) {
-        auto removed_count = std::erase_if(m_notifications, [to_remove](const std::unique_ptr<UINotification>& ptr) {
-            return ptr.get() == to_remove;
-        });
-        return removed_count > 0;
-    }
+    [[nodiscard]] bool remove(UINotification* to_remove);
 
     [[nodiscard]] UINotification* get(size_t index) {
         if (index >= m_notifications.size()) {
@@ -60,6 +55,8 @@ public:
 
 private:
     std::vector<std::unique_ptr<UINotification>> m_notifications;
-    LogNotificationWidget* m_more_notifications;
+    std::unique_ptr<LogNotificationWidget> m_more_notifications;
+    std::vector<UINotification*> m_pending_removals;
+    bool m_rendering = false;
     ImVec2 m_offset = {0.0f, 0.0f};
 };

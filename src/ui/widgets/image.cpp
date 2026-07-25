@@ -9,6 +9,10 @@ UIImageWidget::UIImageWidget(IconTexture* texture) : UIWidget("image"), m_textur
 }
 
 void UIImageWidget::show() {
+    if (!state().is_visible()) {
+        return;
+    }
+
     const float dt = ImGui::GetIO().DeltaTime;
 
     if (m_texture == nullptr) {
@@ -17,9 +21,6 @@ void UIImageWidget::show() {
         return;
     }
 
-    const UIStyle& style = state().get_style();
-
-    const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
     const GLuint texture_id = m_texture->get(static_cast<int>(m_size.x), static_cast<int>(m_size.y));
 

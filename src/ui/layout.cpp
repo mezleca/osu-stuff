@@ -110,7 +110,7 @@ void UIChildLayout::draw_borders() {
     const ImVec2 min = ImGui::GetItemRectMin();
     const ImVec2 max = ImGui::GetItemRectMax();
 
-    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     const auto border_color = style().border_color.get_col();
     const auto border_thickness = style().border_thickness;

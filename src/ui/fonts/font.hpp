@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <string>
+#include <string_view>
 #include <cstdint>
 #include <unordered_map>
 
@@ -22,7 +23,7 @@ enum UIFontVar : int32_t {
 
 class UIFont {
 public:
-    void initialize(ImFontConfig cfg, std::string location, ImGuiIO* io);
+    void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
 
     [[nodiscard]]
     ImFont* get(int size) {

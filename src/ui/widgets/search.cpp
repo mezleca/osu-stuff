@@ -51,8 +51,6 @@ void SearchInputWidget::show() {
     }
 
     const float dt = ImGui::GetIO().DeltaTime;
-    const UIStyle& style = state().get_style();
-
     ImVec2 size = m_size;
     {
         const ImVec2 available = ImGui::GetContentRegionAvail();
@@ -89,18 +87,12 @@ void SearchInputWidget::show() {
     ImGui::SameLine(0.0f, 10.0f);
     ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
-    ImGui::SetNextItemWidth(size.x);
+    const float input_width = std::max(0.0f, size.x - m_icon.get_size().x - 10.0f);
+    ImGui::SetNextItemWidth(input_width);
     ImGui::InputText(m_label.c_str(), m_value);
 
     const bool is_active = ImGui::IsItemActive();
     const bool is_hovered = ImGui::IsItemHovered();
-
-    ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
-
-    ImGui::EndChild();
-    ImGui::PopID();
-    ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(3);
 
     if (is_active) {
         state().set_style(UIStyleType::ACTIVE);
@@ -114,4 +106,11 @@ void SearchInputWidget::show() {
     }
 
     state().update(dt);
+    const UIStyle& style = state().get_style();
+    ui::current().draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
+
+    ImGui::EndChild();
+    ImGui::PopID();
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(3);
 }

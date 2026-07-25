@@ -1,3 +1,5 @@
+#pragma once
+
 #include "base/widget.hpp"
 #include "base/text.hpp"
 

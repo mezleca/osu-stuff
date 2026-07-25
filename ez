@@ -221,7 +221,7 @@ def format_code() -> None:
     _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")[0]
 
 def clean() -> int:
-    if not BUILD_DIR.exists():
+    if not BUILD_DIR.exists() and not BUILD_DIR.is_symlink():
         print("[ez] build directory doesn't exist")
         return 0
 
@@ -265,7 +265,7 @@ def extract_test_data() -> None:
     test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
     test_extract_dir = TESTS_BUILD_DIR / "data.extract"
 
-    if test_extract_dir.exists():
+    if test_extract_dir.exists() or test_extract_dir.is_symlink():
         clear_dir(test_extract_dir)
 
     test_extract_dir.mkdir(parents=True, exist_ok=True)
@@ -275,7 +275,7 @@ def extract_test_data() -> None:
 
     source_dir = resolve_test_data_source(test_extract_dir)
 
-    if TEST_DATA_CACHE_DIR.exists():
+    if TEST_DATA_CACHE_DIR.exists() or TEST_DATA_CACHE_DIR.is_symlink():
         clear_dir(TEST_DATA_CACHE_DIR)
 
     shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
@@ -300,10 +300,10 @@ def prepare_test_runtime_data() -> None:
     test_data_dir = TESTS_BUILD_DIR / "data"
     test_temp_dir = TESTS_BUILD_DIR / "temp"
 
-    if test_data_dir.exists():
+    if test_data_dir.exists() or test_data_dir.is_symlink():
         clear_dir(test_data_dir)
 
-    if test_temp_dir.exists():
+    if test_temp_dir.exists() or test_temp_dir.is_symlink():
         clear_dir(test_temp_dir)
 
     shutil.copytree(TEST_DATA_CACHE_DIR, test_data_dir)
@@ -313,10 +313,10 @@ def cleanup_test_runtime_data() -> None:
     test_data_dir = TESTS_BUILD_DIR / "data"
     test_temp_dir = TESTS_BUILD_DIR / "temp"
 
-    if test_data_dir.exists():
+    if test_data_dir.exists() or test_data_dir.is_symlink():
         clear_dir(test_data_dir)
 
-    if test_temp_dir.exists():
+    if test_temp_dir.exists() or test_temp_dir.is_symlink():
         clear_dir(test_temp_dir)
 
 def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
@@ -483,11 +483,12 @@ def build_tests(build_type: str | None) -> int:
         str(get_cpu_count()),
     ], env=env)
 
-    return code == 0
+    return code
 
 def run_tests(build_type: str | None) -> int:
-    if not build_tests(build_type):
-        return 0
+    build_code = build_tests(build_type)
+    if build_code != 0:
+        return build_code
 
     ensure_test_data()
     prepare_test_runtime_data()

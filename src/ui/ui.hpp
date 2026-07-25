@@ -60,7 +60,7 @@ public:
     }
 
     UINotificationManager* notification_manager() {
-        return m_notification_manager;
+        return m_notification_manager.get();
     }
 
     [[nodiscard]] UIFont& get_font(UIFonts type) {
@@ -95,7 +95,7 @@ private:
     UIDebug m_debug;
     std::vector<std::pair<TabButtonWidget, std::unique_ptr<UITab>>> m_tabs;
     std::vector<std::unique_ptr<UIModal>> m_modals;
-    UINotificationManager* m_notification_manager;
+    std::unique_ptr<UINotificationManager> m_notification_manager;
     SDL_Window* m_window;
     ImGuiIO* m_io;
     UITab* m_current_tab = nullptr;

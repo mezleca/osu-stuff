@@ -19,7 +19,7 @@ IconTexture::IconTexture(std::filesystem::path& location) {
 }
 
 IconTexture::IconTexture(std::string_view content) {
-    std::unique_ptr<Document> document = Document::loadFromData(content.data());
+    std::unique_ptr<Document> document = Document::loadFromData(std::string(content));
 
     if (document == nullptr) {
         throw std::runtime_error(std::format("[IconTexture] failed to load svg from data"));

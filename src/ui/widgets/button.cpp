@@ -28,6 +28,10 @@ UIButtonWidget::UIButtonWidget(std::string text, ImVec2 size) : UIWidget("button
 }
 
 void UIButtonWidget::show() {
+    if (!state().is_visible()) {
+        return;
+    }
+
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
 

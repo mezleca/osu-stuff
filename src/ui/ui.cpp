@@ -120,9 +120,12 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
 
             if (texture->get_id() == "") {
                 std::cout << "[warn] failed to get class id from " << path.string() << "\n";
+                continue;
             }
 
-            m_textures.emplace(texture->get_id(), std::move(texture));
+            if (!m_textures.emplace(texture->get_id(), std::move(texture)).second) {
+                std::cout << "[warn] duplicate icon id, skipping " << path.string() << "\n";
+            }
         }
     }
 
@@ -142,6 +145,7 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     m_tabs.push_back({TabButtonWidget{"status"}, std::make_unique<StatusTab>()});
 
     m_current_tab = m_tabs.front().second.get();
+    m_tabs.front().first.set_selected(true);
 
     for (auto& [button, tab] : m_tabs) {
         button.m_onclick = [this, cur_tab = tab.get()]() {
@@ -153,12 +157,11 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
         };
     }
 
-    m_notification_manager = new UINotificationManager();
+    m_notification_manager = std::make_unique<UINotificationManager>();
 }
 
 UI::~UI() {
     current_ui = nullptr;
-    m_notification_manager = nullptr;
     m_current_tab = nullptr;
 
     ImGui_ImplOpenGL3_Shutdown();
