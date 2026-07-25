@@ -2,12 +2,9 @@
 
 #include <string>
 
-class UI;
-
 class UITab {
 public:
-    explicit UITab(UI* ui) : m_ui(ui) {
-    }
+    explicit UITab() = default;
 
     virtual ~UITab();
 
@@ -24,7 +21,6 @@ protected:
     }
 
     std::string m_id;
-    UI* m_ui;
 
 private:
     bool m_initialized = false;

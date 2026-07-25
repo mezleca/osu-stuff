@@ -1,7 +1,12 @@
 #include "detail.hpp"
 #include "../theme.hpp"
-#include "../custom.hpp"
+#include "../managers/notification-manager.hpp"
 #include "../ui.hpp"
+#include "../widgets/text.hpp"
+#include "../widgets/notification.hpp"
+#include "../widgets/collection-card.hpp"
+#include "../widgets/search.hpp"
+#include "../widgets/button.hpp"
 
 #include <string>
 #include <iostream>
@@ -10,35 +15,57 @@ static constexpr float COLLECTION_PANEL_WIDTH_PERCENT = 25.0f;
 static constexpr float PERCENT_DIVISOR = 100.0f;
 static constexpr float MAX_COLLECTION_PANEL_WIDTH_FACTOR = 2.0f;
 
-CollectionTab::CollectionTab(UI* ui) : UITab(ui) {
+static constexpr const char* text_small = "somethingf";
+static constexpr const char* text_big = "somethingfdsjmkkkkkkkkkkkkkkkkkkkkkkkkkefjsnfdsnjkfdsnj ndjflsdfnlj";
+
+CollectionTab::CollectionTab() {
     m_id = "collections";
 }
 
 void CollectionTab::setup() {
-    m_collection_child_state.m_id = "##collections";
-    m_collection_child_state.m_resize = CHILD_RESIZE_X;
-    m_collection_child_state.m_border = BORDER_RIGHT;
-    m_collection_child_state.m_border_color = ImColor(ui_theme::BORDER_COLOR);
+    auto* notification_manager = ui::current().notification_manager();
 
-    m_beatmaps_child_state.m_id = "##collection-beatmaps";
+    auto collection_input = std::make_unique<SearchInputWidget>(m_collection_search);
+    auto collection_card = std::make_unique<CollectionCardWidget>("Collection");
 
-    auto search_icon = m_ui->get_texture("search-icon");
-    auto music_icon = m_ui->get_texture("music-icon");
+    auto add_notification_button = std::make_unique<UIButtonWidget>("add notification");
 
-    m_collection_input = std::make_unique<SearchInputWidget>(m_ui, m_collection_search, search_icon);
-    m_beatmaps_input = std::make_unique<SearchInputWidget>(m_ui, m_beatmaps_search, search_icon);
-    m_collection_card = std::make_unique<CollectionCardWidget>(m_ui, "Penis", music_icon);
+    // TODO: notification manager
+    add_notification_button->on_click = [notification_manager]() {
+        auto text = notification_manager->count() == 0 ? text_small : text_big;
+        auto notification = std::make_unique<LogNotificationWidget>(LogNotificationLevel::INFO, text);
 
-    m_collection_card->m_onclick = [&]() {
-        std::cout << "clicked on a card\n";
-
-        m_collection_card->m_name.set("Penis 2");
-        m_collection_card->m_count.set("999 maps");
-        m_collection_card->m_state.m_selected = !m_collection_card->m_state.m_selected;
+        if (notification_manager->add(std::move(notification))) {
+            std::cout << "added notification\n";
+        }
     };
 
-    m_collection_card->m_oncontext = []() { std::cout << "context on a card \n"; };
-    m_collection_input->m_state.m_fit_width = true;
+    CollectionCardWidget* collection_card_ptr = collection_card.get();
+
+    collection_card_ptr->m_onclick = [collection_card_ptr]() {
+        std::cout << "clicked on a card\n";
+
+        collection_card_ptr->m_name.set("Collection 2");
+        collection_card_ptr->m_count.set("999 maps");
+        collection_card_ptr->toggle_selected();
+    };
+
+    collection_card_ptr->m_oncontext = []() { std::cout << "context on a card \n"; };
+    collection_input->set_fit_width(true);
+
+    m_collection_layout = std::make_unique<UIChildLayout>("##collections");
+
+    m_collection_layout->set_resize(LAYOUT_RESIZE_X);
+
+    m_collection_layout->style().border = UI_BORDER_RIGHT;
+    m_collection_layout->style().border_color.value = ImColor(ui_theme::BORDER_COLOR);
+
+    m_collection_layout->add(std::move(collection_input));
+    m_collection_layout->add(std::move(collection_card));
+    m_collection_layout->add(std::move(add_notification_button));
+
+    m_beatmaps_layout = std::make_unique<UIChildLayout>("##collection-beatmaps");
+    m_beatmaps_layout->add(std::make_unique<UITextWidget>("collection data"));
 
     mark_initialized();
 }
@@ -50,31 +77,21 @@ void CollectionTab::render() {
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
 
-    if (m_collection_child_state.m_size.x <= 0.0f) {
-        m_collection_child_state.m_size.x = COLLECTION_PANEL_WIDTH_PERCENT * available.x / PERCENT_DIVISOR;
+    float collection_width = m_collection_layout->get_size().x;
+
+    if (collection_width <= 0.0f) {
+        collection_width = COLLECTION_PANEL_WIDTH_PERCENT * available.x / PERCENT_DIVISOR;
     }
 
-    m_collection_child_state.m_size.y = available.y;
-
-    // clamp child width
-    if (m_collection_child_state.m_size.x > available.x / MAX_COLLECTION_PANEL_WIDTH_FACTOR) {
-        m_collection_child_state.m_size.x = available.x / MAX_COLLECTION_PANEL_WIDTH_FACTOR;
+    if (collection_width > available.x / MAX_COLLECTION_PANEL_WIDTH_FACTOR) {
+        collection_width = available.x / MAX_COLLECTION_PANEL_WIDTH_FACTOR;
     }
 
-    m_beatmaps_child_state.m_size = {available.x - m_collection_child_state.m_size.x, available.y};
-
-    custom_imgui::begin_child(m_collection_child_state, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
-    {
-        m_collection_input->show();
-        m_collection_card->show();
-    }
-    custom_imgui::end_child(m_collection_child_state, 1.0f);
+    m_collection_layout->set_size({collection_width, available.y});
+    m_collection_layout->show();
 
     ImGui::SameLine(0.0f, 0.0f);
 
-    custom_imgui::begin_child(m_beatmaps_child_state, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
-    {
-        ImGui::Text("collection data");
-    }
-    custom_imgui::end_child(m_beatmaps_child_state, 1.0f);
+    m_beatmaps_layout->set_size({available.x - collection_width, available.y});
+    m_beatmaps_layout->show();
 }

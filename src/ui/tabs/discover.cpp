@@ -1,8 +1,6 @@
 #include "detail.hpp"
-#include "../theme.hpp"
-#include "../custom.hpp"
 
-DiscoverTab::DiscoverTab(UI* ui) : UITab(ui) {
+DiscoverTab::DiscoverTab() {
     m_id = "discover";
 }
 

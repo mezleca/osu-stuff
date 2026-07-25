@@ -1,8 +1,6 @@
 #include "detail.hpp"
-#include "../theme.hpp"
-#include "../custom.hpp"
 
-StatusTab::StatusTab(UI* ui) : UITab(ui) {
+StatusTab::StatusTab() {
     m_id = "status";
 }
 

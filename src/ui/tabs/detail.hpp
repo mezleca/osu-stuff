@@ -1,15 +1,13 @@
 #pragma once
 
 #include "tabs.hpp"
-#include "../custom.hpp"
-#include "../widgets/search.hpp"
-#include "../widgets/collection_card.hpp"
+#include "../layout.hpp"
 
 #include <memory>
 
 class IndexTab : public UITab {
 public:
-    explicit IndexTab(UI* ui);
+    explicit IndexTab();
     ~IndexTab() override = default;
 
     void setup() override;
@@ -18,25 +16,22 @@ public:
 
 class CollectionTab : public UITab {
 public:
-    explicit CollectionTab(UI* ui);
+    explicit CollectionTab();
     ~CollectionTab() override = default;
 
     void setup() override;
     void render() override;
 
 private:
-    ChildState m_collection_child_state;
-    ChildState m_beatmaps_child_state;
-    std::unique_ptr<SearchInputWidget> m_collection_input;
-    std::unique_ptr<SearchInputWidget> m_beatmaps_input;
-    std::unique_ptr<CollectionCardWidget> m_collection_card;
+    std::unique_ptr<UIChildLayout> m_collection_layout;
+    std::unique_ptr<UIChildLayout> m_beatmaps_layout;
     std::string m_collection_search;
     std::string m_beatmaps_search;
 };
 
 class DiscoverTab : public UITab {
 public:
-    explicit DiscoverTab(UI* ui);
+    explicit DiscoverTab();
     ~DiscoverTab() override = default;
 
     void setup() override;
@@ -45,7 +40,7 @@ public:
 
 class RadioTab : public UITab {
 public:
-    explicit RadioTab(UI* ui);
+    explicit RadioTab();
     ~RadioTab() override = default;
 
     void setup() override;
@@ -54,7 +49,7 @@ public:
 
 class ConfigTab : public UITab {
 public:
-    explicit ConfigTab(UI* ui);
+    explicit ConfigTab();
     ~ConfigTab() override = default;
     void setup() override;
     void render() override;
@@ -62,7 +57,7 @@ public:
 
 class StatusTab : public UITab {
 public:
-    explicit StatusTab(UI* ui);
+    explicit StatusTab();
     ~StatusTab() override = default;
 
     void setup() override;

@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <string>
+#include <string_view>
 #include <cstdint>
 #include <unordered_map>
 
