@@ -12,7 +12,7 @@ enum UILayoutResize : uint8_t {
     LAYOUT_RESIZE_NONE,
     LAYOUT_RESIZE_X = 1 << 0,
     LAYOUT_RESIZE_Y = 1 << 1,
-    LAYOUT_RESIZE_ALL = 1 << 2
+    LAYOUT_RESIZE_ALL = LAYOUT_RESIZE_X | LAYOUT_RESIZE_Y
 };
 
 class UIChildLayout : public UIObject {
