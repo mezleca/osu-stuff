@@ -121,5 +121,5 @@ private:
     ImVec2 size = {0.0f, 0.0f};
     float opacity = 1.0f;
     bool visible = true;
-    bool first_frame = false;
+    bool first_frame = true;
 };
