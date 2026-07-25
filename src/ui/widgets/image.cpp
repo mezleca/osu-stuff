@@ -9,10 +9,15 @@ UIImageWidget::UIImageWidget(IconTexture* texture) : UIWidget("image"), m_textur
 }
 
 void UIImageWidget::show() {
+    const float dt = ImGui::GetIO().DeltaTime;
+
     if (m_texture == nullptr) {
         ImGui::Dummy(m_size);
+        state().update(dt);
         return;
     }
+
+    const UIStyle& style = state().get_style();
 
     const float dt = ImGui::GetIO().DeltaTime;
     const UIStyle& style = state().get_style();
