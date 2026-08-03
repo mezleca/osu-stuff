@@ -43,6 +43,41 @@ struct Mod {
     nlohmann::json settings = nlohmann::json::object();
 };
 
+struct Beatmap {
+    int32_t id = 0;
+    int32_t beatmapset_id = 0;
+    std::string checksum;
+    std::string mode;
+    std::string status;
+    std::string version;
+    double accuracy = 0.0;
+    double ar = 0.0;
+    double bpm = 0.0;
+    double cs = 0.0;
+    double drain = 0.0;
+    double difficulty_rating = 0.0;
+    int32_t total_length = 0;
+    int32_t user_id = 0;
+    std::optional<int32_t> max_combo;
+};
+
+struct BeatmapExtended : Beatmap {
+    std::optional<std::string> last_updated;
+    std::optional<int32_t> passcount;
+    std::optional<int32_t> playcount;
+};
+
+struct BeatmapsetCovers {
+    std::string cover;
+    std::string card;
+    std::string list;
+    std::string slimcover;
+    std::string cover_2x;
+    std::string card_2x;
+    std::string list_2x;
+    std::string slimcover_2x;
+};
+
 struct UserCountry {
     std::string code;
     std::string name;
@@ -91,7 +126,6 @@ struct BeatmapPack {
 struct Beatmapset {
     int32_t id = 0;
     std::string artist_unicode;
-    int32_t creator_id = 0;
     int32_t favourite_count = 0;
     int32_t play_count = 0;
     int32_t user_id = 0;
@@ -101,7 +135,7 @@ struct Beatmapset {
     std::string title;
     std::string title_unicode;
     std::string status;
-    std::string covers;
+    BeatmapsetCovers covers;
     std::vector<BeatmapExtended> beatmaps;
 };
 
@@ -138,12 +172,12 @@ struct Score {
     double accuracy = 0.0;
     int32_t max_combo = 0;
     std::string rank;
-    int32_t score = 0;
+    int64_t score = 0;
     std::optional<double> pp;
     bool perfect = false;
     std::string created_at;
     std::string mode;
-    std::vector<std::string> mods;
+    std::vector<Mod> mods;
     std::shared_ptr<User> user;
 };
 
@@ -255,30 +289,6 @@ struct MatchEvent {
     int64_t match_id = 0;
     nlohmann::json detail = nlohmann::json::object();
     std::string timestamp;
-};
-
-struct Beatmap {
-    int32_t id = 0;
-    int32_t beatmapset_id = 0;
-    std::string checksum;
-    std::string mode;
-    std::string status;
-    std::string version;
-    double accuracy = 0.0;
-    double ar = 0.0;
-    double bpm = 0.0;
-    double cs = 0.0;
-    double drain = 0.0;
-    double difficulty_rating = 0.0;
-    int32_t total_length = 0;
-    int32_t user_id = 0;
-    std::optional<int32_t> max_combo;
-};
-
-struct BeatmapExtended : Beatmap {
-    std::optional<std::string> last_updated;
-    std::optional<int32_t> passcount;
-    std::optional<int32_t> playcount;
 };
 
 // AUTH
@@ -815,6 +825,12 @@ inline void to_json(nlohmann::json& j, const OsuGetBeatmapRequest& r) {
 }
 
 inline void from_json(const nlohmann::json& j, Mod& r) {
+    if (j.is_string()) {
+        r.acronym = j.get<std::string>();
+        r.settings = nlohmann::json::object();
+        return;
+    }
+
     r.acronym = j.value("acronym", "");
     r.settings = j.value("settings", nlohmann::json::object());
 }
@@ -923,10 +939,10 @@ inline void from_json(const nlohmann::json& j, UserExtended& r) {
 inline void from_json(const nlohmann::json& j, Score& r) {
     r.id = j.value("id", int64_t{0});
     r.user_id = j.value("user_id", 0);
-    r.accuracy = j.value("accuracy", 0);
+    r.accuracy = j.value("accuracy", 0.0);
     r.max_combo = j.value("max_combo", 0);
     r.rank = j.value("rank", "");
-    r.score = j.value("score", 0);
+    r.score = j.value("score", int64_t{0});
 
     if (j.contains("pp") && !j.at("pp").is_null()) {
         r.pp = j.at("pp").get<double>();
@@ -935,20 +951,20 @@ inline void from_json(const nlohmann::json& j, Score& r) {
     r.perfect = j.value("perfect", false);
     r.created_at = j.value("created_at", "");
     r.mode = j.value("mode", "");
-    r.mods = j.value("mods", std::vector<std::string>{});
+    r.mods = j.value("mods", std::vector<Mod>{});
 
     if (j.contains("user") && !j.at("user").is_null()) {
         r.user = std::make_shared<User>(j.at("user").get<User>());
     }
 }
 
-inline static void from_json(const nlohmann::json& j, OsuClientCredentialsResponse& r) {
+inline void from_json(const nlohmann::json& j, OsuClientCredentialsResponse& r) {
     r.access_token = j.value("access_token", "");
     r.expires_in = j.value("expires_in", 0);
     r.token_type = j.value("token_type", "");
 }
 
-inline static void from_json(const nlohmann::json& j, OsuAuthResponse& r) {
+inline void from_json(const nlohmann::json& j, OsuAuthResponse& r) {
     r.access_token = j.value("access_token", "");
     r.expires_in = j.value("expires_in", 0);
     r.refresh_token = j.value("refresh_token", "");
@@ -1000,7 +1016,18 @@ inline void from_json(const nlohmann::json& json, BeatmapExtended& beatmap) {
     }
 }
 
-inline static void from_json(const nlohmann::json& j, OsuGetBeatmapsResponse& r) {
+inline void from_json(const nlohmann::json& j, BeatmapsetCovers& r) {
+    r.cover = j.value("cover", "");
+    r.card = j.value("card", "");
+    r.list = j.value("list", "");
+    r.slimcover = j.value("slimcover", "");
+    r.cover_2x = j.value("cover@2x", "");
+    r.card_2x = j.value("card@2x", "");
+    r.list_2x = j.value("list@2x", "");
+    r.slimcover_2x = j.value("slimcover@2x", "");
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapsResponse& r) {
     r.beatmaps = j.value("beatmaps", std::vector<BeatmapExtended>{});
 }
 
@@ -1008,7 +1035,6 @@ inline void from_json(const nlohmann::json& j, Beatmapset& r) {
     r.id = j.value("id", 0);
     r.artist = j.value("artist", "");
     r.artist_unicode = j.value("artist_unicode", "");
-    r.creator_id = j.value("user_id", 0);
     r.creator = j.value("creator", "");
     r.favourite_count = j.value("favourite_count", 0);
     r.play_count = j.value("play_count", 0);
@@ -1017,6 +1043,10 @@ inline void from_json(const nlohmann::json& j, Beatmapset& r) {
     r.title = j.value("title", "");
     r.title_unicode = j.value("title_unicode", "");
     r.user_id = j.value("user_id", 0);
+
+    if (j.contains("covers") && !j.at("covers").is_null()) {
+        r.covers = j.at("covers").get<BeatmapsetCovers>();
+    }
 
     if (j.contains("beatmaps") && !j.at("beatmaps").is_null()) {
         r.beatmaps = j.at("beatmaps").get<std::vector<BeatmapExtended>>();
@@ -1300,10 +1330,10 @@ inline void from_json(const nlohmann::json& j, OsuGetMatchesListingResponse& r) 
     }
 
     r.matches = j.value("matches", std::vector<Match>{});
-    r.params_limit = j.value("params", nlohmann::json::object()).value("limit", 0);
-    r.params_sort = j.value("params", nlohmann::json::object()).value("sort", "");
-
     const auto params = j.value("params", nlohmann::json::object());
+    r.params_limit = params.value("limit", 0);
+    r.params_sort = params.value("sort", "");
+
     if (params.contains("active") && !params.at("active").is_null()) {
         r.params_active = params.at("active").get<bool>();
     }

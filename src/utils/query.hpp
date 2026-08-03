@@ -2,6 +2,7 @@
 
 #include <climits>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -112,6 +113,10 @@ namespace query {
 
     inline void add_parameter(Parameters& parameters, std::string_view key, bool value) {
         parameters.emplace_back(key, value ? "1" : "0");
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const char* value) {
+        parameters.emplace_back(key, value ? value : "");
     }
 
     inline std::pair<QueryOp, size_t> parse_operator(std::string_view sv, size_t pos) {
@@ -244,6 +249,10 @@ namespace query {
     }
 
     inline std::string string_set_to_string(const std::set<std::string>& set, std::string_view del) {
+        if (set.empty()) {
+            return {};
+        }
+
         std::string result;
         size_t total_bytes = 0;
 
@@ -254,8 +263,12 @@ namespace query {
         total_bytes += del.size() * (set.size() - 1);
         result.reserve(total_bytes);
 
-        for (const auto& value : set) {
+        for (auto it = set.begin(); it != set.end(); ++it) {
+            const auto& value = *it;
             result += value;
+            if (std::next(it) != set.end()) {
+                result += del;
+            }
         }
 
         return result;

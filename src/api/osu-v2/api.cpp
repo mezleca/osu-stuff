@@ -1,5 +1,6 @@
 #include "detail.hpp"
 
+#include <cpr/util.h>
 #include <string>
 
 OsuV2API::OsuV2API() : OAuthApi("https://osu.ppy.sh", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {
@@ -28,7 +29,7 @@ std::optional<OsuGetBeatmapPacksResponse> OsuV2API::get_beatmap_packs(const OsuG
 std::optional<OsuGetBeatmapPackResponse> OsuV2API::get_beatmap_pack(const OsuGetBeatmapPackRequest& request) {
     query::Parameters parameters;
     query::add_parameter(parameters, "legacy_only", request.legacy_only);
-    return get<OsuGetBeatmapPackResponse>("/api/v2/beatmaps/packs/" + request.pack, parameters);
+    return get<OsuGetBeatmapPackResponse>("/api/v2/beatmaps/packs/" + cpr::util::urlEncode(request.pack), parameters);
 }
 
 std::optional<OsuBeatmapLookupResponse> OsuV2API::lookup_beatmap(const OsuBeatmapLookupRequest& request) {
@@ -58,7 +59,8 @@ OsuV2API::get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request)
     query::add_parameter(parameters, "mode", request.mode);
     query::add_parameter(parameters, "ruleset", request.ruleset);
     return get<OsuGetUserBeatmapScoresResponse>(
-        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user),
+        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user) +
+            "/all",
         parameters
     );
 }
@@ -139,7 +141,7 @@ std::optional<OsuSearchBeatmapsetResponse> OsuV2API::search_beatmapsets(const Os
     query::add_parameter(parameters, "genre", request.genre);
     query::add_parameter(parameters, "language", request.language);
     query::add_parameter(parameters, "nsfw", request.nsfw);
-    query::add_parameter(parameters, "c[]", request.include);
+    query::add_parameter(parameters, "e[]", request.include);
     query::add_parameter(parameters, "r[]", request.rank);
     query::add_parameter(parameters, "cursor_string", request.cursor_string);
     return get<OsuSearchBeatmapsetResponse>("/api/v2/beatmapsets/search", parameters);
@@ -152,7 +154,7 @@ std::optional<OsuBeatmapsetLookupResponse> OsuV2API::lookup_beatmapset(const Osu
 }
 
 std::optional<OsuGetBeatmapsetResponse> OsuV2API::get_beatmapset(const OsuGetBeatmapsetRequest& request) {
-    return get<OsuGetBeatmapsetResponse>("/api/v2/beatmapsets/" + request.beatmapset, {});
+    return get<OsuGetBeatmapsetResponse>("/api/v2/beatmapsets/" + cpr::util::urlEncode(request.beatmapset), {});
 }
 
 std::optional<OsuGetEventsResponse> OsuV2API::get_events(const OsuGetEventsRequest& request) {

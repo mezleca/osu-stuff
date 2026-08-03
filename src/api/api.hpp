@@ -45,7 +45,7 @@ public:
     OAuthApi(std::string url, OAuthAuthType type);
     ~OAuthApi() = default;
 
-    void authenticate();
+    bool authenticate();
 
     void set_auth_data(const OAuthAuthRequest& data) {
         m_auth_data = data;
@@ -53,14 +53,13 @@ public:
 
     template <typename T>
     std::optional<T> get(std::string_view endpoint, const query::Parameters& params) {
-        authenticate();
+        if (!authenticate()) {
+            return std::nullopt;
+        }
 
         cpr::Header header{{"Accept", "application/json"}};
+        header["Authorization"] = "Bearer " + m_token_data.access_token;
         cpr::Parameters query;
-
-        if (!m_token_data.access_token.empty()) {
-            header["Authorization"] = "Bearer " + m_token_data.access_token;
-        }
 
         for (const auto& [key, value] : params) {
             query.Add({key, value});
@@ -68,21 +67,24 @@ public:
 
         const auto url =
             endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);
-        return parse_typed_response<T>(cpr::Get(cpr::Url{url}, header, query));
+        return parse_typed_response<T>(
+            cpr::Get(cpr::Url{url}, header, query, cpr::Timeout{30000}, cpr::ConnectTimeout{10000})
+        );
     };
 
     template <typename T>
     std::optional<T> post(std::string_view endpoint, const nlohmann::json& body) {
-        authenticate();
-        cpr::Header header{{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-
-        if (!m_token_data.access_token.empty()) {
-            header["Authorization"] = "Bearer " + m_token_data.access_token;
+        if (!authenticate()) {
+            return std::nullopt;
         }
+        cpr::Header header{{"Accept", "application/json"}, {"Content-Type", "application/json"}};
+        header["Authorization"] = "Bearer " + m_token_data.access_token;
 
         const auto url =
             endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);
-        return parse_typed_response<T>(cpr::Post(cpr::Url{url}, header, cpr::Body{body.dump()}));
+        return parse_typed_response<T>(
+            cpr::Post(cpr::Url{url}, header, cpr::Body{body.dump()}, cpr::Timeout{30000}, cpr::ConnectTimeout{10000})
+        );
     };
 
     bool get_or_refresh_access_token(OAuthAuthType type, OAuthAuthRequest& data);
@@ -98,7 +100,8 @@ public:
     }
 
     bool is_access_token_expired() const {
-        auto expiration = m_auth_timestamp + std::chrono::seconds(m_expiration_seconds);
+        constexpr auto skew = std::chrono::seconds(30);
+        auto expiration = m_auth_timestamp + std::chrono::seconds(m_expiration_seconds) - skew;
         return expiration < std::chrono::system_clock::now();
     }
 
@@ -119,7 +122,7 @@ protected:
 
         try {
             return json->get<T>();
-        } catch (const nlohmann::json::type_error& error) {
+        } catch (const nlohmann::json::exception& error) {
             std::cerr << "[api] failed to parse response: " << error.what() << "\n";
             return std::nullopt;
         }
@@ -142,7 +145,7 @@ private:
     OAuthAuthRequest m_auth_data{};
 };
 
-inline static void from_json(const nlohmann::json& j, OAuthTokenData& r) {
+inline void from_json(const nlohmann::json& j, OAuthTokenData& r) {
     r.access_token = j.value("access_token", "");
     r.expires_in = j.value("expires_in", 0);
     r.token_type = j.value("token_type", "");

@@ -37,8 +37,10 @@ if(WIN32)
 else()
     target_compile_options(tests PRIVATE
         -Wpedantic
-        -Wunused-lambda-capture
     )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(tests PRIVATE -Wunused-lambda-capture)
+    endif()
 endif()
 
 catch_discover_tests(tests
