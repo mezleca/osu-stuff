@@ -8,8 +8,7 @@ static bool is_success(const cpr::Response& response) {
     return response.status_code >= 200 && response.status_code < 300;
 }
 
-static std::optional<cpr::Response>
-oauth_code_exchange(const OAuthAuthRequest& data, const std::string& base_url) {
+static std::optional<cpr::Response> oauth_code_exchange(const OAuthAuthRequest& data, const std::string& base_url) {
     auto id = data.client_id;
     auto secret = data.client_secret;
     auto code = data.code;
@@ -20,14 +19,11 @@ oauth_code_exchange(const OAuthAuthRequest& data, const std::string& base_url) {
     }
 
     cpr::Payload parameters = {
-        {"client_id", id},
-        {"client_secret", secret},
-        {"code", code.value()},
-        {"grant_type", "authorization_code"}
+        {"client_id", id}, {"client_secret", secret}, {"code", code.value()}, {"grant_type", "authorization_code"}
     };
 
     if (data.redirect_uri.has_value()) {
-        parameters.Add({ "redirect_uri", data.redirect_uri.value() });
+        parameters.Add({"redirect_uri", data.redirect_uri.value()});
     }
 
     const auto url = std::format("{}/oauth/token", base_url);

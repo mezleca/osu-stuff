@@ -82,29 +82,25 @@ namespace query {
         parameters.emplace_back(key, value);
     }
 
-    inline void add_parameter(Parameters& parameters, std::string_view key,
-                              const std::optional<std::string>& value) {
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<std::string>& value) {
         if (value.has_value()) {
             parameters.emplace_back(key, *value);
         }
     }
 
-    inline void add_parameter(Parameters& parameters, std::string_view key,
-                              const std::optional<int32_t>& value) {
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<int32_t>& value) {
         if (value.has_value()) {
             parameters.emplace_back(key, std::to_string(*value));
         }
     }
 
-    inline void add_parameter(Parameters& parameters, std::string_view key,
-                              const std::optional<bool>& value) {
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<bool>& value) {
         if (value.has_value()) {
             parameters.emplace_back(key, *value ? "1" : "0");
         }
     }
 
-    inline void add_parameter(Parameters& parameters, std::string_view key,
-                              const std::vector<std::string>& values) {
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::vector<std::string>& values) {
         for (const auto& value : values) {
             parameters.emplace_back(key, value);
         }

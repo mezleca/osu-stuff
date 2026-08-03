@@ -28,7 +28,10 @@ struct OAuthAuthRequest {
     std::string refresh_token; // OAuthAuthType == CODE_GRANT
 };
 
-enum class OAuthAuthType : int32_t { CODE_GRANT, CLIENT_CREDENTIALS_GRANT };
+enum class OAuthAuthType : int32_t {
+    CODE_GRANT,
+    CLIENT_CREDENTIALS_GRANT
+};
 
 struct OAuthTokenData {
     std::string token_type;
@@ -63,8 +66,8 @@ public:
             query.Add({key, value});
         }
 
-        const auto url = endpoint.starts_with('/') ? m_base_url + std::string(endpoint)
-                                                    : m_base_url + "/" + std::string(endpoint);
+        const auto url =
+            endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);
         return parse_typed_response<T>(cpr::Get(cpr::Url{url}, header, query));
     };
 
@@ -77,8 +80,8 @@ public:
             header["Authorization"] = "Bearer " + m_token_data.access_token;
         }
 
-        const auto url = endpoint.starts_with('/') ? m_base_url + std::string(endpoint)
-                                                    : m_base_url + "/" + std::string(endpoint);
+        const auto url =
+            endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);
         return parse_typed_response<T>(cpr::Post(cpr::Url{url}, header, cpr::Body{body.dump()}));
     };
 
@@ -123,6 +126,7 @@ protected:
     }
 
     bool store_token(const nlohmann::json& json);
+
 private:
     // last auth details
     TimePoint m_auth_timestamp{};

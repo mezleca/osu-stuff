@@ -209,8 +209,7 @@ struct BeatmapsetDiscussion {
     bool resolved = false;
 };
 
-struct BeatmapsetDiscussionPost : ForumPost {
-};
+struct BeatmapsetDiscussionPost : ForumPost {};
 
 struct BeatmapsetDiscussionVote {
     int32_t id = 0;
@@ -748,15 +747,17 @@ public:
     std::optional<OsuGetBeatmapPackResponse> get_beatmap_pack(const OsuGetBeatmapPackRequest& request);
     std::optional<OsuBeatmapLookupResponse> lookup_beatmap(const OsuBeatmapLookupRequest& request);
     std::optional<OsuGetUserBeatmapScoreResponse> get_user_beatmap_score(const OsuGetUserBeatmapScoreRequest& request);
-    std::optional<OsuGetUserBeatmapScoresResponse> get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request);
+    std::optional<OsuGetUserBeatmapScoresResponse>
+    get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request);
     std::optional<OsuGetBeatmapScoresResponse> get_beatmap_scores(const OsuGetBeatmapScoresRequest& request);
-    std::optional<OsuGetBeatmapAttributesResponse> get_beatmap_attributes(const OsuGetBeatmapAttributesRequest& request);
-    std::optional<OsuGetBeatmapsetDiscussionPostsResponse> get_beatmapset_discussion_posts(
-        const OsuGetBeatmapsetDiscussionPostsRequest& request);
-    std::optional<OsuGetBeatmapsetDiscussionVotesResponse> get_beatmapset_discussion_votes(
-        const OsuGetBeatmapsetDiscussionVotesRequest& request);
-    std::optional<OsuGetBeatmapsetDiscussionsResponse> get_beatmapset_discussions(
-        const OsuGetBeatmapsetDiscussionsRequest& request);
+    std::optional<OsuGetBeatmapAttributesResponse>
+    get_beatmap_attributes(const OsuGetBeatmapAttributesRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionPostsResponse>
+    get_beatmapset_discussion_posts(const OsuGetBeatmapsetDiscussionPostsRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionVotesResponse>
+    get_beatmapset_discussion_votes(const OsuGetBeatmapsetDiscussionVotesRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionsResponse>
+    get_beatmapset_discussions(const OsuGetBeatmapsetDiscussionsRequest& request);
     std::optional<OsuSearchBeatmapsetResponse> search_beatmapsets(const OsuSearchBeatmapsetRequest& request);
     std::optional<OsuBeatmapsetLookupResponse> lookup_beatmapset(const OsuBeatmapsetLookupRequest& request);
     std::optional<OsuGetBeatmapsetResponse> get_beatmapset(const OsuGetBeatmapsetRequest& request);
@@ -768,7 +769,6 @@ public:
     std::optional<OsuSearchResponse> search(const OsuSearchRequest& request);
     std::optional<OsuGetMatchesListingResponse> get_matches_listing(const OsuGetMatchesListingRequest& request);
     std::optional<OsuGetMatchResponse> get_match(const OsuGetMatchRequest& request);
-
 };
 
 inline void to_json(nlohmann::json& j, const OsuAuthorizeRequest& r) {
@@ -779,14 +779,19 @@ inline void to_json(nlohmann::json& j, const OsuAuthorizeRequest& r) {
 }
 
 inline void to_json(nlohmann::json& j, const OsuAuthRequest& r) {
-    j = {{"client_id", r.client_id}, {"client_secret", r.client_secret}, {"code", r.code},
-         {"grant_type", r.grant_type}};
+    j = {
+        {"client_id", r.client_id}, {"client_secret", r.client_secret}, {"code", r.code}, {"grant_type", r.grant_type}
+    };
     if (r.redirect_uri) j["redirect_uri"] = *r.redirect_uri;
 }
 
 inline void to_json(nlohmann::json& j, const OsuClientCredentialsRequest& r) {
-    j = {{"client_id", r.client_id}, {"client_secret", r.client_secret},
-         {"grant_type", r.grant_type}, {"scope", query::string_set_to_string(r.scope, " ")}};
+    j = {
+        {"client_id", r.client_id},
+        {"client_secret", r.client_secret},
+        {"grant_type", r.grant_type},
+        {"scope", query::string_set_to_string(r.scope, " ")}
+    };
 }
 
 inline void to_json(nlohmann::json& j, const OsuGetBeatmapPacksRequest& r) {
@@ -1159,8 +1164,8 @@ inline void from_json(const nlohmann::json& j, OsuGetUserBeatmapScoresResponse& 
 
 inline void from_json(const nlohmann::json& j, OsuGetBeatmapAttributesResponse& r) {
     if (j.contains("attributes") && !j.at("attributes").is_null()) {
-        r.attributes = std::make_shared<BeatmapDifficultyAttributes>(
-            j.at("attributes").get<BeatmapDifficultyAttributes>());
+        r.attributes =
+            std::make_shared<BeatmapDifficultyAttributes>(j.at("attributes").get<BeatmapDifficultyAttributes>());
     }
 }
 
@@ -1231,19 +1236,23 @@ inline void from_json(const nlohmann::json& j, OsuGetBeatmapsetDiscussionsRespon
 }
 
 inline void from_json(const nlohmann::json& j, OsuGetEventsResponse& r) {
-    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null())
+        r.cursor_string = j.at("cursor_string").get<std::string>();
     r.events = j.value("events", std::vector<Event>{});
 }
 
 inline void from_json(const nlohmann::json& j, OsuGetTopicListingResponse& r) {
     r.topics = j.value("topics", std::vector<ForumTopic>{});
-    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null())
+        r.cursor_string = j.at("cursor_string").get<std::string>();
 }
 
 inline void from_json(const nlohmann::json& j, OsuGetTopicAndPostsResponse& r) {
-    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null())
+        r.cursor_string = j.at("cursor_string").get<std::string>();
     r.posts = j.value("posts", std::vector<ForumPost>{});
-    if (j.contains("topic") && !j.at("topic").is_null()) r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
+    if (j.contains("topic") && !j.at("topic").is_null())
+        r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
 }
 
 inline void from_json(const nlohmann::json& j, CommentBundle& r) {
@@ -1253,8 +1262,10 @@ inline void from_json(const nlohmann::json& j, CommentBundle& r) {
 }
 
 inline void from_json(const nlohmann::json& j, OsuCreateTopicResponse& r) {
-    if (j.contains("topic") && !j.at("topic").is_null()) r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
-    if (j.contains("post") && !j.at("post").is_null()) r.post = std::make_shared<ForumPost>(j.at("post").get<ForumPost>());
+    if (j.contains("topic") && !j.at("topic").is_null())
+        r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
+    if (j.contains("post") && !j.at("post").is_null())
+        r.post = std::make_shared<ForumPost>(j.at("post").get<ForumPost>());
 }
 
 inline void from_json(const nlohmann::json& j, OsuGetForumListingResponse& r) {
@@ -1275,7 +1286,8 @@ inline void from_json(const nlohmann::json& j, OsuSearchResult<T>& r) {
 
 inline void from_json(const nlohmann::json& j, OsuSearchResponse& r) {
     if (j.contains("user") && !j.at("user").is_null()) r.user = j.at("user").get<OsuSearchResult<User>>();
-    if (j.contains("wiki_page") && !j.at("wiki_page").is_null()) r.wiki_page = j.at("wiki_page").get<OsuSearchResult<WikiPage>>();
+    if (j.contains("wiki_page") && !j.at("wiki_page").is_null())
+        r.wiki_page = j.at("wiki_page").get<OsuSearchResult<WikiPage>>();
 }
 
 inline void from_json(const nlohmann::json& j, OsuGetMatchesListingResponse& r) {
