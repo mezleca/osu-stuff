@@ -1,6 +1,7 @@
 add_executable(tests
     beatmap-parser.cpp
     osu-clients.cpp
+    osu_api_tests.cpp
     legacy-parser.cpp
     osdb-parser.cpp
     ui-widgets.cpp
@@ -25,6 +26,21 @@ if(WIN32)
             $<TARGET_FILE_DIR:tests>
         COMMAND_EXPAND_LISTS
     )
+
+    target_compile_options(tests PRIVATE
+        /W4
+        /EHsc
+        /utf-8
+        /wd5105
+        /Zc:preprocessor
+    )
+else()
+    target_compile_options(tests PRIVATE
+        -Wpedantic
+    )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(tests PRIVATE -Wunused-lambda-capture)
+    endif()
 endif()
 
 catch_discover_tests(tests

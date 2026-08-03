@@ -1,8 +1,13 @@
 #pragma once
 
 #include <climits>
+#include <cstdint>
+#include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <set>
+#include <utility>
 #include <vector>
 
 enum class QueryOp : int {
@@ -59,7 +64,7 @@ struct QueryState {
         value = ParseState::KEY;
         in_quotes = false;
 
-        key_start = INT_MAX; // uhhh
+        key_start = INT_MAX; // Invalid sentinel until the first key character.
         op_start = 0;
         op_end = 0;
         value_end = 0;
@@ -72,6 +77,48 @@ struct ParsedQuery {
 };
 
 namespace query {
+    using Parameters = std::vector<std::pair<std::string, std::string>>;
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::string& value) {
+        parameters.emplace_back(key, value);
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<std::string>& value) {
+        if (value.has_value()) {
+            parameters.emplace_back(key, *value);
+        }
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<int32_t>& value) {
+        if (value.has_value()) {
+            parameters.emplace_back(key, std::to_string(*value));
+        }
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::optional<bool>& value) {
+        if (value.has_value()) {
+            parameters.emplace_back(key, *value ? "1" : "0");
+        }
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const std::vector<std::string>& values) {
+        for (const auto& value : values) {
+            parameters.emplace_back(key, value);
+        }
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, int32_t value) {
+        parameters.emplace_back(key, std::to_string(value));
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, bool value) {
+        parameters.emplace_back(key, value ? "1" : "0");
+    }
+
+    inline void add_parameter(Parameters& parameters, std::string_view key, const char* value) {
+        parameters.emplace_back(key, value ? value : "");
+    }
+
     inline std::pair<QueryOp, size_t> parse_operator(std::string_view sv, size_t pos) {
         char c1 = sv[pos];
         char c2 = sv[pos + 1];
@@ -195,6 +242,32 @@ namespace query {
 
                     m_state.reset();
                 } break;
+            }
+        }
+
+        return result;
+    }
+
+    inline std::string string_set_to_string(const std::set<std::string>& set, std::string_view del) {
+        if (set.empty()) {
+            return {};
+        }
+
+        std::string result;
+        size_t total_bytes = 0;
+
+        for (const auto& value : set) {
+            total_bytes += value.size();
+        }
+
+        total_bytes += del.size() * (set.size() - 1);
+        result.reserve(total_bytes);
+
+        for (auto it = set.begin(); it != set.end(); ++it) {
+            const auto& value = *it;
+            result += value;
+            if (std::next(it) != set.end()) {
+                result += del;
             }
         }
 
