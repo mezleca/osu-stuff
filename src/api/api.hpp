@@ -52,13 +52,15 @@ public:
     }
 
     template <typename T>
-    std::optional<T> get(std::string_view endpoint, const query::Parameters& params) {
-        if (!authenticate()) {
+    std::optional<T> get(std::string_view endpoint, const query::Parameters& params, bool use_auth = true) {
+        if (use_auth && !authenticate()) {
             return std::nullopt;
         }
 
         cpr::Header header{{"Accept", "application/json"}};
-        header["Authorization"] = "Bearer " + m_token_data.access_token;
+        if (use_auth) {
+            header["Authorization"] = "Bearer " + m_token_data.access_token;
+        }
         cpr::Parameters query;
 
         for (const auto& [key, value] : params) {
@@ -73,12 +75,14 @@ public:
     };
 
     template <typename T>
-    std::optional<T> post(std::string_view endpoint, const nlohmann::json& body) {
-        if (!authenticate()) {
+    std::optional<T> post(std::string_view endpoint, const nlohmann::json& body, bool use_auth = true) {
+        if (use_auth && !authenticate()) {
             return std::nullopt;
         }
         cpr::Header header{{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-        header["Authorization"] = "Bearer " + m_token_data.access_token;
+        if (use_auth) {
+            header["Authorization"] = "Bearer " + m_token_data.access_token;
+        }
 
         const auto url =
             endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);

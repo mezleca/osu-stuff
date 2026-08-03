@@ -485,6 +485,18 @@ def build_tests(build_type: str | None) -> int:
 
     return code
 
+def get_test_environment() -> dict:
+    env = os.environ.copy()
+
+    if not IS_CI:
+        env["OSU_API_LIVE"] = "1"
+        env["OSU_COLLECTOR_API_LIVE"] = "1"
+
+    if SYSTEM == "Windows":
+        env.update(load_msvc_env())
+
+    return env
+
 def run_tests(build_type: str | None) -> int:
     build_code = build_tests(build_type)
     if build_code != 0:
@@ -494,7 +506,7 @@ def run_tests(build_type: str | None) -> int:
     prepare_test_runtime_data()
 
     cached = read_cached_build_type()
-    env = load_msvc_env() if SYSTEM == "Windows" else None
+    env = get_test_environment()
     cmd = [
         "ctest",
         "--test-dir",

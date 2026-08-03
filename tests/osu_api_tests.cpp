@@ -1,4 +1,5 @@
 #include "../src/api/osu-v2/detail.hpp"
+#include "../src/api/osu-collector/detail.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
@@ -24,7 +25,16 @@ static OAuthAuthRequest get_live_auth_data() {
     };
 }
 
+static bool live_test_enabled(const char* variable) {
+    const char* enabled = std::getenv(variable);
+    return enabled != nullptr && std::string{enabled} == "1";
+}
+
 TEST_CASE("oauth base implementation authenticates against osu", "[oauth][live]") {
+    if (!live_test_enabled("OSU_API_LIVE")) {
+        SKIP("OSU_API_LIVE=1 is required for the live osu! API test");
+    }
+
     const auto auth_data = get_live_auth_data();
 
     if (auth_data.client_id.empty() || auth_data.client_secret.empty()) {
@@ -40,6 +50,10 @@ TEST_CASE("oauth base implementation authenticates against osu", "[oauth][live]"
 }
 
 TEST_CASE("osu api authenticates and parses a real beatmap", "[osu-api][live]") {
+    if (!live_test_enabled("OSU_API_LIVE")) {
+        SKIP("OSU_API_LIVE=1 is required for the live osu! API test");
+    }
+
     const auto auth_data = get_live_auth_data();
 
     if (auth_data.client_id.empty() || auth_data.client_secret.empty()) {
@@ -58,6 +72,10 @@ TEST_CASE("osu api authenticates and parses a real beatmap", "[osu-api][live]") 
 }
 
 TEST_CASE("osu api endpoints return parseable responses", "[osu-api][live]") {
+    if (!live_test_enabled("OSU_API_LIVE")) {
+        SKIP("OSU_API_LIVE=1 is required for the live osu! API test");
+    }
+
     const auto auth_data = get_live_auth_data();
 
     if (auth_data.client_id.empty() || auth_data.client_secret.empty()) {
@@ -108,4 +126,53 @@ TEST_CASE("osu api endpoints return parseable responses", "[osu-api][live]") {
     if (!matches->matches.empty()) {
         REQUIRE(api.get_match({.match = static_cast<int32_t>(matches->matches.front().id), .limit = 1}).has_value());
     }
+}
+
+TEST_CASE("osu collector api endpoints return parseable responses", "[osu-collector][live]") {
+    if (!live_test_enabled("OSU_COLLECTOR_API_LIVE")) {
+        SKIP("OSU_COLLECTOR_API_LIVE=1 is required for the live osu!collector API test");
+    }
+
+    OsuCollectorAPI api;
+
+    OsuCollectorRecentRequest recent_request;
+    recent_request.per_page = 1;
+    const auto collections = api.get_recent_collections(recent_request);
+    REQUIRE(collections.has_value());
+    REQUIRE(collections->has_more);
+    REQUIRE_FALSE(collections->collections.empty());
+
+    const auto collection_id = collections->collections.front().id;
+    const auto collection = api.get_collection({.id = collection_id});
+    REQUIRE(collection.has_value());
+    REQUIRE(collection->id == collection_id);
+
+    const auto beatmaps = api.get_collection_beatmaps({.id = collection_id, .per_page = 50});
+    REQUIRE(beatmaps.has_value());
+    REQUIRE_FALSE(beatmaps->beatmaps.empty());
+    REQUIRE_FALSE(beatmaps->beatmapsets.empty());
+
+    OsuCollectorPopularCollectionsRequest popular_request;
+    popular_request.per_page = 1;
+    popular_request.range = "alltime";
+    REQUIRE(api.get_popular_collections(popular_request).has_value());
+
+    OsuCollectorSearchRequest collection_search_request;
+    collection_search_request.search = collections->collections.front().name;
+    collection_search_request.per_page = 1;
+    REQUIRE(api.search_collections(collection_search_request).has_value());
+
+    const auto tournaments = api.get_recent_tournaments(recent_request);
+    REQUIRE(tournaments.has_value());
+    REQUIRE_FALSE(tournaments->tournaments.empty());
+
+    const auto tournament_id = tournaments->tournaments.front().id;
+    const auto tournament = api.get_tournament({.id = tournament_id});
+    REQUIRE(tournament.has_value());
+    REQUIRE(tournament->id == tournament_id);
+
+    OsuCollectorSearchRequest tournament_search_request;
+    tournament_search_request.search = tournaments->tournaments.front().name;
+    tournament_search_request.per_page = 1;
+    REQUIRE(api.search_tournaments(tournament_search_request).has_value());
 }
