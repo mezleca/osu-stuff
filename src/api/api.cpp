@@ -68,7 +68,7 @@ oauth_client_credentials_grant(const OAuthAuthRequest& data, const std::string& 
         {"client_id", id},
         {"client_secret", secret},
         {"grant_type", "client_credentials"},
-        {"scope", query::string_set_to_string(data.scope.value_or({"public"}), " ")}
+        {"scope", query::string_set_to_string(data.scope.value_or(std::set<std::string>{"public"}), " ")}
     };
 
     const auto url = std::format("{}/oauth/token", base_url);
@@ -141,17 +141,17 @@ bool OAuthApi::get_or_refresh_access_token(OAuthAuthType type, OAuthAuthRequest&
             // otherwise, just update the refresh token
             if (data.code.has_value() && !data.code->empty()) {
                 auto result = oauth_code_exchange(data, m_base_url);
-                response = result.value_or({});
+                response = result.value_or(cpr::Response{});
             } else {
                 auto result = oauth_refresh_access_token(data, m_base_url);
-                response = result.value_or({});
+                response = result.value_or(cpr::Response{});
             }
 
             break;
         }
         case OAuthAuthType::CLIENT_CREDENTIALS_GRANT: {
             auto result = oauth_client_credentials_grant(data, m_base_url);
-            response = result.value_or({});
+            response = result.value_or(cpr::Response{});
             break;
         }
     }

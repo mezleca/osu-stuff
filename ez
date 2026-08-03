@@ -117,6 +117,9 @@ def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored
             "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
         ])
 
+    if IS_CI:
+        cmd.append("-DSQLITECPP_RUN_CPPCHECK=OFF")
+
     return cmd
 
 def read_cached_build_type() -> str | None:
