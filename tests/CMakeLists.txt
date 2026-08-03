@@ -1,6 +1,7 @@
 add_executable(tests
     beatmap-parser.cpp
     osu-clients.cpp
+    osu_api_tests.cpp
     legacy-parser.cpp
     osdb-parser.cpp
     ui-widgets.cpp

@@ -10,13 +10,13 @@
 #include <string>
 #include <vector>
 
-struct Beatmap;
-struct BeatmapExtended;
 struct BeatmapPack;
+struct Beatmap;
 struct BeatmapUserScore;
 struct BeatmapScores;
 struct BeatmapDifficultyAttributes;
 struct Beatmapset;
+struct BeatmapExtended;
 struct BeatmapsetDiscussion;
 struct BeatmapsetDiscussionPost;
 struct BeatmapsetDiscussionVote;
@@ -28,6 +28,7 @@ struct Forum;
 struct ForumTopic;
 struct ForumPost;
 struct User;
+struct UserExtended;
 struct WikiPage;
 struct Match;
 struct MatchEvent;
@@ -36,6 +37,250 @@ struct Mod;
 struct Cursor;
 
 using Ruleset = std::string; // osu, taiko, fruits, mania
+
+struct Mod {
+    std::string acronym;
+    nlohmann::json settings = nlohmann::json::object();
+};
+
+struct UserCountry {
+    std::string code;
+    std::string name;
+};
+
+struct UserCover {
+    std::optional<std::string> custom_url;
+    std::string url;
+};
+
+struct UserLevel {
+    int32_t current = 0;
+    double progress = 0.0;
+};
+
+struct UserRank {
+    std::optional<int32_t> global;
+    std::optional<int32_t> country;
+};
+
+struct UserStatistics {
+    double pp = 0.0;
+    double ppv1 = 0.0;
+    double accuracy = 0.0;
+    int64_t global_rank = 0;
+    int32_t country_rank = 0;
+    int32_t play_count = 0;
+    int64_t play_time = 0;
+    int64_t ranked_score = 0;
+    int64_t total_score = 0;
+    int64_t total_hits = 0;
+    int32_t maximum_combo = 0;
+    UserLevel level;
+    UserRank rank;
+};
+
+struct BeatmapPack {
+    std::string tag;
+    std::string name;
+    std::string pack_type;
+    std::string date;
+    std::string url;
+    std::vector<int32_t> beatmap_ids;
+};
+
+struct Beatmapset {
+    int32_t id = 0;
+    std::string artist_unicode;
+    int32_t creator_id = 0;
+    int32_t favourite_count = 0;
+    int32_t play_count = 0;
+    int32_t user_id = 0;
+    std::string artist;
+    std::string creator;
+    std::string source;
+    std::string title;
+    std::string title_unicode;
+    std::string status;
+    std::string covers;
+    std::vector<BeatmapExtended> beatmaps;
+};
+
+struct User {
+    int32_t id = 0;
+    std::string username;
+    std::string country_code;
+    std::string avatar_url;
+    std::string country;
+    std::string profile_colour;
+    bool is_active = false;
+    bool is_bot = false;
+    bool is_online = false;
+    bool is_supporter = false;
+    std::optional<UserCountry> country_info;
+    std::optional<UserCover> cover;
+};
+
+struct UserExtended : User {
+    std::string join_date;
+    std::string last_visit;
+    std::string occupation;
+    std::string interests;
+    std::string playstyle;
+    std::string twitter;
+    std::string website;
+    std::optional<UserStatistics> statistics;
+    std::vector<std::string> account_history;
+};
+
+struct Score {
+    int64_t id = 0;
+    int32_t user_id = 0;
+    double accuracy = 0.0;
+    int32_t max_combo = 0;
+    std::string rank;
+    int32_t score = 0;
+    std::optional<double> pp;
+    bool perfect = false;
+    std::string created_at;
+    std::string mode;
+    std::vector<std::string> mods;
+    std::shared_ptr<User> user;
+};
+
+struct BeatmapUserScore {
+    int32_t position = 0;
+    Score score;
+};
+
+struct BeatmapScores {
+    std::vector<Score> scores;
+    std::shared_ptr<Beatmap> beatmap;
+    std::shared_ptr<Beatmapset> beatmapset;
+};
+
+struct BeatmapDifficultyAttributes {
+    double max_combo = 0.0;
+    double star_rating = 0.0;
+};
+
+struct Cursor {
+    int32_t id = 0;
+    std::string page;
+};
+
+struct Event {
+    int64_t id = 0;
+    std::string created_at;
+    std::string type;
+    std::shared_ptr<User> user;
+};
+
+struct Forum {
+    int32_t id = 0;
+    std::string name;
+    std::string description;
+};
+
+struct ForumTopic {
+    int32_t id = 0;
+    int32_t forum_id = 0;
+    std::string title;
+    std::string created_at;
+    std::string last_post_at;
+    bool is_locked = false;
+    bool is_sticky = false;
+};
+
+struct ForumPost {
+    int32_t id = 0;
+    int32_t topic_id = 0;
+    nlohmann::json body = "";
+    std::string created_at;
+    std::shared_ptr<User> user;
+};
+
+struct BeatmapsetDiscussion {
+    int32_t id = 0;
+    int32_t beatmapset_id = 0;
+    int32_t beatmap_id = 0;
+    int32_t user_id = 0;
+    std::string message_type;
+    std::string timestamp;
+    bool resolved = false;
+};
+
+struct BeatmapsetDiscussionPost : ForumPost {
+};
+
+struct BeatmapsetDiscussionVote {
+    int32_t id = 0;
+    int32_t user_id = 0;
+    int32_t score = 0;
+};
+
+struct Build {
+    int32_t id = 0;
+    std::string version;
+    std::string display_version;
+    std::string update_stream;
+    std::string created_at;
+};
+
+struct UpdateStream {
+    std::string name;
+    int32_t user_count = 0;
+    std::shared_ptr<Build> latest_build;
+};
+
+struct CommentBundle {
+    std::vector<User> users;
+    std::vector<ForumPost> comments;
+    std::optional<std::string> cursor;
+};
+
+struct WikiPage {
+    std::string locale;
+    std::string title;
+    std::string path;
+};
+
+struct Match {
+    int64_t id = 0;
+    std::string start_time;
+    std::string end_time;
+    std::string name;
+};
+
+struct MatchEvent {
+    int64_t id = 0;
+    int64_t match_id = 0;
+    nlohmann::json detail = nlohmann::json::object();
+    std::string timestamp;
+};
+
+struct Beatmap {
+    int32_t id = 0;
+    int32_t beatmapset_id = 0;
+    std::string checksum;
+    std::string mode;
+    std::string status;
+    std::string version;
+    double accuracy = 0.0;
+    double ar = 0.0;
+    double bpm = 0.0;
+    double cs = 0.0;
+    double drain = 0.0;
+    double difficulty_rating = 0.0;
+    int32_t total_length = 0;
+    int32_t user_id = 0;
+    std::optional<int32_t> max_combo;
+};
+
+struct BeatmapExtended : Beatmap {
+    std::optional<std::string> last_updated;
+    std::optional<int32_t> passcount;
+    std::optional<int32_t> playcount;
+};
 
 // AUTH
 
@@ -178,7 +423,7 @@ struct OsuGetBeatmapsetDiscussionPostsRequest {
 };
 
 struct OsuGetBeatmapsetDiscussionPostsResponse {
-    std::shared_ptr<Beatmapset> beatmapsets;
+    std::vector<Beatmapset> beatmapsets;
     std::optional<std::string> cursor_string;
     std::vector<BeatmapsetDiscussionPost> posts;
     std::vector<User> users;
@@ -254,7 +499,7 @@ struct OsuSearchBeatmapsetRequest {
 struct OsuSearchBeatmapsetResponse {
     std::vector<Beatmapset> beatmapsets;
     OsuSearchBeatmapsetResponseMeta search;
-    int32_t recommended_difficulty;
+    std::optional<int32_t> recommended_difficulty;
     std::string error;
     int32_t total;
     OsuSearchBeatmapsetCursor cursor;
@@ -492,14 +737,570 @@ struct OsuGetMatchResponse {
     int32_t latest_event_id; // ID of the latest MatchEvent in the match.
 };
 
-namespace osu_v2 {
-    [[nodiscard]] bool authenticate(OsuClientCredentialsRequest data);
+class OsuV2API : public OAuthApi {
+public:
+    OsuV2API();
+    ~OsuV2API() = default;
 
-    inline AuthExpirationToken m_token = {};
-}; // namespace osu_v2
+    std::optional<OsuGetBeatmapsResponse> get_beatmaps(const OsuGetBeatmapsRequest& request);
+    std::optional<OsuGetBeatmapResponse> get_beatmap(const OsuGetBeatmapRequest& request);
+    std::optional<OsuGetBeatmapPacksResponse> get_beatmap_packs(const OsuGetBeatmapPacksRequest& request);
+    std::optional<OsuGetBeatmapPackResponse> get_beatmap_pack(const OsuGetBeatmapPackRequest& request);
+    std::optional<OsuBeatmapLookupResponse> lookup_beatmap(const OsuBeatmapLookupRequest& request);
+    std::optional<OsuGetUserBeatmapScoreResponse> get_user_beatmap_score(const OsuGetUserBeatmapScoreRequest& request);
+    std::optional<OsuGetUserBeatmapScoresResponse> get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request);
+    std::optional<OsuGetBeatmapScoresResponse> get_beatmap_scores(const OsuGetBeatmapScoresRequest& request);
+    std::optional<OsuGetBeatmapAttributesResponse> get_beatmap_attributes(const OsuGetBeatmapAttributesRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionPostsResponse> get_beatmapset_discussion_posts(
+        const OsuGetBeatmapsetDiscussionPostsRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionVotesResponse> get_beatmapset_discussion_votes(
+        const OsuGetBeatmapsetDiscussionVotesRequest& request);
+    std::optional<OsuGetBeatmapsetDiscussionsResponse> get_beatmapset_discussions(
+        const OsuGetBeatmapsetDiscussionsRequest& request);
+    std::optional<OsuSearchBeatmapsetResponse> search_beatmapsets(const OsuSearchBeatmapsetRequest& request);
+    std::optional<OsuBeatmapsetLookupResponse> lookup_beatmapset(const OsuBeatmapsetLookupRequest& request);
+    std::optional<OsuGetBeatmapsetResponse> get_beatmapset(const OsuGetBeatmapsetRequest& request);
+    std::optional<OsuGetEventsResponse> get_events(const OsuGetEventsRequest& request);
+    std::optional<OsuGetTopicListingResponse> get_topic_listing(const OsuGetTopicListingRequest& request);
+    std::optional<OsuGetTopicAndPostsResponse> get_topic_and_posts(const OsuGetTopicAndPostsRequest& request);
+    std::optional<OsuGetForumListingResponse> get_forum_listing(const OsuGetForumListingRequest& request);
+    std::optional<OsuGetForumAndTopicsResponse> get_forum_and_topics(const OsuGetForumAndTopicsRequest& request);
+    std::optional<OsuSearchResponse> search(const OsuSearchRequest& request);
+    std::optional<OsuGetMatchesListingResponse> get_matches_listing(const OsuGetMatchesListingRequest& request);
+    std::optional<OsuGetMatchResponse> get_match(const OsuGetMatchRequest& request);
+
+};
+
+inline void to_json(nlohmann::json& j, const OsuAuthorizeRequest& r) {
+    j = {{"client_id", r.client_id}, {"response_type", r.response_type}};
+    if (r.redirect_uri) j["redirect_uri"] = *r.redirect_uri;
+    if (r.scope) j["scope"] = *r.scope;
+    if (r.state) j["state"] = *r.state;
+}
+
+inline void to_json(nlohmann::json& j, const OsuAuthRequest& r) {
+    j = {{"client_id", r.client_id}, {"client_secret", r.client_secret}, {"code", r.code},
+         {"grant_type", r.grant_type}};
+    if (r.redirect_uri) j["redirect_uri"] = *r.redirect_uri;
+}
+
+inline void to_json(nlohmann::json& j, const OsuClientCredentialsRequest& r) {
+    j = {{"client_id", r.client_id}, {"client_secret", r.client_secret},
+         {"grant_type", r.grant_type}, {"scope", query::string_set_to_string(r.scope, " ")}};
+}
+
+inline void to_json(nlohmann::json& j, const OsuGetBeatmapPacksRequest& r) {
+    j = {{"type", r.type}};
+    if (r.cursor_string) j["cursor_string"] = *r.cursor_string;
+}
+
+inline void to_json(nlohmann::json& j, const OsuBeatmapLookupRequest& r) {
+    j = nlohmann::json::object();
+    if (r.checksum) j["checksum"] = *r.checksum;
+    if (r.filename) j["filename"] = *r.filename;
+    if (r.id) j["id"] = *r.id;
+}
+
+inline void to_json(nlohmann::json& j, const OsuGetBeatmapsRequest& r) {
+    j = {{"ids", r.ids}};
+}
+
+inline void to_json(nlohmann::json& j, const OsuGetBeatmapRequest& r) {
+    j = {{"beatmap", r.beatmap}};
+}
+
+inline void from_json(const nlohmann::json& j, Mod& r) {
+    r.acronym = j.value("acronym", "");
+    r.settings = j.value("settings", nlohmann::json::object());
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapPack& r) {
+    r.tag = j.value("tag", "");
+    r.name = j.value("name", "");
+    r.pack_type = j.value("pack_type", "");
+    r.date = j.value("date", "");
+    r.url = j.value("url", "");
+    r.beatmap_ids = j.value("beatmap_ids", std::vector<int32_t>{});
+}
+
+inline void from_json(const nlohmann::json& j, UserCountry& r);
+inline void from_json(const nlohmann::json& j, UserCover& r);
+inline void from_json(const nlohmann::json& j, UserLevel& r);
+inline void from_json(const nlohmann::json& j, UserRank& r);
+inline void from_json(const nlohmann::json& j, UserStatistics& r);
+
+inline void from_json(const nlohmann::json& j, User& r) {
+    r.id = j.value("id", 0);
+    r.username = j.value("username", "");
+    r.country_code = j.value("country_code", "");
+    r.avatar_url = j.value("avatar_url", "");
+
+    if (j.contains("country") && j.at("country").is_string()) {
+        r.country = j.at("country").get<std::string>();
+    }
+
+    if (j.contains("profile_colour") && !j.at("profile_colour").is_null()) {
+        r.profile_colour = j.at("profile_colour").get<std::string>();
+    }
+
+    r.is_active = j.value("is_active", false);
+    r.is_bot = j.value("is_bot", false);
+    r.is_online = j.value("is_online", false);
+    r.is_supporter = j.value("is_supporter", false);
+
+    if (j.contains("country") && j.at("country").is_object()) {
+        if (j.at("country").contains("code")) {
+            r.country_info = j.at("country").get<UserCountry>();
+        }
+    }
+
+    if (j.contains("cover") && j.at("cover").is_object()) {
+        r.cover = j.at("cover").get<UserCover>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, UserCountry& r) {
+    r.code = j.value("code", "");
+    r.name = j.value("name", "");
+}
+
+inline void from_json(const nlohmann::json& j, UserCover& r) {
+    if (j.contains("custom_url") && !j.at("custom_url").is_null()) {
+        r.custom_url = j.at("custom_url").get<std::string>();
+    }
+
+    r.url = j.value("url", "");
+}
+
+inline void from_json(const nlohmann::json& j, UserLevel& r) {
+    r.current = j.value("current", 0);
+    r.progress = j.value("progress", 0.0);
+}
+
+inline void from_json(const nlohmann::json& j, UserRank& r) {
+    if (j.contains("global") && !j.at("global").is_null()) r.global = j.at("global").get<int32_t>();
+    if (j.contains("country") && !j.at("country").is_null()) r.country = j.at("country").get<int32_t>();
+}
+
+inline void from_json(const nlohmann::json& j, UserStatistics& r) {
+    r.pp = j.value("pp", 0.0);
+    r.ppv1 = j.value("ppv1", 0.0);
+    r.accuracy = j.value("accuracy", 0.0);
+    r.global_rank = j.value("global_rank", int64_t{0});
+    r.country_rank = j.value("country_rank", 0);
+    r.play_count = j.value("play_count", 0);
+    r.play_time = j.value("play_time", int64_t{0});
+    r.ranked_score = j.value("ranked_score", int64_t{0});
+    r.total_score = j.value("total_score", int64_t{0});
+    r.total_hits = j.value("total_hits", int64_t{0});
+    r.maximum_combo = j.value("maximum_combo", 0);
+    if (j.contains("level") && !j.at("level").is_null()) r.level = j.at("level").get<UserLevel>();
+    if (j.contains("rank") && !j.at("rank").is_null()) r.rank = j.at("rank").get<UserRank>();
+}
+
+inline void from_json(const nlohmann::json& j, UserExtended& r) {
+    from_json(j, static_cast<User&>(r));
+    r.join_date = j.value("join_date", "");
+    r.last_visit = j.value("last_visit", "");
+    r.occupation = j.value("occupation", "");
+    r.interests = j.value("interests", "");
+    r.playstyle = j.value("playstyle", "");
+    r.twitter = j.value("twitter", "");
+    r.website = j.value("website", "");
+
+    if (j.contains("statistics") && !j.at("statistics").is_null()) {
+        r.statistics = j.at("statistics").get<UserStatistics>();
+    }
+
+    r.account_history = j.value("account_history", std::vector<std::string>{});
+}
+
+inline void from_json(const nlohmann::json& j, Score& r) {
+    r.id = j.value("id", int64_t{0});
+    r.user_id = j.value("user_id", 0);
+    r.accuracy = j.value("accuracy", 0);
+    r.max_combo = j.value("max_combo", 0);
+    r.rank = j.value("rank", "");
+    r.score = j.value("score", 0);
+
+    if (j.contains("pp") && !j.at("pp").is_null()) {
+        r.pp = j.at("pp").get<double>();
+    }
+
+    r.perfect = j.value("perfect", false);
+    r.created_at = j.value("created_at", "");
+    r.mode = j.value("mode", "");
+    r.mods = j.value("mods", std::vector<std::string>{});
+
+    if (j.contains("user") && !j.at("user").is_null()) {
+        r.user = std::make_shared<User>(j.at("user").get<User>());
+    }
+}
 
 inline static void from_json(const nlohmann::json& j, OsuClientCredentialsResponse& r) {
     r.access_token = j.value("access_token", "");
     r.expires_in = j.value("expires_in", 0);
     r.token_type = j.value("token_type", "");
+}
+
+inline static void from_json(const nlohmann::json& j, OsuAuthResponse& r) {
+    r.access_token = j.value("access_token", "");
+    r.expires_in = j.value("expires_in", 0);
+    r.refresh_token = j.value("refresh_token", "");
+    r.token_type = j.value("token_type", "");
+}
+
+inline void from_json(const nlohmann::json& json, Beatmap& beatmap) {
+    beatmap.id = json.value("id", 0);
+    beatmap.beatmapset_id = json.value("beatmapset_id", 0);
+
+    if (json.contains("checksum") && !json.at("checksum").is_null()) {
+        beatmap.checksum = json.at("checksum").get<std::string>();
+    }
+
+    beatmap.mode = json.value("mode", "");
+    beatmap.status = json.value("status", "");
+    beatmap.version = json.value("version", "");
+    beatmap.accuracy = json.value("accuracy", 0.0);
+    beatmap.ar = json.value("ar", 0.0);
+
+    if (json.contains("bpm") && !json.at("bpm").is_null()) {
+        beatmap.bpm = json.at("bpm").get<double>();
+    }
+
+    beatmap.cs = json.value("cs", 0.0);
+    beatmap.drain = json.value("drain", 0.0);
+    beatmap.difficulty_rating = json.value("difficulty_rating", 0.0);
+    beatmap.total_length = json.value("total_length", 0);
+    beatmap.user_id = json.value("user_id", 0);
+
+    if (json.contains("max_combo") && !json.at("max_combo").is_null()) {
+        beatmap.max_combo = json.at("max_combo").get<int32_t>();
+    }
+}
+
+inline void from_json(const nlohmann::json& json, BeatmapExtended& beatmap) {
+    from_json(json, static_cast<Beatmap&>(beatmap));
+
+    if (json.contains("last_updated") && !json.at("last_updated").is_null()) {
+        beatmap.last_updated = json.at("last_updated").get<std::string>();
+    }
+
+    if (json.contains("passcount") && !json.at("passcount").is_null()) {
+        beatmap.passcount = json.at("passcount").get<int32_t>();
+    }
+
+    if (json.contains("playcount") && !json.at("playcount").is_null()) {
+        beatmap.playcount = json.at("playcount").get<int32_t>();
+    }
+}
+
+inline static void from_json(const nlohmann::json& j, OsuGetBeatmapsResponse& r) {
+    r.beatmaps = j.value("beatmaps", std::vector<BeatmapExtended>{});
+}
+
+inline void from_json(const nlohmann::json& j, Beatmapset& r) {
+    r.id = j.value("id", 0);
+    r.artist = j.value("artist", "");
+    r.artist_unicode = j.value("artist_unicode", "");
+    r.creator_id = j.value("user_id", 0);
+    r.creator = j.value("creator", "");
+    r.favourite_count = j.value("favourite_count", 0);
+    r.play_count = j.value("play_count", 0);
+    r.source = j.value("source", "");
+    r.status = j.value("status", "");
+    r.title = j.value("title", "");
+    r.title_unicode = j.value("title_unicode", "");
+    r.user_id = j.value("user_id", 0);
+
+    if (j.contains("beatmaps") && !j.at("beatmaps").is_null()) {
+        r.beatmaps = j.at("beatmaps").get<std::vector<BeatmapExtended>>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapDifficultyAttributes& r) {
+    r.max_combo = j.value("max_combo", 0.0);
+    r.star_rating = j.value("star_rating", 0.0);
+}
+
+inline void from_json(const nlohmann::json& j, Cursor& r) {
+    r.id = j.value("id", 0);
+    r.page = j.value("page", "");
+}
+
+inline void from_json(const nlohmann::json& j, Event& r) {
+    r.id = j.value("id", int64_t{0});
+    r.created_at = j.value("created_at", "");
+    r.type = j.value("type", "");
+    if (j.contains("user") && !j.at("user").is_null()) r.user = std::make_shared<User>(j.at("user").get<User>());
+}
+
+inline void from_json(const nlohmann::json& j, Forum& r) {
+    r.id = j.value("id", 0);
+    r.name = j.value("name", "");
+    r.description = j.value("description", "");
+}
+
+inline void from_json(const nlohmann::json& j, ForumTopic& r) {
+    r.id = j.value("id", 0);
+    r.forum_id = j.value("forum_id", 0);
+    r.title = j.value("title", "");
+    r.created_at = j.value("created_at", "");
+    r.last_post_at = j.value("last_post_at", "");
+    r.is_locked = j.value("is_locked", false);
+    r.is_sticky = j.value("is_sticky", false);
+}
+
+inline void from_json(const nlohmann::json& j, ForumPost& r) {
+    r.id = j.value("id", 0);
+    r.topic_id = j.value("topic_id", 0);
+
+    if (j.contains("body") && !j.at("body").is_null()) {
+        r.body = j.at("body");
+    }
+
+    r.created_at = j.value("created_at", "");
+    if (j.contains("user") && !j.at("user").is_null()) r.user = std::make_shared<User>(j.at("user").get<User>());
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapsetDiscussion& r) {
+    r.id = j.value("id", 0);
+
+    if (j.contains("beatmap_id") && !j.at("beatmap_id").is_null()) {
+        r.beatmap_id = j.at("beatmap_id").get<int32_t>();
+    }
+
+    r.beatmapset_id = j.value("beatmapset_id", 0);
+    r.user_id = j.value("user_id", 0);
+    r.message_type = j.value("message_type", "");
+    r.timestamp = j.value("created_at", "");
+    r.resolved = j.value("resolved", false);
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapsetDiscussionPost& r) {
+    from_json(j, static_cast<ForumPost&>(r));
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapsetDiscussionVote& r) {
+    r.id = j.value("id", 0);
+    r.user_id = j.value("user_id", 0);
+    r.score = j.value("score", 0);
+}
+
+inline void from_json(const nlohmann::json& j, Build& r) {
+    r.id = j.value("id", 0);
+    r.version = j.value("version", "");
+    r.display_version = j.value("display_version", "");
+    r.update_stream = j.value("update_stream", "");
+    r.created_at = j.value("created_at", "");
+}
+
+inline void from_json(const nlohmann::json& j, UpdateStream& r) {
+    r.name = j.value("name", "");
+    r.user_count = j.value("user_count", 0);
+
+    if (j.contains("latest_build") && !j.at("latest_build").is_null()) {
+        r.latest_build = std::make_shared<Build>(j.at("latest_build").get<Build>());
+    }
+}
+
+inline void from_json(const nlohmann::json& j, WikiPage& r) {
+    r.locale = j.value("locale", "");
+    r.title = j.value("title", "");
+    r.path = j.value("path", "");
+}
+
+inline void from_json(const nlohmann::json& j, Match& r) {
+    r.id = j.value("id", int64_t{0});
+    r.start_time = j.value("start_time", "");
+
+    if (j.contains("end_time") && !j.at("end_time").is_null()) {
+        r.end_time = j.at("end_time").get<std::string>();
+    }
+
+    r.name = j.value("name", "");
+}
+
+inline void from_json(const nlohmann::json& j, MatchEvent& r) {
+    r.id = j.value("id", int64_t{0});
+    r.match_id = j.value("match_id", int64_t{0});
+
+    if (j.contains("detail") && !j.at("detail").is_null()) {
+        r.detail = j.at("detail");
+    }
+
+    r.timestamp = j.value("timestamp", "");
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapPacksResponse& r) {
+    r.beatmap_packs = j.value("beatmap_packs", std::vector<BeatmapPack>{});
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapUserScore& r) {
+    r.position = j.value("position", 0);
+    if (j.contains("score") && !j.at("score").is_null()) r.score = j.at("score").get<Score>();
+}
+
+inline void from_json(const nlohmann::json& j, BeatmapScores& r) {
+    r.scores = j.value("scores", std::vector<Score>{});
+
+    if (j.contains("beatmap") && !j.at("beatmap").is_null()) {
+        r.beatmap = std::make_shared<Beatmap>(j.at("beatmap").get<Beatmap>());
+    }
+
+    if (j.contains("beatmapset") && !j.at("beatmapset").is_null()) {
+        r.beatmapset = std::make_shared<Beatmapset>(j.at("beatmapset").get<Beatmapset>());
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetUserBeatmapScoresResponse& r) {
+    r.scores = j.value("scores", std::vector<Score>{});
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapAttributesResponse& r) {
+    if (j.contains("attributes") && !j.at("attributes").is_null()) {
+        r.attributes = std::make_shared<BeatmapDifficultyAttributes>(
+            j.at("attributes").get<BeatmapDifficultyAttributes>());
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuSearchBeatmapsetCursor& r) {
+    r.approved_date = j.value("approved_date", 0);
+    r.id = j.value("id", 0);
+}
+
+inline void from_json(const nlohmann::json& j, OsuSearchBeatmapsetResponseMeta& r) {
+    r.sort = j.value("sort", "");
+}
+
+inline void from_json(const nlohmann::json& j, OsuSearchBeatmapsetResponse& r) {
+    r.beatmapsets = j.value("beatmapsets", std::vector<Beatmapset>{});
+    r.total = j.value("total", 0);
+
+    if (j.contains("search") && !j.at("search").is_null()) {
+        r.search = j.at("search").get<OsuSearchBeatmapsetResponseMeta>();
+    }
+
+    if (j.contains("recommended_difficulty") && !j.at("recommended_difficulty").is_null()) {
+        r.recommended_difficulty = j.at("recommended_difficulty").get<int32_t>();
+    }
+
+    if (j.contains("error") && !j.at("error").is_null()) {
+        r.error = j.at("error").get<std::string>();
+    }
+
+    if (j.contains("cursor") && !j.at("cursor").is_null()) {
+        r.cursor = j.at("cursor").get<OsuSearchBeatmapsetCursor>();
+    }
+
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) {
+        r.cursor_string = j.at("cursor_string").get<std::string>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapsetDiscussionPostsResponse& r) {
+    r.beatmapsets = j.value("beatmapsets", std::vector<Beatmapset>{});
+    r.posts = j.value("posts", std::vector<BeatmapsetDiscussionPost>{});
+    r.users = j.value("users", std::vector<User>{});
+
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) {
+        r.cursor_string = j.at("cursor_string").get<std::string>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapsetDiscussionVotesResponse& r) {
+    r.discussions = j.value("discussions", std::vector<BeatmapsetDiscussion>{});
+    r.users = j.value("users", std::vector<User>{});
+    r.votes = j.value("votes", std::vector<BeatmapsetDiscussionVote>{});
+
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) {
+        r.cursor_string = j.at("cursor_string").get<std::string>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetBeatmapsetDiscussionsResponse& r) {
+    r.beatmaps = j.value("beatmaps", std::vector<BeatmapExtended>{});
+    r.discussions = j.value("discussions", std::vector<BeatmapsetDiscussion>{});
+    r.included_discussions = j.value("included_discussions", std::vector<BeatmapsetDiscussion>{});
+    r.reviews_config_max_blocks = j.value("reviews_config_max_blocks", 0);
+    r.users = j.value("users", std::vector<User>{});
+
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) {
+        r.cursor_string = j.at("cursor_string").get<std::string>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetEventsResponse& r) {
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+    r.events = j.value("events", std::vector<Event>{});
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetTopicListingResponse& r) {
+    r.topics = j.value("topics", std::vector<ForumTopic>{});
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetTopicAndPostsResponse& r) {
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) r.cursor_string = j.at("cursor_string").get<std::string>();
+    r.posts = j.value("posts", std::vector<ForumPost>{});
+    if (j.contains("topic") && !j.at("topic").is_null()) r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
+}
+
+inline void from_json(const nlohmann::json& j, CommentBundle& r) {
+    r.users = j.value("users", std::vector<User>{});
+    r.comments = j.value("comments", std::vector<ForumPost>{});
+    if (j.contains("cursor") && !j.at("cursor").is_null()) r.cursor = j.at("cursor").get<std::string>();
+}
+
+inline void from_json(const nlohmann::json& j, OsuCreateTopicResponse& r) {
+    if (j.contains("topic") && !j.at("topic").is_null()) r.topic = std::make_shared<ForumTopic>(j.at("topic").get<ForumTopic>());
+    if (j.contains("post") && !j.at("post").is_null()) r.post = std::make_shared<ForumPost>(j.at("post").get<ForumPost>());
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetForumListingResponse& r) {
+    r.forums = j.value("forums", std::vector<Forum>{});
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetForumAndTopicsResponse& r) {
+    if (j.contains("forum") && !j.at("forum").is_null()) r.forum = std::make_shared<Forum>(j.at("forum").get<Forum>());
+    r.topics = j.value("topics", std::vector<ForumTopic>{});
+    r.pinned_topics = j.value("pinned_topics", std::vector<ForumTopic>{});
+}
+
+template <typename T>
+inline void from_json(const nlohmann::json& j, OsuSearchResult<T>& r) {
+    r.data = j.value("data", std::vector<T>{});
+    r.total = j.value("total", 0);
+}
+
+inline void from_json(const nlohmann::json& j, OsuSearchResponse& r) {
+    if (j.contains("user") && !j.at("user").is_null()) r.user = j.at("user").get<OsuSearchResult<User>>();
+    if (j.contains("wiki_page") && !j.at("wiki_page").is_null()) r.wiki_page = j.at("wiki_page").get<OsuSearchResult<WikiPage>>();
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetMatchesListingResponse& r) {
+    if (j.contains("cursor") && !j.at("cursor").is_null()) {
+        r.cursor = std::make_shared<Cursor>(j.at("cursor").get<Cursor>());
+    }
+
+    if (j.contains("cursor_string") && !j.at("cursor_string").is_null()) {
+        r.cursor_string = j.at("cursor_string").get<std::string>();
+    }
+
+    r.matches = j.value("matches", std::vector<Match>{});
+    r.params_limit = j.value("params", nlohmann::json::object()).value("limit", 0);
+    r.params_sort = j.value("params", nlohmann::json::object()).value("sort", "");
+
+    const auto params = j.value("params", nlohmann::json::object());
+    if (params.contains("active") && !params.at("active").is_null()) {
+        r.params_active = params.at("active").get<bool>();
+    }
+}
+
+inline void from_json(const nlohmann::json& j, OsuGetMatchResponse& r) {
+    if (j.contains("match") && !j.at("match").is_null()) r.match = std::make_shared<Match>(j.at("match").get<Match>());
+    r.events = j.value("events", std::vector<MatchEvent>{});
+    r.users = j.value("users", std::vector<User>{});
+    r.first_event_id = j.value("first_event_id", 0);
+    r.latest_event_id = j.value("latest_event_id", 0);
 }
