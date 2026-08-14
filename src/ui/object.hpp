@@ -1,31 +1,33 @@
 #pragma once
 
+#include "core/node.hpp"
 #include "style/style.hpp"
 
 #include <string>
 #include <utility>
 
-class UIObject {
-public:
-    explicit UIObject(std::string id = {}) : m_id(std::move(id)) {
-    }
+namespace ui {
+    class StyledNode : public Node {
+    public:
+        explicit StyledNode(std::string id = {}) : Node(std::move(id)) {
+        }
 
-    virtual ~UIObject() = default;
-    virtual void show() = 0;
+        virtual ~StyledNode() = default;
+        StyledNode(StyledNode&&) noexcept = default;
+        StyledNode& operator=(StyledNode&&) noexcept = default;
 
-    [[nodiscard]] const std::string& id() const {
-        return m_id;
-    }
+        StyledNode(const StyledNode&) = delete;
+        StyledNode& operator=(const StyledNode&) = delete;
+        [[nodiscard]] Style& style() {
+            return m_style;
+        }
 
-    [[nodiscard]] UIStyle& style() {
-        return m_style;
-    }
+        [[nodiscard]] const Style& style() const {
+            return m_style;
+        }
 
-    [[nodiscard]] const UIStyle& style() const {
-        return m_style;
-    }
+    private:
+        ui::Style m_style;
+    };
 
-private:
-    std::string m_id;
-    UIStyle m_style;
-};
+} // namespace ui

@@ -23,7 +23,6 @@
 *.dll
 *.so.*
 
-
 # Fortran module files
 *.mod
 *.smod
@@ -68,11 +67,18 @@ vcpkg_installed/
 Testing/
 .cache/
 
-build/
-*.AppImage
-.flatpak-builder
-compile_commands.json
+# packaging temp stuff
 dist/
+*.AppImage
 flatpak/org.mezleca.osu-stuff.png
+resources/packaging/org.mezleca.osu-stuff.png
+resources/packaging/flatpak/org.mezleca.osu-stuff.png
+resources/runtime/icons/icon.ico
+
+# local docs / notes about future changes
+# most of them are either ideias about future features / systems, or just codex roadmaps
+docs/
+
+# other
 node_modules/
 __pycache__/

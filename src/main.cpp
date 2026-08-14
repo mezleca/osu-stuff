@@ -1,4 +1,6 @@
 #include "ui/ui.hpp"
+#include "app/ui/app.hpp"
+#include "utils/resources.hpp"
 
 #include <glad/gl.h>
 #include <SDL3/SDL.h>
@@ -6,8 +8,7 @@
 #include <iostream>
 #include <memory>
 
-static constexpr int DEFAULT_WIDTH = 1280;
-static constexpr int DEFAULT_HEIGHT = 720;
+static constexpr ImVec2 DEFAULT_WINDOW_SIZE = {1280.0F, 720.0F};
 
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
@@ -19,48 +20,29 @@ int main() {
         std::filesystem::current_path(base_path);
     }
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-
-    // create window with graphics context
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    ui::Window::configure_opengl();
 
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-    SDL_WindowFlags window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
-    SDL_Window* window = SDL_CreateWindow(
-        "osu-stuff", (int)(DEFAULT_WIDTH * main_scale), (int)(DEFAULT_HEIGHT * main_scale), window_flags
+    const SDL_WindowFlags window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
+    ui::Window window(
+        "osu-stuff", {DEFAULT_WINDOW_SIZE.x * main_scale, DEFAULT_WINDOW_SIZE.y * main_scale}, window_flags
     );
 
-    if (window == nullptr) {
-        std::cout << "SDL_CreateWindow(): " << SDL_GetError() << "\n";
+    if (!window.valid()) {
+        SDL_Log("failed to initialize main window");
         SDL_Quit();
         return 1;
     }
 
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-
-    if (gl_context == nullptr) {
-        std::cout << "SDL_GL_CreateContext(): " << SDL_GetError() << "\n";
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
-    SDL_GL_MakeCurrent(window, gl_context);
+    window.make_current();
     SDL_GL_SetSwapInterval(1); // enable vsync
-    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_ShowWindow(window);
+    SDL_SetWindowPosition(window.handle(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    window.show();
 
     int version = gladLoadGL(SDL_GL_GetProcAddress);
 
     if (version == 0) {
         SDL_Log("failed to initialize OpenGL context\n");
-        SDL_GL_DestroyContext(gl_context);
-        SDL_DestroyWindow(window);
         SDL_Quit();
         return -1;
     }
@@ -81,7 +63,21 @@ int main() {
         SDL_Log("GL Context  : %d.%d", maj, min);
     }
 
-    auto ui = std::make_unique<UI>(&gl_context, window);
+    const std::filesystem::path resources_path = resources::path();
+    ui::Config ui_config{
+        .font_paths =
+            {resources_path / "fonts/Torus-Regular.ttf", resources_path / "fonts/Torus-SemiBold.ttf",
+             resources_path / "fonts/Torus-Bold.ttf"},
+        .icon_path = resources_path / "icons/ui/",
+    };
+    auto ui = std::make_unique<UI>(window, std::move(ui_config));
+    if (!ui->ready()) {
+        SDL_Log("UI initialization failed");
+        SDL_Quit();
+        return 1;
+    }
+
+    auto app = std::make_unique<app::OsuStuffApp>(*ui);
 
     while (!ui->is_done()) {
         SDL_Event event;
@@ -91,24 +87,23 @@ int main() {
             if (event.type == SDL_EVENT_QUIT) {
                 ui->exit();
             }
-            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window)) {
+            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == window.id()) {
                 ui->exit();
             }
         }
 
-        if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
+        if (window.flags() & SDL_WINDOW_MINIMIZED) {
             SDL_Delay(10);
             continue;
         }
 
-        ui->render();
-        SDL_GL_SwapWindow(window);
+        app->render();
+        window.swap();
     }
 
+    app.reset();
     ui.reset();
 
-    SDL_GL_DestroyContext(gl_context);
-    SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;

@@ -1,18 +1,12 @@
 #include "ui.hpp"
-#include "managers/notification-manager.hpp"
 #include "constants.hpp"
-#include "tabs/detail.hpp"
-#include "widgets/tab-button.hpp"
 #include "theme.hpp"
-#include "modal.hpp"
 #include "texture/icon.hpp"
 #include "texture/svg.hpp"
-#include "../utils/resources.hpp"
 
-#include <algorithm>
-#include <format>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
+#include <SDL3/SDL_log.h>
 #include <filesystem>
 #include <iostream>
 #include <cstdlib>
@@ -29,13 +23,16 @@ UI& ui::current() {
     return *current_ui;
 }
 
-UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
+UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
     current_ui = this;
 
-    const fs::path resources_path = resources::path();
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
-    ImGui::CreateContext();
+    if (ImGui::CreateContext() == nullptr) {
+        SDL_Log("ImGui::CreateContext(): failed to create context");
+        return;
+    }
+
     m_io = &ImGui::GetIO();
 
     m_io->IniFilename = nullptr;
@@ -94,16 +91,32 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     colors[ImGuiCol_SliderGrab] = ui_theme::ACCENT_COLOR;
     colors[ImGuiCol_SliderGrabActive] = ui_theme::ACCENT_HOVER_COLOR;
 
-    ImGui_ImplSDL3_InitForOpenGL(window, ctx);
-    ImGui_ImplOpenGL3_Init("#version 300 es");
+    m_debugger.set_style(style);
+
+    if (!ImGui_ImplSDL3_InitForOpenGL(window.handle(), window.context())) {
+        SDL_Log("ImGui_ImplSDL3_InitForOpenGL(): failed to initialize");
+        ImGui::DestroyContext();
+        m_io = nullptr;
+        return;
+    }
+
+    if (!ImGui_ImplOpenGL3_Init("#version 300 es")) {
+        SDL_Log("ImGui_ImplOpenGL3_Init(): failed to initialize");
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext();
+        m_io = nullptr;
+        return;
+    }
+
+    m_ready = true;
 
     // initialize / preload font variations
-    m_fonts[TORUS].initialize(font_cfg, (resources_path / "fonts/Torus-Regular.ttf").string(), m_io);
-    m_fonts[TORUS_SEMI].initialize(font_cfg, (resources_path / "fonts/Torus-SemiBold.ttf").string(), m_io);
-    m_fonts[TORUS_BOLD].initialize(font_cfg, (resources_path / "fonts/Torus-Bold.ttf").string(), m_io);
+    for (std::size_t index = 0; index < static_cast<size_t>(ui::FontType::FONT_COUNT); ++index) {
+        m_fonts[index].initialize(font_cfg, config.font_paths[index].string(), m_io);
+    }
 
     // load textures (svgs)
-    fs::path textures_location = resources_path / "icons/ui/";
+    fs::path textures_location = config.icon_path;
 
     m_textures.emplace("default", std::make_unique<IconTexture>(DEFAULT_WARN_SVG));
 
@@ -132,88 +145,34 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
         }
     }
 
+    m_debugger.set_icon(get_texture("circle-icon"));
+    m_debugger.set_close_icon(get_texture("x-icon"));
+    m_debugger.set_font(
+        config.font_paths[static_cast<size_t>(ui::FontType::REGULAR)].string(), ui::FONT_MEDIUM, font_cfg
+    );
+    m_debugger.set_bold_font(
+        config.font_paths[static_cast<size_t>(ui::FontType::BOLD)].string(), ui::FONT_MEDIUM, font_cfg
+    );
+
     // load font variants
     for (auto& font : m_fonts) {
-        font.load(FONT_SMALL);
-        font.load(FONT_MEDIUM);
-        font.load(FONT_LARGE);
+        font.load(ui::FONT_SMALL);
+        font.load(ui::FONT_MEDIUM);
+        font.load(ui::FONT_LARGE);
     }
-
-    // create / intitialize tabs
-    m_tabs.push_back({TabButtonWidget{"osu-stuff", false, true}, std::make_unique<IndexTab>()});
-    m_tabs.push_back({TabButtonWidget{"collections"}, std::make_unique<CollectionTab>()});
-    m_tabs.push_back({TabButtonWidget{"discover"}, std::make_unique<DiscoverTab>()});
-    m_tabs.push_back({TabButtonWidget{"radio"}, std::make_unique<RadioTab>()});
-    m_tabs.push_back({TabButtonWidget{"config"}, std::make_unique<ConfigTab>()});
-    m_tabs.push_back({TabButtonWidget{"status"}, std::make_unique<StatusTab>()});
-
-    m_current_tab = m_tabs.front().second.get();
-    m_tabs.front().first.set_selected(true);
-
-    for (auto& [button, tab] : m_tabs) {
-        button.m_onclick = [this, cur_tab = tab.get()]() {
-            for (auto& [widget, tab] : m_tabs) {
-                widget.set_selected(tab.get() == cur_tab);
-            }
-
-            m_current_tab = cur_tab;
-        };
-    }
-
-    m_notification_manager = std::make_unique<UINotificationManager>();
 }
 
 UI::~UI() {
     current_ui = nullptr;
-    m_current_tab = nullptr;
+
+    m_debugger.shutdown();
+    if (!m_ready) {
+        return;
+    }
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
-}
-
-void UIDebug::update() {
-    const Uint64 now = SDL_GetPerformanceCounter();
-    m_frame_count++;
-
-    if (m_last_time == 0) {
-        m_last_time = now;
-        return;
-    }
-
-    const double elapsed_seconds =
-        static_cast<double>(now - m_last_time) / static_cast<double>(SDL_GetPerformanceFrequency());
-
-    if (elapsed_seconds >= 1.0) {
-        m_current_fps = static_cast<double>(m_frame_count) / elapsed_seconds;
-        m_frame_count = 0;
-        m_last_time = now;
-    }
-}
-
-void UIDebug::handle_keydown(SDL_Window* window) {
-    SDL_WindowFlags window_flags = SDL_GetWindowFlags(window);
-    bool window_focused = window_flags & SDL_WINDOW_INPUT_FOCUS;
-
-    if (window_focused && ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-        m_show_ui = !m_show_ui;
-    }
-}
-
-void UIDebug::render() {
-    if (!m_show_ui) {
-        return;
-    }
-
-    ImGui::Begin("##debug-ui", nullptr, ImGuiWindowFlags_NoSavedSettings);
-    {
-        ImGui::BeginChild("##debug-child", {100, 100}, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX);
-        {
-            ImGui::TextUnformatted(std::format("fps: {}", std::round(get_fps())).c_str());
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
@@ -227,210 +186,71 @@ void UIDebug::render() {
     return it->second.get();
 }
 
-bool UI::is_modal_focused(UIModal* modal) const {
-    if (m_modals.empty()) {
-        return false;
-    }
-
-    return m_modals.back().get() == modal;
-}
-
-bool UI::has_modal(std::string_view id) const {
-    return std::any_of(m_modals.begin(), m_modals.end(), [id](const auto& modal) { return modal->id() == id; });
-}
-
-UIModal* UI::focused_modal() const {
-    if (m_modals.empty()) {
-        return nullptr;
-    }
-
-    return m_modals.back().get();
-}
-
-size_t UI::modal_count() const {
-    return m_modals.size();
-}
-
-void UI::show_modal(std::unique_ptr<UIModal> modal, bool wipe) {
-    if (modal == nullptr) {
-        return;
-    }
-
-    if (wipe) {
-        clear_modals();
-    }
-
-    m_modals.push_back(std::move(modal));
-}
-
-bool UI::remove_modal(std::string_view id) {
-    bool removed = false;
-
-    for (auto it = m_modals.begin(); it != m_modals.end();) {
-        UIModal* modal = it->get();
-
-        if (modal->id() != id) {
-            it++;
-            continue;
-        }
-
-        modal->on_remove();
-        it = m_modals.erase(it);
-        removed = true;
-    }
-
-    return removed;
-}
-
-bool UI::remove_focused_modal() {
-    UIModal* modal = focused_modal();
-
-    if (modal == nullptr) {
-        return false;
-    }
-
-    modal->on_remove();
-    m_modals.pop_back();
-    return true;
-}
-
-void UI::clear_modals() {
-    for (const auto& modal : m_modals) {
-        modal->on_remove();
-    }
-
-    m_modals.clear();
-}
-
-void UI::handle_escape() {
-    if (!ImGui::IsKeyDown(ImGuiKey_Escape)) {
-        return;
-    }
-
-    UIModal* modal = focused_modal();
-
-    if (modal != nullptr) {
-        modal->on_escape();
-        return;
-    }
-}
-
-void UI::draw_child_rect(ImColor color, float radius, float thickness) {
-    const ImVec2 win_pos = ImGui::GetWindowPos();
-    const ImVec2 win_size = ImGui::GetWindowSize();
-
-    auto* dl = ImGui::GetWindowDrawList();
-    dl->AddRect(win_pos, ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y), color, radius, 0, thickness);
-}
-
 void UI::process_sdl_event(SDL_Event* event) {
+    if (event == nullptr || !m_ready) {
+        return;
+    }
+
     ImGui_ImplSDL3_ProcessEvent(event);
+    m_debugger.process_event(event);
+
+    // imgui keeps native input state.
+    // the router receives a copy for focused nodes.
+    ui::UiEvent ui_event = ui::UiEvent::make(ui::EventType::Cancel);
+    bool should_dispatch = true;
+
+    switch (event->type) {
+        case SDL_EVENT_KEY_DOWN:
+            ui_event.type = ui::EventType::KeyDown;
+            ui_event.key = event->key.key;
+            break;
+        case SDL_EVENT_KEY_UP:
+            ui_event.type = ui::EventType::KeyUp;
+            ui_event.key = event->key.key;
+            break;
+        case SDL_EVENT_TEXT_INPUT:
+            ui_event.type = ui::EventType::TextInput;
+            ui_event.text = event->text.text != nullptr ? event->text.text : "";
+            break;
+        default:
+            should_dispatch = false;
+            break;
+    }
+
+    if (!should_dispatch) {
+        return;
+    }
+
+    const bool handled = m_root.input_router().dispatch(ui_event);
+
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE && !handled) {
+        ui_event = ui::UiEvent::make(ui::EventType::Cancel);
+        ui_event.key = event->key.key;
+        const bool cancel_handled = m_root.input_router().dispatch(ui_event);
+        static_cast<void>(cancel_handled);
+    }
 }
 
-void UI::render() {
+void UI::begin_frame() {
+    if (!m_ready) {
+        return;
+    }
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+    m_root.begin_frame();
 
     // update debugger
-    m_debug.handle_keydown(m_window);
-    m_debug.update();
+    m_debugger.update();
+}
 
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImFont* torus_bold = m_fonts[TORUS_BOLD].get(FONT_MEDIUM);
-
-    float header_end_height = 0.0f;
-
-    ImGui::SetNextWindowPos(viewport->WorkPos);
-    ImGui::SetNextWindowSize(viewport->WorkSize);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ui_theme::BG_COLOR);
-
-    // render ui content
-    ImGui::Begin("##osu-stuff", nullptr, constants::WINDOW_FLAGS);
-    {
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-
-        ImGui::PushFont(torus_bold);
-        const float font_height = ImGui::GetFrameHeight();
-        ImGui::PopFont();
-
-        // header
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ui_theme::HEADER_BG_COLOR);
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
-
-        const ImVec2 header_cursor_start = ImGui::GetCursorPos();
-        header_end_height = font_height + ui_theme::CONTENT_PADDING * 2;
-
-        ImGui::BeginChild(
-            "header", ImVec2{available.x, header_end_height}, ImGuiChildFlags_AlwaysUseWindowPadding,
-            ImGuiWindowFlags_None
-        );
-        {
-            ImGui::PushFont(torus_bold);
-            {
-                for (std::size_t index = 0; index < m_tabs.size(); ++index) {
-                    auto& pair = m_tabs[index];
-
-                    TabButtonWidget& button_widget = pair.first;
-
-                    if (index > 0) {
-                        ImGui::SameLine(0.0f, ui_theme::HEADER_TABS_GAP);
-                    }
-
-                    button_widget.show();
-                }
-            }
-            ImGui::PopFont();
-
-            auto* dl = ImGui::GetWindowDrawList();
-
-            ImVec2 header_line_start = {header_cursor_start.x, header_cursor_start.y + header_end_height - 1.0f};
-            ImVec2 header_line_end = {available.x, header_line_start.y};
-
-            dl->AddLine(header_line_start, header_line_end, ImColor(ui_theme::HEADER_BORDER_COLOR), 1.0f);
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleVar(3);
-        ImGui::PopStyleColor(1);
-
-        ImGui::PushFont(torus_bold);
-
-        // render current tab
-        if (m_current_tab != nullptr) {
-            if (!m_current_tab->is_initialized()) m_current_tab->setup();
-            m_current_tab->render();
-        }
-
-        ImGui::PopFont();
+void UI::end_frame() {
+    if (!m_ready) {
+        return;
     }
-    ImGui::End();
-    ImGui::PopStyleColor(1);
-    ImGui::PopStyleVar(3);
 
-    ImGui::SetNextWindowPos(viewport->WorkPos);
-    ImGui::SetNextWindowSize(viewport->WorkSize);
-    ImGui::SetNextWindowBgAlpha(0.0f);
-
-    // render notifications
-    ImGui::Begin("##notifications-overlay", nullptr, constants::NOTIFICATION_OVERLAY_FLAGS);
-    {
-        const ImVec2 window_pos = ImGui::GetWindowPos();
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-
-        m_notification_manager->set_offset({window_pos.x + available.x - 5.0f, header_end_height + 10.0f});
-        m_notification_manager->render();
-    }
-    ImGui::End();
-
-    // render debug ui
-    m_debug.render();
+    m_debugger.render();
 
     ImGui::Render();
 

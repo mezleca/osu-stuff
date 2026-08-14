@@ -515,6 +515,8 @@ APPIMAGE_APPDIR = APPIMAGE_BUILD_DIR / "AppDir"
 APPIMAGE_PATH = DIST_DIR / f"{BINARY_NAME}-x86_64.AppImage"
 PACKAGING_DIR = CWD / "resources" / "packaging"
 RUNTIME_RESOURCES_DIR = CWD / "resources" / "runtime"
+RUNTIME_ICON_PATH = RUNTIME_RESOURCES_DIR / "icons" / "icon.png"
+FLATPAK_ICON_PATH = PACKAGING_DIR / "flatpak" / f"{FLATPAK_APP_ID}.png"
 APPIMAGE_ICON_PATH = PACKAGING_DIR / f"{FLATPAK_APP_ID}.png"
 
 def prepare_resources() -> None:
@@ -597,10 +599,14 @@ def find_linuxdeploy() -> Path | None:
     return Path(executable) if executable else None
 
 def prepare_flatpak_assets() -> None:
-    _ = shutil.copy2(RUNTIME_RESOURCES_DIR / "icons" / "icon.png", PACKAGING_DIR / "flatpak" / f"{FLATPAK_APP_ID}.png")
+    copy_runtime_icon(FLATPAK_ICON_PATH)
 
 def prepare_appimage_assets() -> None:
-    _ = shutil.copy2(RUNTIME_RESOURCES_DIR / "icons" / "icon.png", APPIMAGE_ICON_PATH)
+    copy_runtime_icon(APPIMAGE_ICON_PATH)
+
+def copy_runtime_icon(destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _ = shutil.copy2(RUNTIME_ICON_PATH, destination)
 
 def package_flatpak() -> int:
     DIST_DIR.mkdir(exist_ok=True)

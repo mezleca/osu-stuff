@@ -1,0 +1,8 @@
+<svg
+    class="circle-icon"
+    xmlns="http://www.w3.org/2000/svg"
+    width="32"
+    height="32"
+    viewBox="0 0 21 21">
+    <circle cx="10.5" cy="10.5" r="8" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
