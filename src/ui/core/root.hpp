@@ -5,25 +5,22 @@
 #include <utility>
 
 namespace ui {
+    // groups nodes that share a z-order and input layer.
     class UiLayer final : public Node {
     public:
-        UiLayer(InputLayer layer, InputPolicy policy);
+        explicit UiLayer(InputLayer layer);
 
         [[nodiscard]] InputLayer input_layer() const {
             return m_layer;
         }
-        [[nodiscard]] InputPolicy input_policy() const {
-            return m_policy;
-        }
-        void set_input_policy(InputPolicy policy) {
-            m_policy = policy;
-        }
 
     private:
         InputLayer m_layer;
-        InputPolicy m_policy;
     };
 
+    // owns the fixed layer tree and the router used by the whole ui frame.
+    // application content goes into content; transient nodes use the other
+    // layers so drawing and input follow the same ordering.
     class UiRoot final : public Node {
     public:
         UiRoot();
@@ -37,12 +34,8 @@ namespace ui {
         }
         [[nodiscard]] UiLayer& layer(InputLayer layer);
         [[nodiscard]] const UiLayer& layer(InputLayer layer) const;
-        [[nodiscard]] InputRouter& input_router() {
-            return m_input_router;
-        }
-        [[nodiscard]] const InputRouter& input_router() const {
-            return m_input_router;
-        }
+        [[nodiscard]] InputRouter& input_router();
+        [[nodiscard]] const InputRouter& input_router() const;
 
         // clear frame input while keeping the node tree alive.
         void begin_frame();

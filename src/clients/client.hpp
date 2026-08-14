@@ -30,8 +30,7 @@ struct OsuBeatmap {
           last_modification_time(b.last_modification_time), hitcircle(b.hitcircle), sliders(b.sliders),
           spinners(b.spinners), drain_time(b.drain_time), total_time(b.total_time),
           audio_preview_time(b.audio_preview_time), difficulty_id(b.difficulty_id), beatmap_id(b.beatmap_id),
-          mode((BeatmapGamemode)b.mode), status((BeatmapStatus)b.status) {
-    }
+          mode((BeatmapGamemode)b.mode), status((BeatmapStatus)b.status) {}
 
     // lazer -> result
     explicit OsuBeatmap(const realm::managed<realm::Beatmap>& b)
@@ -55,8 +54,7 @@ struct OsuBeatmap {
           total_time((int)b.Length.detach()),
           audio_preview_time(b.Metadata ? (int)b.Metadata->PreviewTime.detach() : 0),
           difficulty_id((int)b.OnlineID.detach()), beatmap_id(b.BeatmapSet ? (int)b.BeatmapSet->OnlineID.detach() : 0),
-          mode(client_detail::detach_mode(b.Ruleset)), status((BeatmapStatus)b.Status.detach()) {
-    }
+          mode(client_detail::detach_mode(b.Ruleset)), status((BeatmapStatus)b.Status.detach()) {}
 
     std::string artist;
     std::string title;

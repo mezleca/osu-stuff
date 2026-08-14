@@ -39,6 +39,10 @@ static_assert(IM_ARRAYSIZE(STYLE_NAMES) == static_cast<int>(ui::StyleType::_COUN
 
 namespace ui {
     Debugger::Debugger(UiRoot& root, Window& main_window) : m_root(root), m_main_window(main_window) {
+#ifdef NDEBUG
+        SDL_Log("ui debugger skipped in release build");
+        return;
+#else
         ImGuiContext* previous_context = ImGui::GetCurrentContext();
 
         // create debugger window
@@ -93,11 +97,10 @@ namespace ui {
 
         m_icon.set_size(ICON_SIZE);
         m_icon.state().set_for_all_styles([](Style& style) { style.color.set(ui_theme::ACCENT_COLOR); });
-        m_icon.state().snap_to_style(StyleType::DEFAULT);
 
         m_close_icon.set_size(CLOSE_ICON_SIZE);
         m_close_icon.state().set_for_all_styles([](Style& style) { style.color.set(ui_theme::TEXT_COLOR); });
-        m_close_icon.state().snap_to_style(StyleType::DEFAULT);
+#endif
     }
 
     Debugger::~Debugger() {
@@ -132,6 +135,11 @@ namespace ui {
 
     void Debugger::set_close_icon(IconTexture* icon) {
         m_close_icon.set_texture(icon);
+    }
+
+    void Debugger::set_target(Node* target) {
+        m_target = target;
+        m_target_identity = target == nullptr ? 0 : target->identity();
     }
 
     bool Debugger::ready() const {
@@ -208,7 +216,7 @@ namespace ui {
 
         if (Node* clicked_node = m_root.input_router().node_at({event.button.x, event.button.y});
             clicked_node != nullptr) {
-            m_target = clicked_node;
+            set_target(clicked_node);
             m_scroll_to_target = true;
             set_select_mode(false, true);
         }
@@ -327,7 +335,7 @@ namespace ui {
         ImGui::PopID();
 
         if (clicked) {
-            m_target = &node;
+            set_target(&node);
             m_scroll_to_target = true;
         }
 
@@ -393,12 +401,12 @@ namespace ui {
         }
 
         int anchor = static_cast<int>(m_target->layout().anchor());
-        if (ImGui::Combo("anchor", &anchor, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
+        if (ImGui::Combo("anchor (parent)", &anchor, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
             m_target->layout().set_anchor(static_cast<Anchor>(anchor));
         }
 
         int origin = static_cast<int>(m_target->layout().origin());
-        if (ImGui::Combo("origin", &origin, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
+        if (ImGui::Combo("origin (node)", &origin, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
             m_target->layout().set_origin(static_cast<Origin>(origin));
         }
 
@@ -476,41 +484,37 @@ namespace ui {
 
         Style* style = &styled->style();
         Widget* widget = dynamic_cast<Widget*>(m_target);
-        int style_index = 0;
 
         if (widget != nullptr) {
-            style_index = static_cast<int>(widget->state().get_style_type());
-            if (ImGui::Combo("state", &style_index, STYLE_NAMES, IM_ARRAYSIZE(STYLE_NAMES))) {
-                widget->state().set_style(static_cast<StyleType>(style_index));
+            if (m_style_target != m_target) {
+                m_style_target = m_target;
+                m_inspected_style = widget->state().get_style_type();
             }
-            style = &widget->state().get_style(static_cast<StyleType>(style_index));
+
+            int style_index = static_cast<int>(m_inspected_style);
+            if (ImGui::Combo("state", &style_index, STYLE_NAMES, IM_ARRAYSIZE(STYLE_NAMES))) {
+                m_inspected_style = static_cast<StyleType>(style_index);
+            }
+            style = &widget->state().get_style(m_inspected_style);
         }
 
         ImVec4 color = style->color.get();
-        bool style_changed = false;
         if (ImGui::ColorEdit4("color", &color.x, ImGuiColorEditFlags_NoInputs)) {
             style->color.set(color);
-            style_changed = true;
         }
 
         ImVec4 background_color = style->background_color.get();
         if (ImGui::ColorEdit4("background", &background_color.x, ImGuiColorEditFlags_NoInputs)) {
             style->background_color.set(background_color);
-            style_changed = true;
         }
 
         ImVec4 border_color = style->border_color.get();
         if (ImGui::ColorEdit4("border", &border_color.x, ImGuiColorEditFlags_NoInputs)) {
             style->border_color.set(border_color);
-            style_changed = true;
         }
 
-        style_changed |= ImGui::DragFloat("border radius", &style->border_radius, 0.1F, 0.0F, 64.0F);
-        style_changed |= ImGui::DragFloat("border thickness", &style->border_thickness, 0.1F, 0.0F, 16.0F);
-
-        if (style_changed && widget != nullptr) {
-            widget->state().snap_to_style(static_cast<StyleType>(style_index));
-        }
+        ImGui::DragFloat("border radius", &style->border_radius, 0.1F, 0.0F, 64.0F);
+        ImGui::DragFloat("border thickness", &style->border_thickness, 0.1F, 0.0F, 16.0F);
 
         render_style_variables(*style);
         ImGui::TreePop();
@@ -528,7 +532,7 @@ namespace ui {
         render_style_properties();
 
         if (ImGui::Button("clear target")) {
-            m_target = nullptr;
+            set_target(nullptr);
             m_scroll_to_target = false;
         }
     }
@@ -550,7 +554,10 @@ namespace ui {
         ImGui::NewFrame();
 
         if (m_target != nullptr && !m_root.contains(m_target)) {
-            m_target = nullptr;
+            set_target(nullptr);
+            m_scroll_to_target = false;
+        } else if (m_target != nullptr && m_target->identity() != m_target_identity) {
+            set_target(nullptr);
             m_scroll_to_target = false;
         }
 

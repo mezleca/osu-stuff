@@ -17,6 +17,7 @@ namespace ui {
 
         void set_size(ImVec2 size) {
             m_size = size;
+            layout().set_size(size);
         }
 
         ImVec2 get_size() const {

@@ -6,7 +6,7 @@ IndentAccessModifiers: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: Empty
 DerivePointerAlignment: false
 IndentCaseLabels: true
 PointerAlignment: Left

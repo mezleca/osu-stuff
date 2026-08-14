@@ -5,7 +5,6 @@
 #include <glad/gl.h>
 #include <SDL3/SDL.h>
 #include <filesystem>
-#include <iostream>
 #include <memory>
 
 static constexpr ImVec2 DEFAULT_WINDOW_SIZE = {1280.0F, 720.0F};
@@ -35,7 +34,6 @@ int main() {
         }
 
         window.make_current();
-        SDL_GL_SetSwapInterval(1);
         SDL_SetWindowPosition(window.handle(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         window.show();
 
@@ -76,6 +74,9 @@ int main() {
             SDL_Log("UI initialization failed");
             return 1;
         }
+
+        // set the main context interval after creating the debugger context.
+        SDL_GL_SetSwapInterval(1);
 
         auto app = std::make_unique<app::OsuStuffApp>(*ui);
 

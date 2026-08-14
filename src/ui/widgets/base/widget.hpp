@@ -9,8 +9,7 @@
 namespace ui {
     class Widget : public StyledNode {
     public:
-        explicit Widget(std::string id) : StyledNode(std::move(id)) {
-        }
+        explicit Widget(std::string id) : StyledNode(std::move(id)) {}
 
         [[nodiscard]] VisualState& state() {
             if (m_state == nullptr) {

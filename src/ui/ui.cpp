@@ -91,7 +91,9 @@ UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
     colors[ImGuiCol_SliderGrab] = ui_theme::ACCENT_COLOR;
     colors[ImGuiCol_SliderGrabActive] = ui_theme::ACCENT_HOVER_COLOR;
 
+#ifndef NDEBUG
     m_debugger.set_style(style);
+#endif
 
     if (!ImGui_ImplSDL3_InitForOpenGL(window.handle(), window.context())) {
         SDL_Log("ImGui_ImplSDL3_InitForOpenGL(): failed to initialize");
@@ -145,6 +147,7 @@ UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
         }
     }
 
+#ifndef NDEBUG
     m_debugger.set_icon(get_texture("circle-icon"));
     m_debugger.set_close_icon(get_texture("x-icon"));
     m_debugger.set_font(
@@ -153,6 +156,7 @@ UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
     m_debugger.set_bold_font(
         config.font_paths[static_cast<size_t>(ui::FontType::BOLD)].string(), ui::FONT_MEDIUM, font_cfg
     );
+#endif
 
     // load font variants
     for (auto& font : m_fonts) {
@@ -165,7 +169,9 @@ UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
 UI::~UI() {
     current_ui = nullptr;
 
+#ifndef NDEBUG
     m_debugger.shutdown();
+#endif
     if (!m_ready) {
         return;
     }
@@ -192,7 +198,9 @@ void UI::process_sdl_event(SDL_Event* event) {
     }
 
     ImGui_ImplSDL3_ProcessEvent(event);
+#ifndef NDEBUG
     m_debugger.process_event(event);
+#endif
 
     // imgui keeps native input state.
     // the router receives a copy for focused nodes.
@@ -241,8 +249,10 @@ void UI::begin_frame() {
     ImGui::NewFrame();
     m_root.begin_frame();
 
+#ifndef NDEBUG
     // update debugger
     m_debugger.update();
+#endif
 }
 
 void UI::end_frame() {
@@ -250,7 +260,9 @@ void UI::end_frame() {
         return;
     }
 
+#ifndef NDEBUG
     m_debugger.render();
+#endif
 
     ImGui::Render();
 

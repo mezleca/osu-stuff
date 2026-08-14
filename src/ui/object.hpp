@@ -9,8 +9,7 @@
 namespace ui {
     class StyledNode : public Node {
     public:
-        explicit StyledNode(std::string id = {}) : Node(std::move(id)) {
-        }
+        explicit StyledNode(std::string id = {}) : Node(std::move(id)) {}
 
         virtual ~StyledNode() = default;
         StyledNode(const StyledNode&) = delete;

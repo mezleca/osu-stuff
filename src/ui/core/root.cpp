@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 namespace ui {
-    UiLayer::UiLayer(InputLayer layer, InputPolicy policy)
+    UiLayer::UiLayer(InputLayer layer)
         : Node([layer] {
               switch (layer) {
                   case InputLayer::Content:
@@ -14,28 +14,31 @@ namespace ui {
                       return "modal-layer";
                   case InputLayer::Notification:
                       return "notification-layer";
+                  case InputLayer::Count:
+                      return "invalid-layer";
               }
               return "unknown-layer";
           }()),
-          m_layer(layer), m_policy(policy) {
+          m_layer(layer) {
+        assign_input_layer(layer);
     }
 
     UiRoot::UiRoot() : Node("ui-root") {
         // children are stored in draw / input order: content first, transient
         // layers last so overlays can take precedence over the content.
-        auto content = std::make_unique<UiLayer>(InputLayer::Content, InputPolicy::PassThrough);
+        auto content = std::make_unique<UiLayer>(InputLayer::Content);
         m_content = content.get();
         Node::add(std::move(content));
 
-        auto overlay = std::make_unique<UiLayer>(InputLayer::Overlay, InputPolicy::PassThrough);
+        auto overlay = std::make_unique<UiLayer>(InputLayer::Overlay);
         m_overlay = overlay.get();
         Node::add(std::move(overlay));
 
-        auto modal = std::make_unique<UiLayer>(InputLayer::Modal, InputPolicy::PassThrough);
+        auto modal = std::make_unique<UiLayer>(InputLayer::Modal);
         m_modal = modal.get();
         Node::add(std::move(modal));
 
-        auto notification = std::make_unique<UiLayer>(InputLayer::Notification, InputPolicy::PassThrough);
+        auto notification = std::make_unique<UiLayer>(InputLayer::Notification);
         m_notification = notification.get();
         Node::add(std::move(notification));
     }
@@ -54,6 +57,8 @@ namespace ui {
                 return *m_modal;
             case InputLayer::Notification:
                 return *m_notification;
+            case InputLayer::Count:
+                break;
         }
         throw std::invalid_argument("invalid UI input layer");
     }
@@ -62,12 +67,19 @@ namespace ui {
         return const_cast<UiRoot*>(this)->layer(layer);
     }
 
+    InputRouter& UiRoot::input_router() {
+        return m_input_router;
+    }
+
+    const InputRouter& UiRoot::input_router() const {
+        return m_input_router;
+    }
+
     void UiRoot::begin_frame() {
         m_input_router.begin_frame();
     }
 
     void UiRoot::set_layer_policy(InputLayer layer, InputPolicy policy) {
-        this->layer(layer).set_input_policy(policy);
         m_input_router.set_layer_policy(layer, policy);
     }
 

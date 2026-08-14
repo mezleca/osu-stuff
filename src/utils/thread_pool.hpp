@@ -20,8 +20,7 @@ struct TaskBase {
 template <typename F>
 struct Task : TaskBase {
 public:
-    explicit Task(F&& f) : func(std::move(f)) {
-    }
+    explicit Task(F&& f) : func(std::move(f)) {}
     void execute() {
         func();
     }

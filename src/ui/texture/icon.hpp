@@ -3,6 +3,7 @@
 #include <glad/gl.h>
 #include <imgui.h>
 #include <lunasvg.h>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <filesystem>
@@ -19,7 +20,7 @@ public:
     }
 
 private:
-    std::unordered_map<std::string, std::pair<GLuint, std::unique_ptr<lunasvg::Bitmap>>> m_bitmaps;
+    std::unordered_map<uint64_t, std::pair<GLuint, std::unique_ptr<lunasvg::Bitmap>>> m_bitmaps;
     std::unique_ptr<lunasvg::Document> m_document;
     std::string m_id = "";
 };

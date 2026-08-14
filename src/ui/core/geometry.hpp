@@ -47,6 +47,22 @@ namespace ui {
         return {};
     }
 
+    [[nodiscard]] inline ImVec2 resolve_layout_position(
+        ImVec2 parent_size, ImVec2 child_size, ImVec2 anchor_factor, ImVec2 origin_factor, ImVec2 offset = {}
+    ) {
+        return {
+            parent_size.x * anchor_factor.x - child_size.x * origin_factor.x + offset.x,
+            parent_size.y * anchor_factor.y - child_size.y * origin_factor.y + offset.y,
+        };
+    }
+
+    [[nodiscard]] inline ImVec2
+    resolve_layout_position(ImVec2 parent_size, ImVec2 child_size, Anchor anchor, Origin origin, ImVec2 offset = {}) {
+        return resolve_layout_position(
+            parent_size, child_size, alignment_factor(anchor), alignment_factor(origin), offset
+        );
+    }
+
     class LayoutState {
     public:
         void set_size(ImVec2 size) {

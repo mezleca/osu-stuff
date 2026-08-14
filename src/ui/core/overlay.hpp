@@ -1,20 +1,27 @@
 #pragma once
 
+#include "modal.hpp"
 #include "root.hpp"
 
 #include <memory>
 #include <string_view>
 
 namespace ui {
+    // owns overlay nodes in the root's layers and keeps their input policy,
+    // cancel target, focus, and removal state synchronized.
     class OverlayHost {
     public:
-        explicit OverlayHost(UiRoot& root) : m_root(root) {
-        }
+        explicit OverlayHost(UiRoot& root) : m_root(root) {}
 
         // transfer ownership to the selected layer.
         void
         add(std::unique_ptr<Node> overlay, InputLayer layer = InputLayer::Overlay,
             InputPolicy policy = InputPolicy::PassThrough, bool close_on_cancel = false);
+
+        void add_overlay(
+            std::unique_ptr<Node> overlay, InputPolicy policy = InputPolicy::PassThrough, bool close_on_cancel = false
+        );
+        void add_modal(std::unique_ptr<Modal> modal, bool close_on_cancel = true);
         [[nodiscard]] bool remove(std::string_view id, InputLayer layer = InputLayer::Overlay);
         void clear(InputLayer layer = InputLayer::Overlay);
 

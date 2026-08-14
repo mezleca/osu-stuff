@@ -2,6 +2,7 @@
 
 #include "../../../ui/widgets/base/widget.hpp"
 #include "../../../ui/widgets/base/text.hpp"
+#include "../../../ui/widgets/cached-text.hpp"
 #include "../../../ui/widgets/image.hpp"
 
 #include <functional>
@@ -22,10 +23,15 @@ public:
 
     ui::TextValue<std::string> m_name;
     ui::TextValue<std::string> m_count;
-    ui::ImageWidget m_icon;
 
 private:
+    void on_layout() override;
+    ui::ImageWidget* m_icon = nullptr;
+    ui::CachedTextNode* m_title = nullptr;
+    ui::CachedTextNode* m_count_label = nullptr;
     ImVec2 m_size = {150.0f, 50.0f};
     ImFont* m_font_small = nullptr;
     bool m_selected = false;
+
+    void on_draw_end() override;
 };

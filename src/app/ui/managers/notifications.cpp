@@ -15,24 +15,63 @@ UINotificationManager::UINotificationManager() : ui::Node("notifications") {
 
 UINotificationManager::~UINotificationManager() = default;
 
-bool UINotificationManager::remove(UINotification* to_remove) {
-    if (m_rendering) {
-        m_pending_removals.push_back(to_remove);
-        return true;
-    }
-
-    const auto it = std::find(m_notifications.begin(), m_notifications.end(), to_remove);
-    if (it == m_notifications.end()) {
+bool UINotificationManager::add(std::unique_ptr<UINotification> notification) {
+    if (notification == nullptr) {
         return false;
     }
 
-    static_cast<void>(ui::Node::remove(*to_remove));
-    m_notifications.erase(it);
+    auto& owned = add_child(std::move(notification));
+    owned.set_offset(m_offset, true);
     return true;
 }
 
+bool UINotificationManager::remove(size_t index) {
+    UINotification* notification = get(index);
+    return notification != nullptr && remove(notification);
+}
+
+bool UINotificationManager::remove(UINotification* to_remove) {
+    if (to_remove == nullptr || to_remove->parent() != this) {
+        return false;
+    }
+
+    if (m_rendering) {
+        if (std::find(m_pending_removals.begin(), m_pending_removals.end(), to_remove) == m_pending_removals.end()) {
+            m_pending_removals.push_back(to_remove);
+        }
+        return true;
+    }
+
+    return ui::Node::remove(*to_remove) != nullptr;
+}
+
+UINotification* UINotificationManager::get(size_t index) {
+    if (index >= children().size()) {
+        return nullptr;
+    }
+
+    return static_cast<UINotification*>(children()[index].get());
+}
+
+size_t UINotificationManager::count() const {
+    return children().size();
+}
+
+void UINotificationManager::clear() {
+    if (m_rendering) {
+        for (const auto& child : children()) {
+            static_cast<void>(remove(static_cast<UINotification*>(child.get())));
+        }
+        return;
+    }
+
+    while (!children().empty()) {
+        ui::Node::remove(*children().back());
+    }
+}
+
 void UINotificationManager::draw() {
-    [[maybe_unused]] const auto draw_scope = measure_draw();
+    const auto draw_measurement = measure_draw();
     if (!visible()) {
         return;
     }
@@ -44,8 +83,7 @@ void UINotificationManager::draw() {
     ImGui::Begin("##notifications-overlay", nullptr, ui_constants::NOTIFICATION_OVERLAY_FLAGS);
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
-    const ImVec2 window_pos = ImGui::GetWindowPos();
-    m_offset = {window_pos.x + available.x - 5.0F, m_header_height + 10.0F};
+    m_offset = {-5.0F, m_header_height + 10.0F};
     const float more_height = std::max(MORE_NOTIFICATIONS_MIN_HEIGHT, m_more_notifications->state().get_size().y);
     const float max_height = available.y - BOTTOM_MARGIN - more_height - SPACING;
 
@@ -56,19 +94,19 @@ void UINotificationManager::draw() {
     // defer removals until child traversal is complete.
     m_rendering = true;
 
-    for (auto it = m_notifications.rbegin(); it != m_notifications.rend(); ++it) {
+    const size_t notification_count = children().size();
+    for (auto it = children().rbegin(); it != children().rend(); ++it) {
         if (offset.y >= max_height) {
-            m_more_notifications->set_text(std::format("{} more...", m_notifications.size() - index));
-            const ImVec2& size = m_more_notifications->state().get_size();
-            m_more_notifications->set_offset({offset.x - size.x, offset.y});
+            m_more_notifications->set_text(std::format("{} more...", notification_count - index));
+            m_more_notifications->set_offset({-5.0F, offset.y});
             m_more_notifications->draw();
             break;
         }
 
-        UINotification* notification = *it;
+        UINotification* notification = static_cast<UINotification*>(it->get());
         const ImVec2& size = notification->state().get_size();
 
-        notification->set_offset({offset.x - size.x, offset.y});
+        notification->set_offset({-5.0F, offset.y});
         notification->draw();
 
         offset.y += size.y + SPACING;

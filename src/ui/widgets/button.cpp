@@ -24,8 +24,6 @@ namespace ui {
         active_style.border_color.set(ui_theme::ACCENT_COLOR);
         active_style.border_color.speed = 20.0f;
         hover_style.border_color.set(ui_theme::BORDER_COLOR);
-
-        state().snap_to_style(StyleType::DEFAULT);
     }
 
     std::optional<std::string> ButtonWidget::get_content() const {
@@ -58,26 +56,15 @@ namespace ui {
         ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
         ImGui::PushFont(style.font);
 
-        const bool debugger_mode = current().input_router().debug_select_mode();
         const bool pressed = ImGui::Button(m_text.c_str());
-        const bool is_pressed = !debugger_mode && pressed;
-        const bool is_hovered = !debugger_mode && ImGui::IsItemHovered();
-        const bool is_active = !debugger_mode && ImGui::IsItemActive();
 
         ImGui::PopFont();
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(4);
 
-        const bool handled = state().accepts_input() && current().input_router().dispatch_last_item(*this);
-        static_cast<void>(handled);
-
-        if (is_pressed || is_active) {
-            state().set_style(StyleType::ACTIVE);
-        } else if (is_hovered) {
-            state().set_style(StyleType::HOVER);
-        } else {
-            state().set_style(StyleType::DEFAULT);
-        }
+        const LastItemState input =
+            current().input_router().handle_last_item(*this, {.accepts_input = state().accepts_input()});
+        state().set_item_state(input.hovered, input.active || pressed);
 
         state().update(dt);
 

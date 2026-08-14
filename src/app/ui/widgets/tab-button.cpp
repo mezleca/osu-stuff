@@ -32,14 +32,27 @@ TabButtonWidget::TabButtonWidget(std::string name, bool line, bool title)
     }
 
     active_style.color.value = app_theme::ACCENT_COLOR;
+}
 
-    state().snap_to_style(ui::StyleType::DEFAULT);
+std::optional<std::string> TabButtonWidget::get_content() const {
+    return m_name.str();
+}
+
+bool TabButtonWidget::set_content(std::string content) {
+    if (content == m_name.str()) {
+        return false;
+    }
+
+    m_name.set(std::move(content));
+    return true;
 }
 
 void TabButtonWidget::on_draw() {
     if (!state().is_visible()) {
         return;
     }
+
+    auto& router = ui::current().input_router();
 
     const float dt = ImGui::GetIO().DeltaTime;
     const ui::Style& style = state().get_style();
@@ -51,13 +64,9 @@ void TabButtonWidget::on_draw() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
 
-    const bool debugger_mode = ui::current().input_router().debug_select_mode();
     const bool pressed = ImGui::Button(m_name.c_str());
-    const bool is_pressed = !debugger_mode && pressed;
-    const bool is_hovered = !debugger_mode && ImGui::IsItemHovered();
 
-    const bool handled = state().accepts_input() && ui::current().input_router().dispatch_last_item(*this);
-    static_cast<void>(handled);
+    const ui::LastItemState input = router.handle_last_item(*this, {.accepts_input = state().accepts_input()});
 
     if (m_draw_line) {
         const ui::FloatValue* line_alpha = style.variables().get<ui::FloatValue>("line_alpha");
@@ -84,12 +93,10 @@ void TabButtonWidget::on_draw() {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(4);
 
-    if (is_pressed || m_selected) {
+    if (pressed || m_selected) {
         state().set_style(ui::StyleType::ACTIVE);
-    } else if (is_hovered) {
-        state().set_style(ui::StyleType::HOVER);
     } else {
-        state().set_style(ui::StyleType::DEFAULT);
+        state().set_item_state(input.hovered, input.active);
     }
 
     state().update(dt);

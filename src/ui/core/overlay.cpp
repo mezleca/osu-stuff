@@ -12,6 +12,14 @@ namespace ui {
         refresh_cancel_target(layer);
     }
 
+    void OverlayHost::add_overlay(std::unique_ptr<Node> overlay, InputPolicy policy, bool close_on_cancel) {
+        add(std::move(overlay), InputLayer::Overlay, policy, close_on_cancel);
+    }
+
+    void OverlayHost::add_modal(std::unique_ptr<Modal> modal, bool close_on_cancel) {
+        add(std::move(modal), InputLayer::Modal, InputPolicy::BlockAll, close_on_cancel);
+    }
+
     bool OverlayHost::remove(std::string_view id, InputLayer layer) {
         UiLayer& target_layer = m_root.layer(layer);
         Node* target = target_layer.find(id);
@@ -81,7 +89,11 @@ namespace ui {
             }
         }
 
-        m_root.input_router().set_cancel_target(layer, target);
+        if (target != nullptr) {
+            m_root.input_router().set_cancel_target(*target);
+        } else {
+            m_root.input_router().clear_cancel_target(layer);
+        }
     }
 
 } // namespace ui

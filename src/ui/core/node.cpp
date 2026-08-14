@@ -1,11 +1,13 @@
 #include "node.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <utility>
 
+static std::atomic<uint64_t> NEXT_NODE_ID = 1;
+
 namespace ui {
-    Node::DrawScope::DrawScope(Node& node) : m_node(node), m_start(std::chrono::steady_clock::now()) {
-    }
+    Node::DrawScope::DrawScope(Node& node) : m_node(node), m_start(std::chrono::steady_clock::now()) {}
 
     Node::DrawScope::~DrawScope() {
         m_node.m_draw_time_ms =
@@ -16,8 +18,28 @@ namespace ui {
         return DrawScope(*this);
     }
 
-    Node::Node(std::string id) : m_id(std::move(id)) {
+    void Node::position_in_parent() {
+        if (m_layout.anchor() == Anchor::TopLeft && m_layout.origin() == Origin::TopLeft &&
+            m_layout.offset().x == 0.0F && m_layout.offset().y == 0.0F) {
+            return;
+        }
+
+        const ImVec2 parent_min = ImGui::GetWindowContentRegionMin();
+        const ImVec2 parent_max = ImGui::GetWindowContentRegionMax();
+        const ImVec2 parent_size = {parent_max.x - parent_min.x, parent_max.y - parent_min.y};
+        const ImVec2 local_position = resolve_layout_position(
+            parent_size, m_layout.size(), m_layout.anchor_factor(), m_layout.origin_factor(), m_layout.offset()
+        );
+        const ImVec2 position = {parent_min.x + local_position.x, parent_min.y + local_position.y};
+
+        ImGui::SetCursorPos(position);
     }
+
+    void Node::skip_draw() {
+        m_skip_draw = true;
+    }
+
+    Node::Node(std::string id) : m_id(std::move(id)), m_identity(NEXT_NODE_ID.fetch_add(1)) {}
 
     bool Node::add(std::unique_ptr<Node> child) {
         if (child == nullptr || child.get() == this) {
@@ -27,8 +49,18 @@ namespace ui {
         // a node has only one owner
         // parent only links back for event bubbling.
         child->m_parent = this;
+        if (m_input_layer != InputLayer::Count) {
+            child->assign_input_layer(m_input_layer);
+        }
         m_children.emplace_back(std::move(child));
         return true;
+    }
+
+    void Node::assign_input_layer(InputLayer layer) {
+        m_input_layer = layer;
+        for (const auto& child : m_children) {
+            child->assign_input_layer(layer);
+        }
     }
 
     std::unique_ptr<Node> Node::remove(Node& child) {
@@ -106,9 +138,33 @@ namespace ui {
             return;
         }
 
-        [[maybe_unused]] const auto draw_scope = measure_draw();
+        [[maybe_unused]] const auto& mesasure_time = measure_draw();
+        m_skip_draw = false;
+
+        // layout runs before drawing so widgets can update dynamic sizes while
+        // the parent imgui window is active, then the node is positioned once.
+        on_layout();
+
+        if (m_skip_draw) {
+            return;
+        }
+
+        position_in_parent();
         on_draw();
 
+        // a node may decide that it has nothing to draw without opening an imgui scope.
+        // in that case, its children must not run.
+        if (m_skip_draw) {
+            return;
+        }
+
+        // containers open their imgui scope in on_draw() and close it in
+        // on_draw_end(), with children rendered between those two funcs.
+        draw_children();
+        on_draw_end();
+    }
+
+    void Node::draw_children() {
         for (const auto& child : m_children) {
             child->draw();
         }
@@ -122,9 +178,9 @@ namespace ui {
         return false;
     }
 
-    void Node::on_update(float) {
-    }
-    void Node::on_draw() {
-    }
+    void Node::on_update(float) {}
+    void Node::on_layout() {}
+    void Node::on_draw() {}
+    void Node::on_draw_end() {}
 
 } // namespace ui

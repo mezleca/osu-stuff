@@ -13,23 +13,17 @@ static app::OsuStuffApp* current_app = nullptr;
 namespace app {
     class AppHeaderNode final : public ui::Node {
     public:
-        AppHeaderNode(UI& ui, float& height) : ui::Node("header"), m_ui(ui), m_height(height) {
-        }
+        AppHeaderNode(UI& ui, float& height) : ui::Node("header"), m_ui(ui), m_height(height) {}
 
-        void draw() override {
-            [[maybe_unused]] const auto draw_scope = measure_draw();
-
-            if (!visible()) {
-                return;
-            }
-
+        void on_draw() override {
             ImFont* font = m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
             ImGui::PushFont(font);
             m_height = ImGui::GetFrameHeight() + app_theme::CONTENT_PADDING * 2.0F;
             ImGui::PopFont();
 
             const ImVec2 available = ImGui::GetContentRegionAvail();
-            const ImVec2 start = ImGui::GetCursorScreenPos();
+            m_start = ImGui::GetCursorScreenPos();
+            m_width = available.x;
 
             ImGui::PushStyleColor(ImGuiCol_ChildBg, app_theme::HEADER_BG_COLOR);
             ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0F);
@@ -39,17 +33,23 @@ namespace app {
                 "header", {available.x, m_height}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None
             );
             ImGui::PushFont(font);
+        }
+
+        void draw_children() override {
             for (std::size_t index = 0; index < children().size(); ++index) {
                 if (index > 0) {
                     ImGui::SameLine(0.0F, app_theme::HEADER_TABS_GAP);
                 }
                 children()[index]->draw();
             }
+        }
+
+        void on_draw_end() override {
             ImGui::PopFont();
 
-            const ImVec2 line_start = {start.x, start.y + m_height - 1.0F};
+            const ImVec2 line_start = {m_start.x, m_start.y + m_height - 1.0F};
             ImGui::GetWindowDrawList()->AddLine(
-                line_start, {start.x + available.x, line_start.y}, ImColor(app_theme::HEADER_BORDER_COLOR), 1.0F
+                line_start, {m_start.x + m_width, line_start.y}, ImColor(app_theme::HEADER_BORDER_COLOR), 1.0F
             );
             ImGui::EndChild();
             ImGui::PopStyleVar(3);
@@ -59,24 +59,20 @@ namespace app {
     private:
         UI& m_ui;
         float& m_height;
+        ImVec2 m_start = {};
+        float m_width = 0.0F;
     };
 
     class AppContentNode final : public ui::Node {
     public:
-        explicit AppContentNode(UI& ui) : ui::Node("content"), m_ui(ui) {
+        explicit AppContentNode(UI& ui) : ui::Node("content"), m_ui(ui) {}
+
+        void on_draw() override {
+            ImFont* font = m_ui.get_font(ui::FontType::REGULAR).get(ui::FONT_MEDIUM);
+            ImGui::PushFont(font);
         }
 
-        void draw() override {
-            [[maybe_unused]] const auto draw_scope = measure_draw();
-            if (!visible()) {
-                return;
-            }
-
-            ImFont* font = m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
-            ImGui::PushFont(font);
-            for (const auto& child : children()) {
-                child->draw();
-            }
+        void on_draw_end() override {
             ImGui::PopFont();
         }
 
@@ -86,26 +82,17 @@ namespace app {
 
     class AppRootNode final : public ui::Node {
     public:
-        AppRootNode() : ui::Node("app-root") {
-        }
+        AppRootNode() : ui::Node("app-root") {}
 
-        void draw() override {
-            [[maybe_unused]] const auto draw_scope = measure_draw();
-
-            if (!visible()) {
-                return;
-            }
-
+        void on_draw() override {
             const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
             ImGui::SetNextWindowPos(viewport->WorkPos);
             ImGui::SetNextWindowSize(viewport->WorkSize);
             ImGui::Begin("##osu-stuff", nullptr, ui_constants::WINDOW_FLAGS);
-            {
-                for (const auto& child : children()) {
-                    child->draw();
-                }
-            }
+        }
+
+        void on_draw_end() override {
             ImGui::End();
         }
     };

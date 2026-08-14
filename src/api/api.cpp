@@ -75,8 +75,7 @@ oauth_client_credentials_grant(const OAuthAuthRequest& data, const std::string& 
     return cpr::Post(cpr::Url{url}, cpr::Header{{"Accept", "application/json"}}, parameters);
 }
 
-OAuthApi::OAuthApi(std::string url, OAuthAuthType type) : m_base_url(std::move(url)), m_auth_type(type) {
-}
+OAuthApi::OAuthApi(std::string url, OAuthAuthType type) : m_base_url(std::move(url)), m_auth_type(type) {}
 
 bool OAuthApi::authenticate() {
     if (has_valid_access_token()) {

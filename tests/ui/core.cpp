@@ -52,11 +52,9 @@ private:
 
 class TestObject final : public ui::StyledNode {
 public:
-    explicit TestObject(std::string id) : StyledNode(std::move(id)) {
-    }
+    explicit TestObject(std::string id) : StyledNode(std::move(id)) {}
 
-    void on_draw() override {
-    }
+    void on_draw() override {}
 };
 
 TEST_CASE("ui node owns children and finds descendants") {
@@ -77,11 +75,18 @@ TEST_CASE("ui node owns children and finds descendants") {
     REQUIRE_FALSE(root.contains(child_ptr));
 }
 
+TEST_CASE("ui nodes have distinct stable identifiers") {
+    ui::Node first("first");
+    ui::Node second("second");
+
+    REQUIRE(first.identity() != second.identity());
+    REQUIRE(first.identity() == first.identity());
+}
+
 TEST_CASE("ui node exposes optional content and measures draw time") {
     class ContentNode final : public ui::Node {
     public:
-        ContentNode() : ui::Node("content") {
-        }
+        ContentNode() : ui::Node("content") {}
 
         std::optional<std::string> get_content() const override {
             return m_content;
@@ -92,8 +97,7 @@ TEST_CASE("ui node exposes optional content and measures draw time") {
             return true;
         }
 
-        void on_draw() override {
-        }
+        void on_draw() override {}
 
     private:
         std::string m_content = "hello##content-id";
@@ -110,6 +114,50 @@ TEST_CASE("ui node exposes optional content and measures draw time") {
 
     root.draw();
     REQUIRE(root.draw_time_ms() >= 0.0);
+}
+
+TEST_CASE("ui nodes draw children between their begin and end hooks") {
+    class DrawNode final : public ui::Node {
+    public:
+        DrawNode(std::string id, std::vector<std::string>& events, bool skip = false)
+            : ui::Node(std::move(id)), m_events(events), m_skip(skip) {}
+
+    private:
+        void on_layout() override {
+            m_events.push_back(id() + ":layout");
+        }
+
+        void on_draw() override {
+            m_events.push_back(id() + ":begin");
+            if (m_skip) {
+                skip_draw();
+            }
+        }
+
+        void on_draw_end() override {
+            m_events.push_back(id() + ":end");
+        }
+
+        std::vector<std::string>& m_events;
+        bool m_skip = false;
+    };
+
+    std::vector<std::string> events;
+    DrawNode root("root", events);
+    root.add(std::make_unique<DrawNode>("child", events));
+
+    root.draw();
+    REQUIRE(
+        events ==
+        std::vector<std::string>{"root:layout", "root:begin", "child:layout", "child:begin", "child:end", "root:end"}
+    );
+
+    events.clear();
+    DrawNode hidden_root("hidden", events, true);
+    hidden_root.add(std::make_unique<DrawNode>("child", events));
+
+    hidden_root.draw();
+    REQUIRE(events == std::vector<std::string>{"hidden:layout", "hidden:begin"});
 }
 
 TEST_CASE("ui events bubble from target to parents") {
@@ -155,7 +203,7 @@ TEST_CASE("blocking modal layer prevents content input") {
     router.set_layer_policy(ui::InputLayer::Modal, ui::InputPolicy::BlockAll);
     router.begin_frame();
     router.register_region(content, {{0.0F, 0.0F}, {100.0F, 100.0F}});
-    router.register_region(modal, {{25.0F, 25.0F}, {75.0F, 75.0F}}, ui::InputLayer::Modal);
+    router.register_region_in_layer(modal, {{25.0F, 25.0F}, {75.0F, 75.0F}}, ui::InputLayer::Modal);
 
     ui::UiEvent outside = click_event({10.0F, 10.0F});
     REQUIRE(router.dispatch(outside));
@@ -180,6 +228,20 @@ TEST_CASE("input router resolves the topmost node at a position") {
     REQUIRE(router.node_at({150.0F, 150.0F}) == nullptr);
 }
 
+TEST_CASE("input router prefers an overlapping child over its parent") {
+    ui::InputRouter router;
+    ui::Node parent("parent");
+    auto child = std::make_unique<ui::Node>("child");
+    ui::Node* child_ptr = child.get();
+    parent.add(std::move(child));
+
+    router.begin_frame();
+    router.register_region(*child_ptr, {{0.0F, 0.0F}, {100.0F, 100.0F}});
+    router.register_region(parent, {{0.0F, 0.0F}, {100.0F, 100.0F}});
+
+    REQUIRE(router.node_at({50.0F, 50.0F}) == child_ptr);
+}
+
 TEST_CASE("ui root exposes ordered layers") {
     ui::UiRoot root;
 
@@ -190,6 +252,18 @@ TEST_CASE("ui root exposes ordered layers") {
     REQUIRE(root.layer(ui::InputLayer::Notification).id() == "notification-layer");
     REQUIRE(root.layer(ui::InputLayer::Content).parent() == &root);
     REQUIRE(root.children().size() == 4);
+}
+
+TEST_CASE("nodes inherit their input layer from the layer tree") {
+    ui::UiRoot root;
+    auto parent = std::make_unique<ui::Node>("modal-parent");
+    ui::Node* parent_ptr = parent.get();
+    ui::Node* child_ptr = &parent_ptr->emplace_child<ui::Node>("modal-child");
+
+    root.layer(ui::InputLayer::Modal).add(std::move(parent));
+
+    REQUIRE(parent_ptr->input_layer() == ui::InputLayer::Modal);
+    REQUIRE(child_ptr->input_layer() == ui::InputLayer::Modal);
 }
 
 TEST_CASE("ui child layout stores objects in the node tree") {
@@ -206,6 +280,17 @@ TEST_CASE("ui child layout stores objects in the node tree") {
     auto removed = layout.remove(*child_ptr);
     REQUIRE(removed.get() == child_ptr);
     REQUIRE(removed->parent() == nullptr);
+}
+
+TEST_CASE("ui child layout treats zero width as available width") {
+    ui::ChildLayout layout("layout");
+
+    layout.set_size({0.0F, 120.0F});
+    REQUIRE(layout.get_size().x == 0.0F);
+    REQUIRE(layout.get_size().y == 120.0F);
+
+    layout.set_size({240.0F, 120.0F});
+    REQUIRE(layout.get_size().x == 240.0F);
 }
 
 TEST_CASE("layout anchors resolve the child origin against the parent") {
@@ -234,11 +319,10 @@ TEST_CASE("overlay host owns and orders layer nodes") {
     REQUIRE(host.top()->id() == "second");
 
     host.set_policy(ui::InputLayer::Modal, ui::InputPolicy::BlockAll);
-    REQUIRE(root.layer(ui::InputLayer::Modal).input_policy() == ui::InputPolicy::BlockAll);
 
     host.add(std::make_unique<ui::Node>("dialog"), ui::InputLayer::Modal, ui::InputPolicy::BlockAll);
     REQUIRE(host.top(ui::InputLayer::Modal)->id() == "dialog");
-    REQUIRE(root.input_router().set_focus(*host.top(ui::InputLayer::Modal), ui::InputLayer::Modal));
+    REQUIRE(root.input_router().set_focus(*host.top(ui::InputLayer::Modal)));
     REQUIRE(host.remove("dialog", ui::InputLayer::Modal));
     REQUIRE(host.size(ui::InputLayer::Modal) == 0);
     REQUIRE(root.input_router().focused_node() == nullptr);
@@ -281,12 +365,11 @@ TEST_CASE("modals are nodes owned by the modal layer") {
     auto modal = std::make_unique<ui::Modal>("settings-modal");
     ui::Modal* modal_ptr = modal.get();
 
-    host.add(std::move(modal), ui::InputLayer::Modal, ui::InputPolicy::BlockAll, true);
+    host.add_modal(std::move(modal));
 
     REQUIRE(host.top(ui::InputLayer::Modal) == modal_ptr);
     REQUIRE(modal_ptr->parent() == &root.layer(ui::InputLayer::Modal));
     REQUIRE(modal_ptr->cancelable());
-    REQUIRE(root.layer(ui::InputLayer::Modal).input_policy() == ui::InputPolicy::BlockAll);
 }
 
 TEST_CASE("focused node receives keyboard events and blocked layers consume them") {
@@ -310,7 +393,7 @@ TEST_CASE("focused node receives keyboard events and blocked layers consume them
     REQUIRE(router.dispatch(key));
     REQUIRE(events.empty());
 
-    REQUIRE(router.set_focus(modal, ui::InputLayer::Modal));
+    REQUIRE(router.set_focus_in_layer(modal, ui::InputLayer::Modal));
     events.clear();
     ui::UiEvent text = event_of(ui::EventType::TextInput);
     text.text = "osu";

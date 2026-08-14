@@ -11,7 +11,7 @@ static constexpr ImVec2 ICON_SIZE = {18.0f, 18.0f};
 
 namespace ui {
     SearchInputWidget::SearchInputWidget(std::string& value)
-        : Widget("search-input"), m_label("##{}-search-input"), m_value(&value), m_icon() {
+        : Widget("search-input"), m_label("##{}-search-input"), m_value(&value) {
 
         auto search_icon = current().get_texture("search-icon");
 
@@ -27,22 +27,24 @@ namespace ui {
 
         m_label.set({static_cast<void*>(this)});
 
-        m_icon.set_texture(search_icon);
-        m_icon.set_size(ICON_SIZE);
+        auto icon = std::make_unique<ImageWidget>();
+        m_icon = icon.get();
+        m_icon->set_texture(search_icon);
+        m_icon->set_size(ICON_SIZE);
+        m_icon->layout().set_anchor(Anchor::CenterLeft);
+        m_icon->layout().set_origin(Origin::CenterLeft);
+        add_child(std::move(icon));
 
-        m_icon.state().set_for_all_styles([](Style& style) {
+        m_icon->state().set_for_all_styles([](Style& style) {
             style.color.set({120, 120, 120, 255});
             style.color.speed = ALPHA_ANIM_SPEED;
         });
 
-        Style& icon_hover_style = m_icon.state().get_style(StyleType::HOVER);
-        Style& icon_active_style = m_icon.state().get_style(StyleType::ACTIVE);
+        Style& icon_hover_style = m_icon->state().get_style(StyleType::HOVER);
+        Style& icon_active_style = m_icon->state().get_style(StyleType::ACTIVE);
 
         icon_hover_style.color.set({200, 200, 200, 255});
         icon_active_style.color.set({200, 200, 200, 255});
-
-        state().snap_to_style(StyleType::DEFAULT);
-        m_icon.state().snap_to_style(StyleType::DEFAULT);
     }
 
     void SearchInputWidget::set_fit_width(bool value) {
@@ -62,22 +64,21 @@ namespace ui {
         return true;
     }
 
-    void SearchInputWidget::on_draw() {
-        if (!state().is_visible()) {
-            return;
+    void SearchInputWidget::on_layout() {
+        ImVec2 size = m_size;
+        if (m_fit_width) {
+            size.x = ImGui::GetContentRegionAvail().x;
         }
 
-        const float dt = ImGui::GetIO().DeltaTime;
-        ImVec2 size = m_size;
-        {
-            const ImVec2 available = ImGui::GetContentRegionAvail();
+        // let imgui grow vertically after the input has been emitted.
+        size.y = 0.0f;
+        layout().set_size(size);
+    }
 
-            if (m_fit_width) {
-                size.x = available.x;
-            }
-
-        // let imgui grow
-            size.y = 0.0f;
+    void SearchInputWidget::on_draw() {
+        if (!state().is_visible()) {
+            skip_draw();
+            return;
         }
 
         const auto child_flags =
@@ -91,48 +92,33 @@ namespace ui {
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ui_theme::TRANSPARENT);
         ImGui::PushID(this);
 
-        ImGui::BeginChild("##search-input", size, child_flags, constants::WIDGET_WINDOW_FLAGS);
+        ImGui::BeginChild("##search-input", layout().size(), child_flags, constants::WIDGET_WINDOW_FLAGS);
+    }
 
+    void SearchInputWidget::draw_children() {
         const ImVec2 available = ImGui::GetContentRegionAvail();
         const float frame_height = ImGui::GetFrameHeight();
         const float row_start_y = ImGui::GetCursorPosY();
 
-        ImGui::SetCursorPosY(row_start_y + (available.y - m_icon.get_size().y) * 0.5f);
-
-        m_icon.draw();
+        m_icon->draw();
 
         ImGui::SameLine(0.0f, 10.0f);
         ImGui::SetCursorPosY(row_start_y + (available.y - frame_height) * 0.5f);
 
-        const float input_width = std::max(0.0f, size.x - m_icon.get_size().x - 10.0f);
+        const float input_width = std::max(0.0f, layout().size().x - m_icon->get_size().x - 10.0f);
         ImGui::SetNextItemWidth(input_width);
         ImGui::InputText(m_label.c_str(), m_value);
 
-        // imgui owns text editing; the router only mirrors the
-        // item's hit region and focus so overlays can arbitrate keyboard input.
-        auto& input_router = current().input_router();
-        const bool debugger_mode = input_router.debug_select_mode();
-        const bool is_active = !debugger_mode && ImGui::IsItemActive();
-        const bool is_hovered = !debugger_mode && ImGui::IsItemHovered();
-        const bool registered = state().accepts_input() && input_router.register_last_item(*this);
-        static_cast<void>(registered);
-        if (is_active && state().accepts_input()) {
-            const bool focused = input_router.set_focus(*this);
-            static_cast<void>(focused);
-        } else if (input_router.focused_node() == this) {
-            input_router.clear_focus();
-        }
+        m_input_state = current().input_router().observe_last_item(
+            *this, {.accepts_input = state().accepts_input(), .focus_when_active = true}
+        );
+    }
 
-        if (is_active) {
-            state().set_style(StyleType::ACTIVE);
-            m_icon.state().set_style(StyleType::ACTIVE);
-        } else if (is_hovered) {
-            state().set_style(StyleType::HOVER);
-            m_icon.state().set_style(StyleType::HOVER);
-        } else {
-            state().set_style(StyleType::DEFAULT);
-            m_icon.state().set_style(StyleType::DEFAULT);
-        }
+    void SearchInputWidget::on_draw_end() {
+        const float dt = ImGui::GetIO().DeltaTime;
+
+        state().set_item_state(m_input_state.hovered, m_input_state.active);
+        m_icon->state().set_item_state(m_input_state.hovered, m_input_state.active);
 
         state().update(dt);
         const Style& style = state().get_style();

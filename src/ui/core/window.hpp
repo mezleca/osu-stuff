@@ -6,6 +6,9 @@
 #include <string>
 
 namespace ui {
+    // owns an sdl window and its opengl context. construction optionally
+    // shares resources with another window and restores the caller's current
+    // context before returning.
     class Window {
     public:
         Window(std::string title, ImVec2 size, SDL_WindowFlags flags, Window* shared_with = nullptr);

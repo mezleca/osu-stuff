@@ -2,10 +2,12 @@
 
 #include "event.hpp"
 #include "geometry.hpp"
+#include "layer.hpp"
 
 #include <memory>
 #include <functional>
 #include <chrono>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,6 +16,8 @@
 #include <vector>
 
 namespace ui {
+    // base node for the ui tree. it owns children, provides lifecycle hooks,
+    // and exposes the common state used by layout, drawing, and input.
     class Node {
     public:
         explicit Node(std::string id = {});
@@ -53,6 +57,10 @@ namespace ui {
             return m_id;
         }
 
+        [[nodiscard]] uint64_t identity() const {
+            return m_identity;
+        }
+
         void set_id(std::string id) {
             m_id = std::move(id);
         }
@@ -69,9 +77,14 @@ namespace ui {
             return m_children;
         }
 
+        [[nodiscard]] InputLayer input_layer() const {
+            return m_input_layer;
+        }
+
         [[nodiscard]] bool visible() const {
             return m_visible;
         }
+
         void set_visible(bool visible) {
             m_visible = visible;
         }
@@ -116,18 +129,28 @@ namespace ui {
             std::chrono::steady_clock::time_point m_start;
         };
 
-        [[nodiscard]] DrawScope measure_draw();
+        DrawScope measure_draw();
+        void position_in_parent();
+        void skip_draw();
+        void assign_input_layer(InputLayer layer);
+
         virtual void on_update(float dt);
+        virtual void on_layout();
         virtual void on_draw();
+        virtual void draw_children();
+        virtual void on_draw_end();
 
     private:
         std::string m_id;
+        uint64_t m_identity = 0;
         Node* m_parent = nullptr;
         std::vector<std::unique_ptr<Node>> m_children;
         bool m_visible = true;
         bool m_cancelable = false;
+        InputLayer m_input_layer = InputLayer::Count;
         LayoutState m_layout;
         double m_draw_time_ms = 0.0;
+        bool m_skip_draw = false;
     };
 
 } // namespace ui

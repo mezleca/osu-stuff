@@ -5,48 +5,14 @@
 #include <imgui_internal.h>
 
 namespace ui {
-
     static constexpr float MIN_CHILD_SIZE = 32.0f;
     static constexpr float CHILD_RESIZE_HANDLE_SIZE = 20.0f;
     static constexpr float RESIZE_INDICATOR_DISTANCE = 4.0f;
 
-    static ImVec2 multiply(ImVec2 left, ImVec2 right) {
-        return {left.x * right.x, left.y * right.y};
-    }
-
-    static ImVec2 add_vec(ImVec2 left, ImVec2 right) {
-        return {left.x + right.x, left.y + right.y};
-    }
-
-    static ImVec2 subtract(ImVec2 left, ImVec2 right) {
-        return {left.x - right.x, left.y - right.y};
-    }
-
-    ImVec2 resolve_layout_position(
-        ImVec2 parent_size, ImVec2 child_size, ImVec2 anchor_factor, ImVec2 origin_factor, ImVec2 offset
-    ) {
-        // place the child origin on the parent's anchor, then apply the local offset.
-        const ImVec2 anchor_position = multiply(parent_size, anchor_factor);
-        const ImVec2 origin_offset = multiply(child_size, origin_factor);
-        return add_vec(subtract(anchor_position, origin_offset), offset);
-    }
-
-    ImVec2 resolve_layout_position(ImVec2 parent_size, ImVec2 child_size, Anchor anchor, Origin origin, ImVec2 offset) {
-        return resolve_layout_position(
-            parent_size, child_size, alignment_factor(anchor), alignment_factor(origin), offset
-        );
-    }
-
-    ChildLayout::ChildLayout(std::string id) : StyledNode(std::move(id)) {
-    }
-
-    void ChildLayout::add(std::unique_ptr<StyledNode> child) {
-        if (child != nullptr) {
-            Node::add(std::move(child));
-        }
-    }
+    ChildLayout::ChildLayout(std::string id) : StyledNode(std::move(id)) {}
 
     void ChildLayout::set_size(ImVec2 size) {
+        m_fit_width = size.x <= 0.0F;
         layout().set_size(size);
     }
 
@@ -78,34 +44,24 @@ namespace ui {
         m_resize = resize;
     }
 
-    void ChildLayout::draw() {
-        [[maybe_unused]] const auto draw_scope = measure_draw();
-        if (!visible()) {
+    void ChildLayout::on_layout() {
+        if (!m_fit_width) {
             return;
         }
 
-        const ImVec2 parent_min = ImGui::GetWindowContentRegionMin();
-        const ImVec2 parent_max = ImGui::GetWindowContentRegionMax();
-        const ImVec2 parent_size = subtract(parent_max, parent_min);
-        const ImVec2 position = resolve_layout_position(
-            parent_size, layout().size(), layout().anchor_factor(), layout().origin_factor(), layout().offset()
-        );
-        if (layout().anchor() != Anchor::TopLeft || layout().origin() != Origin::TopLeft ||
-            layout().offset().x != 0.0F || layout().offset().y != 0.0F) {
-            // anchored positions are relative to the parent's content origin, not the remaining space.
-            ImGui::SetCursorPos(add_vec(parent_min, position));
-        }
+        ImVec2 size = layout().size();
+        size.x = ImGui::GetContentRegionAvail().x;
+        layout().set_size(size);
+    }
 
+    void ChildLayout::on_draw() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {ui_theme::CONTENT_PADDING, ui_theme::CONTENT_PADDING});
         ImGui::BeginChild(
             id().c_str(), layout().size(), ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoBackground
         );
+    }
 
-        // children must draw before EndChild so their imgui items stay in this layout.
-        for (const auto& child : children()) {
-            child->draw();
-        }
-
+    void ChildLayout::on_draw_end() {
         ImGui::EndChild();
         ImGui::PopStyleVar();
 

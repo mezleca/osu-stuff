@@ -7,8 +7,7 @@
 
 class UITab : public ui::Node {
 public:
-    explicit UITab(std::string id) : ui::Node(std::move(id)) {
-    }
+    explicit UITab(std::string id) : ui::Node(std::move(id)) {}
 
     virtual ~UITab();
 

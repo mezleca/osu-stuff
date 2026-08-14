@@ -29,6 +29,9 @@ namespace ui {
         }
     };
 
+    // owns a node's style slots and interpolates the selected slot, opacity,
+    // and visibility over time. widgets use it as the single source for
+    // appearance and input acceptance.
     class VisualState {
     public:
         VisualState() {
@@ -110,10 +113,23 @@ namespace ui {
             transition_data.start(transition_data.to, type);
         }
 
+        void set_item_state(bool hovered, bool active) {
+            if (active) {
+                set_style(StyleType::ACTIVE);
+                return;
+            }
+
+            set_style(hovered ? StyleType::HOVER : StyleType::DEFAULT);
+        }
+
         template <typename Func>
         void set_for_all_styles(Func&& func) {
             for (auto& style : styles) {
                 func(style);
+            }
+
+            if (transition_data.done && transition_data.to == StyleType::DEFAULT) {
+                snap_to_style(StyleType::DEFAULT);
             }
         }
 

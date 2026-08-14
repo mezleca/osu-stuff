@@ -3,8 +3,7 @@
 #include <cpr/util.h>
 #include <string>
 
-OsuV2API::OsuV2API() : OAuthApi("https://osu.ppy.sh", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {
-}
+OsuV2API::OsuV2API() : OAuthApi("https://osu.ppy.sh", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {}
 
 std::optional<OsuGetBeatmapsResponse> OsuV2API::get_beatmaps(const OsuGetBeatmapsRequest& request) {
     query::Parameters parameters;

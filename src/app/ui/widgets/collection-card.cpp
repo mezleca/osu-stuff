@@ -35,13 +35,32 @@ CollectionCardWidget::CollectionCardWidget(std::string name)
     active_style.background_color.value = app_theme::ACCENT_COLOR_SECONDARY;
     hover_style.border_color.value = app_theme::ACCENT_COLOR_HALF;
 
-    m_icon.set_texture(music_icon);
-    m_icon.set_size(ICON_SIZE);
+    auto icon = std::make_unique<ui::ImageWidget>();
+    m_icon = icon.get();
+    m_icon->set_texture(music_icon);
+    m_icon->set_size(ICON_SIZE);
 
-    m_icon.state().set_for_all_styles([&](ui::Style& style) { style.color.set(app_theme::ACCENT_COLOR); });
+    m_icon->state().set_for_all_styles([&](ui::Style& style) { style.color.set(app_theme::ACCENT_COLOR); });
 
-    state().snap_to_style(ui::StyleType::DEFAULT);
-    m_icon.state().snap_to_style(ui::StyleType::DEFAULT);
+    auto title = std::make_unique<ui::CachedTextNode>("collection-title", m_name, font);
+    m_title = title.get();
+
+    auto count = std::make_unique<ui::CachedTextNode>("collection-count", m_count, m_font_small);
+    m_count_label = count.get();
+
+    m_icon->layout().set_anchor(ui::Anchor::CenterLeft);
+    m_icon->layout().set_origin(ui::Origin::CenterLeft);
+
+    m_title->layout().set_anchor(ui::Anchor::CenterLeft);
+    m_title->layout().set_origin(ui::Origin::CenterLeft);
+    m_title->layout().set_offset({ICON_SIZE.x + 10.0F, 0.0F});
+
+    m_count_label->layout().set_anchor(ui::Anchor::CenterRight);
+    m_count_label->layout().set_origin(ui::Origin::CenterRight);
+
+    add_child(std::move(icon));
+    add_child(std::move(title));
+    add_child(std::move(count));
 }
 
 void CollectionCardWidget::set_selected(bool value) {
@@ -69,21 +88,24 @@ bool CollectionCardWidget::set_content(std::string content) {
     return true;
 }
 
-void CollectionCardWidget::on_draw() {
-    if (!state().is_visible()) {
-        return;
-    }
-
-    const float dt = ImGui::GetIO().DeltaTime;
-    const ui::Style& style = state().get_style();
-
+void CollectionCardWidget::on_layout() {
     ImVec2 size = m_size;
 
     // collection card will always use the full width
-    {
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-        size.x = available.x;
+    const ImVec2 available = ImGui::GetContentRegionAvail();
+    size.x = available.x;
+    layout().set_size(size);
+}
+
+void CollectionCardWidget::on_draw() {
+    if (!state().is_visible()) {
+        skip_draw();
+        return;
     }
+
+    const ui::Style& style = state().get_style();
+
+    const ImVec2 size = layout().size();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, app_theme::BOX_ROUNDING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
@@ -99,54 +121,28 @@ void CollectionCardWidget::on_draw() {
     );
     {
         ImGui::PushFont(style.font);
-
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-        const float row_start_y = ImGui::GetCursorPosY();
-
-        // music icon
-        {
-            ImGui::SetCursorPosY(row_start_y + (available.y - m_icon.get_size().y) * 0.5f);
-            m_icon.draw();
-        }
-
-        // name
-        {
-            ImGui::SameLine(0.0f, 10.0f);
-            ImGui::SetCursorPosY(row_start_y + (available.y - m_name.text_size().y) * 0.5f);
-            ImGui::TextUnformatted(m_name.c_str());
-        }
-
-        // count
-        {
-            ImGui::PushFont(m_font_small);
-            ImGui::SameLine();
-
-            ImGui::SetCursorPosX(available.x - m_count.text_size().x);
-            ImGui::SetCursorPosY(row_start_y + (available.y - m_count.text_size().y) * 0.5f);
-
-            ImGui::TextUnformatted(m_count.c_str());
-            ImGui::PopFont();
-        }
-
-        ui::draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
-
-        ImGui::PopFont();
     }
+}
+
+void CollectionCardWidget::on_draw_end() {
+    ui::InputRouter& router = ui::current().input_router();
+
+    const ui::Style& style = state().get_style();
+    const float dt = ImGui::GetIO().DeltaTime;
+
+    ui::draw_child_rect(style.border_color.get_col(), style.border_radius, style.border_thickness);
+    ImGui::PopFont();
     ImGui::EndChild();
     ImGui::PopID();
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(4);
 
-    const bool handled = state().accepts_input() && ui::current().input_router().dispatch_last_item(*this);
-    static_cast<void>(handled);
-    const bool hovering_rect = !ui::current().input_router().debug_select_mode() && ImGui::IsItemHovered();
+    const ui::LastItemState input = router.handle_last_item(*this, {.accepts_input = state().accepts_input()});
 
     if (m_selected) {
         state().set_style(ui::StyleType::ACTIVE);
-    } else if (hovering_rect) {
-        state().set_style(ui::StyleType::HOVER);
     } else {
-        state().set_style(ui::StyleType::DEFAULT);
+        state().set_item_state(input.hovered, input.active);
     }
 
     state().update(dt);

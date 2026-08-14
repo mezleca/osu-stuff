@@ -47,8 +47,12 @@ namespace ui {
         m_policies[layer_index(layer)] = policy;
     }
 
-    void InputRouter::set_cancel_target(InputLayer layer, Node* node) {
-        m_cancel_targets[layer_index(layer)] = node;
+    void InputRouter::set_cancel_target(Node& node) {
+        m_cancel_targets[layer_index(layer_of(node))] = &node;
+    }
+
+    void InputRouter::clear_cancel_target(InputLayer layer) {
+        m_cancel_targets[layer_index(layer)] = nullptr;
     }
 
     void InputRouter::clear_cancel_target(Node& subtree) {
@@ -62,32 +66,67 @@ namespace ui {
         }
     }
 
-    void InputRouter::register_region(Node& node, InputRect rect, InputLayer layer) {
+    void InputRouter::register_region(Node& node, InputRect rect) {
+        register_region_in_layer(node, rect, layer_of(node));
+    }
+
+    void InputRouter::register_region_in_layer(Node& node, InputRect rect, InputLayer layer) {
         m_regions.push_back(Region{&node, rect, layer});
     }
 
-    bool InputRouter::register_last_item(Node& node, InputLayer layer) {
+    bool InputRouter::register_last_item(Node& node) {
         if (!node.visible() || !ImGui::IsItemVisible()) {
             return false;
         }
 
-        register_region(node, InputRect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()}, layer);
+        register_region(node, InputRect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()});
         return true;
     }
 
-    bool InputRouter::dispatch_last_item(Node& node, InputLayer layer) {
-        if (!register_last_item(node, layer) || debug_select_mode() || !ImGui::IsItemHovered()) {
-            return false;
+    LastItemState InputRouter::observe_last_item(Node& node, LastItemOptions options) {
+        // imgui owns the item interaction; this only records its region and
+        // mirrors hover/active/focus state into the node router.
+        LastItemState state;
+        state.registered = options.accepts_input && register_last_item(node);
+
+        if (debug_select_mode()) {
+            return state;
         }
 
-        bool handled = false;
-        const ImVec2 position = ImGui::GetMousePos();
+        state.hovered = ImGui::IsItemHovered();
+        state.active = ImGui::IsItemActive();
 
+        if (!options.focus_when_active) {
+            return state;
+        }
+
+        if (state.active && options.accepts_input) {
+            state.focused = set_focus(node);
+            return state;
+        }
+
+        if (m_focused_node == &node) {
+            clear_focus();
+        }
+
+        return state;
+    }
+
+    LastItemState InputRouter::handle_last_item(Node& node, LastItemOptions options) {
+        LastItemState state = observe_last_item(node, options);
+
+        if (!state.registered || debug_select_mode() || !state.hovered) {
+            return state;
+        }
+
+        // convert the current imgui item interaction into the same events used
+        // by sdl input, so widgets do not need a second click implementation.
+        const ImVec2 position = ImGui::GetMousePos();
         auto dispatch_pointer = [&](EventType type, PointerButton button) {
             UiEvent event = make_event(type);
             event.position = position;
             event.button = button;
-            handled = dispatch(event) || handled;
+            state.handled = dispatch(event) || state.handled;
         };
 
         const auto dispatch_button_events = [&](ImGuiMouseButton mouse_button, PointerButton button,
@@ -105,10 +144,14 @@ namespace ui {
 
         dispatch_button_events(ImGuiMouseButton_Left, PointerButton::Left, EventType::Click);
         dispatch_button_events(ImGuiMouseButton_Right, PointerButton::Right, EventType::ContextClick);
-        return handled;
+        return state;
     }
 
-    bool InputRouter::set_focus(Node& node, InputLayer layer) {
+    bool InputRouter::set_focus(Node& node) {
+        return set_focus_in_layer(node, layer_of(node));
+    }
+
+    bool InputRouter::set_focus_in_layer(Node& node, InputLayer layer) {
         if (!node.visible()) {
             return false;
         }
@@ -161,6 +204,8 @@ namespace ui {
         }
 
         if (is_keyboard_event(event.type)) {
+            // keyboard input follows focus. a blocking layer can consume the
+            // event before it reaches a focused node below that layer.
             if (event.type == EventType::Cancel) {
                 for (std::size_t index = m_cancel_targets.size(); index-- > 0;) {
                     if (m_cancel_targets[index] != nullptr) {
@@ -189,6 +234,8 @@ namespace ui {
             return false;
         }
 
+        // pointer input resolves the highest eligible layer first, then picks
+        // the most recently registered region at that position.
         const std::optional<InputLayer> blocking_layer = highest_blocking_layer(event.type);
         Node* target = target_at(event.position, blocking_layer.value_or(InputLayer::Content));
         if (target == nullptr) {
@@ -233,15 +280,36 @@ namespace ui {
         return static_cast<std::size_t>(layer);
     }
 
+    InputLayer InputRouter::layer_of(const Node& node) {
+        const InputLayer layer = node.input_layer();
+        return layer == InputLayer::Count ? InputLayer::Content : layer;
+    }
+
     Node* InputRouter::target_at(ImVec2 position, InputLayer minimum_layer) const {
         const auto minimum = layer_index(minimum_layer);
+        Node* target = nullptr;
+
         for (auto it = m_regions.rbegin(); it != m_regions.rend(); ++it) {
-            if (layer_index(it->layer) >= minimum && it->rect.contains(position)) {
-                return it->node;
+            if (layer_index(it->layer) < minimum || !it->rect.contains(position)) {
+                continue;
+            }
+
+            if (target == nullptr) {
+                target = it->node;
+                continue;
+            }
+
+            if (target->contains(it->node)) {
+                target = it->node;
+                continue;
+            }
+
+            if (!it->node->contains(target)) {
+                return target;
             }
         }
 
-        return nullptr;
+        return target;
     }
 
     std::optional<InputLayer> InputRouter::highest_blocking_layer(EventType type) const {

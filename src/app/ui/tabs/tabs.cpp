@@ -1,10 +1,9 @@
 #include "tabs.hpp"
 
-UITab::~UITab() {
-}
+UITab::~UITab() {}
 
 void UITab::draw() {
-    [[maybe_unused]] const auto draw_scope = measure_draw();
+    const auto draw_measurement = measure_draw();
     if (!visible()) {
         return;
     }

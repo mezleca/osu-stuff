@@ -11,6 +11,11 @@
 
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
+void UINotification::on_layout() {
+    layout().set_size(state().get_size());
+    layout().set_offset(m_current_offset.value);
+}
+
 static ImColor get_border_by_level(LogNotificationLevel level) {
     switch (level) {
         case LogNotificationLevel::INFO:
@@ -51,12 +56,16 @@ LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::st
     active_style.border_color.set(border_color);
     hover_style.border_color.set(border_color);
 
-    m_icon.set_texture(close_icon);
-    m_icon.set_size(CLOSE_ICON_SIZE);
+    auto icon = std::make_unique<ui::ImageWidget>();
+    m_icon = icon.get();
+    m_icon->set_texture(close_icon);
+    m_icon->set_size(CLOSE_ICON_SIZE);
+    m_icon->layout().set_anchor(ui::Anchor::CenterLeft);
+    m_icon->layout().set_origin(ui::Origin::CenterLeft);
 
-    m_icon.state().set_for_all_styles([](ui::Style& style) { style.color.set(app_theme::TEXT_SECONDARY_COLOR); });
+    m_icon->state().set_for_all_styles([](ui::Style& style) { style.color.set(app_theme::TEXT_SECONDARY_COLOR); });
 
-    m_icon.on_event = [this](ui::UiEvent& event) {
+    m_icon->on_event = [this](ui::UiEvent& event) {
         if (event.type != ui::EventType::Click) {
             return;
         }
@@ -69,8 +78,11 @@ LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::st
         event.mark_handled();
     };
 
-    m_icon.state().snap_to_style(ui::StyleType::DEFAULT);
-    state().snap_to_style(ui::StyleType::DEFAULT);
+    auto text_node = std::make_unique<ui::CachedTextNode>("notification-text", m_text, torus_semi);
+    m_text_node = text_node.get();
+
+    add_child(std::move(text_node));
+    add_child(std::move(icon));
 }
 
 void LogNotificationWidget::close() {
@@ -81,16 +93,20 @@ void LogNotificationWidget::close() {
     m_closing = true;
 
     state().set_opacity(0.0f);
-    m_icon.state().set_opacity(0.0f);
+    m_icon->state().set_opacity(0.0f);
 }
 
-void LogNotificationWidget::on_draw() {
+void LogNotificationWidget::on_layout() {
     if (m_closing && !state().is_visible()) {
         (void)app::current().notification_manager()->remove(this);
+        skip_draw();
         return;
     }
 
-    const float dt = ImGui::GetIO().DeltaTime;
+    UINotification::on_layout();
+}
+
+void LogNotificationWidget::on_draw() {
     const ui::Style& style = state().get_style();
 
     const auto child_flags =
@@ -105,55 +121,52 @@ void LogNotificationWidget::on_draw() {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, app_theme::BG_COLOR);
 
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
-    ImGui::SetCursorPos(m_current_offset.value);
-
     ImGui::PushID(this);
     ImGui::BeginChild("##ui-notification", {0.0f, 0.0f}, child_flags, constants::WIDGET_WINDOW_FLAGS);
     {
-        ImGui::PushFont(style.font);
-
         const float wrap_pos_x = 256.0f - CLOSE_ICON_SIZE.x - 8.0f;
-        m_text.set_wrap(wrap_pos_x);
-
-        const ImVec2 text_size = m_text.text_size();
-        const float row_start_y = ImGui::GetCursorPosY();
-
-        ImGui::PushTextWrapPos(wrap_pos_x);
-        ImGui::TextUnformatted(m_text.c_str());
-        ImGui::PopTextWrapPos();
-
-        if (m_level != LogNotificationLevel::PLACEHOLDER) {
-            ImGui::SameLine(0.0f, 5.0f);
-            ImGui::SetCursorPosY(row_start_y + (text_size.y - CLOSE_ICON_SIZE.y) * 0.5f);
-            m_icon.draw();
-
-            const bool close_handled =
-                state().accepts_input() && ui::current().input_router().dispatch_last_item(m_icon);
-            static_cast<void>(close_handled);
-        }
-
-        auto border_color = style.border_color.get_col().Value;
-        border_color.w = opacity;
-
-        ui::draw_child_rect(border_color, style.border_radius, style.border_thickness);
-        ImGui::PopFont();
+        m_text_node->set_wrap(wrap_pos_x);
+        m_text_node->update_layout_size();
+        m_icon->layout().set_offset({m_text_node->layout().size().x + 5.0F, 0.0F});
     }
+}
+
+void LogNotificationWidget::draw_children() {
+    m_text_node->draw();
+
+    if (m_level == LogNotificationLevel::PLACEHOLDER) {
+        return;
+    }
+
+    m_icon->draw();
+
+    const bool handled = state().accepts_input() && ui::current().input_router().handle_last_item(*m_icon).handled;
+    static_cast<void>(handled);
+}
+
+void LogNotificationWidget::on_draw_end() {
+    const ui::Style& style = state().get_style();
+    const float dt = ImGui::GetIO().DeltaTime;
+    const float opacity = state().get_opacity();
+
+    auto border_color = style.border_color.get_col().Value;
+    border_color.w = opacity;
+
+    ui::draw_child_rect(border_color, style.border_radius, style.border_thickness);
+
     ImGui::EndChild();
     ImGui::PopID();
 
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
 
-    const bool registered = state().accepts_input() && ui::current().input_router().dispatch_last_item(*this);
-    static_cast<void>(registered);
+    const ui::LastItemState input =
+        ui::current().input_router().handle_last_item(*this, {.accepts_input = state().accepts_input()});
 
-    const bool debugger_mode = ui::current().input_router().debug_select_mode();
-    if (!debugger_mode && ImGui::IsItemActive()) {
-        state().set_style(ui::StyleType::ACTIVE);
-    } else if (!debugger_mode && ImGui::IsItemHovered()) {
-        state().set_style(ui::StyleType::HOVER);
+    if (m_closing) {
+        state().set_item_state(false, false);
     } else {
-        state().set_style(ui::StyleType::DEFAULT);
+        state().set_item_state(input.hovered, input.active);
     }
 
     m_current_offset.tick(m_offset, dt);

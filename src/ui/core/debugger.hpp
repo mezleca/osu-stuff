@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL_events.h>
 #include <imgui.h>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -37,6 +38,7 @@ namespace ui {
         void set_enabled(bool enabled);
         bool handle_select_event(const SDL_Event& event, bool mouse_event, SDL_WindowID main_window_id);
         void set_select_mode(bool enabled, bool wait_for_release = false);
+        void set_target(Node* target);
         [[nodiscard]] bool ready() const;
 
         UiRoot& m_root;
@@ -48,6 +50,9 @@ namespace ui {
         ImFont* m_font = nullptr;
         ImFont* m_bold_font = nullptr;
         Node* m_target = nullptr;
+        uint64_t m_target_identity = 0;
+        Node* m_style_target = nullptr;
+        StyleType m_inspected_style = StyleType::DEFAULT;
         bool m_enabled = false;
         bool m_select_mode = false;
         bool m_scroll_to_target = false;

@@ -6,7 +6,6 @@
 namespace ui {
     ImageWidget::ImageWidget(IconTexture* texture) : Widget("image"), m_texture(texture) {
         state().set_for_all_styles([&](Style& style) { style.color.set(ui_theme::TEXT_COLOR); });
-        state().snap_to_style(StyleType::DEFAULT);
     }
 
     void ImageWidget::on_draw() {

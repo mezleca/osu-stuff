@@ -52,6 +52,7 @@ TEST_CASE("set_for_all_styles applies to every style slot", "[VisualState]") {
     ui::VisualState state;
 
     state.set_for_all_styles([](ui::Style& style) {
+        style.color.set(ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
         style.color.set_speed(10.0f);
         style.variables().set("rounding", ui::FloatValue{4.0f, 0.0f});
     });
@@ -61,6 +62,12 @@ TEST_CASE("set_for_all_styles applies to every style slot", "[VisualState]") {
         REQUIRE(s.color.speed == 10.0f);
         REQUIRE(s.variables().get<ui::FloatValue>("rounding")->value == 4.0f);
     }
+
+    REQUIRE(state.get_style_type() == ui::StyleType::DEFAULT);
+    REQUIRE(state.get_style().color.get().x == Catch::Approx(1.0f));
+
+    state.set_for_all_styles([](ui::Style& style) { style.color.set(ImVec4{0.0f, 1.0f, 0.0f, 1.0f}); });
+    REQUIRE(state.get_style().color.get().y == Catch::Approx(1.0f));
 }
 
 TEST_CASE("transition reaches target and settles", "[VisualState][transition]") {

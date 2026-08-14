@@ -2,6 +2,7 @@
 
 #include "../../../ui/widgets/base/widget.hpp"
 #include "../../../ui/widgets/base/text.hpp"
+#include "../../../ui/widgets/cached-text.hpp"
 #include "../../../ui/widgets/image.hpp"
 
 #include <functional>
@@ -17,10 +18,12 @@ public:
     UINotification(UINotificationType type) : ui::Widget("notification"), m_type(type) {
         m_current_offset.speed = 0.0f;
         m_offset.speed = 20.0f;
+        layout().set_anchor(ui::Anchor::TopRight);
+        layout().set_origin(ui::Origin::TopRight);
     }
 
     virtual ~UINotification() = default;
-    virtual void on_draw() = 0;
+    void on_draw() override = 0;
     virtual void close() = 0;
 
     [[nodiscard]] UINotificationType get_type() const {
@@ -44,6 +47,8 @@ public:
     }
 
 protected:
+    void on_layout() override;
+
     ui::Vec2Value m_offset;
     ui::Vec2Value m_current_offset;
     UINotificationType m_type;
@@ -70,7 +75,12 @@ public:
     std::function<void()> m_onclose = nullptr;
 
 private:
-    ui::ImageWidget m_icon;
+    void on_layout() override;
+    void draw_children() override;
+    void on_draw_end() override;
+
+    ui::ImageWidget* m_icon = nullptr;
+    ui::CachedTextNode* m_text_node = nullptr;
     ui::TextValue<std::string> m_text;
     LogNotificationLevel m_level;
 };

@@ -34,7 +34,7 @@ IconTexture::IconTexture(std::string_view content) {
 GLuint IconTexture::get(const ImVec2& size) {
     const int width = static_cast<int>(size.x);
     const int height = static_cast<int>(size.y);
-    auto key = std::format("{}x{}", width, height);
+    const uint64_t key = (static_cast<uint64_t>(static_cast<uint32_t>(width)) << 32) | static_cast<uint32_t>(height);
     auto it = m_bitmaps.find(key);
 
     if (it != m_bitmaps.end()) {

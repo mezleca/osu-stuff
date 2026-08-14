@@ -5,31 +5,65 @@
 
 namespace ui {
     Window::Window(std::string title, ImVec2 size, SDL_WindowFlags flags, Window* shared_with) {
-        if (shared_with != nullptr) {
-            SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+        // creating a shared context temporarily changes both the current gl
+        // context and sdl's global sharing attribute. preserve the callers
+        // context so constructing a secondary window is invisible.
+        SDL_Window* previous_window = SDL_GL_GetCurrentWindow();
+        SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
+
+        if (shared_with != nullptr && !shared_with->valid()) {
+            SDL_Log("cannot share OpenGL context with an invalid window");
+            return;
+        }
+
+        const bool sharing = shared_with != nullptr;
+
+        // sdl shares resources with the context current at window creation.
+        if (sharing) {
+            shared_with->make_current();
+        }
+
+        // this attribute only affects the next opengl window/context creation
+        // it is reset as soon as that operation has completed.
+        if (!SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, sharing ? 1 : 0)) {
+            SDL_Log("SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT): %s", SDL_GetError());
+            if (previous_window != nullptr) SDL_GL_MakeCurrent(previous_window, previous_context);
+            return;
         }
 
         m_window = SDL_CreateWindow(title.c_str(), size.x, size.y, flags);
         if (m_window == nullptr) {
             SDL_Log("SDL_CreateWindow(%s): %s", title.c_str(), SDL_GetError());
+            if (!SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0)) {
+                SDL_Log("SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT): %s", SDL_GetError());
+            }
             return;
         }
 
         m_context = SDL_GL_CreateContext(m_window);
+        if (sharing && !SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0)) {
+            SDL_Log("SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT): %s", SDL_GetError());
+        }
+
         if (m_context == nullptr) {
             SDL_Log("SDL_GL_CreateContext(%s): %s", title.c_str(), SDL_GetError());
             SDL_DestroyWindow(m_window);
+
             m_window = nullptr;
+            if (previous_window != nullptr) SDL_GL_MakeCurrent(previous_window, previous_context);
+            return;
+        }
+
+        // leave the callers context instead of leaking the new
+        // window's context into the rest of the ui/backend setup.
+        if (previous_window != nullptr) {
+            SDL_GL_MakeCurrent(previous_window, previous_context);
         }
     }
 
     Window::~Window() {
-        if (m_context != nullptr) {
-            SDL_GL_DestroyContext(m_context);
-        }
-        if (m_window != nullptr) {
-            SDL_DestroyWindow(m_window);
-        }
+        if (m_context != nullptr) SDL_GL_DestroyContext(m_context);
+        if (m_window != nullptr) SDL_DestroyWindow(m_window);
     }
 
     bool Window::valid() const {

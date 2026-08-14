@@ -549,7 +549,7 @@ def package_appimage() -> int:
         print("[ez] linuxdeploy not found\nset LINUXDEPLOY or place it in the project root")
         return 1
 
-    if build(None, False) != 0:
+    if build("release", False) != 0:
         return 1
 
     prepare_appimage_assets()

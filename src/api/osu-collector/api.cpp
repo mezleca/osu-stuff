@@ -7,8 +7,8 @@ static void add_pagination_parameters(query::Parameters& parameters, const OsuCo
     query::add_parameter(parameters, "perPage", request.per_page);
 }
 
-OsuCollectorAPI::OsuCollectorAPI() : OAuthApi("https://osucollector.com/api", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {
-}
+OsuCollectorAPI::OsuCollectorAPI()
+    : OAuthApi("https://osucollector.com/api", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {}
 
 std::optional<OsuCollectorCollectionsPage>
 OsuCollectorAPI::get_recent_collections(const OsuCollectorRecentRequest& request) {

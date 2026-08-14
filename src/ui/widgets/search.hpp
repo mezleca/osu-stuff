@@ -2,6 +2,7 @@
 
 #include "base/widget.hpp"
 #include "base/text.hpp"
+#include "../core/input.hpp"
 #include "image.hpp"
 
 #include <optional>
@@ -22,7 +23,12 @@ namespace ui {
         std::string* m_value;
 
     private:
-        ImageWidget m_icon;
+        void on_layout() override;
+        void draw_children() override;
+        void on_draw_end() override;
+
+        ImageWidget* m_icon = nullptr;
+        LastItemState m_input_state;
         ImVec2 m_size = {120.0f, 30.0f};
         bool m_fit_width = false;
     };
