@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glad/gl.h>
+#include <imgui.h>
 #include <lunasvg.h>
 #include <string>
 #include <unordered_map>
@@ -10,7 +11,7 @@ class IconTexture {
 public:
     explicit IconTexture(std::filesystem::path& location);
     explicit IconTexture(std::string_view location);
-    GLuint get(int width, int height);
+    GLuint get(const ImVec2& size);
     GLuint load(uint8_t* data, int width, int height);
 
     const std::string& get_id() {

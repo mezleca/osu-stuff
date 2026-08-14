@@ -18,7 +18,7 @@ build-options:
   append-path: /usr/lib/sdk/llvm20/bin
   prepend-ld-library-path: /usr/lib/sdk/llvm20/lib
   build-args:
-    - "--share=network" # realm downloads openssl even if i set FETCH_MISSING_DEPENDENCIES to off...
+    - "--share=network"
   env:
     CC: clang
     CXX: clang++
@@ -28,21 +28,22 @@ modules:
     buildsystem: simple
     build-commands:
       - install -Dm644 org.mezleca.osu-stuff.desktop /app/share/applications/org.mezleca.osu-stuff.desktop
-      - install -Dm644 org.mezleca.osu-stuff.metainfo.xml /app/share/metainfo/org.mezleca.osu-stuff.metainfo.xml
-      - install -Dm644 org.mezleca.osu-stuff.png /app/share/icons/hicolor/512x512/apps/org.mezleca.osu-stuff.png
+      - install -Dm644 flatpak/org.mezleca.osu-stuff.png /app/share/icons/hicolor/512x512/apps/org.mezleca.osu-stuff.png
+      - install -Dm644 flatpak/org.mezleca.osu-stuff.metainfo.xml /app/share/metainfo/org.mezleca.osu-stuff.metainfo.xml
     sources:
       - type: dir
-        path: .
+        path: ..
 
-  # realm needs that
+  # required by realm-cpp
   - name: libuv
     buildsystem: cmake-ninja
     builddir: true
     config-opts:
         - "-DBUILD_TESTING=OFF"
+        - "-DLIBUV_BUILD_TESTS=OFF"
     sources:
       - type: dir
-        path: ../vendor/libuv
+        path: ../../../vendor/libuv
 
   - name: osu-stuff
     buildsystem: cmake-ninja
@@ -50,6 +51,9 @@ modules:
     config-opts:
         - "-Wno-dev"
         - "-DCMAKE_BUILD_TYPE=Release"
+        - "-DREALM_NO_TESTS=ON"
+        - "-DREALM_CPP_NO_TESTS=ON"
+        - "-DREALM_FETCH_MISSING_DEPENDENCIES=OFF"
     sources:
       - type: dir
-        path: ..
+        path: ../../../

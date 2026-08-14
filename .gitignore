@@ -69,6 +69,7 @@ Testing/
 .cache/
 
 build/
+*.AppImage
 .flatpak-builder
 compile_commands.json
 dist/

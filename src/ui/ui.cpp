@@ -7,6 +7,7 @@
 #include "modal.hpp"
 #include "texture/icon.hpp"
 #include "texture/svg.hpp"
+#include "../utils/resources.hpp"
 
 #include <algorithm>
 #include <format>
@@ -31,6 +32,7 @@ UI& ui::current() {
 UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     current_ui = this;
 
+    const fs::path resources_path = resources::path();
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
     ImGui::CreateContext();
@@ -96,12 +98,12 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
     // initialize / preload font variations
-    m_fonts[TORUS].initialize(font_cfg, "resources/fonts/Torus-Regular.ttf", m_io);
-    m_fonts[TORUS_SEMI].initialize(font_cfg, "resources/fonts/Torus-SemiBold.ttf", m_io);
-    m_fonts[TORUS_BOLD].initialize(font_cfg, "resources/fonts/Torus-Bold.ttf", m_io);
+    m_fonts[TORUS].initialize(font_cfg, (resources_path / "fonts/Torus-Regular.ttf").string(), m_io);
+    m_fonts[TORUS_SEMI].initialize(font_cfg, (resources_path / "fonts/Torus-SemiBold.ttf").string(), m_io);
+    m_fonts[TORUS_BOLD].initialize(font_cfg, (resources_path / "fonts/Torus-Bold.ttf").string(), m_io);
 
     // load textures (svgs)
-    fs::path textures_location = "resources/icons/ui/";
+    fs::path textures_location = resources_path / "icons/ui/";
 
     m_textures.emplace("default", std::make_unique<IconTexture>(DEFAULT_WARN_SVG));
 
@@ -114,9 +116,10 @@ UI::UI(SDL_GLContext* ctx, SDL_Window* window) : m_window(window) {
 
             auto texture = std::make_unique<IconTexture>(path);
 
-            texture->get(16, 16);
-            texture->get(18, 18);
-            texture->get(32, 32);
+            texture->get(constants::TEXTURE_SMALL);
+            texture->get(constants::TEXTURE_MEDIUM);
+            texture->get(constants::TEXTURE_BIG);
+            texture->get(constants::TEXTURE_EXTRA_BIG);
 
             if (texture->get_id() == "") {
                 std::cout << "[warn] failed to get class id from " << path.string() << "\n";
