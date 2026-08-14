@@ -1,39 +1,39 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
-import sys
+import platform
+import re
 import shutil
 import subprocess
-import platform
-import argparse
+import sys
 import tarfile
 import urllib.request
-
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Sequence
+from typing import Protocol, cast
 
 CWD = Path.cwd()
 SYSTEM = platform.system()
-
-BUILD_DIR = CWD / "build"
-DIST_DIR = CWD / "dist"
 BINARY_NAME = "osu-stuff"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
-SDL_PKG_CONFIG_NAME = "sdl3"
 
-TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
-TESTS_BUILD_DIR = BUILD_DIR / "tests"
-TEST_DATA_CACHE_DIR = TESTS_BUILD_DIR / "test-data"
+class Arguments(Protocol):
+    command: str
+    build_type: str | None
+    platform: str
+    run: bool
+    package_type: str | None
+    version: str
+    dest: str
 
-FLATPAK_BUILD_DIR = DIST_DIR / "flatpak-build"
-FLATPAK_REPO_DIR = DIST_DIR / "flatpak-repo"
-FLATPAK_STATE_DIR = DIST_DIR / ".flatpak-builder"
-FLATPAK_BUNDLE_PATH = DIST_DIR / "osu-stuff.flatpak"
-FLATPAK_APP_ID = "org.mezleca.osu-stuff"
-FLATPAK_MANIFEST_PATH = CWD / "flatpak" / f"{FLATPAK_APP_ID}.yml"
+# --- utils ---
 
-def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, capture: bool = False) -> tuple[int, str]:
+NOTES_FILE = CWD / "changelog" / "notes.md"
+
+def run(cmd: str | list[str], check: bool = True, env: Mapping[str, str] | None = None, capture: bool = False) -> tuple[int, str]:
     display = cmd if isinstance(cmd, str) else subprocess.list2cmdline(list(cmd))
+    is_linux = SYSTEM == "Linux"
     print(f"exec: {display}")
     result = subprocess.run(
         cmd,
@@ -42,7 +42,8 @@ def run(cmd: str | Sequence[str], check: bool = True, env: dict | None = None, c
         capture_output=capture,
         text=capture,
         encoding="utf-8",
-        cwd=str(CWD)
+        cwd=str(CWD),
+        check=not is_linux
     )
 
     if check and result.returncode != 0:
@@ -59,7 +60,8 @@ def clear_dir(dir: Path) -> None:
 
 def tool_exists(tool: str) -> None:
     if shutil.which(tool) is None:
-        raise Exception(f"{tool} not found in PATH")
+        print(f"[ez] {tool} not found in PATH")
+        sys.exit(1)
 
 def get_cpu_count() -> int:
     if SYSTEM == "Linux":
@@ -76,7 +78,7 @@ def has_system_sdl3() -> bool:
         return False
 
     result = subprocess.run(
-        ["pkg-config", "--exists", SDL_PKG_CONFIG_NAME],
+        ["pkg-config", "--exists", "sdl3"],
         cwd=str(CWD), check=False
     )
     return result.returncode == 0
@@ -95,6 +97,117 @@ def should_use_vendored_sdl(target_platform: str) -> bool:
         return not has_system_sdl3()
 
     return False
+
+def get_vcvarsall_script() -> Path | None:
+    candidates = [
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"),
+        Path("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat"),
+    ]
+
+    vswhere = Path("C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe")
+    if vswhere.exists():
+        _, stdout = run([
+            str(vswhere),
+            "-latest",
+            "-products",
+            "*",
+            "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "-property",
+            "installationPath",
+        ], check=False, capture=True)
+        installation_path = stdout.strip()
+        if installation_path:
+            candidates.insert(0, Path(installation_path) / "VC/Auxiliary/Build/vcvarsall.bat")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return None
+
+def load_msvc_env() -> Mapping[str, str]:
+    env = os.environ.copy()
+    vcvarsall = get_vcvarsall_script()
+
+    if vcvarsall is None:
+        print("[ez] vcvarsall.bat not found")
+        sys.exit(1)
+
+    _, stdout = run(f'"{vcvarsall}" x64 && set', capture=True)
+
+    for line in stdout.splitlines():
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        env[key] = value
+
+    return env
+
+def init() -> int:
+    print("[ez] initializing submodules...")
+
+    if Path(".gitmodules").exists() and run("git submodule update --init --recursive", check=False)[0] != 0:
+        print("[ez] failed to initialize submodules")
+        return 1
+
+    tool_exists("cmake")
+    tool_exists("ninja")
+
+    if SYSTEM == "Windows":
+        if get_vcvarsall_script() is None:
+            print("[ez] vcvarsall.bat not found")
+            return 1
+    else:
+        tool_exists("clang")
+
+    return 0
+
+def format_code() -> None:
+    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")
+    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")
+
+def parse_release_note(version: str, dest: str) -> None:
+    content: str = ""
+
+    with open(NOTES_FILE, "r") as f:
+        content = f.read()
+
+    regex = re.compile(r'^#+\s*v\d+\.\d+\.\d+$', re.MULTILINE)
+    matches = list(regex.finditer(content))
+
+    note_start = 0
+    note_end = 0
+
+    for i, match in enumerate(matches):
+        section = match.group(0).strip()[2:]
+
+        if section != version:
+            continue
+
+        note_start = match.start() + len(section) + 2
+        note_end =  matches[i + 1].start() if i + 1 < len(matches) else len(content)
+
+    if note_start == note_end:
+        print(f"[ez] failed to find section({version}) in {str(NOTES_FILE)!r}")
+        sys.exit(1)
+
+    result = content[note_start:note_end].strip()
+    dest_path = Path(dest)
+
+    if len(dest) > 0:
+        with open(dest_path, "w") as f:
+            _ = f.write(result)
+    else:
+        print(result)
+
+# --- cmake / build ---
+
+BUILD_DIR = CWD / "build"
+DIST_DIR = CWD / "dist"
 
 def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
@@ -151,78 +264,6 @@ def is_build_configured() -> bool:
 
     return (BUILD_DIR / "build.ninja").exists()
 
-def get_vcvarsall_script() -> Path | None:
-    candidates = [
-        Path("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat"),
-        Path("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Auxiliary/Build/vcvarsall.bat"),
-        Path("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"),
-        Path("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat"),
-    ]
-
-    vswhere = Path("C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe")
-    if vswhere.exists():
-        _, stdout = run([
-            str(vswhere),
-            "-latest",
-            "-products",
-            "*",
-            "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-            "-property",
-            "installationPath",
-        ], check=False, capture=True)
-        installation_path = stdout.strip()
-        if installation_path:
-            candidates.insert(0, Path(installation_path) / "VC/Auxiliary/Build/vcvarsall.bat")
-
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-
-    return None
-
-def load_msvc_env() -> dict:
-    env = os.environ.copy()
-    vcvarsall = get_vcvarsall_script()
-
-    if vcvarsall is None:
-        print("[ez] vcvarsall.bat not found")
-        sys.exit(1)
-
-    _, stdout = run(f'"{str(vcvarsall)}" x64 && set', capture=True)
-
-    for line in stdout.splitlines():
-        if "=" not in line:
-            continue
-
-        key, value = line.split("=", 1)
-        env[key] = value
-
-    return env
-
-def init() -> int:
-    print("[ez] initializing submodules...")
-
-    if Path(".gitmodules").exists() and run("git submodule update --init --recursive", check=False)[0] != 0:
-        print("[ez] failed to initialize submodules")
-        return 1
-
-    tool_exists("cmake")
-    tool_exists("ninja")
-
-    if SYSTEM == "Windows":
-        if get_vcvarsall_script() is None:
-            print("[ez] vcvarsall.bat not found")
-            return 1
-    else:
-        tool_exists("clang")
-
-    return 0
-
-def format_code() -> None:
-    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")[0]
-    _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")[0]
-
 def clean() -> int:
     if not BUILD_DIR.exists() and not BUILD_DIR.is_symlink():
         print("[ez] build directory doesn't exist")
@@ -236,91 +277,6 @@ def clean() -> int:
     except PermissionError:
         print("[ez] permission denied")
         return 1
-
-def has_test_data() -> bool:
-    return all(marker.exists() for marker in (
-        TEST_DATA_CACHE_DIR / "osu" / "osu!.db",
-        TEST_DATA_CACHE_DIR / "osu" / "collection.db",
-        TEST_DATA_CACHE_DIR / "lazer" / "client.realm",
-    ))
-
-def resolve_test_data_source(root: Path) -> Path:
-    candidates = (
-        root / "tests" / ".data",
-        root / ".data",
-        root / "data",
-    )
-
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-
-    return root
-
-def download_test_data() -> None:
-    test_archive_dir = TESTS_BUILD_DIR / "test-downloads"
-    test_archive_path = test_archive_dir / "data.tar.gz"
-    print(f"[ez] downloading test data from {TEST_DATA_URL}")
-    test_archive_dir.mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(TEST_DATA_URL, test_archive_path)
-
-def extract_test_data() -> None:
-    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
-    test_extract_dir = TESTS_BUILD_DIR / "data.extract"
-
-    if test_extract_dir.exists() or test_extract_dir.is_symlink():
-        clear_dir(test_extract_dir)
-
-    test_extract_dir.mkdir(parents=True, exist_ok=True)
-
-    with tarfile.open(test_archive_path, "r:gz") as archive:
-        archive.extractall(test_extract_dir)
-
-    source_dir = resolve_test_data_source(test_extract_dir)
-
-    if TEST_DATA_CACHE_DIR.exists() or TEST_DATA_CACHE_DIR.is_symlink():
-        clear_dir(TEST_DATA_CACHE_DIR)
-
-    shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
-    clear_dir(test_extract_dir)
-
-def ensure_test_data() -> None:
-    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
-
-    if has_test_data():
-        return
-
-    if not test_archive_path.exists():
-        download_test_data()
-
-    extract_test_data()
-
-    if not has_test_data():
-        print("[ez] test data is invalid after extraction...")
-        sys.exit(1)
-
-def prepare_test_runtime_data() -> None:
-    test_data_dir = TESTS_BUILD_DIR / "data"
-    test_temp_dir = TESTS_BUILD_DIR / "temp"
-
-    if test_data_dir.exists() or test_data_dir.is_symlink():
-        clear_dir(test_data_dir)
-
-    if test_temp_dir.exists() or test_temp_dir.is_symlink():
-        clear_dir(test_temp_dir)
-
-    shutil.copytree(TEST_DATA_CACHE_DIR, test_data_dir)
-    test_temp_dir.mkdir(parents=True, exist_ok=True)
-
-def cleanup_test_runtime_data() -> None:
-    test_data_dir = TESTS_BUILD_DIR / "data"
-    test_temp_dir = TESTS_BUILD_DIR / "temp"
-
-    if test_data_dir.exists() or test_data_dir.is_symlink():
-        clear_dir(test_data_dir)
-
-    if test_temp_dir.exists() or test_temp_dir.is_symlink():
-        clear_dir(test_temp_dir)
 
 def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
     cache = BUILD_DIR / "CMakeCache.txt"
@@ -361,7 +317,7 @@ def configure(build_type: str, target_platform: str, build_tests: bool = False) 
     print(f"[ez] unsupported platform: {SYSTEM}")
     return 1
 
-def build(build_type: str | None) -> int:
+def build(build_type: str | None, should_run: bool) -> int:
     cached_build_type = read_cached_build_type()
     cached_build_tests = read_cached_build_tests()
     selected_build_type = build_type or cached_build_type or "release"
@@ -386,109 +342,104 @@ def build(build_type: str | None) -> int:
     ], env=env)
 
     prepare_resources()
+
+    if should_run:
+        _ = run_binary()
+
     return code
 
-def prepare_flatpak_assets() -> None:
-    shutil.copy2(CWD / "resources" / "icons" / "icon.png", CWD / "flatpak" / f"{FLATPAK_APP_ID}.png")
+# --- tests ---
 
-def package_flatpak() -> int:
-    DIST_DIR.mkdir(exist_ok=True)
-    prepare_flatpak_assets()
+TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
+TESTS_BUILD_DIR = BUILD_DIR / "tests"
+TEST_DATA_CACHE_DIR = TESTS_BUILD_DIR / "test-data"
 
-    build_code, _ = run([
-        "flatpak-builder",
-        f"--repo={str(FLATPAK_REPO_DIR)}",
-        "--force-clean",
-        "--delete-build-dirs",
-        "--state-dir",
-        str(FLATPAK_STATE_DIR),
-        str(FLATPAK_BUILD_DIR),
-        str(FLATPAK_MANIFEST_PATH)
-    ], check=False)
+def has_test_data() -> bool:
+    return all(marker.exists() for marker in (
+        TEST_DATA_CACHE_DIR / "osu" / "osu!.db",
+        TEST_DATA_CACHE_DIR / "osu" / "collection.db",
+        TEST_DATA_CACHE_DIR / "lazer" / "client.realm",
+    ))
 
-    if build_code != 0:
-        return build_code
-
-    bundle_code, _ = run([
-        "flatpak",
-        "build-bundle",
-        str(FLATPAK_REPO_DIR),
-        str(FLATPAK_BUNDLE_PATH),
-        FLATPAK_APP_ID
-    ], check=False)
-
-    return bundle_code
-
-def package(package_type: str | None) -> int:
-    selected_package_type = package_type or "flatpak"
-
-    if selected_package_type == "flatpak":
-        return package_flatpak()
-
-    if selected_package_type == "inno":
-        print("[ez] not implemented yet")
-        return 1
-
-    if selected_package_type == "portable":
-        print("[ez] not implemented yet")
-        return 1
-
-    print(f"[ez] unsupported package type: {selected_package_type}")
-    return 1
-
-def prepare_resources():
-    shutil.copytree(CWD / "resources", BUILD_DIR / "resources", dirs_exist_ok=True)
-
-def run_binary() -> int:
-    candidates: list[Path] = []
-
-    if SYSTEM == "Linux":
-        candidates = [BUILD_DIR / BINARY_NAME, BUILD_DIR / f"{BINARY_NAME}.exe"]
-    elif SYSTEM == "Windows":
-        candidates = [
-            BUILD_DIR / f"{BINARY_NAME}.exe",
-            BUILD_DIR / "Release" / f"{BINARY_NAME}.exe",
-            BUILD_DIR / "Debug"   / f"{BINARY_NAME}.exe",
-        ]
-    else:
-        print(f"[ez] unsupported platform: {SYSTEM}")
-        return 1
-
-    binary = next((p for p in candidates if p.exists()), None)
-
-    if binary is None:
-        print("[ez] binary not found")
-        return 1
-
-    return run(str(binary))[0]
-
-def build_tests(build_type: str | None) -> int:
-    cached_build_type = read_cached_build_type()
-    cached_build_tests = read_cached_build_tests()
-    selected_build_type = build_type or cached_build_type or "release"
-
-    needs_configure = (
-        not is_build_configured()
-        or selected_build_type != cached_build_type
-        or cached_build_tests is None
-        or cached_build_tests is not True
+def resolve_test_data_source(root: Path) -> Path:
+    candidates = (
+        root / "tests" / ".data",
+        root / ".data",
+        root / "data",
     )
 
-    if needs_configure and configure(selected_build_type, "auto", build_tests=True) != 0:
-        return 1
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
 
-    env = load_msvc_env() if SYSTEM == "Windows" else None
-    code, _ = run([
-        "cmake",
-        "--build",
-        str(BUILD_DIR),
-        "--parallel",
-        str(get_cpu_count()),
-    ], env=env)
+    return root
 
-    return code
+def download_test_data() -> None:
+    test_archive_dir = TESTS_BUILD_DIR / "test-downloads"
+    test_archive_path = test_archive_dir / "data.tar.gz"
+    print(f"[ez] downloading test data from {TEST_DATA_URL}")
+    test_archive_dir.mkdir(parents=True, exist_ok=True)
+    _ = urllib.request.urlretrieve(TEST_DATA_URL, test_archive_path)
 
-def get_test_environment() -> dict:
+def extract_test_data() -> None:
+    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
+    test_extract_dir = TESTS_BUILD_DIR / "data.extract"
+
+    if test_extract_dir.exists() or test_extract_dir.is_symlink():
+        clear_dir(test_extract_dir)
+
+    test_extract_dir.mkdir(parents=True, exist_ok=True)
+
+    with tarfile.open(test_archive_path, "r:gz") as archive:
+        archive.extractall(test_extract_dir)
+
+    source_dir = resolve_test_data_source(test_extract_dir)
+
+    if TEST_DATA_CACHE_DIR.exists() or TEST_DATA_CACHE_DIR.is_symlink():
+        clear_dir(TEST_DATA_CACHE_DIR)
+
+    _ = shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
+    clear_dir(test_extract_dir)
+
+def ensure_test_data() -> None:
+    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
+
+    if has_test_data():
+        return
+
+    if not test_archive_path.exists():
+        download_test_data()
+
+    extract_test_data()
+
+    if not has_test_data():
+        print("[ez] test data is invalid after extraction...")
+        sys.exit(1)
+
+def prepare_test_runtime_data() -> None:
+    test_data_dir = TESTS_BUILD_DIR / "data"
+    test_temp_dir = TESTS_BUILD_DIR / "temp"
+
+    if test_data_dir.exists() or test_data_dir.is_symlink():
+        clear_dir(test_data_dir)
+
+    if test_temp_dir.exists() or test_temp_dir.is_symlink():
+        clear_dir(test_temp_dir)
+
+    _ = shutil.copytree(TEST_DATA_CACHE_DIR, test_data_dir)
+    test_temp_dir.mkdir(parents=True, exist_ok=True)
+
+def cleanup_test_runtime_data() -> None:
+    test_data_dir = TESTS_BUILD_DIR / "data"
+    test_temp_dir = TESTS_BUILD_DIR / "temp"
+
+    if test_data_dir.exists() or test_data_dir.is_symlink():
+        clear_dir(test_data_dir)
+
+    if test_temp_dir.exists() or test_temp_dir.is_symlink():
+        clear_dir(test_temp_dir)
+
+def get_test_environment() -> Mapping[str, str]:
     env = os.environ.copy()
 
     if not IS_CI:
@@ -525,31 +476,240 @@ def run_tests(build_type: str | None) -> int:
     finally:
         cleanup_test_runtime_data()
 
+def build_tests(build_type: str | None) -> int:
+    cached_build_type = read_cached_build_type()
+    cached_build_tests = read_cached_build_tests()
+    selected_build_type = build_type or cached_build_type or "release"
+
+    needs_configure = (
+        not is_build_configured()
+        or selected_build_type != cached_build_type
+        or cached_build_tests is None
+        or cached_build_tests is not True
+    )
+
+    if needs_configure and configure(selected_build_type, "auto", build_tests=True) != 0:
+        return 1
+
+    env = load_msvc_env() if SYSTEM == "Windows" else None
+    code, _ = run([
+        "cmake",
+        "--build",
+        str(BUILD_DIR),
+        "--parallel",
+        str(get_cpu_count()),
+    ], env=env)
+
+    return code
+
+# --- packaging / release ---
+
+FLATPAK_BUILD_DIR = DIST_DIR / "flatpak-build"
+FLATPAK_REPO_DIR = DIST_DIR / "flatpak-repo"
+FLATPAK_STATE_DIR = DIST_DIR / ".flatpak-builder"
+FLATPAK_BUNDLE_PATH = DIST_DIR / "osu-stuff.flatpak"
+FLATPAK_APP_ID = "org.mezleca.osu-stuff"
+FLATPAK_MANIFEST_PATH = CWD / "resources" / "packaging" / "flatpak" / f"{FLATPAK_APP_ID}.yml"
+APPIMAGE_BUILD_DIR = DIST_DIR / "appimage"
+APPIMAGE_APPDIR = APPIMAGE_BUILD_DIR / "AppDir"
+APPIMAGE_PATH = DIST_DIR / f"{BINARY_NAME}-x86_64.AppImage"
+PACKAGING_DIR = CWD / "resources" / "packaging"
+RUNTIME_RESOURCES_DIR = CWD / "resources" / "runtime"
+APPIMAGE_ICON_PATH = PACKAGING_DIR / f"{FLATPAK_APP_ID}.png"
+
+def prepare_resources() -> None:
+    _ = shutil.copytree(RUNTIME_RESOURCES_DIR, BUILD_DIR / "resources", dirs_exist_ok=True)
+
+def package(package_type: str | None) -> int:
+    selected_package_type = package_type or "flatpak"
+
+    if selected_package_type == "flatpak":
+        return package_flatpak()
+
+    if selected_package_type == "appimage":
+        return package_appimage()
+
+    if selected_package_type == "inno":
+        print("[ez] not implemented yet")
+        return 1
+
+    if selected_package_type == "portable":
+        print("[ez] not implemented yet")
+        return 1
+
+    print(f"[ez] unsupported package type: {selected_package_type}")
+    return 1
+
+def package_appimage() -> int:
+    linuxdeploy = find_linuxdeploy()
+
+    if linuxdeploy is None:
+        print("[ez] linuxdeploy not found\nset LINUXDEPLOY or place it in the project root")
+        return 1
+
+    if build(None, False) != 0:
+        return 1
+
+    prepare_appimage_assets()
+
+    if APPIMAGE_BUILD_DIR.exists():
+        clear_dir(APPIMAGE_BUILD_DIR)
+
+    APPIMAGE_BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    install_code, _ = run([
+        "cmake",
+        "--install",
+        str(BUILD_DIR),
+        "--prefix",
+        str(APPIMAGE_APPDIR / "usr"),
+    ], check=False)
+
+    if install_code != 0:
+        return install_code
+
+    env = os.environ.copy()
+    env["OUTPUT"] = str(APPIMAGE_PATH)
+
+    return run([
+        str(linuxdeploy),
+        "--appdir",
+        str(APPIMAGE_APPDIR),
+        "--desktop-file",
+        str(PACKAGING_DIR / f"{FLATPAK_APP_ID}.desktop"),
+        "--icon-file",
+        str(APPIMAGE_ICON_PATH),
+        "--output",
+        "appimage",
+    ], env=env, check=False)[0]
+
+def find_linuxdeploy() -> Path | None:
+    configured_path = os.environ.get("LINUXDEPLOY")
+    candidates = [
+        Path(configured_path) if configured_path else None,
+        CWD / "linuxdeploy-x86_64.AppImage",
+    ]
+
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+
+    executable = shutil.which("linuxdeploy")
+    return Path(executable) if executable else None
+
+def prepare_flatpak_assets() -> None:
+    _ = shutil.copy2(RUNTIME_RESOURCES_DIR / "icons" / "icon.png", PACKAGING_DIR / "flatpak" / f"{FLATPAK_APP_ID}.png")
+
+def prepare_appimage_assets() -> None:
+    _ = shutil.copy2(RUNTIME_RESOURCES_DIR / "icons" / "icon.png", APPIMAGE_ICON_PATH)
+
+def package_flatpak() -> int:
+    DIST_DIR.mkdir(exist_ok=True)
+    prepare_flatpak_assets()
+
+    build_code, _ = run([
+        "flatpak-builder",
+        f"--repo={FLATPAK_REPO_DIR}",
+        "--force-clean",
+        "--delete-build-dirs",
+        "--state-dir",
+        str(FLATPAK_STATE_DIR),
+        str(FLATPAK_BUILD_DIR),
+        str(FLATPAK_MANIFEST_PATH)
+    ], check=False)
+
+    if build_code != 0:
+        return build_code
+
+    bundle_code, _ = run([
+        "flatpak",
+        "build-bundle",
+        str(FLATPAK_REPO_DIR),
+        str(FLATPAK_BUNDLE_PATH),
+        FLATPAK_APP_ID
+    ], check=False)
+
+    return bundle_code
+
+def run_binary() -> int:
+    candidates: list[Path] = []
+
+    if SYSTEM == "Linux":
+        candidates = [BUILD_DIR / BINARY_NAME, BUILD_DIR / f"{BINARY_NAME}.exe"]
+    else:
+        candidates = [
+            BUILD_DIR / f"{BINARY_NAME}.exe",
+            BUILD_DIR / "Release" / f"{BINARY_NAME}.exe",
+            BUILD_DIR / "Debug"   / f"{BINARY_NAME}.exe",
+        ]
+
+    binary = next((p for p in candidates if p.exists()), None)
+
+    if binary is None:
+        print("[ez] binary not found")
+        return 1
+
+    return run(str(binary))[0]
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    parser.add_argument("command", choices=["init", "configure", "format", "build", "build-tests", "package", "clean", "run", "tests"])
-    parser.add_argument("--type", choices=["debug", "release"], default=None, dest="build_type")
-    parser.add_argument("--package-type", choices=["flatpak", "inno", "portable"], default=None, dest="package_type")
-    parser.add_argument("--platform", choices=["auto", "linux", "windows"], default="auto")
-    parser.add_argument("--run", action="store_true")
+    _ = subparsers.add_parser("init")
+    _ = subparsers.add_parser("format")
+    _ = subparsers.add_parser("clean")
 
-    args = parser.parse_args()
+    configure_parser = subparsers.add_parser("configure")
+    _ = configure_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+    _ = configure_parser.add_argument("--platform", choices=["auto", "linux", "windows"], default="auto")
+
+    build_parser = subparsers.add_parser("build")
+    _ = build_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+    _ = build_parser.add_argument("--run", action="store_true")
+
+    build_tests_parser = subparsers.add_parser("build-tests")
+    _ = build_tests_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+
+    tests_parser = subparsers.add_parser("tests")
+    _ = tests_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+
+    package_parser = subparsers.add_parser("package")
+    _ = package_parser.add_argument(
+        "--type",
+        choices=["flatpak", "appimage", "inno", "portable"],
+        dest="package_type",
+    )
+
+    _ = subparsers.add_parser("run")
+
+    parse_note_parser = subparsers.add_parser("parse-note")
+    _ = parse_note_parser.add_argument(
+        "--version",
+        default="v0.0.0",
+        help="target version (e.g. v3.0.0)",
+    )
+    _ = parse_note_parser.add_argument(
+        "--dest",
+        default="",
+        help="output destination (optional)",
+    )
+
+    args = cast(Arguments, cast(object, parser.parse_args()))
 
     commands = {
-        "init":      init,
+        "init": init,
         "configure": lambda: configure(
             args.build_type or "release",
             args.platform,
             build_tests=(args.build_type or "release") == "debug",
         ),
-        "build":     lambda: build(args.build_type),
-        "build-tests":     lambda: build_tests(args.build_type),
-        "package":   lambda: package(args.package_type),
-        "format":    format_code,
-        "clean":     clean,
-        "run":       run_binary,
-        "tests":      lambda: run_tests(args.build_type),
+        "build": lambda: build(args.build_type, args.run),
+        "build-tests": lambda: build_tests(args.build_type),
+        "package": lambda: package(args.package_type),
+        "format": format_code,
+        "clean": clean,
+        "run": run_binary,
+        "parse-note": lambda: parse_release_note(args.version, args.dest),
+        "tests": lambda: run_tests(args.build_type),
     }
 
     exit_code = commands[args.command]()

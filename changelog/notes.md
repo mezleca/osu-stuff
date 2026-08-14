@@ -548,3 +548,6 @@ radio volume:
 - fix(cli): fix electron always starting in 'dev mode', cleanup by @mezleca in https://github.com/mezleca/osu-stuff/pull/126
 
 **Full Changelog**: https://github.com/mezleca/osu-stuff/compare/v2.1.1...v2.2.0
+
+# v0.0.0
+:3
