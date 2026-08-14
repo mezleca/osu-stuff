@@ -31,7 +31,7 @@ void CollectionTab::setup() {
     auto add_notification_button = std::make_unique<ui::ButtonWidget>("add notification");
 
     add_notification_button->on_event = [notification_manager](ui::UiEvent& event) {
-        if (event.type != ui::EventType::Click) {
+        if (event.type != ui::EventType::Click || notification_manager == nullptr) {
             return;
         }
 

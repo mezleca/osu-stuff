@@ -35,7 +35,7 @@ namespace ui {
         void render_style_properties();
         void render_style_variables(const Style& style);
         void set_enabled(bool enabled);
-        bool handle_select_event(const SDL_Event& event, SDL_WindowID main_window_id);
+        bool handle_select_event(const SDL_Event& event, bool mouse_event, SDL_WindowID main_window_id);
         void set_select_mode(bool enabled, bool wait_for_release = false);
         [[nodiscard]] bool ready() const;
 

@@ -64,7 +64,7 @@ public:
     void on_draw() override;
     void close() override;
     void set_text(std::string_view text) {
-        m_text.set(text.data());
+        m_text.set(std::string{text});
     }
 
     std::function<void()> m_onclose = nullptr;

@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -20,15 +21,19 @@ namespace ui {
 
         Node(const Node&) = delete;
         Node& operator=(const Node&) = delete;
-        Node(Node&& other) noexcept;
-        Node& operator=(Node&& other) noexcept;
-
-        void add(std::unique_ptr<Node> child);
+        bool add(std::unique_ptr<Node> child);
 
         template <typename T>
         T& add_child(std::unique_ptr<T> child) {
+            if (child == nullptr || child.get() == this) {
+                throw std::invalid_argument("a node cannot be added as its own child");
+            }
+
             T* result = child.get();
-            add(std::move(child));
+            if (!add(std::move(child))) {
+                throw std::logic_error("failed to add node child");
+            }
+
             return *result;
         }
 

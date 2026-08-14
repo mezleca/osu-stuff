@@ -34,6 +34,7 @@ static constexpr float HEADER_SPACING = 8.0F;
 static constexpr float SELECT_RADIUS = 5.0F;
 
 static_assert(IM_ARRAYSIZE(ALIGNMENT_NAMES) == static_cast<int>(ui::Anchor::Custom) + 1);
+static_assert(IM_ARRAYSIZE(ALIGNMENT_NAMES) == static_cast<int>(ui::Origin::Custom) + 1);
 static_assert(IM_ARRAYSIZE(STYLE_NAMES) == static_cast<int>(ui::StyleType::_COUNT));
 
 namespace ui {
@@ -199,19 +200,17 @@ namespace ui {
         ImGui::SetCurrentContext(previous_context);
     }
 
-    bool Debugger::handle_select_event(const SDL_Event& event, SDL_WindowID main_window_id) {
-        if (!m_select_mode) {
+    bool Debugger::handle_select_event(const SDL_Event& event, bool mouse_event, SDL_WindowID main_window_id) {
+        if (!m_select_mode || !mouse_event || event.type != SDL_EVENT_MOUSE_BUTTON_DOWN ||
+            event.button.windowID != main_window_id || event.button.button != SDL_BUTTON_LEFT) {
             return false;
         }
 
-        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.windowID == main_window_id &&
-            event.button.button == SDL_BUTTON_LEFT) {
-            if (Node* clicked_node = m_root.input_router().node_at({event.button.x, event.button.y});
-                clicked_node != nullptr) {
-                m_target = clicked_node;
-                m_scroll_to_target = true;
-                set_select_mode(false, true);
-            }
+        if (Node* clicked_node = m_root.input_router().node_at({event.button.x, event.button.y});
+            clicked_node != nullptr) {
+            m_target = clicked_node;
+            m_scroll_to_target = true;
+            set_select_mode(false, true);
         }
 
         return true;
@@ -245,7 +244,7 @@ namespace ui {
                 break;
         }
 
-        if (handle_select_event(*event, main_window_id)) {
+        if (handle_select_event(*event, mouse_event, main_window_id)) {
             return;
         }
 
@@ -645,18 +644,19 @@ namespace ui {
                 ImGui::PopStyleVar();
                 ImGui::EndChild();
             }
-            ImGui::End();
-            ImGui::PopStyleVar();
-
-            ImGui::Render();
-            glViewport(0, 0, static_cast<int>(display_size.x), static_cast<int>(display_size.y));
-            glClearColor(ui_theme::BG_COLOR.x, ui_theme::BG_COLOR.y, ui_theme::BG_COLOR.z, ui_theme::BG_COLOR.w);
-            glClear(GL_COLOR_BUFFER_BIT);
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-            m_window->swap();
-
-            m_main_window.make_current();
-            ImGui::SetCurrentContext(main_context);
         }
+
+        ImGui::End();
+        ImGui::PopStyleVar();
+
+        ImGui::Render();
+        glViewport(0, 0, static_cast<int>(display_size.x), static_cast<int>(display_size.y));
+        glClearColor(ui_theme::BG_COLOR.x, ui_theme::BG_COLOR.y, ui_theme::BG_COLOR.z, ui_theme::BG_COLOR.w);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        m_window->swap();
+
+        m_main_window.make_current();
+        ImGui::SetCurrentContext(main_context);
     }
 } // namespace ui

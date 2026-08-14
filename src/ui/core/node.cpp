@@ -19,49 +19,16 @@ namespace ui {
     Node::Node(std::string id) : m_id(std::move(id)) {
     }
 
-    Node::Node(Node&& other) noexcept
-        : on_event(std::move(other.on_event)), m_id(std::move(other.m_id)), m_children(std::move(other.m_children)),
-          m_visible(other.m_visible), m_cancelable(other.m_cancelable), m_layout(std::move(other.m_layout)) {
-        m_draw_time_ms = other.m_draw_time_ms;
-        for (const auto& child : m_children) {
-            child->m_parent = this;
-        }
-        other.m_parent = nullptr;
-    }
-
-    Node& Node::operator=(Node&& other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-
-        Node* existing_parent = m_parent;
-
-        m_id = std::move(other.m_id);
-        m_children = std::move(other.m_children);
-        m_visible = other.m_visible;
-        m_cancelable = other.m_cancelable;
-        m_layout = std::move(other.m_layout);
-        m_draw_time_ms = other.m_draw_time_ms;
-        on_event = std::move(other.on_event);
-        m_parent = existing_parent;
-
-        for (const auto& child : m_children) {
-            child->m_parent = this;
-        }
-
-        other.m_parent = nullptr;
-        return *this;
-    }
-
-    void Node::add(std::unique_ptr<Node> child) {
+    bool Node::add(std::unique_ptr<Node> child) {
         if (child == nullptr || child.get() == this) {
-            return;
+            return false;
         }
 
         // a node has only one owner
         // parent only links back for event bubbling.
         child->m_parent = this;
         m_children.emplace_back(std::move(child));
+        return true;
     }
 
     std::unique_ptr<Node> Node::remove(Node& child) {

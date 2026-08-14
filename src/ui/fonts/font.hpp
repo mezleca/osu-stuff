@@ -29,6 +29,10 @@ namespace ui {
 
         [[nodiscard]]
         ImFont* get(int size) {
+            if (m_io == nullptr) {
+                return nullptr;
+            }
+
             auto font_it = m_fonts.find(size);
 
             if (font_it == m_fonts.end()) {
@@ -43,7 +47,7 @@ namespace ui {
     private:
         ImFont* load_font_variation(int size);
 
-        ImGuiIO* m_io;
+        ImGuiIO* m_io = nullptr;
         std::string m_font_location;
         std::unordered_map<int, ImFont*> m_fonts;
         ImFontConfig m_cfg;

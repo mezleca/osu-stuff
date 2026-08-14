@@ -13,9 +13,6 @@ namespace ui {
         }
 
         virtual ~StyledNode() = default;
-        StyledNode(StyledNode&&) noexcept = default;
-        StyledNode& operator=(StyledNode&&) noexcept = default;
-
         StyledNode(const StyledNode&) = delete;
         StyledNode& operator=(const StyledNode&) = delete;
         [[nodiscard]] Style& style() {

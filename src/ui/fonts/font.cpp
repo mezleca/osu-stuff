@@ -9,6 +9,10 @@ void ui::Font::initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* 
 }
 
 ImFont* ui::Font::load_font_variation(int size) {
+    if (m_io == nullptr || m_font_location.empty()) {
+        return nullptr;
+    }
+
     std::cout << "[ui] loading " << m_font_location << " (" << size << ")\n";
 
     ImFont* font = m_io->Fonts->AddFontFromFileTTF(m_font_location.c_str(), static_cast<float>(size), &m_cfg);

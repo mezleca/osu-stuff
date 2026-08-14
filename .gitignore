@@ -76,7 +76,7 @@ resources/packaging/flatpak/org.mezleca.osu-stuff.png
 resources/runtime/icons/icon.ico
 
 # local docs / notes about future changes
-# most of them are either ideias about future features / systems, or just codex roadmaps
+# most of them are either ideas about future features / systems, or just codex roadmaps
 docs/
 
 # other

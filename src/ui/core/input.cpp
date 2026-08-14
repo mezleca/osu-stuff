@@ -202,10 +202,14 @@ namespace ui {
     }
 
     bool InputRouter::dispatch(Node& target, UiEvent& event) {
-        for (Node* current = &target; current != nullptr && !event.propagation_stopped; current = current->parent()) {
+        Node* current = &target;
+        while (current != nullptr && !event.propagation_stopped) {
+            Node* next = current->parent();
             if (current->on_event) {
                 current->on_event(event);
             }
+
+            current = next;
         }
 
         return event.handled;

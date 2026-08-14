@@ -112,36 +112,6 @@ TEST_CASE("ui node exposes optional content and measures draw time") {
     REQUIRE(root.draw_time_ms() >= 0.0);
 }
 
-TEST_CASE("moving a node preserves its state and event handler") {
-    Node source("source");
-    bool handled = false;
-    source.set_visible(false);
-    source.set_cancelable(true);
-    source.layout().set_size({40.0F, 20.0F});
-    source.layout().set_anchor(Anchor::BottomRight);
-    source.layout().set_offset({2.0F, 3.0F});
-    source.on_event = [&handled](UiEvent&) { handled = true; };
-
-    Node moved(std::move(source));
-    REQUIRE_FALSE(moved.visible());
-    REQUIRE(moved.cancelable());
-    REQUIRE(moved.layout().size().x == 40.0F);
-    REQUIRE(moved.layout().anchor() == Anchor::BottomRight);
-    REQUIRE(moved.layout().offset().y == 3.0F);
-    REQUIRE(moved.on_event);
-
-    Node assigned("assigned");
-    assigned = std::move(moved);
-    REQUIRE_FALSE(assigned.visible());
-    REQUIRE(assigned.cancelable());
-    REQUIRE(assigned.layout().size().x == 40.0F);
-    REQUIRE(assigned.layout().anchor() == Anchor::BottomRight);
-
-    UiEvent event = click_event();
-    assigned.on_event(event);
-    REQUIRE(handled);
-}
-
 TEST_CASE("ui events bubble from target to parents") {
     std::vector<std::string> events;
     auto parent = std::make_unique<EventNode>("parent", events);

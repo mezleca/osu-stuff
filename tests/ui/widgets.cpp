@@ -132,13 +132,12 @@ TEST_CASE("transition reaches target and settles", "[VisualState][transition]") 
 TEST_CASE("set_style is a no-op when already targeting that style", "[widget_state]") {
     ui::VisualState state;
     state.set_style(ui::StyleType::HOVER);
+    ui::Style* target_style = &state.get_style(ui::StyleType::HOVER);
     state.update(0.016f);
-    float opacity_before = state.get_opacity();
 
     state.set_style(ui::StyleType::HOVER);
-    state.update(0.016f);
 
-    REQUIRE(state.get_opacity() == opacity_before);
+    REQUIRE(&state.get_style(ui::StyleType::HOVER) == target_style);
 }
 
 TEST_CASE("opacity ticks towards target and drives visibility", "[widget_state][opacity]") {

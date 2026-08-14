@@ -52,6 +52,11 @@ public:
     }
 
     void clear() {
+        if (m_rendering) {
+            m_pending_removals.insert(m_pending_removals.end(), m_notifications.begin(), m_notifications.end());
+            return;
+        }
+
         while (!m_notifications.empty()) {
             static_cast<void>(remove(m_notifications.back()));
         }

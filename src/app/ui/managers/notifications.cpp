@@ -58,8 +58,8 @@ void UINotificationManager::draw() {
 
     for (auto it = m_notifications.rbegin(); it != m_notifications.rend(); ++it) {
         if (offset.y >= max_height) {
-            const ImVec2& size = m_more_notifications->state().get_size();
             m_more_notifications->set_text(std::format("{} more...", m_notifications.size() - index));
+            const ImVec2& size = m_more_notifications->state().get_size();
             m_more_notifications->set_offset({offset.x - size.x, offset.y});
             m_more_notifications->draw();
             break;
