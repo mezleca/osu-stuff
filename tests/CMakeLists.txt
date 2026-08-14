@@ -4,7 +4,8 @@ add_executable(tests
     osu_api_tests.cpp
     legacy-parser.cpp
     osdb-parser.cpp
-    ui-widgets.cpp
+    ui/widgets.cpp
+    ui/core.cpp
     utils.cpp
     helper.hpp
 )

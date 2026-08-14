@@ -6,19 +6,22 @@
 #include <string>
 #include <memory>
 
-class UIWidget : public UIObject {
-public:
-    explicit UIWidget(std::string id) : UIObject(std::move(id)) {
-    }
-
-    [[nodiscard]] WidgetState& state() {
-        if (m_state == nullptr) {
-            m_state = std::make_unique<WidgetState>();
+namespace ui {
+    class Widget : public StyledNode {
+    public:
+        explicit Widget(std::string id) : StyledNode(std::move(id)) {
         }
 
-        return *m_state;
-    }
+        [[nodiscard]] VisualState& state() {
+            if (m_state == nullptr) {
+                m_state = std::make_unique<VisualState>();
+            }
 
-private:
-    std::unique_ptr<WidgetState> m_state;
-};
+            return *m_state;
+        }
+
+    private:
+        std::unique_ptr<VisualState> m_state;
+    };
+
+} // namespace ui
