@@ -1,15 +1,16 @@
 #pragma once
 
-#include "../../../ui/widgets/base/widget.hpp"
-#include "../../../ui/widgets/base/text.hpp"
+#include "../../../ui/widgets/widget.hpp"
+#include "../../../ui/widgets/text-value.hpp"
 
 class IconTexture;
+class UI;
 
 class TabButtonWidget : public ui::Widget {
 public:
-    explicit TabButtonWidget(std::string name, bool draw_line = true, bool is_title = false);
+    TabButtonWidget(UI& ui, std::string name, bool draw_line = true, bool is_title = false);
 
-    void on_draw() override;
+    [[nodiscard]] bool on_draw() override;
 
     [[nodiscard]] std::optional<std::string> get_content() const override;
     bool set_content(std::string content) override;
@@ -22,9 +23,11 @@ public:
         return m_selected;
     }
 
-    ui::TextValue<std::string> m_name;
+    ui::TextValue m_name;
 
 private:
+    UI& m_ui;
     bool m_draw_line = true;
+    bool m_title = false;
     bool m_selected = false;
 };

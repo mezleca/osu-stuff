@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../../ui/core/node.hpp"
+#include "../../../ui/tree/node.hpp"
 
 #include <string>
 #include <utility>
 
+class UI;
+
 class UITab : public ui::Node {
 public:
-    explicit UITab(std::string id) : ui::Node(std::move(id)) {}
-
-    virtual ~UITab();
+    UITab(UI& ui, std::string id) : ui::Node(std::move(id)), m_ui(ui) {}
 
     void draw() override;
     [[nodiscard]] bool is_initialized() const {
@@ -20,10 +20,15 @@ public:
     virtual void render() = 0;
 
 protected:
+    [[nodiscard]] UI& ui() {
+        return m_ui;
+    }
+
     void mark_initialized() {
         m_initialized = true;
     }
 
 private:
+    UI& m_ui;
     bool m_initialized = false;
 };

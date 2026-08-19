@@ -82,3 +82,4 @@ docs/
 # other
 node_modules/
 __pycache__/
+imgui.ini

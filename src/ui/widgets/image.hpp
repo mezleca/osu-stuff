@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/widget.hpp"
+#include "widget.hpp"
 
 #include <imgui.h>
 
@@ -11,24 +11,24 @@ namespace ui {
     public:
         explicit ImageWidget(IconTexture* texture = nullptr);
 
-        void set_texture(IconTexture* texture) {
+        ImageWidget& set_texture(IconTexture* texture) {
             m_texture = texture;
+            return *this;
         }
 
-        void set_size(ImVec2 size) {
-            m_size = size;
+        ImageWidget& set_size(ImVec2 size) {
             layout().set_size(size);
+            return *this;
         }
 
-        ImVec2 get_size() const {
-            return m_size;
+        [[nodiscard]] const ImVec2& size() const {
+            return layout().size();
         }
 
-        void on_draw() override;
+        [[nodiscard]] bool on_draw() override;
 
     private:
         IconTexture* m_texture = nullptr;
-        ImVec2 m_size = {0.0f, 0.0f};
     };
 
 } // namespace ui

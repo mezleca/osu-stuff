@@ -1,13 +1,11 @@
 #include "detail.hpp"
 #include "../../../ui/widgets/text.hpp"
 
-StatusTab::StatusTab() : UITab("status") {}
+StatusTab::StatusTab(UI& ui) : UITab(ui, "status") {}
 
 void StatusTab::setup() {
-    auto content_layout = std::make_unique<ui::ChildLayout>("##status-content");
-    m_content_layout = content_layout.get();
-    m_content_layout->add(std::make_unique<ui::TextWidget>("status"));
-    add(std::move(content_layout));
+    m_content_layout = &add_child<ui::StackContainer>("##status-content");
+    m_content_layout->add_child<ui::TextWidget>("status");
     mark_initialized();
 }
 
@@ -16,6 +14,5 @@ void StatusTab::render() {
         return;
     }
 
-    m_content_layout->set_size({0.0F, 0.0F});
     m_content_layout->draw();
 }

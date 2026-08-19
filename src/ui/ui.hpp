@@ -1,49 +1,57 @@
 #pragma once
 
-#include "core/root.hpp"
-#include "core/debugger.hpp"
-#include "core/window.hpp"
-#include "fonts/font.hpp"
+#include "style/theme.hpp"
+#include "runtime.hpp"
+#include "imgui/input-bridge.hpp"
+#include "platform/window.hpp"
+#include "resources/assets.hpp"
 
 #include <glad/gl.h>
 #include <imgui.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
-#include <array>
-#include <filesystem>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
-/*
- * an imgui tool that takes care of: layout, containers, styling, other annoying stuff
- * it creates a bunch of abstraction so we dont have to do shit manually every time
- * the initial idea was to create this as a subproject so i could use it when creating similar apps however,
- * since this project relies on very specific imgui / sdl versions
- * i will just copy the files when needed...
- */
-
-class IconTexture;
 class UI;
+class IconTexture;
 
 namespace ui {
-    UI& current();
-}
+    struct WindowConfig {
+        std::string title;
+        ImVec2 size{};
+        Window* shared_context_with = nullptr;
+        SDL_WindowFlags flags = 0;
+    };
 
-namespace ui {
     struct Config {
-        std::array<std::filesystem::path, static_cast<size_t>(FontType::FONT_COUNT)> font_paths;
-        std::filesystem::path icon_path;
+        WindowConfig window;
     };
 } // namespace ui
 
 class UI {
 public:
-    UI(ui::Window& window, ui::Config config);
+    UI(ui::Runtime& runtime, ui::Config config);
     ~UI();
 
+    UI(const UI&) = delete;
+    UI& operator=(const UI&) = delete;
+
+    void exit() {
+        m_done = true;
+    }
+
+    // clears this surface's per-frame input state before the next render pass.
+    void begin_input_frame();
+
+    // makes this surface current and starts its imgui frame.
+    // call once before drawing the root node.
     void begin_frame();
+
+    // renders and presents the current imgui frame, then restores the previous context.
     void end_frame();
+
+    // feeds an sdl event to imgui and dispatches the corresponding ui event.
     void process_sdl_event(SDL_Event* event);
 
     [[nodiscard]] bool is_done() const {
@@ -54,35 +62,61 @@ public:
         return m_ready;
     }
 
-    void exit() {
-        m_done = true;
-    }
-
     [[nodiscard]] ui::Font& get_font(ui::FontType type) {
-        return m_fonts[static_cast<size_t>(type)];
-    }
-
-    [[nodiscard]] ui::InputRouter& input_router() {
-        return m_root.input_router();
-    }
-
-    [[nodiscard]] ui::UiRoot& root() {
-        return m_root;
+        return m_runtime.assets().font(type, m_context, m_io);
     }
 
     [[nodiscard]] const ui::Font& get_font(ui::FontType type) const {
-        return m_fonts[static_cast<size_t>(type)];
+        return m_runtime.assets().font(type, m_context, m_io);
     }
 
-    // textures
+    [[nodiscard]] ui::ImGuiInputBridge& input() {
+        return m_imgui_input;
+    }
+
+    [[nodiscard]] ui::InputRouter& input_router() {
+        return m_input_router;
+    }
+
+    [[nodiscard]] const ui::Theme& theme() const {
+        return m_runtime.theme();
+    }
+
+    [[nodiscard]] ui::Runtime& runtime() {
+        return m_runtime;
+    }
+
+    [[nodiscard]] ui::Node& root() {
+        return *m_container;
+    }
+
+    [[nodiscard]] ui::Window* window() {
+        return m_window.get();
+    }
+
+    [[nodiscard]] ImGuiContext* imgui_context() {
+        return m_context;
+    }
+
     [[nodiscard]] IconTexture* get_texture(std::string_view id);
 
+    void load_theme(ui::Theme theme);
+    void refresh_theme();
+
 private:
-    ui::UiRoot m_root;
-    ui::Debugger m_debugger;
-    ui::Font m_fonts[static_cast<size_t>(ui::FontType::FONT_COUNT)];
-    std::unordered_map<std::string, std::unique_ptr<IconTexture>> m_textures;
+    void initialize();
+    void configure_style(float main_scale);
+    void apply_theme_colors();
+
+    ui::Runtime& m_runtime;
+    ImGuiContext* m_context = nullptr;
+    ImGuiContext* m_previous_context = nullptr;
     ImGuiIO* m_io = nullptr;
+    std::unique_ptr<ui::Window> m_window;
+    std::unique_ptr<ui::Node> m_container;
+    ui::InputRouter m_input_router;
+    ui::ImGuiInputBridge m_imgui_input;
+    ui::Config m_config;
     bool m_done = false;
     bool m_ready = false;
 };

@@ -1,22 +1,25 @@
 #pragma once
 
-#include "base/widget.hpp"
-#include "base/text.hpp"
+#include "widget.hpp"
+#include "text-value.hpp"
 
 #include <imgui.h>
 #include <optional>
 
+class UI;
+
 namespace ui {
     class ButtonWidget : public Widget {
     public:
-        ButtonWidget(std::string text, ImVec2 size = {100.0f, 60.0f});
+        ButtonWidget(UI& ui, std::string text, ImVec2 size = {100.0f, 60.0f});
 
-        void on_draw() override;
+        [[nodiscard]] bool on_draw() override;
         [[nodiscard]] std::optional<std::string> get_content() const override;
         bool set_content(std::string content) override;
 
     private:
-        TextValue<std::string> m_text;
+        UI& m_ui;
+        TextValue m_text;
         ImVec2 m_size;
     };
 

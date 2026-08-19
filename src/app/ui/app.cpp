@@ -1,166 +1,234 @@
 #include "app.hpp"
-#include "constants.hpp"
+#include "../../ui/constants.hpp"
 
 #include "managers/notifications.hpp"
 #include "theme.hpp"
 #include "tabs/detail.hpp"
 #include "widgets/tab-button.hpp"
 
-#include <cstdlib>
+#include "../../ui/diagnostics/debugger.hpp"
+#include "../../ui/imgui/context-scope.hpp"
+#include "../../ui/layout/child-container.hpp"
 
-static app::OsuStuffApp* current_app = nullptr;
+#include <SDL3/SDL_log.h>
+#include <algorithm>
 
-namespace app {
-    class AppHeaderNode final : public ui::Node {
-    public:
-        AppHeaderNode(UI& ui, float& height) : ui::Node("header"), m_ui(ui), m_height(height) {}
+using namespace app;
 
-        void on_draw() override {
-            ImFont* font = m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
-            ImGui::PushFont(font);
-            m_height = ImGui::GetFrameHeight() + app_theme::CONTENT_PADDING * 2.0F;
-            ImGui::PopFont();
+class AppHeaderNode final : public ui::ChildContainer {
+public:
+    AppHeaderNode(UI& ui, float& height) : ui::ChildContainer("header"), m_ui(ui), m_height(height) {
+        set_font(m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM));
+        const ui::Theme& theme = m_ui.theme();
+        state().configure_all_styles([&theme](ui::Style& style) {
+            style.padding({theme.content_padding, theme.content_padding})
+                .background_color(theme.header_background_color)
+                .border(ui::BORDER_BOTTOM)
+                .border_color(theme.header_border_color);
+        });
+    }
 
-            const ImVec2 available = ImGui::GetContentRegionAvail();
-            m_start = ImGui::GetCursorScreenPos();
-            m_width = available.x;
+protected:
+    void on_layout() override {
+        ImFont* font = m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
+        const ui::Theme& theme = m_ui.theme();
+        ImGui::PushFont(font);
+        m_height = ImGui::GetFrameHeight() + theme.content_padding * 2.0F;
+        ImGui::PopFont();
 
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, app_theme::HEADER_BG_COLOR);
-            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0F);
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0F, 0.0F});
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {app_theme::CONTENT_PADDING, app_theme::CONTENT_PADDING});
-            ImGui::BeginChild(
-                "header", {available.x, m_height}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None
-            );
-            ImGui::PushFont(font);
-        }
+        set_size({ImGui::GetContentRegionAvail().x, m_height});
+    }
 
-        void draw_children() override {
-            for (std::size_t index = 0; index < children().size(); ++index) {
-                if (index > 0) {
-                    ImGui::SameLine(0.0F, app_theme::HEADER_TABS_GAP);
-                }
-                children()[index]->draw();
+    void draw_children() override {
+        for (std::size_t index = 0; index < children().size(); ++index) {
+            if (index > 0) {
+                ImGui::SameLine(0.0F, app_theme::HEADER_TABS_GAP);
             }
+
+            children()[index]->draw();
         }
-
-        void on_draw_end() override {
-            ImGui::PopFont();
-
-            const ImVec2 line_start = {m_start.x, m_start.y + m_height - 1.0F};
-            ImGui::GetWindowDrawList()->AddLine(
-                line_start, {m_start.x + m_width, line_start.y}, ImColor(app_theme::HEADER_BORDER_COLOR), 1.0F
-            );
-            ImGui::EndChild();
-            ImGui::PopStyleVar(3);
-            ImGui::PopStyleColor();
-        }
-
-    private:
-        UI& m_ui;
-        float& m_height;
-        ImVec2 m_start = {};
-        float m_width = 0.0F;
-    };
-
-    class AppContentNode final : public ui::Node {
-    public:
-        explicit AppContentNode(UI& ui) : ui::Node("content"), m_ui(ui) {}
-
-        void on_draw() override {
-            ImFont* font = m_ui.get_font(ui::FontType::REGULAR).get(ui::FONT_MEDIUM);
-            ImGui::PushFont(font);
-        }
-
-        void on_draw_end() override {
-            ImGui::PopFont();
-        }
-
-    private:
-        UI& m_ui;
-    };
-
-    class AppRootNode final : public ui::Node {
-    public:
-        AppRootNode() : ui::Node("app-root") {}
-
-        void on_draw() override {
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-            ImGui::Begin("##osu-stuff", nullptr, ui_constants::WINDOW_FLAGS);
-        }
-
-        void on_draw_end() override {
-            ImGui::End();
-        }
-    };
-
-    OsuStuffApp& current() {
-        return *current_app;
     }
 
-    OsuStuffApp::OsuStuffApp(UI& ui) : m_ui(ui) {
-        current_app = this;
+private:
+    UI& m_ui;
+    float& m_height;
+};
 
-        auto& app_root = m_ui.root().emplace_child<AppRootNode>();
-        auto& header = app_root.emplace_child<AppHeaderNode>(m_ui, m_header_end_height);
-        auto& content = app_root.emplace_child<AppContentNode>(m_ui);
+class AppContentNode final : public ui::ChildContainer {
+public:
+    explicit AppContentNode(UI& ui) : ui::ChildContainer("content") {
+        set_font(ui.get_font(ui::FontType::REGULAR).get(ui::FONT_MEDIUM));
+        state().configure_all_styles([](ui::Style& style) { style.padding({0.0F, 0.0F}); });
+    }
+};
 
-        const auto add_tab = [this, &header,
-                              &content](std::unique_ptr<TabButtonWidget> button, std::unique_ptr<UITab> tab) {
-            auto& button_ref = header.add_child(std::move(button));
-            auto& tab_ref = content.add_child(std::move(tab));
-            tab_ref.set_visible(false);
-            m_tabs.push_back({&button_ref, &tab_ref});
+class AppRootNode final : public ui::Node {
+public:
+    explicit AppRootNode(float& header_height) : ui::Node("app-root"), m_header_height(header_height) {}
+
+    bool on_draw() override {
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::Begin("##osu-stuff", nullptr, constants::WINDOW_FLAGS);
+
+        const ImVec2 window_position = ImGui::GetWindowPos();
+        const ImVec2 window_size = ImGui::GetWindowSize();
+        layout().set_size(window_size);
+        layout().set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
+        return true;
+    }
+
+    void on_draw_end() override {
+        ImGui::End();
+    }
+
+    void draw_children() override {
+        if (children().empty()) {
+            return;
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0F, 0.0F});
+        children().front()->draw();
+        ImGui::PopStyleVar();
+        if (children().size() < 2) {
+            return;
+        }
+
+        Node& content = *children()[1];
+        const ImVec2 content_size = {layout().size().x, std::max(0.0F, layout().size().y - m_header_height)};
+        content.layout().set_size(content_size);
+        content.layout().set_anchor(ui::Anchor::TopLeft);
+        content.layout().set_origin(ui::Origin::TopLeft);
+        content.layout().set_offset({0.0F, m_header_height});
+        content.draw();
+
+        for (std::size_t index = 2; index < children().size(); ++index) {
+            children()[index]->draw();
+        }
+    }
+
+private:
+    float& m_header_height;
+};
+
+OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime, std::move(config)) {
+    if (!m_ui.ready()) {
+        SDL_Log("[OsuStuffApp]: UI failed to initialize, app will not run");
+        return;
+    }
+
+    auto& app_root = m_ui.root().add_child<AppRootNode>(m_header_end_height);
+    auto& header = app_root.add_child<AppHeaderNode>(m_ui, m_header_end_height);
+    auto& content = app_root.add_child<AppContentNode>(m_ui);
+    auto& notification_manager = app_root.add_child<UINotificationManager>(m_ui);
+    notification_manager.set_input_layer(ui::InputLayer::Notification);
+    m_notification_manager = &notification_manager;
+
+    const auto add_tab = [this](TabButtonWidget& button, UITab& tab) {
+        tab.set_visible(false);
+        m_tabs.push_back({&button, &tab});
+    };
+
+    add_tab(
+        header.add_child<TabButtonWidget>(m_ui, "osu-stuff", false, true),
+        content.add_child<IndexTab>(m_ui, notification_manager)
+    );
+    add_tab(header.add_child<TabButtonWidget>(m_ui, "collections"), content.add_child<CollectionTab>(m_ui));
+    add_tab(header.add_child<TabButtonWidget>(m_ui, "discover"), content.add_child<DiscoverTab>(m_ui));
+    add_tab(header.add_child<TabButtonWidget>(m_ui, "radio"), content.add_child<RadioTab>(m_ui));
+    add_tab(header.add_child<TabButtonWidget>(m_ui, "config"), content.add_child<ConfigTab>(m_ui));
+    add_tab(header.add_child<TabButtonWidget>(m_ui, "status"), content.add_child<StatusTab>(m_ui));
+
+    UITab& initial_tab = *m_tabs.front().tab;
+    initial_tab.setup();
+    m_tabs.front().button->set_selected(true);
+    initial_tab.set_visible(true);
+
+    for (auto& entry : m_tabs) {
+        entry.button->on_event = [this, current_tab = entry.tab](ui::UiEvent& event) {
+            if (event.type != ui::EventType::Click) {
+                return;
+            }
+
+            if (!current_tab->is_initialized()) {
+                current_tab->setup();
+            }
+
+            for (auto& entry : m_tabs) {
+                entry.button->set_selected(entry.tab == current_tab);
+                entry.tab->set_visible(entry.tab == current_tab);
+            }
+            event.mark_handled();
         };
-
-        add_tab(std::make_unique<TabButtonWidget>("osu-stuff", false, true), std::make_unique<IndexTab>());
-        add_tab(std::make_unique<TabButtonWidget>("collections"), std::make_unique<CollectionTab>());
-        add_tab(std::make_unique<TabButtonWidget>("discover"), std::make_unique<DiscoverTab>());
-        add_tab(std::make_unique<TabButtonWidget>("radio"), std::make_unique<RadioTab>());
-        add_tab(std::make_unique<TabButtonWidget>("config"), std::make_unique<ConfigTab>());
-        add_tab(std::make_unique<TabButtonWidget>("status"), std::make_unique<StatusTab>());
-
-        m_current_tab = m_tabs.front().tab;
-        m_tabs.front().button->set_selected(true);
-        m_current_tab->set_visible(true);
-
-        for (auto& entry : m_tabs) {
-            entry.button->on_event = [this, current_tab = entry.tab](ui::UiEvent& event) {
-                if (event.type != ui::EventType::Click) {
-                    return;
-                }
-
-                for (auto& entry : m_tabs) {
-                    entry.button->set_selected(entry.tab == current_tab);
-                    entry.tab->set_visible(entry.tab == current_tab);
-                }
-
-                m_current_tab = current_tab;
-                event.mark_handled();
-            };
-        }
-
-        auto notification_manager = std::make_unique<UINotificationManager>();
-        m_notification_manager = notification_manager.get();
-        m_ui.root().layer(ui::InputLayer::Notification).add(std::move(notification_manager));
     }
 
-    OsuStuffApp::~OsuStuffApp() {
-        current_app = nullptr;
+    if constexpr (constants::IS_DEBUG_BUILD) {
+        SDL_Log("[OsuStuffApp]: initializing UI debugger");
+        setup_debugger();
+    }
+}
+
+OsuStuffApp::~OsuStuffApp() = default;
+
+void OsuStuffApp::setup_debugger() {
+    m_debugger = std::make_unique<ui::Debugger>(m_ui);
+    m_debugger->setup();
+
+    if (!m_debugger->ready()) {
+        SDL_Log("[OsuStuffApp]: failed to initialize the debugger window, continuing without it");
+        m_debugger.reset();
+        return;
     }
 
-    UINotificationManager* OsuStuffApp::notification_manager() {
-        return m_notification_manager;
+    const ui::ImGuiContextScope scope(m_ui.imgui_context());
+
+    m_debugger->set_style(ImGui::GetStyle());
+    m_debugger->set_icon(m_ui.get_texture("inspect-icon"));
+
+    m_debugger->set_font(ui::FontType::REGULAR, ui::FONT_MEDIUM);
+}
+
+bool OsuStuffApp::ready() const {
+    return m_ui.ready();
+}
+
+bool OsuStuffApp::done() const {
+    return m_ui.is_done();
+}
+
+void OsuStuffApp::process_sdl_event(SDL_Event* event) {
+    if (event == nullptr || !ready()) {
+        return;
     }
 
-    void OsuStuffApp::render() {
-        m_ui.begin_frame();
-        m_notification_manager->set_header_height(m_header_end_height);
-        m_ui.root().draw();
-        m_ui.end_frame();
+    if (m_debugger && m_debugger->process_sdl_event(event)) {
+        return;
     }
 
-} // namespace app
+    m_ui.runtime().process_sdl_event(event);
+}
+
+void OsuStuffApp::render() {
+    if (!ready()) {
+        return;
+    }
+
+    m_ui.begin_frame();
+
+    if (m_debugger) {
+        m_debugger->update();
+    }
+
+    m_notification_manager->set_header_height(m_header_end_height);
+    m_ui.root().draw();
+    if (m_debugger) {
+        m_debugger->draw_highlight();
+    }
+    m_ui.end_frame();
+
+    if (m_debugger) {
+        m_debugger->render();
+    }
+}

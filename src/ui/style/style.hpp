@@ -1,5 +1,6 @@
 #pragma once
 
+#include "theme.hpp"
 #include "variables.hpp"
 
 #include <cstdint>
@@ -27,16 +28,135 @@ namespace ui {
 
     class Style {
     public:
-        ImFont* font = nullptr;
+        Style() : m_padding({}) {
+            m_color.set(default_theme().text_color);
+            m_border_color.set(default_theme().border_color);
+            m_background_color.set(default_theme().transparent);
+        }
 
-        float border_thickness = 1.0f;
-        float border_radius = 4.0f;
+        static void set_default_theme(const Theme& theme) {
+            default_theme() = theme;
+        }
 
-        ColorValue color;
-        ColorValue border_color;
-        ColorValue background_color;
+        [[nodiscard]] static const Theme& default_theme_values() {
+            return default_theme();
+        }
 
-        uint8_t border = BORDER_NONE;
+        [[nodiscard]] ImFont* font() const {
+            return m_font;
+        }
+
+        Style& font(ImFont* value) {
+            m_font = value;
+            return *this;
+        }
+
+        [[nodiscard]] const ImVec2& padding() const {
+            return m_padding;
+        }
+
+        ImVec2& padding() {
+            return m_padding;
+        }
+
+        Style& padding(ImVec2 value) {
+            m_padding = value;
+            return *this;
+        }
+
+        [[nodiscard]] float alpha() const {
+            return m_alpha;
+        }
+
+        float& alpha() {
+            return m_alpha;
+        }
+
+        Style& alpha(float value) {
+            m_alpha = value;
+            return *this;
+        }
+
+        [[nodiscard]] const ColorValue& color() const {
+            return m_color;
+        }
+
+        ColorValue& color() {
+            return m_color;
+        }
+
+        Style& color(ImColor value, float transition_speed = -1.0F) {
+            m_color.set(value);
+            if (transition_speed >= 0.0F) m_color.set_speed(transition_speed);
+            return *this;
+        }
+
+        [[nodiscard]] const ColorValue& border_color() const {
+            return m_border_color;
+        }
+
+        ColorValue& border_color() {
+            return m_border_color;
+        }
+
+        Style& border_color(ImColor value, float transition_speed = -1.0F) {
+            m_border_color.set(value);
+            if (transition_speed >= 0.0F) m_border_color.set_speed(transition_speed);
+            return *this;
+        }
+
+        [[nodiscard]] const ColorValue& background_color() const {
+            return m_background_color;
+        }
+
+        ColorValue& background_color() {
+            return m_background_color;
+        }
+
+        Style& background_color(ImColor value, float transition_speed = -1.0F) {
+            m_background_color.set(value);
+            if (transition_speed >= 0.0F) m_background_color.set_speed(transition_speed);
+            return *this;
+        }
+
+        [[nodiscard]] float border_radius() const {
+            return m_border_radius;
+        }
+
+        float& border_radius() {
+            return m_border_radius;
+        }
+
+        Style& border_radius(float value) {
+            m_border_radius = value;
+            return *this;
+        }
+
+        [[nodiscard]] float border_thickness() const {
+            return m_border_thickness;
+        }
+
+        float& border_thickness() {
+            return m_border_thickness;
+        }
+
+        Style& border_thickness(float value) {
+            m_border_thickness = value;
+            return *this;
+        }
+
+        [[nodiscard]] uint8_t border() const {
+            return m_border;
+        }
+
+        uint8_t& border() {
+            return m_border;
+        }
+
+        Style& border(uint8_t value) {
+            m_border = value;
+            return *this;
+        }
 
         [[nodiscard]] StyleVariableStore& variables() {
             return m_vars;
@@ -47,16 +167,19 @@ namespace ui {
         }
 
         static void lerp(Style& style, const Style& target, float dt) {
-            style.font = target.font;
-            style.border_thickness = target.border_thickness;
-            style.border_radius = target.border_radius;
-            style.border = target.border;
-            style.color.tick(target.color, dt);
-            style.border_color.tick(target.border_color, dt);
-            style.background_color.tick(target.background_color, dt);
+            style.m_font = target.m_font;
+            style.m_padding = target.m_padding;
+            style.m_alpha = target.m_alpha;
+            style.m_border_thickness = target.m_border_thickness;
+            style.m_border_radius = target.m_border_radius;
+            style.m_border = target.m_border;
+            style.m_color.tick(target.m_color, dt);
+            style.m_border_color.tick(target.m_border_color, dt);
+            style.m_background_color.tick(target.m_background_color, dt);
 
             style.m_vars.for_each([&](const std::string& key, GenericValue& value) {
                 const GenericValue* target_value = target.m_vars.find(key);
+
                 if (target_value == nullptr) {
                     return true;
                 }
@@ -76,27 +199,27 @@ namespace ui {
         }
 
         void adopt_missing_keys_from(const Style& target) {
-            if (font == nullptr) {
-                font = target.font;
+            if (m_font == nullptr) {
+                m_font = target.m_font;
             }
 
             target.m_vars.for_each([&](const std::string& key, const GenericValue& target_value) {
-                if (m_vars.find(key) == nullptr) {
-                    m_vars.set(key, target_value);
-                }
+                if (m_vars.find(key) == nullptr) m_vars.set(key, target_value);
                 return true;
             });
         }
 
         bool is_close_to(const Style& target, float epsilon) const {
-            if (font != target.font || border != target.border ||
-                std::abs(border_thickness - target.border_thickness) > epsilon ||
-                std::abs(border_radius - target.border_radius) > epsilon) {
+            if (m_font != target.m_font || m_padding.x != target.m_padding.x || m_padding.y != target.m_padding.y ||
+                std::abs(m_alpha - target.m_alpha) > epsilon || m_border != target.m_border ||
+                std::abs(m_border_thickness - target.m_border_thickness) > epsilon ||
+                std::abs(m_border_radius - target.m_border_radius) > epsilon) {
                 return false;
             }
 
-            if (!color.is_close(target.color, epsilon) || !border_color.is_close(target.border_color, epsilon) ||
-                !background_color.is_close(target.background_color, epsilon)) {
+            if (!m_color.is_close(target.m_color, epsilon) ||
+                !m_border_color.is_close(target.m_border_color, epsilon) ||
+                !m_background_color.is_close(target.m_background_color, epsilon)) {
                 return false;
             }
 
@@ -118,6 +241,20 @@ namespace ui {
         }
 
     private:
+        static Theme& default_theme() {
+            static Theme theme = Theme::defaults();
+            return theme;
+        }
+
+        ImFont* m_font = nullptr;
+        ImVec2 m_padding = {};
+        float m_alpha = 1.0F;
+        float m_border_thickness = 1.0F;
+        float m_border_radius = 4.0F;
+        ColorValue m_color;
+        ColorValue m_border_color;
+        ColorValue m_background_color;
+        uint8_t m_border = BORDER_NONE;
         StyleVariableStore m_vars;
     };
 

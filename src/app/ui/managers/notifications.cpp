@@ -1,27 +1,26 @@
 #include "./notifications.hpp"
-#include "../constants.hpp"
+#include "../../../ui/constants.hpp"
+#include "../../../ui/ui.hpp"
 #include "../widgets/notification.hpp"
 
 #include <algorithm>
 #include <format>
 
-static constexpr float BOTTOM_MARGIN = 100.0f;
 static constexpr float SPACING = 10.0f;
-static constexpr float MORE_NOTIFICATIONS_MIN_HEIGHT = 48.0f;
 
-UINotificationManager::UINotificationManager() : ui::Node("notifications") {
-    m_more_notifications = std::make_unique<LogNotificationWidget>(LogNotificationLevel::PLACEHOLDER, "");
+UINotificationManager::UINotificationManager(UI& ui)
+    : ui::Node("notifications"), m_ui(ui), m_more_notifications(m_ui, LogNotificationLevel::PLACEHOLDER, "") {
+    m_more_notifications.set_id("notifications-more");
 }
-
-UINotificationManager::~UINotificationManager() = default;
 
 bool UINotificationManager::add(std::unique_ptr<UINotification> notification) {
     if (notification == nullptr) {
         return false;
     }
 
-    auto& owned = add_child(std::move(notification));
-    owned.set_offset(m_offset, true);
+    UINotification& added = add_child(std::move(notification));
+    added.set_id(std::format("notification-{}", added.identity()));
+    added.set_overlay_position(m_position);
     return true;
 }
 
@@ -57,6 +56,18 @@ size_t UINotificationManager::count() const {
     return children().size();
 }
 
+void UINotificationManager::set_position(ui::OverlayPosition position) {
+    if (m_position == position) {
+        return;
+    }
+
+    m_position = position;
+    m_more_notifications.set_overlay_position(position);
+    for (const auto& child : children()) {
+        static_cast<UINotification*>(child.get())->set_overlay_position(position);
+    }
+}
+
 void UINotificationManager::clear() {
     if (m_rendering) {
         for (const auto& child : children()) {
@@ -71,7 +82,6 @@ void UINotificationManager::clear() {
 }
 
 void UINotificationManager::draw() {
-    const auto draw_measurement = measure_draw();
     if (!visible()) {
         return;
     }
@@ -80,14 +90,20 @@ void UINotificationManager::draw() {
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowBgAlpha(0.0F);
-    ImGui::Begin("##notifications-overlay", nullptr, ui_constants::NOTIFICATION_OVERLAY_FLAGS);
+    ImGui::Begin("##notifications-overlay", nullptr, constants::NOTIFICATION_OVERLAY_FLAGS);
+
+    const ImVec2 window_position = ImGui::GetWindowPos();
+    const ImVec2 window_size = ImGui::GetWindowSize();
+    layout().set_size(window_size);
+    layout().set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
+    m_ui.input_router().register_region_in_layer(*this, layout().screen_rect(), ui::InputLayer::Notification);
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
-    m_offset = {-5.0F, m_header_height + 10.0F};
-    const float more_height = std::max(MORE_NOTIFICATIONS_MIN_HEIGHT, m_more_notifications->state().get_size().y);
-    const float max_height = available.y - BOTTOM_MARGIN - more_height - SPACING;
+    const ImVec2 initial_offset = {m_position == ui::OverlayPosition::LEFT ? 5.0F : -5.0F, m_header_height + 10.0F};
+    const float more_height = std::max(48.0F, m_more_notifications.state().size().y);
+    const float max_height = available.y - 100.0F - more_height - SPACING;
 
-    ImVec2 offset = m_offset;
+    ImVec2 offset = initial_offset;
 
     size_t index = 0;
 
@@ -97,20 +113,25 @@ void UINotificationManager::draw() {
     const size_t notification_count = children().size();
     for (auto it = children().rbegin(); it != children().rend(); ++it) {
         if (offset.y >= max_height) {
-            m_more_notifications->set_text(std::format("{} more...", notification_count - index));
-            m_more_notifications->set_offset({-5.0F, offset.y});
-            m_more_notifications->draw();
+            m_more_notifications.set_text(std::format("{} more...", notification_count - index));
+            m_more_notifications.set_offset({initial_offset.x, offset.y});
+            m_more_notifications.draw();
             break;
         }
 
         UINotification* notification = static_cast<UINotification*>(it->get());
-        const ImVec2& size = notification->state().get_size();
+        if (!notification->state().is_visible()) {
+            static_cast<void>(remove(notification));
+            continue;
+        }
 
-        notification->set_offset({-5.0F, offset.y});
+        notification->set_overlay_position(m_position);
+        notification->set_offset({initial_offset.x, offset.y});
         notification->draw();
 
+        const ImVec2 size = notification->rect().size();
         offset.y += size.y + SPACING;
-        index++;
+        ++index;
     }
 
     m_rendering = false;

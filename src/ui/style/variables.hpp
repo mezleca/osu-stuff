@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../widgets/base/values.hpp"
+#include "values.hpp"
 
 #include <functional>
 #include <string>

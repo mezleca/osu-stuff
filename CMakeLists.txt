@@ -130,6 +130,10 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     nlohmann_json
 )
 
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}-core PUBLIC psapi)
+endif()
+
 # https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(

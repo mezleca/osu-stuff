@@ -1,13 +1,11 @@
 #include "detail.hpp"
 #include "../../../ui/widgets/text.hpp"
 
-ConfigTab::ConfigTab() : UITab("config") {}
+ConfigTab::ConfigTab(UI& ui) : UITab(ui, "config") {}
 
 void ConfigTab::setup() {
-    auto content_layout = std::make_unique<ui::ChildLayout>("##config-content");
-    m_content_layout = content_layout.get();
-    m_content_layout->add(std::make_unique<ui::TextWidget>("config"));
-    add(std::move(content_layout));
+    m_content_layout = &add_child<ui::StackContainer>("##config-content");
+    m_content_layout->add_child<ui::TextWidget>("config");
     mark_initialized();
 }
 
@@ -16,6 +14,5 @@ void ConfigTab::render() {
         return;
     }
 
-    m_content_layout->set_size({0.0F, 0.0F});
     m_content_layout->draw();
 }

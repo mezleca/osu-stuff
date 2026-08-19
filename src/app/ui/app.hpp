@@ -2,11 +2,17 @@
 
 #include "../../ui/ui.hpp"
 
+#include <SDL3/SDL_events.h>
+#include <memory>
 #include <vector>
 
 class UINotificationManager;
 class TabButtonWidget;
 class UITab;
+
+namespace ui {
+    class Debugger;
+}
 
 namespace app {
     struct TabEntry {
@@ -16,20 +22,23 @@ namespace app {
 
     class OsuStuffApp {
     public:
-        explicit OsuStuffApp(UI& ui);
+        OsuStuffApp(ui::Runtime& runtime, ui::Config config);
         ~OsuStuffApp();
 
         void render();
-        [[nodiscard]] UINotificationManager* notification_manager();
+        void process_sdl_event(SDL_Event* event);
+
+        [[nodiscard]] bool ready() const;
+        [[nodiscard]] bool done() const;
 
     private:
-        UI& m_ui;
+        void setup_debugger();
+
+        UI m_ui;
+        std::unique_ptr<ui::Debugger> m_debugger;
         std::vector<TabEntry> m_tabs;
         UINotificationManager* m_notification_manager = nullptr;
-        UITab* m_current_tab = nullptr;
         float m_header_end_height = 0.0f;
     };
-
-    OsuStuffApp& current();
 
 } // namespace app

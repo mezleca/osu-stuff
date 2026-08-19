@@ -1,29 +1,27 @@
 #include "button.hpp"
 #include "../ui.hpp"
-#include "../theme.hpp"
+#include "../style/theme.hpp"
 
 namespace ui {
-    ButtonWidget::ButtonWidget(std::string text, ImVec2 size) : Widget("button"), m_text(text), m_size(size) {
-        UI& ui = current();
+    ButtonWidget::ButtonWidget(UI& ui, std::string text, ImVec2 size)
+        : Widget({}, WidgetType::Button), m_ui(ui), m_text(text), m_size(size) {
+        set_font(ui.get_font(FontType::SEMIBOLD).get(16));
 
-        auto torus_semi = ui.get_font(FontType::SEMIBOLD).get(16);
-
-        state().set_for_all_styles([&](Style& style) {
-            style.font = torus_semi;
-            style.color.set(ui_theme::TEXT_COLOR);
-            style.background_color.set(ui_theme::BG_SECONDARY_COLOR);
-            style.border_color.set(ui_theme::BG_SECONDARY_COLOR);
-            style.border_color.speed = 12.0f;
-            style.border_radius = 4.0f;
-            style.border_thickness = 2.0f;
+        const ui::Theme& theme = m_ui.theme();
+        state().configure_all_styles([&theme](Style& style) {
+            style.color(theme.text_color)
+                .background_color(theme.background_secondary_color)
+                .border_color(theme.background_secondary_color, 12.0F)
+                .padding({12.0F, 6.0F})
+                .border_radius(4.0F)
+                .border_thickness(2.0F);
         });
 
-        Style& active_style = state().get_style(StyleType::ACTIVE);
-        Style& hover_style = state().get_style(StyleType::HOVER);
+        state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
+            style.border_color(theme.accent_color, 20.0F);
+        });
 
-        active_style.border_color.set(ui_theme::ACCENT_COLOR);
-        active_style.border_color.speed = 20.0f;
-        hover_style.border_color.set(ui_theme::BORDER_COLOR);
+        state().configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.border_color); });
     }
 
     std::optional<std::string> ButtonWidget::get_content() const {
@@ -39,32 +37,32 @@ namespace ui {
         return true;
     }
 
-    void ButtonWidget::on_draw() {
+    bool ButtonWidget::on_draw() {
         if (!state().is_visible()) {
-            return;
+            return false;
         }
 
         const float dt = ImGui::GetIO().DeltaTime;
-        const Style& style = state().get_style();
+        const Style& style = state().style();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, state().get_opacity());
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 16.0f});
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.border_radius);
-        ImGui::PushStyleColor(ImGuiCol_Button, style.background_color.get());
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.background_color.get());
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.background_color.get());
-        ImGui::PushStyleColor(ImGuiCol_Text, style.color.get());
-        ImGui::PushFont(style.font);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, style.padding());
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.border_radius());
+        ImGui::PushStyleColor(ImGuiCol_Button, style.background_color().get());
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.background_color().get());
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.background_color().get());
+        ImGui::PushStyleColor(ImGuiCol_Text, style.color().get());
 
-        const bool pressed = ImGui::Button(m_text.c_str());
+        ImFont* font = style.font();
+        ImGui::PushFont(font == nullptr ? ImGui::GetFont() : font);
+
+        const bool pressed = ImGui::Button(m_text.c_str(), m_size);
 
         ImGui::PopFont();
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(2);
         ImGui::PopStyleColor(4);
 
-        const LastItemState input =
-            current().input_router().handle_last_item(*this, {.accepts_input = state().accepts_input()});
-        state().set_item_state(input.hovered, input.active || pressed);
+        const ItemInputState input = m_ui.input().handle(*this);
+        apply_input_state(input, pressed);
 
         state().update(dt);
 
@@ -72,7 +70,8 @@ namespace ui {
         const auto max = ImGui::GetItemRectMax();
 
         auto* dl = ImGui::GetWindowDrawList();
-        dl->AddRect(min, max, style.border_color.get_col(), style.border_radius, style.border_thickness);
+        dl->AddRect(min, max, style.border_color().get_col(), style.border_radius(), style.border_thickness());
+        return true;
     }
 
 } // namespace ui

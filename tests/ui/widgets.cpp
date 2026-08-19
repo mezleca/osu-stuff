@@ -1,99 +1,107 @@
-#include "ui/core/node.hpp"
 #include "ui/style/state.hpp"
-#include "ui/widgets/base/widget.hpp"
-#include "ui/widgets/base/text.hpp"
+#include "ui/runtime.hpp"
+#include "ui/layout/child-container.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
-
-#include <type_traits>
+#include <imgui.h>
+#include <string>
 
 using namespace ui;
 
-static_assert(std::is_base_of_v<ui::Node, ui::Widget>);
+TEST_CASE("runtime owns shared theme and asset configuration", "[Runtime]") {
+    ui::RuntimeConfig config;
+    config.theme.content_padding = 20.0F;
+    config.font_paths[static_cast<size_t>(ui::FontType::REGULAR)] = "fonts/regular.ttf";
+    config.icon_path = "icons/ui";
 
-TEST_CASE("tick actually writes the interpolated value back", "[ColorValue]") {
-    ui::ColorValue current;
-    ui::ColorValue target;
+    ui::Runtime runtime(std::move(config));
 
-    current.set(ImVec4{0.0f, 0.0f, 0.0f, 1.0f});
+    REQUIRE(runtime.theme().content_padding == 20.0F);
+    REQUIRE(runtime.font_paths()[static_cast<size_t>(ui::FontType::REGULAR)] == "fonts/regular.ttf");
+    REQUIRE(runtime.icon_path() == "icons/ui");
 
-    target.set(ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
-    target.set_speed(8.0f);
+    ui::Theme updated = runtime.theme();
+    updated.box_rounding = 8.0F;
+    runtime.set_theme(updated);
 
-    for (int i = 0; i < 1000; ++i) {
-        current.tick(target, 1.0f / 60.0f);
-    }
-
-    REQUIRE(current.is_close(target, 0.01f));
+    REQUIRE(runtime.theme().box_rounding == 8.0F);
 }
 
-TEST_CASE("StyleVariableStore set/get", "[VariableStore]") {
-    ui::StyleVariableStore store;
+TEST_CASE("runtime asset font caches are scoped to ImGui contexts", "[Runtime][assets]") {
+    ui::Runtime runtime;
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* first_context = ImGui::CreateContext();
+    ImGuiContext* second_context = ImGui::CreateContext();
 
-    store.set("rounding", ui::FloatValue{4.0f, 0.0f});
-    store.set("rounding", ui::FloatValue{8.0f, 0.0f});
+    ImGui::SetCurrentContext(first_context);
+    ui::Font& first_font = runtime.assets().font(ui::FontType::REGULAR, first_context, &ImGui::GetIO());
+    ui::Font& first_font_again = runtime.assets().font(ui::FontType::REGULAR, first_context, &ImGui::GetIO());
 
-    const ui::FloatValue* v = store.get<ui::FloatValue>("rounding");
+    ImGui::SetCurrentContext(second_context);
+    ui::Font& second_font = runtime.assets().font(ui::FontType::REGULAR, second_context, &ImGui::GetIO());
 
-    REQUIRE(v != nullptr);
-    REQUIRE(v->value == 8.0f);
+    REQUIRE(&first_font == &first_font_again);
+    REQUIRE(&first_font != &second_font);
 
-    SECTION("wrong type returns null") {
-        REQUIRE(store.get<ui::IntValue>("rounding") == nullptr);
-    }
+    runtime.assets().release_context(first_context, nullptr);
+    runtime.assets().release_context(second_context, nullptr);
 
-    SECTION("missing key returns null") {
-        REQUIRE(store.get<ui::FloatValue>("missing") == nullptr);
-    }
+    ImGui::DestroyContext(first_context);
+    ImGui::DestroyContext(second_context);
+    ImGui::SetCurrentContext(previous_context);
 }
 
-TEST_CASE("set_for_all_styles applies to every style slot", "[VisualState]") {
-    ui::VisualState state;
+TEST_CASE("loaded theme supplies defaults to subsequently created styles", "[theme][layout]") {
+    ui::Theme theme = ui::Theme::defaults();
+    theme.content_padding = 20.0F;
+    theme.box_rounding = 8.0F;
+    theme.text_color = {0.2F, 0.3F, 0.4F, 1.0F};
+    ui::Style::set_default_theme(theme);
 
-    state.set_for_all_styles([](ui::Style& style) {
-        style.color.set(ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
-        style.color.set_speed(10.0f);
-        style.variables().set("rounding", ui::FloatValue{4.0f, 0.0f});
-    });
+    ui::ChildContainer container("container");
+    REQUIRE(container.style().padding().x == Catch::Approx(20.0F));
+    REQUIRE(container.style().padding().y == Catch::Approx(20.0F));
+    REQUIRE(container.style().border_radius() == Catch::Approx(8.0F));
+    REQUIRE(container.style().color().get().x == Catch::Approx(0.2F));
 
-    for (int i = 0; i < static_cast<int>(ui::StyleType::_COUNT); ++i) {
-        ui::Style& s = state.get_style(static_cast<ui::StyleType>(i));
-        REQUIRE(s.color.speed == 10.0f);
-        REQUIRE(s.variables().get<ui::FloatValue>("rounding")->value == 4.0f);
-    }
+    container.style().padding({4.0F, 6.0F});
+    ui::Theme next_theme = theme;
+    next_theme.content_padding = 12.0F;
+    ui::Style::set_default_theme(next_theme);
 
-    REQUIRE(state.get_style_type() == ui::StyleType::DEFAULT);
-    REQUIRE(state.get_style().color.get().x == Catch::Approx(1.0f));
+    REQUIRE(container.style().padding().x == Catch::Approx(4.0F));
+    REQUIRE(container.style().padding().y == Catch::Approx(6.0F));
 
-    state.set_for_all_styles([](ui::Style& style) { style.color.set(ImVec4{0.0f, 1.0f, 0.0f, 1.0f}); });
-    REQUIRE(state.get_style().color.get().y == Catch::Approx(1.0f));
+    ui::ChildContainer next_container("next-container");
+    REQUIRE(next_container.style().padding().x == Catch::Approx(12.0F));
+
+    ui::Style::set_default_theme(ui::Theme::defaults());
 }
 
 TEST_CASE("transition reaches target and settles", "[VisualState][transition]") {
     ui::VisualState state;
 
-    state.get_style(ui::StyleType::DEFAULT).color.set({0.0f, 0.0f, 0.0f, 1.0f});
-    state.get_style(ui::StyleType::HOVER).color.set({1.0f, 0.0f, 0.0f, 1.0f});
-    state.get_style(ui::StyleType::HOVER).color.set_speed(8.0f);
+    state.style(ui::StyleType::DEFAULT).color({0.0f, 0.0f, 0.0f, 1.0f});
+    state.style(ui::StyleType::HOVER).color({1.0f, 0.0f, 0.0f, 1.0f}, 8.0F);
 
-    state.get_style(ui::StyleType::HOVER).variables().set("rounding", ui::FloatValue{10.0f, 8.0f});
-    state.get_style(ui::StyleType::DEFAULT).variables().set("rounding", ui::FloatValue{0.0f, 0.0f});
+    state.style(ui::StyleType::HOVER).variables().set("rounding", ui::FloatValue{10.0f, 8.0f});
+    state.style(ui::StyleType::DEFAULT).variables().set("rounding", ui::FloatValue{0.0f, 0.0f});
 
-    state.get_style(ui::StyleType::HOVER).variables().set("enabled", ui::BoolValue{true});
-    state.get_style(ui::StyleType::DEFAULT).variables().set("enabled", ui::BoolValue{false});
+    state.style(ui::StyleType::HOVER).variables().set("enabled", ui::BoolValue{true});
+    state.style(ui::StyleType::DEFAULT).variables().set("enabled", ui::BoolValue{false});
 
     ui::Vec2Value hover_offset;
     hover_offset.value = {5.0f, 5.0f};
     hover_offset.speed = 8.0f;
-    state.get_style(ui::StyleType::HOVER).variables().set("offset", hover_offset);
+    state.style(ui::StyleType::HOVER).variables().set("offset", hover_offset);
 
     ui::Vec2Value default_offset;
     default_offset.value = {0.0f, 0.0f};
-    state.get_style(ui::StyleType::DEFAULT).variables().set("offset", default_offset);
+    state.style(ui::StyleType::DEFAULT).variables().set("offset", default_offset);
 
-    state.get_style(ui::StyleType::HOVER).variables().set("count", ui::IntValue{100, 8.0f});
-    state.get_style(ui::StyleType::DEFAULT).variables().set("count", ui::IntValue{0, 0.0f});
+    state.style(ui::StyleType::HOVER).variables().set("count", ui::IntValue{100, 8.0f});
+    state.style(ui::StyleType::DEFAULT).variables().set("count", ui::IntValue{0, 0.0f});
 
     state.snap_to_style(ui::StyleType::DEFAULT);
     state.set_style(ui::StyleType::HOVER);
@@ -103,7 +111,7 @@ TEST_CASE("transition reaches target and settles", "[VisualState][transition]") 
     for (int i = 0; i < 10000; ++i) {
         state.update(1.0f / 60.0f);
 
-        if (state.get_style().is_close_to(state.get_style(ui::StyleType::HOVER), ui::TRANSITION_SETTLE_EPSILON)) {
+        if (state.style().is_close_to(state.style(ui::StyleType::HOVER), ui::TRANSITION_SETTLE_EPSILON)) {
             settled = true;
             break;
         }
@@ -112,39 +120,45 @@ TEST_CASE("transition reaches target and settles", "[VisualState][transition]") 
     REQUIRE(settled);
 
     SECTION("discrete type snaps immediately") {
-        REQUIRE(state.get_style().variables().get<ui::BoolValue>("enabled")->value == true);
+        REQUIRE(state.style().variables().get<ui::BoolValue>("enabled")->value == true);
     }
 
     SECTION("color converges") {
-        REQUIRE(state.get_style().color.get().x == Catch::Approx(1.0f).margin(0.01f));
+        REQUIRE(state.style().color().get().x == Catch::Approx(1.0f).margin(0.01f));
     }
 
     SECTION("float var converges") {
-        REQUIRE(
-            state.get_style().variables().get<ui::FloatValue>("rounding")->value == Catch::Approx(10.0f).margin(0.1f)
-        );
+        REQUIRE(state.style().variables().get<ui::FloatValue>("rounding")->value == Catch::Approx(10.0f).margin(0.1f));
     }
 
     SECTION("vec2 var converges") {
-        REQUIRE(
-            state.get_style().variables().get<ui::Vec2Value>("offset")->value.x == Catch::Approx(5.0f).margin(0.1f)
-        );
+        REQUIRE(state.style().variables().get<ui::Vec2Value>("offset")->value.x == Catch::Approx(5.0f).margin(0.1f));
     }
 
     SECTION("int var reaches exact target") {
-        REQUIRE(state.get_style().variables().get<ui::IntValue>("count")->value == 100);
+        REQUIRE(state.style().variables().get<ui::IntValue>("count")->value == 100);
     }
 }
 
-TEST_CASE("set_style is a no-op when already targeting that style", "[widget_state]") {
+TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState][transition]") {
     ui::VisualState state;
-    state.set_style(ui::StyleType::HOVER);
-    ui::Style* target_style = &state.get_style(ui::StyleType::HOVER);
-    state.update(0.016f);
+    const ImColor transparent = ImColor(0, 0, 0, 0);
+    const ImColor accent = ImColor(233, 30, 115, 255);
+
+    state.configure_all_styles([&](ui::Style& style) { style.border_color(transparent, 12.0F); });
+    state.configure_style(ui::StyleType::HOVER, [&](ui::Style& style) { style.border_color(accent); });
 
     state.set_style(ui::StyleType::HOVER);
+    state.update(1.0F / 60.0F);
+    const float visible_alpha = state.style().border_color().get().w;
 
-    REQUIRE(&state.get_style(ui::StyleType::HOVER) == target_style);
+    state.set_style(ui::StyleType::DEFAULT);
+    state.update(1.0F / 60.0F);
+    const float fading_alpha = state.style().border_color().get().w;
+
+    REQUIRE(visible_alpha > 0.0F);
+    REQUIRE(fading_alpha > 0.0F);
+    REQUIRE(fading_alpha < visible_alpha);
 }
 
 TEST_CASE("opacity ticks towards target and drives visibility", "[widget_state][opacity]") {
@@ -155,7 +169,7 @@ TEST_CASE("opacity ticks towards target and drives visibility", "[widget_state][
         state.update(1.0f / 60.0f);
     }
 
-    REQUIRE(state.get_opacity() < 0.01f);
+    REQUIRE(state.opacity() < 0.01f);
     REQUIRE_FALSE(state.is_visible());
 }
 
@@ -172,42 +186,42 @@ TEST_CASE("fade transitions control input independently from drawing", "[widget_
     REQUIRE(state.accepts_input());
 }
 
-TEST_CASE("IntValue interpolates gradually", "[int_value]") {
-    ui::IntValue current{0, 0.0f};
-    ui::IntValue target{100, 4.0f};
+TEST_CASE("fade in starts new visual states transparent", "[widget_state][opacity]") {
+    ui::VisualState state;
 
-    current.tick(target, 1.0f / 60.0f);
-    REQUIRE(current.value > 0);
-    REQUIRE(current.value < 100); // moved, but didnt snap straight to 100
+    state.fade_in();
+    REQUIRE(state.opacity() == Catch::Approx(0.0F));
 
-    for (int i = 0; i < 6000; ++i) {
-        current.tick(target, 1.0f / 60.0f);
-    }
-
-    REQUIRE(current.is_close(target, 0));
+    state.update(1.0F / 60.0F);
+    REQUIRE(state.opacity() > 0.0F);
+    REQUIRE(state.opacity() < 1.0F);
 }
 
 TEST_CASE("a var introduced only on the target style still appears after transition", "[widget_state][regression]") {
     ui::VisualState state;
 
-    state.get_style(ui::StyleType::DEFAULT).variables().set("line_alpha", ui::FloatValue{0.0f, 18.0f});
-    state.get_style(ui::StyleType::HOVER).variables().set("line_alpha", ui::FloatValue{1.0f, 18.0f});
+    state.style(ui::StyleType::DEFAULT).variables().set("line_alpha", ui::FloatValue{0.0f, 18.0f});
+    state.style(ui::StyleType::HOVER).variables().set("line_alpha", ui::FloatValue{1.0f, 18.0f});
 
-    REQUIRE(state.get_style().variables().get<ui::FloatValue>("line_alpha") == nullptr);
+    REQUIRE(state.style().variables().get<ui::FloatValue>("line_alpha") == nullptr);
 
     state.set_style(ui::StyleType::HOVER);
     state.update(1.0f / 60.0f); // first transition frame
 
-    REQUIRE(state.get_style().variables().get<ui::FloatValue>("line_alpha") != nullptr);
+    REQUIRE(state.style().variables().get<ui::FloatValue>("line_alpha") != nullptr);
 }
 
-TEST_CASE("TextValue caches and only recomputes on value change", "[text_value]") {
-    ui::TextValue<int> text(5);
-    REQUIRE(std::string(text.c_str()) == "5");
+TEST_CASE("editing the selected style updates its effective appearance") {
+    ui::VisualState state;
+    state.style(ui::StyleType::DEFAULT).color(ImColor{0, 0, 0, 255});
+    state.style(ui::StyleType::ACTIVE).color(ImColor{255, 0, 0, 255});
+    state.snap_to_style(ui::StyleType::DEFAULT);
+    state.set_style(ui::StyleType::ACTIVE);
+    state.update(1.0F / 60.0F);
 
-    text.set(5);
-    REQUIRE(std::string(text.c_str()) == "5");
+    state.style(ui::StyleType::ACTIVE).color().set(ImColor{0, 255, 0, 255});
 
-    text.set(42);
-    REQUIRE(std::string(text.c_str()) == "42");
+    const ui::VisualState& const_state = state;
+    REQUIRE(const_state.style().color().get().x == Catch::Approx(0.0F));
+    REQUIRE(const_state.style().color().get().y == Catch::Approx(1.0F));
 }

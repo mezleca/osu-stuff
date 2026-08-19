@@ -1,48 +1,163 @@
 #include "ui.hpp"
 #include "constants.hpp"
-#include "theme.hpp"
-#include "texture/icon.hpp"
-#include "texture/svg.hpp"
+#include "imgui/context-scope.hpp"
+#include "style/style.hpp"
+#include "style/theme.hpp"
 
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 #include <SDL3/SDL_log.h>
-#include <filesystem>
-#include <iostream>
-#include <cstdlib>
+#include <cstdint>
+#include <format>
+#include <optional>
 
-namespace fs = std::filesystem;
-
-static UI* current_ui = nullptr;
-
-UI& ui::current() {
-    if (current_ui == nullptr) {
-        std::abort();
+namespace ui::input_internal {
+    PointerButton pointer_button(uint8_t button) {
+        return button == SDL_BUTTON_RIGHT ? PointerButton::Right : PointerButton::Left;
     }
 
-    return *current_ui;
+    std::optional<UiEvent> from_sdl_event(const SDL_Event& event) {
+        UiEvent ui_event = UiEvent::make(EventType::Cancel);
+
+        switch (event.type) {
+            case SDL_EVENT_KEY_DOWN:
+                ui_event.type = EventType::KeyDown;
+                ui_event.key = event.key.key;
+                break;
+            case SDL_EVENT_KEY_UP:
+                ui_event.type = EventType::KeyUp;
+                ui_event.key = event.key.key;
+                break;
+            case SDL_EVENT_TEXT_INPUT:
+                ui_event.type = EventType::TextInput;
+                ui_event.text = event.text.text != nullptr ? event.text.text : "";
+                break;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                ui_event.type = EventType::PointerDown;
+                ui_event.position = {event.button.x, event.button.y};
+                ui_event.button = pointer_button(event.button.button);
+                break;
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+                ui_event.type = EventType::PointerUp;
+                ui_event.position = {event.button.x, event.button.y};
+                ui_event.button = pointer_button(event.button.button);
+                break;
+            case SDL_EVENT_MOUSE_MOTION:
+                ui_event.type = EventType::PointerMove;
+                ui_event.position = {event.motion.x, event.motion.y};
+                break;
+            case SDL_EVENT_MOUSE_WHEEL:
+                ui_event.type = EventType::Scroll;
+                ui_event.position = {event.wheel.mouse_x, event.wheel.mouse_y};
+                ui_event.scroll = {
+                    event.wheel.x * constants::SCROLL_WHEEL_SCALE,
+                    event.wheel.y * constants::SCROLL_WHEEL_SCALE,
+                };
+                break;
+            default:
+                return std::nullopt;
+        }
+
+        return ui_event;
+    }
+} // namespace ui::input_internal
+
+UI::UI(ui::Runtime& runtime, ui::Config config) : m_runtime(runtime), m_imgui_input(input_router()), m_config(config) {
+    m_runtime.register_surface(*this);
+    initialize();
 }
 
-UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
-    current_ui = this;
+UI::~UI() {
+    m_runtime.unregister_surface(*this);
 
-    float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-
-    if (ImGui::CreateContext() == nullptr) {
-        SDL_Log("ImGui::CreateContext(): failed to create context");
+    if (!m_ready) {
         return;
     }
 
-    m_io = &ImGui::GetIO();
+    const ui::ImGuiContextScope scope(m_context);
 
+    m_runtime.release_context(m_context, m_window->context());
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext(m_context);
+}
+
+void UI::initialize() {
+    m_window = std::make_unique<ui::Window>(
+        m_config.window.title, m_config.window.size, m_config.window.flags, m_config.window.shared_context_with
+    );
+
+    if (!m_window->valid()) {
+        SDL_Log("UI: failed to create window '%s'", m_config.window.title.c_str());
+        return;
+    }
+
+    m_window->make_current();
+
+    if (gladLoadGL(SDL_GL_GetProcAddress) == 0) {
+        SDL_Log("UI: failed to initialize OpenGL functions for '%s'", m_config.window.title.c_str());
+        return;
+    }
+
+    m_context = ImGui::CreateContext();
+
+    if (m_context == nullptr) {
+        SDL_Log("UI: ImGui::CreateContext() failed for '%s'", m_config.window.title.c_str());
+        return;
+    }
+
+    const ui::ImGuiContextScope scope(m_context);
+
+    m_io = &ImGui::GetIO();
     m_io->IniFilename = nullptr;
     m_io->LogFilename = nullptr;
 
+    configure_style(SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay()));
+
+    if (!ImGui_ImplSDL3_InitForOpenGL(m_window->handle(), m_window->context())) {
+        SDL_Log("UI: ImGui_ImplSDL3_InitForOpenGL() failed for '%s'", m_config.window.title.c_str());
+        ImGui::DestroyContext(m_context);
+        m_context = nullptr;
+        return;
+    }
+
+    if (!ImGui_ImplOpenGL3_Init("#version 300 es")) {
+        SDL_Log("UI: ImGui_ImplOpenGL3_Init() failed for '%s'", m_config.window.title.c_str());
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext(m_context);
+        m_context = nullptr;
+        return;
+    }
+
+    m_ready = true;
+
+    const std::string id = std::format("{}-root", static_cast<const void*>(this));
+    ui::Style::set_default_theme(m_runtime.theme());
+
+    m_container = std::make_unique<ui::Node>(id);
+    m_container->set_input_router(&m_input_router);
+
+    for (std::size_t index = 0; index < static_cast<size_t>(ui::FontType::FONT_COUNT); ++index) {
+        ui::Font& font = m_runtime.assets().font(static_cast<ui::FontType>(index), m_context, m_io);
+        font.load(ui::FONT_SMALL);
+        font.load(ui::FONT_MEDIUM);
+        font.load(ui::FONT_LARGE);
+    }
+}
+
+void UI::begin_input_frame() {
+    if (!m_ready) {
+        return;
+    }
+
+    const ui::ImGuiContextScope scope(m_context);
+    m_input_router.begin_frame();
+}
+
+void UI::configure_style(float main_scale) {
     ImGui::StyleColorsDark();
 
-    // setup default theme
     ImGuiStyle& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
 
     // ui items / widgets
     style.WindowRounding = 0.0f;
@@ -64,132 +179,57 @@ UI::UI(ui::Window& window, ui::Config config) : m_debugger(m_root, window) {
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 
-    ImFontConfig font_cfg;
-    font_cfg.PixelSnapH = false;
-    font_cfg.OversampleH = 5;
-    font_cfg.OversampleV = 5;
-    font_cfg.RasterizerMultiply = 1.2f;
-
-    colors[ImGuiCol_WindowBg] = ui_theme::BG_COLOR;
-    colors[ImGuiCol_ChildBg] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_Border] = ui_theme::HEADER_BORDER_COLOR;
-    colors[ImGuiCol_Separator] = ui_theme::HEADER_BORDER_COLOR;
-    colors[ImGuiCol_Text] = ui_theme::TEXT_COLOR;
-    colors[ImGuiCol_TextDisabled] = ui_theme::TEXT_SECONDARY_COLOR;
-    colors[ImGuiCol_Button] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_ButtonHovered] = ui_theme::BG_TERTIARY_COLOR;
-    colors[ImGuiCol_ButtonActive] = ui_theme::BUTTON_ACTIVE_COLOR;
-    colors[ImGuiCol_Header] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_HeaderHovered] = ui_theme::BG_TERTIARY_COLOR;
-    colors[ImGuiCol_HeaderActive] = ui_theme::BUTTON_ACTIVE_COLOR;
-    colors[ImGuiCol_FrameBg] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_FrameBgHovered] = ui_theme::BG_TERTIARY_COLOR;
-    colors[ImGuiCol_FrameBgActive] = ui_theme::BUTTON_ACTIVE_COLOR;
-    colors[ImGuiCol_TitleBg] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_TitleBgActive] = ui_theme::BG_SECONDARY_COLOR;
-    colors[ImGuiCol_CheckMark] = ui_theme::ACCENT_COLOR;
-    colors[ImGuiCol_SliderGrab] = ui_theme::ACCENT_COLOR;
-    colors[ImGuiCol_SliderGrabActive] = ui_theme::ACCENT_HOVER_COLOR;
-
-#ifndef NDEBUG
-    m_debugger.set_style(style);
-#endif
-
-    if (!ImGui_ImplSDL3_InitForOpenGL(window.handle(), window.context())) {
-        SDL_Log("ImGui_ImplSDL3_InitForOpenGL(): failed to initialize");
-        ImGui::DestroyContext();
-        m_io = nullptr;
-        return;
-    }
-
-    if (!ImGui_ImplOpenGL3_Init("#version 300 es")) {
-        SDL_Log("ImGui_ImplOpenGL3_Init(): failed to initialize");
-        ImGui_ImplSDL3_Shutdown();
-        ImGui::DestroyContext();
-        m_io = nullptr;
-        return;
-    }
-
-    m_ready = true;
-
-    // initialize / preload font variations
-    for (std::size_t index = 0; index < static_cast<size_t>(ui::FontType::FONT_COUNT); ++index) {
-        m_fonts[index].initialize(font_cfg, config.font_paths[index].string(), m_io);
-    }
-
-    // load textures (svgs)
-    fs::path textures_location = config.icon_path;
-
-    m_textures.emplace("default", std::make_unique<IconTexture>(DEFAULT_WARN_SVG));
-
-    if (fs::exists(textures_location)) {
-        for (const auto& entry : fs::directory_iterator(textures_location)) {
-            auto path = entry.path();
-
-            if (!fs::is_regular_file(entry.status())) continue;
-            if (path.extension() != ".svg") continue;
-
-            auto texture = std::make_unique<IconTexture>(path);
-
-            texture->get(constants::TEXTURE_SMALL);
-            texture->get(constants::TEXTURE_MEDIUM);
-            texture->get(constants::TEXTURE_BIG);
-            texture->get(constants::TEXTURE_EXTRA_BIG);
-
-            if (texture->get_id() == "") {
-                std::cout << "[warn] failed to get class id from " << path.string() << "\n";
-                continue;
-            }
-
-            if (!m_textures.emplace(texture->get_id(), std::move(texture)).second) {
-                std::cout << "[warn] duplicate icon id, skipping " << path.string() << "\n";
-            }
-        }
-    }
-
-#ifndef NDEBUG
-    m_debugger.set_icon(get_texture("circle-icon"));
-    m_debugger.set_close_icon(get_texture("x-icon"));
-    m_debugger.set_font(
-        config.font_paths[static_cast<size_t>(ui::FontType::REGULAR)].string(), ui::FONT_MEDIUM, font_cfg
-    );
-    m_debugger.set_bold_font(
-        config.font_paths[static_cast<size_t>(ui::FontType::BOLD)].string(), ui::FONT_MEDIUM, font_cfg
-    );
-#endif
-
-    // load font variants
-    for (auto& font : m_fonts) {
-        font.load(ui::FONT_SMALL);
-        font.load(ui::FONT_MEDIUM);
-        font.load(ui::FONT_LARGE);
-    }
+    apply_theme_colors();
 }
 
-UI::~UI() {
-    current_ui = nullptr;
+void UI::apply_theme_colors() {
+    const ui::Theme& theme = m_runtime.theme();
+    ImVec4* colors = ImGui::GetStyle().Colors;
 
-#ifndef NDEBUG
-    m_debugger.shutdown();
-#endif
+    colors[ImGuiCol_WindowBg] = theme.background_color;
+    colors[ImGuiCol_ChildBg] = theme.background_secondary_color;
+    colors[ImGuiCol_Border] = theme.header_border_color;
+    colors[ImGuiCol_Separator] = theme.header_border_color;
+    colors[ImGuiCol_Text] = theme.text_color;
+    colors[ImGuiCol_TextDisabled] = theme.text_secondary_color;
+    colors[ImGuiCol_Button] = theme.background_secondary_color;
+    colors[ImGuiCol_ButtonHovered] = theme.background_tertiary_color;
+    colors[ImGuiCol_ButtonActive] = theme.button_active_color;
+    colors[ImGuiCol_Header] = theme.header_background_color;
+    colors[ImGuiCol_HeaderHovered] = theme.background_tertiary_color;
+    colors[ImGuiCol_HeaderActive] = theme.button_active_color;
+    colors[ImGuiCol_Tab] = theme.background_tertiary_color;
+    colors[ImGuiCol_TabHovered] = theme.accent_hover_color;
+    colors[ImGuiCol_TabSelected] = theme.accent_color;
+    colors[ImGuiCol_TabSelectedOverline] = theme.accent_color;
+    colors[ImGuiCol_TabDimmed] = theme.background_tertiary_color;
+    colors[ImGuiCol_TabDimmedSelected] = theme.accent_color;
+    colors[ImGuiCol_TabDimmedSelectedOverline] = theme.accent_color;
+    colors[ImGuiCol_FrameBg] = theme.background_secondary_color;
+    colors[ImGuiCol_FrameBgHovered] = theme.background_tertiary_color;
+    colors[ImGuiCol_FrameBgActive] = theme.button_active_color;
+    colors[ImGuiCol_TitleBg] = theme.background_secondary_color;
+    colors[ImGuiCol_TitleBgActive] = theme.background_secondary_color;
+    colors[ImGuiCol_CheckMark] = theme.accent_color;
+    colors[ImGuiCol_SliderGrab] = theme.accent_color;
+    colors[ImGuiCol_SliderGrabActive] = theme.accent_hover_color;
+}
+
+void UI::refresh_theme() {
     if (!m_ready) {
         return;
     }
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
+    const ui::ImGuiContextScope scope(m_context);
+    apply_theme_colors();
+}
+
+void UI::load_theme(ui::Theme theme) {
+    m_runtime.set_theme(std::move(theme));
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
-    auto it = m_textures.find(std::string{id});
-
-    if (it == m_textures.end()) {
-        std::cout << "[ui] failed to find " << id << " (returning default svg)\n";
-        return m_textures.at("default").get();
-    }
-
-    return it->second.get();
+    return m_runtime.assets().texture(id);
 }
 
 void UI::process_sdl_event(SDL_Event* event) {
@@ -197,46 +237,28 @@ void UI::process_sdl_event(SDL_Event* event) {
         return;
     }
 
-    ImGui_ImplSDL3_ProcessEvent(event);
-#ifndef NDEBUG
-    m_debugger.process_event(event);
-#endif
+    const ui::ImGuiContextScope scope(m_context);
 
-    // imgui keeps native input state.
-    // the router receives a copy for focused nodes.
-    ui::UiEvent ui_event = ui::UiEvent::make(ui::EventType::Cancel);
-    bool should_dispatch = true;
-
-    switch (event->type) {
-        case SDL_EVENT_KEY_DOWN:
-            ui_event.type = ui::EventType::KeyDown;
-            ui_event.key = event->key.key;
-            break;
-        case SDL_EVENT_KEY_UP:
-            ui_event.type = ui::EventType::KeyUp;
-            ui_event.key = event->key.key;
-            break;
-        case SDL_EVENT_TEXT_INPUT:
-            ui_event.type = ui::EventType::TextInput;
-            ui_event.text = event->text.text != nullptr ? event->text.text : "";
-            break;
-        default:
-            should_dispatch = false;
-            break;
+    SDL_Event imgui_event = *event;
+    if (imgui_event.type == SDL_EVENT_MOUSE_WHEEL) {
+        imgui_event.wheel.x *= constants::SCROLL_WHEEL_SCALE;
+        imgui_event.wheel.y *= constants::SCROLL_WHEEL_SCALE;
     }
 
-    if (!should_dispatch) {
+    ImGui_ImplSDL3_ProcessEvent(&imgui_event);
+
+    if (event->type == SDL_EVENT_QUIT ||
+        (event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event->window.windowID == window()->id())) {
+        exit();
         return;
     }
 
-    const bool handled = m_root.input_router().dispatch(ui_event);
-
-    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE && !handled) {
-        ui_event = ui::UiEvent::make(ui::EventType::Cancel);
-        ui_event.key = event->key.key;
-        const bool cancel_handled = m_root.input_router().dispatch(ui_event);
-        static_cast<void>(cancel_handled);
+    std::optional<ui::UiEvent> ui_event = ui::input_internal::from_sdl_event(*event);
+    if (!ui_event.has_value()) {
+        return;
     }
+
+    static_cast<void>(input_router().dispatch(*ui_event));
 }
 
 void UI::begin_frame() {
@@ -244,15 +266,17 @@ void UI::begin_frame() {
         return;
     }
 
+    m_previous_context = ImGui::GetCurrentContext();
+    ImGui::SetCurrentContext(m_context);
+    m_window->make_current();
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
-    m_root.begin_frame();
 
-#ifndef NDEBUG
-    // update debugger
-    m_debugger.update();
-#endif
+    if constexpr (constants::IS_DEBUG_BUILD) {
+        m_runtime.performance().begin_frame(m_config.window.title);
+    }
 }
 
 void UI::end_frame() {
@@ -260,15 +284,22 @@ void UI::end_frame() {
         return;
     }
 
-#ifndef NDEBUG
-    m_debugger.render();
-#endif
-
     ImGui::Render();
 
     glViewport(0, 0, static_cast<int>(m_io->DisplaySize.x), static_cast<int>(m_io->DisplaySize.y));
-    glClearColor(ui_theme::BG_COLOR.x, ui_theme::BG_COLOR.y, ui_theme::BG_COLOR.z, ui_theme::BG_COLOR.w);
+    glClearColor(
+        m_runtime.theme().background_color.x, m_runtime.theme().background_color.y,
+        m_runtime.theme().background_color.z, m_runtime.theme().background_color.w
+    );
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    m_window->swap();
+
+    if constexpr (constants::IS_DEBUG_BUILD) {
+        m_runtime.performance().end_frame(m_config.window.title);
+    }
+
+    ImGui::SetCurrentContext(m_previous_context);
+    m_previous_context = nullptr;
 }
