@@ -209,12 +209,19 @@ def parse_release_note(version: str, dest: str) -> None:
 BUILD_DIR = CWD / "build"
 DIST_DIR = CWD / "dist"
 
+def get_build_dir(build_type: str) -> Path:
+    return BUILD_DIR / "release" if build_type == "release" else BUILD_DIR / "debug"
+
+def get_selected_build_type(build_type: str | None) -> str:
+    return build_type or "release"
+
 def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
+    build_dir = get_build_dir(build_type)
     cmd = [
         "cmake",
         "-G", "Ninja",
-        "-B", str(BUILD_DIR),
+        "-B", str(build_dir),
         "-S", str(CWD),
         "-DREALM_NO_TESTS=ON",
         "-DREALM_CPP_NO_TESTS=ON",
@@ -235,19 +242,8 @@ def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored
 
     return cmd
 
-def read_cached_build_type() -> str | None:
-    cache = BUILD_DIR / "CMakeCache.txt"
-    if not cache.exists():
-        return None
-
-    for line in cache.read_text(errors="replace").splitlines():
-        if line.startswith("CMAKE_BUILD_TYPE:STRING="):
-            return line.split("=", 1)[1].strip().lower()
-
-    return None
-
-def read_cached_build_tests() -> bool | None:
-    cache = BUILD_DIR / "CMakeCache.txt"
+def read_cached_build_tests(build_type: str) -> bool | None:
+    cache = get_build_dir(build_type) / "CMakeCache.txt"
     if not cache.exists():
         return None
 
@@ -257,12 +253,23 @@ def read_cached_build_tests() -> bool | None:
 
     return None
 
-def is_build_configured() -> bool:
-    cache = BUILD_DIR / "CMakeCache.txt"
+def is_build_configured(build_type: str) -> bool:
+    build_dir = get_build_dir(build_type)
+    cache = build_dir / "CMakeCache.txt"
     if not cache.exists():
         return False
 
-    return (BUILD_DIR / "build.ninja").exists()
+    cache_dir = None
+    for line in cache.read_text(errors="replace").splitlines():
+        if line.startswith("CMAKE_CACHEFILE_DIR:INTERNAL="):
+            cache_dir = line.split("=", 1)[1].strip()
+            break
+
+    return (
+        cache_dir is not None
+        and Path(cache_dir).resolve() == build_dir.resolve()
+        and (build_dir / "build.ninja").exists()
+    )
 
 def clean() -> int:
     if not BUILD_DIR.exists() and not BUILD_DIR.is_symlink():
@@ -279,12 +286,13 @@ def clean() -> int:
         return 1
 
 def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
-    cache = BUILD_DIR / "CMakeCache.txt"
+    build_dir = get_build_dir(build_type)
+    cache = build_dir / "CMakeCache.txt"
 
     if cache.exists():
         cache.unlink()
 
-    BUILD_DIR.mkdir(exist_ok=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
     cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
     cmd.extend([
         "-DCMAKE_C_COMPILER=clang",
@@ -293,13 +301,14 @@ def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl
     return run(cmd)[0]
 
 def configure_windows(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
-    cache = BUILD_DIR / "CMakeCache.txt"
+    build_dir = get_build_dir(build_type)
+    cache = build_dir / "CMakeCache.txt"
     env = load_msvc_env()
 
     if cache.exists():
         cache.unlink()
 
-    BUILD_DIR.mkdir(exist_ok=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
     cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
     return run(cmd, env=env)[0]
 
@@ -318,14 +327,12 @@ def configure(build_type: str, target_platform: str, build_tests: bool = False) 
     return 1
 
 def build(build_type: str | None, should_run: bool) -> int:
-    cached_build_type = read_cached_build_type()
-    cached_build_tests = read_cached_build_tests()
-    selected_build_type = build_type or cached_build_type or "release"
+    selected_build_type = get_selected_build_type(build_type)
+    cached_build_tests = read_cached_build_tests(selected_build_type)
     should_build_tests = selected_build_type == "debug"
 
-    needs_configure = not is_build_configured() or (
-        selected_build_type != cached_build_type
-        or cached_build_tests is None
+    needs_configure = not is_build_configured(selected_build_type) or (
+        cached_build_tests is None
         or cached_build_tests != should_build_tests
     )
 
@@ -333,32 +340,40 @@ def build(build_type: str | None, should_run: bool) -> int:
         return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
+    build_dir = get_build_dir(selected_build_type)
     code, _ = run([
         "cmake",
         "--build",
-        str(BUILD_DIR),
+        str(build_dir),
         "--parallel",
         str(get_cpu_count()),
     ], env=env)
 
-    prepare_resources()
+    if code != 0:
+        return code
+
+    prepare_resources(build_dir)
 
     if should_run:
-        _ = run_binary()
+        return run_binary(selected_build_type)
 
     return code
 
 # --- tests ---
 
 TEST_DATA_URL = "https://github.com/mezleca/osu-stuff/releases/download/beatmaps/data.tar.gz"
-TESTS_BUILD_DIR = BUILD_DIR / "tests"
-TEST_DATA_CACHE_DIR = TESTS_BUILD_DIR / "test-data"
+def get_tests_build_dir(build_type: str) -> Path:
+    return get_build_dir(build_type) / "tests"
 
-def has_test_data() -> bool:
+def get_test_data_cache_dir(build_type: str) -> Path:
+    return get_tests_build_dir(build_type) / "test-data"
+
+def has_test_data(build_type: str) -> bool:
+    test_data_cache_dir = get_test_data_cache_dir(build_type)
     return all(marker.exists() for marker in (
-        TEST_DATA_CACHE_DIR / "osu" / "osu!.db",
-        TEST_DATA_CACHE_DIR / "osu" / "collection.db",
-        TEST_DATA_CACHE_DIR / "lazer" / "client.realm",
+        test_data_cache_dir / "osu" / "osu!.db",
+        test_data_cache_dir / "osu" / "collection.db",
+        test_data_cache_dir / "lazer" / "client.realm",
     ))
 
 def resolve_test_data_source(root: Path) -> Path:
@@ -374,16 +389,19 @@ def resolve_test_data_source(root: Path) -> Path:
 
     return root
 
-def download_test_data() -> None:
-    test_archive_dir = TESTS_BUILD_DIR / "test-downloads"
+def download_test_data(build_type: str) -> None:
+    tests_build_dir = get_tests_build_dir(build_type)
+    test_archive_dir = tests_build_dir / "test-downloads"
     test_archive_path = test_archive_dir / "data.tar.gz"
     print(f"[ez] downloading test data from {TEST_DATA_URL}")
     test_archive_dir.mkdir(parents=True, exist_ok=True)
     _ = urllib.request.urlretrieve(TEST_DATA_URL, test_archive_path)
 
-def extract_test_data() -> None:
-    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
-    test_extract_dir = TESTS_BUILD_DIR / "data.extract"
+def extract_test_data(build_type: str) -> None:
+    tests_build_dir = get_tests_build_dir(build_type)
+    test_data_cache_dir = get_test_data_cache_dir(build_type)
+    test_archive_path = tests_build_dir / "test-downloads" / "data.tar.gz"
+    test_extract_dir = tests_build_dir / "data.extract"
 
     if test_extract_dir.exists() or test_extract_dir.is_symlink():
         clear_dir(test_extract_dir)
@@ -395,30 +413,33 @@ def extract_test_data() -> None:
 
     source_dir = resolve_test_data_source(test_extract_dir)
 
-    if TEST_DATA_CACHE_DIR.exists() or TEST_DATA_CACHE_DIR.is_symlink():
-        clear_dir(TEST_DATA_CACHE_DIR)
+    if test_data_cache_dir.exists() or test_data_cache_dir.is_symlink():
+        clear_dir(test_data_cache_dir)
 
-    _ = shutil.move(str(source_dir), str(TEST_DATA_CACHE_DIR))
+    _ = shutil.move(str(source_dir), str(test_data_cache_dir))
     clear_dir(test_extract_dir)
 
-def ensure_test_data() -> None:
-    test_archive_path = TESTS_BUILD_DIR / "test-downloads" / "data.tar.gz"
+def ensure_test_data(build_type: str) -> None:
+    tests_build_dir = get_tests_build_dir(build_type)
+    test_archive_path = tests_build_dir / "test-downloads" / "data.tar.gz"
 
-    if has_test_data():
+    if has_test_data(build_type):
         return
 
     if not test_archive_path.exists():
-        download_test_data()
+        download_test_data(build_type)
 
-    extract_test_data()
+    extract_test_data(build_type)
 
-    if not has_test_data():
+    if not has_test_data(build_type):
         print("[ez] test data is invalid after extraction...")
         sys.exit(1)
 
-def prepare_test_runtime_data() -> None:
-    test_data_dir = TESTS_BUILD_DIR / "data"
-    test_temp_dir = TESTS_BUILD_DIR / "temp"
+def prepare_test_runtime_data(build_type: str) -> None:
+    tests_build_dir = get_tests_build_dir(build_type)
+    test_data_cache_dir = get_test_data_cache_dir(build_type)
+    test_data_dir = tests_build_dir / "data"
+    test_temp_dir = tests_build_dir / "temp"
 
     if test_data_dir.exists() or test_data_dir.is_symlink():
         clear_dir(test_data_dir)
@@ -426,12 +447,13 @@ def prepare_test_runtime_data() -> None:
     if test_temp_dir.exists() or test_temp_dir.is_symlink():
         clear_dir(test_temp_dir)
 
-    _ = shutil.copytree(TEST_DATA_CACHE_DIR, test_data_dir)
+    _ = shutil.copytree(test_data_cache_dir, test_data_dir)
     test_temp_dir.mkdir(parents=True, exist_ok=True)
 
-def cleanup_test_runtime_data() -> None:
-    test_data_dir = TESTS_BUILD_DIR / "data"
-    test_temp_dir = TESTS_BUILD_DIR / "temp"
+def cleanup_test_runtime_data(build_type: str) -> None:
+    tests_build_dir = get_tests_build_dir(build_type)
+    test_data_dir = tests_build_dir / "data"
+    test_temp_dir = tests_build_dir / "temp"
 
     if test_data_dir.exists() or test_data_dir.is_symlink():
         clear_dir(test_data_dir)
@@ -452,38 +474,36 @@ def get_test_environment() -> Mapping[str, str]:
     return env
 
 def run_tests(build_type: str | None) -> int:
-    build_code = build_tests(build_type)
+    selected_build_type = get_selected_build_type(build_type)
+    build_code = build_tests(selected_build_type)
     if build_code != 0:
         return build_code
 
-    ensure_test_data()
-    prepare_test_runtime_data()
+    ensure_test_data(selected_build_type)
+    prepare_test_runtime_data(selected_build_type)
 
-    cached = read_cached_build_type()
     env = get_test_environment()
+    build_dir = get_build_dir(selected_build_type)
     cmd = [
         "ctest",
         "--test-dir",
-        str(BUILD_DIR),
+        str(build_dir),
         "--output-on-failure",
     ]
 
-    if cached is not None:
-        cmd.extend(["-C", "Debug" if cached == "debug" else "Release"])
+    cmd.extend(["-C", "Debug" if selected_build_type == "debug" else "Release"])
 
     try:
         return run(cmd, env=env)[0]
     finally:
-        cleanup_test_runtime_data()
+        cleanup_test_runtime_data(selected_build_type)
 
 def build_tests(build_type: str | None) -> int:
-    cached_build_type = read_cached_build_type()
-    cached_build_tests = read_cached_build_tests()
-    selected_build_type = build_type or cached_build_type or "release"
+    selected_build_type = get_selected_build_type(build_type)
+    cached_build_tests = read_cached_build_tests(selected_build_type)
 
     needs_configure = (
-        not is_build_configured()
-        or selected_build_type != cached_build_type
+        not is_build_configured(selected_build_type)
         or cached_build_tests is None
         or cached_build_tests is not True
     )
@@ -492,10 +512,11 @@ def build_tests(build_type: str | None) -> int:
         return 1
 
     env = load_msvc_env() if SYSTEM == "Windows" else None
+    build_dir = get_build_dir(selected_build_type)
     code, _ = run([
         "cmake",
         "--build",
-        str(BUILD_DIR),
+        str(build_dir),
         "--parallel",
         str(get_cpu_count()),
     ], env=env)
@@ -519,8 +540,8 @@ RUNTIME_ICON_PATH = RUNTIME_RESOURCES_DIR / "icons" / "icon.png"
 FLATPAK_ICON_PATH = PACKAGING_DIR / "flatpak" / f"{FLATPAK_APP_ID}.png"
 APPIMAGE_ICON_PATH = PACKAGING_DIR / f"{FLATPAK_APP_ID}.png"
 
-def prepare_resources() -> None:
-    _ = shutil.copytree(RUNTIME_RESOURCES_DIR, BUILD_DIR / "resources", dirs_exist_ok=True)
+def prepare_resources(build_dir: Path) -> None:
+    _ = shutil.copytree(RUNTIME_RESOURCES_DIR, build_dir / "resources", dirs_exist_ok=True)
 
 def package(package_type: str | None) -> int:
     selected_package_type = package_type or "flatpak"
@@ -561,7 +582,7 @@ def package_appimage() -> int:
     install_code, _ = run([
         "cmake",
         "--install",
-        str(BUILD_DIR),
+        str(get_build_dir("release")),
         "--prefix",
         str(APPIMAGE_APPDIR / "usr"),
     ], check=False)
@@ -636,21 +657,13 @@ def package_flatpak() -> int:
 
     return bundle_code
 
-def run_binary() -> int:
-    candidates: list[Path] = []
+def run_binary(build_type: str = "release") -> int:
+    build_dir = get_build_dir(build_type)
+    binary = build_dir / BINARY_NAME
+    if SYSTEM == "Windows":
+        binary = binary.with_suffix(".exe")
 
-    if SYSTEM == "Linux":
-        candidates = [BUILD_DIR / BINARY_NAME, BUILD_DIR / f"{BINARY_NAME}.exe"]
-    else:
-        candidates = [
-            BUILD_DIR / f"{BINARY_NAME}.exe",
-            BUILD_DIR / "Release" / f"{BINARY_NAME}.exe",
-            BUILD_DIR / "Debug"   / f"{BINARY_NAME}.exe",
-        ]
-
-    binary = next((p for p in candidates if p.exists()), None)
-
-    if binary is None:
+    if not binary.exists():
         print("[ez] binary not found")
         return 1
 
@@ -685,7 +698,8 @@ def main() -> None:
         dest="package_type",
     )
 
-    _ = subparsers.add_parser("run")
+    run_parser = subparsers.add_parser("run")
+    _ = run_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
 
     parse_note_parser = subparsers.add_parser("parse-note")
     _ = parse_note_parser.add_argument(
@@ -713,15 +727,12 @@ def main() -> None:
         "package": lambda: package(args.package_type),
         "format": format_code,
         "clean": clean,
-        "run": run_binary,
+        "run": lambda: run_binary(get_selected_build_type(args.build_type)),
         "parse-note": lambda: parse_release_note(args.version, args.dest),
         "tests": lambda: run_tests(args.build_type),
     }
 
     exit_code = commands[args.command]()
-
-    if args.command == "build" and exit_code == 0 and args.run:
-        exit_code = run_binary()
 
     sys.exit(exit_code)
 
