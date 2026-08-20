@@ -21,6 +21,7 @@ private:
     ui::ModalContainer* m_modal_layout = nullptr;
     ui::ChildContainer* m_anchor_visual_test = nullptr;
     ui::ChildContainer* m_notification_visual_test = nullptr;
+    ui::ChildContainer* m_widget_visual_test = nullptr;
 
     UINotificationManager& m_notification_manager;
 };

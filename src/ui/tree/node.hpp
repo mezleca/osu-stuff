@@ -16,6 +16,7 @@
 
 namespace ui {
     class InputRouter;
+    class Profiler;
     class Node {
     public:
         explicit Node(std::string id = {});
@@ -52,15 +53,11 @@ namespace ui {
         virtual void draw();
         std::unique_ptr<Node> remove(Node& child);
 
-        void set_draw_profiling_enabled(bool enabled);
         void set_input_router(InputRouter* router);
+        void set_profiler(Profiler* profiler);
         [[nodiscard]] Node* find(std::string_view id);
         [[nodiscard]] const Node* find(std::string_view id) const;
         [[nodiscard]] bool contains(const Node* node) const;
-
-        [[nodiscard]] float draw_time_ms() const {
-            return m_draw_time_ms;
-        }
 
         [[nodiscard]] const std::string& id() const {
             return m_id;
@@ -188,6 +185,8 @@ namespace ui {
         virtual void on_draw_end();
 
     private:
+        void capture_leaf_rect();
+
         std::string m_id;
         uint64_t m_identity = 0;
         Node* m_parent = nullptr;
@@ -195,11 +194,10 @@ namespace ui {
         bool m_visible = true;
         bool m_enabled = true;
         bool m_accepts_focus = false;
-        bool m_draw_profiling_enabled = false;
-        float m_draw_time_ms = 0.0F;
         InputLayer m_input_layer = InputLayer::Count;
         NodeLayout m_layout;
         InputRouter* m_input_router = nullptr;
+        Profiler* m_profiler = nullptr;
     };
 
 } // namespace ui

@@ -40,6 +40,10 @@ namespace ui {
         ImVec2 min{};
         ImVec2 max{};
 
+        [[nodiscard]] bool valid() const {
+            return max.x > min.x && max.y > min.y;
+        }
+
         [[nodiscard]] ImVec2 size() const {
             return {max.x - min.x, max.y - min.y};
         }

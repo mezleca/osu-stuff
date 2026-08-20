@@ -40,7 +40,7 @@ namespace ui {
         void render_toolbar();
         void render_node_list();
         void render_sections();
-        void render_node_tree(Node& node, int depth, bool show_draw_time, Node*& selected_target, bool update_target);
+        void render_node_tree(Node& node, int depth, bool show_duration, Node*& selected_target, bool update_target);
         void render_properties();
         void render_node_properties();
         void render_layout_properties();

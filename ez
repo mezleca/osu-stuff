@@ -215,6 +215,11 @@ def get_build_dir(build_type: str) -> Path:
 def get_selected_build_type(build_type: str | None) -> str:
     return build_type or "release"
 
+def copy_compile_commands(build_dir: Path) -> None:
+    source = build_dir / "compile_commands.json"
+    if source.exists():
+        _ = shutil.copy2(source, BUILD_DIR / "compile_commands.json")
+
 def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
     build_dir = get_build_dir(build_type)
@@ -318,13 +323,17 @@ def configure(build_type: str, target_platform: str, build_tests: bool = False) 
     use_vendored_sdl = should_use_vendored_sdl(target_platform)
 
     if is_windows:
-        return configure_windows(build_type, build_tests, use_vendored_sdl)
+        code = configure_windows(build_type, build_tests, use_vendored_sdl)
+    elif is_linux:
+        code = configure_linux(build_type, build_tests, use_vendored_sdl)
+    else:
+        print(f"[ez] unsupported platform: {SYSTEM}")
+        return 1
 
-    if is_linux:
-        return configure_linux(build_type, build_tests, use_vendored_sdl)
+    if code == 0:
+        copy_compile_commands(get_build_dir(build_type))
 
-    print(f"[ez] unsupported platform: {SYSTEM}")
-    return 1
+    return code
 
 def build(build_type: str | None, should_run: bool) -> int:
     selected_build_type = get_selected_build_type(build_type)
@@ -352,6 +361,7 @@ def build(build_type: str | None, should_run: bool) -> int:
     if code != 0:
         return code
 
+    copy_compile_commands(build_dir)
     prepare_resources(build_dir)
 
     if should_run:
@@ -520,6 +530,9 @@ def build_tests(build_type: str | None) -> int:
         "--parallel",
         str(get_cpu_count()),
     ], env=env)
+
+    if code == 0:
+        copy_compile_commands(build_dir)
 
     return code
 

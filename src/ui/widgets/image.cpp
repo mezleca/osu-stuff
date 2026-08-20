@@ -1,7 +1,7 @@
 #include "image.hpp"
 
 #include "../ui.hpp"
-#include "../resources/textures/icon.hpp"
+#include "../resources/icon.hpp"
 
 namespace ui {
     ImageWidget::ImageWidget(IconTexture* texture) : Widget({}, WidgetType::Image), m_texture(texture) {}

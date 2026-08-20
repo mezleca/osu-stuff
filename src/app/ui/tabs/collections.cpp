@@ -2,7 +2,7 @@
 #include "../widgets/collection-card.hpp"
 #include "../../../ui/ui.hpp"
 #include "../../../ui/widgets/text.hpp"
-#include "../../../ui/widgets/search.hpp"
+#include "../../../ui/widgets/text-input.hpp"
 
 #include <algorithm>
 #include <string>
@@ -48,8 +48,9 @@ void CollectionTab::setup() {
     m_collection_layout->style().border(ui::BORDER_RIGHT);
     m_collection_layout->style().border_color(theme.border_color);
 
-    auto& collection_input = m_collection_layout->add_child<ui::SearchInputWidget>(ui(), m_collection_search);
-    collection_input.set_fit_width(true);
+    auto& collection_input =
+        m_collection_layout->add_child<ui::TextInputWidget>(ui(), m_collection_search, "##collection-search");
+    collection_input.set_icon(ui().get_texture("search-icon")).set_fit_width(true);
 
     auto& collection_card = m_collection_layout->add_child<CollectionCardWidget>(ui(), "Collection");
     collection_card.on_event = [&collection_card](ui::UiEvent& event) {

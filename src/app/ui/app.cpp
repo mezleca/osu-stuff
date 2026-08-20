@@ -1,12 +1,11 @@
 #include "app.hpp"
-#include "../../ui/constants.hpp"
-
 #include "managers/notifications.hpp"
 #include "theme.hpp"
 #include "tabs/detail.hpp"
 #include "widgets/tab-button.hpp"
 
 #include "../../ui/diagnostics/debugger.hpp"
+#include "../../ui/constants.hpp"
 #include "../../ui/imgui/context-scope.hpp"
 #include "../../ui/layout/child-container.hpp"
 
@@ -62,26 +61,12 @@ public:
     }
 };
 
-class AppRootNode final : public ui::Node {
+class AppLayoutNode final : public ui::Node {
 public:
-    explicit AppRootNode(float& header_height) : ui::Node("app-root"), m_header_height(header_height) {}
+    explicit AppLayoutNode(float& header_height) : ui::Node("app-layout"), m_header_height(header_height) {}
 
-    bool on_draw() override {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::Begin("##osu-stuff", nullptr, constants::WINDOW_FLAGS);
-
-        const ImVec2 window_position = ImGui::GetWindowPos();
-        const ImVec2 window_size = ImGui::GetWindowSize();
-        layout().set_size(window_size);
-        layout().set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
-        return true;
-    }
-
-    void on_draw_end() override {
-        ImGui::End();
+    void on_layout() override {
+        layout().set_size(ImGui::GetContentRegionAvail());
     }
 
     void draw_children() override {
@@ -103,10 +88,6 @@ public:
         content.layout().set_origin(ui::Origin::TopLeft);
         content.layout().set_offset({0.0F, m_header_height});
         content.draw();
-
-        for (std::size_t index = 2; index < children().size(); ++index) {
-            children()[index]->draw();
-        }
     }
 
 private:
@@ -119,10 +100,10 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
         return;
     }
 
-    auto& app_root = m_ui.root().add_child<AppRootNode>(m_header_end_height);
-    auto& header = app_root.add_child<AppHeaderNode>(m_ui, m_header_end_height);
-    auto& content = app_root.add_child<AppContentNode>(m_ui);
-    auto& notification_manager = app_root.add_child<UINotificationManager>(m_ui);
+    auto& app_layout = m_ui.root().add_child<AppLayoutNode>(m_header_end_height);
+    auto& header = app_layout.add_child<AppHeaderNode>(m_ui, m_header_end_height);
+    auto& content = app_layout.add_child<AppContentNode>(m_ui);
+    auto& notification_manager = m_ui.root().add_child<UINotificationManager>(m_ui);
     notification_manager.set_input_layer(ui::InputLayer::Notification);
     m_notification_manager = &notification_manager;
 
@@ -186,7 +167,6 @@ void OsuStuffApp::setup_debugger() {
 
     m_debugger->set_style(ImGui::GetStyle());
     m_debugger->set_icon(m_ui.get_texture("inspect-icon"));
-
     m_debugger->set_font(ui::FontType::REGULAR, ui::FONT_MEDIUM);
 }
 
@@ -223,9 +203,11 @@ void OsuStuffApp::render() {
 
     m_notification_manager->set_header_height(m_header_end_height);
     m_ui.root().draw();
+
     if (m_debugger) {
         m_debugger->draw_highlight();
     }
+
     m_ui.end_frame();
 
     if (m_debugger) {

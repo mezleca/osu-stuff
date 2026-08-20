@@ -107,6 +107,10 @@ add_library(${PROJECT_NAME}-core OBJECT
     ${IMGUI_CPP_WRAPPER}
 )
 
+target_compile_definitions(${PROJECT_NAME}-core PUBLIC
+    OSU_STUFF_ENABLE_PROFILING=$<IF:$<CONFIG:Debug>,1,0>
+)
+
 target_include_directories(${PROJECT_NAME}-core PUBLIC
     src/
     vendor/imgui/

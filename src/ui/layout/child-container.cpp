@@ -110,6 +110,7 @@ namespace ui {
         const ImVec2 window_size = ImGui::GetWindowSize();
 
         m_child_rect = Rect::from_position_size(window_position, window_size);
+        layout().set_screen_rect(m_child_rect);
 
         ImGui::PopFont();
         ImGui::EndChild();

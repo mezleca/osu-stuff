@@ -1,7 +1,6 @@
 #include "debugger.hpp"
 #include "../ui.hpp"
 #include "../platform/window.hpp"
-#include "../constants.hpp"
 #include "../style/styled-node.hpp"
 #include "../style/theme.hpp"
 #include "../imgui/context-scope.hpp"
@@ -15,6 +14,7 @@
 #include <imgui_stdlib.h>
 
 #include <algorithm>
+#include <cfloat>
 #include <string>
 #include <vector>
 
@@ -51,6 +51,52 @@ namespace ui {
         return {event.button.x, event.button.y};
     }
 
+    static bool draw_number_input(
+        std::string_view label, ImGuiDataType type, void* values, int components, float speed, const void* minimum,
+        const void* maximum, const char* format
+    ) {
+        const float available_width = ImGui::GetContentRegionAvail().x;
+        const float label_width = std::min(120.0F, available_width * 0.4F);
+        const float input_x = ImGui::GetCursorPosX() + label_width;
+        const std::string id{label};
+
+        ImGui::PushID(id.c_str());
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label.data(), label.data() + label.size());
+        ImGui::SameLine(input_x);
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {8.0F, 5.0F});
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0F);
+        const bool changed =
+            minimum != nullptr && maximum != nullptr
+                ? ImGui::SliderScalarN("##value", type, values, components, minimum, maximum, format)
+                : ImGui::DragScalarN("##value", type, values, components, speed, minimum, maximum, format);
+        ImGui::PopStyleVar(2);
+        ImGui::PopID();
+        return changed;
+    }
+
+    static bool draw_number_input(
+        std::string_view label, float* values, int components = 1, float speed = 0.1F, float minimum = 0.0F,
+        float maximum = 0.0F
+    ) {
+        const bool limited = maximum > minimum;
+        return draw_number_input(
+            label, ImGuiDataType_Float, values, components, speed, limited ? &minimum : nullptr,
+            limited ? &maximum : nullptr, "%.3f"
+        );
+    }
+
+    static bool draw_number_input(
+        std::string_view label, int* values, int components = 1, float speed = 1.0F, int minimum = 0, int maximum = 0
+    ) {
+        const bool limited = maximum > minimum;
+        return draw_number_input(
+            label, ImGuiDataType_S32, values, components, speed, limited ? &minimum : nullptr,
+            limited ? &maximum : nullptr, "%d"
+        );
+    }
+
     Debugger::Debugger(UI& target) : m_target(target) {}
 
     Debugger::~Debugger() {
@@ -58,10 +104,8 @@ namespace ui {
     }
 
     void Debugger::shutdown() {
-        if constexpr (constants::IS_DEBUG_BUILD) {
-            if (!m_target.runtime().performance().metrics().empty()) {
-                static_cast<void>(m_target.runtime().performance().save());
-            }
+        if (m_target.profiler().enabled() && m_target.profiler().has_report()) {
+            m_target.profiler().save_report();
         }
 
         if (m_ui == nullptr) {
@@ -138,13 +182,9 @@ namespace ui {
         }
 
         m_enabled = enabled;
-        m_target.root().set_draw_profiling_enabled(enabled);
-
-        if constexpr (constants::IS_DEBUG_BUILD) {
-            m_target.runtime().performance().set_enabled(enabled);
-            if (!enabled) {
-                static_cast<void>(m_target.runtime().performance().save());
-            }
+        m_target.profiler().set_enabled(enabled);
+        if (!enabled) {
+            m_target.profiler().save_report();
         }
 
         if (m_ui == nullptr) {
@@ -309,7 +349,7 @@ namespace ui {
     }
 
     void
-    Debugger::render_node_tree(Node& node, int depth, bool show_draw_time, Node*& selected_target, bool update_target) {
+    Debugger::render_node_tree(Node& node, int depth, bool show_duration, Node*& selected_target, bool update_target) {
         ImGui::PushID(&node);
         ImGui::PushStyleColor(
             ImGuiCol_Text, node.visible() ? m_ui->theme().text_color : m_ui->theme().text_secondary_color
@@ -353,9 +393,10 @@ namespace ui {
             node_label = node_id.empty() ? "Unknown" : std::string(node_id);
         }
 
-        const bool expanded =
-            show_draw_time ? ImGui::TreeNodeEx(&node, flags, "%s  %.3f ms", node_label.c_str(), node.draw_time_ms())
-                           : ImGui::TreeNodeEx(&node, flags, "%s", node_label.c_str());
+        const double duration = m_target.profiler().node_duration_ms(node.identity());
+        const bool expanded = show_duration
+                                  ? ImGui::TreeNodeEx(&node, flags, "%s  %.3f ms", node_label.c_str(), duration)
+                                  : ImGui::TreeNodeEx(&node, flags, "%s", node_label.c_str());
         const bool clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
 
         if (&node == selected_target) {
@@ -381,7 +422,7 @@ namespace ui {
 
         if (expanded) {
             for (const auto& child : node.children()) {
-                render_node_tree(*child, depth + 1, show_draw_time, selected_target, update_target);
+                render_node_tree(*child, depth + 1, show_duration, selected_target, update_target);
             }
 
             if (!node.children().empty()) {
@@ -396,7 +437,6 @@ namespace ui {
 
             ImGui::Text("id: %s", m_node_target->id().c_str());
             ImGui::Text("children: %zu", m_node_target->children().size());
-            ImGui::Text("draw time: %.3f ms", m_node_target->draw_time_ms());
             ImGui::Text("position: (%.1f, %.1f)", arranged_rect.min.x, arranged_rect.min.y);
             ImGui::Text("size: (%.1f, %.1f)", arranged_rect.size().x, arranged_rect.size().y);
 
@@ -415,15 +455,13 @@ namespace ui {
     }
 
     void Debugger::render_profiling() {
-        if constexpr (constants::IS_DEBUG_BUILD) {
-            PerformanceRecorder& performance = m_target.runtime().performance();
-            if (ImGui::Button("save metrics")) {
-                static_cast<void>(performance.save());
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("clear metrics")) {
-                performance.clear();
-            }
+        Profiler& profiler = m_target.profiler();
+        if (ImGui::Button("save metrics")) {
+            profiler.save_report();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("clear metrics")) {
+            profiler.clear_report();
         }
 
         for (const auto& child : m_target.root().children()) {
@@ -437,12 +475,12 @@ namespace ui {
         }
 
         ImVec2 size = m_node_target->layout().size();
-        if (ImGui::InputFloat2("size", &size.x)) {
+        if (draw_number_input("size", &size.x, 2)) {
             m_node_target->layout().set_size(size);
         }
 
         ImVec2 offset = m_node_target->layout().offset();
-        if (ImGui::InputFloat2("offset", &offset.x)) {
+        if (draw_number_input("offset", &offset.x, 2)) {
             m_node_target->layout().set_offset(offset);
         }
 
@@ -464,14 +502,14 @@ namespace ui {
 
         if (m_node_target->layout().anchor() == Anchor::Custom) {
             ImVec2 anchor_position = m_node_target->layout().anchor_factor();
-            if (ImGui::InputFloat2("anchor point", &anchor_position.x)) {
+            if (draw_number_input("anchor point", &anchor_position.x, 2, 0.01F)) {
                 m_node_target->layout().set_anchor_position(anchor_position);
             }
         }
 
         if (m_node_target->layout().origin() == Origin::Custom) {
             ImVec2 origin_position = m_node_target->layout().origin_factor();
-            if (ImGui::InputFloat2("origin point", &origin_position.x)) {
+            if (draw_number_input("origin point", &origin_position.x, 2, 0.01F)) {
                 m_node_target->layout().set_origin_position(origin_position);
             }
         }
@@ -503,9 +541,9 @@ namespace ui {
                 [&](auto& value) {
                     using ValueType = std::decay_t<decltype(value)>;
                     if constexpr (std::is_same_v<ValueType, FloatValue>) {
-                        ImGui::DragFloat(name.c_str(), &value.value, 0.01F);
+                        draw_number_input(name, &value.value, 1, 0.01F);
                     } else if constexpr (std::is_same_v<ValueType, IntValue>) {
-                        ImGui::DragInt(name.c_str(), &value.value, 1.0F);
+                        draw_number_input(name, &value.value);
                     } else if constexpr (std::is_same_v<ValueType, BoolValue>) {
                         ImGui::Checkbox(name.c_str(), &value.value);
                     } else if constexpr (std::is_same_v<ValueType, StringValue>) {
@@ -513,7 +551,7 @@ namespace ui {
                     } else if constexpr (std::is_same_v<ValueType, ColorValue>) {
                         ImGui::ColorEdit4(name.c_str(), &value.value.Value.x, ImGuiColorEditFlags_NoInputs);
                     } else if constexpr (std::is_same_v<ValueType, Vec2Value>) {
-                        ImGui::DragFloat2(name.c_str(), &value.value.x, 0.01F);
+                        draw_number_input(name, &value.value.x, 2, 0.01F);
                     }
                 },
                 *variable
@@ -562,10 +600,10 @@ namespace ui {
             style->border_color().set(border_color);
         }
 
-        ImGui::DragFloat2("padding", &style->padding().x, 0.1F, 0.0F, 128.0F);
-        ImGui::DragFloat("alpha", &style->alpha(), 0.01F, 0.0F, 1.0F);
-        ImGui::DragFloat("border radius", &style->border_radius(), 0.1F, 0.0F, 64.0F);
-        ImGui::DragFloat("border thickness", &style->border_thickness(), 0.1F, 0.0F, 16.0F);
+        draw_number_input("padding", &style->padding().x, 2, 0.1F, 0.0F, 128.0F);
+        draw_number_input("alpha", &style->alpha(), 1, 0.01F, 0.0F, 1.0F);
+        draw_number_input("border radius", &style->border_radius(), 1, 0.1F, 0.0F, 64.0F);
+        draw_number_input("border thickness", &style->border_thickness(), 1, 0.1F, 0.0F, 16.0F);
 
         render_style_variables(*style);
 
@@ -606,6 +644,17 @@ namespace ui {
         ImGui::SameLine(0.0F, ITEM_SPACING);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (ICON_SIZE.y - ImGui::GetTextLineHeight()) * 0.5F);
         ImGui::TextUnformatted("inspect");
+
+        const Profiler& profiler = m_target.profiler();
+        ImGui::SameLine(0.0F, ITEM_SPACING * 2.0F);
+        ImGui::TextDisabled(
+            "%.2f ms  %zu zones", profiler.latest_frame_ms(), static_cast<std::size_t>(profiler.latest_events().size())
+        );
+        if (profiler.dropped_events() > 0) {
+            ImGui::SameLine(0.0F, ITEM_SPACING);
+            ImGui::TextColored(m_ui->theme().accent_color, "%u dropped", profiler.dropped_events());
+        }
+
         ImGui::Separator();
     }
 
@@ -664,10 +713,6 @@ namespace ui {
     void Debugger::render() {
         if (!m_enabled || !ready()) {
             return;
-        }
-
-        if constexpr (constants::IS_DEBUG_BUILD) {
-            m_target.runtime().performance().begin_frame("debugger");
         }
 
         const ui::ImGuiContextScope scope(m_ui->imgui_context());
@@ -742,10 +787,6 @@ namespace ui {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         m_ui->window()->swap();
-
-        if constexpr (constants::IS_DEBUG_BUILD) {
-            m_target.runtime().performance().end_frame("debugger");
-        }
 
         m_target.window()->make_current();
     }

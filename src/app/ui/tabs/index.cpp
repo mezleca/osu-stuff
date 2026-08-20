@@ -7,6 +7,8 @@
 #include "../../../ui/style/theme.hpp"
 #include "../../../ui/layout/modal-container.hpp"
 #include "../../../ui/widgets/button.hpp"
+#include "../../../ui/widgets/checkbox.hpp"
+#include "../../../ui/widgets/number-input.hpp"
 #include "../../../ui/widgets/text-input.hpp"
 #include "../../../ui/widgets/text.hpp"
 #include "../../../ui/layout/stack-container.hpp"
@@ -168,6 +170,51 @@ public:
     }
 };
 
+class WidgetVisualTestNode final : public ui::StackContainer {
+public:
+    explicit WidgetVisualTestNode(UI& surface)
+        : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
+        set_size({0.0F, 260.0F});
+        set_spacing(10.0F);
+        set_padding({12.0F, 12.0F});
+        style().border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+
+        m_button = &add_child<ui::ButtonWidget>(m_ui, "button", ImVec2{160.0F, 36.0F});
+        m_button->set_size({160.0F, 36.0F});
+
+        auto& text_input = add_child<ui::TextInputWidget>(m_ui, m_text_value, "##widget-test-text");
+        text_input.set_size({380.0F, 44.0F});
+
+        auto& number_input = add_child<ui::NumberInputWidget>(m_ui, m_number_value, "widget-test-number");
+        number_input.set_label("number input").set_range(0.0, 100.0).set_size({380.0F, 36.0F});
+
+        auto& checkbox = add_child<ui::CheckboxWidget>(m_ui, m_checked, "checkbox", "widget-test-checkbox");
+        checkbox.set_size({0.0F, 30.0F});
+
+        auto& radio = add_child<ui::CheckboxWidget>(m_ui, m_radio_selected, "radio", "widget-test-radio");
+        radio.set_type(ui::CheckboxType::Radio).set_size({0.0F, 30.0F});
+
+        m_button->on_event = [this](ui::UiEvent& event) {
+            if (event.type != ui::EventType::Click) {
+                return;
+            }
+
+            ++m_click_count;
+            m_button->set_content(std::format("button ({})", m_click_count));
+            event.mark_handled();
+        };
+    }
+
+private:
+    UI& m_ui;
+    std::string m_text_value;
+    ui::ButtonWidget* m_button = nullptr;
+    float m_number_value = 50.0F;
+    int m_click_count = 0;
+    bool m_checked = false;
+    bool m_radio_selected = false;
+};
+
 IndexTab::IndexTab(UI& ui, UINotificationManager& notification_manager)
     : UITab(ui, "index"), m_notification_manager(notification_manager) {}
 
@@ -179,6 +226,7 @@ void IndexTab::setup() {
         m_anchor_visual_test = &add_child<AnchorVisualTestLayout>(theme);
         m_notification_visual_test =
             &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
+        m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui());
     }
 
     mark_initialized();
@@ -210,6 +258,11 @@ void IndexTab::render_visual_test() {
 
     if (ImGui::TreeNodeEx("notifications")) {
         m_notification_visual_test->draw();
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("widgets")) {
+        m_widget_visual_test->draw();
         ImGui::TreePop();
     }
 

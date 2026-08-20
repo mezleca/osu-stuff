@@ -1,7 +1,7 @@
 #include "assets.hpp"
 
 #include "../constants.hpp"
-#include "textures/svg.hpp"
+#include "svg.hpp"
 
 #include <SDL3/SDL_log.h>
 

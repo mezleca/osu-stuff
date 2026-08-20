@@ -1,10 +1,10 @@
 #include "node.hpp"
 
+#include "../diagnostics/profiler.hpp"
 #include "../input/router.hpp"
 
 #include <algorithm>
 #include <atomic>
-#include <chrono>
 #include <utility>
 
 namespace ui {
@@ -47,6 +47,13 @@ namespace ui {
         }
     }
 
+    void Node::set_profiler(Profiler* profiler) {
+        m_profiler = profiler;
+        for (const auto& child : m_children) {
+            child->set_profiler(profiler);
+        }
+    }
+
     bool Node::add(std::unique_ptr<Node> child) {
         if (child == nullptr || child.get() == this || child->m_parent != nullptr || child->contains(this)) {
             return false;
@@ -59,7 +66,7 @@ namespace ui {
         }
 
         child->set_input_router(m_input_router);
-        child->set_draw_profiling_enabled(m_draw_profiling_enabled);
+        child->set_profiler(m_profiler);
         m_children.emplace_back(std::move(child));
         return true;
     }
@@ -92,6 +99,7 @@ namespace ui {
         result->m_parent = nullptr;
         result->assign_input_layer(InputLayer::Count);
         result->set_input_router(nullptr);
+        result->set_profiler(nullptr);
         return result;
     }
 
@@ -148,33 +156,21 @@ namespace ui {
         }
     }
 
-    void Node::set_draw_profiling_enabled(bool enabled) {
-        m_draw_profiling_enabled = enabled;
-
-        if (!enabled) {
-            m_draw_time_ms = 0.0F;
+    void Node::capture_leaf_rect() {
+        if (!m_children.empty() || ImGui::GetCurrentContext() == nullptr) {
+            return;
         }
 
-        for (const auto& child : m_children) {
-            child->set_draw_profiling_enabled(enabled);
+        const Rect item_rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
+        if (item_rect.valid()) {
+            m_layout.set_screen_rect(item_rect);
         }
     }
 
     void Node::draw() {
-        const bool profile_draw = m_draw_profiling_enabled;
-        const auto start_time =
-            profile_draw ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
-        const auto finish_draw = [this, profile_draw, start_time] {
-            if (!profile_draw) {
-                return;
-            }
-
-            m_draw_time_ms =
-                std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - start_time).count();
-        };
+        UI_PROFILE_NODE(m_profiler, "Node::draw", m_identity);
 
         if (!m_visible) {
-            finish_draw();
             return;
         }
 
@@ -185,29 +181,19 @@ namespace ui {
 
         // early return when node did not open a draw scope.
         if (!on_draw()) {
-            finish_draw();
             return;
         }
+
+        capture_leaf_rect();
 
         // containers keep their imgui scope open between on_draw() and on_draw_end().
         draw_children();
         on_draw_end();
 
-        if (m_input_router != nullptr && m_parent != nullptr) {
-            Rect rect = m_layout.screen_rect();
-            const ImVec2 item_min = ImGui::GetItemRectMin();
-            const ImVec2 item_max = ImGui::GetItemRectMax();
-            if (rect.max.x <= rect.min.x || rect.max.y <= rect.min.y) {
-                rect = {item_min, item_max};
-                m_layout.set_screen_rect(rect);
-            }
-
-            if (rect.max.x > rect.min.x && rect.max.y > rect.min.y) {
-                m_input_router->register_region(*this, rect);
-            }
+        const Rect screen_rect = m_layout.screen_rect();
+        if (m_input_router != nullptr && m_parent != nullptr && screen_rect.valid()) {
+            m_input_router->register_region(*this, screen_rect);
         }
-
-        finish_draw();
     }
 
     void Node::draw_children() {

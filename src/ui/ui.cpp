@@ -7,16 +7,16 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 #include <SDL3/SDL_log.h>
+#include <algorithm>
 #include <cstdint>
-#include <format>
 #include <optional>
 
-namespace ui::input_internal {
-    PointerButton pointer_button(uint8_t button) {
+namespace ui {
+    static PointerButton pointer_button(uint8_t button) {
         return button == SDL_BUTTON_RIGHT ? PointerButton::Right : PointerButton::Left;
     }
 
-    std::optional<UiEvent> from_sdl_event(const SDL_Event& event) {
+    static std::optional<UiEvent> from_sdl_event(const SDL_Event& event) {
         UiEvent ui_event = UiEvent::make(EventType::Cancel);
 
         switch (event.type) {
@@ -60,9 +60,32 @@ namespace ui::input_internal {
 
         return ui_event;
     }
-} // namespace ui::input_internal
+    class SurfaceRootNode final : public Node {
+    public:
+        SurfaceRootNode() : Node("surface-root") {}
 
-UI::UI(ui::Runtime& runtime, ui::Config config) : m_runtime(runtime), m_imgui_input(input_router()), m_config(config) {
+    protected:
+        bool on_draw() override {
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::Begin("##ui-surface", nullptr, constants::WINDOW_FLAGS);
+
+            const ImVec2 position = ImGui::GetWindowPos();
+            const ImVec2 size = ImGui::GetWindowSize();
+            layout().set_size(size);
+            layout().set_screen_rect(Rect::from_position_size(position, size));
+            return true;
+        }
+
+        void on_draw_end() override {
+            ImGui::End();
+        }
+    };
+} // namespace ui
+
+UI::UI(ui::Runtime& runtime, ui::Config config)
+    : m_runtime(runtime), m_imgui_input(input_router()), m_profiler(runtime.performance_directory()), m_config(config) {
     m_runtime.register_surface(*this);
     initialize();
 }
@@ -131,11 +154,11 @@ void UI::initialize() {
 
     m_ready = true;
 
-    const std::string id = std::format("{}-root", static_cast<const void*>(this));
     ui::Style::set_default_theme(m_runtime.theme());
 
-    m_container = std::make_unique<ui::Node>(id);
+    m_container = std::make_unique<ui::SurfaceRootNode>();
     m_container->set_input_router(&m_input_router);
+    m_container->set_profiler(&m_profiler);
 
     for (std::size_t index = 0; index < static_cast<size_t>(ui::FontType::FONT_COUNT); ++index) {
         ui::Font& font = m_runtime.assets().font(static_cast<ui::FontType>(index), m_context, m_io);
@@ -158,19 +181,19 @@ void UI::configure_style(float main_scale) {
     ImGui::StyleColorsDark();
 
     ImGuiStyle& style = ImGui::GetStyle();
+    const ui::Theme& theme = m_runtime.theme();
 
     // ui items / widgets
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
-    style.FrameRounding = 4.0f;
     style.PopupRounding = 6.0f;
-    style.GrabRounding = 4.0f;
     style.TabRounding = 4.0f;
     style.WindowPadding = ImVec2{0.0f, 0.0f};
-    style.FramePadding = ImVec2{12.0f, 8.0f};
-    style.ItemSpacing = ImVec2{10.0f, 10.0f};
-    style.ItemInnerSpacing = ImVec2{8.0f, 6.0f};
     style.CellPadding = ImVec2{0.0f, 0.0f};
+
+    set_frame_style({12.0F, 8.0F}, theme.control_rounding, 0.0F);
+    set_grab_style(theme.control_thumb_size, theme.control_rounding);
+    set_item_spacing({10.0F, 10.0F}, {8.0F, 6.0F});
 
     // make lines look normal
     style.CircleTessellationMaxError = 0.10f;
@@ -182,13 +205,47 @@ void UI::configure_style(float main_scale) {
     apply_theme_colors();
 }
 
+void UI::set_frame_style(ImVec2 padding, float rounding, float border_thickness) {
+    if (m_context == nullptr) {
+        return;
+    }
+
+    const ui::ImGuiContextScope scope(m_context);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FramePadding = padding;
+    style.FrameRounding = std::max(0.0F, rounding);
+    style.FrameBorderSize = std::max(0.0F, border_thickness);
+}
+
+void UI::set_grab_style(float minimum_size, float rounding) {
+    if (m_context == nullptr) {
+        return;
+    }
+
+    const ui::ImGuiContextScope scope(m_context);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.GrabMinSize = std::max(1.0F, minimum_size);
+    style.GrabRounding = std::max(0.0F, rounding);
+}
+
+void UI::set_item_spacing(ImVec2 spacing, ImVec2 inner_spacing) {
+    if (m_context == nullptr) {
+        return;
+    }
+
+    const ui::ImGuiContextScope scope(m_context);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ItemSpacing = spacing;
+    style.ItemInnerSpacing = inner_spacing;
+}
+
 void UI::apply_theme_colors() {
     const ui::Theme& theme = m_runtime.theme();
     ImVec4* colors = ImGui::GetStyle().Colors;
 
     colors[ImGuiCol_WindowBg] = theme.background_color;
     colors[ImGuiCol_ChildBg] = theme.background_secondary_color;
-    colors[ImGuiCol_Border] = theme.header_border_color;
+    colors[ImGuiCol_Border] = theme.control_border_color;
     colors[ImGuiCol_Separator] = theme.header_border_color;
     colors[ImGuiCol_Text] = theme.text_color;
     colors[ImGuiCol_TextDisabled] = theme.text_secondary_color;
@@ -205,13 +262,14 @@ void UI::apply_theme_colors() {
     colors[ImGuiCol_TabDimmed] = theme.background_tertiary_color;
     colors[ImGuiCol_TabDimmedSelected] = theme.accent_color;
     colors[ImGuiCol_TabDimmedSelectedOverline] = theme.accent_color;
-    colors[ImGuiCol_FrameBg] = theme.background_secondary_color;
-    colors[ImGuiCol_FrameBgHovered] = theme.background_tertiary_color;
-    colors[ImGuiCol_FrameBgActive] = theme.button_active_color;
+    colors[ImGuiCol_FrameBg] = theme.control_background_color;
+    colors[ImGuiCol_FrameBgHovered] = theme.control_hover_color;
+    colors[ImGuiCol_FrameBgActive] = theme.control_active_color;
+    colors[ImGuiCol_CheckboxSelectedBg] = theme.control_background_color;
     colors[ImGuiCol_TitleBg] = theme.background_secondary_color;
     colors[ImGuiCol_TitleBgActive] = theme.background_secondary_color;
-    colors[ImGuiCol_CheckMark] = theme.accent_color;
-    colors[ImGuiCol_SliderGrab] = theme.accent_color;
+    colors[ImGuiCol_CheckMark] = theme.control_mark_color;
+    colors[ImGuiCol_SliderGrab] = theme.control_mark_color;
     colors[ImGuiCol_SliderGrabActive] = theme.accent_hover_color;
 }
 
@@ -253,7 +311,7 @@ void UI::process_sdl_event(SDL_Event* event) {
         return;
     }
 
-    std::optional<ui::UiEvent> ui_event = ui::input_internal::from_sdl_event(*event);
+    std::optional<ui::UiEvent> ui_event = ui::from_sdl_event(*event);
     if (!ui_event.has_value()) {
         return;
     }
@@ -270,13 +328,11 @@ void UI::begin_frame() {
     ImGui::SetCurrentContext(m_context);
     m_window->make_current();
 
+    m_profiler.begin_frame();
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
-
-    if constexpr (constants::IS_DEBUG_BUILD) {
-        m_runtime.performance().begin_frame(m_config.window.title);
-    }
 }
 
 void UI::end_frame() {
@@ -295,10 +351,7 @@ void UI::end_frame() {
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     m_window->swap();
-
-    if constexpr (constants::IS_DEBUG_BUILD) {
-        m_runtime.performance().end_frame(m_config.window.title);
-    }
+    m_profiler.end_frame();
 
     ImGui::SetCurrentContext(m_previous_context);
     m_previous_context = nullptr;

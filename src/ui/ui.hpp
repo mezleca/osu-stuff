@@ -1,6 +1,7 @@
 #pragma once
 
 #include "style/theme.hpp"
+#include "diagnostics/profiler.hpp"
 #include "runtime.hpp"
 #include "imgui/input-bridge.hpp"
 #include "platform/window.hpp"
@@ -78,6 +79,14 @@ public:
         return m_input_router;
     }
 
+    [[nodiscard]] ui::Profiler& profiler() {
+        return m_profiler;
+    }
+
+    [[nodiscard]] const ui::Profiler& profiler() const {
+        return m_profiler;
+    }
+
     [[nodiscard]] const ui::Theme& theme() const {
         return m_runtime.theme();
     }
@@ -102,6 +111,9 @@ public:
 
     void load_theme(ui::Theme theme);
     void refresh_theme();
+    void set_frame_style(ImVec2 padding, float rounding, float border_thickness);
+    void set_grab_style(float minimum_size, float rounding);
+    void set_item_spacing(ImVec2 spacing, ImVec2 inner_spacing);
 
 private:
     void initialize();
@@ -116,6 +128,7 @@ private:
     std::unique_ptr<ui::Node> m_container;
     ui::InputRouter m_input_router;
     ui::ImGuiInputBridge m_imgui_input;
+    ui::Profiler m_profiler;
     ui::Config m_config;
     bool m_done = false;
     bool m_ready = false;

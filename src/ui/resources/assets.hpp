@@ -1,7 +1,7 @@
 #pragma once
 
-#include "fonts/font.hpp"
-#include "textures/icon.hpp"
+#include "font.hpp"
+#include "icon.hpp"
 
 #include <array>
 #include <filesystem>

@@ -9,13 +9,14 @@ namespace ui {
         Button,
         Text,
         TextInput,
+        NumberInput,
+        Checkbox,
         Image,
         Line,
         ChildContainer,
         StackContainer,
         ResizableContainer,
         ModalPanel,
-        SearchInput,
         TabButton,
         CollectionCard,
         Notification,
@@ -30,6 +31,10 @@ namespace ui {
                 return "Text";
             case WidgetType::TextInput:
                 return "TextInput";
+            case WidgetType::NumberInput:
+                return "NumberInput";
+            case WidgetType::Checkbox:
+                return "Checkbox";
             case WidgetType::Image:
                 return "Image";
             case WidgetType::Line:
@@ -42,8 +47,6 @@ namespace ui {
                 return "ResizableContainer";
             case WidgetType::ModalPanel:
                 return "ModalPanel";
-            case WidgetType::SearchInput:
-                return "SearchInput";
             case WidgetType::TabButton:
                 return "TabButton";
             case WidgetType::CollectionCard:
