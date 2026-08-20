@@ -96,15 +96,14 @@ namespace ui {
         ImGui::PopID();
 
         apply_input_state(input);
-        state().update(ImGui::GetIO().DeltaTime);
         return true;
     }
 
-    std::optional<std::string> CheckboxWidget::get_content() const {
+    std::optional<std::string> CheckboxWidget::content() const {
         return *m_value ? "true" : "false";
     }
 
-    bool CheckboxWidget::set_content(std::string content) {
+    bool CheckboxWidget::try_set_content(std::string content) {
         bool value = false;
         if (content == "true" || content == "1") {
             value = true;

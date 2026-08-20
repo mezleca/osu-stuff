@@ -13,8 +13,8 @@ class CollectionCardWidget : public ui::ChildContainer {
 public:
     CollectionCardWidget(UI& ui, std::string name);
 
-    [[nodiscard]] std::optional<std::string> get_content() const override;
-    bool set_content(std::string content) override;
+    [[nodiscard]] std::optional<std::string> content() const override;
+    bool try_set_content(std::string content) override;
     void set_count(std::string count);
     void set_selected(bool value);
     void toggle_selected();

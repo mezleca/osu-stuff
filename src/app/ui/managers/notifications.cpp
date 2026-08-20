@@ -100,7 +100,7 @@ void UINotificationManager::draw() {
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const ImVec2 initial_offset = {m_position == ui::OverlayPosition::LEFT ? 5.0F : -5.0F, m_header_height + 10.0F};
-    const float more_height = std::max(48.0F, m_more_notifications.state().size().y);
+    const float more_height = std::max(48.0F, m_more_notifications.rect().size().y);
     const float max_height = available.y - 100.0F - more_height - SPACING;
 
     ImVec2 offset = initial_offset;

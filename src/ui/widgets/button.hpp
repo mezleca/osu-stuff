@@ -14,8 +14,8 @@ namespace ui {
         ButtonWidget(UI& ui, std::string text, ImVec2 size = {100.0f, 60.0f});
 
         [[nodiscard]] bool on_draw() override;
-        [[nodiscard]] std::optional<std::string> get_content() const override;
-        bool set_content(std::string content) override;
+        [[nodiscard]] std::optional<std::string> content() const override;
+        bool try_set_content(std::string content) override;
 
     private:
         UI& m_ui;

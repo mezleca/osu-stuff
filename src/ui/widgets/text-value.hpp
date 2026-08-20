@@ -7,6 +7,7 @@
 #include <utility>
 
 namespace ui {
+    /// size is cached lazily for the selected font and wrap width.
     class TextValue {
     public:
         explicit TextValue(std::string text = {}, ImFont* font = nullptr) : m_text(std::move(text)), m_font(font) {}
@@ -77,6 +78,7 @@ namespace ui {
         bool m_size_dirty = true;
     };
 
+    /// recomputes its string only when the bound tuple changes.
     template <typename... Args>
     class TextFormatted : public TextValue {
     public:

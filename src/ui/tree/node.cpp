@@ -25,12 +25,15 @@ namespace ui {
 
         m_layout.set_parent_content_rect(Rect::from_position_size(content_min, content_size));
 
+        // flow uses imgui's current cursor; explicit placement resolves against
+        // the window content rectangle before converting the result to screen space.
         ImVec2 window_position = ImGui::GetCursorPos();
         if (m_layout.has_explicit_position()) {
-            const ImVec2 local_position = resolve_layout_position(
-                content_size, m_layout.size(), m_layout.anchor_factor(), m_layout.origin_factor(), m_layout.offset()
+            const Rect arranged_rect = resolve_layout_rect(
+                {content_min, content_max}, m_layout.size(), m_layout.anchor_factor(), m_layout.origin_factor(),
+                m_layout.offset()
             );
-            window_position = {content_min.x + local_position.x, content_min.y + local_position.y};
+            window_position = arranged_rect.min;
             ImGui::SetCursorPos(window_position);
         }
 
@@ -68,6 +71,7 @@ namespace ui {
         child->set_input_router(m_input_router);
         child->set_profiler(m_profiler);
         m_children.emplace_back(std::move(child));
+        invalidate_measure();
         return true;
     }
 
@@ -89,6 +93,8 @@ namespace ui {
         }
 
         if (m_input_router != nullptr) {
+            // the router stores raw targets across frames, so detach must clear
+            // every state that could outlive ownership in this tree.
             m_input_router->clear_focus(child);
             m_input_router->release_pointer(child);
             m_input_router->clear_keyboard_target(child);
@@ -100,6 +106,7 @@ namespace ui {
         result->assign_input_layer(InputLayer::Count);
         result->set_input_router(nullptr);
         result->set_profiler(nullptr);
+        invalidate_measure();
         return result;
     }
 
@@ -156,15 +163,57 @@ namespace ui {
         }
     }
 
-    void Node::capture_leaf_rect() {
+    void Node::invalidate_measure() {
+        m_measure_dirty = true;
+        if (m_parent != nullptr && !m_parent->m_measure_dirty) {
+            m_parent->invalidate_measure();
+        }
+    }
+
+    void Node::invalidate_measure_subtree() {
+        m_measure_dirty = true;
+        for (const auto& child : m_children) {
+            child->invalidate_measure_subtree();
+        }
+
+        if (m_parent != nullptr && !m_parent->m_measure_dirty) {
+            m_parent->invalidate_measure();
+        }
+    }
+
+    void Node::capture_leaf_rect(ImGuiID previous_item_id, Rect previous_item_rect) {
         if (!m_children.empty() || ImGui::GetCurrentContext() == nullptr) {
             return;
         }
 
         const Rect item_rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
+        // many imgui items use id zero. compare both id and bounds so a node that
+        // emitted nothing cannot inherit the item left by the previous node.
+        const bool same_item = ImGui::GetItemID() == previous_item_id && item_rect.min.x == previous_item_rect.min.x &&
+                               item_rect.min.y == previous_item_rect.min.y &&
+                               item_rect.max.x == previous_item_rect.max.x &&
+                               item_rect.max.y == previous_item_rect.max.y;
+        if (same_item) {
+            return;
+        }
+
         if (item_rect.valid()) {
             m_layout.set_screen_rect(item_rect);
         }
+    }
+
+    void Node::measure_tree() {
+        if (!m_visible || !m_measure_dirty) {
+            return;
+        }
+
+        // measurement is bottom-up because container intrinsic size may depend
+        // on sizes resolved by its children in the same frame.
+        for (const auto& child : m_children) {
+            child->measure_tree();
+        }
+        on_measure();
+        m_measure_dirty = false;
     }
 
     void Node::draw() {
@@ -174,17 +223,25 @@ namespace ui {
             return;
         }
 
-        // layout runs before drawing so widgets can update dynamic sizes while the parent imgui window is active
-        // then the node is positioned once.
+        if (m_parent == nullptr && m_measure_dirty) {
+            measure_tree();
+        }
+
+        // layout runs before drawing so widgets can use the active parent window;
+        // placement then establishes both local and screen coordinate rectangles.
         on_layout();
         position_in_parent();
+
+        const ImGuiID previous_item_id = ImGui::GetCurrentContext() == nullptr ? 0 : ImGui::GetItemID();
+        const Rect previous_item_rect =
+            ImGui::GetCurrentContext() == nullptr ? Rect{} : Rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
 
         // early return when node did not open a draw scope.
         if (!on_draw()) {
             return;
         }
 
-        capture_leaf_rect();
+        capture_leaf_rect(previous_item_id, previous_item_rect);
 
         // containers keep their imgui scope open between on_draw() and on_draw_end().
         draw_children();
@@ -202,11 +259,11 @@ namespace ui {
         }
     }
 
-    std::optional<std::string> Node::get_content() const {
+    std::optional<std::string> Node::content() const {
         return std::nullopt;
     }
 
-    bool Node::set_content(std::string) {
+    bool Node::try_set_content(std::string) {
         return false;
     }
 
@@ -215,6 +272,7 @@ namespace ui {
     }
 
     void Node::on_update(float) {}
+    void Node::on_measure() {}
     void Node::on_layout() {}
     void Node::on_draw_end() {}
 

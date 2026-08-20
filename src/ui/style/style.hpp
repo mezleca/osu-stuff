@@ -9,6 +9,7 @@
 #include <variant>
 
 namespace ui {
+    /// border side mask; BORDER_ALL uses imgui's rounded full-border path.
     enum Border : uint8_t {
         BORDER_NONE = 0,
         BORDER_LEFT = 1 << 0,
@@ -26,20 +27,16 @@ namespace ui {
         _COUNT
     };
 
+    /// colors and variables may transition. geometry-like values such as padding,
+    /// radius and border thickness switch immediately when a new slot is selected.
+    /// a widget only consumes properties that are meaningful to its renderer.
     class Style {
     public:
         Style() : m_padding({}) {
-            m_color.set(default_theme().text_color);
-            m_border_color.set(default_theme().border_color);
-            m_background_color.set(default_theme().transparent);
-        }
-
-        static void set_default_theme(const Theme& theme) {
-            default_theme() = theme;
-        }
-
-        [[nodiscard]] static const Theme& default_theme_values() {
-            return default_theme();
+            const Theme theme = Theme::defaults();
+            m_color.set(theme.text_color);
+            m_border_color.set(theme.border_color);
+            m_background_color.set(theme.transparent);
         }
 
         [[nodiscard]] ImFont* font() const {
@@ -158,6 +155,7 @@ namespace ui {
             return *this;
         }
 
+        /// custom animated values used by application-specific widgets.
         [[nodiscard]] StyleVariableStore& variables() {
             return m_vars;
         }
@@ -166,6 +164,7 @@ namespace ui {
             return m_vars;
         }
 
+        /// advances continuous values in `style` towards `target` by one frame.
         static void lerp(Style& style, const Style& target, float dt) {
             style.m_font = target.m_font;
             style.m_padding = target.m_padding;
@@ -241,11 +240,6 @@ namespace ui {
         }
 
     private:
-        static Theme& default_theme() {
-            static Theme theme = Theme::defaults();
-            return theme;
-        }
-
         ImFont* m_font = nullptr;
         ImVec2 m_padding = {};
         float m_alpha = 1.0F;

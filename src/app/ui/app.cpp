@@ -202,6 +202,7 @@ void OsuStuffApp::render() {
     }
 
     m_notification_manager->set_header_height(m_header_end_height);
+    m_ui.root().update(ImGui::GetIO().DeltaTime);
     m_ui.root().draw();
 
     if (m_debugger) {

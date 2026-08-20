@@ -16,40 +16,22 @@ namespace ui {
 
         Widget& set_font(ImFont* font) override {
             StyledNode::set_font(font);
-            state().configure_all_styles([font](Style& style) { style.font(font); });
             return *this;
         }
 
         [[nodiscard]] bool accepts_input() const override {
-            return m_state.accepts_input();
+            return Node::accepts_input() && state().accepts_input();
         }
 
+        /// converts an input snapshot into active/focus/hover style selection.
         void apply_input_state(const ItemInputState& input, bool active = false) {
-            state().set_item_state(input.hovered, input.active || active);
-        }
-
-        [[nodiscard]] VisualState& state() {
-            return m_state;
-        }
-
-        [[nodiscard]] Style& style() {
-            return state().style();
-        }
-
-        [[nodiscard]] const Style& style() const {
-            return m_state.style();
+            state().set_item_state(input.hovered, input.active || active, input.focused);
         }
 
     private:
-        [[nodiscard]] const Style& draw_style() const override {
-            return m_state.style();
-        }
-
         [[nodiscard]] float draw_opacity() const override {
-            return m_state.opacity();
+            return state().opacity();
         }
-
-        VisualState m_state;
     };
 
 } // namespace ui

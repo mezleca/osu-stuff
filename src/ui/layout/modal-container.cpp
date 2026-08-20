@@ -5,6 +5,16 @@
 #include <SDL3/SDL_keycode.h>
 
 namespace ui {
+    static ModalPanel* active_modal(const Node& container) {
+        for (auto it = container.children().rbegin(); it != container.children().rend(); ++it) {
+            if ((*it)->visible()) {
+                return static_cast<ModalPanel*>(it->get());
+            }
+        }
+
+        return nullptr;
+    }
+
     ModalContainer::ModalContainer(UI& ui) : Node("modal-container"), m_ui(ui), m_input_router(ui.input_router()) {
         set_visible(true);
 
@@ -46,6 +56,8 @@ namespace ui {
             return false;
         }
 
+        // hide immediately so hit testing stops this frame, but defer ownership
+        // removal until update to avoid mutating children during draw/event dispatch.
         const bool was_active = active() == &modal;
         modal.set_visible(false);
         m_pending_close = &modal;
@@ -68,16 +80,11 @@ namespace ui {
     }
 
     ModalPanel* ModalContainer::active() {
-        for (auto it = children().rbegin(); it != children().rend(); ++it) {
-            if ((*it)->visible()) {
-                return static_cast<ModalPanel*>(it->get());
-            }
-        }
-        return nullptr;
+        return active_modal(*this);
     }
 
     const ModalPanel* ModalContainer::active() const {
-        return const_cast<ModalContainer*>(this)->active();
+        return active_modal(*this);
     }
 
     bool ModalContainer::has_open_modal() const {
@@ -91,6 +98,8 @@ namespace ui {
             return;
         }
 
+        // external visibility changes can leave no active panel without calling
+        // close(), so input policy is reconciled every update.
         m_input_router.set_layer_policy(InputLayer::Modal, InputPolicy::PassThrough);
         m_input_router.clear_keyboard_target(InputLayer::Modal);
         m_input_router.clear_focus(*this);

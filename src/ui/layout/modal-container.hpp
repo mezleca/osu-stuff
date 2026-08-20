@@ -9,6 +9,7 @@
 class UI;
 
 namespace ui {
+    /// the most recently opened visible panel owns modal input policy.
     class ModalContainer final : public Node {
     public:
         explicit ModalContainer(UI& ui);
@@ -21,6 +22,7 @@ namespace ui {
             return modal.add_child<T>(std::forward<Args>(args)...);
         }
 
+        /// schedules removal after the current draw lifecycle.
         bool close(ModalPanel& modal);
         void close_top();
 

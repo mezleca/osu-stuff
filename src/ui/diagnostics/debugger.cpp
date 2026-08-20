@@ -14,7 +14,8 @@
 #include <imgui_stdlib.h>
 
 #include <algorithm>
-#include <cfloat>
+#include <cstdarg>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,111 @@ namespace ui {
     static constexpr ImVec2 ICON_SIZE = {16.0F, 16.0F};
     static constexpr float WINDOW_PADDING = 8.0F;
     static constexpr float ITEM_SPACING = 6.0F;
+    static constexpr float PROPERTY_LABEL_WIDTH = 104.0F;
+    static constexpr float PROPERTY_VALUE_MAX_WIDTH = 160.0F;
+    static constexpr float INPUT_MAX_WIDTH = 180.0F;
+    static constexpr ImVec2 INPUT_PADDING = {6.0F, 2.0F};
+
+    static const char* input_layer_name(InputLayer layer) {
+        switch (layer) {
+            case InputLayer::Content:
+                return "content";
+            case InputLayer::Overlay:
+                return "overlay";
+            case InputLayer::Modal:
+                return "modal";
+            case InputLayer::Notification:
+                return "notification";
+            case InputLayer::Count:
+                return "unassigned";
+        }
+
+        return "unknown";
+    }
+
+    static void draw_property_value(std::string_view label, const char* format, ...) {
+        char value[256];
+        va_list args;
+        va_start(args, format);
+        std::vsnprintf(value, sizeof(value), format, args);
+        va_end(args);
+
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float available_width = ImGui::GetContentRegionAvail().x;
+        const float height = ImGui::GetTextLineHeight() + 4.0F;
+        const float label_width = std::min(PROPERTY_LABEL_WIDTH, available_width * 0.45F);
+        const float text_width = ImGui::CalcTextSize(value).x + style.FramePadding.x * 2.0F;
+        const float value_width = std::min(
+            std::max(0.0F, available_width - label_width), std::clamp(text_width, 64.0F, PROPERTY_VALUE_MAX_WIDTH)
+        );
+        const ImVec2 row_min = ImGui::GetCursorScreenPos();
+        const ImVec2 value_min = {row_min.x + label_width, row_min.y};
+        const ImVec2 value_max = {value_min.x + value_width, row_min.y + height};
+        const float text_y = row_min.y + (height - ImGui::GetFontSize()) * 0.5F;
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list->AddText(
+            {row_min.x, text_y}, ImGui::GetColorU32(ImGuiCol_TextDisabled), label.data(), label.data() + label.size()
+        );
+        draw_list->AddRectFilled(value_min, value_max, ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
+        draw_list->AddRect(value_min, value_max, ImGui::GetColorU32(ImGuiCol_Border), style.FrameRounding);
+
+        const ImVec2 text_position = {value_min.x + style.FramePadding.x, text_y};
+        draw_list->PushClipRect(value_min, value_max, true);
+        draw_list->AddText(text_position, ImGui::GetColorU32(ImGuiCol_Text), value);
+        draw_list->PopClipRect();
+
+        ImGui::Dummy({label_width + value_width, height});
+    }
+
+    static void draw_rect_properties(std::string_view label, Rect rect) {
+        const std::string id{label};
+        if (!ImGui::TreeNodeEx(id.c_str())) {
+            return;
+        }
+
+        const ImVec2 size = rect.size();
+        draw_property_value("position", "x %.1f   y %.1f", rect.min.x, rect.min.y);
+        draw_property_value("size", "w %.1f   h %.1f", size.x, size.y);
+        ImGui::TreePop();
+    }
+
+    template <typename DrawInput>
+    static bool draw_labeled_input(std::string_view label, DrawInput draw_input) {
+        const float available_width = ImGui::GetContentRegionAvail().x;
+        const float label_width = std::min(PROPERTY_LABEL_WIDTH, available_width * 0.45F);
+        const float input_width = std::min(INPUT_MAX_WIDTH, std::max(0.0F, available_width - label_width));
+        const float input_x = ImGui::GetCursorPosX() + label_width;
+        const std::string id{label};
+
+        ImGui::PushID(id.c_str());
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label.data(), label.data() + label.size());
+        ImGui::SameLine(input_x);
+        ImGui::SetNextItemWidth(input_width);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, INPUT_PADDING);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0F);
+        const bool changed = draw_input();
+        ImGui::PopStyleVar(2);
+        ImGui::PopID();
+        return changed;
+    }
+
+    static bool draw_text_input(std::string_view label, std::string& value) {
+        return draw_labeled_input(label, [&value] { return ImGui::InputText("##value", &value); });
+    }
+
+    static bool draw_color_input(std::string_view label, ImVec4& value) {
+        return draw_labeled_input(label, [&value] {
+            return ImGui::ColorEdit4("##value", &value.x, ImGuiColorEditFlags_NoInputs);
+        });
+    }
+
+    static bool draw_inline_combo(std::string_view label, int* selected, const char* const items[], int item_count) {
+        return draw_labeled_input(label, [selected, items, item_count] {
+            return ImGui::Combo("##value", selected, items, item_count);
+        });
+    }
 
     static SDL_WindowID mouse_event_window_id(const SDL_Event& event) {
         switch (event.type) {
@@ -55,25 +161,11 @@ namespace ui {
         std::string_view label, ImGuiDataType type, void* values, int components, float speed, const void* minimum,
         const void* maximum, const char* format
     ) {
-        const float available_width = ImGui::GetContentRegionAvail().x;
-        const float label_width = std::min(120.0F, available_width * 0.4F);
-        const float input_x = ImGui::GetCursorPosX() + label_width;
-        const std::string id{label};
-
-        ImGui::PushID(id.c_str());
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(label.data(), label.data() + label.size());
-        ImGui::SameLine(input_x);
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {8.0F, 5.0F});
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0F);
-        const bool changed =
-            minimum != nullptr && maximum != nullptr
-                ? ImGui::SliderScalarN("##value", type, values, components, minimum, maximum, format)
-                : ImGui::DragScalarN("##value", type, values, components, speed, minimum, maximum, format);
-        ImGui::PopStyleVar(2);
-        ImGui::PopID();
-        return changed;
+        return draw_labeled_input(label, [=] {
+            return minimum != nullptr && maximum != nullptr
+                       ? ImGui::SliderScalarN("##value", type, values, components, minimum, maximum, format)
+                       : ImGui::DragScalarN("##value", type, values, components, speed, minimum, maximum, format);
+        });
     }
 
     static bool draw_number_input(
@@ -161,8 +253,8 @@ namespace ui {
         m_target_was_flow_position = target != nullptr && !target->layout().has_explicit_position();
         m_select_properties = target != nullptr;
 
-        auto* widget = dynamic_cast<Widget*>(target);
-        m_inspected_style = widget == nullptr ? StyleType::DEFAULT : widget->state().style_type();
+        auto* styled = dynamic_cast<StyledNode*>(target);
+        m_inspected_style = styled == nullptr ? StyleType::DEFAULT : styled->state().style_type();
 
         if (m_node_target == nullptr) {
             m_highlight_valid = false;
@@ -170,6 +262,24 @@ namespace ui {
         }
 
         refresh_highlight();
+    }
+
+    void Debugger::remove_target() {
+        if (m_node_target == nullptr || m_node_target->parent() == nullptr) {
+            return;
+        }
+
+        Node* target = m_node_target;
+        Node* parent = target->parent();
+        set_target(nullptr);
+        m_hover_target = nullptr;
+        m_scroll_to_target = false;
+
+        if (std::unique_ptr<Node> detached = parent->remove(*target); detached != nullptr) {
+            detached->set_visible(false);
+            detached->set_enabled(false);
+            m_detached_nodes.push_back(std::move(detached));
+        }
     }
 
     bool Debugger::ready() const {
@@ -433,22 +543,47 @@ namespace ui {
 
     void Debugger::render_node_properties() {
         if (ImGui::TreeNodeEx("node", ImGuiTreeNodeFlags_DefaultOpen)) {
-            const Rect arranged_rect = m_node_target->layout().arranged_rect();
+            bool visible = m_node_target->visible();
+            if (ImGui::Checkbox("visible", &visible)) m_node_target->set_visible(visible);
 
-            ImGui::Text("id: %s", m_node_target->id().c_str());
-            ImGui::Text("children: %zu", m_node_target->children().size());
-            ImGui::Text("position: (%.1f, %.1f)", arranged_rect.min.x, arranged_rect.min.y);
-            ImGui::Text("size: (%.1f, %.1f)", arranged_rect.size().x, arranged_rect.size().y);
+            ImGui::SameLine();
+            bool enabled = m_node_target->enabled();
+            if (ImGui::Checkbox("input enabled", &enabled)) m_node_target->set_enabled(enabled);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Controls input only; use visible to stop update and drawing");
+            }
 
-            if (const std::optional<std::string> content = m_node_target->get_content(); content.has_value()) {
+            draw_property_value("id", "%s", m_node_target->id().empty() ? "unnamed" : m_node_target->id().c_str());
+            if (const auto* styled = dynamic_cast<const StyledNode*>(m_node_target); styled != nullptr) {
+                const std::string_view type = widget_type_to_string(styled->widget_type());
+                draw_property_value("type", "%.*s", static_cast<int>(type.size()), type.data());
+            }
+
+            if (const std::optional<std::string> content = m_node_target->content(); content.has_value()) {
                 std::string editable_content = *content;
-                if (ImGui::InputText("content", &editable_content)) {
-                    m_node_target->set_content(std::move(editable_content));
+                if (draw_text_input("content", editable_content)) {
+                    m_node_target->try_set_content(std::move(editable_content));
                 }
             }
 
-            bool visible = m_node_target->visible();
-            if (ImGui::Checkbox("visible", &visible)) m_node_target->set_visible(visible);
+            if (ImGui::TreeNodeEx("diagnostics")) {
+                draw_property_value("identity", "%llu", static_cast<unsigned long long>(m_node_target->identity()));
+                draw_property_value("children", "%zu", m_node_target->children().size());
+                if (const auto* styled = dynamic_cast<const StyledNode*>(m_node_target); styled != nullptr) {
+                    draw_property_value("opacity", "%.3f", styled->state().opacity());
+                    draw_property_value(
+                        "style state", "%s", STYLE_NAMES[static_cast<int>(styled->state().style_type())]
+                    );
+                }
+
+                draw_property_value("input layer", "%s", input_layer_name(m_node_target->input_layer()));
+                draw_property_value("accepts input", "%s", m_node_target->accepts_input() ? "yes" : "no");
+                draw_property_value("accepts focus", "%s", m_node_target->accepts_focus() ? "yes" : "no");
+                draw_property_value(
+                    "focused", "%s", m_target.input_router().focused_node() == m_node_target ? "yes" : "no"
+                );
+                ImGui::TreePop();
+            }
 
             ImGui::TreePop();
         }
@@ -470,48 +605,58 @@ namespace ui {
     }
 
     void Debugger::render_layout_properties() {
-        if (!ImGui::TreeNodeEx("layout", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (!ImGui::TreeNodeEx("layout")) {
             return;
         }
 
-        ImVec2 size = m_node_target->layout().size();
-        if (draw_number_input("size", &size.x, 2)) {
-            m_node_target->layout().set_size(size);
+        NodeLayout& layout = m_node_target->layout();
+        draw_property_value("placement", "%s", layout.has_explicit_position() ? "explicit" : "flow");
+
+        ImVec2 size = layout.size();
+        if (draw_number_input("desired size", &size.x, 2)) {
+            layout.set_size(size);
         }
 
-        ImVec2 offset = m_node_target->layout().offset();
+        ImVec2 offset = layout.offset();
         if (draw_number_input("offset", &offset.x, 2)) {
-            m_node_target->layout().set_offset(offset);
+            layout.set_offset(offset);
         }
 
-        int anchor = static_cast<int>(m_node_target->layout().anchor());
-        if (ImGui::Combo("anchor (parent)", &anchor, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
-            m_node_target->layout().set_anchor(static_cast<Anchor>(anchor));
+        int anchor = static_cast<int>(layout.anchor());
+        if (draw_inline_combo("anchor (parent)", &anchor, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
+            layout.set_anchor(static_cast<Anchor>(anchor));
             if (should_restore_flow_position()) {
-                m_node_target->layout().clear_explicit_position();
+                layout.clear_explicit_position();
             }
         }
 
-        int origin = static_cast<int>(m_node_target->layout().origin());
-        if (ImGui::Combo("origin (node)", &origin, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
-            m_node_target->layout().set_origin(static_cast<Origin>(origin));
+        int origin = static_cast<int>(layout.origin());
+        if (draw_inline_combo("origin (node)", &origin, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
+            layout.set_origin(static_cast<Origin>(origin));
             if (should_restore_flow_position()) {
-                m_node_target->layout().clear_explicit_position();
+                layout.clear_explicit_position();
             }
         }
 
-        if (m_node_target->layout().anchor() == Anchor::Custom) {
-            ImVec2 anchor_position = m_node_target->layout().anchor_factor();
+        if (layout.anchor() == Anchor::Custom) {
+            ImVec2 anchor_position = layout.anchor_factor();
             if (draw_number_input("anchor point", &anchor_position.x, 2, 0.01F)) {
-                m_node_target->layout().set_anchor_position(anchor_position);
+                layout.set_anchor_position(anchor_position);
             }
         }
 
-        if (m_node_target->layout().origin() == Origin::Custom) {
-            ImVec2 origin_position = m_node_target->layout().origin_factor();
+        if (layout.origin() == Origin::Custom) {
+            ImVec2 origin_position = layout.origin_factor();
             if (draw_number_input("origin point", &origin_position.x, 2, 0.01F)) {
-                m_node_target->layout().set_origin_position(origin_position);
+                layout.set_origin_position(origin_position);
             }
+        }
+
+        if (ImGui::TreeNodeEx("resolved geometry")) {
+            draw_rect_properties("arranged in parent", layout.arranged_rect());
+            draw_rect_properties("screen bounds", layout.screen_rect());
+            draw_rect_properties("parent content", layout.parent_content_rect());
+            ImGui::TreePop();
         }
 
         ImGui::TreePop();
@@ -545,11 +690,11 @@ namespace ui {
                     } else if constexpr (std::is_same_v<ValueType, IntValue>) {
                         draw_number_input(name, &value.value);
                     } else if constexpr (std::is_same_v<ValueType, BoolValue>) {
-                        ImGui::Checkbox(name.c_str(), &value.value);
+                        draw_labeled_input(name, [&value] { return ImGui::Checkbox("##value", &value.value); });
                     } else if constexpr (std::is_same_v<ValueType, StringValue>) {
-                        ImGui::InputText(name.c_str(), &value.value);
+                        draw_text_input(name, value.value);
                     } else if constexpr (std::is_same_v<ValueType, ColorValue>) {
-                        ImGui::ColorEdit4(name.c_str(), &value.value.Value.x, ImGuiColorEditFlags_NoInputs);
+                        draw_color_input(name, value.value.Value);
                     } else if constexpr (std::is_same_v<ValueType, Vec2Value>) {
                         draw_number_input(name, &value.value.x, 2, 0.01F);
                     }
@@ -564,46 +709,79 @@ namespace ui {
     void Debugger::render_style_properties() {
         auto* styled = dynamic_cast<StyledNode*>(m_node_target);
 
-        if (styled == nullptr || !ImGui::TreeNodeEx("style", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (styled == nullptr || !ImGui::TreeNodeEx("style")) {
             return;
         }
 
-        Style* style = &styled->style();
-        Widget* widget = dynamic_cast<Widget*>(m_node_target);
+        const bool app_focused = SDL_GetKeyboardFocus() == m_target.window()->handle();
+        if (app_focused) {
+            m_inspected_style = styled->state().style_type();
+        }
 
-        if (widget != nullptr) {
-            const bool app_focused = SDL_GetKeyboardFocus() == m_target.window()->handle();
-            if (app_focused) {
-                m_inspected_style = widget->state().style_type();
+        int style_index = static_cast<int>(m_inspected_style);
+        if (draw_inline_combo("state", &style_index, STYLE_NAMES, IM_ARRAYSIZE(STYLE_NAMES))) {
+            m_inspected_style = static_cast<StyleType>(style_index);
+        }
+
+        Style* style = &styled->style(m_inspected_style);
+
+        bool supports_color = true;
+        bool supports_background = true;
+        bool supports_border = true;
+        bool supports_padding = true;
+        bool supports_radius = true;
+        bool supports_thickness = true;
+        if (styled->widget_type() == WidgetType::Text) {
+            supports_background = false;
+            supports_border = false;
+            supports_padding = false;
+            supports_radius = false;
+            supports_thickness = false;
+        } else if (styled->widget_type() == WidgetType::Line) {
+            supports_background = false;
+            supports_border = false;
+            supports_padding = false;
+            supports_radius = false;
+        } else if (styled->widget_type() == WidgetType::Unknown) {
+            supports_color = false;
+            supports_background = false;
+            supports_border = false;
+            supports_padding = false;
+            supports_radius = false;
+            supports_thickness = false;
+        }
+
+        if (supports_color) {
+            ImVec4 color = style->color().get();
+            if (draw_color_input("color", color)) {
+                style->color().set(color);
             }
+        }
 
-            int style_index = static_cast<int>(m_inspected_style);
-            if (ImGui::Combo("state", &style_index, STYLE_NAMES, IM_ARRAYSIZE(STYLE_NAMES))) {
-                m_inspected_style = static_cast<StyleType>(style_index);
+        if (supports_background) {
+            ImVec4 background_color = style->background_color().get();
+            if (draw_color_input("background", background_color)) {
+                style->background_color().set(background_color);
             }
-
-            style = &widget->state().style(m_inspected_style);
         }
 
-        ImVec4 color = style->color().get();
-        if (ImGui::ColorEdit4("color", &color.x, ImGuiColorEditFlags_NoInputs)) {
-            style->color().set(color);
+        if (supports_border) {
+            ImVec4 border_color = style->border_color().get();
+            if (draw_color_input("border", border_color)) {
+                style->border_color().set(border_color);
+            }
         }
 
-        ImVec4 background_color = style->background_color().get();
-        if (ImGui::ColorEdit4("background", &background_color.x, ImGuiColorEditFlags_NoInputs)) {
-            style->background_color().set(background_color);
+        if (supports_padding) {
+            draw_number_input("padding", &style->padding().x, 2, 0.1F, 0.0F, 128.0F);
         }
-
-        ImVec4 border_color = style->border_color().get();
-        if (ImGui::ColorEdit4("border", &border_color.x, ImGuiColorEditFlags_NoInputs)) {
-            style->border_color().set(border_color);
-        }
-
-        draw_number_input("padding", &style->padding().x, 2, 0.1F, 0.0F, 128.0F);
         draw_number_input("alpha", &style->alpha(), 1, 0.01F, 0.0F, 1.0F);
-        draw_number_input("border radius", &style->border_radius(), 1, 0.1F, 0.0F, 64.0F);
-        draw_number_input("border thickness", &style->border_thickness(), 1, 0.1F, 0.0F, 16.0F);
+        if (supports_radius) {
+            draw_number_input("border radius", &style->border_radius(), 1, 0.1F, 0.0F, 64.0F);
+        }
+        if (supports_thickness) {
+            draw_number_input("border thickness", &style->border_thickness(), 1, 0.1F, 0.0F, 16.0F);
+        }
 
         render_style_variables(*style);
 
@@ -621,9 +799,23 @@ namespace ui {
 
         render_style_properties();
 
-        if (ImGui::Button("clear target")) {
+        if (ImGui::Button("clear selection")) {
             set_target(nullptr);
             m_scroll_to_target = false;
+        }
+
+        ImGui::SameLine();
+        const bool removable = m_node_target->parent() != nullptr;
+        ImGui::BeginDisabled(!removable);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.45F, 0.12F, 0.14F, 1.0F));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.58F, 0.16F, 0.18F, 1.0F));
+        if (ImGui::Button("remove node")) {
+            remove_target();
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::EndDisabled();
+        if (!removable && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::SetTooltip("the root node cannot be removed");
         }
     }
 
@@ -648,8 +840,12 @@ namespace ui {
         const Profiler& profiler = m_target.profiler();
         ImGui::SameLine(0.0F, ITEM_SPACING * 2.0F);
         ImGui::TextDisabled(
-            "%.2f ms  %zu zones", profiler.latest_frame_ms(), static_cast<std::size_t>(profiler.latest_events().size())
+            "%.2f ms render  %zu zones", profiler.latest_frame_ms(),
+            static_cast<std::size_t>(profiler.latest_events().size())
         );
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("CPU frame work; present/VSync wait is excluded");
+        }
         if (profiler.dropped_events() > 0) {
             ImGui::SameLine(0.0F, ITEM_SPACING);
             ImGui::TextColored(m_ui->theme().accent_color, "%u dropped", profiler.dropped_events());

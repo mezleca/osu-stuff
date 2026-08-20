@@ -18,6 +18,8 @@ class UI;
 class IconTexture;
 
 namespace ui {
+    class Node;
+
     struct WindowConfig {
         std::string title;
         ImVec2 size{};
@@ -30,6 +32,7 @@ namespace ui {
     };
 } // namespace ui
 
+/// assets and theme remain owned by Runtime; imgui context, root and router are surface-local.
 class UI {
 public:
     UI(ui::Runtime& runtime, ui::Config config);
@@ -42,17 +45,17 @@ public:
         m_done = true;
     }
 
-    // clears this surface's per-frame input state before the next render pass.
+    /// clears this surface's per-frame input state before the next render pass.
     void begin_input_frame();
 
-    // makes this surface current and starts its imgui frame.
-    // call once before drawing the root node.
+    /// makes this surface current and starts its imgui frame.
+    /// call once before updating and drawing the root node.
     void begin_frame();
 
-    // renders and presents the current imgui frame, then restores the previous context.
+    /// presents the imgui frame, then restores the previous context.
     void end_frame();
 
-    // feeds an sdl event to imgui and dispatches the corresponding ui event.
+    /// feeds an sdl event to imgui and dispatches the corresponding ui event.
     void process_sdl_event(SDL_Event* event);
 
     [[nodiscard]] bool is_done() const {
@@ -95,6 +98,7 @@ public:
         return m_runtime;
     }
 
+    /// application nodes should normally be owned below this retained root.
     [[nodiscard]] ui::Node& root() {
         return *m_container;
     }
@@ -109,8 +113,6 @@ public:
 
     [[nodiscard]] IconTexture* get_texture(std::string_view id);
 
-    void load_theme(ui::Theme theme);
-    void refresh_theme();
     void set_frame_style(ImVec2 padding, float rounding, float border_thickness);
     void set_grab_style(float minimum_size, float rounding);
     void set_item_spacing(ImVec2 spacing, ImVec2 inner_spacing);

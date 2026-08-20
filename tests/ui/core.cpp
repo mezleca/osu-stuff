@@ -10,10 +10,12 @@
 #include "ui/layout/stack-container.hpp"
 #include "ui/style/theme.hpp"
 #include "ui/ui.hpp"
+#include "ui/widgets/image.hpp"
 #include "ui/widgets/text.hpp"
 #include "app/ui/managers/notifications.hpp"
 
 #include <array>
+#include <cfloat>
 #include <format>
 #include <memory>
 #include <string>
@@ -132,6 +134,122 @@ TEST_CASE("ui nodes draw children between their begin and end hooks") {
 
     hidden_root.draw();
     REQUIRE(events == std::vector<std::string>{"hidden:layout", "hidden:begin"});
+}
+
+TEST_CASE("node measurement only reruns after invalidation") {
+    class MeasureNode final : public ui::Node {
+    public:
+        explicit MeasureNode(int& count) : m_count(count) {}
+
+    private:
+        void on_measure() override {
+            ++m_count;
+        }
+
+        int& m_count;
+    };
+
+    int root_measurements = 0;
+    int child_measurements = 0;
+    MeasureNode root(root_measurements);
+    auto& child = root.add_child<MeasureNode>(child_measurements);
+
+    root.draw();
+    root.draw();
+    REQUIRE(root_measurements == 1);
+    REQUIRE(child_measurements == 1);
+
+    child.invalidate_measure();
+    root.draw();
+    REQUIRE(root_measurements == 2);
+    REQUIRE(child_measurements == 2);
+}
+
+TEST_CASE("leaf nodes do not capture an imgui item produced before their draw") {
+    class NoItemNode final : public ui::Node {
+    public:
+        using ui::Node::Node;
+    };
+
+    class ManualRectNode final : public ui::Node {
+    public:
+        ManualRectNode() : ui::Node("manual") {}
+
+    private:
+        bool on_draw() override {
+            layout().set_screen_rect({{40.0F, 50.0F}, {70.0F, 80.0F}});
+            return true;
+        }
+    };
+
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(context);
+    ImGui::GetIO().DisplaySize = {200.0F, 120.0F};
+    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
+
+    unsigned char* font_pixels = nullptr;
+    int font_width = 0;
+    int font_height = 0;
+    int font_bytes_per_pixel = 0;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+
+    ImGui::NewFrame();
+    ImGui::Begin("leaf-rect-test");
+    ImGui::Dummy({30.0F, 20.0F});
+
+    NoItemNode no_item("no-item");
+    no_item.draw();
+
+    ManualRectNode manual;
+    manual.draw();
+
+    ImGui::End();
+    ImGui::EndFrame();
+
+    const ui::Rect no_item_rect = no_item.layout().screen_rect();
+    const ui::Rect manual_rect = manual.layout().screen_rect();
+
+    ImGui::SetCurrentContext(previous_context);
+    ImGui::DestroyContext(context);
+
+    REQUIRE_FALSE(no_item_rect.valid());
+    REQUIRE(manual_rect.min.x == 40.0F);
+    REQUIRE(manual_rect.min.y == 50.0F);
+    REQUIRE(manual_rect.max.x == 70.0F);
+    REQUIRE(manual_rect.max.y == 80.0F);
+}
+
+TEST_CASE("image padding keeps the outer screen bounds", "[Widget][layout]") {
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(context);
+    ImGui::GetIO().DisplaySize = {200.0F, 120.0F};
+    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
+
+    unsigned char* font_pixels = nullptr;
+    int font_width = 0;
+    int font_height = 0;
+    int font_bytes_per_pixel = 0;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+
+    ui::ImageWidget image;
+    image.set_size({24.0F, 20.0F});
+    image.configure_all_styles([](ui::Style& style) { style.padding({3.0F, 2.0F}); });
+
+    ImGui::NewFrame();
+    ImGui::Begin("image-padding-test");
+    image.draw();
+    ImGui::End();
+    ImGui::EndFrame();
+
+    const ui::Rect bounds = image.layout().screen_rect();
+
+    ImGui::SetCurrentContext(previous_context);
+    ImGui::DestroyContext(context);
+
+    REQUIRE(bounds.size().x == Catch::Approx(24.0F));
+    REQUIRE(bounds.size().y == Catch::Approx(20.0F));
 }
 
 TEST_CASE("notifications animate into the overlay from outside the screen") {
@@ -493,7 +611,6 @@ TEST_CASE("nodes inherit their explicitly assigned input layer") {
 }
 
 TEST_CASE("child containers use the theme content padding by default") {
-    ui::Style::set_default_theme(ui::Theme::defaults());
     ui::ChildContainer child("child");
     const float default_padding = ui::Theme::defaults().content_padding;
 
@@ -571,7 +688,6 @@ TEST_CASE("stack layout places auto-sized children after their measured height")
     };
 
     draw_frame();
-    draw_frame();
 
     const ui::Rect first = stack.children()[0]->layout().screen_rect();
     const ui::Rect second = stack.children()[1]->layout().screen_rect();
@@ -580,6 +696,137 @@ TEST_CASE("stack layout places auto-sized children after their measured height")
 
     ImGui::SetCurrentContext(previous_context);
     ImGui::DestroyContext(context);
+}
+
+TEST_CASE("horizontal stack places a fixed item after auto-sized text") {
+    class FixedItemNode final : public ui::Node {
+    public:
+        explicit FixedItemNode(ImVec2 size) {
+            set_size(size);
+        }
+
+    private:
+        bool on_draw() override {
+            ImGui::Button("add notification", layout().size());
+            return true;
+        }
+    };
+
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(context);
+    ImGui::GetIO().DisplaySize = {640.0F, 180.0F};
+    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
+
+    unsigned char* font_pixels = nullptr;
+    int font_width = 0;
+    int font_height = 0;
+    int font_bytes_per_pixel = 0;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+
+    ui::Node root("root");
+    auto& stack = root.add_child<ui::StackContainer>("notification-test", ui::StackDirection::Horizontal);
+    stack.set_size({620.0F, 120.0F});
+    stack.set_spacing(8.0F);
+    stack.set_padding({8.0F, 8.0F});
+    auto& text_node = stack.add_child<ui::TextWidget>("notifications: 0");
+    stack.add_child<FixedItemNode>(ImVec2{180.0F, 30.0F});
+
+    const auto draw_frame = [&root] {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos({0.0F, 0.0F});
+        ImGui::SetNextWindowSize({640.0F, 180.0F});
+        ImGui::Begin("horizontal-stack-test");
+        root.draw();
+        ImGui::End();
+        ImGui::EndFrame();
+    };
+
+    draw_frame();
+
+    const ui::Rect text = stack.children()[0]->layout().screen_rect();
+    const ui::Rect item = stack.children()[1]->layout().screen_rect();
+    REQUIRE(text.valid());
+    REQUIRE(item.valid());
+    REQUIRE(item.min.x >= text.max.x + 8.0F);
+
+    REQUIRE(text_node.try_set_content("notifications: 10000"));
+    draw_frame();
+
+    const ui::Rect resized_text = stack.children()[0]->layout().screen_rect();
+    const ui::Rect repositioned_item = stack.children()[1]->layout().screen_rect();
+    REQUIRE(resized_text.size().x > text.size().x);
+    REQUIRE(repositioned_item.min.x >= resized_text.max.x + 8.0F);
+
+    ImGui::SetCurrentContext(previous_context);
+    ImGui::DestroyContext(context);
+}
+
+TEST_CASE("text measurement uses the font inherited from its parent", "[layout][regression]") {
+    class FixedItemNode final : public ui::Node {
+    public:
+        FixedItemNode() {
+            set_size({100.0F, 30.0F});
+        }
+
+    private:
+        bool on_draw() override {
+            ImGui::Button("sibling", layout().size());
+            return true;
+        }
+    };
+
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(context);
+    ImGui::GetIO().DisplaySize = {480.0F, 140.0F};
+    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
+
+    ImFontConfig default_font_config;
+    default_font_config.SizePixels = 13.0F;
+    ImGui::GetIO().Fonts->AddFontDefault(&default_font_config);
+    ImFontConfig large_font_config;
+    large_font_config.SizePixels = 28.0F;
+    ImFont* large_font = ImGui::GetIO().Fonts->AddFontDefault(&large_font_config);
+    unsigned char* font_pixels = nullptr;
+    int font_width = 0;
+    int font_height = 0;
+    int font_bytes_per_pixel = 0;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+
+    ui::ChildContainer parent("font-parent");
+    parent.set_size({460.0F, 100.0F});
+    auto& stack = parent.add_child<ui::StackContainer>("font-stack", ui::StackDirection::Horizontal);
+    stack.set_size({440.0F, 60.0F});
+    stack.set_spacing(8.0F);
+    stack.add_child<ui::TextWidget>("notifications: 0");
+    stack.add_child<FixedItemNode>();
+
+    const auto draw_frame = [&parent] {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos({0.0F, 0.0F});
+        ImGui::SetNextWindowSize({480.0F, 140.0F});
+        ImGui::Begin("inherited-font-layout-test");
+        parent.draw();
+        ImGui::End();
+        ImGui::EndFrame();
+    };
+
+    draw_frame();
+    parent.set_font(large_font);
+    draw_frame();
+
+    const ui::Rect text = stack.children()[0]->layout().screen_rect();
+    const ui::Rect sibling = stack.children()[1]->layout().screen_rect();
+    const float expected_text_width =
+        large_font->CalcTextSizeA(large_font->LegacySize, FLT_MAX, 0.0F, "notifications: 0").x;
+
+    ImGui::SetCurrentContext(previous_context);
+    ImGui::DestroyContext(context);
+
+    REQUIRE(text.valid());
+    REQUIRE(text.size().x == Catch::Approx(expected_text_width).margin(1.0F));
+    REQUIRE(sibling.min.x >= text.max.x + 8.0F);
 }
 
 TEST_CASE("resizable container stays within its parent bounds") {

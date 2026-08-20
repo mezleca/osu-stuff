@@ -1,6 +1,7 @@
 #include "ui/style/state.hpp"
 #include "ui/runtime.hpp"
 #include "ui/layout/child-container.hpp"
+#include "ui/widgets/widget.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -12,6 +13,7 @@ using namespace ui;
 TEST_CASE("runtime owns shared theme and asset configuration", "[Runtime]") {
     ui::RuntimeConfig config;
     config.theme.content_padding = 20.0F;
+    config.theme.box_rounding = 8.0F;
     config.font_paths[static_cast<size_t>(ui::FontType::REGULAR)] = "fonts/regular.ttf";
     config.icon_path = "icons/ui";
 
@@ -21,11 +23,10 @@ TEST_CASE("runtime owns shared theme and asset configuration", "[Runtime]") {
     REQUIRE(runtime.font_paths()[static_cast<size_t>(ui::FontType::REGULAR)] == "fonts/regular.ttf");
     REQUIRE(runtime.icon_path() == "icons/ui");
 
-    ui::Theme updated = runtime.theme();
-    updated.box_rounding = 8.0F;
-    runtime.set_theme(updated);
+    ui::Runtime other_runtime;
 
     REQUIRE(runtime.theme().box_rounding == 8.0F);
+    REQUIRE(other_runtime.theme().content_padding == ui::Theme::defaults().content_padding);
 }
 
 TEST_CASE("runtime asset font caches are scoped to ImGui contexts", "[Runtime][assets]") {
@@ -52,31 +53,19 @@ TEST_CASE("runtime asset font caches are scoped to ImGui contexts", "[Runtime][a
     ImGui::SetCurrentContext(previous_context);
 }
 
-TEST_CASE("loaded theme supplies defaults to subsequently created styles", "[theme][layout]") {
+TEST_CASE("style defaults are independent from runtime themes", "[theme][layout]") {
     ui::Theme theme = ui::Theme::defaults();
     theme.content_padding = 20.0F;
     theme.box_rounding = 8.0F;
     theme.text_color = {0.2F, 0.3F, 0.4F, 1.0F};
-    ui::Style::set_default_theme(theme);
+    ui::RuntimeConfig config;
+    config.theme = theme;
+    ui::Runtime runtime(std::move(config));
 
     ui::ChildContainer container("container");
-    REQUIRE(container.style().padding().x == Catch::Approx(20.0F));
-    REQUIRE(container.style().padding().y == Catch::Approx(20.0F));
-    REQUIRE(container.style().border_radius() == Catch::Approx(8.0F));
-    REQUIRE(container.style().color().get().x == Catch::Approx(0.2F));
-
-    container.style().padding({4.0F, 6.0F});
-    ui::Theme next_theme = theme;
-    next_theme.content_padding = 12.0F;
-    ui::Style::set_default_theme(next_theme);
-
-    REQUIRE(container.style().padding().x == Catch::Approx(4.0F));
-    REQUIRE(container.style().padding().y == Catch::Approx(6.0F));
-
-    ui::ChildContainer next_container("next-container");
-    REQUIRE(next_container.style().padding().x == Catch::Approx(12.0F));
-
-    ui::Style::set_default_theme(ui::Theme::defaults());
+    REQUIRE(runtime.theme().content_padding == Catch::Approx(20.0F));
+    REQUIRE(container.style().padding().x == Catch::Approx(ui::Theme::defaults().content_padding));
+    REQUIRE(container.style().border_radius() == Catch::Approx(ui::Theme::defaults().box_rounding));
 }
 
 TEST_CASE("transition reaches target and settles", "[VisualState][transition]") {
@@ -140,6 +129,28 @@ TEST_CASE("transition reaches target and settles", "[VisualState][transition]") 
     }
 }
 
+TEST_CASE("interaction style precedence is active focus hover default", "[VisualState][style]") {
+    ui::VisualState state;
+
+    state.set_item_state(false, false, false);
+    REQUIRE(state.style_type() == ui::StyleType::DEFAULT);
+
+    state.set_item_state(true, false, false);
+    REQUIRE(state.style_type() == ui::StyleType::HOVER);
+
+    state.set_item_state(true, false, true);
+    REQUIRE(state.style_type() == ui::StyleType::FOCUS);
+
+    state.set_item_state(true, true, true);
+    REQUIRE(state.style_type() == ui::StyleType::ACTIVE);
+
+    ui::Widget widget("focused-widget");
+    ui::ItemInputState input;
+    input.focused = true;
+    widget.apply_input_state(input);
+    REQUIRE(widget.state().style_type() == ui::StyleType::FOCUS);
+}
+
 TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState][transition]") {
     ui::VisualState state;
     const ImColor transparent = ImColor(0, 0, 0, 0);
@@ -186,6 +197,72 @@ TEST_CASE("fade transitions control input independently from drawing", "[widget_
     REQUIRE(state.accepts_input());
 }
 
+TEST_CASE("widget input requires both node and visual state to accept input", "[Widget][input]") {
+    ui::Widget widget("widget");
+    ui::InputRouter router;
+    router.register_region(widget, {{0.0F, 0.0F}, {10.0F, 10.0F}});
+
+    REQUIRE(widget.accepts_input());
+    REQUIRE(router.node_at({5.0F, 5.0F}) == &widget);
+
+    widget.set_enabled(false);
+    REQUIRE_FALSE(widget.accepts_input());
+    REQUIRE(router.node_at({5.0F, 5.0F}) == nullptr);
+
+    widget.set_enabled(true);
+    widget.set_visible(false);
+    REQUIRE_FALSE(widget.accepts_input());
+
+    widget.set_visible(true);
+    widget.state().fade_out();
+    REQUIRE_FALSE(widget.accepts_input());
+    REQUIRE(router.node_at({5.0F, 5.0F}) == nullptr);
+}
+
+TEST_CASE("styled widgets share one style source and tick it once per draw", "[Widget][style]") {
+    ImGuiContext* previous_context = ImGui::GetCurrentContext();
+    ImGuiContext* context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(context);
+    ImGui::GetIO().DisplaySize = {160.0F, 120.0F};
+    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
+    unsigned char* font_pixels = nullptr;
+    int font_width = 0;
+    int font_height = 0;
+    int font_bytes_per_pixel = 0;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+
+    ui::Widget widget("widget");
+    widget.state().configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
+    widget.state().configure_style(ui::StyleType::HOVER, [](ui::Style& style) {
+        style.color(ImColor{255, 0, 0, 255}, 8.0F);
+    });
+    widget.state().set_style(ui::StyleType::HOVER);
+
+    ui::VisualState expected;
+    expected.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
+    expected.configure_style(ui::StyleType::HOVER, [](ui::Style& style) {
+        style.color(ImColor{255, 0, 0, 255}, 8.0F);
+    });
+    expected.set_style(ui::StyleType::HOVER);
+    expected.update(ImGui::GetIO().DeltaTime);
+
+    ImGui::NewFrame();
+    ImGui::Begin("style-tick-test");
+    widget.draw();
+    ImGui::End();
+    ImGui::EndFrame();
+
+    ui::StyledNode& styled = widget;
+    REQUIRE(&styled.style() == &widget.state().style());
+    REQUIRE(widget.style().color().get().x == Catch::Approx(expected.style().color().get().x));
+
+    widget.configure_style(ui::StyleType::FOCUS, [](ui::Style& style) { style.border_radius(12.0F); });
+    REQUIRE(widget.style(ui::StyleType::FOCUS).border_radius() == Catch::Approx(12.0F));
+
+    ImGui::DestroyContext(context);
+    ImGui::SetCurrentContext(previous_context);
+}
+
 TEST_CASE("fade in starts new visual states transparent", "[widget_state][opacity]") {
     ui::VisualState state;
 
@@ -203,7 +280,9 @@ TEST_CASE("a var introduced only on the target style still appears after transit
     state.style(ui::StyleType::DEFAULT).variables().set("line_alpha", ui::FloatValue{0.0f, 18.0f});
     state.style(ui::StyleType::HOVER).variables().set("line_alpha", ui::FloatValue{1.0f, 18.0f});
 
-    REQUIRE(state.style().variables().get<ui::FloatValue>("line_alpha") == nullptr);
+    const ui::FloatValue* default_alpha = state.style().variables().get<ui::FloatValue>("line_alpha");
+    REQUIRE(default_alpha != nullptr);
+    REQUIRE(default_alpha->value == Catch::Approx(0.0F));
 
     state.set_style(ui::StyleType::HOVER);
     state.update(1.0f / 60.0f); // first transition frame

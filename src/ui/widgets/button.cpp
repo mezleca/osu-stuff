@@ -24,11 +24,11 @@ namespace ui {
         state().configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.border_color); });
     }
 
-    std::optional<std::string> ButtonWidget::get_content() const {
+    std::optional<std::string> ButtonWidget::content() const {
         return m_text.str();
     }
 
-    bool ButtonWidget::set_content(std::string content) {
+    bool ButtonWidget::try_set_content(std::string content) {
         if (content == m_text.str()) {
             return false;
         }
@@ -42,7 +42,6 @@ namespace ui {
             return false;
         }
 
-        const float dt = ImGui::GetIO().DeltaTime;
         const Style& style = state().style();
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, style.padding());
@@ -64,13 +63,14 @@ namespace ui {
         const ItemInputState input = m_ui.input().handle(*this);
         apply_input_state(input, pressed);
 
-        state().update(dt);
-
         const auto min = ImGui::GetItemRectMin();
         const auto max = ImGui::GetItemRectMax();
 
         auto* dl = ImGui::GetWindowDrawList();
-        dl->AddRect(min, max, style.border_color().get_col(), style.border_radius(), style.border_thickness());
+        dl->AddRect(
+            min, max, ImGui::GetColorU32(style.border_color().get()), style.border_radius(), ImDrawFlags_None,
+            style.border_thickness()
+        );
         return true;
     }
 

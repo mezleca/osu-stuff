@@ -7,6 +7,7 @@
 class IconTexture;
 
 namespace ui {
+    /// style padding insets the image while screen bounds retain the outer size.
     class ImageWidget : public Widget {
     public:
         explicit ImageWidget(IconTexture* texture = nullptr);

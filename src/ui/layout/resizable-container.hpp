@@ -17,7 +17,6 @@ namespace ui {
         void handle_resize();
         void draw_resize_indicator();
 
-        ImVec2 m_last_click_pos = {0.0f, 0.0f};
         ImVec2 m_drag_start = {0.0f, 0.0f};
         ImVec2 m_previous_size = {0.0f, 0.0f};
         bool m_dragging = false;

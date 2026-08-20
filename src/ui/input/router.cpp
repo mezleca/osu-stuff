@@ -1,26 +1,28 @@
 #include "router.hpp"
 
+#include "../tree/node.hpp"
+
 namespace ui {
-    bool is_pointer_event(EventType type) {
+    static bool is_pointer_event(EventType type) {
         return type == EventType::PointerMove || type == EventType::PointerDown || type == EventType::PointerUp ||
                type == EventType::Click || type == EventType::ContextClick || type == EventType::Scroll;
     }
 
-    bool is_keyboard_event(EventType type) {
+    static bool is_keyboard_event(EventType type) {
         return type == EventType::KeyDown || type == EventType::KeyUp || type == EventType::TextInput ||
                type == EventType::Cancel;
     }
 
-    std::size_t layer_index(InputLayer layer) {
+    static std::size_t layer_index(InputLayer layer) {
         return static_cast<std::size_t>(layer);
     }
 
-    InputLayer layer_of(const Node& node) {
+    static InputLayer layer_of(const Node& node) {
         const InputLayer layer = node.input_layer();
         return layer == InputLayer::Count ? InputLayer::Content : layer;
     }
 
-    bool is_same_or_descendant(const Node* ancestor, const Node* node) {
+    static bool is_same_or_descendant(const Node* ancestor, const Node* node) {
         for (const Node* current = node; current != nullptr; current = current->parent()) {
             if (current == ancestor) {
                 return true;

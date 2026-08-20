@@ -1,10 +1,11 @@
 #pragma once
 
-#include "style.hpp"
+#include "state.hpp"
 #include "../tree/node.hpp"
 #include "../widgets/widget-type.hpp"
 
 #include <imgui.h>
+#include <utility>
 
 namespace ui {
     class StyledNode : public Node {
@@ -18,28 +19,69 @@ namespace ui {
             return m_widget_type;
         }
 
+        /// resolved style used by the current visual transition.
         [[nodiscard]] Style& style() {
-            return m_style;
+            return m_state.style();
         }
 
         [[nodiscard]] const Style& style() const {
-            return m_style;
+            return m_state.style();
         }
 
-        virtual StyledNode& set_font(ImFont* font) {
-            m_style.font(resolve_font(font));
+        [[nodiscard]] Style& style(StyleType type) {
+            return m_state.style(type);
+        }
+
+        [[nodiscard]] const Style& style(StyleType type) const {
+            return m_state.style(type);
+        }
+
+        /// synchronizes the effective style when the configured slot is currently selected.
+        template <typename Func>
+        StyledNode& configure_style(StyleType type, Func&& func) {
+            m_state.configure_style(type, std::forward<Func>(func));
             return *this;
         }
 
+        template <typename Func>
+        StyledNode& configure_all_styles(Func&& func) {
+            m_state.configure_all_styles(std::forward<Func>(func));
+            return *this;
+        }
+
+        [[nodiscard]] VisualState& state() {
+            return m_state;
+        }
+
+        [[nodiscard]] const VisualState& state() const {
+            return m_state;
+        }
+
+        /// remeasures descendants because they may inherit this font.
+        virtual StyledNode& set_font(ImFont* font) {
+            ImFont* resolved_font = resolve_font(font);
+            configure_all_styles([resolved_font](Style& style) { style.font(resolved_font); });
+            invalidate_measure_subtree();
+            return *this;
+        }
+
+        /// resolves the local font, then the closest styled ancestor, then imgui's font.
         [[nodiscard]] ImFont* font() const {
-            if (m_style.font() != nullptr) {
-                return m_style.font();
+            if (style().font() != nullptr) {
+                return style().font();
+            }
+
+            for (const Node* ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent()) {
+                const auto* styled_ancestor = dynamic_cast<const StyledNode*>(ancestor);
+                if (styled_ancestor != nullptr && styled_ancestor->style().font() != nullptr) {
+                    return styled_ancestor->style().font();
+                }
             }
 
             return ImGui::GetCurrentContext() == nullptr ? nullptr : ImGui::GetFont();
         }
 
-        // applies the resolved style and opacity around the node draw lifecycle.
+        /// applies the resolved style and opacity around the node draw lifecycle.
         void draw() override {
             if (ImGui::GetCurrentContext() == nullptr) {
                 Node::draw();
@@ -54,6 +96,10 @@ namespace ui {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, inherited_alpha * current_style.alpha() * draw_opacity());
             Node::draw();
             ImGui::PopStyleVar(3);
+
+            if (visible()) {
+                m_state.update(ImGui::GetIO().DeltaTime);
+            }
         }
 
     protected:
@@ -62,7 +108,7 @@ namespace ui {
         }
 
         [[nodiscard]] virtual const Style& draw_style() const {
-            return m_style;
+            return style();
         }
 
         [[nodiscard]] virtual float draw_opacity() const {
@@ -74,7 +120,7 @@ namespace ui {
             return font != nullptr || ImGui::GetCurrentContext() == nullptr ? font : ImGui::GetFont();
         }
 
-        Style m_style;
+        VisualState m_state;
         WidgetType m_widget_type = WidgetType::Unknown;
     };
 } // namespace ui

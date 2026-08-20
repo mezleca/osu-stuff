@@ -18,6 +18,7 @@ namespace ui {
         NumberInputWidget& set_minimum(double minimum);
         NumberInputWidget& set_maximum(double maximum);
         NumberInputWidget& set_range(double minimum, double maximum);
+        /// removes both bounds and restores unbounded drag behavior.
         NumberInputWidget& clear_range();
         NumberInputWidget& set_speed(float speed);
         NumberInputWidget& set_format(std::string format);
@@ -28,8 +29,8 @@ namespace ui {
 
         [[nodiscard]] bool changed() const;
         [[nodiscard]] bool on_draw() override;
-        [[nodiscard]] std::optional<std::string> get_content() const override;
-        bool set_content(std::string content) override;
+        [[nodiscard]] std::optional<std::string> content() const override;
+        bool try_set_content(std::string content) override;
 
     private:
         template <typename T>

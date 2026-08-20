@@ -23,15 +23,16 @@ namespace ui {
         }
     };
 
-    // owns a node's style slots and interpolates the selected slot, opacity,
-    // and visibility over time. widgets use it as the single source for
-    // appearance and input acceptance.
+    /// owns style slots and interpolates the selected slot and opacity.
+    /// widgets use it as the single source for appearance and visual input acceptance.
     class VisualState {
     public:
         VisualState() {
             current_opacity.value = m_opacity;
+            snap_to_style(StyleType::DEFAULT);
         }
 
+        /// selects a slot without running a style transition.
         void snap_to_style(StyleType type) {
             current_style = styles[static_cast<size_t>(type)];
             transition_data.to = type;
@@ -52,6 +53,7 @@ namespace ui {
             m_opacity = std::clamp(value, 0.0f, 1.0f);
         }
 
+        /// starts or reverses the opacity transition towards fully visible.
         void fade_in() {
             visible = true;
             if (first_frame) {
@@ -60,8 +62,20 @@ namespace ui {
             set_opacity(1.0f);
         }
 
+        /// restarts the fade from zero even when the node was already fading in.
+        void restart_fade_in() {
+            visible = true;
+            current_opacity.value = 0.0F;
+            set_opacity(1.0f);
+        }
+
+        /// starts a fade to zero and disables visual input immediately.
         void fade_out() {
             set_opacity(0.0f);
+        }
+
+        [[nodiscard]] bool is_fading_out() const {
+            return visible && m_opacity < VISIBILITY_OPACITY_THRESHOLD;
         }
 
         [[nodiscard]] bool accepts_input() const {
@@ -76,16 +90,17 @@ namespace ui {
             return current_opacity.value;
         }
 
-        [[nodiscard]] const ImVec2& size() const {
-            return m_size;
-        }
-
-        void set_size(ImVec2 value) {
-            m_size = value;
-        }
-
+        /// advances opacity and style interpolation by one simulation frame.
         void update(float dt) {
-            current_opacity.tick(FloatValue{m_opacity, OPACITY_TRANSITION_SPEED}, dt);
+            if (!first_frame && current_opacity.value == m_opacity && transition_data.done) {
+                return;
+            }
+
+            const FloatValue target_opacity{m_opacity, OPACITY_TRANSITION_SPEED};
+            current_opacity.tick(target_opacity, dt);
+            if (current_opacity.is_close(target_opacity, TRANSITION_SETTLE_EPSILON)) {
+                current_opacity.value = m_opacity;
+            }
 
             if (!transition_data.done) {
                 const Style& target_style = styles[static_cast<size_t>(transition_data.to)];
@@ -97,13 +112,10 @@ namespace ui {
                 }
             }
 
-            if (ImGui::GetCurrentContext() != nullptr) {
-                m_size = ImGui::GetItemRectSize();
-            }
-
             first_frame = false;
         }
 
+        /// selects a style slot and begins interpolation when necessary.
         void set_style(StyleType type) {
             if (transition_data.to == type) {
                 return;
@@ -114,9 +126,15 @@ namespace ui {
             current_style_tracks_target = false;
         }
 
-        void set_item_state(bool hovered, bool active) {
+        /// interaction precedence is active, focus, hover, then default.
+        void set_item_state(bool hovered, bool active, bool focused = false) {
             if (active) {
                 set_style(StyleType::ACTIVE);
+                return;
+            }
+
+            if (focused) {
+                set_style(StyleType::FOCUS);
                 return;
             }
 
@@ -149,11 +167,13 @@ namespace ui {
             return transition_data.to;
         }
 
+        /// resolved style currently used for drawing.
         Style& style() {
             return transition_data.done && current_style_tracks_target ? styles[static_cast<size_t>(transition_data.to)]
                                                                        : current_style;
         }
 
+        /// mutable named slot, independent from the current transition.
         Style& style(StyleType type) {
             return styles[static_cast<size_t>(type)];
         }
@@ -172,7 +192,6 @@ namespace ui {
         FloatValue current_opacity;
         Style styles[static_cast<size_t>(StyleType::_COUNT)];
         Style current_style;
-        ImVec2 m_size = {0.0f, 0.0f};
         float m_opacity = 1.0f;
         bool visible = true;
         bool first_frame = true;

@@ -1,6 +1,5 @@
 #include "runtime.hpp"
 
-#include "style/style.hpp"
 #include "ui.hpp"
 
 #include <algorithm>
@@ -32,20 +31,9 @@ namespace ui {
 
     Runtime::Runtime(RuntimeConfig config)
         : m_theme(std::move(config.theme)), m_assets(std::move(config.font_paths), std::move(config.icon_path)),
-          m_performance_directory(std::move(config.performance_directory)) {
-        Style::set_default_theme(m_theme);
-    }
+          m_performance_directory(std::move(config.performance_directory)) {}
 
     Runtime::~Runtime() = default;
-
-    void Runtime::set_theme(Theme theme) {
-        m_theme = std::move(theme);
-        Style::set_default_theme(m_theme);
-
-        for (UI* surface : m_surfaces) {
-            surface->refresh_theme();
-        }
-    }
 
     void Runtime::begin_input_frame() {
         for (UI* surface : m_surfaces) {

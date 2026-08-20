@@ -2,13 +2,15 @@
 
 #include "event.hpp"
 #include "layer.hpp"
-#include "../tree/node.hpp"
+#include "../layout/geometry.hpp"
 
 #include <array>
 #include <optional>
 #include <vector>
 
 namespace ui {
+    class Node;
+
     enum class InputPolicy : unsigned char {
         PassThrough,
         BlockPointer,
@@ -23,14 +25,12 @@ namespace ui {
 
     inline constexpr std::size_t LAYER_COUNT = static_cast<std::size_t>(InputLayer::Count);
 
-    [[nodiscard]] inline bool is_pointer_event(EventType type);
-    [[nodiscard]] inline bool is_keyboard_event(EventType type);
-    [[nodiscard]] inline std::size_t layer_index(InputLayer layer);
-    [[nodiscard]] inline InputLayer layer_of(const Node& node);
-
+    /// regions are rebuilt every frame in draw order. dispatch selects the
+    /// topmost eligible region, then bubbles the event through node parents.
+    /// focus, pointer capture and keyboard targets are explicit persistent state.
     class InputRouter {
     public:
-        // clears hit-test regions and invalid input targets from the previous frame.
+        /// clears hit-test regions and invalid input targets from the previous frame.
         void begin_frame();
         void set_debug_inspect_mode(bool enabled);
         void finish_debug_inspect_mode();
@@ -40,6 +40,7 @@ namespace ui {
         void clear_keyboard_target(InputLayer layer);
         void clear_keyboard_target(Node& subtree);
         void register_region(Node& node, Rect rect);
+        /// explicit registration does not change the node's assigned tree layer.
         void register_region_in_layer(Node& node, Rect rect, InputLayer layer);
         bool capture_pointer(Node& node);
         void release_pointer();
@@ -64,8 +65,10 @@ namespace ui {
         }
 
         [[nodiscard]] bool dispatch(UiEvent& event);
+        /// direct dispatch still bubbles through target ancestors.
         [[nodiscard]] bool dispatch(Node& target, UiEvent& event);
         [[nodiscard]] Node* node_at(ImVec2 position) const;
+        /// inspect hit testing includes visible nodes that reject normal input.
         [[nodiscard]] Node* debug_node_at(ImVec2 position) const;
 
     private:

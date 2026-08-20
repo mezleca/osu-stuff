@@ -10,6 +10,8 @@ namespace ui {
         Text,
         TextInput,
         NumberInput,
+        Range,
+        Dropdown,
         Checkbox,
         Image,
         Line,
@@ -33,6 +35,10 @@ namespace ui {
                 return "TextInput";
             case WidgetType::NumberInput:
                 return "NumberInput";
+            case WidgetType::Range:
+                return "Range";
+            case WidgetType::Dropdown:
+                return "Dropdown";
             case WidgetType::Checkbox:
                 return "Checkbox";
             case WidgetType::Image:

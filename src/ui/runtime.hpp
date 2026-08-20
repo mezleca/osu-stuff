@@ -18,6 +18,7 @@ namespace ui {
         std::filesystem::path performance_directory;
     };
 
+    /// one runtime may back multiple windows with independent imgui contexts and routers.
     class Runtime {
     public:
         explicit Runtime(RuntimeConfig config = {});
@@ -26,20 +27,14 @@ namespace ui {
         Runtime(const Runtime&) = delete;
         Runtime& operator=(const Runtime&) = delete;
 
-        [[nodiscard]] Theme& theme() {
-            return m_theme;
-        }
-
         [[nodiscard]] const Theme& theme() const {
             return m_theme;
         }
 
-        void set_theme(Theme theme);
-
-        // resets input state for every registered ui surface at the frame boundary.
+        /// resets input state for every registered ui surface at the frame boundary.
         void begin_input_frame();
 
-        // routes an sdl event to the registered surface that owns its window.
+        /// routes an sdl event to the registered surface that owns its window.
         void process_sdl_event(SDL_Event* event);
 
         [[nodiscard]] const std::array<std::filesystem::path, static_cast<size_t>(FontType::FONT_COUNT)>&

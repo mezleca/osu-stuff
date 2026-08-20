@@ -54,16 +54,16 @@ bool CollectionCardWidget::is_selected() const {
     return m_selected;
 }
 
-std::optional<std::string> CollectionCardWidget::get_content() const {
-    return m_title->get_content();
+std::optional<std::string> CollectionCardWidget::content() const {
+    return m_title->content();
 }
 
-bool CollectionCardWidget::set_content(std::string content) {
-    return m_title->set_content(std::move(content));
+bool CollectionCardWidget::try_set_content(std::string content) {
+    return m_title->try_set_content(std::move(content));
 }
 
 void CollectionCardWidget::set_count(std::string count) {
-    (void)m_count_label->set_content(std::move(count));
+    (void)m_count_label->try_set_content(std::move(count));
 }
 
 void CollectionCardWidget::on_layout() {
@@ -76,8 +76,6 @@ void CollectionCardWidget::on_layout() {
 }
 
 void CollectionCardWidget::on_draw_end() {
-    const float dt = ImGui::GetIO().DeltaTime;
-
     ui::ChildContainer::on_draw_end();
 
     const ui::ItemInputState input = m_ui.input().handle(*this);
@@ -87,6 +85,4 @@ void CollectionCardWidget::on_draw_end() {
     } else {
         state().set_item_state(input.hovered, false);
     }
-
-    state().update(dt);
 }

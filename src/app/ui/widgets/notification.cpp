@@ -49,7 +49,6 @@ UINotification& UINotification::set_offset(ImVec2 value, bool instant) {
 }
 
 void UINotification::on_layout() {
-    layout().set_size(state().size());
     layout().set_offset(m_current_offset.value);
 }
 
@@ -134,7 +133,7 @@ void LogNotificationWidget::close() {
 }
 
 void LogNotificationWidget::set_text(std::string_view text) {
-    static_cast<void>(m_text_node->set_content(std::string{text}));
+    static_cast<void>(m_text_node->try_set_content(std::string{text}));
 }
 
 void LogNotificationWidget::on_layout() {
@@ -201,10 +200,9 @@ void LogNotificationWidget::on_draw_end() {
         child_position.y + child_window_size.y,
     };
 
-    auto border_color = style.border_color().get_col().Value;
-    border_color.w = state().opacity();
     ImGui::GetWindowDrawList()->AddRect(
-        child_position, child_max, ImColor(border_color), style.border_radius(), 0, style.border_thickness()
+        child_position, child_max, ImGui::GetColorU32(style.border_color().get()), style.border_radius(), 0,
+        style.border_thickness()
     );
 
     ui::ChildContainer::on_draw_end();
@@ -212,7 +210,6 @@ void LogNotificationWidget::on_draw_end() {
     const ui::Rect child_rect = rect();
     const ImVec2 child_size = child_rect.size();
 
-    state().set_size(child_size);
     ImGui::PopStyleColor();
 
     const ui::ItemInputState input = m_ui.input().handle(*this);

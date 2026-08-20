@@ -8,12 +8,15 @@
 #include "../../../ui/layout/modal-container.hpp"
 #include "../../../ui/widgets/button.hpp"
 #include "../../../ui/widgets/checkbox.hpp"
+#include "../../../ui/widgets/dropdown.hpp"
 #include "../../../ui/widgets/number-input.hpp"
+#include "../../../ui/widgets/range.hpp"
 #include "../../../ui/widgets/text-input.hpp"
 #include "../../../ui/widgets/text.hpp"
 #include "../../../ui/layout/stack-container.hpp"
 
 #include <format>
+#include <vector>
 
 class AnchorVisualTestNode final : public ui::ChildContainer {
 public:
@@ -89,7 +92,7 @@ public:
 protected:
     void on_update(float dt) override {
         ui::StackContainer::on_update(dt);
-        static_cast<void>(m_count_text->set_content(std::format("notifications: {}", m_manager.count())));
+        static_cast<void>(m_count_text->try_set_content(std::format("notifications: {}", m_manager.count())));
         m_clear_button->set_visible(m_manager.count() > 0);
     }
 
@@ -174,7 +177,7 @@ class WidgetVisualTestNode final : public ui::StackContainer {
 public:
     explicit WidgetVisualTestNode(UI& surface)
         : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
-        set_size({0.0F, 260.0F});
+        set_size({0.0F, 360.0F});
         set_spacing(10.0F);
         set_padding({12.0F, 12.0F});
         style().border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
@@ -188,6 +191,16 @@ public:
         auto& number_input = add_child<ui::NumberInputWidget>(m_ui, m_number_value, "widget-test-number");
         number_input.set_label("number input").set_range(0.0, 100.0).set_size({380.0F, 36.0F});
 
+        auto& dropdown = add_child<ui::DropdownWidget>(
+            m_ui, m_dropdown_value,
+            std::vector<ui::DropdownOption>{{"recent", "recent"}, {"title", "title"}, {"artist", "artist"}},
+            "widget-test-dropdown"
+        );
+        dropdown.set_label("sort by").set_size({380.0F, 36.0F});
+
+        auto& range = add_child<ui::RangeWidget>(m_ui, m_range_minimum, m_range_maximum, "widget-test-range");
+        range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({380.0F, 52.0F});
+
         auto& checkbox = add_child<ui::CheckboxWidget>(m_ui, m_checked, "checkbox", "widget-test-checkbox");
         checkbox.set_size({0.0F, 30.0F});
 
@@ -200,7 +213,7 @@ public:
             }
 
             ++m_click_count;
-            m_button->set_content(std::format("button ({})", m_click_count));
+            m_button->try_set_content(std::format("button ({})", m_click_count));
             event.mark_handled();
         };
     }
@@ -208,8 +221,11 @@ public:
 private:
     UI& m_ui;
     std::string m_text_value;
+    std::string m_dropdown_value = "recent";
     ui::ButtonWidget* m_button = nullptr;
     float m_number_value = 50.0F;
+    float m_range_minimum = 2.0F;
+    float m_range_maximum = 8.0F;
     int m_click_count = 0;
     bool m_checked = false;
     bool m_radio_selected = false;

@@ -11,6 +11,7 @@ namespace ui {
         [[nodiscard]] StackDirection direction() const;
         void set_spacing(float spacing);
         [[nodiscard]] float spacing() const;
+        /// stack padding affects arrangement and is independent from style padding.
         void set_padding(ImVec2 padding);
         [[nodiscard]] const ImVec2& padding() const;
 

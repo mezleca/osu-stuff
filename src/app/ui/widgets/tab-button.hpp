@@ -12,8 +12,8 @@ public:
 
     [[nodiscard]] bool on_draw() override;
 
-    [[nodiscard]] std::optional<std::string> get_content() const override;
-    bool set_content(std::string content) override;
+    [[nodiscard]] std::optional<std::string> content() const override;
+    bool try_set_content(std::string content) override;
 
     void set_selected(bool value) {
         m_selected = value;

@@ -32,8 +32,7 @@ namespace ui {
         Both = static_cast<uint8_t>(X) | static_cast<uint8_t>(Y),
     };
 
-    // origin uses the same points as anchor
-    // only the side of the relationship changes.
+    /// origin uses the same normalized points as anchor, but on the child side.
     using Origin = Anchor;
 
     struct Rect {
@@ -107,6 +106,7 @@ namespace ui {
         return Rect::from_position_size({parent.min.x + position.x, parent.min.y + position.y}, child_size);
     }
 
+    /// non-positive desired dimensions consume the corresponding available dimension.
     [[nodiscard]] inline ImVec2 resolve_layout_size(ImVec2 desired_size, ImVec2 available_size) {
         return {
             desired_size.x > 0.0F ? desired_size.x : std::max(0.0F, available_size.x),
@@ -140,8 +140,13 @@ namespace ui {
         return static_cast<ResizeAxes>(static_cast<uint8_t>(left) & static_cast<uint8_t>(right));
     }
 
+    /// `size` is the desired size. `arranged_rect` uses coordinates local to the
+    /// current imgui window, while `screen_rect` is suitable for hit testing and
+    /// debugger highlights. `parent_content_rect` is the coordinate space used
+    /// to resolve anchor and origin.
     class NodeLayout {
     public:
+        /// non-positive dimensions may be filled from available space by containers.
         NodeLayout& set_size(ImVec2 size) {
             m_size = size;
             return *this;
@@ -183,10 +188,19 @@ namespace ui {
             return *this;
         }
 
+        NodeLayout& set_placement(Anchor anchor, Origin origin, ImVec2 offset = {}) {
+            m_anchor = anchor;
+            m_origin = origin;
+            m_offset = offset;
+            m_has_explicit_position = true;
+            return *this;
+        }
+
         [[nodiscard]] bool has_explicit_position() const {
             return m_has_explicit_position;
         }
 
+        /// restores natural imgui flow without clearing the stored placement values.
         NodeLayout& clear_explicit_position() {
             m_has_explicit_position = false;
             return *this;
@@ -216,10 +230,12 @@ namespace ui {
             return m_arranged_rect.min;
         }
 
+        /// rectangle in coordinates local to the current imgui window.
         [[nodiscard]] Rect arranged_rect() const {
             return m_arranged_rect;
         }
 
+        /// latest outer bounds in screen coordinates.
         [[nodiscard]] Rect screen_rect() const {
             return m_screen_rect;
         }
@@ -236,6 +252,7 @@ namespace ui {
             m_parent_content_rect = rect;
         }
 
+        /// parent content bounds used to resolve explicit placement.
         [[nodiscard]] const Rect& parent_content_rect() const {
             return m_parent_content_rect;
         }

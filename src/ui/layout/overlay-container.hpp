@@ -8,6 +8,7 @@ namespace ui {
         RIGHT,
     };
 
+    /// does not take imgui focus; input behavior is controlled by InputLayer.
     class OverlayNode : public Node {
     public:
         explicit OverlayNode(std::string id) : Node(std::move(id)) {}

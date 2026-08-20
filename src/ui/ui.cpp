@@ -3,6 +3,7 @@
 #include "imgui/context-scope.hpp"
 #include "style/style.hpp"
 #include "style/theme.hpp"
+#include "tree/node.hpp"
 
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
@@ -154,8 +155,6 @@ void UI::initialize() {
 
     m_ready = true;
 
-    ui::Style::set_default_theme(m_runtime.theme());
-
     m_container = std::make_unique<ui::SurfaceRootNode>();
     m_container->set_input_router(&m_input_router);
     m_container->set_profiler(&m_profiler);
@@ -273,19 +272,6 @@ void UI::apply_theme_colors() {
     colors[ImGuiCol_SliderGrabActive] = theme.accent_hover_color;
 }
 
-void UI::refresh_theme() {
-    if (!m_ready) {
-        return;
-    }
-
-    const ui::ImGuiContextScope scope(m_context);
-    apply_theme_colors();
-}
-
-void UI::load_theme(ui::Theme theme) {
-    m_runtime.set_theme(std::move(theme));
-}
-
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
     return m_runtime.assets().texture(id);
 }
@@ -350,8 +336,8 @@ void UI::end_frame() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    m_window->swap();
     m_profiler.end_frame();
+    m_window->swap();
 
     ImGui::SetCurrentContext(m_previous_context);
     m_previous_context = nullptr;

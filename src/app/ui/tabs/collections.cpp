@@ -55,7 +55,7 @@ void CollectionTab::setup() {
     auto& collection_card = m_collection_layout->add_child<CollectionCardWidget>(ui(), "Collection");
     collection_card.on_event = [&collection_card](ui::UiEvent& event) {
         if (event.type == ui::EventType::Click) {
-            collection_card.set_content("Collection 2");
+            collection_card.try_set_content("Collection 2");
             collection_card.set_count("999 maps");
             collection_card.toggle_selected();
             event.mark_handled();

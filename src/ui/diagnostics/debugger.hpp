@@ -51,6 +51,7 @@ namespace ui {
         void refresh_highlight();
         void set_inspect_mode(bool enabled, bool wait_for_release = false);
         void set_target(Node* target);
+        void remove_target();
         [[nodiscard]] bool should_restore_flow_position() const;
 
         UI& m_target;
@@ -62,6 +63,8 @@ namespace ui {
         Node* m_node_target = nullptr;
         Node* m_profiling_target = nullptr;
         Node* m_hover_target = nullptr;
+        // removed nodes stay alive until shutdown because application widgets may retain raw child pointers.
+        std::vector<std::unique_ptr<Node>> m_detached_nodes;
         std::vector<std::string> m_variable_names;
         uint64_t m_target_identity = 0;
         StyleType m_inspected_style = StyleType::DEFAULT;

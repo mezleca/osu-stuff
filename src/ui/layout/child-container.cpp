@@ -5,7 +5,7 @@
 
 namespace ui {
     ChildContainer::ChildContainer(std::string id, WidgetType type) : Widget(std::move(id), type) {
-        const Theme& theme = Style::default_theme_values();
+        const Theme theme = Theme::defaults();
         state().configure_all_styles([&theme](Style& style) {
             style.padding({theme.content_padding, theme.content_padding}).border_radius(theme.box_rounding);
         });
@@ -27,6 +27,11 @@ namespace ui {
 
     ChildContainer& ChildContainer::set_scrollable(bool scrollable) {
         m_scrollable = scrollable;
+        return *this;
+    }
+
+    ChildContainer& ChildContainer::set_center_content_vertically(bool enabled) {
+        m_center_content_vertically = enabled;
         return *this;
     }
 
@@ -55,6 +60,11 @@ namespace ui {
         return *this;
     }
 
+    ChildContainer& ChildContainer::set_placement(Anchor anchor, Origin origin, ImVec2 offset) {
+        layout().set_placement(anchor, origin, offset);
+        return *this;
+    }
+
     void ChildContainer::on_layout() {
         if (!m_fit_width) {
             return;
@@ -78,7 +88,11 @@ namespace ui {
 
         if (has_full_border) child_flags |= ImGuiChildFlags_Borders;
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, current_style.padding());
+        ImVec2 padding = current_style.padding();
+        if (m_center_content_vertically && layout().size().y > 0.0F) {
+            padding.y = std::max(0.0F, (layout().size().y - ImGui::GetFontSize()) * 0.5F);
+        }
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, padding);
 
         if (has_full_border) ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, current_style.border_thickness());
 
@@ -91,6 +105,8 @@ namespace ui {
         }
 
         ImGui::PushFont(current_font);
+        // beginchild copies window padding, border and background into the child;
+        // those temporary values can be popped while the child scope stays open.
         if (id().empty()) {
             ImGui::BeginChild(ImGui::GetID(this), layout().size(), child_flags, window_flags);
         } else {
@@ -110,13 +126,14 @@ namespace ui {
         const ImVec2 window_size = ImGui::GetWindowSize();
 
         m_child_rect = Rect::from_position_size(window_position, window_size);
+        // use the child window itself rather than its last item so padding,
+        // scrolling and empty containers still publish reliable outer bounds.
         layout().set_screen_rect(m_child_rect);
 
         ImGui::PopFont();
         ImGui::EndChild();
 
         draw_borders();
-        state().update(ImGui::GetIO().DeltaTime);
     }
 
     void ChildContainer::draw_borders() {
@@ -126,7 +143,7 @@ namespace ui {
         const ImVec2& max = m_child_rect.max;
 
         const Style& current_style = state().style();
-        const auto border_color = current_style.border_color().get_col();
+        const ImU32 border_color = ImGui::GetColorU32(current_style.border_color().get());
         const auto border_thickness = current_style.border_thickness();
 
         if (current_style.border() == BORDER_NONE || (current_style.border() & BORDER_ALL) != 0) {

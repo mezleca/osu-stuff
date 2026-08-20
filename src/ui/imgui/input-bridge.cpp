@@ -1,5 +1,7 @@
 #include "input-bridge.hpp"
 
+#include "../tree/node.hpp"
+
 namespace ui {
     ItemInputState ImGuiInputBridge::observe(Node& node) {
         ItemInputState state;
@@ -16,7 +18,9 @@ namespace ui {
             return state;
         }
 
-        state.hovered = ImGui::IsItemHovered() || (has_item_rect && ImGui::IsMouseHoveringRect(item_min, item_max));
+        const bool popup_open = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
+        state.hovered =
+            ImGui::IsItemHovered() || (!popup_open && has_item_rect && ImGui::IsMouseHoveringRect(item_min, item_max));
         state.active = ImGui::IsItemActive();
 
         if (state.active && node.accepts_input() && node.accepts_focus()) {

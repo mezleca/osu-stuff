@@ -10,6 +10,7 @@
 #include <utility>
 
 namespace ui {
+    /// intrinsic size uses the font inherited through the node tree.
     class TextWidget : public StyledNode {
     public:
         explicit TextWidget(std::string text)
@@ -21,15 +22,17 @@ namespace ui {
             static_cast<TextFormatted<Args...>*>(m_text.get())->set(std::move(values));
         }
 
+        /// a negative wrap value disables wrapping.
         void set_wrap(float wrap);
+        /// normal tree drawing refreshes intrinsic size during measure.
         void update_layout_size();
         [[nodiscard]] bool on_draw() override;
-        bool set_content(std::string content) override;
+        bool try_set_content(std::string content) override;
 
-        [[nodiscard]] std::optional<std::string> get_content() const override;
+        [[nodiscard]] std::optional<std::string> content() const override;
 
     private:
-        void on_layout() override;
+        void on_measure() override;
 
         std::unique_ptr<TextValue> m_text;
         float m_wrap = -1.0F;

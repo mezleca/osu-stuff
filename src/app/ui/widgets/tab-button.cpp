@@ -28,11 +28,11 @@ TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title
     state().style(ui::StyleType::ACTIVE).color(theme.accent_color);
 }
 
-std::optional<std::string> TabButtonWidget::get_content() const {
+std::optional<std::string> TabButtonWidget::content() const {
     return m_name.str();
 }
 
-bool TabButtonWidget::set_content(std::string content) {
+bool TabButtonWidget::try_set_content(std::string content) {
     if (content == m_name.str()) {
         return false;
     }
@@ -46,7 +46,6 @@ bool TabButtonWidget::on_draw() {
         return false;
     }
 
-    const float dt = ImGui::GetIO().DeltaTime;
     const ui::Style& style = state().style();
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 6.0f});
@@ -90,6 +89,5 @@ bool TabButtonWidget::on_draw() {
         apply_input_state(input);
     }
 
-    state().update(dt);
     return true;
 }

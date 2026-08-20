@@ -1,7 +1,6 @@
 #include "stack-container.hpp"
 
 #include <algorithm>
-#include <vector>
 
 namespace ui {
     StackContainer::StackContainer(std::string id, StackDirection direction)
@@ -41,16 +40,18 @@ namespace ui {
 
         layout().set_size(container_size);
 
-        std::vector<ImVec2> child_sizes;
-        child_sizes.reserve(children().size());
+        const ImVec2 content_size = {
+            std::max(0.0F, container_size.x - m_padding.x * 2.0F),
+            std::max(0.0F, container_size.y - m_padding.y * 2.0F),
+        };
+        ImVec2 cursor = m_padding;
+        m_content_size = container_size;
 
         for (const auto& child : children()) {
             ImVec2 child_size = child->layout().size();
-            const ImVec2 content_size = {
-                std::max(0.0F, container_size.x - m_padding.x * 2.0F),
-                std::max(0.0F, container_size.y - m_padding.y * 2.0F),
-            };
 
+            // only the cross axis stretches. the flow axis must preserve the
+            // intrinsic size produced by the measure pass.
             if (m_direction == StackDirection::Vertical && child_size.x <= 0.0F) {
                 child_size.x = content_size.x;
             }
@@ -59,22 +60,18 @@ namespace ui {
                 child_size.y = content_size.y;
             }
 
-            child_sizes.push_back(child_size);
-        }
+            const Rect child_rect = Rect::from_position_size(cursor, child_size);
+            // explicit top-left placement prevents imgui item widths and same-line
+            // behavior from becoming a second, implicit layout system.
+            child->layout().set_size(child_size).set_placement(Anchor::TopLeft, Origin::TopLeft, cursor);
+            m_content_size.x = std::max(m_content_size.x, child_rect.max.x + m_padding.x);
+            m_content_size.y = std::max(m_content_size.y, child_rect.max.y + m_padding.y);
 
-        const std::vector<Rect> child_rects =
-            resolve_stack_layout(Rect{{0.0F, 0.0F}, container_size}, child_sizes, m_direction, m_spacing, m_padding);
-
-        m_content_size = container_size;
-
-        for (size_t index = 0; index < children().size(); ++index) {
-            NodeLayout& child_layout = children()[index]->layout();
-            child_layout.set_size(child_sizes[index]);
-            child_layout.set_anchor(Anchor::TopLeft);
-            child_layout.set_origin(Origin::TopLeft);
-            child_layout.set_offset(child_rects[index].min);
-            m_content_size.x = std::max(m_content_size.x, child_rects[index].max.x + m_padding.x);
-            m_content_size.y = std::max(m_content_size.y, child_rects[index].max.y + m_padding.y);
+            if (m_direction == StackDirection::Horizontal) {
+                cursor.x = child_rect.max.x + m_spacing;
+            } else {
+                cursor.y = child_rect.max.y + m_spacing;
+            }
         }
     }
 } // namespace ui

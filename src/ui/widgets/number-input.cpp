@@ -22,6 +22,7 @@ namespace ui {
 
     void NumberInputWidget::configure_style() {
         const Theme& theme = m_ui.theme();
+
         m_thumb_color = theme.control_mark_color;
         m_thumb_size = theme.control_thumb_size;
 
@@ -34,9 +35,11 @@ namespace ui {
                 .border_radius(theme.control_rounding)
                 .border_thickness(theme.control_border_thickness);
         });
+
         state().configure_style(StyleType::HOVER, [&theme](Style& style) {
             style.background_color(theme.control_hover_color).border_color(theme.accent_hover_color);
         });
+
         state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
             style.background_color(theme.control_active_color).border_color(theme.accent_color);
         });
@@ -126,6 +129,7 @@ namespace ui {
 
         const Style& current_style = style();
         ImVec2 frame_padding = current_style.padding();
+
         if (layout().size().y > 0.0F) {
             frame_padding.y = std::max(0.0F, (layout().size().y - ImGui::GetTextLineHeight()) * 0.5F);
         }
@@ -159,23 +163,22 @@ namespace ui {
         ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, m_thumb_color.Value);
 
         m_changed = std::visit([this](auto* value) { return draw_value(*value); }, m_value);
+        const ItemInputState input = m_ui.input().handle(*this);
 
         ImGui::PopStyleColor(7);
         ImGui::PopStyleVar(5);
-        const ItemInputState input = m_ui.input().handle(*this);
         ImGui::EndGroup();
         ImGui::PopID();
 
         apply_input_state(input);
-        state().update(ImGui::GetIO().DeltaTime);
         return true;
     }
 
-    std::optional<std::string> NumberInputWidget::get_content() const {
+    std::optional<std::string> NumberInputWidget::content() const {
         return std::visit([](const auto* value) { return std::to_string(*value); }, m_value);
     }
 
-    bool NumberInputWidget::set_content(std::string content) {
+    bool NumberInputWidget::try_set_content(std::string content) {
         return std::visit(
             [&content](auto* value) {
                 using ValueType = std::remove_pointer_t<decltype(value)>;
