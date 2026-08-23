@@ -40,5 +40,6 @@ namespace ui {
         FieldNode* m_field_node = nullptr;
         ItemInputState m_input_state;
         bool m_fit_width = false;
+        bool m_focus_requested = false;
     };
 } // namespace ui

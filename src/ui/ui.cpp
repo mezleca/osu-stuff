@@ -13,7 +13,16 @@
 
 namespace ui {
     static PointerButton pointer_button(uint8_t button) {
-        return button == SDL_BUTTON_RIGHT ? PointerButton::Right : PointerButton::Left;
+        switch (button) {
+            case SDL_BUTTON_LEFT:
+                return PointerButton::Left;
+            case SDL_BUTTON_RIGHT:
+                return PointerButton::Right;
+            case SDL_BUTTON_MIDDLE:
+                return PointerButton::Middle;
+            default:
+                return PointerButton::None;
+        }
     }
 
     static std::optional<UiEvent> from_sdl_event(const SDL_Event& event) {

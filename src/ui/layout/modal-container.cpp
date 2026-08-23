@@ -18,7 +18,7 @@ namespace ui {
     ModalContainer::ModalContainer(UI& ui) : Node("modal-container"), m_ui(ui), m_input_router(ui.input_router()) {
         set_visible(true);
 
-        on_event = [this](UiEvent& event) {
+        _on_event = [this](UiEvent& event) {
             if (!has_open_modal()) {
                 return;
             }

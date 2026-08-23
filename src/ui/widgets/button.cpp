@@ -60,7 +60,7 @@ namespace ui {
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor(4);
 
-        const ItemInputState input = m_ui.input().handle(*this);
+        const ItemInputState input = m_ui.input().observe(*this);
         apply_input_state(input, pressed);
 
         const auto min = ImGui::GetItemRectMin();

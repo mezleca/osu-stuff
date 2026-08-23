@@ -27,6 +27,7 @@ namespace ui {
 
     /// regions are rebuilt every frame in draw order. dispatch selects the
     /// topmost eligible region, then bubbles the event through node parents.
+    /// matching pointer presses synthesize Click/ContextClick on release;
     /// focus, pointer capture and keyboard targets are explicit persistent state.
     class InputRouter {
     public:
@@ -85,6 +86,8 @@ namespace ui {
         bool m_debug_inspect_release_pending = false;
         std::array<Node*, LAYER_COUNT> m_keyboard_targets{};
         Node* m_pointer_capture = nullptr;
+        std::array<Node*, 4> m_pressed_targets{};
+        std::array<bool, 4> m_pressed_default_prevented{};
     };
 
 } // namespace ui

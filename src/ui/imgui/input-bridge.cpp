@@ -32,29 +32,4 @@ namespace ui {
         return state;
     }
 
-    ItemInputState ImGuiInputBridge::handle(Node& node) {
-        ItemInputState state = observe(node);
-
-        if (!state.registered || m_router.debug_inspect_mode() || !state.hovered) {
-            return state;
-        }
-
-        const ImVec2 position = ImGui::GetMousePos();
-        const auto dispatch_pointer = [&](EventType type, PointerButton button) {
-            UiEvent event = UiEvent::make(type);
-            event.position = position;
-            event.button = button;
-            state.handled = m_router.dispatch(event) || state.handled;
-        };
-
-        const auto dispatch_click = [&](ImGuiMouseButton mouse_button, PointerButton button, EventType click_type) {
-            if (ImGui::IsItemClicked(mouse_button)) {
-                dispatch_pointer(click_type, button);
-            }
-        };
-
-        dispatch_click(ImGuiMouseButton_Left, PointerButton::Left, EventType::Click);
-        dispatch_click(ImGuiMouseButton_Right, PointerButton::Right, EventType::ContextClick);
-        return state;
-    }
 } // namespace ui

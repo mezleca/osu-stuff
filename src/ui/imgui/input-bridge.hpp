@@ -16,7 +16,6 @@ namespace ui {
         explicit ImGuiInputBridge(InputRouter& router) : m_router(router) {}
 
         [[nodiscard]] ItemInputState observe(Node& node);
-        [[nodiscard]] ItemInputState handle(Node& node);
 
     private:
         InputRouter& m_router;

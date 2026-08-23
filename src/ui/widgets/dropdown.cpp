@@ -237,7 +237,7 @@ namespace ui {
         const ImVec2 trigger_max = ImGui::GetItemRectMax();
         m_trigger_rect = {trigger_min, trigger_max};
 
-        const ItemInputState input = m_ui.input().handle(trigger);
+        const ItemInputState input = m_ui.input().observe(trigger);
         bool open = ImGui::IsPopupOpen("##options");
 
         if (ImGui::IsItemClicked()) {

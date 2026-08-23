@@ -163,7 +163,7 @@ namespace ui {
         ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, m_thumb_color.Value);
 
         m_changed = std::visit([this](auto* value) { return draw_value(*value); }, m_value);
-        const ItemInputState input = m_ui.input().handle(*this);
+        const ItemInputState input = m_ui.input().observe(*this);
 
         ImGui::PopStyleColor(7);
         ImGui::PopStyleVar(5);

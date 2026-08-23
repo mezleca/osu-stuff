@@ -9,7 +9,6 @@
 #include <variant>
 
 namespace ui {
-    /// border side mask; BORDER_ALL uses imgui's rounded full-border path.
     enum Border : uint8_t {
         BORDER_NONE = 0,
         BORDER_LEFT = 1 << 0,
@@ -27,9 +26,6 @@ namespace ui {
         _COUNT
     };
 
-    /// colors and variables may transition. geometry-like values such as padding,
-    /// radius and border thickness switch immediately when a new slot is selected.
-    /// a widget only consumes properties that are meaningful to its renderer.
     class Style {
     public:
         Style() : m_padding({}) {

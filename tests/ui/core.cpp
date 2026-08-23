@@ -12,6 +12,7 @@
 #include "ui/ui.hpp"
 #include "ui/widgets/image.hpp"
 #include "ui/widgets/text.hpp"
+#include "ui/widgets/widget.hpp"
 #include "app/ui/managers/notifications.hpp"
 
 #include <array>
@@ -45,7 +46,7 @@ class EventNode final : public ui::Node {
 public:
     explicit EventNode(std::string node_id, std::vector<std::string>& events)
         : ui::Node(std::move(node_id)), m_events(events) {
-        on_event = [this](ui::UiEvent& event) {
+        _on_event = [this](ui::UiEvent& event) {
             m_events.push_back(id());
             if (stop_events) {
                 event.stop_propagation();
@@ -61,6 +62,59 @@ public:
 private:
     std::vector<std::string>& m_events;
 };
+
+class EventWidget final : public ui::Widget {
+public:
+    explicit EventWidget(std::vector<std::string>& events) : ui::Widget("widget"), m_events(events) {
+        _on_event = [this](ui::UiEvent&) { m_events.push_back("internal"); };
+    }
+
+private:
+    std::vector<std::string>& m_events;
+};
+
+class PointerCaptureNode final : public ui::Node {
+public:
+    PointerCaptureNode(ui::InputRouter& router, std::vector<ui::EventType>& events)
+        : ui::Node("drag"), m_router(router), m_events(events) {
+        _on_event = [this](ui::UiEvent& event) {
+            m_events.push_back(event.type);
+            if (event.type == ui::EventType::PointerDown) {
+                REQUIRE(m_router.capture_pointer(*this));
+            }
+            event.mark_handled();
+        };
+    }
+
+private:
+    ui::InputRouter& m_router;
+    std::vector<ui::EventType>& m_events;
+};
+
+class PointerEventNode final : public ui::Node {
+public:
+    PointerEventNode(std::string node_id, std::vector<ui::EventType>& events)
+        : ui::Node(std::move(node_id)), m_events(events) {
+        _on_event = [this](ui::UiEvent& event) {
+            m_events.push_back(event.type);
+            event.mark_handled();
+        };
+    }
+
+private:
+    std::vector<ui::EventType>& m_events;
+};
+
+TEST_CASE("widget event handlers preserve internal behavior") {
+    std::vector<std::string> events;
+    EventWidget widget(events);
+    widget.on_event = [&events](ui::UiEvent&) { events.push_back("public"); };
+
+    ui::InputRouter router;
+    ui::UiEvent event = click_event();
+    REQUIRE_FALSE(router.dispatch(widget, event));
+    REQUIRE(events == std::vector<std::string>{"internal", "public"});
+}
 
 TEST_CASE("ui profiler publishes completed nested zones") {
     ui::Profiler profiler;
@@ -339,16 +393,8 @@ TEST_CASE("ui events can stop propagation") {
 
 TEST_CASE("pointer capture keeps drag events on the original node") {
     ui::InputRouter router;
-    ui::Node node("drag");
     std::vector<ui::EventType> events;
-
-    node.on_event = [&router, &node, &events](ui::UiEvent& event) {
-        events.push_back(event.type);
-        if (event.type == ui::EventType::PointerDown) {
-            REQUIRE(router.capture_pointer(node));
-        }
-        event.mark_handled();
-    };
+    PointerCaptureNode node(router, events);
 
     router.register_region(node, {{0.0F, 0.0F}, {10.0F, 10.0F}});
 
@@ -372,6 +418,42 @@ TEST_CASE("pointer capture keeps drag events on the original node") {
     router.begin_frame();
     auto move_after_release = event_of(ui::EventType::PointerMove, {100.0F, 100.0F});
     REQUIRE_FALSE(router.dispatch(move_after_release));
+}
+
+TEST_CASE("input router synthesizes clicks from matching pointer presses") {
+    std::vector<ui::EventType> events;
+    PointerEventNode node("click", events);
+    ui::InputRouter router;
+    router.register_region(node, {{0.0F, 0.0F}, {10.0F, 10.0F}});
+
+    auto left_down = event_of(ui::EventType::PointerDown, {5.0F, 5.0F});
+    left_down.button = ui::PointerButton::Left;
+    REQUIRE(router.dispatch(left_down));
+
+    auto left_up = event_of(ui::EventType::PointerUp, {5.0F, 5.0F});
+    left_up.button = ui::PointerButton::Left;
+    REQUIRE(router.dispatch(left_up));
+    REQUIRE(events == std::vector<ui::EventType>{ui::EventType::PointerDown, ui::EventType::Click});
+
+    events.clear();
+    auto right_down = event_of(ui::EventType::PointerDown, {5.0F, 5.0F});
+    right_down.button = ui::PointerButton::Right;
+    REQUIRE(router.dispatch(right_down));
+
+    auto right_up = event_of(ui::EventType::PointerUp, {5.0F, 5.0F});
+    right_up.button = ui::PointerButton::Right;
+    REQUIRE(router.dispatch(right_up));
+    REQUIRE(events == std::vector<ui::EventType>{ui::EventType::PointerDown, ui::EventType::ContextClick});
+
+    events.clear();
+    auto drag_down = event_of(ui::EventType::PointerDown, {5.0F, 5.0F});
+    drag_down.button = ui::PointerButton::Left;
+    REQUIRE(router.dispatch(drag_down));
+
+    auto drag_up = event_of(ui::EventType::PointerUp, {20.0F, 20.0F});
+    drag_up.button = ui::PointerButton::Left;
+    REQUIRE(router.dispatch(drag_up));
+    REQUIRE(events == std::vector<ui::EventType>{ui::EventType::PointerDown});
 }
 
 TEST_CASE("input router invalidates inactive focus and pointer capture") {

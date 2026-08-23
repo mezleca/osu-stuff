@@ -12,6 +12,12 @@ namespace ui {
 
     Node::Node(std::string id) : m_id(std::move(id)), m_identity(next_node_id.fetch_add(1)) {}
 
+    void Node::dispatch_event(UiEvent& event) {
+        if (_on_event) {
+            _on_event(event);
+        }
+    }
+
     void Node::position_in_parent() {
         if (ImGui::GetCurrentContext() == nullptr) {
             m_layout.set_arranged_rect(Rect::from_position_size(m_layout.offset(), m_layout.size()));

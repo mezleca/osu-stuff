@@ -27,6 +27,37 @@ namespace ui {
         Middle,
     };
 
+    inline std::string event_type_to_string(EventType type) {
+        switch (type) {
+            case EventType::PointerMove:
+                return "PointerMove";
+            case EventType::PointerDown:
+                return "PointerDown";
+            case EventType::PointerUp:
+                return "PointerUp";
+            case EventType::Click:
+                return "Click";
+            case EventType::ContextClick:
+                return "ContextClick";
+            case EventType::Scroll:
+                return "Scroll";
+            case EventType::KeyDown:
+                return "KeyDown";
+            case EventType::KeyUp:
+                return "KeyUp";
+            case EventType::TextInput:
+                return "TextInput";
+            case EventType::FocusGained:
+                return "FocusGained";
+            case EventType::FocusLost:
+                return "FocusLost";
+            case EventType::Cancel:
+                return "Cancel";
+        }
+
+        return "Unknown";
+    }
+
     struct UiEvent {
         EventType type;
         ImVec2 position{};

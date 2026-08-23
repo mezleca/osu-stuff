@@ -184,9 +184,6 @@ void LogNotificationWidget::draw_children() {
     }
 
     m_icon->draw();
-
-    const bool handled = m_ui.input().handle(*m_icon).handled;
-    static_cast<void>(handled);
 }
 
 void LogNotificationWidget::on_draw_end() {
@@ -211,7 +208,7 @@ void LogNotificationWidget::on_draw_end() {
 
     ImGui::PopStyleColor();
 
-    const ui::ItemInputState input = m_ui.input().handle(*this);
+    const ui::ItemInputState input = m_ui.input().observe(*this);
 
     if (m_closing) {
         state().set_item_state(false, false);

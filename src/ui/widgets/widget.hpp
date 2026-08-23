@@ -5,6 +5,7 @@
 #include "../style/state.hpp"
 #include "widget-type.hpp"
 
+#include <functional>
 #include <string>
 
 namespace ui {
@@ -19,6 +20,9 @@ namespace ui {
             return *this;
         }
 
+        /// receives events after the widget's internal behavior has run.
+        std::function<void(UiEvent&)> on_event;
+
         [[nodiscard]] bool accepts_input() const override {
             return Node::accepts_input() && state().accepts_input();
         }
@@ -26,6 +30,14 @@ namespace ui {
         /// converts an input snapshot into active/focus/hover style selection.
         void apply_input_state(const ItemInputState& input, bool active = false) {
             state().set_item_state(input.hovered, input.active || active, input.focused);
+        }
+
+    protected:
+        void dispatch_event(UiEvent& event) override {
+            Node::dispatch_event(event);
+            if (on_event) {
+                on_event(event);
+            }
         }
 
     private:

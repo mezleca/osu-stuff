@@ -265,7 +265,7 @@ namespace ui {
         maximum_x = value_position(*m_maximum, value_track_start, value_track_width);
         draw_track({track_min, track_max}, minimum_x, maximum_x, thumb_width);
 
-        const ItemInputState input = m_ui.input().handle(*this);
+        const ItemInputState input = m_ui.input().observe(*this);
         ImGui::PopID();
 
         apply_input_state(input);

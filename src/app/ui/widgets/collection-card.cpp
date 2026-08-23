@@ -78,7 +78,7 @@ void CollectionCardWidget::on_layout() {
 void CollectionCardWidget::on_draw_end() {
     ui::ChildContainer::on_draw_end();
 
-    const ui::ItemInputState input = m_ui.input().handle(*this);
+    const ui::ItemInputState input = m_ui.input().observe(*this);
 
     if (m_selected) {
         state().set_style(ui::StyleType::ACTIVE);

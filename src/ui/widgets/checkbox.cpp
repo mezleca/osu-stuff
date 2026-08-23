@@ -92,7 +92,7 @@ namespace ui {
         ImGui::PopStyleVar(3);
         ImGui::PopFont();
 
-        const ItemInputState input = m_ui.input().handle(*this);
+        const ItemInputState input = m_ui.input().observe(*this);
         ImGui::PopID();
 
         apply_input_state(input);

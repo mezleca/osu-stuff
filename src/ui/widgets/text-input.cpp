@@ -9,10 +9,10 @@
 #include <imgui_stdlib.h>
 #include <SDL3/SDL_keycode.h>
 
-namespace ui {
-    static constexpr ImVec2 INPUT_ICON_SIZE = {18.0F, 18.0F};
-    static constexpr float INPUT_ICON_SPACING = 10.0F;
+static constexpr ImVec2 INPUT_ICON_SIZE = {18.0F, 18.0F};
+static constexpr float INPUT_ICON_SPACING = 10.0F;
 
+namespace ui {
     class TextInputWidget::FieldNode final : public Node {
     public:
         explicit FieldNode(TextInputWidget& input) : Node("text"), m_input(input) {}
@@ -61,7 +61,11 @@ namespace ui {
 
         m_field_node = &add_child<FieldNode>(*this);
 
-        on_event = [this](UiEvent& event) {
+        _on_event = [this](UiEvent& event) {
+            if (event.type == EventType::PointerDown && event.button == PointerButton::Left) {
+                m_focus_requested = m_ui.input_router().set_focus(*this);
+            }
+
             if (event.type != EventType::Cancel && !(event.type == EventType::KeyDown && event.key == SDLK_ESCAPE)) {
                 return;
             }
@@ -104,14 +108,15 @@ namespace ui {
             size.x = std::max(0.0F, available.x);
         }
 
-        if (size.y <= 0.0F) {
-            size.y = ImGui::GetTextLineHeight() + style().padding().y * 2.0F;
-        }
-
         layout().set_size(size);
     }
 
     bool TextInputWidget::draw_field() {
+        if (m_focus_requested) {
+            ImGui::SetKeyboardFocusHere();
+            m_focus_requested = false;
+        }
+
         ImGui::SetNextItemWidth(-FLT_MIN);
         ImGui::InputText(m_label.empty() ? "##text-input" : m_label.c_str(), m_value);
         return true;
@@ -124,8 +129,8 @@ namespace ui {
         const float input_height = ImGui::GetTextLineHeight();
         const float input_width = std::max(0.0F, ImGui::GetContentRegionAvail().x - icon_width);
 
-        // reserve the icon column before drawing the field; both remain real
-        // child nodes even though this container controls their exact order.
+        // reserve the icon column before drawing the field
+        // both remain real child nodes even though this container controls their exact order.
         ImGui::SetCursorPosX(input_position.x + icon_width);
         m_field_node->layout().set_size({input_width, input_height});
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0F, 0.0F});

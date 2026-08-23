@@ -22,6 +22,35 @@ namespace ui {
         return layer == InputLayer::Count ? InputLayer::Content : layer;
     }
 
+    static std::optional<std::size_t> pointer_button_index(PointerButton button) {
+        switch (button) {
+            case PointerButton::Left:
+                return 0;
+            case PointerButton::Right:
+                return 1;
+            case PointerButton::Middle:
+                return 2;
+            case PointerButton::None:
+                return std::nullopt;
+        }
+
+        return std::nullopt;
+    }
+
+    static std::optional<EventType> click_event_type(PointerButton button) {
+        switch (button) {
+            case PointerButton::Left:
+                return EventType::Click;
+            case PointerButton::Right:
+                return EventType::ContextClick;
+            case PointerButton::Middle:
+            case PointerButton::None:
+                return std::nullopt;
+        }
+
+        return std::nullopt;
+    }
+
     static bool is_same_or_descendant(const Node* ancestor, const Node* node) {
         for (const Node* current = node; current != nullptr; current = current->parent()) {
             if (current == ancestor) {
@@ -99,6 +128,13 @@ namespace ui {
     void InputRouter::release_pointer(Node& subtree) {
         if (subtree.contains(m_pointer_capture)) {
             release_pointer();
+        }
+
+        for (std::size_t index = 0; index < m_pressed_targets.size(); ++index) {
+            if (subtree.contains(m_pressed_targets[index])) {
+                m_pressed_targets[index] = nullptr;
+                m_pressed_default_prevented[index] = false;
+            }
         }
     }
 
@@ -196,21 +232,56 @@ namespace ui {
             return false;
         }
 
-        if (event.type == EventType::PointerMove || event.type == EventType::PointerUp) {
-            // move/up events only make sense while dragging; without an active capture there is
+        if (event.type == EventType::PointerMove) {
+            // move events only make sense while dragging; without an active capture there is
             // no target to flow them through.
             if (m_pointer_capture == nullptr) {
                 return false;
             }
 
-            Node* captured = m_pointer_capture;
-            const bool handled = dispatch(*captured, event);
+            return dispatch(*m_pointer_capture, event);
+        }
 
-            if (event.type == EventType::PointerUp && m_pointer_capture == captured) {
-                release_pointer();
+        if (event.type == EventType::PointerUp) {
+            bool handled = false;
+            if (m_pointer_capture != nullptr) {
+                Node* captured = m_pointer_capture;
+                handled = dispatch(*captured, event);
+
+                if (m_pointer_capture == captured) {
+                    release_pointer();
+                }
             }
 
-            return handled;
+            const std::optional<std::size_t> button_index = pointer_button_index(event.button);
+            if (!button_index.has_value()) {
+                return handled;
+            }
+
+            Node* pressed = m_pressed_targets[*button_index];
+            const bool default_prevented = m_pressed_default_prevented[*button_index] || event.default_prevented;
+            m_pressed_targets[*button_index] = nullptr;
+            m_pressed_default_prevented[*button_index] = false;
+
+            if (pressed == nullptr || default_prevented || !pressed->visible() || !pressed->accepts_input()) {
+                return handled;
+            }
+
+            const std::optional<InputLayer> blocking_layer = highest_blocking_layer(event.type);
+            Node* released = target_at(event.position, blocking_layer.value_or(InputLayer::Content), false);
+            if (released != pressed) {
+                return handled;
+            }
+
+            const std::optional<EventType> click_type = click_event_type(event.button);
+            if (!click_type.has_value()) {
+                return handled;
+            }
+
+            UiEvent click = UiEvent::make(*click_type);
+            click.position = event.position;
+            click.button = event.button;
+            return dispatch(*pressed, click) || handled;
         }
 
         // pointer input resolves the highest eligible layer first, then picks
@@ -223,6 +294,21 @@ namespace ui {
             return event.handled;
         }
 
+        if (event.type == EventType::PointerDown) {
+            if (const std::optional<std::size_t> button_index = pointer_button_index(event.button);
+                button_index.has_value()) {
+                m_pressed_targets[*button_index] = target;
+                m_pressed_default_prevented[*button_index] = false;
+            }
+
+            const bool handled = dispatch(*target, event);
+            if (const std::optional<std::size_t> button_index = pointer_button_index(event.button);
+                button_index.has_value()) {
+                m_pressed_default_prevented[*button_index] = event.default_prevented;
+            }
+            return handled;
+        }
+
         return dispatch(*target, event);
     }
 
@@ -231,9 +317,7 @@ namespace ui {
 
         while (current != nullptr && !event.propagation_stopped) {
             Node* next = current->parent();
-            if (current->on_event) {
-                current->on_event(event);
-            }
+            current->dispatch_event(event);
 
             current = next;
         }
@@ -266,6 +350,13 @@ namespace ui {
         for (Node*& target : m_keyboard_targets) {
             if (!is_active(target)) {
                 target = nullptr;
+            }
+        }
+
+        for (std::size_t index = 0; index < m_pressed_targets.size(); ++index) {
+            if (!is_active(m_pressed_targets[index])) {
+                m_pressed_targets[index] = nullptr;
+                m_pressed_default_prevented[index] = false;
             }
         }
     }

@@ -191,10 +191,13 @@ namespace ui {
 
         virtual bool try_set_content(std::string content);
 
-        /// receives bubbled ui events after routing and hit testing.
-        std::function<void(UiEvent&)> on_event;
-
     protected:
+        /// internal event behavior implemented by the node itself.
+        std::function<void(UiEvent&)> _on_event;
+
+        /// dispatches the node's internal event behavior. widgets extend this with their public callback.
+        virtual void dispatch_event(UiEvent& event);
+
         /// resolves cursor placement and the latest layout rectangles.
         void position_in_parent();
         void assign_input_layer(InputLayer layer);
@@ -222,6 +225,8 @@ namespace ui {
         virtual void on_draw_end();
 
     private:
+        friend class InputRouter;
+
         void measure_tree();
         void capture_leaf_rect(ImGuiID previous_item_id, Rect previous_item_rect);
 
