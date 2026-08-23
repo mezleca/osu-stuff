@@ -15,8 +15,6 @@ namespace ui {
         set_margin({48.0F, 48.0F});
         set_spacing(10.0F);
 
-        StackContainer::set_padding({});
-
         const Theme& theme = ui.theme();
         style()
             .padding({24.0F, 24.0F})
@@ -42,13 +40,14 @@ namespace ui {
             std::max(0.0F, available.y - m_margin.y * 2.0F),
         };
 
-        const ImVec2 desired = layout().size();
+        const ImVec2 desired = layout().desired_size();
 
-        layout().set_size({
+        const ImVec2 resolved = {
             desired.x <= 0.0F ? maximum.x : std::min(desired.x, maximum.x),
             desired.y <= 0.0F ? maximum.y : std::min(desired.y, maximum.y),
-        });
+        };
 
-        StackContainer::on_layout();
+        resolve_size(resolved);
+        arrange_children(resolved);
     }
 } // namespace ui

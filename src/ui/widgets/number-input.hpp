@@ -22,7 +22,6 @@ namespace ui {
         NumberInputWidget& clear_range();
         NumberInputWidget& set_speed(float speed);
         NumberInputWidget& set_format(std::string format);
-        NumberInputWidget& set_size(ImVec2 size);
         NumberInputWidget& set_thumb_visible(bool visible);
         NumberInputWidget& set_thumb_size(float size);
         NumberInputWidget& set_thumb_color(ImColor color);
@@ -36,7 +35,7 @@ namespace ui {
         template <typename T>
         bool draw_value(T& value);
 
-        void configure_style();
+        void configure_default_styles();
 
         UI& m_ui;
         std::variant<float*, int*> m_value;

@@ -10,7 +10,7 @@ TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title
 
     if (line) {
         const auto set_float = [this](ui::StyleType type, const char* name, float value, float speed) {
-            state().style(type).variables().set(name, ui::FloatValue{value, speed});
+            style(type).variables().set(name, ui::FloatValue{value, speed});
         };
 
         set_float(ui::StyleType::DEFAULT, "line_alpha", 0.0f, LINE_ALPHA_SPEED);
@@ -22,10 +22,12 @@ TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title
     }
 
     const ui::Theme& theme = m_ui.theme();
-    state().configure_all_styles([this, &theme](ui::Style& style) {
-        style.color(m_title ? theme.accent_color : theme.text_color, 14.0F);
+
+    configure_all_styles([this, &theme](ui::Style& style) {
+        style.color(m_title ? theme.accent_color : theme.text_secondary_color, 14.0F);
     });
-    state().style(ui::StyleType::ACTIVE).color(theme.accent_color);
+
+    style(ui::StyleType::ACTIVE).color(theme.accent_color);
 }
 
 std::optional<std::string> TabButtonWidget::content() const {
@@ -42,11 +44,11 @@ bool TabButtonWidget::try_set_content(std::string content) {
 }
 
 bool TabButtonWidget::on_draw() {
-    if (!state().is_visible()) {
+    if (!visually_visible()) {
         return false;
     }
 
-    const ui::Style& style = state().style();
+    const ui::Style& style = this->style();
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 6.0f});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
@@ -84,7 +86,7 @@ bool TabButtonWidget::on_draw() {
     ImGui::PopStyleColor(4);
 
     if (pressed || m_selected) {
-        state().set_style(ui::StyleType::ACTIVE);
+        set_visual_style(ui::StyleType::ACTIVE);
     } else {
         apply_input_state(input);
     }

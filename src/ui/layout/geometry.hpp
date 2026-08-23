@@ -3,8 +3,6 @@
 #include <imgui.h>
 #include <algorithm>
 #include <cstdint>
-#include <span>
-#include <vector>
 
 namespace ui {
     enum class Anchor : uint8_t {
@@ -114,96 +112,24 @@ namespace ui {
         };
     }
 
-    [[nodiscard]] inline std::vector<Rect> resolve_stack_layout(
-        Rect content_rect, std::span<const ImVec2> child_sizes, StackDirection direction, float spacing,
-        ImVec2 padding = {}
-    ) {
-        std::vector<Rect> result;
-        result.reserve(child_sizes.size());
-
-        ImVec2 cursor = {content_rect.min.x + padding.x, content_rect.min.y + padding.y};
-        for (const ImVec2 child_size : child_sizes) {
-            result.push_back(Rect::from_position_size(cursor, child_size));
-
-            if (direction == StackDirection::Horizontal) {
-                cursor.x += child_size.x + spacing;
-                continue;
-            }
-
-            cursor.y += child_size.y + spacing;
-        }
-
-        return result;
-    }
-
     [[nodiscard]] constexpr ResizeAxes operator&(ResizeAxes left, ResizeAxes right) {
         return static_cast<ResizeAxes>(static_cast<uint8_t>(left) & static_cast<uint8_t>(right));
     }
 
-    /// `size` is the desired size. `arranged_rect` uses coordinates local to the
-    /// current imgui window, while `screen_rect` is suitable for hit testing and
-    /// debugger highlights. `parent_content_rect` is the coordinate space used
-    /// to resolve anchor and origin.
     class NodeLayout {
     public:
-        /// non-positive dimensions may be filled from available space by containers.
-        NodeLayout& set_size(ImVec2 size) {
-            m_size = size;
-            return *this;
+        /// caller-provided size, preserved when a container resolves automatic axes.
+        [[nodiscard]] const ImVec2& desired_size() const {
+            return m_desired_size;
         }
 
+        /// size resolved for the current frame; equals desired_size outside arrangement.
         [[nodiscard]] const ImVec2& size() const {
             return m_size;
         }
 
-        NodeLayout& set_anchor(Anchor anchor) {
-            m_anchor = anchor;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
-        NodeLayout& set_anchor_position(ImVec2 position) {
-            m_anchor = Anchor::Custom;
-            m_anchor_position = position;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
-        NodeLayout& set_origin(Origin origin) {
-            m_origin = origin;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
-        NodeLayout& set_origin_position(ImVec2 position) {
-            m_origin = Origin::Custom;
-            m_origin_position = position;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
-        NodeLayout& set_offset(ImVec2 offset) {
-            m_offset = offset;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
-        NodeLayout& set_placement(Anchor anchor, Origin origin, ImVec2 offset = {}) {
-            m_anchor = anchor;
-            m_origin = origin;
-            m_offset = offset;
-            m_has_explicit_position = true;
-            return *this;
-        }
-
         [[nodiscard]] bool has_explicit_position() const {
             return m_has_explicit_position;
-        }
-
-        /// restores natural imgui flow without clearing the stored placement values.
-        NodeLayout& clear_explicit_position() {
-            m_has_explicit_position = false;
-            return *this;
         }
 
         [[nodiscard]] Anchor anchor() const {
@@ -240,8 +166,70 @@ namespace ui {
             return m_screen_rect;
         }
 
+        /// parent content bounds used to resolve explicit placement.
+        [[nodiscard]] const Rect& parent_content_rect() const {
+            return m_parent_content_rect;
+        }
+
+    private:
+        friend class Node;
+
+        void set_size(ImVec2 size) {
+            m_desired_size = size;
+            m_size = size;
+            m_has_size_request = true;
+            m_size_resolved = false;
+        }
+
+        void set_anchor(Anchor anchor) {
+            m_anchor = anchor;
+            m_has_explicit_position = true;
+        }
+
+        void set_anchor_position(ImVec2 position) {
+            m_anchor = Anchor::Custom;
+            m_anchor_position = position;
+            m_has_explicit_position = true;
+        }
+
+        void set_origin(Origin origin) {
+            m_origin = origin;
+            m_has_explicit_position = true;
+        }
+
+        void set_origin_position(ImVec2 position) {
+            m_origin = Origin::Custom;
+            m_origin_position = position;
+            m_has_explicit_position = true;
+        }
+
+        void set_offset(ImVec2 offset) {
+            m_offset = offset;
+            m_has_explicit_position = true;
+        }
+
+        void set_placement(Anchor anchor, Origin origin, ImVec2 offset) {
+            m_anchor = anchor;
+            m_origin = origin;
+            m_offset = offset;
+            m_has_explicit_position = true;
+        }
+
+        void clear_explicit_position() {
+            m_has_explicit_position = false;
+        }
+
         void set_arranged_rect(Rect rect) {
             m_arranged_rect = rect;
+        }
+
+        void set_resolved_size(ImVec2 size) {
+            m_size = size;
+            m_size_resolved = true;
+        }
+
+        void clear_size_resolution() {
+            m_size_resolved = false;
         }
 
         void set_screen_rect(Rect rect) {
@@ -252,12 +240,7 @@ namespace ui {
             m_parent_content_rect = rect;
         }
 
-        /// parent content bounds used to resolve explicit placement.
-        [[nodiscard]] const Rect& parent_content_rect() const {
-            return m_parent_content_rect;
-        }
-
-    private:
+        ImVec2 m_desired_size = {};
         ImVec2 m_size = {};
         ImVec2 m_offset = {};
         ImVec2 m_anchor_position = {};
@@ -267,6 +250,8 @@ namespace ui {
         Rect m_parent_content_rect{};
         Anchor m_anchor = Anchor::TopLeft;
         Origin m_origin = Origin::TopLeft;
+        bool m_has_size_request = false;
+        bool m_size_resolved = false;
         bool m_has_explicit_position = false;
     };
 

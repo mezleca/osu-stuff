@@ -12,21 +12,21 @@
 namespace ui {
     NumberInputWidget::NumberInputWidget(UI& ui, float& value, std::string id)
         : Widget(std::move(id), WidgetType::NumberInput), m_ui(ui), m_value(&value), m_format("%.3f"), m_speed(0.1F) {
-        configure_style();
+        configure_default_styles();
     }
 
     NumberInputWidget::NumberInputWidget(UI& ui, int& value, std::string id)
         : Widget(std::move(id), WidgetType::NumberInput), m_ui(ui), m_value(&value), m_format("%d"), m_speed(1.0F) {
-        configure_style();
+        configure_default_styles();
     }
 
-    void NumberInputWidget::configure_style() {
+    void NumberInputWidget::configure_default_styles() {
         const Theme& theme = m_ui.theme();
 
         m_thumb_color = theme.control_mark_color;
         m_thumb_size = theme.control_thumb_size;
 
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
                 .background_color(theme.control_background_color)
                 .border_color(theme.control_border_color, 18.0F)
@@ -36,11 +36,11 @@ namespace ui {
                 .border_thickness(theme.control_border_thickness);
         });
 
-        state().configure_style(StyleType::HOVER, [&theme](Style& style) {
+        configure_style(StyleType::HOVER, [&theme](Style& style) {
             style.background_color(theme.control_hover_color).border_color(theme.accent_hover_color);
         });
 
-        state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
+        configure_style(StyleType::ACTIVE, [&theme](Style& style) {
             style.background_color(theme.control_active_color).border_color(theme.accent_color);
         });
     }
@@ -82,11 +82,6 @@ namespace ui {
         return *this;
     }
 
-    NumberInputWidget& NumberInputWidget::set_size(ImVec2 size) {
-        layout().set_size(size);
-        return *this;
-    }
-
     NumberInputWidget& NumberInputWidget::set_thumb_visible(bool visible) {
         m_thumb_visible = visible;
         return *this;
@@ -123,7 +118,7 @@ namespace ui {
     }
 
     bool NumberInputWidget::on_draw() {
-        if (!state().is_visible()) {
+        if (!visually_visible()) {
             return false;
         }
 

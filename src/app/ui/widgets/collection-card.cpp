@@ -8,28 +8,31 @@ CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name)
     : ui::ChildContainer({}, ui::WidgetType::CollectionCard), m_ui(ui) {
     const ui::Theme& theme = m_ui.theme();
     auto music_icon = m_ui.get_texture("music-icon");
+    const ImColor hidden_border = ui::with_alpha(theme.accent_color, 0.0F);
+    const ImColor hidden_background = ui::with_alpha(theme.button_active_color, 0.0F);
 
     set_font(m_ui.get_font(ui::FontType::SEMIBOLD).get(18));
 
-    state().configure_all_styles([&](ui::Style& style) {
+    configure_all_styles([&theme, hidden_border, hidden_background](ui::Style& style) {
         style.padding({theme.content_padding, 0.0F})
             .border(ui::BORDER_ALL)
             .border_thickness(1.0F)
-            .border_color(theme.transparent, ALPHA_ANIM_SPEED)
-            .background_color(theme.transparent, ALPHA_ANIM_SPEED);
+            .border_color(hidden_border, ALPHA_ANIM_SPEED)
+            .background_color(hidden_background, ALPHA_ANIM_SPEED);
     });
 
-    state().configure_style(ui::StyleType::ACTIVE, [&theme](ui::Style& style) {
-        style.border_color(theme.accent_color, ALPHA_ANIM_SPEED).background_color(theme.button_active_color);
+    configure_style(ui::StyleType::ACTIVE, [&theme](ui::Style& style) {
+        style.border_color(theme.accent_color, ALPHA_ANIM_SPEED)
+            .background_color(theme.button_active_color, ALPHA_ANIM_SPEED);
     });
 
-    state().configure_style(ui::StyleType::HOVER, [&theme](ui::Style& style) {
+    configure_style(ui::StyleType::HOVER, [&theme](ui::Style& style) {
         style.border_color(theme.accent_color, ALPHA_ANIM_SPEED);
     });
 
     m_icon = &add_child<ui::ImageWidget>();
     m_icon->set_texture(music_icon).set_size(ICON_SIZE);
-    m_icon->state().configure_all_styles([&](ui::Style& style) { style.color(theme.accent_color); });
+    m_icon->configure_all_styles([&](ui::Style& style) { style.color(theme.accent_color); });
     m_icon->set_anchor(ui::Anchor::CenterLeft).set_origin(ui::Origin::CenterLeft);
 
     m_title = &add_child<ui::TextWidget>(std::move(name));
@@ -72,7 +75,7 @@ void CollectionCardWidget::on_layout() {
     // collection card will always use the full width
     const ImVec2 available = ImGui::GetContentRegionAvail();
     size.x = available.x;
-    layout().set_size(size);
+    resolve_size(size);
 }
 
 void CollectionCardWidget::on_draw_end() {
@@ -81,8 +84,8 @@ void CollectionCardWidget::on_draw_end() {
     const ui::ItemInputState input = m_ui.input().observe(*this);
 
     if (m_selected) {
-        state().set_style(ui::StyleType::ACTIVE);
+        set_visual_style(ui::StyleType::ACTIVE);
     } else {
-        state().set_item_state(input.hovered, false);
+        set_interaction_style(input.hovered, false);
     }
 }

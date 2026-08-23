@@ -233,7 +233,7 @@ namespace ui {
         const ui::ImGuiContextScope scope(m_ui->imgui_context());
 
         m_icon.set_size(ICON_SIZE);
-        m_icon.state().configure_all_styles([this](Style& style) { style.color(m_ui->theme().text_secondary_color); });
+        m_icon.configure_all_styles([this](Style& style) { style.color(m_ui->theme().text_secondary_color); });
 
         m_target.window()->make_current();
     }
@@ -250,7 +250,7 @@ namespace ui {
         m_select_properties = target != nullptr;
 
         auto* styled = dynamic_cast<StyledNode*>(target);
-        m_inspected_style = styled == nullptr ? StyleType::DEFAULT : styled->state().style_type();
+        m_inspected_style = styled == nullptr ? StyleType::DEFAULT : styled->style_type();
 
         if (m_node_target == nullptr) {
             m_highlight_valid = false;
@@ -401,10 +401,12 @@ namespace ui {
         }
     }
 
-    void Debugger::update() {
+    void Debugger::update(float dt) {
         if (!ready()) {
             return;
         }
+
+        m_icon.update(dt);
 
         const bool focused = SDL_GetKeyboardFocus() == m_target.window()->handle();
 
@@ -566,10 +568,8 @@ namespace ui {
                 draw_property_value("identity", "%llu", static_cast<unsigned long long>(m_node_target->identity()));
                 draw_property_value("children", "%zu", m_node_target->children().size());
                 if (const auto* styled = dynamic_cast<const StyledNode*>(m_node_target); styled != nullptr) {
-                    draw_property_value("opacity", "%.3f", styled->state().opacity());
-                    draw_property_value(
-                        "style state", "%s", STYLE_NAMES[static_cast<int>(styled->state().style_type())]
-                    );
+                    draw_property_value("opacity", "%.3f", styled->opacity());
+                    draw_property_value("style state", "%s", STYLE_NAMES[static_cast<int>(styled->style_type())]);
                 }
 
                 draw_property_value("input layer", "%s", input_layer_name(m_node_target->input_layer()));
@@ -605,46 +605,46 @@ namespace ui {
             return;
         }
 
-        NodeLayout& layout = m_node_target->layout();
+        const NodeLayout& layout = m_node_target->layout();
         draw_property_value("placement", "%s", layout.has_explicit_position() ? "explicit" : "flow");
 
-        ImVec2 size = layout.size();
+        ImVec2 size = layout.desired_size();
         if (draw_number_input("desired size", &size.x, 2)) {
-            layout.set_size(size);
+            m_node_target->set_size(size);
         }
 
         ImVec2 offset = layout.offset();
         if (draw_number_input("offset", &offset.x, 2)) {
-            layout.set_offset(offset);
+            m_node_target->set_offset(offset);
         }
 
         int anchor = static_cast<int>(layout.anchor());
         if (draw_inline_combo("anchor (parent)", &anchor, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
-            layout.set_anchor(static_cast<Anchor>(anchor));
+            m_node_target->set_anchor(static_cast<Anchor>(anchor));
             if (should_restore_flow_position()) {
-                layout.clear_explicit_position();
+                m_node_target->set_flow();
             }
         }
 
         int origin = static_cast<int>(layout.origin());
         if (draw_inline_combo("origin (node)", &origin, ALIGNMENT_NAMES, IM_ARRAYSIZE(ALIGNMENT_NAMES))) {
-            layout.set_origin(static_cast<Origin>(origin));
+            m_node_target->set_origin(static_cast<Origin>(origin));
             if (should_restore_flow_position()) {
-                layout.clear_explicit_position();
+                m_node_target->set_flow();
             }
         }
 
         if (layout.anchor() == Anchor::Custom) {
             ImVec2 anchor_position = layout.anchor_factor();
             if (draw_number_input("anchor point", &anchor_position.x, 2, 0.01F)) {
-                layout.set_anchor_position(anchor_position);
+                m_node_target->set_anchor_position(anchor_position);
             }
         }
 
         if (layout.origin() == Origin::Custom) {
             ImVec2 origin_position = layout.origin_factor();
             if (draw_number_input("origin point", &origin_position.x, 2, 0.01F)) {
-                layout.set_origin_position(origin_position);
+                m_node_target->set_origin_position(origin_position);
             }
         }
 
@@ -711,7 +711,7 @@ namespace ui {
 
         const bool app_focused = SDL_GetKeyboardFocus() == m_target.window()->handle();
         if (app_focused) {
-            m_inspected_style = styled->state().style_type();
+            m_inspected_style = styled->style_type();
         }
 
         int style_index = static_cast<int>(m_inspected_style);
@@ -769,14 +769,29 @@ namespace ui {
         }
 
         if (supports_padding) {
-            draw_number_input("padding", &style->padding().x, 2, 0.1F, 0.0F, 128.0F);
+            ImVec2 padding = style->padding();
+            if (draw_number_input("padding", &padding.x, 2, 0.1F, 0.0F, 128.0F)) {
+                style->padding(padding);
+            }
         }
-        draw_number_input("alpha", &style->alpha(), 1, 0.01F, 0.0F, 1.0F);
+
+        float alpha = style->alpha();
+        if (draw_number_input("alpha", &alpha, 1, 0.01F, 0.0F, 1.0F)) {
+            style->alpha(alpha);
+        }
+
         if (supports_radius) {
-            draw_number_input("border radius", &style->border_radius(), 1, 0.1F, 0.0F, 64.0F);
+            float radius = style->border_radius();
+            if (draw_number_input("border radius", &radius, 1, 0.1F, 0.0F, 64.0F)) {
+                style->border_radius(radius);
+            }
         }
+
         if (supports_thickness) {
-            draw_number_input("border thickness", &style->border_thickness(), 1, 0.1F, 0.0F, 16.0F);
+            float thickness = style->border_thickness();
+            if (draw_number_input("border thickness", &thickness, 1, 0.1F, 0.0F, 16.0F)) {
+                style->border_thickness(thickness);
+            }
         }
 
         render_style_variables(*style);
@@ -820,7 +835,7 @@ namespace ui {
         const bool inspect_clicked = ImGui::InvisibleButton("##debug-inspect-mode", ICON_SIZE);
 
         ImGui::SetCursorScreenPos(icon_position);
-        m_icon.state().style().color().set(
+        m_icon.style().color().set(
             ImColor(m_inspect_mode ? m_ui->theme().accent_color : m_ui->theme().text_secondary_color)
         );
         m_icon.draw();

@@ -1,5 +1,5 @@
 #include "stable.hpp"
-#include "../parser/legacy/legacy_collection.hpp"
+#include "../../parser/legacy/legacy_collection.hpp"
 
 #include <utility>
 

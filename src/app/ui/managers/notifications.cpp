@@ -81,6 +81,12 @@ void UINotificationManager::clear() {
     }
 }
 
+void UINotificationManager::on_update(float dt) {
+    // the overflow indicator stays outside children
+    // so it is not counted as a notification.
+    m_more_notifications.update(dt);
+}
+
 void UINotificationManager::draw() {
     if (!visible()) {
         return;
@@ -94,13 +100,13 @@ void UINotificationManager::draw() {
 
     const ImVec2 window_position = ImGui::GetWindowPos();
     const ImVec2 window_size = ImGui::GetWindowSize();
-    layout().set_size(window_size);
-    layout().set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
+    resolve_size(window_size);
+    set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
     m_ui.input_router().register_region_in_layer(*this, layout().screen_rect(), ui::InputLayer::Notification);
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const ImVec2 initial_offset = {m_position == ui::OverlayPosition::LEFT ? 5.0F : -5.0F, m_header_height + 10.0F};
-    const float more_height = std::max(48.0F, m_more_notifications.rect().size().y);
+    const float more_height = std::max(48.0F, m_more_notifications.layout().screen_rect().size().y);
     const float max_height = available.y - 100.0F - more_height - SPACING;
 
     ImVec2 offset = initial_offset;
@@ -114,22 +120,22 @@ void UINotificationManager::draw() {
     for (auto it = children().rbegin(); it != children().rend(); ++it) {
         if (offset.y >= max_height) {
             m_more_notifications.set_text(std::format("{} more...", notification_count - index));
-            m_more_notifications.set_offset({initial_offset.x, offset.y});
+            m_more_notifications.set_target_offset({initial_offset.x, offset.y});
             m_more_notifications.draw();
             break;
         }
 
         UINotification* notification = static_cast<UINotification*>(it->get());
-        if (!notification->state().is_visible()) {
+        if (!notification->visually_visible()) {
             static_cast<void>(remove(notification));
             continue;
         }
 
         notification->set_overlay_position(m_position);
-        notification->set_offset({initial_offset.x, offset.y});
+        notification->set_target_offset({initial_offset.x, offset.y});
         notification->draw();
 
-        const ImVec2 size = notification->rect().size();
+        const ImVec2 size = notification->layout().screen_rect().size();
         offset.y += size.y + SPACING;
         ++index;
     }

@@ -25,7 +25,7 @@ namespace ui {
         void setup();
         void set_enabled(bool enabled);
         [[nodiscard]] bool process_sdl_event(const SDL_Event* event);
-        void update();
+        void update(float dt);
         void draw_highlight();
         void render();
 

@@ -1,4 +1,5 @@
 add_executable(tests
+    app-database.cpp
     beatmap-parser.cpp
     osu-clients.cpp
     osu_api_tests.cpp
@@ -6,8 +7,12 @@ add_executable(tests
     osdb-parser.cpp
     ui/widgets.cpp
     ui/core.cpp
+    ui/diagnostics.cpp
+    ui/input.cpp
+    ui/layout.cpp
     utils.cpp
-    helper.hpp
+    utils/imgui-context.hpp
+    utils/helper.hpp
 )
 
 target_link_libraries(tests PRIVATE

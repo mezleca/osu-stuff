@@ -1,5 +1,5 @@
 #include "parser/beatmap/beatmap.hpp"
-#include "helper.hpp"
+#include "utils/helper.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 

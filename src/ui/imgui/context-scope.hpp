@@ -3,8 +3,6 @@
 #include <imgui.h>
 
 namespace ui {
-    // makes a given imgui context current for the lifetime of the scope, then restores
-    // whatever context was current before
     class ImGuiContextScope {
     public:
         explicit ImGuiContextScope(ImGuiContext* context) : m_previous(ImGui::GetCurrentContext()) {

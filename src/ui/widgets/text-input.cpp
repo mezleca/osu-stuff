@@ -47,7 +47,7 @@ namespace ui {
         set_center_content_vertically(true);
         set_font(ui.get_primary_font(18));
 
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.border_color(theme.border_color, 24.0F)
                 .padding({12.0F, 14.0F})
                 .background_color(theme.background_secondary_color)
@@ -108,7 +108,7 @@ namespace ui {
             size.x = std::max(0.0F, available.x);
         }
 
-        layout().set_size(size);
+        resolve_size(size);
     }
 
     bool TextInputWidget::draw_field() {
@@ -129,10 +129,8 @@ namespace ui {
         const float input_height = ImGui::GetTextLineHeight();
         const float input_width = std::max(0.0F, ImGui::GetContentRegionAvail().x - icon_width);
 
-        // reserve the icon column before drawing the field
-        // both remain real child nodes even though this container controls their exact order.
         ImGui::SetCursorPosX(input_position.x + icon_width);
-        m_field_node->layout().set_size({input_width, input_height});
+        m_field_node->set_size({input_width, input_height});
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0F, 0.0F});
 
         const ImVec4 transparent = m_ui.theme().transparent;
@@ -141,8 +139,7 @@ namespace ui {
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, transparent);
 
         m_field_node->draw();
-        // the native input item belongs to the field child, while interaction
-        // styles and focus belong to the outer text input container.
+        // the field supplies item geometry; the outer container owns interaction and focus.
         m_input_state = m_ui.input().observe(*this);
         m_input_state.hovered = m_input_state.hovered || ImGui::IsWindowHovered();
 

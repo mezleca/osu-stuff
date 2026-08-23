@@ -15,7 +15,7 @@ namespace ui {
 
     void TextWidget::update_layout_size() {
         m_text->set_font(font());
-        layout().set_size(m_text->text_size());
+        set_size(m_text->text_size());
     }
 
     void TextWidget::on_measure() {

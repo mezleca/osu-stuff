@@ -41,14 +41,14 @@ namespace ui {
         m_label_node = &add_child<TextWidget>("");
         m_trigger = &add_child<DropdownTriggerNode>(*this);
         m_body = &add_child<DropdownBodyNode>(*this);
-        configure_style();
+        configure_default_styles();
     }
 
-    void DropdownWidget::configure_style() {
+    void DropdownWidget::configure_default_styles() {
         const Theme& theme = m_ui.theme();
 
         const auto configure = [&theme](Widget& widget) {
-            widget.state().configure_all_styles([&theme](Style& style) {
+            widget.configure_all_styles([&theme](Style& style) {
                 style.color(theme.text_color)
                     .background_color(theme.control_background_color)
                     .border_color(theme.control_border_color, 18.0F)
@@ -64,11 +64,11 @@ namespace ui {
         configure(*m_trigger);
         configure(*m_body);
 
-        m_trigger->state().configure_style(StyleType::HOVER, [&theme](Style& style) {
+        m_trigger->configure_style(StyleType::HOVER, [&theme](Style& style) {
             style.background_color(theme.control_hover_color);
         });
 
-        m_trigger->state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
+        m_trigger->configure_style(StyleType::ACTIVE, [&theme](Style& style) {
             style.background_color(theme.control_active_color);
         });
     }
@@ -77,7 +77,7 @@ namespace ui {
         static_cast<void>(m_label_node->try_set_content(std::move(label)));
         if (ImGui::GetCurrentContext() != nullptr && has_label() &&
             m_label_placement == DropdownLabelPlacement::Above) {
-            layout().set_size({m_trigger_size.x, m_trigger_size.y + ImGui::GetTextLineHeightWithSpacing()});
+            Node::set_size({m_trigger_size.x, m_trigger_size.y + ImGui::GetTextLineHeightWithSpacing()});
         }
         return *this;
     }
@@ -88,7 +88,7 @@ namespace ui {
             const float label_height = !has_label() || placement == DropdownLabelPlacement::Inline
                                            ? 0.0F
                                            : ImGui::GetTextLineHeightWithSpacing();
-            layout().set_size({m_trigger_size.x, m_trigger_size.y + label_height});
+            Node::set_size({m_trigger_size.x, m_trigger_size.y + label_height});
         }
         return *this;
     }
@@ -105,12 +105,12 @@ namespace ui {
 
     DropdownWidget& DropdownWidget::set_size(ImVec2 size) {
         m_trigger_size = size;
-        m_trigger->layout().set_size(size);
+        m_trigger->set_size(size);
         const float label_height =
             has_label() && m_label_placement == DropdownLabelPlacement::Above && ImGui::GetCurrentContext() != nullptr
                 ? ImGui::GetTextLineHeightWithSpacing()
                 : 0.0F;
-        layout().set_size({size.x, size.y + label_height});
+        Node::set_size({size.x, size.y + label_height});
         return *this;
     }
 
@@ -144,14 +144,14 @@ namespace ui {
             m_trigger_size = layout().size();
         }
 
-        m_trigger->layout().set_size(m_trigger_size);
+        m_trigger->set_size(m_trigger_size);
         if (!has_label() || m_label_placement == DropdownLabelPlacement::Inline) {
-            layout().set_size(m_trigger_size);
+            resolve_size(m_trigger_size);
             return;
         }
 
         const float label_height = ImGui::GetTextLineHeightWithSpacing();
-        layout().set_size({m_trigger_size.x, m_trigger_size.y + label_height});
+        resolve_size({m_trigger_size.x, m_trigger_size.y + label_height});
     }
 
     void DropdownWidget::draw_children() {
@@ -242,7 +242,7 @@ namespace ui {
 
         if (ImGui::IsItemClicked()) {
             if (open) {
-                m_body->state().fade_out();
+                m_body->fade_out();
             } else {
                 m_open_requested = true;
                 open = true;
@@ -260,7 +260,7 @@ namespace ui {
         const Theme& theme = m_ui.theme();
 
         if (m_open_requested) {
-            body.state().fade_in();
+            body.fade_in();
             ImGui::OpenPopup("##options");
             m_open_requested = false;
         }
@@ -293,7 +293,7 @@ namespace ui {
 
         bool changed = false;
         if (ImGui::BeginPopup("##options")) {
-            if (!body.state().is_visible()) {
+            if (!body.visually_visible()) {
                 ImGui::CloseCurrentPopup();
             } else {
                 for (const DropdownOption& option : m_options) {
@@ -317,7 +317,7 @@ namespace ui {
                             *m_value = option.value;
                             changed = true;
                         }
-                        body.state().fade_out();
+                        body.fade_out();
                     }
 
                     if (is_selected) {
@@ -330,7 +330,7 @@ namespace ui {
             const ImVec2 popup_size = ImGui::GetWindowSize();
 
             m_body_rect = {popup_min, {popup_min.x + popup_size.x, popup_min.y + popup_size.y}};
-            body.layout().set_screen_rect(m_body_rect);
+            set_child_screen_rect(body, m_body_rect);
             m_ui.input_router().register_region_in_layer(body, m_body_rect, InputLayer::Overlay);
 
             ImGui::EndPopup();

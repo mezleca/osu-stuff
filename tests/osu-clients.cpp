@@ -1,7 +1,7 @@
-#include "clients/lazer.hpp"
-#include "clients/stable.hpp"
+#include "app/clients/lazer.hpp"
+#include "app/clients/stable.hpp"
 #include "parser/legacy/legacy_collection.hpp"
-#include "helper.hpp"
+#include "utils/helper.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>

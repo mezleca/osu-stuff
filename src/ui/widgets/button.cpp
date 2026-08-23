@@ -8,7 +8,7 @@ namespace ui {
         set_font(ui.get_primary_font(16));
 
         const ui::Theme& theme = m_ui.theme();
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
                 .background_color(theme.background_secondary_color)
                 .border_color(theme.background_secondary_color, 12.0F)
@@ -17,11 +17,9 @@ namespace ui {
                 .border_thickness(2.0F);
         });
 
-        state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
-            style.border_color(theme.accent_color, 20.0F);
-        });
+        configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color, 20.0F); });
 
-        state().configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.border_color); });
+        configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.border_color); });
     }
 
     std::optional<std::string> ButtonWidget::content() const {
@@ -38,11 +36,11 @@ namespace ui {
     }
 
     bool ButtonWidget::on_draw() {
-        if (!state().is_visible()) {
+        if (!visually_visible()) {
             return false;
         }
 
-        const Style& style = state().style();
+        const Style& style = this->style();
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, style.padding());
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.border_radius());

@@ -44,7 +44,7 @@ namespace ui {
 
         ModalPanel& modal = add_child<ModalPanel>(m_ui, std::move(id));
         modal.set_visible(true);
-        modal.state().fade_in();
+        modal.fade_in();
 
         m_input_router.set_layer_policy(InputLayer::Modal, InputPolicy::BlockAll);
         m_input_router.set_keyboard_target(*this);
@@ -152,7 +152,7 @@ namespace ui {
     void ModalContainer::draw_children() {
         if (ModalPanel* current = active(); current != nullptr) {
             current->draw();
-            const Rect panel = current->rect();
+            const Rect panel = current->layout().screen_rect();
             m_panel_min = panel.min;
             m_panel_max = panel.max;
         }

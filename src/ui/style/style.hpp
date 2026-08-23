@@ -3,6 +3,7 @@
 #include "theme.hpp"
 #include "variables.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cmath>
 #include <type_traits>
@@ -48,12 +49,8 @@ namespace ui {
             return m_padding;
         }
 
-        ImVec2& padding() {
-            return m_padding;
-        }
-
         Style& padding(ImVec2 value) {
-            m_padding = value;
+            m_padding = {std::max(0.0F, value.x), std::max(0.0F, value.y)};
             return *this;
         }
 
@@ -61,12 +58,8 @@ namespace ui {
             return m_alpha;
         }
 
-        float& alpha() {
-            return m_alpha;
-        }
-
         Style& alpha(float value) {
-            m_alpha = value;
+            m_alpha = std::clamp(value, 0.0F, 1.0F);
             return *this;
         }
 
@@ -116,12 +109,8 @@ namespace ui {
             return m_border_radius;
         }
 
-        float& border_radius() {
-            return m_border_radius;
-        }
-
         Style& border_radius(float value) {
-            m_border_radius = value;
+            m_border_radius = std::max(0.0F, value);
             return *this;
         }
 
@@ -129,20 +118,12 @@ namespace ui {
             return m_border_thickness;
         }
 
-        float& border_thickness() {
-            return m_border_thickness;
-        }
-
         Style& border_thickness(float value) {
-            m_border_thickness = value;
+            m_border_thickness = std::max(0.0F, value);
             return *this;
         }
 
         [[nodiscard]] uint8_t border() const {
-            return m_border;
-        }
-
-        uint8_t& border() {
             return m_border;
         }
 

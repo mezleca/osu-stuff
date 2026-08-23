@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../../utils/query.hpp"
+#include "../../../utils/query.hpp"
 
 enum class SortMode : int {
     Artist = 0,

@@ -9,9 +9,9 @@ namespace realm {
 
     struct AppConfig {
         primary_key<int64_t> _id = 0;
-        AppOsuCredentials* credentials;
-        AppOsuData* osu_data;
-        AppRadioData* radio;
+        AppOsuCredentials* credentials = nullptr;
+        AppOsuData* osu_data = nullptr;
+        AppRadioData* radio = nullptr;
     };
 
     REALM_SCHEMA(AppConfig, _id, credentials, osu_data, radio);
@@ -33,7 +33,7 @@ namespace realm {
 
     struct AppOsuData {
         std::string location;
-        bool lazer;
+        bool lazer = false;
     };
 
     REALM_EMBEDDED_SCHEMA(AppOsuData, location, lazer);
@@ -44,10 +44,10 @@ namespace realm {
         std::string file; // audio file (relative to osu! path if is_from_osu == true)
         std::string background; // background (relative to osu! path if is_from_osu == true)
         std::string checksum; // checksum of the processed beatmap (.osu)
-        bool is_from_osu;
+        bool is_from_osu = false;
     };
 
-    REALM_EMBEDDED_SCHEMA(AppPlaylistSong, title, artist, file, background, checksum);
+    REALM_EMBEDDED_SCHEMA(AppPlaylistSong, title, artist, file, background, checksum, is_from_osu);
 
     struct AppPlaylist {
         std::string name;
@@ -58,8 +58,10 @@ namespace realm {
 
     struct AppRadioData {
         int64_t volume = 50;
+        bool shuffle = false;
+        bool repeat = false; // repeats the current track once
         std::vector<AppPlaylist*> playlists;
     };
 
-    REALM_EMBEDDED_SCHEMA(AppRadioData, volume, playlists);
+    REALM_EMBEDDED_SCHEMA(AppRadioData, volume, shuffle, repeat, playlists);
 } // namespace realm

@@ -24,12 +24,12 @@ namespace ui {
         std::function<void(UiEvent&)> on_event;
 
         [[nodiscard]] bool accepts_input() const override {
-            return Node::accepts_input() && state().accepts_input();
+            return Node::accepts_input() && accepts_visual_input();
         }
 
         /// converts an input snapshot into active/focus/hover style selection.
         void apply_input_state(const ItemInputState& input, bool active = false) {
-            state().set_item_state(input.hovered, input.active || active, input.focused);
+            set_interaction_style(input.hovered, input.active || active, input.focused);
         }
 
     protected:
@@ -42,7 +42,7 @@ namespace ui {
 
     private:
         [[nodiscard]] float draw_opacity() const override {
-            return state().opacity();
+            return opacity();
         }
     };
 

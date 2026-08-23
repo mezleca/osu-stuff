@@ -1,5 +1,5 @@
 #include "parser/osdb/osdb.hpp"
-#include "helper.hpp"
+#include "utils/helper.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>

@@ -21,7 +21,7 @@ struct OsuCollectorFirestoreTimestamp {
 struct OsuCollectorUploader {
     int32_t id = 0;
     std::string username;
-    int32_t rank = 0;
+    std::optional<int32_t> rank;
 };
 
 struct OsuCollectorCollectionModeCounts {
@@ -266,7 +266,7 @@ inline void to_json(nlohmann::json& j, const OsuCollectorFirestoreTimestamp& val
 inline void from_json(const nlohmann::json& j, OsuCollectorUploader& value) {
     value.id = j.value("id", 0);
     value.username = j.value("username", "");
-    value.rank = j.value("rank", 0);
+    value.rank = j.value("rank", std::optional<int32_t>{});
 }
 
 inline void to_json(nlohmann::json& j, const OsuCollectorUploader& value) {

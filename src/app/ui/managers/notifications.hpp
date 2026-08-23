@@ -34,6 +34,8 @@ public:
     void clear();
 
 private:
+    void on_update(float dt) override;
+
     UI& m_ui;
     LogNotificationWidget m_more_notifications;
     std::vector<UINotification*> m_pending_removals;

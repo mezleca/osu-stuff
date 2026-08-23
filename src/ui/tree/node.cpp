@@ -88,6 +88,31 @@ namespace ui {
         }
     }
 
+    bool Node::has_size_request() const {
+        return m_layout.m_has_size_request;
+    }
+
+    bool Node::size_was_resolved() const {
+        return m_layout.m_size_resolved;
+    }
+
+    void Node::resolve_size(ImVec2 size) {
+        m_layout.set_resolved_size(size);
+    }
+
+    void Node::set_screen_rect(Rect rect) {
+        m_layout.set_screen_rect(rect);
+    }
+
+    void Node::arrange_child(Node& child, ImVec2 size, Anchor anchor, Origin origin, ImVec2 offset) {
+        child.m_layout.set_resolved_size(size);
+        child.m_layout.set_placement(anchor, origin, offset);
+    }
+
+    void Node::set_child_screen_rect(Node& child, Rect rect) {
+        child.m_layout.set_screen_rect(rect);
+    }
+
     std::unique_ptr<Node> Node::remove(Node& child) {
         const auto it =
             std::find_if(m_children.begin(), m_children.end(), [&child](const std::unique_ptr<Node>& candidate) {
@@ -159,10 +184,13 @@ namespace ui {
     }
 
     void Node::update(float dt) {
+        UI_PROFILE_NODE(m_profiler, "Node::update", m_identity);
+
         if (!m_visible) {
             return;
         }
 
+        advance_frame_state(dt);
         on_update(dt);
         for (const auto& child : m_children) {
             child->update(dt);
@@ -209,6 +237,8 @@ namespace ui {
     }
 
     void Node::measure_tree() {
+        UI_PROFILE_NODE(m_profiler, "Node::measure", m_identity);
+
         if (!m_visible || !m_measure_dirty) {
             return;
         }
@@ -236,20 +266,19 @@ namespace ui {
         // layout runs before drawing so widgets can use the active parent window;
         // placement then establishes both local and screen coordinate rectangles.
         on_layout();
+        m_layout.clear_size_resolution();
         position_in_parent();
 
         const ImGuiID previous_item_id = ImGui::GetCurrentContext() == nullptr ? 0 : ImGui::GetItemID();
         const Rect previous_item_rect =
             ImGui::GetCurrentContext() == nullptr ? Rect{} : Rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
 
-        // early return when node did not open a draw scope.
         if (!on_draw()) {
             return;
         }
 
         capture_leaf_rect(previous_item_id, previous_item_rect);
 
-        // containers keep their imgui scope open between on_draw() and on_draw_end().
         draw_children();
         on_draw_end();
 
@@ -278,6 +307,7 @@ namespace ui {
     }
 
     void Node::on_update(float) {}
+    void Node::advance_frame_state(float) {}
     void Node::on_measure() {}
     void Node::on_layout() {}
     void Node::on_draw_end() {}

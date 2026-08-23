@@ -2,6 +2,7 @@
 #include "ui/runtime.hpp"
 #include "ui/layout/child-container.hpp"
 #include "ui/widgets/widget.hpp"
+#include "utils/imgui-context.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -25,27 +26,6 @@ TEST_CASE("runtime owns shared theme and explicitly registered assets", "[Runtim
 
     REQUIRE(runtime.theme().box_rounding == 8.0F);
     REQUIRE(other_runtime.theme().content_padding == ui::Theme::defaults().content_padding);
-}
-
-TEST_CASE("runtime shares registered fonts across ImGui contexts", "[Runtime][assets]") {
-    ui::Runtime runtime;
-    ImGuiContext* previous_context = ImGui::GetCurrentContext();
-    ImGuiContext* first_context = ImGui::CreateContext();
-    ImGuiContext* second_context = ImGui::CreateContext();
-
-    ImGui::SetCurrentContext(first_context);
-    ui::Font* first_font = runtime.add_font(ui::FontType::REGULAR, "fonts/regular.ttf");
-    ui::Font* first_font_again = runtime.find_font(ui::FontType::REGULAR);
-
-    ImGui::SetCurrentContext(second_context);
-    ui::Font* second_font = runtime.find_font(ui::FontType::REGULAR);
-
-    REQUIRE(first_font == first_font_again);
-    REQUIRE(first_font == second_font);
-
-    ImGui::DestroyContext(first_context);
-    ImGui::DestroyContext(second_context);
-    ImGui::SetCurrentContext(previous_context);
 }
 
 TEST_CASE("style defaults are independent from runtime themes", "[theme][layout]") {
@@ -143,15 +123,15 @@ TEST_CASE("interaction style precedence is active focus hover default", "[Visual
     ui::ItemInputState input;
     input.focused = true;
     widget.apply_input_state(input);
-    REQUIRE(widget.state().style_type() == ui::StyleType::FOCUS);
+    REQUIRE(widget.style_type() == ui::StyleType::FOCUS);
 }
 
 TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState][transition]") {
     ui::VisualState state;
-    const ImColor transparent = ImColor(0, 0, 0, 0);
     const ImColor accent = ImColor(233, 30, 115, 255);
+    const ImColor hidden_accent = ui::with_alpha(accent, 0.0F);
 
-    state.configure_all_styles([&](ui::Style& style) { style.border_color(transparent, 12.0F); });
+    state.configure_all_styles([&](ui::Style& style) { style.border_color(hidden_accent, 12.0F); });
     state.configure_style(ui::StyleType::HOVER, [&](ui::Style& style) { style.border_color(accent); });
 
     state.set_style(ui::StyleType::HOVER);
@@ -160,11 +140,14 @@ TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState]
 
     state.set_style(ui::StyleType::DEFAULT);
     state.update(1.0F / 60.0F);
-    const float fading_alpha = state.style().border_color().get().w;
+    const ImVec4 fading_color = state.style().border_color().get();
 
     REQUIRE(visible_alpha > 0.0F);
-    REQUIRE(fading_alpha > 0.0F);
-    REQUIRE(fading_alpha < visible_alpha);
+    REQUIRE(fading_color.w > 0.0F);
+    REQUIRE(fading_color.w < visible_alpha);
+    REQUIRE(fading_color.x == Catch::Approx(accent.Value.x));
+    REQUIRE(fading_color.y == Catch::Approx(accent.Value.y));
+    REQUIRE(fading_color.z == Catch::Approx(accent.Value.z));
 }
 
 TEST_CASE("opacity ticks towards target and drives visibility", "[widget_state][opacity]") {
@@ -209,29 +192,18 @@ TEST_CASE("widget input requires both node and visual state to accept input", "[
     REQUIRE_FALSE(widget.accepts_input());
 
     widget.set_visible(true);
-    widget.state().fade_out();
+    widget.fade_out();
     REQUIRE_FALSE(widget.accepts_input());
     REQUIRE(router.node_at({5.0F, 5.0F}) == nullptr);
 }
 
-TEST_CASE("styled widgets share one style source and tick it once per draw", "[Widget][style]") {
-    ImGuiContext* previous_context = ImGui::GetCurrentContext();
-    ImGuiContext* context = ImGui::CreateContext();
-    ImGui::SetCurrentContext(context);
-    ImGui::GetIO().DisplaySize = {160.0F, 120.0F};
-    ImGui::GetIO().DeltaTime = 1.0F / 60.0F;
-    unsigned char* font_pixels = nullptr;
-    int font_width = 0;
-    int font_height = 0;
-    int font_bytes_per_pixel = 0;
-    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height, &font_bytes_per_pixel);
+TEST_CASE("styled widgets advance visual state during update", "[Widget][style]") {
+    ui_test::ImGuiContext context({160.0F, 120.0F});
 
     ui::Widget widget("widget");
-    widget.state().configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
-    widget.state().configure_style(ui::StyleType::HOVER, [](ui::Style& style) {
-        style.color(ImColor{255, 0, 0, 255}, 8.0F);
-    });
-    widget.state().set_style(ui::StyleType::HOVER);
+    widget.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
+    widget.configure_style(ui::StyleType::HOVER, [](ui::Style& style) { style.color(ImColor{255, 0, 0, 255}, 8.0F); });
+    widget.set_visual_style(ui::StyleType::HOVER);
 
     ui::VisualState expected;
     expected.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
@@ -241,21 +213,44 @@ TEST_CASE("styled widgets share one style source and tick it once per draw", "[W
     expected.set_style(ui::StyleType::HOVER);
     expected.update(ImGui::GetIO().DeltaTime);
 
+    widget.update(ImGui::GetIO().DeltaTime);
+    const float color_after_update = widget.style().color().get().x;
+
     ImGui::NewFrame();
     ImGui::Begin("style-tick-test");
     widget.draw();
     ImGui::End();
     ImGui::EndFrame();
 
-    ui::StyledNode& styled = widget;
-    REQUIRE(&styled.style() == &widget.state().style());
     REQUIRE(widget.style().color().get().x == Catch::Approx(expected.style().color().get().x));
+    REQUIRE(widget.style().color().get().x == Catch::Approx(color_after_update));
 
     widget.configure_style(ui::StyleType::FOCUS, [](ui::Style& style) { style.border_radius(12.0F); });
     REQUIRE(widget.style(ui::StyleType::FOCUS).border_radius() == Catch::Approx(12.0F));
+}
 
-    ImGui::DestroyContext(context);
-    ImGui::SetCurrentContext(previous_context);
+TEST_CASE("custom update hooks cannot skip visual state advancement", "[Widget][style][regression]") {
+    class UpdatingWidget final : public ui::Widget {
+    public:
+        UpdatingWidget() : ui::Widget("updating-widget") {}
+
+        int updates = 0;
+
+    private:
+        void on_update(float) override {
+            ++updates;
+        }
+    };
+
+    UpdatingWidget widget;
+    widget.configure_all_styles([](ui::Style& style) { style.alpha(0.0F); });
+    widget.configure_style(ui::StyleType::HOVER, [](ui::Style& style) { style.alpha(1.0F); });
+    widget.set_visual_style(ui::StyleType::HOVER);
+
+    widget.update(1.0F / 60.0F);
+
+    REQUIRE(widget.updates == 1);
+    REQUIRE(widget.style().alpha() == Catch::Approx(1.0F));
 }
 
 TEST_CASE("fade in starts new visual states transparent", "[widget_state][opacity]") {

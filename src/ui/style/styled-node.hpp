@@ -19,7 +19,7 @@ namespace ui {
             return m_widget_type;
         }
 
-        /// resolved style used by the current visual transition.
+        /// effective values for the current transition.
         [[nodiscard]] Style& style() {
             return m_state.style();
         }
@@ -36,7 +36,6 @@ namespace ui {
             return m_state.style(type);
         }
 
-        /// synchronizes the effective style when the configured slot is currently selected.
         template <typename Func>
         StyledNode& configure_style(StyleType type, Func&& func) {
             m_state.configure_style(type, std::forward<Func>(func));
@@ -49,12 +48,40 @@ namespace ui {
             return *this;
         }
 
-        [[nodiscard]] VisualState& state() {
-            return m_state;
+        [[nodiscard]] StyleType style_type() const {
+            return m_state.style_type();
         }
 
-        [[nodiscard]] const VisualState& state() const {
-            return m_state;
+        void set_visual_style(StyleType type) {
+            m_state.set_style(type);
+        }
+
+        void set_interaction_style(bool hovered, bool active, bool focused = false) {
+            m_state.set_item_state(hovered, active, focused);
+        }
+
+        void fade_in() {
+            m_state.fade_in();
+        }
+
+        void fade_out() {
+            m_state.fade_out();
+        }
+
+        void set_opacity(float opacity) {
+            m_state.set_opacity(opacity);
+        }
+
+        [[nodiscard]] float opacity() const {
+            return m_state.opacity();
+        }
+
+        [[nodiscard]] bool visually_visible() const {
+            return m_state.is_visible();
+        }
+
+        [[nodiscard]] bool accepts_visual_input() const {
+            return m_state.accepts_input();
         }
 
         /// remeasures descendants because they may inherit this font.
@@ -81,7 +108,6 @@ namespace ui {
             return ImGui::GetCurrentContext() == nullptr ? nullptr : ImGui::GetFont();
         }
 
-        /// applies the resolved style and opacity around the node draw lifecycle.
         void draw() override {
             if (ImGui::GetCurrentContext() == nullptr) {
                 Node::draw();
@@ -96,10 +122,6 @@ namespace ui {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, inherited_alpha * current_style.alpha() * draw_opacity());
             Node::draw();
             ImGui::PopStyleVar(3);
-
-            if (visible()) {
-                m_state.update(ImGui::GetIO().DeltaTime);
-            }
         }
 
     protected:
@@ -113,6 +135,10 @@ namespace ui {
 
         [[nodiscard]] virtual float draw_opacity() const {
             return 1.0F;
+        }
+
+        void advance_frame_state(float dt) final {
+            m_state.update(dt);
         }
 
     private:

@@ -18,9 +18,9 @@ public:
 private:
     void on_layout() override {
         const ImVec2 available = ImGui::GetContentRegionAvail();
-        layout().set_size({available.x, layout().size().y});
+        resolve_size({available.x, layout().size().y});
 
-        const float current_width = m_collection_layout.size().x;
+        const float current_width = m_collection_layout.layout().size().x;
         const float desired_width = current_width > 0.0F ? current_width : available.x * 0.25F;
         const float collection_width = std::min(desired_width, available.x * 0.5F);
 

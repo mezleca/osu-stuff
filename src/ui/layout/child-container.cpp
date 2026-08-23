@@ -7,23 +7,9 @@
 namespace ui {
     ChildContainer::ChildContainer(std::string id, WidgetType type) : Widget(std::move(id), type) {
         const Theme theme = Theme::defaults();
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.padding({theme.content_padding, theme.content_padding}).border_radius(theme.box_rounding);
         });
-    }
-
-    ChildContainer& ChildContainer::set_size(ImVec2 size) {
-        m_fit_width = size.x <= 0.0F;
-        layout().set_size(size);
-        return *this;
-    }
-
-    const ImVec2& ChildContainer::size() const {
-        return layout().size();
-    }
-
-    Rect ChildContainer::rect() const {
-        return m_child_rect;
     }
 
     ChildContainer& ChildContainer::set_scrollable(bool scrollable) {
@@ -36,47 +22,18 @@ namespace ui {
         return *this;
     }
 
-    ChildContainer& ChildContainer::set_anchor(Anchor anchor) {
-        layout().set_anchor(anchor);
-        return *this;
-    }
-
-    ChildContainer& ChildContainer::set_anchor_position(ImVec2 relative_position) {
-        layout().set_anchor_position(relative_position);
-        return *this;
-    }
-
-    ChildContainer& ChildContainer::set_origin(Origin origin) {
-        layout().set_origin(origin);
-        return *this;
-    }
-
-    ChildContainer& ChildContainer::set_origin_position(ImVec2 relative_position) {
-        layout().set_origin_position(relative_position);
-        return *this;
-    }
-
-    ChildContainer& ChildContainer::set_offset(ImVec2 offset) {
-        layout().set_offset(offset);
-        return *this;
-    }
-
-    ChildContainer& ChildContainer::set_placement(Anchor anchor, Origin origin, ImVec2 offset) {
-        layout().set_placement(anchor, origin, offset);
-        return *this;
-    }
-
     void ChildContainer::on_layout() {
-        if (!m_fit_width) {
+        const NodeLayout& current_layout = layout();
+        if (size_was_resolved() || !has_size_request() || current_layout.desired_size().x > 0.0F) {
             return;
         }
 
-        const ImVec2 size = resolve_layout_size(layout().size(), ImGui::GetContentRegionAvail());
-        layout().set_size(size);
+        const ImVec2 size = resolve_layout_size(current_layout.desired_size(), ImGui::GetContentRegionAvail());
+        resolve_size(size);
     }
 
     bool ChildContainer::on_draw() {
-        const Style& current_style = state().style();
+        const Style& current_style = style();
         const bool has_full_border = (current_style.border() & BORDER_ALL) != 0;
         ImGuiChildFlags child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
         ImGuiWindowFlags window_flags = constants::WIDGET_WINDOW_FLAGS;
@@ -128,8 +85,8 @@ namespace ui {
 
         m_child_rect = Rect::from_position_size(window_position, window_size);
         // use the child window itself rather than its last item so padding,
-        // scrolling and empty containers still publish reliable outer bounds.
-        layout().set_screen_rect(m_child_rect);
+        // scrolling and empty containers still have reliable outer bounds.
+        set_screen_rect(m_child_rect);
 
         ImGui::PopFont();
         ImGui::EndChild();
@@ -141,7 +98,7 @@ namespace ui {
         const ImVec2& min = m_child_rect.min;
         const ImVec2& max = m_child_rect.max;
 
-        const Style& current_style = state().style();
+        const Style& current_style = style();
         const ImU32 border_color = current_style.border_color().get_col();
         const auto border_thickness = current_style.border_thickness();
 

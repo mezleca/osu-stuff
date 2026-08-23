@@ -60,13 +60,13 @@ namespace ui {
         : Widget(std::move(id), WidgetType::Range), m_ui(ui), m_minimum(&minimum), m_maximum(&maximum) {
         m_minimum_thumb = &add_child<RangeThumbNode>("minimum-thumb");
         m_maximum_thumb = &add_child<RangeThumbNode>("maximum-thumb");
-        configure_style();
+        configure_default_styles();
     }
 
-    void RangeWidget::configure_style() {
+    void RangeWidget::configure_default_styles() {
         const Theme& theme = m_ui.theme();
 
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
                 .background_color(theme.control_background_color)
                 .border_color(theme.control_border_color, 18.0F)
@@ -76,16 +76,14 @@ namespace ui {
                 .border_thickness(theme.control_border_thickness);
         });
 
-        state().configure_style(StyleType::HOVER, [&theme](Style& style) {
-            style.border_color(theme.accent_hover_color);
-        });
+        configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_hover_color); });
 
-        state().configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color); });
+        configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color); });
 
         ImFont* value_font = m_ui.get_secondary_font(13);
 
         const auto configure_thumb = [&theme](RangeThumbNode& thumb) {
-            thumb.state().configure_all_styles([&theme](Style& style) {
+            thumb.configure_all_styles([&theme](Style& style) {
                 style.color(theme.background_color)
                     .background_color(theme.text_color)
                     .border_radius(theme.control_rounding);
@@ -117,11 +115,6 @@ namespace ui {
         return *this;
     }
 
-    RangeWidget& RangeWidget::set_size(ImVec2 size) {
-        layout().set_size(size);
-        return *this;
-    }
-
     bool RangeWidget::changed() const {
         return m_changed;
     }
@@ -146,7 +139,7 @@ namespace ui {
 
         const float minimum_height = ImGui::GetTextLineHeightWithSpacing() + 32.0F;
         if (layout().size().y < minimum_height) {
-            layout().set_size({layout().size().x, minimum_height});
+            resolve_size({layout().size().x, minimum_height});
         }
     }
 
@@ -227,7 +220,7 @@ namespace ui {
     }
 
     bool RangeWidget::on_draw() {
-        if (!state().is_visible()) {
+        if (!visually_visible()) {
             return false;
         }
 

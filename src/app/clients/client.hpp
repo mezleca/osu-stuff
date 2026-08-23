@@ -2,9 +2,9 @@
 
 #include "./filter/filter.hpp"
 
-#include "../parser/legacy/legacy.hpp"
+#include "../../parser/legacy/legacy.hpp"
 #include "../schemas/lazer.hpp"
-#include "../utils/binary.hpp"
+#include "../../utils/binary.hpp"
 #include "./detail.hpp"
 
 #include <format>

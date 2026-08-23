@@ -2,12 +2,18 @@
 
 #include "../../utils/math.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <variant>
 #include <imgui.h>
 
 namespace ui {
+    [[nodiscard]] inline ImColor with_alpha(ImColor color, float alpha) {
+        color.Value.w = std::clamp(alpha, 0.0F, 1.0F);
+        return color;
+    }
+
     template <typename T>
     struct Value {
         T value{};

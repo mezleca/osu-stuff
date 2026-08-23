@@ -8,8 +8,8 @@ static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
 UINotification::UINotification(UI& ui) : ui::ChildContainer({}, ui::WidgetType::Notification), m_ui(ui) {
     m_offset.speed = 20.0F;
-    layout().set_anchor(ui::Anchor::TopRight);
-    layout().set_origin(ui::Origin::TopRight);
+    set_anchor(ui::Anchor::TopRight);
+    set_origin(ui::Origin::TopRight);
 }
 
 const ui::Vec2Value& UINotification::target_offset() const {
@@ -27,12 +27,12 @@ void UINotification::set_overlay_position(ui::OverlayPosition position) {
 
     m_position = position;
     const ui::Anchor anchor = position == ui::OverlayPosition::LEFT ? ui::Anchor::TopLeft : ui::Anchor::TopRight;
-    layout().set_anchor(anchor);
-    layout().set_origin(anchor == ui::Anchor::TopLeft ? ui::Origin::TopLeft : ui::Origin::TopRight);
+    set_anchor(anchor);
+    set_origin(anchor == ui::Anchor::TopLeft ? ui::Origin::TopLeft : ui::Origin::TopRight);
     m_position_initialized = false;
 }
 
-UINotification& UINotification::set_offset(ImVec2 value, bool instant) {
+UINotification& UINotification::set_target_offset(ImVec2 value, bool instant) {
     m_offset.set(value);
 
     if (instant) {
@@ -49,7 +49,7 @@ UINotification& UINotification::set_offset(ImVec2 value, bool instant) {
 }
 
 void UINotification::on_layout() {
-    layout().set_offset(m_current_offset.value);
+    ui::Node::set_offset(m_current_offset.value);
 }
 
 ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor accent_color) {
@@ -70,14 +70,14 @@ ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor 
 LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level, std::string text)
     : UINotification(ui), m_level(level) {
     set_widget_type(ui::WidgetType::LogNotification);
-    ui::Style& hover_style = state().style(ui::StyleType::HOVER);
-    ui::Style& active_style = state().style(ui::StyleType::ACTIVE);
+    ui::Style& hover_style = style(ui::StyleType::HOVER);
+    ui::Style& active_style = style(ui::StyleType::ACTIVE);
 
     const ui::Theme& theme = m_ui.theme();
     auto* close_icon = m_ui.get_texture("x-icon");
     ImFont* torus_semi = m_ui.get_font(ui::FontType::SEMIBOLD).get(16);
 
-    state().configure_all_styles([&theme](ui::Style& style) {
+    configure_all_styles([&theme](ui::Style& style) {
         style.color(theme.text_color)
             .border_color(theme.border_color, 20.0F)
             .background_color(theme.background_color)
@@ -88,7 +88,7 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
     });
 
     set_font(torus_semi);
-    state().fade_in();
+    fade_in();
 
     const ImColor level_border_color = border_color(m_level, theme.accent_color);
 
@@ -101,10 +101,10 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
     m_icon = &add_child<ui::ImageWidget>();
     m_icon->set_texture(close_icon);
     m_icon->set_size(CLOSE_ICON_SIZE);
-    m_icon->layout().set_anchor(ui::Anchor::CenterLeft);
-    m_icon->layout().set_origin(ui::Origin::CenterLeft);
+    m_icon->set_anchor(ui::Anchor::CenterLeft);
+    m_icon->set_origin(ui::Origin::CenterLeft);
 
-    m_icon->state().configure_all_styles([&theme](ui::Style& style) { style.color(theme.text_secondary_color); });
+    m_icon->configure_all_styles([&theme](ui::Style& style) { style.color(theme.text_secondary_color); });
 
     m_icon->on_event = [this](ui::UiEvent& event) {
         if (event.type != ui::EventType::Click) {
@@ -128,8 +128,8 @@ void LogNotificationWidget::close() {
 
     m_closing = true;
 
-    state().set_opacity(0.0f);
-    m_icon->state().set_opacity(0.0f);
+    set_opacity(0.0f);
+    m_icon->set_opacity(0.0f);
 }
 
 void LogNotificationWidget::set_text(std::string_view text) {
@@ -142,13 +142,13 @@ void LogNotificationWidget::on_layout() {
 }
 
 void LogNotificationWidget::update_content_layout() {
-    const ui::Style& current_style = state().style();
+    const ui::Style& current_style = style();
     const ImVec2 padding = current_style.padding();
     const float wrap_pos_x = 256.0F - CLOSE_ICON_SIZE.x - 8.0F;
 
     m_text_node->set_wrap(wrap_pos_x);
     m_text_node->update_layout_size();
-    m_icon->layout().set_offset({m_text_node->layout().size().x + 5.0F, 0.0F});
+    m_icon->set_offset({m_text_node->layout().size().x + 5.0F, 0.0F});
 
     const ImVec2 text_size = m_text_node->layout().size();
     const float icon_width = m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.x + 5.0F;
@@ -157,18 +157,18 @@ void LogNotificationWidget::update_content_layout() {
         std::max(text_size.y, m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.y) +
         padding.y * 2.0F;
 
-    layout().set_size({
+    resolve_size({
         std::clamp(content_width, 48.0F, 256.0F),
         std::clamp(content_height, 48.0F, 196.0F),
     });
 }
 
 bool LogNotificationWidget::on_draw() {
-    if (m_closing && !state().is_visible()) {
+    if (m_closing && !visually_visible()) {
         return false;
     }
 
-    const ui::Style& style = state().style();
+    const ui::Style& style = this->style();
 
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
     ImGui::PushStyleColor(ImGuiCol_Text, style.color().get_col());
@@ -187,7 +187,7 @@ void LogNotificationWidget::draw_children() {
 }
 
 void LogNotificationWidget::on_draw_end() {
-    const ui::Style& style = state().style();
+    const ui::Style& style = this->style();
     const float dt = ImGui::GetIO().DeltaTime;
 
     const ImVec2 child_position = ImGui::GetWindowPos();
@@ -203,7 +203,7 @@ void LogNotificationWidget::on_draw_end() {
 
     ui::ChildContainer::on_draw_end();
 
-    const ui::Rect child_rect = rect();
+    const ui::Rect child_rect = layout().screen_rect();
     const ImVec2 child_size = child_rect.size();
 
     ImGui::PopStyleColor();
@@ -211,7 +211,7 @@ void LogNotificationWidget::on_draw_end() {
     const ui::ItemInputState input = m_ui.input().observe(*this);
 
     if (m_closing) {
-        state().set_item_state(false, false);
+        set_interaction_style(false, false);
     } else {
         apply_input_state(input);
     }

@@ -51,7 +51,7 @@ namespace ui {
             return add_child(std::make_unique<T>(std::forward<Args>(args)...));
         }
 
-        /// hidden nodes skip update and their entire subtree.
+        /// visible nodes advance framework state, call on_update(), then update descendants.
         void update(float dt);
 
         /// runs measure, placement and draw lifecycle, then registers the input region.
@@ -139,15 +139,16 @@ namespace ui {
             return *this;
         }
 
-        [[nodiscard]] NodeLayout& layout() {
-            return m_layout;
-        }
-
         [[nodiscard]] const NodeLayout& layout() const {
             return m_layout;
         }
 
         Node& set_size(ImVec2 size) {
+            if (m_layout.m_has_size_request && m_layout.desired_size().x == size.x &&
+                m_layout.desired_size().y == size.y) {
+                return *this;
+            }
+
             m_layout.set_size(size);
             invalidate_measure();
             return *this;
@@ -186,6 +187,11 @@ namespace ui {
             return *this;
         }
 
+        Node& set_flow() {
+            m_layout.clear_explicit_position();
+            return *this;
+        }
+
         /// optional text-like representation used by the debugger and generic tooling.
         [[nodiscard]] virtual std::optional<std::string> content() const;
 
@@ -198,14 +204,18 @@ namespace ui {
         /// dispatches the node's internal event behavior. widgets extend this with their public callback.
         virtual void dispatch_event(UiEvent& event);
 
-        /// resolves cursor placement and the latest layout rectangles.
         void position_in_parent();
         void assign_input_layer(InputLayer layer);
-        /// marks this node and every descendant for remeasurement.
+        [[nodiscard]] bool has_size_request() const;
+        [[nodiscard]] bool size_was_resolved() const;
+        void resolve_size(ImVec2 size);
+        void set_screen_rect(Rect rect);
+        void arrange_child(Node& child, ImVec2 size, Anchor anchor, Origin origin, ImVec2 offset = {});
+        void set_child_screen_rect(Node& child, Rect rect);
         void invalidate_measure_subtree();
 
-        /// updates node state before children are updated.
         virtual void on_update(float dt);
+        virtual void advance_frame_state(float dt);
 
         /// resolves intrinsic size after children are measured and before arrangement.
         /// this callback must not depend on the current imgui window or cursor.

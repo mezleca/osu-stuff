@@ -22,33 +22,34 @@ namespace ui {
         return m_spacing;
     }
 
-    void StackContainer::set_padding(ImVec2 padding) {
-        m_padding = {std::max(0.0F, padding.x), std::max(0.0F, padding.y)};
-    }
-
-    const ImVec2& StackContainer::padding() const {
-        return m_padding;
-    }
-
     bool StackContainer::on_draw() {
         ImGui::SetNextWindowContentSize(m_content_size);
         return ChildContainer::on_draw();
     }
 
     void StackContainer::on_layout() {
-        const ImVec2 container_size = resolve_layout_size(layout().size(), ImGui::GetContentRegionAvail());
+        if (!size_was_resolved()) {
+            resolve_size(resolve_layout_size(layout().desired_size(), ImGui::GetContentRegionAvail()));
+        }
 
-        layout().set_size(container_size);
+        arrange_children(layout().size());
+    }
 
+    void StackContainer::arrange_children(ImVec2 container_size) {
+        const ImVec2 padding = style().padding();
         const ImVec2 content_size = {
-            std::max(0.0F, container_size.x - m_padding.x * 2.0F),
-            std::max(0.0F, container_size.y - m_padding.y * 2.0F),
+            std::max(0.0F, container_size.x - padding.x * 2.0F),
+            std::max(0.0F, container_size.y - padding.y * 2.0F),
         };
-        ImVec2 cursor = m_padding;
-        m_content_size = container_size;
+        ImVec2 cursor{};
+        m_content_size = content_size;
 
         for (const auto& child : children()) {
-            ImVec2 child_size = child->layout().size();
+            if (!child->visible()) {
+                continue;
+            }
+
+            ImVec2 child_size = child->layout().desired_size();
 
             // only the cross axis stretches. the flow axis must preserve the
             // intrinsic size produced by the measure pass.
@@ -63,9 +64,9 @@ namespace ui {
             const Rect child_rect = Rect::from_position_size(cursor, child_size);
             // explicit top-left placement prevents imgui item widths and same-line
             // behavior from becoming a second, implicit layout system.
-            child->layout().set_size(child_size).set_placement(Anchor::TopLeft, Origin::TopLeft, cursor);
-            m_content_size.x = std::max(m_content_size.x, child_rect.max.x + m_padding.x);
-            m_content_size.y = std::max(m_content_size.y, child_rect.max.y + m_padding.y);
+            arrange_child(*child, child_size, Anchor::TopLeft, Origin::TopLeft, cursor);
+            m_content_size.x = std::max(m_content_size.x, child_rect.max.x);
+            m_content_size.y = std::max(m_content_size.y, child_rect.max.y);
 
             if (m_direction == StackDirection::Horizontal) {
                 cursor.x = child_rect.max.x + m_spacing;

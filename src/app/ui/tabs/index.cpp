@@ -44,9 +44,8 @@ public:
           m_theme(theme), m_ui(surface), m_manager(notification_manager) {
         set_size({0.0F, 120.0F});
         set_spacing(8.0F);
-        set_padding({8.0F, 8.0F});
 
-        style().border(ui::BORDER_ALL).border_color(theme.border_color);
+        style().padding({8.0F, 8.0F}).border(ui::BORDER_ALL).border_color(theme.border_color);
 
         m_count_text = &add_child<ui::TextWidget>("notifications: 0");
         m_add_button = &add_child<ui::ButtonWidget>(m_ui, "add notification", ImVec2{180.0F, 30.0F});
@@ -179,8 +178,7 @@ public:
         : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
         set_size({0.0F, 360.0F});
         set_spacing(10.0F);
-        set_padding({12.0F, 12.0F});
-        style().border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+        style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
 
         m_button = &add_child<ui::ButtonWidget>(m_ui, "button", ImVec2{160.0F, 36.0F});
         m_button->set_size({160.0F, 36.0F});

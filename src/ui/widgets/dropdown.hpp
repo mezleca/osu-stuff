@@ -48,7 +48,7 @@ namespace ui {
         friend class DropdownBodyNode;
         friend class DropdownTriggerNode;
 
-        void configure_style();
+        void configure_default_styles();
         [[nodiscard]] bool draw_trigger(DropdownTriggerNode& trigger);
         [[nodiscard]] bool draw_body(DropdownBodyNode& body);
         void draw_children() override;

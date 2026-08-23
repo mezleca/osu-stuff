@@ -17,8 +17,6 @@ namespace ui {
         RangeWidget& set_label(std::string label);
         RangeWidget& set_bounds(float minimum, float maximum);
         RangeWidget& set_step(float step);
-        RangeWidget& set_size(ImVec2 size);
-
         [[nodiscard]] bool changed() const;
         /// lower thumb node for independent style configuration.
         [[nodiscard]] Widget& minimum_thumb();
@@ -27,7 +25,7 @@ namespace ui {
         [[nodiscard]] bool on_draw() override;
 
     private:
-        void configure_style();
+        void configure_default_styles();
         void normalize_values();
         void update_value_from_input(float track_start, float track_width, float minimum_x, float maximum_x);
         void draw_track(Rect track, float minimum_x, float maximum_x, float thumb_width);

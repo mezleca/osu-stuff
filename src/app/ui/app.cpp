@@ -19,7 +19,7 @@ public:
     AppHeaderNode(UI& ui, float& height) : ui::ChildContainer("header"), m_ui(ui), m_height(height) {
         set_font(m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM));
         const ui::Theme& theme = m_ui.theme();
-        state().configure_all_styles([&theme](ui::Style& style) {
+        configure_all_styles([&theme](ui::Style& style) {
             style.padding({theme.content_padding, theme.content_padding})
                 .background_color(theme.header_background_color)
                 .border(ui::BORDER_BOTTOM)
@@ -57,7 +57,7 @@ class AppContentNode final : public ui::ChildContainer {
 public:
     explicit AppContentNode(UI& ui) : ui::ChildContainer("content") {
         set_font(ui.get_font(ui::FontType::REGULAR).get(ui::FONT_MEDIUM));
-        state().configure_all_styles([](ui::Style& style) { style.padding({0.0F, 0.0F}); });
+        configure_all_styles([](ui::Style& style) { style.padding({0.0F, 0.0F}); });
     }
 };
 
@@ -66,7 +66,7 @@ public:
     explicit AppLayoutNode(float& header_height) : ui::Node("app-layout"), m_header_height(header_height) {}
 
     void on_layout() override {
-        layout().set_size(ImGui::GetContentRegionAvail());
+        resolve_size(ImGui::GetContentRegionAvail());
     }
 
     void draw_children() override {
@@ -81,12 +81,9 @@ public:
             return;
         }
 
-        Node& content = *children()[1];
+        ui::Node& content = *children()[1];
         const ImVec2 content_size = {layout().size().x, std::max(0.0F, layout().size().y - m_header_height)};
-        content.layout().set_size(content_size);
-        content.layout().set_anchor(ui::Anchor::TopLeft);
-        content.layout().set_origin(ui::Origin::TopLeft);
-        content.layout().set_offset({0.0F, m_header_height});
+        arrange_child(content, content_size, ui::Anchor::TopLeft, ui::Origin::TopLeft, {0.0F, m_header_height});
         content.draw();
     }
 
@@ -199,13 +196,15 @@ void OsuStuffApp::render() {
     }
 
     m_ui.begin_frame();
+    const float dt = ImGui::GetIO().DeltaTime;
 
     if (m_debugger) {
-        m_debugger->update();
+        m_debugger->update(dt);
     }
 
     m_notification_manager->set_header_height(m_header_end_height);
-    m_ui.root().update(ImGui::GetIO().DeltaTime);
+
+    m_ui.root().update(dt);
     m_ui.root().draw();
 
     if (m_debugger) {

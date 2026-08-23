@@ -17,15 +17,6 @@ namespace ui {
             return *this;
         }
 
-        ImageWidget& set_size(ImVec2 size) {
-            layout().set_size(size);
-            return *this;
-        }
-
-        [[nodiscard]] const ImVec2& size() const {
-            return layout().size();
-        }
-
         [[nodiscard]] bool on_draw() override;
 
     private:

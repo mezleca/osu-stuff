@@ -12,7 +12,7 @@ namespace ui {
         set_font(ui.get_primary_font(16));
 
         const Theme& theme = m_ui.theme();
-        state().configure_all_styles([&theme](Style& style) {
+        configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
                 .background_color(theme.control_background_color, 18.0F)
                 .border_color(theme.control_border_color, 18.0F)
@@ -21,10 +21,10 @@ namespace ui {
                 .border_radius(theme.checkbox_rounding)
                 .border_thickness(theme.control_border_thickness);
         });
-        state().configure_style(StyleType::HOVER, [&theme](Style& style) {
+        configure_style(StyleType::HOVER, [&theme](Style& style) {
             style.background_color(theme.control_hover_color).border_color(theme.accent_hover_color);
         });
-        state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
+        configure_style(StyleType::ACTIVE, [&theme](Style& style) {
             style.background_color(theme.control_active_color).border_color(theme.accent_color);
         });
     }
@@ -54,7 +54,7 @@ namespace ui {
     }
 
     bool CheckboxWidget::on_draw() {
-        if (!state().is_visible()) {
+        if (!visually_visible()) {
             return false;
         }
 

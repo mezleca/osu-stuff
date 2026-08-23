@@ -82,8 +82,8 @@ namespace ui {
 
             const ImVec2 position = ImGui::GetWindowPos();
             const ImVec2 size = ImGui::GetWindowSize();
-            layout().set_size(size);
-            layout().set_screen_rect(Rect::from_position_size(position, size));
+            resolve_size(size);
+            set_screen_rect(Rect::from_position_size(position, size));
             return true;
         }
 
@@ -183,7 +183,6 @@ void UI::configure_style(float main_scale) {
     ImGuiStyle& style = ImGui::GetStyle();
     const ui::Theme& theme = m_runtime.theme();
 
-    // ui items / widgets
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
     style.PopupRounding = 6.0f;
@@ -195,7 +194,6 @@ void UI::configure_style(float main_scale) {
     set_grab_style(theme.control_thumb_size, theme.control_rounding);
     set_item_spacing({10.0F, 10.0F}, {8.0F, 6.0F});
 
-    // make lines look normal
     style.CircleTessellationMaxError = 0.10f;
     style.AntiAliasedLinesUseTex = false;
 

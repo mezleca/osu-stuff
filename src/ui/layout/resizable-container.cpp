@@ -60,7 +60,7 @@ namespace ui {
                     size.y = std::clamp(m_previous_size.y + mouse_pos.y - m_drag_start.y, MIN_CHILD_SIZE, max_size.y);
                 }
 
-                layout().set_size(size);
+                set_size(size);
                 return;
             }
 

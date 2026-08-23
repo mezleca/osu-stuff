@@ -22,7 +22,7 @@ public:
     [[nodiscard]] const ui::Vec2Value& target_offset() const;
     [[nodiscard]] const ui::Vec2Value& current_offset() const;
     void set_overlay_position(ui::OverlayPosition position);
-    UINotification& set_offset(ImVec2 value, bool instant = false);
+    UINotification& set_target_offset(ImVec2 value, bool instant = false);
 
 protected:
     void on_layout() override;

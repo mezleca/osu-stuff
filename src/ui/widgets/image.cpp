@@ -33,11 +33,11 @@ namespace ui {
     ImageWidget::ImageWidget(IconTexture* texture) : Widget({}, WidgetType::Image), m_texture(texture) {}
 
     bool ImageWidget::on_draw() {
-        if (!state().is_visible()) {
+        if (!visually_visible()) {
             return false;
         }
 
-        const Style& style = state().style();
+        const Style& style = this->style();
         const ImVec2 outer_size = layout().size();
         const ImVec2 outer_min = ImGui::GetCursorScreenPos();
         const Rect outer = Rect::from_position_size(outer_min, outer_size);
