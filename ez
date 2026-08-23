@@ -21,6 +21,7 @@ IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 class Arguments(Protocol):
     command: str
     build_type: str | None
+    test_id: str | None
     platform: str
     run: bool
     package_type: str | None
@@ -483,7 +484,7 @@ def get_test_environment() -> Mapping[str, str]:
 
     return env
 
-def run_tests(build_type: str | None) -> int:
+def run_tests(build_type: str | None, test_id: str | None = None) -> int:
     selected_build_type = get_selected_build_type(build_type)
     build_code = build_tests(selected_build_type)
     if build_code != 0:
@@ -502,6 +503,11 @@ def run_tests(build_type: str | None) -> int:
     ]
 
     cmd.extend(["-C", "Debug" if selected_build_type == "debug" else "Release"])
+    if test_id is not None:
+        if test_id.isdecimal() and int(test_id) > 0:
+            cmd.extend(["-I", f"{test_id},{test_id}"])
+        else:
+            cmd.extend(["-R", test_id])
 
     try:
         return run(cmd, env=env)[0]
@@ -703,6 +709,11 @@ def main() -> None:
 
     tests_parser = subparsers.add_parser("tests")
     _ = tests_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+    _ = tests_parser.add_argument(
+        "--id",
+        dest="test_id",
+        help="run one test by its CTest numeric id or name regex",
+    )
 
     package_parser = subparsers.add_parser("package")
     _ = package_parser.add_argument(
@@ -742,7 +753,7 @@ def main() -> None:
         "clean": clean,
         "run": lambda: run_binary(get_selected_build_type(args.build_type)),
         "parse-note": lambda: parse_release_note(args.version, args.dest),
-        "tests": lambda: run_tests(args.build_type),
+        "tests": lambda: run_tests(args.build_type, args.test_id),
     }
 
     exit_code = commands[args.command]()

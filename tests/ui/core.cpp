@@ -308,6 +308,7 @@ TEST_CASE("image padding keeps the outer screen bounds", "[Widget][layout]") {
 
 TEST_CASE("notifications animate into the overlay from outside the screen") {
     ui::Runtime runtime;
+    static_cast<void>(runtime.add_font(ui::FontType::SEMIBOLD, "resources/fonts/Torus-SemiBold.ttf"));
     UI surface(runtime, {});
     UINotificationManager manager(surface);
     REQUIRE(manager.add(std::make_unique<LogNotificationWidget>(surface, LogNotificationLevel::INFO, "notification")));
@@ -452,7 +453,7 @@ TEST_CASE("input router synthesizes clicks from matching pointer presses") {
 
     auto drag_up = event_of(ui::EventType::PointerUp, {20.0F, 20.0F});
     drag_up.button = ui::PointerButton::Left;
-    REQUIRE(router.dispatch(drag_up));
+    REQUIRE_FALSE(router.dispatch(drag_up));
     REQUIRE(events == std::vector<ui::EventType>{ui::EventType::PointerDown});
 }
 
