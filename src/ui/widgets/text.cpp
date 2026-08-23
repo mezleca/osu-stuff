@@ -26,7 +26,7 @@ namespace ui {
         ImFont* text_font = font();
         if (text_font != nullptr) ImGui::PushFont(text_font);
         if (m_wrap >= 0.0F) ImGui::PushTextWrapPos(m_wrap);
-        ImGui::PushStyleColor(ImGuiCol_Text, style().color().get());
+        ImGui::PushStyleColor(ImGuiCol_Text, style().color().get_col());
 
         ImGui::TextUnformatted(m_text->c_str());
 

@@ -154,11 +154,11 @@ namespace ui {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, current_style.border_thickness());
         ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, m_thumb_size);
         ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, current_style.border_radius());
-        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get());
+        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get_col());
         ImGui::PushStyleColor(ImGuiCol_SliderGrab, m_thumb_color.Value);
         ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, m_thumb_color.Value);
 

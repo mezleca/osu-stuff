@@ -1,5 +1,7 @@
 #include "line.hpp"
 
+#include "../imgui/draw.hpp"
+
 #include <algorithm>
 
 namespace ui {
@@ -15,9 +17,7 @@ namespace ui {
             {std::min(m_start.x, m_end.x) - half_thickness, std::min(m_start.y, m_end.y) - half_thickness},
             {std::max(m_start.x, m_end.x) + half_thickness, std::max(m_start.y, m_end.y) + half_thickness},
         });
-        ImGui::GetWindowDrawList()->AddLine(
-            m_start, m_end, ImGui::GetColorU32(current_style.color().get()), current_style.border_thickness()
-        );
+        draw_line(m_start, m_end, current_style.color().get_col(), current_style.border_thickness());
         return true;
     }
 

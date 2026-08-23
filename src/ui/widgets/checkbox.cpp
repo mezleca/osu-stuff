@@ -9,7 +9,7 @@ namespace ui {
     CheckboxWidget::CheckboxWidget(UI& ui, bool& value, std::string label, std::string id)
         : Widget(std::move(id), WidgetType::Checkbox), m_ui(ui), m_value(&value), m_label(std::move(label)),
           m_mark_color(ui.theme().control_mark_color) {
-        set_font(ui.get_font(FontType::SEMIBOLD).get(16));
+        set_font(ui.get_primary_font(16));
 
         const Theme& theme = m_ui.theme();
         state().configure_all_styles([&theme](Style& style) {
@@ -70,12 +70,12 @@ namespace ui {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {current_style.padding().x, frame_padding_y});
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, current_style.border_radius());
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, current_style.border_thickness());
-        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_CheckboxSelectedBg, current_style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get());
+        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_CheckboxSelectedBg, current_style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get_col());
         ImGui::PushStyleColor(ImGuiCol_CheckMark, m_mark_color.Value);
 
         const char* label = m_label.empty() ? "##value" : m_label.c_str();

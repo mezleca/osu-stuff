@@ -4,8 +4,10 @@
 #include "style/theme.hpp"
 
 #include <SDL3/SDL_events.h>
-#include <array>
 #include <filesystem>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 class UI;
@@ -13,8 +15,6 @@ class UI;
 namespace ui {
     struct RuntimeConfig {
         Theme theme = Theme::defaults();
-        std::array<std::filesystem::path, static_cast<size_t>(FontType::FONT_COUNT)> font_paths;
-        std::filesystem::path icon_path;
         std::filesystem::path performance_directory;
     };
 
@@ -37,21 +37,28 @@ namespace ui {
         /// routes an sdl event to the registered surface that owns its window.
         void process_sdl_event(SDL_Event* event);
 
-        [[nodiscard]] const std::array<std::filesystem::path, static_cast<size_t>(FontType::FONT_COUNT)>&
-        font_paths() const {
-            return m_assets.font_paths();
+        [[nodiscard]] Font* add_font(FontType type, std::filesystem::path location) {
+            return m_assets.add_font(type, std::move(location));
         }
 
-        [[nodiscard]] const std::filesystem::path& icon_path() const {
-            return m_assets.icon_path();
+        [[nodiscard]] IconTexture* add_resource(std::string id, std::filesystem::path location) {
+            return m_assets.add_resource(std::move(id), std::move(location));
         }
 
-        [[nodiscard]] AssetRegistry& assets() {
-            return m_assets;
+        [[nodiscard]] Font* find_font(FontType type) {
+            return m_assets.find_font(type);
         }
 
-        [[nodiscard]] const AssetRegistry& assets() const {
-            return m_assets;
+        [[nodiscard]] Font& font(FontType type) {
+            return m_assets.font(type);
+        }
+
+        [[nodiscard]] const Font& font(FontType type) const {
+            return const_cast<Runtime*>(this)->font(type);
+        }
+
+        [[nodiscard]] IconTexture* resource(std::string_view id) {
+            return m_assets.texture(id);
         }
 
         [[nodiscard]] const std::filesystem::path& performance_directory() const {

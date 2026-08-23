@@ -5,6 +5,8 @@
 #include <SDL3/SDL.h>
 #include <filesystem>
 #include <memory>
+#include <string>
+#include <string_view>
 
 static constexpr ImVec2 DEFAULT_WINDOW_SIZE = {1280.0F, 720.0F};
 
@@ -24,12 +26,17 @@ int main() {
         const std::filesystem::path resources_path = resources::path();
 
         ui::RuntimeConfig runtime_config;
-        runtime_config.font_paths = {
-            resources_path / "fonts/Torus-Regular.ttf", resources_path / "fonts/Torus-SemiBold.ttf",
-            resources_path / "fonts/Torus-Bold.ttf"
-        };
-        runtime_config.icon_path = resources_path / "icons/ui/";
         ui::Runtime runtime(std::move(runtime_config));
+
+        static_cast<void>(runtime.add_font(ui::FontType::REGULAR, resources_path / "fonts/Torus-Regular.ttf"));
+        static_cast<void>(runtime.add_font(ui::FontType::SEMIBOLD, resources_path / "fonts/Torus-SemiBold.ttf"));
+        static_cast<void>(runtime.add_font(ui::FontType::BOLD, resources_path / "fonts/Torus-Bold.ttf"));
+
+        for (const std::string_view id : {"circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
+            static_cast<void>(
+                runtime.add_resource(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"))
+            );
+        }
 
         ui::Config config{
             .window = {

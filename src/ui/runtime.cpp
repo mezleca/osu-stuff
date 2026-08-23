@@ -30,7 +30,7 @@ namespace ui {
     }
 
     Runtime::Runtime(RuntimeConfig config)
-        : m_theme(std::move(config.theme)), m_assets(std::move(config.font_paths), std::move(config.icon_path)),
+        : m_theme(std::move(config.theme)), m_assets(),
           m_performance_directory(std::move(config.performance_directory)) {}
 
     Runtime::~Runtime() = default;

@@ -171,7 +171,7 @@ bool LogNotificationWidget::on_draw() {
     const ui::Style& style = state().style();
 
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
-    ImGui::PushStyleColor(ImGuiCol_Text, style.color().get());
+    ImGui::PushStyleColor(ImGuiCol_Text, style.color().get_col());
     const bool opened = ui::ChildContainer::on_draw();
     return opened;
 }
@@ -201,8 +201,7 @@ void LogNotificationWidget::on_draw_end() {
     };
 
     ImGui::GetWindowDrawList()->AddRect(
-        child_position, child_max, ImGui::GetColorU32(style.border_color().get()), style.border_radius(), 0,
-        style.border_thickness()
+        child_position, child_max, style.border_color().get_col(), style.border_radius(), 0, style.border_thickness()
     );
 
     ui::ChildContainer::on_draw_end();

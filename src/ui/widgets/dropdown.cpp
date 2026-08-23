@@ -2,6 +2,7 @@
 
 #include "../style/theme.hpp"
 #include "../ui.hpp"
+#include "../imgui/draw.hpp"
 #include "text.hpp"
 
 #include <imgui.h>
@@ -57,13 +58,16 @@ namespace ui {
                     .border_thickness(theme.control_border_thickness);
             });
         };
+
         m_label_node->style().color(theme.text_color);
+
         configure(*m_trigger);
         configure(*m_body);
 
         m_trigger->state().configure_style(StyleType::HOVER, [&theme](Style& style) {
             style.background_color(theme.control_hover_color);
         });
+
         m_trigger->state().configure_style(StyleType::ACTIVE, [&theme](Style& style) {
             style.background_color(theme.control_active_color);
         });
@@ -185,19 +189,11 @@ namespace ui {
         const Theme& theme = m_ui.theme();
         const float height = maximum.y - minimum.y;
         const ImU32 background =
-            ImGui::GetColorU32(open ? theme.control_active_color : current_style.background_color().get());
-        const ImU32 border = ImGui::GetColorU32(current_style.border_color().get());
-        const ImU32 text_color = ImGui::GetColorU32(current_style.color().get());
-        const float border_inset = current_style.border_thickness() * 0.5F;
-        const ImVec2 border_min = {minimum.x + border_inset, minimum.y + border_inset};
-        const ImVec2 border_max = {maximum.x - border_inset, maximum.y - border_inset};
-
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-        draw_list->AddRectFilled(minimum, maximum, background, current_style.border_radius());
-        draw_list->AddRect(
-            border_min, border_max, border, current_style.border_radius(), ImDrawFlags_RoundCornersAll,
-            current_style.border_thickness()
+            open ? ImGui::GetColorU32(theme.control_active_color) : current_style.background_color().get_col();
+        const ImU32 border = current_style.border_color().get_col();
+        const ImU32 text_color = current_style.color().get_col();
+        draw_frame(
+            minimum, maximum, background, border, current_style.border_radius(), current_style.border_thickness()
         );
 
         const ImVec2 text_size = ImGui::CalcTextSize(preview.data(), preview.data() + preview.size());
@@ -205,34 +201,24 @@ namespace ui {
             minimum.x + current_style.padding().x,
             minimum.y + (height - text_size.y) * 0.5F,
         };
-        draw_list->AddText(text_position, text_color, preview.data(), preview.data() + preview.size());
 
-        const float arrow_half_width = 4.0F;
-        const float arrow_half_height = 2.0F;
+        draw_text(text_position, text_color, preview);
+
         const ImVec2 arrow_center = {
-            maximum.x - current_style.padding().x - arrow_half_width,
+            maximum.x - current_style.padding().x - 4.0F,
             minimum.y + height * 0.5F,
         };
-        const ImVec2 arrow_min = {arrow_center.x - arrow_half_width, arrow_center.y - arrow_half_height};
-        const ImVec2 arrow_max = {arrow_center.x + arrow_half_width, arrow_center.y + arrow_half_height};
-
-        if (open) {
-            draw_list->AddTriangleFilled(
-                {arrow_min.x, arrow_max.y}, {arrow_center.x, arrow_min.y}, arrow_max, text_color
-            );
-        } else {
-            draw_list->AddTriangleFilled(
-                arrow_min, {arrow_max.x, arrow_min.y}, {arrow_center.x, arrow_max.y}, text_color
-            );
-        }
+        draw_triangle(arrow_center, {8.0F, 4.0F}, text_color, open ? TriangleDirection::Up : TriangleDirection::Down);
     }
 
     bool DropdownWidget::draw_trigger(DropdownTriggerNode& trigger) {
         m_changed = false;
         const Style& current_style = trigger.style();
+        const NodeLayout& trigger_layout = trigger.layout();
+
         ImGui::BeginGroup();
 
-        float width = trigger.layout().size().x;
+        float width = trigger_layout.size().x;
 
         if (has_label() && m_label_placement == DropdownLabelPlacement::Inline && width > 0.0F) {
             const float label_width =
@@ -243,8 +229,7 @@ namespace ui {
         const DropdownOption* selected = selected_option();
         const std::string_view preview = selected != nullptr ? selected->label : m_placeholder;
         const float trigger_width = width > 0.0F ? width : ImGui::GetContentRegionAvail().x;
-        const float trigger_height =
-            trigger.layout().size().y > 0.0F ? trigger.layout().size().y : ImGui::GetFrameHeight();
+        const float trigger_height = trigger_layout.size().y > 0.0F ? trigger_layout.size().y : ImGui::GetFrameHeight();
 
         ImGui::InvisibleButton("##trigger", {trigger_width, trigger_height});
 
@@ -254,6 +239,7 @@ namespace ui {
 
         const ItemInputState input = m_ui.input().handle(trigger);
         bool open = ImGui::IsPopupOpen("##options");
+
         if (ImGui::IsItemClicked()) {
             if (open) {
                 m_body->state().fade_out();
@@ -271,10 +257,10 @@ namespace ui {
     }
 
     bool DropdownWidget::draw_body(DropdownBodyNode& body) {
+        const Theme& theme = m_ui.theme();
+
         if (m_open_requested) {
-            // restart from zero only when opening. closing keeps the popup alive
-            // until the fade reaches zero, then closes it below.
-            body.state().restart_fade_in();
+            body.state().fade_in();
             ImGui::OpenPopup("##options");
             m_open_requested = false;
         }
@@ -282,12 +268,12 @@ namespace ui {
         if (!ImGui::IsPopupOpen("##options")) return false;
 
         const Style& current_style = body.style();
-        const Theme& theme = m_ui.theme();
-        const float item_height = ImGui::GetTextLineHeight() + current_style.padding().y * 2.0F;
         const ImVec2 default_position = {m_trigger_rect.min.x, m_trigger_rect.max.y + 4.0F};
         const ImVec2 popup_position =
             body.layout().has_explicit_position() ? body.layout().screen_rect().min : default_position;
         const ImVec2 body_size = body.layout().size();
+
+        const float item_height = ImGui::GetTextLineHeight() + current_style.padding().y * 2.0F;
         const float popup_width = body_size.x > 0.0F ? body_size.x : m_trigger_rect.size().x;
 
         ImGui::SetNextWindowPos(popup_position, ImGuiCond_Always);
@@ -299,17 +285,16 @@ namespace ui {
         ImGui::PushStyleVar(ImGuiStyleVar_SelectableRounding, current_style.border_radius());
         ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2{0.0F, 0.5F});
         ImGui::PushStyleColor(ImGuiCol_PopupBg, theme.control_background_color);
-        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get());
-        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get());
+        ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_Text, current_style.color().get_col());
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{});
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4{});
         ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4{});
 
         bool changed = false;
         if (ImGui::BeginPopup("##options")) {
-            if (body.state().is_fading_out() && !body.state().is_visible()) {
+            if (!body.state().is_visible()) {
                 ImGui::CloseCurrentPopup();
-                body.state().restart_fade_in();
             } else {
                 for (const DropdownOption& option : m_options) {
                     const ImVec2 item_position = ImGui::GetCursorScreenPos();
@@ -317,9 +302,9 @@ namespace ui {
                     const ImVec2 item_max = {item_position.x + item_size.x, item_position.y + item_size.y};
                     const bool hovered = ImGui::IsMouseHoveringRect(item_position, item_max);
                     const bool is_selected = option.value == *m_value;
-                    const ImVec4 text_color = hovered       ? theme.accent_hover_color
-                                              : is_selected ? theme.accent_color
-                                                            : current_style.color().get();
+                    const ImU32 text_color = hovered       ? ImGui::GetColorU32(theme.accent_hover_color)
+                                             : is_selected ? ImGui::GetColorU32(theme.accent_color)
+                                                           : current_style.color().get_col();
                     ImGui::PushStyleColor(ImGuiCol_Text, text_color);
 
                     const bool pressed = ImGui::Selectable(
@@ -343,11 +328,11 @@ namespace ui {
 
             const ImVec2 popup_min = ImGui::GetWindowPos();
             const ImVec2 popup_size = ImGui::GetWindowSize();
+
             m_body_rect = {popup_min, {popup_min.x + popup_size.x, popup_min.y + popup_size.y}};
             body.layout().set_screen_rect(m_body_rect);
-            // popup windows are outside the trigger's normal content layer and
-            // must win hit testing while open.
             m_ui.input_router().register_region_in_layer(body, m_body_rect, InputLayer::Overlay);
+
             ImGui::EndPopup();
         }
 

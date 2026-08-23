@@ -1,7 +1,6 @@
 #include "ui.hpp"
 #include "constants.hpp"
 #include "imgui/context-scope.hpp"
-#include "style/style.hpp"
 #include "style/theme.hpp"
 #include "tree/node.hpp"
 
@@ -158,13 +157,6 @@ void UI::initialize() {
     m_container = std::make_unique<ui::SurfaceRootNode>();
     m_container->set_input_router(&m_input_router);
     m_container->set_profiler(&m_profiler);
-
-    for (std::size_t index = 0; index < static_cast<size_t>(ui::FontType::FONT_COUNT); ++index) {
-        ui::Font& font = m_runtime.assets().font(static_cast<ui::FontType>(index), m_context, m_io);
-        font.load(ui::FONT_SMALL);
-        font.load(ui::FONT_MEDIUM);
-        font.load(ui::FONT_LARGE);
-    }
 }
 
 void UI::begin_input_frame() {
@@ -273,7 +265,7 @@ void UI::apply_theme_colors() {
 }
 
 [[nodiscard]] IconTexture* UI::get_texture(std::string_view id) {
-    return m_runtime.assets().texture(id);
+    return m_runtime.resource(id);
 }
 
 void UI::process_sdl_event(SDL_Event* event) {

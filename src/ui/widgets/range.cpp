@@ -1,6 +1,7 @@
 #include "range.hpp"
 
 #include "../style/theme.hpp"
+#include "../imgui/draw.hpp"
 #include "../ui.hpp"
 
 #include <imgui.h>
@@ -26,19 +27,15 @@ namespace ui {
             const ImVec2 minimum = {m_rect.min.x + padding.x, m_rect.min.y + padding.y};
             const ImVec2 maximum = {m_rect.max.x - padding.x, m_rect.max.y - padding.y};
 
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-            ImVec4 background = current_style.background_color().get();
-            background.w *= ImGui::GetStyle().Alpha;
-            draw_list->AddRectFilled(minimum, maximum, ImColor(background), current_style.border_radius());
-
             if (current_style.border() != BORDER_NONE) {
-                ImVec4 border = current_style.border_color().get();
-                border.w *= ImGui::GetStyle().Alpha;
-                const float inset = current_style.border_thickness() * 0.5F;
-                draw_list->AddRect(
-                    {minimum.x + inset, minimum.y + inset}, {maximum.x - inset, maximum.y - inset}, ImColor(border),
-                    current_style.border_radius(), ImDrawFlags_RoundCornersAll, current_style.border_thickness()
+                draw_frame(
+                    minimum, maximum, current_style.background_color().get_col(),
+                    current_style.border_color().get_col(), current_style.border_radius(),
+                    current_style.border_thickness()
+                );
+            } else {
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    minimum, maximum, current_style.background_color().get_col(), current_style.border_radius()
                 );
             }
 
@@ -49,9 +46,7 @@ namespace ui {
                 minimum.x + (maximum.x - minimum.x - text_size.x) * 0.5F,
                 minimum.y + (maximum.y - minimum.y - text_size.y) * 0.5F,
             };
-            ImVec4 text_color = current_style.color().get();
-            text_color.w *= ImGui::GetStyle().Alpha;
-            draw_list->AddText(text_position, ImColor(text_color), m_text.c_str());
+            draw_text(text_position, current_style.color().get_col(), m_text);
             ImGui::PopFont();
 
             return true;
@@ -87,7 +82,7 @@ namespace ui {
 
         state().configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color); });
 
-        ImFont* value_font = m_ui.get_font(FontType::SEMIBOLD).get(13);
+        ImFont* value_font = m_ui.get_secondary_font(13);
 
         const auto configure_thumb = [&theme](RangeThumbNode& thumb) {
             thumb.state().configure_all_styles([&theme](Style& style) {
@@ -206,14 +201,9 @@ namespace ui {
         const Style& current_style = style();
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        draw_list->AddRectFilled(
-            track.min, track.max, ImGui::GetColorU32(current_style.background_color().get()),
-            current_style.border_radius()
-        );
-
-        draw_list->AddRect(
-            track.min, track.max, ImGui::GetColorU32(current_style.border_color().get()), current_style.border_radius(),
-            ImDrawFlags_None, current_style.border_thickness()
+        draw_frame(
+            track.min, track.max, current_style.background_color().get_col(), current_style.border_color().get_col(),
+            current_style.border_radius(), current_style.border_thickness()
         );
 
         draw_list->AddRectFilled(

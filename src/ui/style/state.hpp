@@ -62,20 +62,9 @@ namespace ui {
             set_opacity(1.0f);
         }
 
-        /// restarts the fade from zero even when the node was already fading in.
-        void restart_fade_in() {
-            visible = true;
-            current_opacity.value = 0.0F;
-            set_opacity(1.0f);
-        }
-
         /// starts a fade to zero and disables visual input immediately.
         void fade_out() {
             set_opacity(0.0f);
-        }
-
-        [[nodiscard]] bool is_fading_out() const {
-            return visible && m_opacity < VISIBILITY_OPACITY_THRESHOLD;
         }
 
         [[nodiscard]] bool accepts_input() const {

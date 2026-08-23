@@ -1,5 +1,7 @@
 #include "resizable-container.hpp"
 
+#include "../imgui/draw.hpp"
+
 #include <algorithm>
 
 namespace ui {
@@ -94,17 +96,16 @@ namespace ui {
         }
 
         const float border_thickness = style().border_thickness();
-        const ImU32 resize_out_color = ImGui::GetColorU32(ImVec4(20.0F / 255.0F, 20.0F / 255.0F, 20.0F / 255.0F, 1.0F));
-        const ImU32 border_color = ImGui::GetColorU32(style().border_color().get());
+        const ImU32 border_color = style().border_color().get_col();
         const ImVec2 max = ImGui::GetItemRectMax();
 
         for (int i = 0; i < 3; ++i) {
             const float distance = 3.0F + static_cast<float>(i) * 4.0F;
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            draw_list->AddLine({max.x - distance, max.y}, {max.x, max.y - distance}, border_color, border_thickness);
-            draw_list->AddLine(
+            draw_line({max.x - distance, max.y}, {max.x, max.y - distance}, border_color, border_thickness);
+            draw_line(
                 {max.x - distance + border_thickness + 0.5f, max.y},
-                {max.x, max.y - distance + border_thickness + 0.5f}, resize_out_color, border_thickness
+                {max.x, max.y - distance + border_thickness + 0.5f}, ImColor(20.0F, 20.0F, 20.0F, 255.0F),
+                border_thickness
             );
         }
     }

@@ -2,12 +2,10 @@
 
 #include <imgui.h>
 #include <cstdint>
-#include <string>
-#include <string_view>
+#include <filesystem>
 #include <unordered_map>
 
 namespace ui {
-
     enum class FontType {
         REGULAR = 0,
         SEMIBOLD,
@@ -23,33 +21,23 @@ namespace ui {
         FONT_EXTRA_LARGE = 32
     };
 
+    struct ContextFonts {
+        ImGuiIO* io = nullptr;
+        std::unordered_map<int, ImFont*> fonts;
+    };
+
     class Font {
     public:
-        void initialize(ImFontConfig cfg, std::string_view location, ImGuiIO* io);
-
-        [[nodiscard]]
-        ImFont* get(int size) {
-            if (m_io == nullptr) {
-                return nullptr;
-            }
-
-            auto font_it = m_fonts.find(size);
-
-            if (font_it == m_fonts.end()) {
-                return load_font_variation(size);
-            }
-
-            return font_it->second;
-        }
-
+        void initialize(ImFontConfig cfg, std::filesystem::path location);
+        [[nodiscard]] ImFont* get(int size);
         bool load(int size);
+        void release_context(ImGuiContext* context);
 
     private:
-        ImFont* load_font_variation(int size);
+        ImFont* load_font_variation(ImGuiContext* context, int size);
 
-        ImGuiIO* m_io = nullptr;
-        std::string m_font_location;
-        std::unordered_map<int, ImFont*> m_fonts;
+        std::filesystem::path m_font_location;
+        std::unordered_map<ImGuiContext*, ContextFonts> m_contexts;
         ImFontConfig m_cfg;
     };
 

@@ -1,33 +1,23 @@
 #include "assets.hpp"
-
-#include "../constants.hpp"
 #include "svg.hpp"
 
-#include <SDL3/SDL_log.h>
-
 #include <iostream>
+#include <stdexcept>
 #include <utility>
 
 namespace ui {
-    AssetRegistry::AssetRegistry(
-        std::array<std::filesystem::path, static_cast<size_t>(FontType::FONT_COUNT)> font_paths,
-        std::filesystem::path icon_path
-    )
-        : m_font_paths(std::move(font_paths)), m_icon_path(std::move(icon_path)) {
-        for (std::size_t index = 0; index < m_fonts.size(); ++index) {
-            m_fonts[index].path = m_font_paths[index];
-        }
-
-        load_textures();
+    AssetRegistry::AssetRegistry() {
+        m_textures.emplace("default", std::make_unique<IconTexture>(std::string_view{DEFAULT_WARN_SVG}, "default"));
     }
 
-    Font& AssetRegistry::font(FontType type, ImGuiContext* context, ImGuiIO* io) {
+    Font* AssetRegistry::add_font(FontType type, std::filesystem::path location) {
         const std::size_t index = static_cast<size_t>(type);
-        FontAsset& asset = m_fonts[index];
-        auto it = asset.contexts.find(context);
+        if (index >= m_fonts.size()) {
+            return nullptr;
+        }
 
-        if (it != asset.contexts.end()) {
-            return *it->second;
+        if (m_fonts[index] != nullptr) {
+            return m_fonts[index].get();
         }
 
         auto font = std::make_unique<Font>();
@@ -36,11 +26,32 @@ namespace ui {
         config.OversampleH = 5;
         config.OversampleV = 5;
         config.RasterizerMultiply = 1.2f;
-        font->initialize(config, asset.path.string(), io);
+        font->initialize(config, std::move(location));
 
         Font* result = font.get();
-        asset.contexts.emplace(context, std::move(font));
-        return *result;
+        m_fonts[index] = std::move(font);
+        return result;
+    }
+
+    Font& AssetRegistry::font(FontType type) {
+        const std::size_t index = static_cast<size_t>(type);
+        if (index >= m_fonts.size() || m_fonts[index] == nullptr) {
+            throw std::runtime_error("ui: requested font was not registered");
+        }
+
+        return *m_fonts[index];
+    }
+
+    Font* AssetRegistry::find_font(FontType type) {
+        const std::size_t index = static_cast<size_t>(type);
+        return index < m_fonts.size() ? m_fonts[index].get() : nullptr;
+    }
+
+    IconTexture* AssetRegistry::add_resource(std::string id, std::filesystem::path location) {
+        auto resource = std::make_unique<IconTexture>(location, id);
+        IconTexture* result = resource.get();
+        m_textures.insert_or_assign(std::move(id), std::move(resource));
+        return result;
     }
 
     IconTexture* AssetRegistry::texture(std::string_view id) {
@@ -55,8 +66,10 @@ namespace ui {
     }
 
     void AssetRegistry::release_context(ImGuiContext* context, SDL_GLContext gl_context) {
-        for (FontAsset& asset : m_fonts) {
-            asset.contexts.erase(context);
+        for (const auto& font : m_fonts) {
+            if (font != nullptr) {
+                font->release_context(context);
+            }
         }
 
         for (auto& [id, texture] : m_textures) {
@@ -65,30 +78,4 @@ namespace ui {
         }
     }
 
-    void AssetRegistry::load_textures() {
-        m_textures.emplace("default", std::make_unique<IconTexture>(std::string_view{DEFAULT_WARN_SVG}));
-
-        if (!std::filesystem::exists(m_icon_path)) {
-            return;
-        }
-
-        for (const auto& entry : std::filesystem::directory_iterator(m_icon_path)) {
-            const auto path = entry.path();
-
-            if (!std::filesystem::is_regular_file(entry.status()) || path.extension() != ".svg") {
-                continue;
-            }
-
-            auto texture = std::make_unique<IconTexture>(path);
-
-            if (texture->get_id().empty()) {
-                SDL_Log("UI: failed to get asset id from %s", path.string().c_str());
-                continue;
-            }
-
-            if (!m_textures.emplace(texture->get_id(), std::move(texture)).second) {
-                SDL_Log("UI: duplicate icon asset id, skipping %s", path.string().c_str());
-            }
-        }
-    }
 } // namespace ui

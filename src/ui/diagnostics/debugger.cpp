@@ -4,12 +4,10 @@
 #include "../style/styled-node.hpp"
 #include "../style/theme.hpp"
 #include "../imgui/context-scope.hpp"
+#include "../imgui/draw.hpp"
 
-#include <glad/gl.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_log.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_sdl3.h>
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
@@ -74,15 +72,13 @@ namespace ui {
         const float text_y = row_min.y + (height - ImGui::GetFontSize()) * 0.5F;
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        draw_list->AddText(
-            {row_min.x, text_y}, ImGui::GetColorU32(ImGuiCol_TextDisabled), label.data(), label.data() + label.size()
-        );
+        draw_text({row_min.x, text_y}, ImGui::GetColorU32(ImGuiCol_TextDisabled), label);
         draw_list->AddRectFilled(value_min, value_max, ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
         draw_list->AddRect(value_min, value_max, ImGui::GetColorU32(ImGuiCol_Border), style.FrameRounding);
 
         const ImVec2 text_position = {value_min.x + style.FramePadding.x, text_y};
         draw_list->PushClipRect(value_min, value_max, true);
-        draw_list->AddText(text_position, ImGui::GetColorU32(ImGuiCol_Text), value);
+        draw_text(text_position, ImGui::GetColorU32(ImGuiCol_Text), value);
         draw_list->PopClipRect();
 
         ImGui::Dummy({label_width + value_width, height});
@@ -911,12 +907,7 @@ namespace ui {
             return;
         }
 
-        const ui::ImGuiContextScope scope(m_ui->imgui_context());
-        m_ui->window()->make_current();
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
+        m_ui->begin_frame();
 
         if (m_node_target != nullptr && !m_target.root().contains(m_node_target)) {
             set_target(nullptr);
@@ -971,19 +962,6 @@ namespace ui {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        ImGui::Render();
-
-        glViewport(0, 0, static_cast<int>(display_size.x), static_cast<int>(display_size.y));
-        glClearColor(
-            m_ui->theme().background_color.x, m_ui->theme().background_color.y, m_ui->theme().background_color.z,
-            m_ui->theme().background_color.w
-        );
-
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        m_ui->window()->swap();
-
-        m_target.window()->make_current();
+        m_ui->end_frame();
     }
 } // namespace ui

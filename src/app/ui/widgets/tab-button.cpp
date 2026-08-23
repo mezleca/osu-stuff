@@ -52,7 +52,7 @@ bool TabButtonWidget::on_draw() {
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{});
-    ImGui::PushStyleColor(ImGuiCol_Text, style.color().get());
+    ImGui::PushStyleColor(ImGuiCol_Text, style.color().get_col());
 
     const bool pressed = ImGui::Button(m_name.c_str());
 

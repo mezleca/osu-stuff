@@ -10,18 +10,16 @@
 
 using namespace ui;
 
-TEST_CASE("runtime owns shared theme and asset configuration", "[Runtime]") {
+TEST_CASE("runtime owns shared theme and explicitly registered assets", "[Runtime]") {
     ui::RuntimeConfig config;
     config.theme.content_padding = 20.0F;
     config.theme.box_rounding = 8.0F;
-    config.font_paths[static_cast<size_t>(ui::FontType::REGULAR)] = "fonts/regular.ttf";
-    config.icon_path = "icons/ui";
-
     ui::Runtime runtime(std::move(config));
+    ui::Font* font = runtime.add_font(ui::FontType::REGULAR, "fonts/regular.ttf");
 
     REQUIRE(runtime.theme().content_padding == 20.0F);
-    REQUIRE(runtime.font_paths()[static_cast<size_t>(ui::FontType::REGULAR)] == "fonts/regular.ttf");
-    REQUIRE(runtime.icon_path() == "icons/ui");
+    REQUIRE(font == runtime.find_font(ui::FontType::REGULAR));
+    REQUIRE(runtime.resource("default") != nullptr);
 
     ui::Runtime other_runtime;
 
@@ -29,24 +27,21 @@ TEST_CASE("runtime owns shared theme and asset configuration", "[Runtime]") {
     REQUIRE(other_runtime.theme().content_padding == ui::Theme::defaults().content_padding);
 }
 
-TEST_CASE("runtime asset font caches are scoped to ImGui contexts", "[Runtime][assets]") {
+TEST_CASE("runtime shares registered fonts across ImGui contexts", "[Runtime][assets]") {
     ui::Runtime runtime;
     ImGuiContext* previous_context = ImGui::GetCurrentContext();
     ImGuiContext* first_context = ImGui::CreateContext();
     ImGuiContext* second_context = ImGui::CreateContext();
 
     ImGui::SetCurrentContext(first_context);
-    ui::Font& first_font = runtime.assets().font(ui::FontType::REGULAR, first_context, &ImGui::GetIO());
-    ui::Font& first_font_again = runtime.assets().font(ui::FontType::REGULAR, first_context, &ImGui::GetIO());
+    ui::Font* first_font = runtime.add_font(ui::FontType::REGULAR, "fonts/regular.ttf");
+    ui::Font* first_font_again = runtime.find_font(ui::FontType::REGULAR);
 
     ImGui::SetCurrentContext(second_context);
-    ui::Font& second_font = runtime.assets().font(ui::FontType::REGULAR, second_context, &ImGui::GetIO());
+    ui::Font* second_font = runtime.find_font(ui::FontType::REGULAR);
 
-    REQUIRE(&first_font == &first_font_again);
-    REQUIRE(&first_font != &second_font);
-
-    runtime.assets().release_context(first_context, nullptr);
-    runtime.assets().release_context(second_context, nullptr);
+    REQUIRE(first_font == first_font_again);
+    REQUIRE(first_font == second_font);
 
     ImGui::DestroyContext(first_context);
     ImGui::DestroyContext(second_context);

@@ -67,11 +67,39 @@ public:
     }
 
     [[nodiscard]] ui::Font& get_font(ui::FontType type) {
-        return m_runtime.assets().font(type, m_context, m_io);
+        return m_runtime.font(type);
     }
 
     [[nodiscard]] const ui::Font& get_font(ui::FontType type) const {
-        return m_runtime.assets().font(type, m_context, m_io);
+        return m_runtime.font(type);
+    }
+
+    void set_primary_font(ui::Font* font) {
+        m_primary_font = font;
+    }
+
+    [[nodiscard]] ImFont* get_primary_font(int size) const {
+        if (m_primary_font != nullptr) {
+            if (ImFont* font = m_primary_font->get(size); font != nullptr) {
+                return font;
+            }
+        }
+
+        return ImGui::GetCurrentContext() == nullptr ? nullptr : ImGui::GetFont();
+    }
+
+    void set_secondary_font(ui::Font* font) {
+        m_secondary_font = font;
+    }
+
+    [[nodiscard]] ImFont* get_secondary_font(int size) const {
+        if (m_secondary_font != nullptr) {
+            if (ImFont* font = m_secondary_font->get(size); font != nullptr) {
+                return font;
+            }
+        }
+
+        return ImGui::GetCurrentContext() == nullptr ? nullptr : ImGui::GetFont();
     }
 
     [[nodiscard]] ui::ImGuiInputBridge& input() {
@@ -132,6 +160,8 @@ private:
     ui::ImGuiInputBridge m_imgui_input;
     ui::Profiler m_profiler;
     ui::Config m_config;
+    ui::Font* m_primary_font = nullptr;
+    ui::Font* m_secondary_font = nullptr;
     bool m_done = false;
     bool m_ready = false;
 };

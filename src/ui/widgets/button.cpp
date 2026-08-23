@@ -5,7 +5,7 @@
 namespace ui {
     ButtonWidget::ButtonWidget(UI& ui, std::string text, ImVec2 size)
         : Widget({}, WidgetType::Button), m_ui(ui), m_text(text), m_size(size) {
-        set_font(ui.get_font(FontType::SEMIBOLD).get(16));
+        set_font(ui.get_primary_font(16));
 
         const ui::Theme& theme = m_ui.theme();
         state().configure_all_styles([&theme](Style& style) {
@@ -46,10 +46,10 @@ namespace ui {
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, style.padding());
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.border_radius());
-        ImGui::PushStyleColor(ImGuiCol_Button, style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.background_color().get());
-        ImGui::PushStyleColor(ImGuiCol_Text, style.color().get());
+        ImGui::PushStyleColor(ImGuiCol_Button, style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.background_color().get_col());
+        ImGui::PushStyleColor(ImGuiCol_Text, style.color().get_col());
 
         ImFont* font = style.font();
         ImGui::PushFont(font == nullptr ? ImGui::GetFont() : font);
@@ -68,8 +68,7 @@ namespace ui {
 
         auto* dl = ImGui::GetWindowDrawList();
         dl->AddRect(
-            min, max, ImGui::GetColorU32(style.border_color().get()), style.border_radius(), ImDrawFlags_None,
-            style.border_thickness()
+            min, max, style.border_color().get_col(), style.border_radius(), ImDrawFlags_None, style.border_thickness()
         );
         return true;
     }

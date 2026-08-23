@@ -62,8 +62,8 @@ namespace ui {
             return value.Value;
         }
 
-        ImColor get_col() const {
-            return value;
+        ImU32 get_col() const {
+            return ImGui::GetColorU32(value.Value);
         }
     };
 

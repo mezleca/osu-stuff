@@ -12,8 +12,8 @@
 
 class IconTexture {
 public:
-    explicit IconTexture(const std::filesystem::path& location);
-    explicit IconTexture(std::string_view location);
+    explicit IconTexture(const std::filesystem::path& location, std::string id = {});
+    explicit IconTexture(std::string_view location, std::string id = {});
     GLuint get(const ImVec2& size);
     GLuint load(uint8_t* data, int width, int height);
     void release_context(SDL_GLContext context);

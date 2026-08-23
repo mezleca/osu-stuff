@@ -100,6 +100,9 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
         return;
     }
 
+    m_ui.set_primary_font(&m_ui.get_font(ui::FontType::SEMIBOLD));
+    m_ui.set_secondary_font(&m_ui.get_font(ui::FontType::SEMIBOLD));
+
     auto& app_layout = m_ui.root().add_child<AppLayoutNode>(m_header_end_height);
     auto& header = app_layout.add_child<AppHeaderNode>(m_ui, m_header_end_height);
     auto& content = app_layout.add_child<AppContentNode>(m_ui);

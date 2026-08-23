@@ -2,10 +2,11 @@
 
 #include <string>
 #include <format>
+#include <utility>
 
 using namespace lunasvg;
 
-IconTexture::IconTexture(const std::filesystem::path& location) {
+IconTexture::IconTexture(const std::filesystem::path& location, std::string id) {
     std::unique_ptr<Document> document = Document::loadFromFile(location.string());
 
     if (document == nullptr) {
@@ -13,12 +14,12 @@ IconTexture::IconTexture(const std::filesystem::path& location) {
     }
 
     Element element = document->documentElement();
-    m_id = element.getAttribute("class");
+    m_id = id.empty() ? element.getAttribute("class") : std::move(id);
 
     m_document = std::move(document);
 }
 
-IconTexture::IconTexture(std::string_view content) {
+IconTexture::IconTexture(std::string_view content, std::string id) {
     std::unique_ptr<Document> document = Document::loadFromData(std::string(content));
 
     if (document == nullptr) {
@@ -26,7 +27,7 @@ IconTexture::IconTexture(std::string_view content) {
     }
 
     Element element = document->documentElement();
-    m_id = element.getAttribute("class");
+    m_id = id.empty() ? element.getAttribute("class") : std::move(id);
 
     m_document = std::move(document);
 }

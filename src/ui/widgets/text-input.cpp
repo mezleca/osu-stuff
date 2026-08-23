@@ -45,7 +45,7 @@ namespace ui {
 
         set_accepts_focus(true);
         set_center_content_vertically(true);
-        set_font(ui.get_font(FontType::SEMIBOLD).get(18));
+        set_font(ui.get_primary_font(18));
 
         state().configure_all_styles([&theme](Style& style) {
             style.border_color(theme.border_color, 24.0F)

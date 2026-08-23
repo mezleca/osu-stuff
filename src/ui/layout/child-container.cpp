@@ -1,6 +1,7 @@
 #include "child-container.hpp"
 
 #include "../constants.hpp"
+#include "../imgui/draw.hpp"
 #include "../style/style.hpp"
 
 namespace ui {
@@ -96,8 +97,8 @@ namespace ui {
 
         if (has_full_border) ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, current_style.border_thickness());
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, current_style.background_color().get());
-        if (has_full_border) ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get());
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, current_style.background_color().get_col());
+        if (has_full_border) ImGui::PushStyleColor(ImGuiCol_Border, current_style.border_color().get_col());
 
         ImFont* current_font = current_style.font();
         if (current_font == nullptr) {
@@ -137,13 +138,11 @@ namespace ui {
     }
 
     void ChildContainer::draw_borders() {
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
         const ImVec2& min = m_child_rect.min;
         const ImVec2& max = m_child_rect.max;
 
         const Style& current_style = state().style();
-        const ImU32 border_color = ImGui::GetColorU32(current_style.border_color().get());
+        const ImU32 border_color = current_style.border_color().get_col();
         const auto border_thickness = current_style.border_thickness();
 
         if (current_style.border() == BORDER_NONE || (current_style.border() & BORDER_ALL) != 0) {
@@ -151,19 +150,19 @@ namespace ui {
         }
 
         if (current_style.border() & BORDER_TOP) {
-            draw_list->AddLine({min.x, min.y}, {max.x, min.y}, border_color, border_thickness);
+            draw_line({min.x, min.y}, {max.x, min.y}, border_color, border_thickness);
         }
 
         if (current_style.border() & BORDER_BOTTOM) {
-            draw_list->AddLine({min.x, max.y}, {max.x, max.y}, border_color, border_thickness);
+            draw_line({min.x, max.y}, {max.x, max.y}, border_color, border_thickness);
         }
 
         if (current_style.border() & BORDER_LEFT) {
-            draw_list->AddLine({min.x, min.y}, {min.x, max.y}, border_color, border_thickness);
+            draw_line({min.x, min.y}, {min.x, max.y}, border_color, border_thickness);
         }
 
         if (current_style.border() & BORDER_RIGHT) {
-            draw_list->AddLine({max.x, min.y}, {max.x, max.y}, border_color, border_thickness);
+            draw_line({max.x, min.y}, {max.x, max.y}, border_color, border_thickness);
         }
     }
 } // namespace ui
