@@ -31,8 +31,7 @@ static std::optional<cpr::Response> oauth_code_exchange(const OAuthAuthRequest& 
     return cpr::Post(cpr::Url{url}, cpr::Header{{"Accept", "application/json"}}, parameters);
 }
 
-static std::optional<cpr::Response>
-oauth_refresh_access_token(const OAuthAuthRequest& data, const std::string& base_url) {
+static std::optional<cpr::Response> oauth_refresh_access_token(const OAuthAuthRequest& data, const std::string& base_url) {
     const auto& id = data.client_id;
     const auto& secret = data.client_secret;
     const auto& refresh_token = data.refresh_token;
@@ -54,8 +53,7 @@ oauth_refresh_access_token(const OAuthAuthRequest& data, const std::string& base
     return cpr::Post(cpr::Url{url}, cpr::Header{{"Accept", "application/json"}}, parameters);
 }
 
-static std::optional<cpr::Response>
-oauth_client_credentials_grant(const OAuthAuthRequest& data, const std::string& base_url) {
+static std::optional<cpr::Response> oauth_client_credentials_grant(const OAuthAuthRequest& data, const std::string& base_url) {
     const auto& id = data.client_id;
     const auto& secret = data.client_secret;
 
@@ -87,8 +85,7 @@ bool OAuthApi::authenticate() {
 
 std::optional<nlohmann::json> OAuthApi::parse_response(const cpr::Response& response) {
     if (!is_success(response)) {
-        std::cerr << "[api] request failed: status=" << response.status_code << " error=" << response.error.message
-                  << "\n";
+        std::cerr << "[api] request failed: status=" << response.status_code << " error=" << response.error.message << "\n";
         return std::nullopt;
     }
 

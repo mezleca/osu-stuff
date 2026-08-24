@@ -69,9 +69,7 @@ public:
 
         const auto url =
             endpoint.starts_with('/') ? m_base_url + std::string(endpoint) : m_base_url + "/" + std::string(endpoint);
-        return parse_typed_response<T>(
-            cpr::Get(cpr::Url{url}, header, query, cpr::Timeout{30000}, cpr::ConnectTimeout{10000})
-        );
+        return parse_typed_response<T>(cpr::Get(cpr::Url{url}, header, query, cpr::Timeout{30000}, cpr::ConnectTimeout{10000}));
     };
 
     template <typename T>

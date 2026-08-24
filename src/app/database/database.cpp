@@ -17,11 +17,10 @@ namespace app {
         realm::db_config config;
         config.set_path(m_path.string());
 
-        auto database = std::make_unique<realm::db>(
-            realm::open<
-                realm::AppConfig, realm::AppOsuCredentials, realm::AppProcessedBeatmap, realm::AppOsuData,
-                realm::AppPlaylistSong, realm::AppPlaylist, realm::AppRadioData>(config)
-        );
+        auto database =
+            std::make_unique<realm::db>(realm::open<
+                                        realm::AppConfig, realm::AppOsuCredentials, realm::AppProcessedBeatmap, realm::AppOsuData,
+                                        realm::AppPlaylistSong, realm::AppPlaylist, realm::AppRadioData>(config));
         ensure_config(*database);
         m_database = std::move(database);
     }

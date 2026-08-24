@@ -1,5 +1,5 @@
 #include "detail.hpp"
-#include "../../../ui/widgets/text.hpp"
+#include <ui/widgets/text.hpp>
 
 RadioTab::RadioTab(UI& ui) : UITab(ui, "radio") {}
 

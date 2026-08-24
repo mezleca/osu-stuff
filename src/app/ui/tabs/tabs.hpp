@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../ui/tree/node.hpp"
+#include <ui/tree/node.hpp>
 
 #include <string>
 #include <utility>

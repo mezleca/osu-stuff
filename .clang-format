@@ -1,6 +1,6 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
-ColumnLimit: 120
+ColumnLimit: 130
 AccessModifierOffset: -4
 IndentAccessModifiers: false
 AllowShortEnumsOnASingleLine: false

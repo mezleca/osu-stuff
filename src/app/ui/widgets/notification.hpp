@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../../ui/layout/child-container.hpp"
-#include "../../../ui/layout/overlay-container.hpp"
-#include "../../../ui/widgets/text.hpp"
-#include "../../../ui/widgets/image.hpp"
+#include <ui/layout/child-container.hpp>
+#include <ui/layout/overlay-container.hpp>
+#include <ui/widgets/text.hpp>
+#include <ui/widgets/image.hpp>
 
 #include <functional>
 #include <cstdint>
@@ -59,8 +59,7 @@ public:
 
 private:
     static ImColor border_color(LogNotificationLevel level, ImColor accent_color);
-    void update_content_layout();
-    void on_layout() override;
+    void on_measure() override;
     void draw_children() override;
     void on_draw_end() override;
 

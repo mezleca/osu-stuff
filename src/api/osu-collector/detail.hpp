@@ -529,11 +529,7 @@ inline void from_json(const nlohmann::json& j, OsuCollectorTournamentBeatmapset&
 
 inline void to_json(nlohmann::json& j, const OsuCollectorTournamentBeatmapset& value) {
     j = {
-        {"id", value.id},
-        {"artist", value.artist},
-        {"title", value.title},
-        {"creator", value.creator},
-        {"covers", value.covers}
+        {"id", value.id}, {"artist", value.artist}, {"title", value.title}, {"creator", value.creator}, {"covers", value.covers}
     };
 }
 
@@ -666,8 +662,7 @@ public:
     ~OsuCollectorAPI() = default;
 
     std::optional<OsuCollectorCollectionsPage> get_recent_collections(const OsuCollectorRecentRequest& request = {});
-    std::optional<OsuCollectorCollectionsPage>
-    get_popular_collections(const OsuCollectorPopularCollectionsRequest& request = {});
+    std::optional<OsuCollectorCollectionsPage> get_popular_collections(const OsuCollectorPopularCollectionsRequest& request = {});
     std::optional<OsuCollectorCollectionsPage> search_collections(const OsuCollectorSearchRequest& request);
     std::optional<OsuCollectorCollection> get_collection(const OsuCollectorCollectionRequest& request);
     std::optional<OsuCollectorCollectionBeatmapsResponse>

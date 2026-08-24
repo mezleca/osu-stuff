@@ -81,19 +81,11 @@ add_subdirectory(vendor/utf8proc)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
-file(GLOB IMGUI_CORE_SOURCES "vendor/imgui/*.cpp")
-
-set(IMGUI_BACKEND_SOURCES
-    "vendor/imgui/backends/imgui_impl_sdl3.cpp"
-    "vendor/imgui/backends/imgui_impl_opengl3.cpp"
-)
-
-set(IMGUI_CPP_WRAPPER
-    "vendor/imgui/misc/cpp/imgui_stdlib.cpp"
-    "vendor/imgui/misc/cpp/imgui_stdlib.h"
-)
 
 list(FILTER SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
+
+set(IMGUI_UI_BUILD_SDL ON)
+add_subdirectory(vendor/imgui-ui)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUTPUT_NAME}")
@@ -102,9 +94,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-core)
 add_library(${PROJECT_NAME}-core OBJECT
     ${SOURCES}
     ${HEADERS}
-    ${IMGUI_CORE_SOURCES}
-    ${IMGUI_BACKEND_SOURCES}
-    ${IMGUI_CPP_WRAPPER}
 )
 
 target_compile_definitions(${PROJECT_NAME}-core PUBLIC
@@ -113,9 +102,6 @@ target_compile_definitions(${PROJECT_NAME}-core PUBLIC
 
 target_include_directories(${PROJECT_NAME}-core PUBLIC
     src/
-    vendor/imgui/
-    vendor/imgui/backends
-    vendor/imgui/misc/cpp/
     vendor/stb/
 )
 
@@ -132,6 +118,7 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     lunasvg
     cpr
     nlohmann_json
+    imgui-ui::sdl
 )
 
 if(WIN32)

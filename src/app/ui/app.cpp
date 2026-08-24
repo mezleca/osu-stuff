@@ -4,21 +4,25 @@
 #include "tabs/detail.hpp"
 #include "widgets/tab-button.hpp"
 
-#include "../../ui/diagnostics/debugger.hpp"
-#include "../../ui/constants.hpp"
-#include "../../ui/imgui/context-scope.hpp"
-#include "../../ui/layout/child-container.hpp"
+#include <ui/backends/sdl/debugger.hpp>
+#include <ui/constants.hpp>
+#include <ui/imgui/context-scope.hpp>
+#include <ui/layout/child-container.hpp>
+#include <ui/layout/stack-container.hpp>
 
 #include <SDL3/SDL_log.h>
 #include <algorithm>
 
 using namespace app;
 
-class AppHeaderNode final : public ui::ChildContainer {
+class AppHeaderNode final : public ui::StackContainer {
 public:
-    AppHeaderNode(UI& ui, float& height) : ui::ChildContainer("header"), m_ui(ui), m_height(height) {
-        set_font(m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM));
-        const ui::Theme& theme = m_ui.theme();
+    AppHeaderNode(UI& ui, float& height) : ui::StackContainer("header", ui::StackDirection::Horizontal), m_height(height) {
+        ImFont* font = ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
+        set_font(font);
+        set_spacing(app_theme::HEADER_TABS_GAP);
+
+        const ui::Theme& theme = ui.theme();
         configure_all_styles([&theme](ui::Style& style) {
             style.padding({theme.content_padding, theme.content_padding})
                 .background_color(theme.header_background_color)
@@ -29,27 +33,20 @@ public:
 
 protected:
     void on_layout() override {
-        ImFont* font = m_ui.get_font(ui::FontType::BOLD).get(ui::FONT_MEDIUM);
-        const ui::Theme& theme = m_ui.theme();
-        ImGui::PushFont(font);
-        m_height = ImGui::GetFrameHeight() + theme.content_padding * 2.0F;
-        ImGui::PopFont();
-
-        set_size({ImGui::GetContentRegionAvail().x, m_height});
-    }
-
-    void draw_children() override {
-        for (std::size_t index = 0; index < children().size(); ++index) {
-            if (index > 0) {
-                ImGui::SameLine(0.0F, app_theme::HEADER_TABS_GAP);
+        float tab_height = 0.0F;
+        for (const auto& child : children()) {
+            if (child->visible()) {
+                tab_height = std::max(tab_height, child->layout().size().y);
             }
-
-            children()[index]->draw();
         }
+
+        m_height = tab_height + style().padding().y * 2.0F;
+
+        resolve_size({ImGui::GetContentRegionAvail().x, m_height});
+        ui::StackContainer::on_layout();
     }
 
 private:
-    UI& m_ui;
     float& m_height;
 };
 
@@ -74,9 +71,7 @@ public:
             return;
         }
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0F, 0.0F});
         children().front()->draw();
-        ImGui::PopStyleVar();
         if (children().size() < 2) {
             return;
         }
@@ -91,7 +86,7 @@ private:
     float& m_header_height;
 };
 
-OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime, std::move(config)) {
+OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, const ui::Config& config) : m_ui(runtime, config) {
     if (!m_ui.ready()) {
         SDL_Log("[OsuStuffApp]: UI failed to initialize, app will not run");
         return;
@@ -182,7 +177,7 @@ void OsuStuffApp::process_sdl_event(SDL_Event* event) {
         return;
     }
 
-    m_ui.runtime().process_sdl_event(event);
+    ui::process_sdl_event(m_ui, *event);
 }
 
 void OsuStuffApp::render() {
@@ -190,6 +185,7 @@ void OsuStuffApp::render() {
         return;
     }
 
+    m_ui.begin_input_frame();
     m_ui.begin_frame();
     m_tasks.drain();
     const float dt = ImGui::GetIO().DeltaTime;

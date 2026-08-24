@@ -39,27 +39,23 @@ std::optional<OsuBeatmapLookupResponse> OsuV2API::lookup_beatmap(const OsuBeatma
     return get<OsuBeatmapLookupResponse>("/api/v2/beatmaps/lookup", parameters);
 }
 
-std::optional<OsuGetUserBeatmapScoreResponse>
-OsuV2API::get_user_beatmap_score(const OsuGetUserBeatmapScoreRequest& request) {
+std::optional<OsuGetUserBeatmapScoreResponse> OsuV2API::get_user_beatmap_score(const OsuGetUserBeatmapScoreRequest& request) {
     query::Parameters parameters;
     query::add_parameter(parameters, "legacy_only", request.legacy_only);
     query::add_parameter(parameters, "mode", request.mode);
     query::add_parameter(parameters, "mods", request.mods);
     return get<OsuGetUserBeatmapScoreResponse>(
-        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user),
-        parameters
+        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user), parameters
     );
 }
 
-std::optional<OsuGetUserBeatmapScoresResponse>
-OsuV2API::get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request) {
+std::optional<OsuGetUserBeatmapScoresResponse> OsuV2API::get_user_beatmap_scores(const OsuGetUserBeatmapScoresRequest& request) {
     query::Parameters parameters;
     query::add_parameter(parameters, "legacy_only", request.legacy_only);
     query::add_parameter(parameters, "mode", request.mode);
     query::add_parameter(parameters, "ruleset", request.ruleset);
     return get<OsuGetUserBeatmapScoresResponse>(
-        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user) +
-            "/all",
+        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores/users/" + std::to_string(request.user) + "/all",
         parameters
     );
 }
@@ -70,20 +66,15 @@ std::optional<OsuGetBeatmapScoresResponse> OsuV2API::get_beatmap_scores(const Os
     query::add_parameter(parameters, "mode", request.mode);
     query::add_parameter(parameters, "mods", request.mods);
     query::add_parameter(parameters, "type", request.type);
-    return get<OsuGetBeatmapScoresResponse>(
-        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores", parameters
-    );
+    return get<OsuGetBeatmapScoresResponse>("/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/scores", parameters);
 }
 
-std::optional<OsuGetBeatmapAttributesResponse>
-OsuV2API::get_beatmap_attributes(const OsuGetBeatmapAttributesRequest& request) {
+std::optional<OsuGetBeatmapAttributesResponse> OsuV2API::get_beatmap_attributes(const OsuGetBeatmapAttributesRequest& request) {
     nlohmann::json body = nlohmann::json::object();
     if (request.mods) body["mods"] = *request.mods;
     if (request.ruleset) body["ruleset"] = *request.ruleset;
     if (request.ruleset_id) body["ruleset_id"] = *request.ruleset_id;
-    return post<OsuGetBeatmapAttributesResponse>(
-        "/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/attributes", body
-    );
+    return post<OsuGetBeatmapAttributesResponse>("/api/v2/beatmaps/" + std::to_string(request.beatmap) + "/attributes", body);
 }
 
 std::optional<OsuGetBeatmapsetDiscussionPostsResponse>
@@ -147,9 +138,7 @@ std::optional<OsuSearchBeatmapsetResponse> OsuV2API::search_beatmapsets(const Os
 }
 
 std::optional<OsuBeatmapsetLookupResponse> OsuV2API::lookup_beatmapset(const OsuBeatmapsetLookupRequest& request) {
-    return get<OsuBeatmapsetLookupResponse>(
-        "/api/v2/beatmapsets/lookup", {{"beatmap_id", std::to_string(request.beatmap_id)}}
-    );
+    return get<OsuBeatmapsetLookupResponse>("/api/v2/beatmapsets/lookup", {{"beatmap_id", std::to_string(request.beatmap_id)}});
 }
 
 std::optional<OsuGetBeatmapsetResponse> OsuV2API::get_beatmapset(const OsuGetBeatmapsetRequest& request) {

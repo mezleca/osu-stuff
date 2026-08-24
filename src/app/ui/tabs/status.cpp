@@ -1,5 +1,5 @@
 #include "detail.hpp"
-#include "../../../ui/widgets/text.hpp"
+#include <ui/widgets/text.hpp>
 
 StatusTab::StatusTab(UI& ui) : UITab(ui, "status") {}
 

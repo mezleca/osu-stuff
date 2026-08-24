@@ -117,10 +117,8 @@ private:
     friend class TaskSlot;
 
     template <typename Work, typename Completion>
-    bool start(
-        const std::shared_ptr<TaskSlotState>& slot, Work&& work, Completion&& completion,
-        TaskUpdateHandler update_handler
-    ) {
+    bool
+    start(const std::shared_ptr<TaskSlotState>& slot, Work&& work, Completion&& completion, TaskUpdateHandler update_handler) {
         using Result = std::invoke_result_t<Work, TaskContext&>;
 
         uint64_t generation;
@@ -156,8 +154,7 @@ private:
                 }
 
                 // queue completion so user handlers only run from drain().
-                scheduler->add([slot, generation, completion = std::move(completion),
-                                result = std::move(result)]() mutable {
+                scheduler->add([slot, generation, completion = std::move(completion), result = std::move(result)]() mutable {
                     bool should_complete;
                     {
                         std::scoped_lock lock(slot->mutex);

@@ -16,8 +16,7 @@ constexpr int TEST_BEATMAP_ID = 2953473;
 constexpr int GLASS_BEACH_RESULT_COUNT = 18;
 constexpr const char* TEST_BEATMAP_HASH = "8e66c5e88adb59774e4eccca702fe242";
 
-[[nodiscard]] auto make_client(std::string_view backend, const std::string& root_override = "")
-    -> std::unique_ptr<ClientBase> {
+[[nodiscard]] auto make_client(std::string_view backend, const std::string& root_override = "") -> std::unique_ptr<ClientBase> {
     if (backend == "stable") {
         return std::make_unique<StableClient>(ClientOptions{
             .osu_path = root_override.empty() ? test_helper::osu_root().string() : root_override,

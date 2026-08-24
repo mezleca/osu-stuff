@@ -1,4 +1,6 @@
-#include "ui/ui.hpp"
+#include <ui/ui.hpp>
+#include <ui/backends/sdl/backend.hpp>
+#include <ui/backends/sdl/icon.hpp>
 #include "app/ui/app.hpp"
 #include "utils/resources.hpp"
 
@@ -20,30 +22,35 @@ int main() {
         std::filesystem::current_path(base_path);
     }
 
-    ui::Window::configure_opengl();
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+    ui::set_backend(ui::create_sdl_backend);
 
     const int exit_code = [&]() {
         const std::filesystem::path resources_path = resources::path();
 
         ui::RuntimeConfig runtime_config;
+        runtime_config.icon_loader = ui::make_sdl_icon_loader();
         ui::Runtime runtime(std::move(runtime_config));
 
-        static_cast<void>(runtime.add_font(ui::FontType::REGULAR, resources_path / "fonts/Torus-Regular.ttf"));
-        static_cast<void>(runtime.add_font(ui::FontType::SEMIBOLD, resources_path / "fonts/Torus-SemiBold.ttf"));
-        static_cast<void>(runtime.add_font(ui::FontType::BOLD, resources_path / "fonts/Torus-Bold.ttf"));
+        runtime.add_font(ui::FontType::REGULAR, resources_path / "fonts/Torus-Regular.ttf");
+        runtime.add_font(ui::FontType::SEMIBOLD, resources_path / "fonts/Torus-SemiBold.ttf");
+        runtime.add_font(ui::FontType::BOLD, resources_path / "fonts/Torus-Bold.ttf");
 
         for (const std::string_view id : {"circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
-            static_cast<void>(
-                runtime.add_resource(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"))
-            );
+            runtime.add_resource(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"));
         }
 
         ui::Config config{
-            .window = {
-                .title = "osu-stuff",
-                .size = DEFAULT_WINDOW_SIZE,
-                .flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE,
-            }
+            .title = "osu-stuff",
+            .size = DEFAULT_WINDOW_SIZE,
+            .resizable = true,
         };
 
         auto app = std::make_unique<app::OsuStuffApp>(runtime, config);
@@ -57,7 +64,6 @@ int main() {
                 app->process_sdl_event(&event);
             }
 
-            runtime.begin_input_frame();
             app->render();
         }
 

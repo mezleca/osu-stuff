@@ -73,8 +73,8 @@ namespace realm {
     };
 
     REALM_SCHEMA(
-        BeatmapMetadata, Title, TitleUnicode, Artist, ArtistUnicode, Author, Source, Tags, PreviewTime, AudioFile,
-        BackgroundFile, UserTags
+        BeatmapMetadata, Title, TitleUnicode, Artist, ArtistUnicode, Author, Source, Tags, PreviewTime, AudioFile, BackgroundFile,
+        UserTags
     );
 
     struct BeatmapCollection {
@@ -103,8 +103,7 @@ namespace realm {
     };
 
     REALM_SCHEMA(
-        BeatmapSet, ID, OnlineID, DateAdded, DateSubmitted, DateRanked, Beatmaps, Files, Status, DeletePending, Hash,
-        Protected
+        BeatmapSet, ID, OnlineID, DateAdded, DateSubmitted, DateRanked, Beatmaps, Files, Status, DeletePending, Hash, Protected
     );
 
     struct Beatmap {
@@ -134,8 +133,8 @@ namespace realm {
     };
 
     REALM_SCHEMA(
-        Beatmap, ID, DifficultyName, Ruleset, Difficulty, Metadata, UserSettings, BeatmapSet, OnlineID, Length, BPM,
-        Hash, StarRating, MD5Hash, OnlineMD5Hash, LastLocalUpdate, LastOnlineUpdate, Status, Hidden, EndTimeObjectCount,
+        Beatmap, ID, DifficultyName, Ruleset, Difficulty, Metadata, UserSettings, BeatmapSet, OnlineID, Length, BPM, Hash,
+        StarRating, MD5Hash, OnlineMD5Hash, LastLocalUpdate, LastOnlineUpdate, Status, Hidden, EndTimeObjectCount,
         TotalObjectCount, LastPlayed, BeatDivisor, EditorTimestamp
     );
 } // namespace realm

@@ -22,13 +22,12 @@ struct OsuCollection {
 struct OsuBeatmap {
     // stable -> result
     explicit OsuBeatmap(const LegacyBeatmap& b)
-        : artist(b.artist), title(b.title), creator(b.creator), difficulty(b.difficulty),
-          audio_file_name(b.audio_file_name), md5(b.md5), source(b.source), osu_file_name(b.osu_file_name),
-          tags(b.tags), searchable(""), artist_unicode(b.artist_unicode), title_unicode(b.title_unicode),
-          duration(b.duration), approach_rate(b.approach_rate), circle_size(b.circle_size),
-          overall_difficulty(b.overall_difficulty), hp_drain(b.hp_drain), slider_velocity(b.slider_velocity),
-          last_modification_time(b.last_modification_time), hitcircle(b.hitcircle), sliders(b.sliders),
-          spinners(b.spinners), drain_time(b.drain_time), total_time(b.total_time),
+        : artist(b.artist), title(b.title), creator(b.creator), difficulty(b.difficulty), audio_file_name(b.audio_file_name),
+          md5(b.md5), source(b.source), osu_file_name(b.osu_file_name), tags(b.tags), searchable(""),
+          artist_unicode(b.artist_unicode), title_unicode(b.title_unicode), duration(b.duration), approach_rate(b.approach_rate),
+          circle_size(b.circle_size), overall_difficulty(b.overall_difficulty), hp_drain(b.hp_drain),
+          slider_velocity(b.slider_velocity), last_modification_time(b.last_modification_time), hitcircle(b.hitcircle),
+          sliders(b.sliders), spinners(b.spinners), drain_time(b.drain_time), total_time(b.total_time),
           audio_preview_time(b.audio_preview_time), difficulty_id(b.difficulty_id), beatmap_id(b.beatmap_id),
           mode((BeatmapGamemode)b.mode), status((BeatmapStatus)b.status) {}
 
@@ -43,16 +42,15 @@ struct OsuBeatmap {
           source(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Source) : ""), osu_file_name(""),
           tags(b.Metadata ? client_detail::detach_or_empty(b.Metadata->Tags) : ""), searchable(""),
           artist_unicode(b.Metadata ? client_detail::detach_or_empty(b.Metadata->ArtistUnicode) : ""),
-          title_unicode(b.Metadata ? client_detail::detach_or_empty(b.Metadata->TitleUnicode) : ""),
-          duration(b.Length.detach()), approach_rate(b.Difficulty ? b.Difficulty->ApproachRate.detach() : 0.0),
+          title_unicode(b.Metadata ? client_detail::detach_or_empty(b.Metadata->TitleUnicode) : ""), duration(b.Length.detach()),
+          approach_rate(b.Difficulty ? b.Difficulty->ApproachRate.detach() : 0.0),
           circle_size(b.Difficulty ? b.Difficulty->CircleSize.detach() : 0.0),
           overall_difficulty(b.Difficulty ? b.Difficulty->OverallDifficulty.detach() : 0.0),
           hp_drain(b.Difficulty ? b.Difficulty->DrainRate.detach() : 0.0),
           slider_velocity(b.Difficulty ? b.Difficulty->SliderMultiplier.detach() : 0.0),
           last_modification_time(client_detail::detach_time_ms(b.LastLocalUpdate)), hitcircle(0),
           sliders((int)b.EndTimeObjectCount.detach()), spinners(0), drain_time((int)b.Length.detach()),
-          total_time((int)b.Length.detach()),
-          audio_preview_time(b.Metadata ? (int)b.Metadata->PreviewTime.detach() : 0),
+          total_time((int)b.Length.detach()), audio_preview_time(b.Metadata ? (int)b.Metadata->PreviewTime.detach() : 0),
           difficulty_id((int)b.OnlineID.detach()), beatmap_id(b.BeatmapSet ? (int)b.BeatmapSet->OnlineID.detach() : 0),
           mode(client_detail::detach_mode(b.Ruleset)), status((BeatmapStatus)b.Status.detach()) {}
 
@@ -89,8 +87,8 @@ struct OsuBeatmap {
     void build_search() {
         searchable = binary::normalize_and_lower(
             std::format(
-                "{} {} {} {} {} {} {} {} {} {}", title, title_unicode, artist, artist_unicode, creator, difficulty,
-                source, tags, difficulty_id, beatmap_id
+                "{} {} {} {} {} {} {} {} {} {}", title, title_unicode, artist, artist_unicode, creator, difficulty, source, tags,
+                difficulty_id, beatmap_id
             )
         );
     }
@@ -129,8 +127,7 @@ public:
 
     [[nodiscard]] virtual const char* player_name() const = 0;
     [[nodiscard]] virtual std::vector<std::string> search_beatmaps(const SearchOptions& options);
-    [[nodiscard]] virtual std::vector<std::string>
-    fetch_missing_beatmaps_from_collections(std::string_view collection_name) = 0;
+    [[nodiscard]] virtual std::vector<std::string> fetch_missing_beatmaps_from_collections(std::string_view collection_name) = 0;
     [[nodiscard]] virtual OsuCollection* get_collection(std::string_view name);
     [[nodiscard]] virtual bool add_collection(OsuCollection* collection);
     [[nodiscard]] virtual bool delete_collection(std::string_view name);

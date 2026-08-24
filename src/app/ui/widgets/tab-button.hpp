@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../ui/widgets/widget.hpp"
-#include "../../../ui/widgets/text-value.hpp"
+#include <ui/widgets/widget.hpp>
+#include <ui/widgets/text-value.hpp>
 
 class IconTexture;
 class UI;
@@ -26,6 +26,8 @@ public:
     ui::TextValue m_name;
 
 private:
+    void on_measure() override;
+
     UI& m_ui;
     bool m_draw_line = true;
     bool m_title = false;

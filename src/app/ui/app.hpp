@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../ui/ui.hpp"
+#include <ui/ui.hpp>
+#include <ui/backends/sdl/backend.hpp>
 #include "../../tasks/tasks.hpp"
 
 #include <SDL3/SDL_events.h>
@@ -23,7 +24,7 @@ namespace app {
 
     class OsuStuffApp {
     public:
-        OsuStuffApp(ui::Runtime& runtime, ui::Config config);
+        OsuStuffApp(ui::Runtime& runtime, const ui::Config& config);
         ~OsuStuffApp();
 
         void render();

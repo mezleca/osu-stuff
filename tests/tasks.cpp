@@ -54,9 +54,7 @@ TEST_CASE("UI task slots reject duplicate work and return handlers to the caller
     ));
 
     REQUIRE_FALSE(slot.start([](TaskContext&) { return TaskResult<>::success(); }));
-    REQUIRE(drain_scheduler_until(scheduler, [&worker_started, &update_received] {
-        return worker_started && update_received;
-    }));
+    REQUIRE(drain_scheduler_until(scheduler, [&worker_started, &update_received] { return worker_started && update_received; }));
     REQUIRE_FALSE(completed);
 
     release.set_value();

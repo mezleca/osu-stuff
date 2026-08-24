@@ -10,8 +10,7 @@
 #include <unordered_set>
 
 static const std::unordered_set<std::string>& get_video_extensions() {
-    static const std::unordered_set<std::string> extensions = {".mp4", ".avi", ".flv", ".mov",
-                                                               ".wmv", ".m4v", ".mpg", ".mpeg"};
+    static const std::unordered_set<std::string> extensions = {".mp4", ".avi", ".flv", ".mov", ".wmv", ".m4v", ".mpg", ".mpeg"};
     return extensions;
 }
 
@@ -341,8 +340,7 @@ static ColourSection parse_colours(const std::vector<std::string_view>& lines) {
         }
 
         std::array<int, 3> color = {
-            binary::convert_to<int>(parts[0], 0), binary::convert_to<int>(parts[1], 0),
-            binary::convert_to<int>(parts[2], 0)
+            binary::convert_to<int>(parts[0], 0), binary::convert_to<int>(parts[1], 0), binary::convert_to<int>(parts[2], 0)
         };
 
         if (key.find("Combo") != std::string_view::npos) {
@@ -408,9 +406,7 @@ static std::vector<HitObject> parse_hit_objects(const std::vector<std::string_vi
                 for (size_t i = 1; i < curve_parts.size(); i++) {
                     auto point = split_view(curve_parts[i], ':');
                     if (point.size() >= 2) {
-                        ho.curve_points.push_back(
-                            {binary::convert_to<int>(point[0], 0), binary::convert_to<int>(point[1], 0)}
-                        );
+                        ho.curve_points.push_back({binary::convert_to<int>(point[0], 0), binary::convert_to<int>(point[1], 0)});
                     }
                 }
             }
@@ -431,9 +427,7 @@ static std::vector<HitObject> parse_hit_objects(const std::vector<std::string_vi
                 for (const auto& ep : split_view(parts[9], '|')) {
                     auto set = split_view(ep, ':');
                     if (set.size() >= 2) {
-                        ho.edge_sets.push_back(
-                            {binary::convert_to<int>(set[0], 0), binary::convert_to<int>(set[1], 0)}
-                        );
+                        ho.edge_sets.push_back({binary::convert_to<int>(set[0], 0), binary::convert_to<int>(set[1], 0)});
                     }
                 }
             } else {
@@ -516,8 +510,8 @@ static bool read_file_text(const std::string& location, std::string& out) {
 }
 
 static std::string serialize_hit_sample(const HitSample& hs) {
-    return std::to_string(hs.normal_set) + ":" + std::to_string(hs.addition_set) + ":" + std::to_string(hs.index) +
-           ":" + std::to_string(hs.volume) + ":" + hs.filename;
+    return std::to_string(hs.normal_set) + ":" + std::to_string(hs.addition_set) + ":" + std::to_string(hs.index) + ":" +
+           std::to_string(hs.volume) + ":" + hs.filename;
 }
 
 static std::string serialize_curve(const HitObject& ho) {
@@ -684,9 +678,9 @@ bool beatmap_parser::write() {
 
     for (const auto& tp : data->timing_points) {
         writer.line(
-            std::to_string(tp.time) + "," + BeatmapWriter::format_double(tp.beat_length) + "," +
-            std::to_string(tp.meter) + "," + std::to_string(tp.sample_set) + "," + std::to_string(tp.sample_index) +
-            "," + std::to_string(tp.volume) + "," + std::to_string(tp.uninherited) + "," + std::to_string(tp.effects)
+            std::to_string(tp.time) + "," + BeatmapWriter::format_double(tp.beat_length) + "," + std::to_string(tp.meter) + "," +
+            std::to_string(tp.sample_set) + "," + std::to_string(tp.sample_index) + "," + std::to_string(tp.volume) + "," +
+            std::to_string(tp.uninherited) + "," + std::to_string(tp.effects)
         );
     }
 
@@ -704,9 +698,7 @@ bool beatmap_parser::write() {
 
     if (data->colours.slider_track_override.has_value()) {
         const auto& c = data->colours.slider_track_override.value();
-        writer.line(
-            "SliderTrackOverride : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," + std::to_string(c[2])
-        );
+        writer.line("SliderTrackOverride : " + std::to_string(c[0]) + "," + std::to_string(c[1]) + "," + std::to_string(c[2]));
     }
 
     if (data->colours.slider_border.has_value()) {

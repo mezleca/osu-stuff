@@ -1,12 +1,12 @@
 #include "notification.hpp"
-#include "../../../ui/ui.hpp"
+#include <ui/ui.hpp>
 #include "../theme.hpp"
 
 #include <algorithm>
 
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
-UINotification::UINotification(UI& ui) : ui::ChildContainer({}, ui::WidgetType::Notification), m_ui(ui) {
+UINotification::UINotification(UI& ui) : ui::ChildContainer({}, "Notification"), m_ui(ui) {
     m_offset.duration = 0.2F;
     set_anchor(ui::Anchor::TopRight);
     set_origin(ui::Origin::TopRight);
@@ -80,7 +80,7 @@ ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor 
 
 LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level, std::string text)
     : UINotification(ui), m_level(level) {
-    set_widget_type(ui::WidgetType::LogNotification);
+    set_type_name("LogNotification");
     ui::Style& hover_style = style(ui::StyleType::HOVER);
     ui::Style& active_style = style(ui::StyleType::ACTIVE);
 
@@ -108,6 +108,7 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
 
     m_text_node = &add_child<ui::TextWidget>(std::move(text));
     m_text_node->set_font(torus_semi);
+    m_text_node->set_wrap(256.0F - CLOSE_ICON_SIZE.x - 8.0F);
 
     m_icon = &add_child<ui::ImageWidget>();
     m_icon->set_texture(close_icon);
@@ -144,45 +145,28 @@ void LogNotificationWidget::close() {
 }
 
 void LogNotificationWidget::set_text(std::string_view text) {
-    static_cast<void>(m_text_node->try_set_content(std::string{text}));
+    m_text_node->try_set_content(std::string{text});
 }
 
-void LogNotificationWidget::on_layout() {
-    UINotification::on_layout();
-    update_content_layout();
-}
-
-void LogNotificationWidget::update_content_layout() {
+void LogNotificationWidget::on_measure() {
     const ui::Style& current_style = style();
     const ImVec2 padding = current_style.padding();
-    const float wrap_pos_x = 256.0F - CLOSE_ICON_SIZE.x - 8.0F;
-
-    m_text_node->set_wrap(wrap_pos_x);
-    m_text_node->update_layout_size();
-    m_icon->set_offset({m_text_node->layout().size().x + 5.0F, 0.0F});
-
     const ImVec2 text_size = m_text_node->layout().size();
+    m_icon->set_offset({text_size.x + 5.0F, 0.0F});
+
     const float icon_width = m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.x + 5.0F;
     const float content_width = text_size.x + icon_width + padding.x * 2.0F;
     const float content_height =
-        std::max(text_size.y, m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.y) +
-        padding.y * 2.0F;
+        std::max(text_size.y, m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.y) + padding.y * 2.0F;
 
-    resolve_size({
+    set_size({
         std::clamp(content_width, 48.0F, 256.0F),
         std::clamp(content_height, 48.0F, 196.0F),
     });
 }
 
 bool LogNotificationWidget::on_draw() {
-    if (m_closing && !visually_visible()) {
-        return false;
-    }
-
-    const ui::Style& style = this->style();
-
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
-    ImGui::PushStyleColor(ImGuiCol_Text, style.color().get_col());
     const bool opened = ui::ChildContainer::on_draw();
     return opened;
 }
@@ -216,8 +200,6 @@ void LogNotificationWidget::on_draw_end() {
 
     const ui::Rect child_rect = layout().screen_rect();
     const ImVec2 child_size = child_rect.size();
-
-    ImGui::PopStyleColor();
 
     const ui::ItemInputState input = m_ui.input().observe(*this);
 

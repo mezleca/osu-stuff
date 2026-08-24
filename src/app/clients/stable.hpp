@@ -10,8 +10,7 @@ public:
     explicit StableClient(ClientOptions options);
 
     [[nodiscard]] const char* player_name() const override;
-    [[nodiscard]] std::vector<std::string>
-    fetch_missing_beatmaps_from_collections(std::string_view collection_name) override;
+    [[nodiscard]] std::vector<std::string> fetch_missing_beatmaps_from_collections(std::string_view collection_name) override;
     [[nodiscard]] bool update_collection() override;
 
 private:

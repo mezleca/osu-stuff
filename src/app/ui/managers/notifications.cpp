@@ -1,6 +1,6 @@
 #include "./notifications.hpp"
-#include "../../../ui/constants.hpp"
-#include "../../../ui/ui.hpp"
+#include <ui/constants.hpp>
+#include <ui/ui.hpp>
 #include "../widgets/notification.hpp"
 
 #include <algorithm>
@@ -71,7 +71,7 @@ void UINotificationManager::set_position(ui::OverlayPosition position) {
 void UINotificationManager::clear() {
     if (m_rendering) {
         for (const auto& child : children()) {
-            static_cast<void>(remove(static_cast<UINotification*>(child.get())));
+            remove(static_cast<UINotification*>(child.get()));
         }
         return;
     }
@@ -127,7 +127,7 @@ void UINotificationManager::draw() {
 
         UINotification* notification = static_cast<UINotification*>(it->get());
         if (!notification->visually_visible()) {
-            static_cast<void>(remove(notification));
+            remove(notification);
             continue;
         }
 
@@ -143,7 +143,7 @@ void UINotificationManager::draw() {
     m_rendering = false;
 
     for (UINotification* notification : m_pending_removals) {
-        static_cast<void>(remove(notification));
+        remove(notification);
     }
 
     m_pending_removals.clear();

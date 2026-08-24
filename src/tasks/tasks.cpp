@@ -50,8 +50,8 @@ void TaskContext::send_update(std::string update) const {
         return;
     }
 
-    m_scheduler->add([slot = std::weak_ptr<TaskSlotState>(m_slot), generation = m_generation,
-                      handler = m_update_handler, update = std::move(update)]() mutable {
+    m_scheduler->add([slot = std::weak_ptr<TaskSlotState>(m_slot), generation = m_generation, handler = m_update_handler,
+                      update = std::move(update)]() mutable {
         const auto state = slot.lock();
         if (state == nullptr) {
             return;

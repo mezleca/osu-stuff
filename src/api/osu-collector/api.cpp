@@ -7,11 +7,9 @@ static void add_pagination_parameters(query::Parameters& parameters, const OsuCo
     query::add_parameter(parameters, "perPage", request.per_page);
 }
 
-OsuCollectorAPI::OsuCollectorAPI()
-    : OAuthApi("https://osucollector.com/api", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {}
+OsuCollectorAPI::OsuCollectorAPI() : OAuthApi("https://osucollector.com/api", OAuthAuthType::CLIENT_CREDENTIALS_GRANT) {}
 
-std::optional<OsuCollectorCollectionsPage>
-OsuCollectorAPI::get_recent_collections(const OsuCollectorRecentRequest& request) {
+std::optional<OsuCollectorCollectionsPage> OsuCollectorAPI::get_recent_collections(const OsuCollectorRecentRequest& request) {
     query::Parameters parameters;
     add_pagination_parameters(parameters, request);
     return get<OsuCollectorCollectionsPage>("/collections/recent", parameters, false);
@@ -25,8 +23,7 @@ OsuCollectorAPI::get_popular_collections(const OsuCollectorPopularCollectionsReq
     return get<OsuCollectorCollectionsPage>("/collections/popularv2", parameters, false);
 }
 
-std::optional<OsuCollectorCollectionsPage>
-OsuCollectorAPI::search_collections(const OsuCollectorSearchRequest& request) {
+std::optional<OsuCollectorCollectionsPage> OsuCollectorAPI::search_collections(const OsuCollectorSearchRequest& request) {
     query::Parameters parameters;
     add_pagination_parameters(parameters, request);
     query::add_parameter(parameters, "search", request.search);
@@ -50,15 +47,13 @@ OsuCollectorAPI::get_collection_beatmaps(const OsuCollectorCollectionBeatmapsReq
     );
 }
 
-std::optional<OsuCollectorTournamentsPage>
-OsuCollectorAPI::get_recent_tournaments(const OsuCollectorRecentRequest& request) {
+std::optional<OsuCollectorTournamentsPage> OsuCollectorAPI::get_recent_tournaments(const OsuCollectorRecentRequest& request) {
     query::Parameters parameters;
     add_pagination_parameters(parameters, request);
     return get<OsuCollectorTournamentsPage>("/tournaments/recent", parameters, false);
 }
 
-std::optional<OsuCollectorTournamentsPage>
-OsuCollectorAPI::search_tournaments(const OsuCollectorSearchRequest& request) {
+std::optional<OsuCollectorTournamentsPage> OsuCollectorAPI::search_tournaments(const OsuCollectorSearchRequest& request) {
     query::Parameters parameters;
     add_pagination_parameters(parameters, request);
     query::add_parameter(parameters, "search", request.search);

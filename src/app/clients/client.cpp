@@ -184,8 +184,7 @@ bool ClientBase::matches_filter(const OsuBeatmap& beatmap) const {
         return false;
     }
 
-    if (m_criteria.title.has_filter() &&
-        !m_criteria.matches_text_any({beatmap.title, beatmap.title_unicode}, m_criteria.title)) {
+    if (m_criteria.title.has_filter() && !m_criteria.matches_text_any({beatmap.title, beatmap.title_unicode}, m_criteria.title)) {
         return false;
     }
 
@@ -209,8 +208,7 @@ bool ClientBase::matches_filter(const OsuBeatmap& beatmap) const {
         return false;
     }
 
-    if (m_criteria.overall_difficulty.has_filter() &&
-        !m_criteria.overall_difficulty.matches(beatmap.overall_difficulty)) {
+    if (m_criteria.overall_difficulty.has_filter() && !m_criteria.overall_difficulty.matches(beatmap.overall_difficulty)) {
         return false;
     }
 

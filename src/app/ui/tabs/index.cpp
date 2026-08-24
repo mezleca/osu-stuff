@@ -3,17 +3,17 @@
 #include "../app.hpp"
 #include "../managers/notifications.hpp"
 #include "../widgets/notification.hpp"
-#include "../../../ui/constants.hpp"
-#include "../../../ui/style/theme.hpp"
-#include "../../../ui/layout/modal-container.hpp"
-#include "../../../ui/widgets/button.hpp"
-#include "../../../ui/widgets/checkbox.hpp"
-#include "../../../ui/widgets/dropdown.hpp"
-#include "../../../ui/widgets/number-input.hpp"
-#include "../../../ui/widgets/range.hpp"
-#include "../../../ui/widgets/text-input.hpp"
-#include "../../../ui/widgets/text.hpp"
-#include "../../../ui/layout/stack-container.hpp"
+#include "../widgets/range.hpp"
+#include <ui/constants.hpp>
+#include <ui/style/theme.hpp>
+#include <ui/layout/modal-container.hpp>
+#include <ui/widgets/button.hpp>
+#include <ui/widgets/checkbox.hpp>
+#include <ui/widgets/dropdown.hpp>
+#include <ui/widgets/number-input.hpp>
+#include <ui/widgets/text-input.hpp>
+#include <ui/widgets/text.hpp>
+#include <ui/layout/stack-container.hpp>
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -40,8 +40,7 @@ public:
 class NotificationVisualTestNode final : public ui::StackContainer {
 public:
     NotificationVisualTestNode(
-        UI& surface, UINotificationManager& notification_manager, ui::ModalContainer& modal_container,
-        const ui::Theme& theme
+        UI& surface, UINotificationManager& notification_manager, ui::ModalContainer& modal_container, const ui::Theme& theme
     )
         : ui::StackContainer("notification-test", ui::StackDirection::Horizontal), m_modal_container(modal_container),
           m_theme(theme), m_ui(surface), m_manager(notification_manager) {
@@ -55,20 +54,15 @@ public:
         m_open_modal_button = &add_child<ui::ButtonWidget>(m_ui, "open modal", ImVec2{180.0F, 30.0F});
         m_clear_button = &add_child<ui::ButtonWidget>(m_ui, "clear notifications", ImVec2{180.0F, 30.0F});
 
-        m_add_button->set_size({180.0F, 30.0F});
-        m_open_modal_button->set_size({180.0F, 30.0F});
-        m_clear_button->set_size({180.0F, 30.0F});
-
         m_add_button->on_event = [this](ui::UiEvent& event) {
             if (event.type != ui::EventType::Click) {
                 return;
             }
 
             const auto level = m_manager.count() % 2 == 0 ? LogNotificationLevel::INFO : LogNotificationLevel::WARN;
-            const std::string text = m_manager.count() == 0
-                                         ? "small notification test"
-                                         : "a not so small, kinda big but enormous notification test";
-            static_cast<void>(m_manager.add(std::make_unique<LogNotificationWidget>(m_ui, level, text)));
+            const std::string text =
+                m_manager.count() == 0 ? "small notification test" : "a not so small, kinda big but enormous notification test";
+            m_manager.add(std::make_unique<LogNotificationWidget>(m_ui, level, text));
             event.mark_handled();
         };
 
@@ -94,7 +88,7 @@ public:
 protected:
     void on_update(float dt) override {
         ui::StackContainer::on_update(dt);
-        static_cast<void>(m_count_text->try_set_content(std::format("notifications: {}", m_manager.count())));
+        m_count_text->try_set_content(std::format("notifications: {}", m_manager.count()));
         m_clear_button->set_visible(m_manager.count() > 0);
     }
 
@@ -118,7 +112,6 @@ private:
         auto& close_button = modal.add_child<ui::ButtonWidget>(m_ui, "close modal", ImVec2{160.0F, 36.0F});
 
         input.set_size({400.0F, 36.0F});
-        close_button.set_size({160.0F, 36.0F});
 
         close_button.on_event = [this, &modal](ui::UiEvent& event) {
             if (event.type != ui::EventType::Click) {
@@ -149,8 +142,7 @@ public:
         style().border_color(theme.border_color);
 
         add_child<AnchorVisualTestNode>(
-            "top-left", "anchor: TopLeft\norigin: TopLeft", ui::Anchor::TopLeft, ui::Origin::TopLeft,
-            ImVec2{0.0F, 0.0F}, theme
+            "top-left", "anchor: TopLeft\norigin: TopLeft", ui::Anchor::TopLeft, ui::Origin::TopLeft, ImVec2{0.0F, 0.0F}, theme
         );
 
         add_child<AnchorVisualTestNode>(
@@ -159,32 +151,29 @@ public:
         );
 
         add_child<AnchorVisualTestNode>(
-            "center", "anchor: Center\norigin: Center", ui::Anchor::Center, ui::Origin::Center, ImVec2{0.0F, 0.0F},
-            theme
+            "center", "anchor: Center\norigin: Center", ui::Anchor::Center, ui::Origin::Center, ImVec2{0.0F, 0.0F}, theme
         );
 
         add_child<AnchorVisualTestNode>(
-            "bottom-right", "anchor: BottomRight\norigin: BottomRight", ui::Anchor::BottomRight,
-            ui::Origin::BottomRight, ImVec2{0.0F, 0.0F}, theme
-        );
-
-        add_child<AnchorVisualTestNode>(
-            "top-right", "anchor: TopRight\norigin: TopRight", ui::Anchor::TopRight, ui::Origin::TopRight,
+            "bottom-right", "anchor: BottomRight\norigin: BottomRight", ui::Anchor::BottomRight, ui::Origin::BottomRight,
             ImVec2{0.0F, 0.0F}, theme
+        );
+
+        add_child<AnchorVisualTestNode>(
+            "top-right", "anchor: TopRight\norigin: TopRight", ui::Anchor::TopRight, ui::Origin::TopRight, ImVec2{0.0F, 0.0F},
+            theme
         );
     }
 };
 
 class WidgetVisualTestNode final : public ui::StackContainer {
 public:
-    explicit WidgetVisualTestNode(UI& surface)
-        : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
+    explicit WidgetVisualTestNode(UI& surface) : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
         set_size({0.0F, 360.0F});
         set_spacing(10.0F);
         style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
 
         m_button = &add_child<ui::ButtonWidget>(m_ui, "button", ImVec2{160.0F, 36.0F});
-        m_button->set_size({160.0F, 36.0F});
 
         auto& text_input = add_child<ui::TextInputWidget>(m_ui, m_text_value, "##widget-test-text");
         text_input.set_size({380.0F, 44.0F});
@@ -197,10 +186,10 @@ public:
             std::vector<ui::DropdownOption>{{"recent", "recent"}, {"title", "title"}, {"artist", "artist"}},
             "widget-test-dropdown"
         );
-        dropdown.set_label("sort by").set_size({380.0F, 36.0F});
+        dropdown.set_label("sort by").set_size({380.0F, 62.0F});
 
-        auto& range = add_child<ui::RangeWidget>(m_ui, m_range_minimum, m_range_maximum, "widget-test-range");
-        range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({380.0F, 52.0F});
+        auto& range = add_child<RangeWidget>(m_ui, m_range_minimum, m_range_maximum, "widget-test-range");
+        range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({380.0F, 60.0F});
 
         auto& checkbox = add_child<ui::CheckboxWidget>(m_ui, m_checked, "checkbox", "widget-test-checkbox");
         checkbox.set_size({0.0F, 30.0F});
@@ -249,8 +238,6 @@ public:
         m_result = &add_child<ui::TextWidget>("result: none");
         m_start = &add_child<ui::ButtonWidget>(m_ui, "fetch placeholder todo", ImVec2{220.0F, 36.0F});
         m_cancel = &add_child<ui::ButtonWidget>(m_ui, "cancel", ImVec2{120.0F, 36.0F});
-        m_start->set_size({220.0F, 36.0F});
-        m_cancel->set_size({120.0F, 36.0F});
 
         m_start->on_event = [this](ui::UiEvent& event) {
             if (event.type != ui::EventType::Click) {
@@ -267,7 +254,7 @@ public:
             }
 
             if (m_task.cancel()) {
-                static_cast<void>(m_status->try_set_content("cancellation requested..."));
+                m_status->try_set_content("cancellation requested...");
             }
             event.mark_handled();
         };
@@ -296,8 +283,8 @@ private:
                     }
                 };
                 const cpr::Response response = cpr::Get(
-                    cpr::Url{"https://jsonplaceholder.typicode.com/todos/1"}, cpr::Timeout{10000},
-                    cpr::ConnectTimeout{5000}, cancel_request
+                    cpr::Url{"https://jsonplaceholder.typicode.com/todos/1"}, cpr::Timeout{10000}, cpr::ConnectTimeout{5000},
+                    cancel_request
                 );
                 if (context.cancelled()) {
                     return TaskResult<PlaceholderTodo>::cancelled();
@@ -334,34 +321,31 @@ private:
                 switch (result.status) {
                     case TaskStatus::Success: {
                         const PlaceholderTodo& todo = *result.value;
-                        static_cast<void>(m_status->try_set_content("success"));
-                        static_cast<void>(m_result->try_set_content(
+                        m_status->try_set_content("success");
+                        m_result->try_set_content(
                             std::format("result: {} ({})", todo.title, todo.completed ? "completed" : "not completed")
-                        ));
+                        );
                         break;
                     }
                     case TaskStatus::Failure:
-                        static_cast<void>(m_status->try_set_content(
-                            std::format("failure: {}", result.reason.value_or("unknown reason"))
-                        ));
+                        m_status->try_set_content(std::format("failure: {}", result.reason.value_or("unknown reason")));
                         break;
                     case TaskStatus::Cancelled:
-                        static_cast<void>(m_status->try_set_content("cancelled"));
+                        m_status->try_set_content("cancelled");
                         break;
                 }
             },
             [this](std::string update) {
-                static_cast<void>(m_status->try_set_content(update));
-                auto notification =
-                    std::make_unique<LogNotificationWidget>(m_ui, LogNotificationLevel::INFO, std::move(update));
+                m_status->try_set_content(update);
+                auto notification = std::make_unique<LogNotificationWidget>(m_ui, LogNotificationLevel::INFO, std::move(update));
                 notification->duration = 4.0F;
                 notification->persistent = false;
-                static_cast<void>(m_notification_manager.add(std::move(notification)));
+                m_notification_manager.add(std::move(notification));
             }
         );
 
         if (started) {
-            static_cast<void>(m_result->try_set_content("result: waiting..."));
+            m_result->try_set_content("result: waiting...");
         }
     }
 
@@ -383,8 +367,7 @@ void IndexTab::setup() {
 
         m_modal_layout = &add_child<ui::ModalContainer>(ui());
         m_anchor_visual_test = &add_child<AnchorVisualTestLayout>(theme);
-        m_notification_visual_test =
-            &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
+        m_notification_visual_test = &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
         m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui());
         m_task_visual_test = &add_child<TaskVisualTestNode>(ui(), m_tasks, m_notification_manager);
     }

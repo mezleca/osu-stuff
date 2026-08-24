@@ -1,10 +1,10 @@
 #pragma once
 
 #include "tabs.hpp"
-#include "../../../ui/layout/child-container.hpp"
-#include "../../../ui/layout/resizable-container.hpp"
-#include "../../../ui/layout/stack-container.hpp"
-#include "../../../ui/layout/modal-container.hpp"
+#include <ui/layout/child-container.hpp>
+#include <ui/layout/resizable-container.hpp>
+#include <ui/layout/stack-container.hpp>
+#include <ui/layout/modal-container.hpp>
 
 class UINotificationManager;
 class TaskScheduler;
@@ -39,7 +39,6 @@ private:
 
     ui::ChildContainer* m_content_layout = nullptr;
     ui::ResizableContainer* m_collection_layout = nullptr;
-    ui::ChildContainer* m_beatmaps_layout = nullptr;
     std::string m_collection_search;
 };
 

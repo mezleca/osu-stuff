@@ -1,16 +1,13 @@
 add_executable(tests
     app-database.cpp
+    app-notifications.cpp
+    app-ui-layout.cpp
     beatmap-parser.cpp
     osu-clients.cpp
     osu_api_tests.cpp
     legacy-parser.cpp
     osdb-parser.cpp
     tasks.cpp
-    ui/widgets.cpp
-    ui/core.cpp
-    ui/diagnostics.cpp
-    ui/input.cpp
-    ui/layout.cpp
     utils.cpp
     utils/imgui-context.hpp
     utils/helper.hpp
@@ -19,6 +16,10 @@ add_executable(tests
 target_link_libraries(tests PRIVATE
     osu-stuff-core
     Catch2::Catch2WithMain
+)
+
+target_compile_definitions(tests PRIVATE
+    OSU_STUFF_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
 )
 
 target_include_directories(tests PRIVATE

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../widgets/notification.hpp"
-#include "../../../ui/layout/overlay-container.hpp"
-#include "../../../ui/tree/node.hpp"
+#include <ui/layout/overlay-container.hpp>
+#include <ui/tree/node.hpp>
 
 #include <vector>
 #include <memory>
@@ -13,9 +13,9 @@ class UINotificationManager : public ui::Node {
 public:
     explicit UINotificationManager(UI& ui);
 
-    [[nodiscard]] bool add(std::unique_ptr<UINotification> notification);
-    [[nodiscard]] bool remove(size_t index);
-    [[nodiscard]] bool remove(UINotification* to_remove);
+    bool add(std::unique_ptr<UINotification> notification);
+    bool remove(size_t index);
+    bool remove(UINotification* to_remove);
     [[nodiscard]] UINotification* get(size_t index);
     [[nodiscard]] size_t count() const;
 

@@ -1,5 +1,5 @@
 #include "detail.hpp"
-#include "../../../ui/widgets/text.hpp"
+#include <ui/widgets/text.hpp>
 
 ConfigTab::ConfigTab(UI& ui) : UITab(ui, "config") {}
 
