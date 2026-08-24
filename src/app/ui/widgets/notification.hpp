@@ -16,6 +16,9 @@ class UINotification : public ui::ChildContainer {
 public:
     explicit UINotification(UI& ui);
 
+    float duration = 5.0F;
+    bool persistent = true;
+
     [[nodiscard]] bool on_draw() override = 0;
     virtual void close() = 0;
 
@@ -25,11 +28,13 @@ public:
     UINotification& set_target_offset(ImVec2 value, bool instant = false);
 
 protected:
+    void on_update(float dt) override;
     void on_layout() override;
 
     UI& m_ui;
     ui::Vec2Value m_offset;
     ui::Vec2Value m_current_offset;
+    float m_elapsed = 0.0F;
     bool m_closing = false;
     ui::OverlayPosition m_position = ui::OverlayPosition::RIGHT;
     bool m_position_initialized = false;

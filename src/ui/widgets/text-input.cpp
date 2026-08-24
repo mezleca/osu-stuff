@@ -48,7 +48,7 @@ namespace ui {
         set_font(ui.get_primary_font(18));
 
         configure_all_styles([&theme](Style& style) {
-            style.border_color(theme.border_color, 24.0F)
+            style.border_color(theme.border_color, 0.15F)
                 .padding({12.0F, 14.0F})
                 .background_color(theme.background_secondary_color)
                 .border(BORDER_ALL)

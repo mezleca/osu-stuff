@@ -2,29 +2,28 @@
 #include "../theme.hpp"
 #include "../../../ui/ui.hpp"
 
-static constexpr float LINE_ALPHA_SPEED = 18.0f;
-static constexpr float WIDTH_SPEED = 14.0f;
+static constexpr float TAB_TRANSITION_DURATION = 0.3F;
 
 TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title)
     : ui::Widget({}, ui::WidgetType::TabButton), m_name(name), m_ui(ui), m_draw_line(line), m_title(title) {
 
     if (line) {
-        const auto set_float = [this](ui::StyleType type, const char* name, float value, float speed) {
-            style(type).variables().set(name, ui::FloatValue{value, speed});
+        const auto set_float = [this](ui::StyleType type, const char* name, float value, float duration) {
+            style(type).variables().set(name, ui::FloatValue{value, duration});
         };
 
-        set_float(ui::StyleType::DEFAULT, "line_alpha", 0.0f, LINE_ALPHA_SPEED);
-        set_float(ui::StyleType::DEFAULT, "line_width", 0.0f, WIDTH_SPEED);
-        set_float(ui::StyleType::HOVER, "line_alpha", app_theme::HOVER_LINE_ALPHA, LINE_ALPHA_SPEED);
-        set_float(ui::StyleType::HOVER, "line_width", 1.0f, WIDTH_SPEED);
-        set_float(ui::StyleType::ACTIVE, "line_alpha", 1.0f, LINE_ALPHA_SPEED);
-        set_float(ui::StyleType::ACTIVE, "line_width", 1.0f, WIDTH_SPEED);
+        set_float(ui::StyleType::DEFAULT, "line_alpha", 0.0f, TAB_TRANSITION_DURATION);
+        set_float(ui::StyleType::DEFAULT, "line_width", 0.0f, TAB_TRANSITION_DURATION);
+        set_float(ui::StyleType::HOVER, "line_alpha", app_theme::HOVER_LINE_ALPHA, TAB_TRANSITION_DURATION);
+        set_float(ui::StyleType::HOVER, "line_width", 1.0f, TAB_TRANSITION_DURATION);
+        set_float(ui::StyleType::ACTIVE, "line_alpha", 1.0f, TAB_TRANSITION_DURATION);
+        set_float(ui::StyleType::ACTIVE, "line_width", 1.0f, TAB_TRANSITION_DURATION);
     }
 
     const ui::Theme& theme = m_ui.theme();
 
     configure_all_styles([this, &theme](ui::Style& style) {
-        style.color(m_title ? theme.accent_color : theme.text_secondary_color, 14.0F);
+        style.color(m_title ? theme.accent_color : theme.text_secondary_color, TAB_TRANSITION_DURATION);
     });
 
     style(ui::StyleType::ACTIVE).color(theme.accent_color);

@@ -1,39 +1,38 @@
 #include "collection-card.hpp"
 #include "../../../ui/ui.hpp"
 
-constexpr float ALPHA_ANIM_SPEED = 8.0f;
+constexpr float ALPHA_ANIM_DURATION = 0.15F;
 constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
 
 CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name)
     : ui::ChildContainer({}, ui::WidgetType::CollectionCard), m_ui(ui) {
     const ui::Theme& theme = m_ui.theme();
+
     auto music_icon = m_ui.get_texture("music-icon");
-    const ImColor hidden_border = ui::with_alpha(theme.accent_color, 0.0F);
-    const ImColor hidden_background = ui::with_alpha(theme.button_active_color, 0.0F);
 
     set_font(m_ui.get_font(ui::FontType::SEMIBOLD).get(18));
 
-    configure_all_styles([&theme, hidden_border, hidden_background](ui::Style& style) {
+    configure_all_styles([&theme](ui::Style& style) {
         style.padding({theme.content_padding, 0.0F})
             .border(ui::BORDER_ALL)
             .border_thickness(1.0F)
-            .border_color(hidden_border, ALPHA_ANIM_SPEED)
-            .background_color(hidden_background, ALPHA_ANIM_SPEED);
+            .border_color(ui::with_alpha(theme.accent_color, 0.0F), ALPHA_ANIM_DURATION)
+            .background_color(ui::with_alpha(theme.button_active_color, 0.0F), ALPHA_ANIM_DURATION);
     });
 
     configure_style(ui::StyleType::ACTIVE, [&theme](ui::Style& style) {
-        style.border_color(theme.accent_color, ALPHA_ANIM_SPEED)
-            .background_color(theme.button_active_color, ALPHA_ANIM_SPEED);
+        style.border_color(theme.accent_color, ALPHA_ANIM_DURATION)
+            .background_color(theme.button_active_color, ALPHA_ANIM_DURATION);
     });
 
     configure_style(ui::StyleType::HOVER, [&theme](ui::Style& style) {
-        style.border_color(theme.accent_color, ALPHA_ANIM_SPEED);
+        style.border_color(theme.accent_color, ALPHA_ANIM_DURATION);
     });
 
     m_icon = &add_child<ui::ImageWidget>();
     m_icon->set_texture(music_icon).set_size(ICON_SIZE);
-    m_icon->configure_all_styles([&](ui::Style& style) { style.color(theme.accent_color); });
     m_icon->set_anchor(ui::Anchor::CenterLeft).set_origin(ui::Origin::CenterLeft);
+    m_icon->configure_all_styles([&](ui::Style& style) { style.color(theme.accent_color); });
 
     m_title = &add_child<ui::TextWidget>(std::move(name));
     m_title->set_anchor(ui::Anchor::CenterLeft)

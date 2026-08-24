@@ -128,6 +128,29 @@ TEST_CASE("leaf nodes do not capture an imgui item produced before their draw") 
     REQUIRE(manual_rect.max.y == 80.0F);
 }
 
+TEST_CASE("skipped explicitly placed nodes keep imgui child boundaries valid") {
+    class SkippedNode final : public ui::Node {
+    private:
+        bool on_draw() override {
+            return false;
+        }
+    };
+
+    ui_test::ImGuiContext context({200.0F, 120.0F});
+    ui::ChildContainer container("container");
+    container.set_size({100.0F, 80.0F});
+    auto& skipped = container.add_child<SkippedNode>();
+    skipped.set_placement(ui::Anchor::TopLeft, ui::Origin::TopLeft, {120.0F, 0.0F});
+
+    ImGui::NewFrame();
+    ImGui::Begin("skipped-placement-test");
+    container.draw();
+    ImGui::End();
+    ImGui::EndFrame();
+
+    REQUIRE(skipped.layout().arranged_position().x == container.style().padding().x + 120.0F);
+}
+
 TEST_CASE("notifications animate into the overlay from outside the screen") {
     ui::Runtime runtime;
     static_cast<void>(runtime.add_font(ui::FontType::SEMIBOLD, "resources/fonts/Torus-SemiBold.ttf"));
@@ -166,4 +189,44 @@ TEST_CASE("notifications animate into the overlay from outside the screen") {
     REQUIRE(left_next_x > left_initial_x);
     REQUIRE(left_next_x < left_target_x);
     REQUIRE(initial_left_rect.max.x <= 0.0F);
+}
+
+TEST_CASE("non-persistent notifications close after their duration") {
+    class TimedNotification final : public UINotification {
+    public:
+        explicit TimedNotification(UI& ui) : UINotification(ui) {}
+
+        bool on_draw() override {
+            return true;
+        }
+
+        void close() override {
+            if (m_closing) {
+                return;
+            }
+
+            m_closing = true;
+            ++close_count;
+        }
+
+        int close_count = 0;
+    };
+
+    ui::Runtime runtime;
+    UI surface(runtime, {});
+    TimedNotification notification(surface);
+
+    REQUIRE(notification.persistent);
+    notification.duration = 1.0F;
+    notification.update(2.0F);
+    REQUIRE(notification.close_count == 0);
+
+    notification.persistent = false;
+    notification.update(0.25F);
+    REQUIRE(notification.close_count == 0);
+    notification.update(0.75F);
+    REQUIRE(notification.close_count == 1);
+    REQUIRE(notification.duration == 1.0F);
+    notification.update(1.0F);
+    REQUIRE(notification.close_count == 1);
 }

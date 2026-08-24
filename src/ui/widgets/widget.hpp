@@ -2,7 +2,6 @@
 
 #include "../style/styled-node.hpp"
 #include "../imgui/input-bridge.hpp"
-#include "../style/state.hpp"
 #include "widget-type.hpp"
 
 #include <functional>

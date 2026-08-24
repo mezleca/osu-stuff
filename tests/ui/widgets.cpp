@@ -43,13 +43,13 @@ TEST_CASE("style defaults are independent from runtime themes", "[theme][layout]
     REQUIRE(container.style().border_radius() == Catch::Approx(ui::Theme::defaults().box_rounding));
 }
 
-TEST_CASE("transition reaches target and settles", "[VisualState][transition]") {
+TEST_CASE("style transition duration uses seconds", "[VisualState][transition]") {
     ui::VisualState state;
 
     state.style(ui::StyleType::DEFAULT).color({0.0f, 0.0f, 0.0f, 1.0f});
-    state.style(ui::StyleType::HOVER).color({1.0f, 0.0f, 0.0f, 1.0f}, 8.0F);
+    state.style(ui::StyleType::HOVER).color({1.0f, 0.0f, 0.0f, 1.0f}, 0.2F);
 
-    state.style(ui::StyleType::HOVER).variables().set("rounding", ui::FloatValue{10.0f, 8.0f});
+    state.style(ui::StyleType::HOVER).variables().set("rounding", ui::FloatValue{10.0f, 0.2f});
     state.style(ui::StyleType::DEFAULT).variables().set("rounding", ui::FloatValue{0.0f, 0.0f});
 
     state.style(ui::StyleType::HOVER).variables().set("enabled", ui::BoolValue{true});
@@ -57,34 +57,30 @@ TEST_CASE("transition reaches target and settles", "[VisualState][transition]") 
 
     ui::Vec2Value hover_offset;
     hover_offset.value = {5.0f, 5.0f};
-    hover_offset.speed = 8.0f;
+    hover_offset.duration = 0.2f;
     state.style(ui::StyleType::HOVER).variables().set("offset", hover_offset);
 
     ui::Vec2Value default_offset;
     default_offset.value = {0.0f, 0.0f};
     state.style(ui::StyleType::DEFAULT).variables().set("offset", default_offset);
 
-    state.style(ui::StyleType::HOVER).variables().set("count", ui::IntValue{100, 8.0f});
+    state.style(ui::StyleType::HOVER).variables().set("count", ui::IntValue{100, 0.2f});
     state.style(ui::StyleType::DEFAULT).variables().set("count", ui::IntValue{0, 0.0f});
 
     state.snap_to_style(ui::StyleType::DEFAULT);
     state.set_style(ui::StyleType::HOVER);
 
-    bool settled = false;
+    state.update(0.1F);
+    REQUIRE(state.style().color().get().x == Catch::Approx(0.5F));
+    REQUIRE(state.style().variables().get<ui::FloatValue>("rounding")->value == Catch::Approx(5.0F));
+    REQUIRE(state.style().variables().get<ui::Vec2Value>("offset")->value.x == Catch::Approx(2.5F));
+    REQUIRE(state.style().variables().get<ui::IntValue>("count")->value == 50);
+    REQUIRE(state.style().variables().get<ui::BoolValue>("enabled")->value);
 
-    for (int i = 0; i < 10000; ++i) {
-        state.update(1.0f / 60.0f);
-
-        if (state.style().is_close_to(state.style(ui::StyleType::HOVER), ui::TRANSITION_SETTLE_EPSILON)) {
-            settled = true;
-            break;
-        }
-    }
-
-    REQUIRE(settled);
+    state.update(0.1F);
 
     SECTION("discrete type snaps immediately") {
-        REQUIRE(state.style().variables().get<ui::BoolValue>("enabled")->value == true);
+        REQUIRE(state.style().variables().get<ui::BoolValue>("enabled")->value);
     }
 
     SECTION("color converges") {
@@ -131,15 +127,15 @@ TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState]
     const ImColor accent = ImColor(233, 30, 115, 255);
     const ImColor hidden_accent = ui::with_alpha(accent, 0.0F);
 
-    state.configure_all_styles([&](ui::Style& style) { style.border_color(hidden_accent, 12.0F); });
+    state.configure_all_styles([&](ui::Style& style) { style.border_color(hidden_accent, 0.2F); });
     state.configure_style(ui::StyleType::HOVER, [&](ui::Style& style) { style.border_color(accent); });
 
     state.set_style(ui::StyleType::HOVER);
-    state.update(1.0F / 60.0F);
+    state.update(0.2F);
     const float visible_alpha = state.style().border_color().get().w;
 
     state.set_style(ui::StyleType::DEFAULT);
-    state.update(1.0F / 60.0F);
+    state.update(0.1F);
     const ImVec4 fading_color = state.style().border_color().get();
 
     REQUIRE(visible_alpha > 0.0F);
@@ -148,17 +144,19 @@ TEST_CASE("border alpha fades out when a hover state is cleared", "[VisualState]
     REQUIRE(fading_color.x == Catch::Approx(accent.Value.x));
     REQUIRE(fading_color.y == Catch::Approx(accent.Value.y));
     REQUIRE(fading_color.z == Catch::Approx(accent.Value.z));
+
+    state.update(0.1F);
+    REQUIRE(state.style().border_color().get().w == Catch::Approx(0.0F));
 }
 
 TEST_CASE("opacity ticks towards target and drives visibility", "[widget_state][opacity]") {
     ui::VisualState state;
     state.set_opacity(0.0f);
 
-    for (int i = 0; i < 300; ++i) {
-        state.update(1.0f / 60.0f);
-    }
-
-    REQUIRE(state.opacity() < 0.01f);
+    state.update(0.075F);
+    REQUIRE(state.opacity() == Catch::Approx(0.5F));
+    state.update(0.075F);
+    REQUIRE(state.opacity() == Catch::Approx(0.0F));
     REQUIRE_FALSE(state.is_visible());
 }
 
@@ -201,14 +199,14 @@ TEST_CASE("styled widgets advance visual state during update", "[Widget][style]"
     ui_test::ImGuiContext context({160.0F, 120.0F});
 
     ui::Widget widget("widget");
-    widget.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
-    widget.configure_style(ui::StyleType::HOVER, [](ui::Style& style) { style.color(ImColor{255, 0, 0, 255}, 8.0F); });
+    widget.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 0.2F); });
+    widget.configure_style(ui::StyleType::HOVER, [](ui::Style& style) { style.color(ImColor{255, 0, 0, 255}, 0.2F); });
     widget.set_visual_style(ui::StyleType::HOVER);
 
     ui::VisualState expected;
-    expected.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 8.0F); });
+    expected.configure_all_styles([](ui::Style& style) { style.color(ImColor{0, 0, 0, 255}, 0.2F); });
     expected.configure_style(ui::StyleType::HOVER, [](ui::Style& style) {
-        style.color(ImColor{255, 0, 0, 255}, 8.0F);
+        style.color(ImColor{255, 0, 0, 255}, 0.2F);
     });
     expected.set_style(ui::StyleType::HOVER);
     expected.update(ImGui::GetIO().DeltaTime);
@@ -267,8 +265,8 @@ TEST_CASE("fade in starts new visual states transparent", "[widget_state][opacit
 TEST_CASE("a var introduced only on the target style still appears after transition", "[widget_state][regression]") {
     ui::VisualState state;
 
-    state.style(ui::StyleType::DEFAULT).variables().set("line_alpha", ui::FloatValue{0.0f, 18.0f});
-    state.style(ui::StyleType::HOVER).variables().set("line_alpha", ui::FloatValue{1.0f, 18.0f});
+    state.style(ui::StyleType::DEFAULT).variables().set("line_alpha", ui::FloatValue{0.0f, 0.15f});
+    state.style(ui::StyleType::HOVER).variables().set("line_alpha", ui::FloatValue{1.0f, 0.15f});
 
     const ui::FloatValue* default_alpha = state.style().variables().get<ui::FloatValue>("line_alpha");
     REQUIRE(default_alpha != nullptr);

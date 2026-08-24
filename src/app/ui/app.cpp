@@ -114,7 +114,7 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
 
     add_tab(
         header.add_child<TabButtonWidget>(m_ui, "osu-stuff", false, true),
-        content.add_child<IndexTab>(m_ui, notification_manager)
+        content.add_child<IndexTab>(m_ui, m_tasks, notification_manager)
     );
     add_tab(header.add_child<TabButtonWidget>(m_ui, "collections"), content.add_child<CollectionTab>(m_ui));
     add_tab(header.add_child<TabButtonWidget>(m_ui, "discover"), content.add_child<DiscoverTab>(m_ui));
@@ -123,7 +123,6 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
     add_tab(header.add_child<TabButtonWidget>(m_ui, "status"), content.add_child<StatusTab>(m_ui));
 
     UITab& initial_tab = *m_tabs.front().tab;
-    initial_tab.setup();
     m_tabs.front().button->set_selected(true);
     initial_tab.set_visible(true);
 
@@ -131,10 +130,6 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
         entry.button->on_event = [this, current_tab = entry.tab](ui::UiEvent& event) {
             if (event.type != ui::EventType::Click) {
                 return;
-            }
-
-            if (!current_tab->is_initialized()) {
-                current_tab->setup();
             }
 
             for (auto& entry : m_tabs) {
@@ -145,7 +140,7 @@ OsuStuffApp::OsuStuffApp(ui::Runtime& runtime, ui::Config config) : m_ui(runtime
         };
     }
 
-    if constexpr (constants::IS_DEBUG_BUILD) {
+    if (constants::IS_DEBUG_BUILD) {
         SDL_Log("[OsuStuffApp]: initializing UI debugger");
         setup_debugger();
     }
@@ -196,6 +191,7 @@ void OsuStuffApp::render() {
     }
 
     m_ui.begin_frame();
+    m_tasks.drain();
     const float dt = ImGui::GetIO().DeltaTime;
 
     if (m_debugger) {

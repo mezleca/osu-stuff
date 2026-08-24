@@ -7,7 +7,7 @@
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
 UINotification::UINotification(UI& ui) : ui::ChildContainer({}, ui::WidgetType::Notification), m_ui(ui) {
-    m_offset.speed = 20.0F;
+    m_offset.duration = 0.2F;
     set_anchor(ui::Anchor::TopRight);
     set_origin(ui::Origin::TopRight);
 }
@@ -48,6 +48,17 @@ UINotification& UINotification::set_target_offset(ImVec2 value, bool instant) {
     return *this;
 }
 
+void UINotification::on_update(float dt) {
+    if (persistent || m_closing) {
+        return;
+    }
+
+    m_elapsed += dt;
+    if (m_elapsed >= duration) {
+        close();
+    }
+}
+
 void UINotification::on_layout() {
     ui::Node::set_offset(m_current_offset.value);
 }
@@ -79,7 +90,7 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
 
     configure_all_styles([&theme](ui::Style& style) {
         style.color(theme.text_color)
-            .border_color(theme.border_color, 20.0F)
+            .border_color(theme.border_color, 0.15F)
             .background_color(theme.background_color)
             .padding({8.0F, 16.0F})
             .border_radius(4.0F)

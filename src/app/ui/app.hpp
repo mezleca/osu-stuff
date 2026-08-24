@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../ui/ui.hpp"
+#include "../../tasks/tasks.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <memory>
@@ -35,6 +36,7 @@ namespace app {
         void setup_debugger();
 
         UI m_ui;
+        TaskScheduler m_tasks;
         std::unique_ptr<ui::Debugger> m_debugger;
         std::vector<TabEntry> m_tabs;
         UINotificationManager* m_notification_manager = nullptr;

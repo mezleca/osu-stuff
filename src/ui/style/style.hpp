@@ -71,9 +71,9 @@ namespace ui {
             return m_color;
         }
 
-        Style& color(ImColor value, float transition_speed = -1.0F) {
+        Style& color(ImColor value, float transition_duration = -1.0F) {
             m_color.set(value);
-            if (transition_speed >= 0.0F) m_color.set_speed(transition_speed);
+            if (transition_duration >= 0.0F) m_color.set_duration(transition_duration);
             return *this;
         }
 
@@ -85,9 +85,9 @@ namespace ui {
             return m_border_color;
         }
 
-        Style& border_color(ImColor value, float transition_speed = -1.0F) {
+        Style& border_color(ImColor value, float transition_duration = -1.0F) {
             m_border_color.set(value);
-            if (transition_speed >= 0.0F) m_border_color.set_speed(transition_speed);
+            if (transition_duration >= 0.0F) m_border_color.set_duration(transition_duration);
             return *this;
         }
 
@@ -99,9 +99,9 @@ namespace ui {
             return m_background_color;
         }
 
-        Style& background_color(ImColor value, float transition_speed = -1.0F) {
+        Style& background_color(ImColor value, float transition_duration = -1.0F) {
             m_background_color.set(value);
-            if (transition_speed >= 0.0F) m_background_color.set_speed(transition_speed);
+            if (transition_duration >= 0.0F) m_background_color.set_duration(transition_duration);
             return *this;
         }
 

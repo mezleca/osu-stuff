@@ -5,7 +5,7 @@
 #include <algorithm>
 
 namespace ui {
-    static constexpr float OPACITY_TRANSITION_SPEED = 15.0f;
+    static constexpr float OPACITY_TRANSITION_DURATION = 0.15F;
     static constexpr float TRANSITION_SETTLE_EPSILON = 0.003f;
     static constexpr float VISIBILITY_OPACITY_THRESHOLD = 0.002f;
 
@@ -85,7 +85,7 @@ namespace ui {
                 return;
             }
 
-            const FloatValue target_opacity{m_opacity, OPACITY_TRANSITION_SPEED};
+            const FloatValue target_opacity{m_opacity, OPACITY_TRANSITION_DURATION};
             current_opacity.tick(target_opacity, dt);
             if (current_opacity.is_close(target_opacity, TRANSITION_SETTLE_EPSILON)) {
                 current_opacity.value = m_opacity;

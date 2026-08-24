@@ -15,6 +15,9 @@
 #include "../../../ui/widgets/text.hpp"
 #include "../../../ui/layout/stack-container.hpp"
 
+#include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
+#include <chrono>
 #include <format>
 #include <vector>
 
@@ -229,8 +232,150 @@ private:
     bool m_radio_selected = false;
 };
 
-IndexTab::IndexTab(UI& ui, UINotificationManager& notification_manager)
-    : UITab(ui, "index"), m_notification_manager(notification_manager) {}
+struct PlaceholderTodo {
+    std::string title;
+    bool completed;
+};
+
+class TaskVisualTestNode final : public ui::StackContainer {
+public:
+    TaskVisualTestNode(UI& surface, TaskScheduler& tasks, UINotificationManager& notification_manager)
+        : ui::StackContainer("task-test"), m_ui(surface), m_notification_manager(notification_manager), m_task(tasks) {
+        set_size({0.0F, 170.0F});
+        set_spacing(10.0F);
+        style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+
+        m_status = &add_child<ui::TextWidget>("idle");
+        m_result = &add_child<ui::TextWidget>("result: none");
+        m_start = &add_child<ui::ButtonWidget>(m_ui, "fetch placeholder todo", ImVec2{220.0F, 36.0F});
+        m_cancel = &add_child<ui::ButtonWidget>(m_ui, "cancel", ImVec2{120.0F, 36.0F});
+        m_start->set_size({220.0F, 36.0F});
+        m_cancel->set_size({120.0F, 36.0F});
+
+        m_start->on_event = [this](ui::UiEvent& event) {
+            if (event.type != ui::EventType::Click) {
+                return;
+            }
+
+            start_request();
+            event.mark_handled();
+        };
+
+        m_cancel->on_event = [this](ui::UiEvent& event) {
+            if (event.type != ui::EventType::Click) {
+                return;
+            }
+
+            if (m_task.cancel()) {
+                static_cast<void>(m_status->try_set_content("cancellation requested..."));
+            }
+            event.mark_handled();
+        };
+    }
+
+protected:
+    void on_update(float dt) override {
+        ui::StackContainer::on_update(dt);
+        const bool running = m_task.running();
+        m_start->set_visible(!running);
+        m_cancel->set_visible(running);
+    }
+
+private:
+    void start_request() {
+        const bool started = m_task.start(
+            [](TaskContext& context) -> TaskResult<PlaceholderTodo> {
+                using namespace std::chrono_literals;
+
+                const auto started_at = std::chrono::steady_clock::now();
+                context.send_update("requesting JSONPlaceholder...");
+
+                const cpr::ProgressCallback cancel_request{
+                    [&context](cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, intptr_t) {
+                        return !context.cancelled();
+                    }
+                };
+                const cpr::Response response = cpr::Get(
+                    cpr::Url{"https://jsonplaceholder.typicode.com/todos/1"}, cpr::Timeout{10000},
+                    cpr::ConnectTimeout{5000}, cancel_request
+                );
+                if (context.cancelled()) {
+                    return TaskResult<PlaceholderTodo>::cancelled();
+                }
+                if (response.status_code < 200 || response.status_code >= 300) {
+                    return TaskResult<PlaceholderTodo>::failure(
+                        std::format("request failed: status={} error={}", response.status_code, response.error.message)
+                    );
+                }
+
+                context.send_update("parsing response...");
+
+                PlaceholderTodo todo;
+                try {
+                    const auto json = nlohmann::json::parse(response.text);
+                    todo.title = json.at("title").get<std::string>();
+                    todo.completed = json.at("completed").get<bool>();
+                } catch (const nlohmann::json::exception& error) {
+                    return TaskResult<PlaceholderTodo>::failure(error.what());
+                }
+
+                const auto elapsed = std::chrono::steady_clock::now() - started_at;
+                if (elapsed < 2s) {
+                    context.send_update("waiting for the artificial delay...");
+                    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(2s - elapsed);
+                    if (!context.wait_for(remaining)) {
+                        return TaskResult<PlaceholderTodo>::cancelled();
+                    }
+                }
+
+                return TaskResult<PlaceholderTodo>::success(std::move(todo));
+            },
+            [this](TaskResult<PlaceholderTodo> result) {
+                switch (result.status) {
+                    case TaskStatus::Success: {
+                        const PlaceholderTodo& todo = *result.value;
+                        static_cast<void>(m_status->try_set_content("success"));
+                        static_cast<void>(m_result->try_set_content(
+                            std::format("result: {} ({})", todo.title, todo.completed ? "completed" : "not completed")
+                        ));
+                        break;
+                    }
+                    case TaskStatus::Failure:
+                        static_cast<void>(m_status->try_set_content(
+                            std::format("failure: {}", result.reason.value_or("unknown reason"))
+                        ));
+                        break;
+                    case TaskStatus::Cancelled:
+                        static_cast<void>(m_status->try_set_content("cancelled"));
+                        break;
+                }
+            },
+            [this](std::string update) {
+                static_cast<void>(m_status->try_set_content(update));
+                auto notification =
+                    std::make_unique<LogNotificationWidget>(m_ui, LogNotificationLevel::INFO, std::move(update));
+                notification->duration = 4.0F;
+                notification->persistent = false;
+                static_cast<void>(m_notification_manager.add(std::move(notification)));
+            }
+        );
+
+        if (started) {
+            static_cast<void>(m_result->try_set_content("result: waiting..."));
+        }
+    }
+
+    UI& m_ui;
+    UINotificationManager& m_notification_manager;
+    TaskSlot m_task;
+    ui::TextWidget* m_status = nullptr;
+    ui::TextWidget* m_result = nullptr;
+    ui::ButtonWidget* m_start = nullptr;
+    ui::ButtonWidget* m_cancel = nullptr;
+};
+
+IndexTab::IndexTab(UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager)
+    : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {}
 
 void IndexTab::setup() {
     if (constants::IS_DEBUG_BUILD) {
@@ -241,16 +386,11 @@ void IndexTab::setup() {
         m_notification_visual_test =
             &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
         m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui());
+        m_task_visual_test = &add_child<TaskVisualTestNode>(ui(), m_tasks, m_notification_manager);
     }
-
-    mark_initialized();
 }
 
 void IndexTab::render() {
-    if (!is_initialized()) {
-        return;
-    }
-
     ImGui::TextUnformatted("osu-stuff");
 
     if (constants::IS_DEBUG_BUILD) {
@@ -277,6 +417,11 @@ void IndexTab::render_visual_test() {
 
     if (ImGui::TreeNodeEx("widgets")) {
         m_widget_visual_test->draw();
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("tasks")) {
+        m_task_visual_test->draw();
         ImGui::TreePop();
     }
 

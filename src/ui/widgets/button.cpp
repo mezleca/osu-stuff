@@ -11,13 +11,13 @@ namespace ui {
         configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
                 .background_color(theme.background_secondary_color)
-                .border_color(theme.background_secondary_color, 12.0F)
+                .border_color(theme.background_secondary_color, 0.2F)
                 .padding({12.0F, 6.0F})
                 .border_radius(4.0F)
                 .border_thickness(2.0F);
         });
 
-        configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color, 20.0F); });
+        configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color, 0.2F); });
 
         configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.border_color); });
     }

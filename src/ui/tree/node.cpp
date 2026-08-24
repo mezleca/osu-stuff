@@ -274,6 +274,9 @@ namespace ui {
             ImGui::GetCurrentContext() == nullptr ? Rect{} : Rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
 
         if (!on_draw()) {
+            if (m_layout.has_explicit_position() && ImGui::GetCurrentContext() != nullptr) {
+                ImGui::Dummy({});
+            }
             return;
         }
 

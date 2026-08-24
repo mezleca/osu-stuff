@@ -14,8 +14,8 @@ namespace ui {
         const Theme& theme = m_ui.theme();
         configure_all_styles([&theme](Style& style) {
             style.color(theme.text_color)
-                .background_color(theme.control_background_color, 18.0F)
-                .border_color(theme.control_border_color, 18.0F)
+                .background_color(theme.control_background_color, 0.15F)
+                .border_color(theme.control_border_color, 0.15F)
                 .padding({4.0F, 4.0F})
                 .border(BORDER_ALL)
                 .border_radius(theme.checkbox_rounding)

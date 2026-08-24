@@ -104,8 +104,7 @@ namespace ui {
             draw_line({max.x - distance, max.y}, {max.x, max.y - distance}, border_color, border_thickness);
             draw_line(
                 {max.x - distance + border_thickness + 0.5f, max.y},
-                {max.x, max.y - distance + border_thickness + 0.5f}, ImColor(20.0F, 20.0F, 20.0F, 255.0F),
-                border_thickness
+                {max.x, max.y - distance + border_thickness + 0.5f}, {20, 20, 20, 255}, border_thickness
             );
         }
     }

@@ -1,4 +1,4 @@
-#include "utils/thread_pool.hpp"
+#include "tasks/thread-pool.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>
@@ -15,7 +15,7 @@ constexpr int PRODUCER_COUNT = 4;
 constexpr int TASKS_PER_PRODUCER = 8;
 constexpr auto WAIT_TIMEOUT = std::chrono::seconds(2);
 
-TEST_CASE("thread pool", "[utils][thread_pool]") {
+TEST_CASE("thread pool", "[utils][thread-pool]") {
     SECTION("executes queued backlog after workers become available") {
         ThreadPool pool;
         pool.initialize();

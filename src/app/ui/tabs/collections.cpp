@@ -73,15 +73,9 @@ void CollectionTab::setup() {
     m_content_layout = &content_layout;
     content_layout.add(std::move(collection_layout));
     content_layout.add(std::move(beatmaps_layout));
-
-    mark_initialized();
 }
 
 void CollectionTab::render() {
-    if (!is_initialized()) {
-        return;
-    }
-
     m_content_layout->set_size({0.0F, ImGui::GetContentRegionAvail().y});
     m_content_layout->draw();
 }
