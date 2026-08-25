@@ -56,7 +56,7 @@ bool TabButtonWidget::on_draw() {
     const ui::Style& style = this->style();
     const bool pressed = ImGui::Button(m_name.c_str());
 
-    const ui::ItemInputState input = m_ui.input().observe(*this);
+    const ui::ItemInputState input = m_ui.input().observe_item(*this);
 
     if (m_draw_line) {
         const ui::FloatValue* line_alpha = style.variables().get<ui::FloatValue>("line_alpha");

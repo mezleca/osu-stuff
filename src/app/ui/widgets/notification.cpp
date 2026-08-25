@@ -201,7 +201,7 @@ void LogNotificationWidget::on_draw_end() {
     const ui::Rect child_rect = layout().screen_rect();
     const ImVec2 child_size = child_rect.size();
 
-    const ui::ItemInputState input = m_ui.input().observe(*this);
+    const ui::ItemInputState input = m_ui.input().observe_item(*this);
 
     if (m_closing) {
         set_interaction_style(false, false);

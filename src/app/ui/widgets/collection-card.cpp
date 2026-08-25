@@ -69,7 +69,7 @@ void CollectionCardWidget::set_count(std::string count) {
 void CollectionCardWidget::on_draw_end() {
     ui::ChildContainer::on_draw_end();
 
-    const ui::ItemInputState input = m_ui.input().observe(*this);
+    const ui::ItemInputState input = m_ui.input().observe_item(*this);
 
     if (m_selected) {
         set_visual_style(ui::StyleType::ACTIVE);

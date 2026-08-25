@@ -206,7 +206,7 @@ bool RangeWidget::on_draw() {
     maximum_x = value_position(*m_maximum, value_track_start, value_track_width);
     draw_track({track_min, track_max}, minimum_x, maximum_x, thumb_width);
 
-    const ui::ItemInputState input = m_ui.input().observe(*this);
+    const ui::ItemInputState input = m_ui.input().observe_item(*this);
     ImGui::PopID();
     apply_input_state(input);
     return true;

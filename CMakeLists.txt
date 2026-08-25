@@ -36,7 +36,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SQLITECPP_BUILD_TESTS OFF)
 set(CPR_CURL_USE_LIBPSL FALSE CACHE BOOL "" FORCE)
 
 if(NOT DEFINED OUTPUT_NAME OR OUTPUT_NAME STREQUAL "")
@@ -65,7 +64,6 @@ endif()
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-    set(SQLITECPP_INTERNAL_SQLITE ON)
 endif()
 
 configure_sdl()
@@ -75,7 +73,6 @@ add_subdirectory(vendor/json)
 add_subdirectory(vendor/cpr)
 add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/lunasvg)
-add_subdirectory(vendor/sqlitecpp)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
 
@@ -113,8 +110,6 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     miniz
     cpprealm
     utf8proc
-    SQLiteCpp
-    sqlite3
     lunasvg
     cpr
     nlohmann_json

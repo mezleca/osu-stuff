@@ -14,7 +14,7 @@ TEST_CASE("notifications animate into the overlay from outside the screen") {
     runtime.add_font(
         ui::FontType::SEMIBOLD, std::filesystem::path(OSU_STUFF_SOURCE_DIR) / "resources/runtime/fonts/Torus-SemiBold.ttf"
     );
-    UI surface(runtime, {});
+    UI surface(runtime, ui::Config{});
     UINotificationManager manager(surface);
     REQUIRE(manager.add(std::make_unique<LogNotificationWidget>(surface, LogNotificationLevel::INFO, "notification")));
 
@@ -73,7 +73,7 @@ TEST_CASE("non-persistent notifications close after their duration") {
     };
 
     ui::Runtime runtime;
-    UI surface(runtime, {});
+    UI surface(runtime, ui::Config{});
     TimedNotification notification(surface);
 
     REQUIRE(notification.persistent);
