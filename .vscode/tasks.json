@@ -3,11 +3,13 @@
     "tasks": [
         {
             "label": "build-osu-stuff",
-            "type": "shell",
-            "command": "sh",
+            "type": "process",
+            "command": "python",
             "args": [
-                "-c",
-                "./ez build --type='debug'"
+                "${workspaceFolder}/ez",
+                "build",
+                "--type",
+                "debug"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

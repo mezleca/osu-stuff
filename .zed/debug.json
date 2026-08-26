@@ -6,10 +6,12 @@
         "program": "$ZED_WORKTREE_ROOT/build/debug/osu-stuff",
         "cwd": "$ZED_WORKTREE_ROOT/build/debug",
         "build": {
-            "command": "sh",
+            "command": "python",
             "args": [
-                "-c",
-                "./ez build --type='debug'"
+                "$ZED_WORKTREE_ROOT/ez",
+                "build",
+                "--type",
+                "debug"
             ],
             "cwd": "$ZED_WORKTREE_ROOT"
         }

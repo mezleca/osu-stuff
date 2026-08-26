@@ -11,7 +11,7 @@
             "cppStandard": "c++20",
             "intelliSenseMode": "linux-clang-x64",
             "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
+                "${workspaceFolder}/build/debug/compile_commands.json"
             ]
         }
     ],

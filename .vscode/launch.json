@@ -5,16 +5,16 @@
             "name": "Debug osu-stuff (Linux)",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/build/osu-stuff",
-            "cwd": "${workspaceFolder}/build",
+            "program": "${workspaceFolder}/build/debug/osu-stuff",
+            "cwd": "${workspaceFolder}/build/debug",
             "preLaunchTask": "build-osu-stuff"
         },
         {
             "name": "Debug osu-stuff (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/osu-stuff.exe",
-            "cwd": "${workspaceFolder}/build",
+            "program": "${workspaceFolder}/build/debug/osu-stuff.exe",
+            "cwd": "${workspaceFolder}/build/debug",
             "preLaunchTask": "build-osu-stuff",
             "console": "integratedTerminal"
         }
