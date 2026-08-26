@@ -21,7 +21,7 @@ namespace ui_test {
             ImGui::SetCurrentContext(m_previous);
         }
 
-        void build_fonts() {
+        static void build_fonts() {
             unsigned char* pixels = nullptr;
             int width = 0;
             int height = 0;

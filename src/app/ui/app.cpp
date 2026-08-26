@@ -9,7 +9,6 @@
 #include <ui/imgui/context-scope.hpp>
 #include <ui/layout/child-container.hpp>
 #include <ui/layout/stack-container.hpp>
-
 #include <SDL3/SDL_log.h>
 #include <algorithm>
 

@@ -87,11 +87,7 @@ void UINotificationManager::on_update(float dt) {
     m_more_notifications.update(dt);
 }
 
-void UINotificationManager::draw() {
-    if (!visible()) {
-        return;
-    }
-
+bool UINotificationManager::on_draw() {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -102,8 +98,11 @@ void UINotificationManager::draw() {
     const ImVec2 window_size = ImGui::GetWindowSize();
     resolve_size(window_size);
     set_screen_rect(ui::Rect::from_position_size(window_position, window_size));
-    m_ui.input_router().register_region_in_layer(*this, layout().screen_rect(), ui::InputLayer::Notification);
 
+    return true;
+}
+
+void UINotificationManager::draw_children() {
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const ImVec2 initial_offset = {m_position == ui::OverlayPosition::LEFT ? 5.0F : -5.0F, m_header_height + 10.0F};
     const float more_height = std::max(48.0F, m_more_notifications.layout().screen_rect().size().y);
@@ -141,7 +140,9 @@ void UINotificationManager::draw() {
     }
 
     m_rendering = false;
+}
 
+void UINotificationManager::on_draw_end() {
     for (UINotification* notification : m_pending_removals) {
         remove(notification);
     }

@@ -25,8 +25,6 @@ public:
         return false;
     }
 
-    void draw() override;
-
     void set_header_height(float height) {
         m_header_height = height;
     }
@@ -35,6 +33,9 @@ public:
 
 private:
     void on_update(float dt) override;
+    bool on_draw() override;
+    void draw_children() override;
+    void on_draw_end() override;
 
     UI& m_ui;
     LogNotificationWidget m_more_notifications;

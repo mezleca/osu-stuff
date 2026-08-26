@@ -43,7 +43,7 @@ int main() {
         runtime.add_font(ui::FontType::SEMIBOLD, resources_path / "fonts/Torus-SemiBold.ttf");
         runtime.add_font(ui::FontType::BOLD, resources_path / "fonts/Torus-Bold.ttf");
 
-        for (const std::string_view id : {"circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
+        for (const std::string_view id : {"chevron-icon", "circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
             runtime.add_resource(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"));
         }
 

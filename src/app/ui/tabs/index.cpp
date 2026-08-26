@@ -4,6 +4,7 @@
 #include "../managers/notifications.hpp"
 #include "../widgets/notification.hpp"
 #include "../widgets/range.hpp"
+#include "../widgets/context-menu.hpp"
 #include <ui/constants.hpp>
 #include <ui/style/theme.hpp>
 #include <ui/layout/modal-container.hpp>
@@ -168,9 +169,12 @@ public:
 
 class WidgetVisualTestNode final : public ui::StackContainer {
 public:
-    explicit WidgetVisualTestNode(UI& surface) : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
+    WidgetVisualTestNode(UI& surface, ContextMenuWidget& context_menu)
+        : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
         set_size({0.0F, 360.0F});
         set_spacing(10.0F);
+        set_scrollable(true);
+
         style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
 
         m_button = &add_child<ui::ButtonWidget>(m_ui, "button", ImVec2{160.0F, 36.0F});
@@ -196,6 +200,14 @@ public:
 
         auto& radio = add_child<ui::CheckboxWidget>(m_ui, m_radio_selected, "radio", "widget-test-radio");
         radio.set_type(ui::CheckboxType::Radio).set_size({0.0F, 30.0F});
+
+        on_event = [&context_menu](ui::UiEvent& event) {
+            if (event.type == ui::EventType::ContextClick) {
+                context_menu.show(event.position);
+                event.mark_handled();
+                return;
+            }
+        };
 
         m_button->on_event = [this](ui::UiEvent& event) {
             if (event.type != ui::EventType::Click) {
@@ -359,7 +371,13 @@ private:
 };
 
 IndexTab::IndexTab(UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager)
-    : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {}
+    : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {
+    if (constants::IS_DEBUG_BUILD) {
+        m_context_menu = &ui.root().add_child<ContextMenuWidget>(
+            ui, ContextMenuList{{.name = "reload"}, {.name = "options", .children = {{.name = "inspect"}}}}
+        );
+    }
+}
 
 void IndexTab::setup() {
     if (constants::IS_DEBUG_BUILD) {
@@ -368,7 +386,7 @@ void IndexTab::setup() {
         m_modal_layout = &add_child<ui::ModalContainer>(ui());
         m_anchor_visual_test = &add_child<AnchorVisualTestLayout>(theme);
         m_notification_visual_test = &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
-        m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui());
+        m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui(), *m_context_menu);
         m_task_visual_test = &add_child<TaskVisualTestNode>(ui(), m_tasks, m_notification_manager);
     }
 }

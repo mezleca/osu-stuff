@@ -8,6 +8,7 @@
 
 class UINotificationManager;
 class TaskScheduler;
+class ContextMenuWidget;
 
 class IndexTab : public UITab {
 public:
@@ -24,6 +25,7 @@ private:
     ui::ChildContainer* m_notification_visual_test = nullptr;
     ui::ChildContainer* m_widget_visual_test = nullptr;
     ui::ChildContainer* m_task_visual_test = nullptr;
+    ContextMenuWidget* m_context_menu = nullptr;
 
     TaskScheduler& m_tasks;
     UINotificationManager& m_notification_manager;
