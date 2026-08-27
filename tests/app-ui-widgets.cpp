@@ -1,7 +1,7 @@
-#include <app/ui/widgets/context-menu.hpp>
-#include <app/ui/widgets/range.hpp>
+#include <ui/widgets/context-menu.hpp>
+#include <ui/widgets/range.hpp>
 
-#include "app/ui/managers/notifications.hpp"
+#include "ui/managers/notifications.hpp"
 #include "utils/imgui-context.hpp"
 
 #include <ui/layout/stack-container.hpp>
@@ -16,6 +16,8 @@
 #include <filesystem>
 #include <memory>
 #include <utility>
+
+using namespace app;
 
 namespace app_ui_widgets_test {
     void draw_context_menu(UI& surface, float dt = 0.2F) {

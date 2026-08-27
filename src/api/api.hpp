@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../utils/log.hpp"
 #include "../utils/query.hpp"
 
 #include <chrono>
 #include <cstdint>
 #include <cpr/api.h>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
@@ -125,7 +125,7 @@ protected:
         try {
             return json->get<T>();
         } catch (const nlohmann::json::exception& error) {
-            std::cerr << "[api] failed to parse response: " << error.what() << "\n";
+            LOG_ERROR("[api] failed to parse response: {}", error.what());
             return std::nullopt;
         }
     }

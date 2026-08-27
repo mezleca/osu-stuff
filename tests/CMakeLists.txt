@@ -7,6 +7,7 @@ add_executable(tests
     legacy-parser.cpp
     osdb-parser.cpp
     tasks.cpp
+    paths.cpp
     utils.cpp
     utils/imgui-context.hpp
     utils/helper.hpp

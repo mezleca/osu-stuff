@@ -1,5 +1,5 @@
-#include "app/clients/lazer.hpp"
-#include "app/clients/stable.hpp"
+#include "clients/lazer.hpp"
+#include "clients/stable.hpp"
 #include "parser/legacy/legacy_collection.hpp"
 #include "utils/helper.hpp"
 
@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 #include <string_view>
+
+using namespace app;
 
 constexpr int STABLE_BEATMAP_COUNT = 47;
 constexpr int LAZER_BEATMAP_COUNT = 48;

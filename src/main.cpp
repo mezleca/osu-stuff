@@ -1,8 +1,10 @@
 #include <ui/ui.hpp>
 #include <ui/backends/sdl/backend.hpp>
 #include <ui/backends/sdl/icon.hpp>
-#include "app/ui/app.hpp"
-#include "utils/resources.hpp"
+#include "database/database.hpp"
+#include "ui/app.hpp"
+#include "utils/log.hpp"
+#include "utils/paths.hpp"
 
 #include <SDL3/SDL.h>
 #include <filesystem>
@@ -10,11 +12,9 @@
 #include <string>
 #include <string_view>
 
-static constexpr ImVec2 DEFAULT_WINDOW_SIZE = {1280.0F, 720.0F};
-
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
-        SDL_Log("SDL_Init(): %s", SDL_GetError());
+        LOG_ERROR("SDL_Init(): {}", SDL_GetError());
         return 1;
     }
 
@@ -33,7 +33,12 @@ int main() {
     ui::set_backend(ui::create_sdl_backend);
 
     const int exit_code = [&]() {
-        const std::filesystem::path resources_path = resources::path();
+        const auto local_resources = paths::local_resources();
+        const auto installed_resources = paths::installed_resources();
+        const std::filesystem::path resources_path =
+            std::filesystem::is_directory(local_resources)
+                ? local_resources
+                : (std::filesystem::is_directory(installed_resources) ? installed_resources : local_resources);
 
         ui::RuntimeConfig runtime_config;
         runtime_config.icon_loader = ui::make_sdl_icon_loader();
@@ -49,11 +54,15 @@ int main() {
 
         ui::Config config{
             .title = "osu-stuff",
-            .size = DEFAULT_WINDOW_SIZE,
+            .size = {1280.0F, 720.0F},
             .resizable = true,
         };
 
-        auto app = std::make_unique<app::OsuStuffApp>(runtime, config);
+        app::AppDatabase database_instance(paths::app_data() / "osu-stuff" / "realm" / "database.realm");
+        database_instance.initialize();
+        app::database = &database_instance;
+
+        auto app = std::make_unique<app::AppUI>(runtime, config);
 
         SDL_GL_SetSwapInterval(1);
 

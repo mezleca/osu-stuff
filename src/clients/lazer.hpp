@@ -1,0 +1,30 @@
+#pragma once
+
+#include "client.hpp"
+
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace realm {
+    struct db;
+}
+
+namespace app {
+
+    class LazerClient : public ClientBase {
+    public:
+        explicit LazerClient(ClientOptions options);
+        ~LazerClient() override;
+
+        [[nodiscard]] const char* player_name() const override;
+        [[nodiscard]] std::vector<std::string> fetch_missing_beatmaps_from_collections(std::string_view collection_name) override;
+        [[nodiscard]] bool update_collection() override;
+
+    private:
+        ClientOptions m_options;
+        std::string m_player_name;
+        std::unique_ptr<realm::db> m_realm;
+    };
+
+} // namespace app

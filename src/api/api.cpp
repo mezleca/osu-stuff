@@ -1,6 +1,5 @@
 #include "api.hpp"
 
-#include <iostream>
 #include <format>
 #include <nlohmann/json.hpp>
 #include <utility>
@@ -15,7 +14,7 @@ static std::optional<cpr::Response> oauth_code_exchange(const OAuthAuthRequest& 
     const auto& code = data.code;
 
     if (id.empty() || secret.empty() || !code.has_value()) {
-        std::cout << "[error] oauth_code_exchange: cannot proceed due to missing data\n";
+        LOG_ERROR("oauth_code_exchange: cannot proceed due to missing data");
         return std::nullopt;
     }
 
@@ -37,7 +36,7 @@ static std::optional<cpr::Response> oauth_refresh_access_token(const OAuthAuthRe
     const auto& refresh_token = data.refresh_token;
 
     if (id.empty() || secret.empty() || refresh_token.empty()) {
-        std::cout << "[error] oauth_refresh_access_token: cannot proceed due to missing data\n";
+        LOG_ERROR("oauth_refresh_access_token: cannot proceed due to missing data");
         return std::nullopt;
     }
 
@@ -58,7 +57,7 @@ static std::optional<cpr::Response> oauth_client_credentials_grant(const OAuthAu
     const auto& secret = data.client_secret;
 
     if (id.empty() || secret.empty()) {
-        std::cout << "[error] oauth_client_credentials_grant: cannot proceed due to missing data\n";
+        LOG_ERROR("oauth_client_credentials_grant: cannot proceed due to missing data");
         return std::nullopt;
     }
 
@@ -85,7 +84,7 @@ bool OAuthApi::authenticate() {
 
 std::optional<nlohmann::json> OAuthApi::parse_response(const cpr::Response& response) {
     if (!is_success(response)) {
-        std::cerr << "[api] request failed: status=" << response.status_code << " error=" << response.error.message << "\n";
+        LOG_ERROR("[api] request failed: status={} error={}", response.status_code, response.error.message);
         return std::nullopt;
     }
 
@@ -96,14 +95,14 @@ std::optional<nlohmann::json> OAuthApi::parse_response(const cpr::Response& resp
     try {
         return nlohmann::json::parse(response.text);
     } catch (const nlohmann::json::parse_error& error) {
-        std::cerr << "[api] failed to parse response body: " << error.what() << "\n";
+        LOG_ERROR("[api] failed to parse response body: {}", error.what());
         return std::nullopt;
     }
 }
 
 bool OAuthApi::store_token(const nlohmann::json& json) {
     if (!json.is_object()) {
-        std::cerr << "[api] failed to store token (payload is not an object)\n";
+        LOG_ERROR("[api] failed to store token (payload is not an object)");
         return false;
     }
 
@@ -111,12 +110,12 @@ bool OAuthApi::store_token(const nlohmann::json& json) {
     try {
         data = json.get<OAuthTokenData>();
     } catch (const nlohmann::json::exception& error) {
-        std::cerr << "[api] failed to store token: " << error.what() << "\n";
+        LOG_ERROR("[api] failed to store token: {}", error.what());
         return false;
     }
 
     if (data.access_token.empty() || data.expires_in <= 0) {
-        std::cout << "[api] failed to store token (invalid data)\n";
+        LOG_ERROR("[api] failed to store token (invalid data)");
         return false;
     }
 
@@ -158,7 +157,7 @@ bool OAuthApi::get_or_refresh_access_token(OAuthAuthType type, OAuthAuthRequest&
 
     const auto json = parse_response(response);
     if (!json.has_value()) {
-        std::cout << "[api] get_or_refresh_access_token received invalid JSON\n";
+        LOG_ERROR("[api] get_or_refresh_access_token received invalid JSON");
         return false;
     }
 

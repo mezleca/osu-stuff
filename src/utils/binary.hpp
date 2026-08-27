@@ -1,17 +1,17 @@
 #pragma once
 
+#include "log.hpp"
+
 #include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utf8proc.h>
 #include <vector>
-#include <format>
 
 namespace binary {
     struct BinaryCursor {
@@ -318,7 +318,7 @@ namespace binary {
         auto result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
 
         if (result.ec == std::errc::invalid_argument || result.ptr != sv.data() + sv.size()) {
-            std::cout << std::format("str_to<{}>(): failed to convert {}", typeid(T).name(), sv);
+            LOG_ERROR("str_to<{}>(): failed to convert {}", typeid(T).name(), sv);
             return _d;
         }
 
