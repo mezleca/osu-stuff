@@ -14,10 +14,8 @@
 #include <type_traits>
 #include <utility>
 
-// TOFIX / TODO
-// 1 - FileSelectorWidget for location fields
-// 2 - either implement a file navigation widget (to use on a modal)
-// or get a library to do file dialog stuff
+// todo: add a file selector for location fields.
+// todo: use a file navigation widget or a file dialog library.
 
 using namespace ui;
 using namespace app;
@@ -32,7 +30,7 @@ protected:
     explicit ConfigFieldBase(UI& ui) : StackContainer({}, StackDirection::Vertical), m_ui(ui) {
         set_spacing(7.0F);
         fit_content_height();
-        style().padding({5.0F, 5.0F});
+        configure_all_styles([](Style& style) { style.padding({5.0F, 5.0F}); });
     }
 
     void configure_input(StyledNode& input, ImVec2 padding) {
@@ -70,15 +68,6 @@ protected:
     TextWidget* m_description = nullptr;
 
 private:
-    virtual void commit_binding() = 0;
-
-    void on_draw_end() override {
-        if (m_widget != nullptr && m_widget->changed()) {
-            commit_binding();
-        }
-
-        StackContainer::on_draw_end();
-    }
 };
 
 template <typename T>
@@ -105,6 +94,7 @@ private:
     void add_checkbox(std::string label) {
         auto& checkbox = add_child<CheckboxWidget>(m_ui, m_binding.value(), std::move(label));
         checkbox.set_font(m_ui.get_font(FontType::BOLD).get(18));
+        checkbox.on_change = [this] { m_binding.commit(); };
         m_widget = &checkbox;
     }
 
@@ -125,20 +115,18 @@ private:
             input.set_font(m_ui.get_primary_font(20));
 
             configure_input(input, {12.0F, 11.0F});
+            input.on_change = [this] { m_binding.commit(); };
             m_widget = &input;
         } else if constexpr (requires { NumberInputWidget(m_ui, m_binding.value()); }) {
             auto& input = add_child<NumberInputWidget>(m_ui, m_binding.value());
             input.set_font(m_ui.get_font(FontType::BOLD).get(18));
 
             configure_input(input, {10.0F, 5.0F});
+            input.on_change = [this] { m_binding.commit(); };
             m_widget = &input;
         } else {
             static_assert(std::is_same_v<T, void>, "unsupported config field type");
         }
-    }
-
-    void commit_binding() override {
-        m_binding.commit();
     }
 
     DatabaseBinding<T> m_binding;
@@ -154,16 +142,12 @@ public:
         add_description(std::move(info.description));
 
         auto& dropdown = add_child<DropdownWidget>(m_ui, m_binding.value(), std::move(options));
-        dropdown.set_font(m_ui.get_font(FontType::BOLD).get(18));
-        configure_input(dropdown.trigger(), {10.0F, 5.0F});
+        configure_input(dropdown.trigger(), {10.0F, 6.0F});
+        dropdown.on_change = [this] { m_binding.commit(); };
         m_widget = &dropdown;
     }
 
 private:
-    void commit_binding() override {
-        m_binding.commit();
-    }
-
     DatabaseBinding<std::string> m_binding;
 };
 
@@ -197,6 +181,11 @@ ConfigTab::ConfigTab(UI& ui) : UITab(ui, "config") {}
 void ConfigTab::setup() {
     m_content_layout = &add_child<StackContainer>("##config-content");
     m_content_layout->set_spacing(6.0F);
+    m_content_layout->set_scrollable(true);
+    const Theme& theme = ui().theme();
+    m_content_layout->configure_all_styles([&theme](Style& style) {
+        style.padding({theme.content_padding, theme.content_padding});
+    });
 
     if (database == nullptr) {
         LOG_WARN("[ConfigTab] cant build config layout (database is nullptr)");

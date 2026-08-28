@@ -16,12 +16,12 @@ namespace app {
         RangeWidget& set_label(std::string label);
         RangeWidget& set_bounds(float minimum, float maximum);
         RangeWidget& set_step(float step);
-        [[nodiscard]] bool changed() const override;
+        [[nodiscard]] bool changed() const;
         [[nodiscard]] ui::Widget& minimum_thumb();
         [[nodiscard]] ui::Widget& maximum_thumb();
-        [[nodiscard]] bool on_draw() override;
 
     private:
+        bool paint_content() override;
         void configure_default_styles();
         void normalize_values();
         void update_value_from_input(float track_start, float track_width, float minimum_x, float maximum_x);

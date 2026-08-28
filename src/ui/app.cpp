@@ -99,7 +99,6 @@ AppUI::AppUI(ui::Runtime& runtime, const ui::Config& config) : m_ui(runtime, con
     auto& content = app_layout.add_child<AppContentNode>(m_ui);
     auto& notification_manager = m_ui.root().add_child<UINotificationManager>(m_ui);
 
-    notification_manager.set_input_layer(ui::InputLayer::Notification);
     m_notification_manager = &notification_manager;
 
     const auto add_tab = [this](TabButtonWidget& button, UITab& tab) {

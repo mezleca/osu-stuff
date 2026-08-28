@@ -8,7 +8,6 @@
 class UI;
 
 namespace app {
-
     class UITab : public ui::Node {
     public:
         UITab(UI& ui, std::string id) : ui::Node(std::move(id)), m_ui(ui) {}

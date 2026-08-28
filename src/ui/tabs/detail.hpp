@@ -8,9 +8,12 @@
 
 class TaskScheduler;
 
+namespace ui {
+    class ContextMenuWidget;
+}
+
 namespace app {
     class UINotificationManager;
-    class ContextMenuWidget;
 
     class IndexTab : public UITab {
     public:
@@ -20,14 +23,9 @@ namespace app {
         void setup() override;
         void render() override;
 
-        void render_visual_test();
-
         ui::ModalContainer* m_modal_layout = nullptr;
-        ui::ChildContainer* m_anchor_visual_test = nullptr;
-        ui::ChildContainer* m_notification_visual_test = nullptr;
-        ui::ChildContainer* m_widget_visual_test = nullptr;
-        ui::ChildContainer* m_task_visual_test = nullptr;
-        ContextMenuWidget* m_context_menu = nullptr;
+        ui::ChildContainer* m_visual_test_layout = nullptr;
+        ui::ContextMenuWidget* m_context_menu = nullptr;
 
         TaskScheduler& m_tasks;
         UINotificationManager& m_notification_manager;

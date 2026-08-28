@@ -21,7 +21,6 @@ namespace app {
         float duration = 5.0F;
         bool persistent = true;
 
-        [[nodiscard]] bool on_draw() override = 0;
         virtual void close() = 0;
 
         [[nodiscard]] const ui::Vec2Value& target_offset() const;
@@ -53,7 +52,6 @@ namespace app {
     public:
         LogNotificationWidget(UI& ui, LogNotificationLevel level, std::string text);
 
-        [[nodiscard]] bool on_draw() override;
         void close() override;
         void set_text(std::string_view text);
 
@@ -61,6 +59,7 @@ namespace app {
 
     private:
         static ImColor border_color(LogNotificationLevel level, ImColor accent_color);
+        bool paint_content() override;
         void on_measure() override;
         void draw_children() override;
         void on_draw_end() override;

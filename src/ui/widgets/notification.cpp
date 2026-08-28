@@ -101,7 +101,6 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
     });
 
     set_font(torus_semi);
-    fade_in();
 
     const ImColor level_border_color = border_color(m_level, theme.accent_color);
 
@@ -113,6 +112,7 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
     m_text_node->set_wrap(256.0F - CLOSE_ICON_SIZE.x - 8.0F);
 
     m_icon = &add_child<ui::ImageWidget>();
+    m_icon->set_input_target();
     m_icon->set_texture(close_icon);
     m_icon->set_size(CLOSE_ICON_SIZE);
     m_icon->set_anchor(ui::Anchor::CenterLeft);
@@ -147,7 +147,7 @@ void LogNotificationWidget::close() {
 }
 
 void LogNotificationWidget::set_text(std::string_view text) {
-    m_text_node->try_set_content(std::string{text});
+    m_text_node->set_text(std::string{text});
 }
 
 void LogNotificationWidget::on_measure() {
@@ -167,10 +167,9 @@ void LogNotificationWidget::on_measure() {
     });
 }
 
-bool LogNotificationWidget::on_draw() {
+bool LogNotificationWidget::paint_content() {
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
-    const bool opened = ui::ChildContainer::on_draw();
-    return opened;
+    return ui::ChildContainer::paint_content();
 }
 
 void LogNotificationWidget::draw_children() {
@@ -203,12 +202,9 @@ void LogNotificationWidget::on_draw_end() {
     const ui::Rect child_rect = layout().screen_rect();
     const ImVec2 child_size = child_rect.size();
 
-    const ui::ItemInputState input = m_ui.input().observe_item(*this);
-
     if (m_closing) {
+        set_enabled(false);
         set_interaction_style(false, false);
-    } else {
-        apply_input_state(input);
     }
 
     m_current_offset.tick(m_offset, dt);

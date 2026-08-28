@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    [[nodiscard]] bool on_draw() override {
+    [[nodiscard]] bool paint_content() override {
         const ui::Style& current_style = style();
         set_screen_rect(m_rect);
         const ImVec2 padding = current_style.padding();
@@ -177,7 +177,7 @@ void RangeWidget::draw_track(ui::Rect track, float minimum_x, float maximum_x, f
     m_maximum_thumb->draw();
 }
 
-bool RangeWidget::on_draw() {
+bool RangeWidget::paint_content() {
     normalize_values();
 
     const float label_height = m_label.empty() ? 0.0F : ImGui::GetTextLineHeightWithSpacing();
@@ -208,8 +208,6 @@ bool RangeWidget::on_draw() {
     maximum_x = value_position(*m_maximum, value_track_start, value_track_width);
     draw_track({track_min, track_max}, minimum_x, maximum_x, thumb_width);
 
-    const ui::ItemInputState input = m_ui.input().observe_item(*this);
     ImGui::PopID();
-    apply_input_state(input);
     return true;
 }
