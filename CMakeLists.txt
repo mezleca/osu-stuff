@@ -68,7 +68,6 @@ endif()
 
 configure_sdl()
 
-add_subdirectory(vendor/glad)
 add_subdirectory(vendor/json)
 add_subdirectory(vendor/cpr)
 add_subdirectory(vendor/miniz)
@@ -105,7 +104,7 @@ target_include_directories(${PROJECT_NAME}-core PUBLIC
 target_link_libraries(${PROJECT_NAME}-core PUBLIC
     CURL::libcurl
     OpenGL::GL
-    glad
+    imgui-ui::glad
     SDL3::SDL3
     miniz
     cpprealm
