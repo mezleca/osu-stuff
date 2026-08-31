@@ -7,10 +7,10 @@
 
 namespace app {
     enum class LogLevel {
-        DEFAULT,
-        INFO,
-        WARN,
-        ERROR,
+        Default,
+        Info,
+        Warn,
+        Error,
     };
 
     void write_log(LogLevel level, std::string_view message);
@@ -21,7 +21,7 @@ namespace app {
     }
 } // namespace app
 
-#define LOG(...) ::app::log(::app::LogLevel::DEFAULT, __VA_ARGS__)
-#define LOG_INFO(...) ::app::log(::app::LogLevel::INFO, __VA_ARGS__)
-#define LOG_WARN(...) ::app::log(::app::LogLevel::WARN, __VA_ARGS__)
-#define LOG_ERROR(...) ::app::log(::app::LogLevel::ERROR, __VA_ARGS__)
+#define LOG(...) ::app::log(::app::LogLevel::Default, __VA_ARGS__)
+#define LOG_INFO(...) ::app::log(::app::LogLevel::Info, __VA_ARGS__)
+#define LOG_WARN(...) ::app::log(::app::LogLevel::Warn, __VA_ARGS__)
+#define LOG_ERROR(...) ::app::log(::app::LogLevel::Error, __VA_ARGS__)

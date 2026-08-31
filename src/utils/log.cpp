@@ -43,13 +43,13 @@ static void enable_windows_ansi() {
 
 static std::string_view log_color(LogLevel level) {
     switch (level) {
-        case LogLevel::INFO:
+        case LogLevel::Info:
             return "\x1b[38;2;110;165;215m";
-        case LogLevel::WARN:
+        case LogLevel::Warn:
             return "\x1b[38;2;220;190;90m";
-        case LogLevel::ERROR:
+        case LogLevel::Error:
             return "\x1b[38;2;220;105;105m";
-        case LogLevel::DEFAULT:
+        case LogLevel::Default:
             return {};
     }
 
@@ -60,7 +60,7 @@ void app::write_log(LogLevel level, std::string_view message) {
     static std::mutex mutex;
     const std::lock_guard lock(mutex);
 
-    if (level != LogLevel::DEFAULT && is_error_terminal()) {
+    if (level != LogLevel::Default && is_error_terminal()) {
 #ifdef _WIN32
         enable_windows_ansi();
 #endif
