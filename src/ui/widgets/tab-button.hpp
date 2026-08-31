@@ -12,13 +12,16 @@ namespace app {
     public:
         TabButtonWidget(UI& ui, std::string name, bool draw_line = true, bool is_title = false);
 
-        [[nodiscard]] bool on_draw() override;
-
-        [[nodiscard]] std::optional<std::string> content() const override;
-        bool try_set_content(std::string content) override;
-
         void set_selected(bool value) {
+            if (m_selected == value) {
+                return;
+            }
+
             m_selected = value;
+            if (!m_selected) {
+                const ui::InputState& input = input_state();
+                set_interaction_style(input.hovered, input.active, input.focused);
+            }
         }
 
         bool is_selected() const {
@@ -28,6 +31,7 @@ namespace app {
         ui::GenericValue m_name;
 
     private:
+        bool paint_content() override;
         void on_measure() override;
 
         UI& m_ui;

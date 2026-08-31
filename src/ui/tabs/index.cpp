@@ -4,12 +4,12 @@
 #include "../managers/notifications.hpp"
 #include "../widgets/notification.hpp"
 #include "../widgets/range.hpp"
-#include "../widgets/context-menu.hpp"
 #include <ui/constants.hpp>
 #include <ui/style/theme.hpp>
 #include <ui/layout/modal-container.hpp>
 #include <ui/widgets/button.hpp>
 #include <ui/widgets/checkbox.hpp>
+#include <ui/widgets/context-menu.hpp>
 #include <ui/widgets/dropdown.hpp>
 #include <ui/widgets/number-input.hpp>
 #include <ui/widgets/text-input.hpp>
@@ -34,8 +34,9 @@ public:
         set_anchor(anchor);
         set_origin(origin);
         set_offset(offset);
-
-        style().padding({16.0F, 16.0F}).border(ui::BORDER_ALL).border_color(theme.border_color);
+        configure_all_styles([&theme](ui::Style& style) {
+            style.padding({16.0F, 16.0F}).border(ui::BORDER_ALL).border_color(theme.border_color);
+        });
         add_child<ui::TextWidget>(std::move(label));
     }
 };
@@ -49,8 +50,9 @@ public:
           m_theme(theme), m_ui(surface), m_manager(notification_manager) {
         set_size({0.0F, 120.0F});
         set_spacing(8.0F);
-
-        style().padding({8.0F, 8.0F}).border(ui::BORDER_ALL).border_color(theme.border_color);
+        configure_all_styles([&theme](ui::Style& style) {
+            style.padding({8.0F, 8.0F}).border(ui::BORDER_ALL).border_color(theme.border_color);
+        });
 
         m_count_text = &add_child<ui::TextWidget>("notifications: 0");
         m_add_button = &add_child<ui::ButtonWidget>(m_ui, "add notification", ImVec2{180.0F, 30.0F});
@@ -91,7 +93,7 @@ public:
 protected:
     void on_update(float dt) override {
         ui::StackContainer::on_update(dt);
-        m_count_text->try_set_content(std::format("notifications: {}", m_manager.count()));
+        m_count_text->set_text(std::format("notifications: {}", m_manager.count()));
         m_clear_button->set_visible(m_manager.count() > 0);
     }
 
@@ -140,9 +142,7 @@ class AnchorVisualTestLayout final : public ui::ChildContainer {
 public:
     explicit AnchorVisualTestLayout(const ui::Theme& theme) : ui::ChildContainer("##index-anchor-visual-test") {
         set_size({0.0F, 200.0F});
-
-        style().border(ui::BORDER_ALL);
-        style().border_color(theme.border_color);
+        configure_all_styles([&theme](ui::Style& style) { style.border(ui::BORDER_ALL).border_color(theme.border_color); });
 
         add_child<AnchorVisualTestNode>(
             "top-left", "anchor: TopLeft\norigin: TopLeft", ui::Anchor::TopLeft, ui::Origin::TopLeft, ImVec2{0.0F, 0.0F}, theme
@@ -171,13 +171,16 @@ public:
 
 class WidgetVisualTestNode final : public ui::StackContainer {
 public:
-    WidgetVisualTestNode(UI& surface, ContextMenuWidget& context_menu)
+    WidgetVisualTestNode(UI& surface, ui::ContextMenuWidget& context_menu)
         : ui::StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
         set_size({0.0F, 360.0F});
         set_spacing(10.0F);
         set_scrollable(true);
+        set_input_target();
 
-        style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+        configure_all_styles([this](ui::Style& style) {
+            style.padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+        });
 
         m_button = &add_child<ui::ButtonWidget>(m_ui, "button", ImVec2{160.0F, 36.0F});
 
@@ -217,7 +220,7 @@ public:
             }
 
             ++m_click_count;
-            m_button->try_set_content(std::format("button ({})", m_click_count));
+            m_button->set_text(std::format("button ({})", m_click_count));
             event.mark_handled();
         };
     }
@@ -246,7 +249,9 @@ public:
         : ui::StackContainer("task-test"), m_ui(surface), m_notification_manager(notification_manager), m_task(tasks) {
         set_size({0.0F, 170.0F});
         set_spacing(10.0F);
-        style().padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+        configure_all_styles([this](ui::Style& style) {
+            style.padding({12.0F, 12.0F}).border(ui::BORDER_ALL).border_color(m_ui.theme().border_color);
+        });
 
         m_status = &add_child<ui::TextWidget>("idle");
         m_result = &add_child<ui::TextWidget>("result: none");
@@ -268,7 +273,7 @@ public:
             }
 
             if (m_task.cancel()) {
-                m_status->try_set_content("cancellation requested...");
+                m_status->set_text("cancellation requested...");
             }
             event.mark_handled();
         };
@@ -335,22 +340,22 @@ private:
                 switch (result.status) {
                     case TaskStatus::Success: {
                         const PlaceholderTodo& todo = *result.value;
-                        m_status->try_set_content("success");
-                        m_result->try_set_content(
+                        m_status->set_text("success");
+                        m_result->set_text(
                             std::format("result: {} ({})", todo.title, todo.completed ? "completed" : "not completed")
                         );
                         break;
                     }
                     case TaskStatus::Failure:
-                        m_status->try_set_content(std::format("failure: {}", result.reason.value_or("unknown reason")));
+                        m_status->set_text(std::format("failure: {}", result.reason.value_or("unknown reason")));
                         break;
                     case TaskStatus::Cancelled:
-                        m_status->try_set_content("cancelled");
+                        m_status->set_text("cancelled");
                         break;
                 }
             },
             [this](std::string update) {
-                m_status->try_set_content(update);
+                m_status->set_text(update);
                 auto notification = std::make_unique<LogNotificationWidget>(m_ui, LogNotificationLevel::INFO, std::move(update));
                 notification->duration = 4.0F;
                 notification->persistent = false;
@@ -359,7 +364,7 @@ private:
         );
 
         if (started) {
-            m_result->try_set_content("result: waiting...");
+            m_result->set_text("result: waiting...");
         }
     }
 
@@ -372,11 +377,64 @@ private:
     ui::ButtonWidget* m_cancel = nullptr;
 };
 
+class VisualTestContainer final : public ui::ChildContainer {
+public:
+    VisualTestContainer(
+        UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager, ui::ModalContainer& modal,
+        ui::ContextMenuWidget& context_menu, const ui::Theme& theme
+    )
+        : ui::ChildContainer("visual-tests") {
+        set_scrollable(true);
+        m_anchors = &add_child<AnchorVisualTestLayout>(theme);
+        m_notifications = &add_child<NotificationVisualTestNode>(ui, notification_manager, modal, theme);
+        m_widgets = &add_child<WidgetVisualTestNode>(ui, context_menu);
+        m_tasks = &add_child<TaskVisualTestNode>(ui, tasks, notification_manager);
+    }
+
+private:
+    void draw_children() override {
+        if (!ImGui::TreeNodeEx("ui visual tests")) {
+            return;
+        }
+
+        if (ImGui::TreeNodeEx("anchors")) {
+            m_anchors->set_size({0.0F, 300.0F});
+            m_anchors->draw();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("notifications")) {
+            m_notifications->draw();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("widgets")) {
+            m_widgets->draw();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("tasks")) {
+            m_tasks->draw();
+            ImGui::TreePop();
+        }
+
+        ImGui::TreePop();
+    }
+
+    AnchorVisualTestLayout* m_anchors = nullptr;
+    NotificationVisualTestNode* m_notifications = nullptr;
+    WidgetVisualTestNode* m_widgets = nullptr;
+    TaskVisualTestNode* m_tasks = nullptr;
+};
+
 IndexTab::IndexTab(UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager)
     : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {
     if (constants::IS_DEBUG_BUILD) {
-        m_context_menu = &ui.root().add_child<ContextMenuWidget>(
-            ui, ContextMenuList{{.name = "reload"}, {.name = "options", .children = {{.name = "inspect"}}}}
+        m_context_menu = &ui.root().add_child<ui::ContextMenuWidget>(
+            ui, ui::ContextMenuItems{
+                    ui::ContextMenuItem::action("reload"),
+                    ui::ContextMenuItem::submenu("options", {ui::ContextMenuItem::action("inspect")}),
+                }
         );
     }
 }
@@ -386,10 +444,8 @@ void IndexTab::setup() {
         const ui::Theme& theme = ui().theme();
 
         m_modal_layout = &add_child<ui::ModalContainer>(ui());
-        m_anchor_visual_test = &add_child<AnchorVisualTestLayout>(theme);
-        m_notification_visual_test = &add_child<NotificationVisualTestNode>(ui(), m_notification_manager, *m_modal_layout, theme);
-        m_widget_visual_test = &add_child<WidgetVisualTestNode>(ui(), *m_context_menu);
-        m_task_visual_test = &add_child<TaskVisualTestNode>(ui(), m_tasks, m_notification_manager);
+        m_visual_test_layout =
+            &add_child<VisualTestContainer>(ui(), m_tasks, m_notification_manager, *m_modal_layout, *m_context_menu, theme);
     }
 }
 
@@ -397,36 +453,8 @@ void IndexTab::render() {
     ImGui::TextUnformatted("osu-stuff");
 
     if (constants::IS_DEBUG_BUILD) {
-        render_visual_test();
+        m_visual_test_layout->set_size({0.0F, ImGui::GetContentRegionAvail().y});
+        m_visual_test_layout->draw();
         m_modal_layout->draw();
     }
-}
-
-void IndexTab::render_visual_test() {
-    if (!ImGui::TreeNodeEx("ui visual tests")) {
-        return;
-    }
-
-    if (ImGui::TreeNodeEx("anchors")) {
-        m_anchor_visual_test->set_size({0.0F, 300.0F});
-        m_anchor_visual_test->draw();
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNodeEx("notifications")) {
-        m_notification_visual_test->draw();
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNodeEx("widgets")) {
-        m_widget_visual_test->draw();
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNodeEx("tasks")) {
-        m_task_visual_test->draw();
-        ImGui::TreePop();
-    }
-
-    ImGui::TreePop();
 }

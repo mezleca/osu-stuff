@@ -34,31 +34,15 @@ TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title
     style(ui::StyleType::ACTIVE).color(theme.accent_color);
 }
 
-std::optional<std::string> TabButtonWidget::content() const {
-    return m_name.str();
-}
-
-bool TabButtonWidget::try_set_content(std::string content) {
-    if (content == m_name.str()) {
-        return false;
-    }
-
-    m_name.set(std::move(content));
-    invalidate_measure();
-    return true;
-}
-
 void TabButtonWidget::on_measure() {
     m_name.set_font(font());
     const ImVec2 text_size = m_name.text_size();
     set_size({text_size.x + 16.0F, text_size.y + 12.0F});
 }
 
-bool TabButtonWidget::on_draw() {
+bool TabButtonWidget::paint_content() {
     const ui::Style& style = this->style();
     const bool pressed = ImGui::Button(m_name.c_str());
-
-    const ui::ItemInputState input = m_ui.input().observe_item(*this);
 
     if (m_draw_line) {
         const ui::FloatValue* line_alpha = style.variables().get<ui::FloatValue>("line_alpha");
@@ -82,8 +66,6 @@ bool TabButtonWidget::on_draw() {
 
     if (pressed || m_selected) {
         set_visual_style(ui::StyleType::ACTIVE);
-    } else {
-        apply_input_state(input);
     }
 
     return true;

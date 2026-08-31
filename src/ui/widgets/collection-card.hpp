@@ -4,8 +4,6 @@
 #include <ui/widgets/text.hpp>
 #include <ui/widgets/image.hpp>
 
-#include <optional>
-
 class IconTexture;
 class UI;
 
@@ -15,12 +13,14 @@ namespace app {
     public:
         CollectionCardWidget(UI& ui, std::string name);
 
-        [[nodiscard]] std::optional<std::string> content() const override;
-        bool try_set_content(std::string content) override;
+        void set_text(std::string text);
         void set_count(std::string count);
         void set_selected(bool value);
         void toggle_selected();
         [[nodiscard]] bool is_selected() const;
+
+    protected:
+        void input_state_changed() override;
 
     private:
         UI& m_ui;
@@ -28,8 +28,6 @@ namespace app {
         ui::TextWidget* m_title = nullptr;
         ui::TextWidget* m_count_label = nullptr;
         bool m_selected = false;
-
-        void on_draw_end() override;
     };
 
 } // namespace app

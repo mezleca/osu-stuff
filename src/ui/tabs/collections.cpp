@@ -13,7 +13,7 @@ class CollectionSplitLayout final : public ui::StackContainer {
 public:
     explicit CollectionSplitLayout(ui::ResizableContainer& collection_layout)
         : ui::StackContainer("##collections-content", ui::StackDirection::Horizontal), m_collection_layout(collection_layout) {
-        style().padding({0.0F, 0.0F});
+        set_spacing(10.0f);
     }
 
 private:
@@ -42,9 +42,11 @@ void CollectionTab::setup() {
     m_collection_layout = collection_layout.get();
 
     m_collection_layout->set_resize(ui::ResizeAxes::X);
+    m_collection_layout->set_spacing(8.0F);
 
-    m_collection_layout->style().border(ui::BORDER_RIGHT);
-    m_collection_layout->style().border_color(theme.border_color);
+    m_collection_layout->configure_all_styles([&theme](ui::Style& style) {
+        style.padding({theme.content_padding, theme.content_padding}).border(ui::BORDER_RIGHT).border_color(theme.border_color);
+    });
 
     auto& collection_input =
         m_collection_layout->add_child<ui::TextInputWidget>(ui(), m_collection_search, "##collection-search");
@@ -53,7 +55,7 @@ void CollectionTab::setup() {
     auto& collection_card = m_collection_layout->add_child<CollectionCardWidget>(ui(), "Collection");
     collection_card.on_event = [&collection_card](ui::UiEvent& event) {
         if (event.type == ui::EventType::Click) {
-            collection_card.try_set_content("Collection 2");
+            collection_card.set_text("Collection 2");
             collection_card.set_count("999 maps");
             collection_card.toggle_selected();
             event.mark_handled();
@@ -63,6 +65,7 @@ void CollectionTab::setup() {
     };
 
     auto beatmaps_layout = std::make_unique<ui::ChildContainer>("##collection-beatmaps");
+    beatmaps_layout->configure_all_styles([&theme](ui::Style& style) { style.padding({0.0F, theme.content_padding}); });
     beatmaps_layout->add_child<ui::TextWidget>("collection data");
 
     auto& content_layout = add_child<CollectionSplitLayout>(*m_collection_layout);

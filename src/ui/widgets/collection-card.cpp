@@ -7,6 +7,7 @@ constexpr float ALPHA_ANIM_DURATION = 0.15F;
 constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
 
 CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name) : ui::ChildContainer({}, "CollectionCard"), m_ui(ui) {
+    set_input_target();
     const ui::Theme& theme = m_ui.theme();
 
     auto music_icon = m_ui.get_texture("music-icon");
@@ -45,37 +46,39 @@ CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name) : ui::Child
 }
 
 void CollectionCardWidget::set_selected(bool value) {
+    if (m_selected == value) {
+        return;
+    }
+
     m_selected = value;
+    if (m_selected) {
+        set_visual_style(ui::StyleType::ACTIVE);
+        return;
+    }
+
+    const ui::InputState& input = input_state();
+    set_interaction_style(input.hovered, input.active, input.focused);
 }
 
 void CollectionCardWidget::toggle_selected() {
-    m_selected = !m_selected;
+    set_selected(!m_selected);
 }
 
 bool CollectionCardWidget::is_selected() const {
     return m_selected;
 }
 
-std::optional<std::string> CollectionCardWidget::content() const {
-    return m_title->content();
+void CollectionCardWidget::input_state_changed() {
+    ui::ChildContainer::input_state_changed();
+    if (m_selected) {
+        set_visual_style(ui::StyleType::ACTIVE);
+    }
 }
 
-bool CollectionCardWidget::try_set_content(std::string content) {
-    return m_title->try_set_content(std::move(content));
+void CollectionCardWidget::set_text(std::string text) {
+    m_title->set_text(std::move(text));
 }
 
 void CollectionCardWidget::set_count(std::string count) {
-    m_count_label->try_set_content(std::move(count));
-}
-
-void CollectionCardWidget::on_draw_end() {
-    ui::ChildContainer::on_draw_end();
-
-    const ui::ItemInputState input = m_ui.input().observe_item(*this);
-
-    if (m_selected) {
-        set_visual_style(ui::StyleType::ACTIVE);
-    } else {
-        set_interaction_style(input.hovered, false);
-    }
+    m_count_label->set_text(std::move(count));
 }
