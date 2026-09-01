@@ -1,7 +1,8 @@
 add_executable(tests
     app-database.cpp
-    app-ui-widgets.cpp
+    app-notifications.cpp
     beatmap-parser.cpp
+    gzip.cpp
     osu-clients.cpp
     osu_api_tests.cpp
     legacy-parser.cpp

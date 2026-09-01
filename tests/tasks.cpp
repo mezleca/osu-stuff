@@ -76,7 +76,7 @@ TEST_CASE("UI task cancellation interrupts waits and reports cancellation", "[ui
             static_cast<void>(context.wait_for(10s));
             return TaskResult<>::success();
         },
-        [&completed, &status](TaskResult<> result) {
+        [&completed, &status](const TaskResult<>& result) {
             completed = true;
             status = result.status;
         }

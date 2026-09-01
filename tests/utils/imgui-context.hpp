@@ -1,8 +1,45 @@
 #pragma once
 
+#include <ui/backends/backend.hpp>
+
 #include <imgui.h>
 
+#include <cstdint>
+#include <memory>
+
 namespace ui_test {
+    class TestBackend final : public ui::Backend {
+    public:
+        bool initialize() override {
+            return true;
+        }
+
+        bool initialize_imgui() override {
+            return true;
+        }
+
+        void shutdown_imgui() override {}
+        void begin_frame(ImVec4) override {}
+        void set_mouse_cursor(ImGuiMouseCursor) override {}
+        void render(ImDrawData*) override {}
+
+        float content_scale() const override {
+            return 1.0F;
+        }
+
+        uint64_t window_id() const override {
+            return 1;
+        }
+
+        ImVec2 display_size() const override {
+            return config().size;
+        }
+    };
+
+    inline std::unique_ptr<ui::Backend> make_backend() {
+        return std::make_unique<TestBackend>();
+    }
+
     class ImGuiContext {
     public:
         explicit ImGuiContext(ImVec2 display_size) : m_previous(ImGui::GetCurrentContext()) {

@@ -4,8 +4,6 @@
 
 #include <utility>
 
-using namespace app;
-
 StableClient::StableClient(ClientOptions options) : m_options(std::move(options)) {
     if (m_options.osu_path.empty()) {
         LOG_WARN("empty osu path");
@@ -28,7 +26,7 @@ std::vector<std::string> StableClient::fetch_missing_beatmaps_from_collections(s
 
     auto append_missing = [this, &missing](const OsuCollection& collection) {
         for (const auto& hash : collection.hashes) {
-            if (m_beatmaps.find(hash) == m_beatmaps.end()) {
+            if (!m_beatmaps.contains(hash)) {
                 missing.push_back(hash);
             }
         }
@@ -78,9 +76,7 @@ bool StableClient::update_collection() {
 
 void StableClient::load_beatmaps(const std::filesystem::path& database_path) {
     OsuLegacyDatabase database;
-    std::filesystem::path mutable_path = database_path;
-
-    if (!legacy_parser::parse(mutable_path, &database)) {
+    if (!legacy_parser::parse(database_path, &database)) {
         return;
     }
 

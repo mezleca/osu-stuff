@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-using namespace app;
-
 constexpr std::string_view SORT_ARTIST = "artist";
 constexpr std::string_view SORT_CREATOR = "creator";
 constexpr std::string_view SORT_DIFFICULTY = "difficulty";
@@ -101,8 +99,8 @@ bool ClientBase::update_collection() {
     return false;
 }
 
-OsuBeatmap* ClientBase::get_beatmap(std::string md5) {
-    const auto it = m_beatmaps.find(std::move(md5));
+OsuBeatmap* ClientBase::get_beatmap(const std::string& md5) {
+    const auto it = m_beatmaps.find(md5);
 
     if (it == m_beatmaps.end()) {
         return nullptr;
@@ -182,23 +180,24 @@ std::vector<OsuBeatmap*> ClientBase::filter_beatmaps(const SearchOptions& data) 
 
 bool ClientBase::matches_filter(const OsuBeatmap& beatmap) const {
     if (m_criteria.artist.has_filter() &&
-        !m_criteria.matches_text_any({beatmap.artist, beatmap.artist_unicode}, m_criteria.artist)) {
+        !FilterCriteria::matches_text_any({beatmap.artist, beatmap.artist_unicode}, m_criteria.artist)) {
         return false;
     }
 
-    if (m_criteria.title.has_filter() && !m_criteria.matches_text_any({beatmap.title, beatmap.title_unicode}, m_criteria.title)) {
+    if (m_criteria.title.has_filter() &&
+        !FilterCriteria::matches_text_any({beatmap.title, beatmap.title_unicode}, m_criteria.title)) {
         return false;
     }
 
-    if (!m_criteria.matches_text(beatmap.creator, m_criteria.creator)) {
+    if (!FilterCriteria::matches_text(beatmap.creator, m_criteria.creator)) {
         return false;
     }
 
-    if (!m_criteria.matches_text(beatmap.difficulty, m_criteria.difficulty)) {
+    if (!FilterCriteria::matches_text(beatmap.difficulty, m_criteria.difficulty)) {
         return false;
     }
 
-    if (!m_criteria.matches_text(beatmap.source, m_criteria.source)) {
+    if (!FilterCriteria::matches_text(beatmap.source, m_criteria.source)) {
         return false;
     }
 

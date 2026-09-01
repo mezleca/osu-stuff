@@ -29,7 +29,7 @@ std::filesystem::path paths::installed_resources() {
         return app_dir / "usr" / "share" / "osu-stuff" / "resources";
     }
 
-    const std::filesystem::path flatpak_path = "/app/share/osu-stuff/resources";
+    std::filesystem::path flatpak_path = "/app/share/osu-stuff/resources";
     if (std::filesystem::is_directory(flatpak_path)) {
         return flatpak_path;
     }

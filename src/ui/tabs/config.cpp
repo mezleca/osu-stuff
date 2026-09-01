@@ -14,11 +14,7 @@
 #include <type_traits>
 #include <utility>
 
-// todo: add a file selector for location fields.
-// todo: use a file navigation widget or a file dialog library.
-
 using namespace ui;
-using namespace app;
 
 struct ConfigFieldInfo {
     std::string label;
@@ -29,7 +25,7 @@ class ConfigFieldBase : public StackContainer {
 protected:
     explicit ConfigFieldBase(UI& ui) : StackContainer({}, StackDirection::Vertical), m_ui(ui) {
         set_spacing(7.0F);
-        fit_content_height();
+        set_size({grow(), fit()});
         configure_all_styles([](Style& style) { style.padding({5.0F, 5.0F}); });
     }
 
@@ -47,8 +43,8 @@ protected:
         }
 
         const Theme& theme = m_ui.theme();
-        m_description = &add_child<TextWidget>(std::move(description));
-        m_description->set_font(m_ui.get_font(FontType::BOLD).get(17));
+        m_description = &add<TextWidget>(std::move(description));
+        m_description->set_font(m_ui.get_font("Torus Bold", 17));
         m_description->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
     }
 
@@ -87,14 +83,14 @@ public:
 
 private:
     void add_label(std::string label) {
-        auto& label_widget = add_child<TextWidget>(std::move(label));
-        label_widget.set_font(m_ui.get_font(FontType::BOLD).get(18));
+        auto& label_widget = add<TextWidget>(std::move(label));
+        label_widget.set_font(m_ui.get_font("Torus Bold", 18));
     }
 
     void add_checkbox(std::string label) {
-        auto& checkbox = add_child<CheckboxWidget>(m_ui, m_binding.value(), std::move(label));
-        checkbox.set_font(m_ui.get_font(FontType::BOLD).get(18));
-        checkbox.on_change = [this] { m_binding.commit(); };
+        auto& checkbox = add<CheckboxWidget>(m_ui, m_binding.value(), std::move(label));
+        checkbox.set_font(m_ui.get_font("Torus Bold", 18));
+        checkbox.set_on_change([this] { m_binding.commit(); });
         m_widget = &checkbox;
     }
 
@@ -111,18 +107,18 @@ private:
 
     void add_input() {
         if constexpr (std::is_same_v<T, std::string>) {
-            auto& input = add_child<TextInputWidget>(m_ui, m_binding.value());
+            auto& input = add<TextInputWidget>(m_ui, m_binding.value());
             input.set_font(m_ui.get_primary_font(20));
 
             configure_input(input, {12.0F, 11.0F});
-            input.on_change = [this] { m_binding.commit(); };
+            input.set_on_change([this] { m_binding.commit(); });
             m_widget = &input;
         } else if constexpr (requires { NumberInputWidget(m_ui, m_binding.value()); }) {
-            auto& input = add_child<NumberInputWidget>(m_ui, m_binding.value());
-            input.set_font(m_ui.get_font(FontType::BOLD).get(18));
+            auto& input = add<NumberInputWidget>(m_ui, m_binding.value());
+            input.set_font(m_ui.get_font("Torus Bold", 18));
 
             configure_input(input, {10.0F, 5.0F});
-            input.on_change = [this] { m_binding.commit(); };
+            input.set_on_change([this] { m_binding.commit(); });
             m_widget = &input;
         } else {
             static_assert(std::is_same_v<T, void>, "unsupported config field type");
@@ -136,14 +132,14 @@ class ConfigDropdownField final : public ConfigFieldBase {
 public:
     ConfigDropdownField(UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options)
         : ConfigFieldBase(ui), m_binding(std::move(binding)) {
-        auto& label = add_child<TextWidget>(std::move(info.label));
-        label.set_font(m_ui.get_font(FontType::BOLD).get(18));
+        auto& label = add<TextWidget>(std::move(info.label));
+        label.set_font(m_ui.get_font("Torus Bold", 18));
 
         add_description(std::move(info.description));
 
-        auto& dropdown = add_child<DropdownWidget>(m_ui, m_binding.value(), std::move(options));
+        auto& dropdown = add<DropdownWidget>(m_ui, m_binding.value(), std::move(options));
         configure_input(dropdown.trigger(), {10.0F, 6.0F});
-        dropdown.on_change = [this] { m_binding.commit(); };
+        dropdown.set_on_change([this] { m_binding.commit(); });
         m_widget = &dropdown;
     }
 
@@ -152,15 +148,14 @@ private:
 };
 
 template <typename T>
-static ConfigField<T>& add_config_field(ChildContainer& parent, UI& ui, DatabaseBinding<T> binding, ConfigFieldInfo info) {
-    return parent.add_child<ConfigField<T>>(ui, std::move(binding), std::move(info));
+static ConfigField<T>& add_config_field(Container& parent, UI& ui, DatabaseBinding<T> binding, ConfigFieldInfo info) {
+    return parent.add<ConfigField<T>>(ui, std::move(binding), std::move(info));
 }
 
 static ConfigDropdownField& add_config_dropdown(
-    ChildContainer& parent, UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info,
-    std::vector<DropdownOption> options
+    Container& parent, UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options
 ) {
-    return parent.add_child<ConfigDropdownField>(ui, std::move(binding), std::move(info), std::move(options));
+    return parent.add<ConfigDropdownField>(ui, std::move(binding), std::move(info), std::move(options));
 }
 
 static DatabaseBinding<std::string> bind_osu_client_type(AppDatabase& app_database) {
@@ -179,7 +174,7 @@ static DatabaseBinding<std::string> bind_osu_client_type(AppDatabase& app_databa
 ConfigTab::ConfigTab(UI& ui) : UITab(ui, "config") {}
 
 void ConfigTab::setup() {
-    m_content_layout = &add_child<StackContainer>("##config-content");
+    m_content_layout = &add<StackContainer>("##config-content");
     m_content_layout->set_spacing(6.0F);
     m_content_layout->set_scrollable(true);
     const Theme& theme = ui().theme();
@@ -228,6 +223,6 @@ void ConfigTab::build() {
 }
 
 void ConfigTab::render() {
-    m_content_layout->set_size({0.0F, ImGui::GetContentRegionAvail().y});
+    m_content_layout->set_size({grow(), px(ImGui::GetContentRegionAvail().y)});
     m_content_layout->draw();
 }

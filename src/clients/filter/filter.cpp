@@ -7,11 +7,9 @@
 #include <initializer_list>
 #include <ranges>
 
-using namespace app;
-
 constexpr float DEFAULT_RANGE_TOLERANCE = 0.05f;
 
-[[nodiscard]] auto trim_spaces(std::string_view value) -> std::string {
+[[nodiscard]] static auto trim_spaces(std::string_view value) -> std::string {
     size_t start = 0;
     size_t end = value.size();
 
@@ -26,7 +24,7 @@ constexpr float DEFAULT_RANGE_TOLERANCE = 0.05f;
     return std::string(value.substr(start, end - start));
 }
 
-[[nodiscard]] auto token_to_text(const QueryToken& token) -> std::string {
+[[nodiscard]] static auto token_to_text(const QueryToken& token) -> std::string {
     std::string value = token.value;
 
     if (value.find(' ') != std::string::npos) {
@@ -51,7 +49,7 @@ constexpr float DEFAULT_RANGE_TOLERANCE = 0.05f;
     }
 }
 
-[[nodiscard]] auto parse_status_value(std::string_view value) -> int {
+[[nodiscard]] static auto parse_status_value(std::string_view value) -> int {
     if (value == "u" || value == "unknown") {
         return static_cast<int>(BeatmapStatus::UKNOWN);
     }
@@ -257,7 +255,7 @@ bool FilterCriteria::parse_query(std::string_view source_query) {
     return true;
 }
 
-bool FilterCriteria::matches_text(std::string_view source, const CriteriaText& text) const {
+bool FilterCriteria::matches_text(std::string_view source, const CriteriaText& text) {
     if (!text.has_filter()) {
         return true;
     }
@@ -270,7 +268,7 @@ bool FilterCriteria::matches_text(std::string_view source, const CriteriaText& t
     return text.exclude ? !found : found;
 }
 
-bool FilterCriteria::matches_text_any(std::initializer_list<std::string_view> values, const CriteriaText& text) const {
+bool FilterCriteria::matches_text_any(std::initializer_list<std::string_view> values, const CriteriaText& text) {
     if (!text.has_filter()) {
         return true;
     }

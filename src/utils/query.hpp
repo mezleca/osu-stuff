@@ -155,9 +155,9 @@ namespace query {
 
                 return {QueryOp::INVALID, 1};
             }
+            default:
+                return {QueryOp::INVALID, 0};
         }
-
-        return {QueryOp::INVALID, 0};
     }
 
     inline ParsedQuery parse(std::string_view data) {

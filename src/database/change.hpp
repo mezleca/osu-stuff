@@ -2,29 +2,27 @@
 
 #include <utility>
 
-namespace app {
-    class DatabaseChange {
-    public:
-        template <typename Property, typename Value>
-        bool set(Property& property, Value&& value) {
-            if (property.detach() == value) {
-                return false;
-            }
-
-            property = std::forward<Value>(value);
-            m_changed = true;
-            return true;
+class DatabaseChange {
+public:
+    template <typename Property, typename Value>
+    bool set(Property& property, Value&& value) {
+        if (property.detach() == value) {
+            return false;
         }
 
-        void mark_changed() {
-            m_changed = true;
-        }
+        property = std::forward<Value>(value);
+        m_changed = true;
+        return true;
+    }
 
-        [[nodiscard]] bool changed() const {
-            return m_changed;
-        }
+    void mark_changed() {
+        m_changed = true;
+    }
 
-    private:
-        bool m_changed = false;
-    };
-} // namespace app
+    [[nodiscard]] bool changed() const {
+        return m_changed;
+    }
+
+private:
+    bool m_changed = false;
+};

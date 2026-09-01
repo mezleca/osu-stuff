@@ -8,114 +8,110 @@
 
 #include "../../utils/query.hpp"
 
-namespace app {
+enum class SortMode : int {
+    Artist = 0,
+    Title,
+    Bpm,
+    Duration,
+    Length,
+};
 
-    enum class SortMode : int {
-        Artist = 0,
-        Title,
-        Bpm,
-        Duration,
-        Length,
-    };
+struct CriteriaRange {
+    float min = 0;
+    float max = 0;
+    bool has_min = false;
+    bool has_max = false;
+    bool invert = false;
 
-    struct CriteriaRange {
-        float min = 0;
-        float max = 0;
-        bool has_min = false;
-        bool has_max = false;
-        bool invert = false;
+    void clear() {
+        min = 0;
+        max = 0;
+        has_min = false;
+        has_max = false;
+        invert = false;
+    }
 
-        void clear() {
-            min = 0;
-            max = 0;
-            has_min = false;
-            has_max = false;
-            invert = false;
+    [[nodiscard]] bool has_filter() const {
+        return has_min || has_max;
+    }
+
+    [[nodiscard]] bool matches(double value) const {
+        bool result = true;
+
+        if (has_min) {
+            result = result && value >= min;
         }
 
-        [[nodiscard]] bool has_filter() const {
-            return has_min || has_max;
+        if (has_max) {
+            result = result && value <= max;
         }
 
-        [[nodiscard]] bool matches(double value) const {
-            bool result = true;
+        return invert ? !result : result;
+    }
+};
 
-            if (has_min) {
-                result = result && value >= min;
-            }
+struct CriteriaText {
+    std::string value;
+    bool exclude = false;
 
-            if (has_max) {
-                result = result && value <= max;
-            }
+    void clear() {
+        value.clear();
+        exclude = false;
+    }
 
-            return invert ? !result : result;
-        }
-    };
+    [[nodiscard]] bool has_filter() const {
+        return !value.empty();
+    }
+};
 
-    struct CriteriaText {
-        std::string value;
-        bool exclude = false;
+template <typename T>
+struct CriteriaSet {
+    std::vector<T> values;
+    bool exclude = false;
 
-        void clear() {
-            value.clear();
-            exclude = false;
-        }
+    void clear() {
+        values.clear();
+        exclude = false;
+    }
 
-        [[nodiscard]] bool has_filter() const {
-            return !value.empty();
-        }
-    };
+    [[nodiscard]] bool has_filter() const {
+        return !values.empty();
+    }
 
-    template <typename T>
-    struct CriteriaSet {
-        std::vector<T> values;
-        bool exclude = false;
+    [[nodiscard]] bool matches(T value) const {
+        const bool found = std::find(values.begin(), values.end(), value) != values.end();
+        return exclude ? !found : found;
+    }
+};
 
-        void clear() {
-            values.clear();
-            exclude = false;
-        }
+struct FilterCriteria {
+    CriteriaText title;
+    CriteriaText artist;
+    CriteriaText creator;
+    CriteriaText difficulty;
+    CriteriaText source;
 
-        [[nodiscard]] bool has_filter() const {
-            return !values.empty();
-        }
+    std::string query;
 
-        [[nodiscard]] bool matches(T value) const {
-            const bool found = std::find(values.begin(), values.end(), value) != values.end();
-            return exclude ? !found : found;
-        }
-    };
+    CriteriaSet<int> status;
 
-    struct FilterCriteria {
-        CriteriaText title;
-        CriteriaText artist;
-        CriteriaText creator;
-        CriteriaText difficulty;
-        CriteriaText source;
+    CriteriaRange star_rating;
+    CriteriaRange approach_rate;
+    CriteriaRange circle_size;
+    CriteriaRange overall_difficulty;
+    CriteriaRange hp_drain;
 
-        std::string query;
+    SortMode sort = SortMode::Title;
 
-        CriteriaSet<int> status;
+    void reset();
 
-        CriteriaRange star_rating;
-        CriteriaRange approach_rate;
-        CriteriaRange circle_size;
-        CriteriaRange overall_difficulty;
-        CriteriaRange hp_drain;
+    static bool try_update_criteria_text(CriteriaText& text, QueryOp op, std::string_view value);
+    static bool try_update_criteria_range(CriteriaRange& range, QueryOp op, std::string_view value);
+    static bool try_update_criteria_set(CriteriaSet<int>& set, QueryOp op, std::string_view value);
 
-        SortMode sort = SortMode::Title;
+    [[nodiscard]] static bool matches_text(std::string_view source, const CriteriaText& text);
+    [[nodiscard]] static bool matches_text_any(std::initializer_list<std::string_view> values, const CriteriaText& text);
 
-        void reset();
-
-        bool try_update_criteria_text(CriteriaText& text, QueryOp op, std::string_view value);
-        bool try_update_criteria_range(CriteriaRange& range, QueryOp op, std::string_view value);
-        bool try_update_criteria_set(CriteriaSet<int>& text, QueryOp op, std::string_view value);
-
-        [[nodiscard]] bool matches_text(std::string_view source, const CriteriaText& text) const;
-        [[nodiscard]] bool matches_text_any(std::initializer_list<std::string_view> values, const CriteriaText& text) const;
-
-        bool try_update_criteria(const QueryToken& token);
-        bool parse_query(std::string_view query);
-    };
-
-} // namespace app
+    bool try_update_criteria(const QueryToken& token);
+    bool parse_query(std::string_view query);
+};

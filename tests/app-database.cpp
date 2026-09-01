@@ -11,7 +11,7 @@ TEST_CASE("app database initializes defaults and persists updates", "[database]"
     std::filesystem::remove_all(root);
 
     {
-        app::AppDatabase database(path);
+        AppDatabase database(path);
         REQUIRE_FALSE(database.initialized());
         REQUIRE_THROWS_AS(database.get(), std::logic_error);
 
@@ -70,7 +70,7 @@ TEST_CASE("app database initializes defaults and persists updates", "[database]"
     }
 
     {
-        app::AppDatabase database(path);
+        AppDatabase database(path);
         database.initialize();
 
         auto config = database.get();
