@@ -43,7 +43,7 @@ jobs:
                 build-essential cmake ninja-build libgl1-mesa-dev \
                 libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev \
                 libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
-                libegl1-mesa-dev libdecor-0-dev libxtst-dev \
+                libegl1-mesa-dev libdecor-0-dev libxtst-dev libgtk-3-dev
 
             - name: setup msvc
               if: runner.os == 'Windows'

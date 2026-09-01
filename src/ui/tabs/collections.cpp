@@ -50,7 +50,7 @@ void CollectionTab::setup() {
 
     auto& collection_input =
         m_collection_layout->add_child<ui::TextInputWidget>(ui(), m_collection_search, "##collection-search");
-    collection_input.set_icon(ui().get_texture("search-icon"));
+    collection_input.set_icon(ui().find_texture("search-icon"));
 
     auto& collection_card = m_collection_layout->add_child<CollectionCardWidget>(ui(), "Collection");
     collection_card.on_event = [&collection_card](ui::UiEvent& event) {

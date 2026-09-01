@@ -4,6 +4,8 @@
 #include "../managers/notifications.hpp"
 #include "../widgets/notification.hpp"
 #include "../widgets/range.hpp"
+#include "../widgets/file-dialog.hpp"
+
 #include <ui/constants.hpp>
 #include <ui/style/theme.hpp>
 #include <ui/layout/modal-container.hpp>
@@ -15,7 +17,6 @@
 #include <ui/widgets/text-input.hpp>
 #include <ui/widgets/text.hpp>
 #include <ui/layout/stack-container.hpp>
-
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <chrono>
@@ -197,6 +198,35 @@ public:
         );
         dropdown.set_label("sort by").set_size({380.0F, 62.0F});
 
+        auto& dialog_mode = add_child<ui::DropdownWidget>(
+            m_ui, m_dialog_mode,
+            std::vector<ui::DropdownOption>{{"file", "file"}, {"multiple files", "multiple files"}, {"folder", "folder"}},
+            "widget-test-dropdown"
+        );
+        dialog_mode.set_label("dialog mode").set_size({380.0F, 62.0F});
+
+        auto& file_dialog = add_child<ui::FileDialogWidget>(m_ui, "file dialog placeholder");
+        file_dialog.on_event = [this, &file_dialog](ui::UiEvent& event) {
+            if (event.type != ui::EventType::Click) {
+                return;
+            }
+
+            if (m_dialog_mode == "file") {
+                auto result = file_dialog.select_file({{"source files", "cpp, c"}});
+
+                if (!result.empty()) file_dialog.set_value(result.string());
+            } else if (m_dialog_mode == "multiple files") {
+                auto result = file_dialog.select_files({{"source files", "cpp, c"}});
+
+                if (!result.empty()) file_dialog.set_value(std::format("selected {} file(s)", result.size()));
+            } else {
+                auto result = file_dialog.select_folder();
+                if (!result.empty()) file_dialog.set_value(result.string());
+            }
+
+            event.mark_handled();
+        };
+
         auto& range = add_child<RangeWidget>(m_ui, m_range_minimum, m_range_maximum, "widget-test-range");
         range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({380.0F, 60.0F});
 
@@ -229,6 +259,7 @@ private:
     UI& m_ui;
     std::string m_text_value;
     std::string m_dropdown_value = "recent";
+    std::string m_dialog_mode = "file";
     ui::ButtonWidget* m_button = nullptr;
     float m_number_value = 50.0F;
     float m_range_minimum = 2.0F;

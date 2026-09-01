@@ -74,6 +74,7 @@ add_subdirectory(vendor/miniz)
 add_subdirectory(vendor/lunasvg)
 add_subdirectory(vendor/realm-cpp)
 add_subdirectory(vendor/utf8proc)
+add_subdirectory(vendor/nativefiledialog-extended)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
@@ -105,6 +106,7 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     CURL::libcurl
     OpenGL::GL
     imgui-ui::glad
+    imgui-ui::sdl
     SDL3::SDL3
     miniz
     cpprealm
@@ -112,7 +114,7 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     lunasvg
     cpr
     nlohmann_json
-    imgui-ui::sdl
+    nfd
 )
 
 if(WIN32)

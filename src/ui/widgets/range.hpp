@@ -21,7 +21,7 @@ namespace app {
         [[nodiscard]] ui::Widget& maximum_thumb();
 
     private:
-        bool paint_content() override;
+        bool paint() override;
         void configure_default_styles();
         void normalize_values();
         void update_value_from_input(float track_start, float track_width, float minimum_x, float maximum_x);

@@ -31,3 +31,6 @@
 [submodule "vendor/imgui-ui"]
 	path = vendor/imgui-ui
 	url = https://github.com/mezleca/imgui-ui.git
+[submodule "vendor/nativefiledialog-extended"]
+	path = vendor/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git

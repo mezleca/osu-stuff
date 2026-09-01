@@ -7,6 +7,7 @@
 #include "utils/paths.hpp"
 
 #include <SDL3/SDL.h>
+#include <nfd.hpp>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -17,6 +18,9 @@ int main() {
         LOG_ERROR("SDL_Init(): {}", SDL_GetError());
         return 1;
     }
+
+    // initialize nfd
+    NFD::Guard nfdGuard;
 
     if (const char* base_path = SDL_GetBasePath()) {
         std::filesystem::current_path(base_path);
@@ -63,8 +67,6 @@ int main() {
         app::database = &database_instance;
 
         auto app = std::make_unique<app::AppUI>(runtime, config);
-
-        SDL_GL_SetSwapInterval(1);
 
         while (!app->done()) {
             SDL_Event event;

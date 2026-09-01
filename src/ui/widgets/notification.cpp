@@ -87,7 +87,7 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
     ui::Style& active_style = style(ui::StyleType::ACTIVE);
 
     const ui::Theme& theme = m_ui.theme();
-    auto* close_icon = m_ui.get_texture("x-icon");
+    auto* close_icon = m_ui.find_texture("x-icon");
     ImFont* torus_semi = m_ui.get_font(ui::FontType::SEMIBOLD).get(16);
 
     configure_all_styles([&theme](ui::Style& style) {
@@ -167,9 +167,9 @@ void LogNotificationWidget::on_measure() {
     });
 }
 
-bool LogNotificationWidget::paint_content() {
+bool LogNotificationWidget::paint() {
     ImGui::SetNextWindowSizeConstraints({48.0f, 48.0f}, {256.0f, 196.0f});
-    return ui::ChildContainer::paint_content();
+    return ui::ChildContainer::paint();
 }
 
 void LogNotificationWidget::draw_children() {

@@ -31,7 +31,7 @@ namespace app {
         ui::GenericValue m_name;
 
     private:
-        bool paint_content() override;
+        bool paint() override;
         void on_measure() override;
 
         UI& m_ui;

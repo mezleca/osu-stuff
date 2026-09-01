@@ -10,7 +10,7 @@ CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name) : ui::Child
     set_input_target();
     const ui::Theme& theme = m_ui.theme();
 
-    auto music_icon = m_ui.get_texture("music-icon");
+    auto music_icon = m_ui.find_texture("music-icon");
 
     set_font(m_ui.get_font(ui::FontType::SEMIBOLD).get(18));
     set_size({0.0F, 50.0F});

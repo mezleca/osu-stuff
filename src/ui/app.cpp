@@ -155,7 +155,7 @@ void AppUI::setup_debugger() {
     const ui::ImGuiContextScope scope(m_ui.imgui_context());
 
     m_debugger->set_style(ImGui::GetStyle());
-    m_debugger->set_icon(m_ui.get_texture("inspect-icon"));
+    m_debugger->set_icon(m_ui.find_texture("inspect-icon"));
     m_debugger->set_font(ui::FontType::REGULAR, ui::FONT_MEDIUM);
 }
 

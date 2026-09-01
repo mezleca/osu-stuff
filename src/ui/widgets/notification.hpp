@@ -59,7 +59,7 @@ namespace app {
 
     private:
         static ImColor border_color(LogNotificationLevel level, ImColor accent_color);
-        bool paint_content() override;
+        bool paint() override;
         void on_measure() override;
         void draw_children() override;
         void on_draw_end() override;

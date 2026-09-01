@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    [[nodiscard]] bool paint_content() override {
+    [[nodiscard]] bool paint() override {
         const ui::Style& current_style = style();
         set_screen_rect(m_rect);
         const ImVec2 padding = current_style.padding();
@@ -177,7 +177,7 @@ void RangeWidget::draw_track(ui::Rect track, float minimum_x, float maximum_x, f
     m_maximum_thumb->draw();
 }
 
-bool RangeWidget::paint_content() {
+bool RangeWidget::paint() {
     normalize_values();
 
     const float label_height = m_label.empty() ? 0.0F : ImGui::GetTextLineHeightWithSpacing();

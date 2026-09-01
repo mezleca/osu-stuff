@@ -40,7 +40,7 @@ void TabButtonWidget::on_measure() {
     set_size({text_size.x + 16.0F, text_size.y + 12.0F});
 }
 
-bool TabButtonWidget::paint_content() {
+bool TabButtonWidget::paint() {
     const ui::Style& style = this->style();
     const bool pressed = ImGui::Button(m_name.c_str());
 
