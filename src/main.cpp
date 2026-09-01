@@ -1,8 +1,9 @@
 #include <ui/ui.hpp>
+#include <ui/backends/opengl/texture-loader.hpp>
 #include <ui/backends/sdl/backend.hpp>
-#include <ui/backends/sdl/icon.hpp>
 #include "database/database.hpp"
 #include "ui/app.hpp"
+#include "ui/theme.hpp"
 #include "utils/log.hpp"
 #include "utils/paths.hpp"
 
@@ -11,6 +12,8 @@
 #include <memory>
 #include <string>
 #include <string_view>
+
+using namespace ui;
 
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
@@ -30,41 +33,38 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    ui::set_backend(ui::create_sdl_backend);
-
     const int exit_code = [&]() {
         const auto local_resources = paths::local_resources();
         const auto installed_resources = paths::installed_resources();
-        const std::filesystem::path resources_path =
-            std::filesystem::is_directory(local_resources)
-                ? local_resources
-                : (std::filesystem::is_directory(installed_resources) ? installed_resources : local_resources);
-
-        ui::RuntimeConfig runtime_config;
-        runtime_config.icon_loader = ui::make_sdl_icon_loader();
-        ui::Runtime runtime(std::move(runtime_config));
-
-        runtime.add_font(ui::FontType::REGULAR, resources_path / "fonts/Torus-Regular.ttf");
-        runtime.add_font(ui::FontType::SEMIBOLD, resources_path / "fonts/Torus-SemiBold.ttf");
-        runtime.add_font(ui::FontType::BOLD, resources_path / "fonts/Torus-Bold.ttf");
-
-        for (const std::string_view id : {"chevron-icon", "circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
-            runtime.add_resource(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"));
+        std::filesystem::path resources_path = local_resources;
+        if (std::filesystem::is_directory(installed_resources) && !std::filesystem::is_directory(local_resources)) {
+            resources_path = installed_resources;
         }
 
-        ui::Config config{
+        RuntimeConfig runtime_config;
+        runtime_config.theme = make_theme();
+        runtime_config.texture_loader = std::make_unique<OpenGLTextureLoader>();
+        Runtime runtime(std::move(runtime_config));
+
+        runtime.fonts().add("Torus Regular", resources_path / "fonts/Torus-Regular.ttf");
+        runtime.fonts().add("Torus SemiBold", resources_path / "fonts/Torus-SemiBold.ttf");
+        runtime.fonts().add("Torus Bold", resources_path / "fonts/Torus-Bold.ttf");
+
+        for (const std::string_view id : {"chevron-icon", "circle-icon", "inspect-icon", "music-icon", "search-icon", "x-icon"}) {
+            runtime.textures().add(std::string{id}, resources_path / "icons/ui/" / (std::string{id} + ".svg"));
+        }
+
+        auto backend = std::make_unique<SdlBackend>(BackendConfig{
             .title = "osu-stuff",
             .size = {1280.0F, 720.0F},
             .resizable = true,
-        };
+        });
 
-        app::AppDatabase database_instance(paths::app_data() / "osu-stuff" / "realm" / "database.realm");
+        AppDatabase database_instance(paths::app_data() / "osu-stuff" / "realm" / "database.realm");
         database_instance.initialize();
-        app::database = &database_instance;
+        database = &database_instance;
 
-        auto app = std::make_unique<app::AppUI>(runtime, config);
-
-        SDL_GL_SetSwapInterval(1);
+        auto app = std::make_unique<AppUI>(runtime, std::move(backend));
 
         while (!app->done()) {
             SDL_Event event;

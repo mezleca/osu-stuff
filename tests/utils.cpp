@@ -76,7 +76,7 @@ TEST_CASE("thread pool", "[utils][thread-pool]") {
         std::atomic<int> task_count = 0;
         std::mutex futures_mutex;
         std::vector<std::future<int>> futures;
-        futures.reserve(PRODUCER_COUNT * TASKS_PER_PRODUCER);
+        futures.reserve(static_cast<size_t>(PRODUCER_COUNT) * TASKS_PER_PRODUCER);
         std::vector<std::thread> producers;
         producers.reserve(PRODUCER_COUNT);
 
@@ -85,7 +85,7 @@ TEST_CASE("thread pool", "[utils][thread-pool]") {
                 for (int task_index = 0; task_index < TASKS_PER_PRODUCER; task_index++) {
                     auto future = pool.enqueue([&task_count, producer_index, task_index]() {
                         task_count.fetch_add(1);
-                        return producer_index * 100 + task_index;
+                        return (producer_index * 100) + task_index;
                     });
 
                     std::scoped_lock lock(futures_mutex);

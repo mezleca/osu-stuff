@@ -112,7 +112,7 @@ public:
     }
 
 protected:
-    std::optional<nlohmann::json> parse_response(const cpr::Response& response);
+    static std::optional<nlohmann::json> parse_response(const cpr::Response& response);
 
     template <typename T>
     std::optional<T> parse_typed_response(const cpr::Response& response) {
@@ -134,14 +134,14 @@ protected:
 
 private:
     // last auth details
-    TimePoint m_auth_timestamp{};
+    TimePoint m_auth_timestamp;
     int32_t m_expiration_seconds = 0;
 
     // auth data
     OAuthTokenData m_token_data{};
 
     // base address
-    std::string m_base_url{};
+    std::string m_base_url;
 
     OAuthAuthType m_auth_type = OAuthAuthType::CODE_GRANT;
     OAuthAuthRequest m_auth_data{};

@@ -10,7 +10,7 @@ namespace binary {
             return true;
         }
 
-        const size_t max_decompressed_size = 256 * 1024 * 1024; // 256 MiB safety cap for inflate.
+        const size_t max_decompressed_size = size_t{256} * 1024 * 1024; // 256 MiB safety cap for inflate.
         std::vector<uint8_t> temp_output;
 
         const uint8_t* data = input.data();

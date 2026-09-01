@@ -202,7 +202,7 @@ public:
     template <typename Work>
     bool start(Work&& work, TaskUpdateHandler update_handler = {}) {
         using Result = std::invoke_result_t<Work, TaskContext&>;
-        return start(std::forward<Work>(work), [](Result) {}, std::move(update_handler));
+        return start(std::forward<Work>(work), [](const Result&) {}, std::move(update_handler));
     }
 
     [[nodiscard]] bool running() const;

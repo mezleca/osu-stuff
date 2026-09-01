@@ -3,41 +3,38 @@
 #include <ui/widgets/widget.hpp>
 #include <ui/widgets/text-value.hpp>
 
-class IconTexture;
-class UI;
+namespace ui {
+    class UI;
+}
 
-namespace app {
+class TabButtonWidget : public ui::Widget {
+public:
+    TabButtonWidget(ui::UI& ui, std::string name, bool draw_line = true, bool is_title = false);
 
-    class TabButtonWidget : public ui::Widget {
-    public:
-        TabButtonWidget(UI& ui, std::string name, bool draw_line = true, bool is_title = false);
-
-        void set_selected(bool value) {
-            if (m_selected == value) {
-                return;
-            }
-
-            m_selected = value;
-            if (!m_selected) {
-                const ui::InputState& input = input_state();
-                set_interaction_style(input.hovered, input.active, input.focused);
-            }
+    void set_selected(bool value) {
+        if (m_selected == value) {
+            return;
         }
 
-        bool is_selected() const {
-            return m_selected;
+        m_selected = value;
+        if (!m_selected) {
+            const ui::InputState& input = input_state();
+            set_interaction_style(input.hovered, input.active, input.focused);
         }
+    }
 
-        ui::GenericValue m_name;
+    bool is_selected() const {
+        return m_selected;
+    }
 
-    private:
-        bool paint_content() override;
-        void on_measure() override;
+    ui::GenericValue m_name;
 
-        UI& m_ui;
-        bool m_draw_line = true;
-        bool m_title = false;
-        bool m_selected = false;
-    };
+private:
+    bool paint() override;
+    void on_measure() override;
 
-} // namespace app
+    ui::UI& m_ui;
+    bool m_draw_line = true;
+    bool m_title = false;
+    bool m_selected = false;
+};

@@ -49,7 +49,11 @@ endif()
 if(MSVC)
     add_compile_options(/W4 /EHsc /utf-8 /wd5105 /Zc:preprocessor)
 else()
-    add_compile_options(-Wall -Wextra -Wdeprecated-copy-with-user-provided-copy)
+    add_compile_options(-Wall -Wextra)
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wdeprecated-copy-with-user-provided-copy>)
+    endif()
 endif()
 
 find_package(OpenGL REQUIRED)
@@ -81,6 +85,7 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.hpp")
 list(FILTER SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 
 set(IMGUI_UI_BUILD_SDL ON)
+set(IMGUI_UI_USE_NFD ON)
 add_subdirectory(vendor/imgui-ui)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
@@ -105,6 +110,7 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     CURL::libcurl
     OpenGL::GL
     imgui-ui::glad
+    imgui-ui::sdl
     SDL3::SDL3
     miniz
     cpprealm
@@ -112,7 +118,6 @@ target_link_libraries(${PROJECT_NAME}-core PUBLIC
     lunasvg
     cpr
     nlohmann_json
-    imgui-ui::sdl
 )
 
 if(WIN32)

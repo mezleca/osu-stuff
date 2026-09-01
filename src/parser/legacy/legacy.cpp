@@ -13,7 +13,7 @@ static LegacyFloatPair read_int_float_pair(binary::BinaryCursor& cursor, bool us
         throw std::runtime_error("invalid int-float pair marker");
     }
 
-    pair.mod_combination = static_cast<int>(binary::read_i32(cursor));
+    pair.mod_combination = binary::read_i32(cursor);
 
     uint8_t float_marker = binary::read_u8(cursor);
 
@@ -345,9 +345,5 @@ bool legacy_parser::write(const std::filesystem::path& location, OsuLegacyDataba
 
     binary::write_i32(buffer, data->permissions);
 
-    if (!binary::write_file_buffer(location.string(), buffer)) {
-        return false;
-    }
-
-    return true;
+    return binary::write_file_buffer(location.string(), buffer);
 }

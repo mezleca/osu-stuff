@@ -27,15 +27,13 @@ namespace realm {
     struct Ruleset;
 }
 
-namespace app {
-    enum class OsuClientType : int {
-        Stable = 0,
-        Lazer = 1,
-    };
+enum class OsuClientType : int {
+    Stable = 0,
+    Lazer = 1,
+};
 
-    using realm_time_ns = realm::managed<std::optional<std::chrono::time_point<std::chrono::system_clock>>>;
+using realm_time_ns = realm::managed<std::optional<std::chrono::time_point<std::chrono::system_clock>>>;
 
-    std::string detach_or_empty(const realm::managed<std::optional<std::string>>& value);
-    BeatmapGamemode detach_mode(const realm::managed<realm::Ruleset*>& ruleset);
-    int64_t detach_time_ms(const realm_time_ns& value);
-} // namespace app
+std::string detach_or_empty(const realm::managed<std::optional<std::string>>& value);
+BeatmapGamemode detach_mode(const realm::managed<realm::Ruleset*>& ruleset);
+int64_t detach_time_ms(const realm_time_ns& value);

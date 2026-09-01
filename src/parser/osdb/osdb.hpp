@@ -36,5 +36,5 @@ namespace osdb_parser {
     bool write();
 
     inline OsdbData* data;
-    inline std::string location("");
+    inline std::string location;
 }; // namespace osdb_parser

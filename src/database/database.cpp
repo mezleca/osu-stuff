@@ -2,11 +2,11 @@
 
 #include <stdexcept>
 
-app::AppDatabase* app::database = nullptr;
+AppDatabase* database = nullptr;
 
-app::AppDatabase::AppDatabase(std::filesystem::path path) : m_path(std::move(path)) {}
+AppDatabase::AppDatabase(std::filesystem::path path) : m_path(std::move(path)) {}
 
-void app::AppDatabase::initialize() {
+void AppDatabase::initialize() {
     if (m_database != nullptr) {
         return;
     }
@@ -27,11 +27,11 @@ void app::AppDatabase::initialize() {
     m_last_update = get().last_updated.detach();
 }
 
-bool app::AppDatabase::initialized() const {
+bool AppDatabase::initialized() const {
     return m_database != nullptr;
 }
 
-app::AppDatabase::Config app::AppDatabase::get() {
+AppDatabase::Config AppDatabase::get() {
     if (!initialized()) {
         throw std::logic_error("app database is not initialized");
     }
@@ -44,7 +44,7 @@ app::AppDatabase::Config app::AppDatabase::get() {
     return configs[0];
 }
 
-app::AppDatabase::Config* app::AppDatabase::get_ptr() {
+AppDatabase::Config* AppDatabase::get_ptr() {
     if (!m_config) {
         m_config = std::make_unique<Config>(get());
     }
@@ -52,11 +52,11 @@ app::AppDatabase::Config* app::AppDatabase::get_ptr() {
     return m_config.get();
 }
 
-std::chrono::time_point<std::chrono::system_clock> app::AppDatabase::last_update() const {
+std::chrono::time_point<std::chrono::system_clock> AppDatabase::last_update() const {
     return m_last_update;
 }
 
-void app::AppDatabase::ensure_config(realm::db& database) {
+void AppDatabase::ensure_config(realm::db& database) {
     auto configs = database.objects<realm::AppConfig>().where([](auto& config) { return config._id == 0; });
 
     if (configs.size() == 0) {
@@ -68,7 +68,7 @@ void app::AppDatabase::ensure_config(realm::db& database) {
         config.osu_data = &osu_data;
         config.radio = &radio;
 
-        database.write([&database, &config] { database.add(std::move(config)); });
+        database.write([&database, &config] { database.add(std::move(config)); }); // NOLINT(performance-move-const-arg)
         return;
     }
 

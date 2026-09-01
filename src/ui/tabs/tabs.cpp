@@ -1,6 +1,5 @@
 #include "tabs.hpp"
 
-using namespace app;
 using namespace ui;
 
 void UITab::initialize() {
@@ -24,7 +23,9 @@ void UITab::draw() {
     initialize();
     const ImVec2 position = ImGui::GetCursorScreenPos();
     const ImVec2 size = ImGui::GetContentRegionAvail();
-    resolve_size(size);
-    set_screen_rect(Rect::from_position_size(position, size));
+    assign_size(size);
+    const Rect rect = Rect::from_position_size(position, size);
+    set_layout_rect(rect);
+    set_visual_rect(rect);
     render();
 }

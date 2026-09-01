@@ -9,8 +9,6 @@
 #include <string>
 #include <string_view>
 
-using namespace app;
-
 constexpr int STABLE_BEATMAP_COUNT = 47;
 constexpr int LAZER_BEATMAP_COUNT = 48;
 constexpr int TEST_BEATMAPSET_ID = 1326501;
@@ -18,7 +16,8 @@ constexpr int TEST_BEATMAP_ID = 2953473;
 constexpr int GLASS_BEACH_RESULT_COUNT = 18;
 constexpr const char* TEST_BEATMAP_HASH = "8e66c5e88adb59774e4eccca702fe242";
 
-[[nodiscard]] auto make_client(std::string_view backend, const std::string& root_override = "") -> std::unique_ptr<ClientBase> {
+[[nodiscard]] static auto make_client(std::string_view backend, const std::string& root_override = "")
+    -> std::unique_ptr<ClientBase> {
     if (backend == "stable") {
         return std::make_unique<StableClient>(ClientOptions{
             .osu_path = root_override.empty() ? test_helper::osu_root().string() : root_override,
@@ -34,7 +33,7 @@ constexpr const char* TEST_BEATMAP_HASH = "8e66c5e88adb59774e4eccca702fe242";
     });
 }
 
-[[nodiscard]] auto make_search_options(std::string query = "", std::string sort = "") -> SearchOptions {
+[[nodiscard]] static auto make_search_options(std::string query = "", std::string sort = "") -> SearchOptions {
     return SearchOptions{
         .query = std::move(query),
         .sort = std::move(sort),
@@ -47,7 +46,7 @@ constexpr const char* TEST_BEATMAP_HASH = "8e66c5e88adb59774e4eccca702fe242";
     };
 }
 
-void check_client_initialization(ClientBase& client, int expected_beatmap_count) {
+static void check_client_initialization(ClientBase& client, int expected_beatmap_count) {
     const auto collections = client.get_collections();
     REQUIRE_FALSE(collections.empty());
     REQUIRE(client.get_collection("glass beach") != nullptr);
@@ -64,7 +63,7 @@ void check_client_initialization(ClientBase& client, int expected_beatmap_count)
     REQUIRE(beatmapset->title == "dallas");
 }
 
-void check_client_search(ClientBase& client) {
+static void check_client_search(ClientBase& client) {
     const auto all_beatmaps = client.search_beatmaps(make_search_options());
 
     const auto glass_beach = client.search_beatmaps(make_search_options("artist=\"glass beach\""));
@@ -97,11 +96,11 @@ void check_client_search(ClientBase& client) {
         const auto* current = client.get_beatmap(hash);
         REQUIRE(current != nullptr);
         REQUIRE(current->duration.has_value());
-        REQUIRE(current->duration.value() >= 0.0);
+        REQUIRE(current->duration.value_or(-1.0) >= 0.0);
     }
 }
 
-void check_temp_collection(ClientBase& client, bool expect_update_success, std::string_view name) {
+static void check_temp_collection(ClientBase& client, bool expect_update_success, std::string_view name) {
     OsuCollection collection{
         .name = std::string(name),
         .hashes = {TEST_BEATMAP_HASH},

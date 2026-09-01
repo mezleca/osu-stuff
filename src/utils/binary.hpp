@@ -39,7 +39,7 @@ namespace binary {
         }
     }
 
-    inline constexpr bool is_little_endian() {
+    constexpr bool is_little_endian() {
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
         return __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 #elif defined(_WIN32)
@@ -361,7 +361,7 @@ namespace binary {
     }
 
     template <typename T>
-    inline T lower_if_possible(T value) {
+    inline T lower_if_possible(const T& value) {
         if constexpr (std::is_same_v<T, std::string>) {
             return normalize_and_lower(value);
         } else {

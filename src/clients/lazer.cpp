@@ -5,24 +5,22 @@
 #include <exception>
 #include <utility>
 
-using namespace app;
-
-std::unique_ptr<OsuCollection> make_collection(const realm::BeatmapCollection& collection) {
+static std::unique_ptr<OsuCollection> make_collection(const realm::BeatmapCollection& collection) {
     auto result = std::make_unique<OsuCollection>();
 
     result->name = collection.Name.value_or("");
     result->hashes.reserve(collection.BeatmapMD5Hashes.size());
 
-    for (auto& hash : collection.BeatmapMD5Hashes) {
+    for (const auto& hash : collection.BeatmapMD5Hashes) {
         if (hash) {
-            result->hashes.push_back(std::move(*hash));
+            result->hashes.push_back(*hash);
         }
     }
 
     return result;
 }
 
-std::unique_ptr<OsuBeatmap> make_beatmap(const realm::managed<realm::Beatmap>& source) {
+static std::unique_ptr<OsuBeatmap> make_beatmap(const realm::managed<realm::Beatmap>& source) {
     auto result = std::make_unique<OsuBeatmap>(source);
     result->build_search();
     return result;
@@ -89,7 +87,7 @@ std::vector<std::string> LazerClient::fetch_missing_beatmaps_from_collections(st
 
     auto append_missing = [this, &missing](const OsuCollection& collection) {
         for (const auto& hash : collection.hashes) {
-            if (m_beatmaps.find(hash) == m_beatmaps.end()) {
+            if (!m_beatmaps.contains(hash)) {
                 missing.push_back(hash);
             }
         }

@@ -191,14 +191,15 @@ static EditorSection parse_editor(const std::vector<std::string_view>& lines) {
                     s.bookmarks.push_back(binary::convert_to<int>(t, 0));
                 }
             }
-        } else if (key == "DistanceSpacing")
+        } else if (key == "DistanceSpacing") {
             s.distance_spacing = binary::convert_to<double>(val, 1.0);
-        else if (key == "BeatDivisor")
+        } else if (key == "BeatDivisor") {
             s.beat_divisor = binary::convert_to<int>(val, 4);
-        else if (key == "GridSize")
+        } else if (key == "GridSize") {
             s.grid_size = binary::convert_to<int>(val, 4);
-        else if (key == "TimelineZoom")
+        } else if (key == "TimelineZoom") {
             s.timeline_zoom = binary::convert_to<double>(val, 1.0);
+        }
     }
 
     return s;
@@ -258,7 +259,7 @@ static DifficultySection parse_difficulty(const std::vector<std::string_view>& l
     return s;
 }
 
-void parse_events(
+static void parse_events(
     const std::vector<std::string_view>& lines, std::optional<EventBackground>& bg, std::optional<EventVideo>& vid,
     std::vector<EventBreak>& breaks
 ) {
@@ -274,23 +275,31 @@ void parse_events(
             std::string filename = remove_quotes(trim_view(parts[2]));
             std::string ext = to_lower(get_extension(filename));
 
-            if (get_image_extensions().count(ext)) {
+            if (get_image_extensions().contains(ext)) {
                 EventBackground b;
                 b.filename = normalize_path(filename);
-                if (parts.size() >= 4) b.x_offset = binary::convert_to<int>(parts[3], 0);
-                if (parts.size() >= 5) b.y_offset = binary::convert_to<int>(parts[4], 0);
+                if (parts.size() >= 4) {
+                    b.x_offset = binary::convert_to<int>(parts[3], 0);
+                }
+                if (parts.size() >= 5) {
+                    b.y_offset = binary::convert_to<int>(parts[4], 0);
+                }
                 bg = b;
             }
         } else if ((type == "1" || type == "Video") && parts.size() >= 3) {
             std::string filename = remove_quotes(trim_view(parts[2]));
             std::string ext = to_lower(get_extension(filename));
 
-            if (get_video_extensions().count(ext)) {
+            if (get_video_extensions().contains(ext)) {
                 EventVideo v;
                 v.start_time = binary::convert_to<int>(parts[1], 0);
                 v.filename = normalize_path(filename);
-                if (parts.size() >= 4) v.x_offset = binary::convert_to<int>(parts[3], 0);
-                if (parts.size() >= 5) v.y_offset = binary::convert_to<int>(parts[4], 0);
+                if (parts.size() >= 4) {
+                    v.x_offset = binary::convert_to<int>(parts[3], 0);
+                }
+                if (parts.size() >= 5) {
+                    v.y_offset = binary::convert_to<int>(parts[4], 0);
+                }
                 vid = v;
             }
         } else if ((type == "2" || type == "Break") && parts.size() >= 3) {
@@ -720,11 +729,7 @@ bool beatmap_parser::write() {
         bool is_hold = (ho.type & 128) != 0;
 
         if (is_slider) {
-            long long slides_plus = static_cast<long long>(ho.slides) + 1;
-
-            if (slides_plus > INT_MAX) {
-                slides_plus = INT_MAX;
-            }
+            const long long slides_plus = std::min(static_cast<long long>(ho.slides) + 1, static_cast<long long>(INT_MAX));
 
             const int edge_count = std::max(1, static_cast<int>(slides_plus));
             std::vector<int> edge_sounds = ho.edge_sounds;

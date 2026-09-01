@@ -484,6 +484,46 @@ def get_test_environment() -> Mapping[str, str]:
 
     return env
 
+def check(build_type: str | None) -> int:
+    tool_exists("clang-tidy")
+
+    selected_build_type = get_selected_build_type(build_type)
+    build_code = build_tests(selected_build_type)
+    if build_code != 0:
+        return build_code
+
+    build_dir = get_build_dir(selected_build_type)
+    source_files = sorted(
+        str(path.relative_to(CWD))
+        for root in (CWD / "src", CWD / "tests")
+        for path in root.rglob("*.cpp")
+    )
+    if not source_files:
+        print("[ez] no c++ source files found")
+        return 1
+
+    if SYSTEM == "Linux" and shutil.which("run-clang-tidy") is not None:
+        cmd = [
+            "run-clang-tidy",
+            "-p", str(build_dir),
+            "-config-file", str(CWD / ".clang-tidy"),
+            "-quiet",
+            "-hide-progress",
+            "-j", str(get_cpu_count()),
+            *source_files,
+        ]
+    else:
+        cmd = [
+            "clang-tidy",
+            f"-p={build_dir}",
+            f"--config-file={CWD / '.clang-tidy'}",
+            "--quiet",
+            *source_files,
+        ]
+
+    env = load_msvc_env() if SYSTEM == "Windows" else None
+    return run(cmd, env=env)[0]
+
 def run_tests(build_type: str | None, test_id: str | None = None) -> int:
     selected_build_type = get_selected_build_type(build_type)
     build_code = build_tests(selected_build_type)
@@ -686,7 +726,9 @@ def run_binary(build_type: str = "release") -> int:
         print("[ez] binary not found")
         return 1
 
-    return run(str(binary))[0]
+    env = os.environ.copy()
+    env["ENABLE_DEBUGGER"] = "1"
+    return run(str(binary), env=env)[0]
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
@@ -695,6 +737,9 @@ def main() -> None:
     _ = subparsers.add_parser("init")
     _ = subparsers.add_parser("format")
     _ = subparsers.add_parser("clean")
+
+    check_parser = subparsers.add_parser("check")
+    _ = check_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
 
     configure_parser = subparsers.add_parser("configure")
     _ = configure_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
@@ -751,6 +796,7 @@ def main() -> None:
         "package": lambda: package(args.package_type),
         "format": format_code,
         "clean": clean,
+        "check": lambda: check(args.build_type),
         "run": lambda: run_binary(get_selected_build_type(args.build_type)),
         "parse-note": lambda: parse_release_note(args.version, args.dest),
         "tests": lambda: run_tests(args.build_type, args.test_id),

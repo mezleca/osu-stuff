@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-bool legacy_collection_parser::parse(const std::string location, OsuLegacyCollection* data) {
+bool legacy_collection_parser::parse(const std::string& location, OsuLegacyCollection* data) {
     std::vector<uint8_t> buffer;
 
     if (!binary::read_file_buffer(location, buffer)) {
@@ -50,7 +50,7 @@ bool legacy_collection_parser::parse(const std::string location, OsuLegacyCollec
     }
 }
 
-bool legacy_collection_parser::write(const std::string location, OsuLegacyCollection* data) {
+bool legacy_collection_parser::write(const std::string& location, OsuLegacyCollection* data) {
     if (data == nullptr || location.empty()) {
         return false;
     }
@@ -73,9 +73,5 @@ bool legacy_collection_parser::write(const std::string location, OsuLegacyCollec
         }
     }
 
-    if (!binary::write_file_buffer(location, buffer)) {
-        return false;
-    }
-
-    return true;
+    return binary::write_file_buffer(location, buffer);
 }
