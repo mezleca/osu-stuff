@@ -124,11 +124,11 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME}-core PUBLIC psapi)
 endif()
 
-# https://wiki.libsdl.org/SDL3/README-cmake#how-do-i-copy-a-sdl3-dynamic-library-to-another-location
-if(WIN32 AND TARGET SDL3::SDL3-shared)
+if(WIN32)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMAND "${CMAKE_COMMAND}" -E copy -t $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
+        COMMAND_EXPAND_LISTS
         VERBATIM
     )
 endif()

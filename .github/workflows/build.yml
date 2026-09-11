@@ -1,0 +1,208 @@
+name: build
+
+on:
+    workflow_dispatch:
+        inputs:
+            mode:
+                description: build mode
+                required: true
+                default: default
+                type: choice
+                options:
+                    - default
+                    - release
+            target:
+                description: target platform
+                required: true
+                default: both
+                type: choice
+                options:
+                    - linux
+                    - windows
+                    - both
+            version:
+                description: release version (fallbacks to ez version)
+                required: false
+                type: string
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    prepare:
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.version.outputs.value }}
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: resolve release version
+              id: version
+              env:
+                  INPUT_VERSION: ${{ inputs.version }}
+              run: |
+                  version="${INPUT_VERSION:-$(python ./ez release-version)}"
+                  echo "value=$version" >> "$GITHUB_OUTPUT"
+
+    build-flatpak:
+        if: ${{ inputs.target != 'windows' }}
+        needs: prepare
+        runs-on: ubuntu-latest
+        env:
+            SCCACHE_GHA_ENABLED: "true"
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: setup sccache
+              uses: mozilla-actions/sccache-action@v0.0.10
+
+            - name: install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                      build-essential cmake ninja-build clang libgl1-mesa-dev \
+                      libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev \
+                      libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+                      libegl1-mesa-dev libdecor-0-dev libxtst-dev libgtk-3-dev \
+                      flatpak flatpak-builder desktop-file-utils appstream
+
+            - name: setup flatpak runtime
+              run: |
+                  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+                  flatpak install --user --noninteractive flathub \
+                      org.freedesktop.Platform//25.08 \
+                      org.freedesktop.Sdk//25.08 \
+                      org.freedesktop.Sdk.Extension.llvm20//25.08
+
+            - name: setup env
+              run: python ./ez init
+
+            - name: package flatpak
+              run: python ./ez package --type flatpak
+
+            - name: upload flatpak artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  name: flatpak-bundle
+                  path: dist/osu-stuff.flatpak
+                  if-no-files-found: error
+
+            - name: sccache stats
+              if: always()
+              run: sccache --show-stats
+
+    build-appimage:
+        if: ${{ inputs.target != 'windows' }}
+        needs: prepare
+        runs-on: ubuntu-latest
+        env:
+            SCCACHE_GHA_ENABLED: "true"
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: setup sccache
+              uses: mozilla-actions/sccache-action@v0.0.10
+
+            - name: install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                      build-essential cmake ninja-build clang libgl1-mesa-dev \
+                      libssl-dev libcurl4-openssl-dev libuv1-dev zlib1g-dev \
+                      libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+                      libegl1-mesa-dev libdecor-0-dev libxtst-dev libgtk-3-dev \
+                      desktop-file-utils appstream
+
+            - name: setup linuxdeploy
+              run: |
+                  mkdir -p "$RUNNER_TEMP/linuxdeploy"
+                  curl --fail --location --retry 3 \
+                      --output "$RUNNER_TEMP/linuxdeploy/linuxdeploy-x86_64.AppImage" \
+                      https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+                  curl --fail --location --retry 3 \
+                      --output "$RUNNER_TEMP/linuxdeploy/linuxdeploy-plugin-appimage-x86_64.AppImage" \
+                      https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage
+                  chmod +x "$RUNNER_TEMP/linuxdeploy/"*.AppImage
+
+            - name: setup env
+              run: python ./ez init
+
+            - name: package appimage
+              run: python ./ez package --type appimage
+              env:
+                  APPIMAGE_EXTRACT_AND_RUN: "1"
+                  LINUXDEPLOY: ${{ runner.temp }}/linuxdeploy/linuxdeploy-x86_64.AppImage
+
+            - name: upload appimage artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  name: appimage-bundle
+                  path: dist/osu-stuff-x86_64.AppImage
+                  if-no-files-found: error
+
+            - name: sccache stats
+              if: always()
+              run: sccache --show-stats
+
+    build-portable:
+        if: ${{ inputs.target != 'linux' }}
+        needs: prepare
+        runs-on: windows-latest
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: setup msvc
+              uses: ilammy/msvc-dev-cmd@v1
+
+            - name: setup env
+              run: python ./ez init
+
+            - name: package portable
+              run: python ./ez package --type portable
+
+            - name: upload portable artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  name: portable-bundle
+                  path: dist/osu-stuff-portable.zip
+                  if-no-files-found: error
+
+    release:
+        if: ${{ always() && inputs.mode == 'release' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        needs: [prepare, build-flatpak, build-appimage, build-portable]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: download artifacts
+              uses: actions/download-artifact@v8
+              with:
+                  pattern: "*-bundle"
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: get changelog
+              run: python ./ez parse-note --version "${{ needs.prepare.outputs.version }}" --dest release-notes.md
+
+            - name: create or update release
+              uses: softprops/action-gh-release@v3
+              with:
+                  tag_name: ${{ needs.prepare.outputs.version }}
+                  target_commitish: ${{ github.sha }}
+                  name: osu-stuff ${{ needs.prepare.outputs.version }}
+                  body_path: release-notes.md
+                  files: artifacts/*
+                  fail_on_unmatched_files: true

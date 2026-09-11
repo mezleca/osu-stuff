@@ -16,6 +16,7 @@ from typing import Protocol, cast
 CWD = Path.cwd()
 SYSTEM = platform.system()
 BINARY_NAME = "osu-stuff"
+RELEASE_VERSION = "v2.7.4"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 
 class Arguments(Protocol):
@@ -171,39 +172,29 @@ def format_code() -> None:
     _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")
     _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")
 
+def print_release_version() -> None:
+    print(RELEASE_VERSION)
+
 def parse_release_note(version: str, dest: str) -> None:
-    content: str = ""
-
-    with open(NOTES_FILE, "r") as f:
-        content = f.read()
-
-    regex = re.compile(r'^#+\s*v\d+\.\d+\.\d+$', re.MULTILINE)
+    content = NOTES_FILE.read_text()
+    regex = re.compile(r'^#+\s+(v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)\s*$', re.MULTILINE)
     matches = list(regex.finditer(content))
 
-    note_start = 0
-    note_end = 0
-
-    for i, match in enumerate(matches):
-        section = match.group(0).strip()[2:]
-
-        if section != version:
+    for index, match in enumerate(matches):
+        if match.group(1) != version:
             continue
 
-        note_start = match.start() + len(section) + 2
-        note_end =  matches[i + 1].start() if i + 1 < len(matches) else len(content)
+        note_end = matches[index + 1].start() if index + 1 < len(matches) else len(content)
+        result = content[match.end():note_end].strip()
 
-    if note_start == note_end:
-        print(f"[ez] failed to find section({version}) in {str(NOTES_FILE)!r}")
-        sys.exit(1)
+        if dest:
+            Path(dest).write_text(result)
+        else:
+            print(result)
+        return
 
-    result = content[note_start:note_end].strip()
-    dest_path = Path(dest)
-
-    if len(dest) > 0:
-        with open(dest_path, "w") as f:
-            _ = f.write(result)
-    else:
-        print(result)
+    print(f"[ez] failed to find section({version}) in {str(NOTES_FILE)!r}")
+    sys.exit(1)
 
 # --- cmake / build ---
 
@@ -597,6 +588,8 @@ FLATPAK_MANIFEST_PATH = CWD / "resources" / "packaging" / "flatpak" / f"{FLATPAK
 APPIMAGE_BUILD_DIR = DIST_DIR / "appimage"
 APPIMAGE_APPDIR = APPIMAGE_BUILD_DIR / "AppDir"
 APPIMAGE_PATH = DIST_DIR / f"{BINARY_NAME}-x86_64.AppImage"
+PORTABLE_DIR = DIST_DIR / f"{BINARY_NAME}-portable"
+PORTABLE_ARCHIVE_PATH = DIST_DIR / f"{BINARY_NAME}-portable.zip"
 PACKAGING_DIR = CWD / "resources" / "packaging"
 RUNTIME_RESOURCES_DIR = CWD / "resources" / "runtime"
 RUNTIME_ICON_PATH = RUNTIME_RESOURCES_DIR / "icons" / "icon.png"
@@ -620,11 +613,32 @@ def package(package_type: str | None) -> int:
         return 1
 
     if selected_package_type == "portable":
-        print("[ez] not implemented yet")
-        return 1
+        return package_portable()
 
     print(f"[ez] unsupported package type: {selected_package_type}")
     return 1
+
+def package_portable() -> int:
+    if SYSTEM != "Windows":
+        print("[ez] portable packages can only be built on Windows")
+        return 1
+
+    if build("release", False) != 0:
+        return 1
+
+    if PORTABLE_DIR.exists():
+        clear_dir(PORTABLE_DIR)
+
+    build_dir = get_build_dir("release")
+    PORTABLE_DIR.mkdir(parents=True)
+    _ = shutil.copy2(build_dir / f"{BINARY_NAME}.exe", PORTABLE_DIR)
+    _ = shutil.copytree(build_dir / "resources", PORTABLE_DIR / "resources")
+
+    for dll in build_dir.glob("*.dll"):
+        _ = shutil.copy2(dll, PORTABLE_DIR)
+
+    _ = shutil.make_archive(str(PORTABLE_ARCHIVE_PATH.with_suffix("")), "zip", PORTABLE_DIR.parent, PORTABLE_DIR.name)
+    return 0
 
 def package_appimage() -> int:
     linuxdeploy = find_linuxdeploy()
@@ -654,7 +668,7 @@ def package_appimage() -> int:
         return install_code
 
     env = os.environ.copy()
-    env["OUTPUT"] = str(APPIMAGE_PATH)
+    env["LDAI_OUTPUT"] = str(APPIMAGE_PATH)
 
     return run([
         str(linuxdeploy),
@@ -774,10 +788,12 @@ def main() -> None:
     run_parser = subparsers.add_parser("run")
     _ = run_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
 
+    _ = subparsers.add_parser("release-version")
+
     parse_note_parser = subparsers.add_parser("parse-note")
     _ = parse_note_parser.add_argument(
         "--version",
-        default="v0.0.0",
+        default=RELEASE_VERSION,
         help="target version (e.g. v3.0.0)",
     )
     _ = parse_note_parser.add_argument(
@@ -802,6 +818,7 @@ def main() -> None:
         "clean": clean,
         "check": lambda: check(args.build_type),
         "run": lambda: run_binary(get_selected_build_type(args.build_type)),
+        "release-version": print_release_version,
         "parse-note": lambda: parse_release_note(args.version, args.dest),
         "tests": lambda: run_tests(args.build_type, args.test_id),
     }
