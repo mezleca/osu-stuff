@@ -521,6 +521,10 @@ def check(build_type: str | None) -> int:
             *source_files,
         ]
 
+    # msvc debug runtime is incompatible with asan in clang-tidy.
+    if SYSTEM == "Windows":
+        cmd.append("--extra-arg=-fno-sanitize=address")
+
     env = load_msvc_env() if SYSTEM == "Windows" else None
     return run(cmd, env=env)[0]
 
