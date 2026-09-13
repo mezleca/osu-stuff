@@ -44,14 +44,6 @@ AppDatabase::Config AppDatabase::get() {
     return configs[0];
 }
 
-AppDatabase::Config* AppDatabase::get_ptr() {
-    if (!m_config) {
-        m_config = std::make_unique<Config>(get());
-    }
-
-    return m_config.get();
-}
-
 std::chrono::time_point<std::chrono::system_clock> AppDatabase::last_update() const {
     return m_last_update;
 }

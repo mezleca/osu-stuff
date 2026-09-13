@@ -176,9 +176,37 @@ jobs:
                   path: dist/osu-stuff-portable.zip
                   if-no-files-found: error
 
+    build-inno:
+        if: ${{ inputs.target != 'linux' }}
+        needs: prepare
+        runs-on: windows-latest
+
+        steps:
+            - name: checkout
+              uses: actions/checkout@v7
+
+            - name: setup msvc
+              uses: ilammy/msvc-dev-cmd@v1
+
+            - name: install Inno Setup
+              run: winget install --id JRSoftware.InnoSetup --exact --silent --accept-package-agreements --accept-source-agreements
+
+            - name: setup env
+              run: python ./ez init
+
+            - name: package installer
+              run: python ./ez package --type inno
+
+            - name: upload installer artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  name: inno-setup
+                  path: dist/inno/*.exe
+                  if-no-files-found: error
+
     release:
         if: ${{ always() && inputs.mode == 'release' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-        needs: [prepare, build-flatpak, build-appimage, build-portable]
+        needs: [prepare, build-flatpak, build-appimage, build-portable, build-inno]
         runs-on: ubuntu-latest
         permissions:
             contents: write

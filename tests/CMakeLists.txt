@@ -16,6 +16,7 @@ add_executable(tests
 
 target_link_libraries(tests PRIVATE
     osu-stuff-core
+    osu-stuff-ui
     Catch2::Catch2WithMain
 )
 
@@ -35,18 +36,9 @@ if(WIN32)
             $<TARGET_FILE_DIR:tests>
         COMMAND_EXPAND_LISTS
     )
-
-    target_compile_options(tests PRIVATE
-        /W4
-        /EHsc
-        /utf-8
-        /wd5105
-        /Zc:preprocessor
-    )
 else()
-    target_compile_options(tests PRIVATE
-        -Wpedantic
-    )
+    target_compile_options(tests PRIVATE -Wpedantic)
+
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(tests PRIVATE -Wunused-lambda-capture)
     endif()

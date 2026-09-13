@@ -1,6 +1,7 @@
 #include <ui/ui.hpp>
 #include <ui/backends/opengl/texture-loader.hpp>
 #include <ui/backends/sdl/backend.hpp>
+#include "audio/audio-manager.hpp"
 #include "database/database.hpp"
 #include "ui/app.hpp"
 #include "ui/theme.hpp"
@@ -8,6 +9,7 @@
 #include "utils/paths.hpp"
 
 #include <SDL3/SDL.h>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 
@@ -40,11 +42,7 @@ static int run_app() {
     database_instance.initialize();
     database = &database_instance;
 
-    BackendConfig config = {
-        .title = "osu-stuff",
-        .size = {1280.0F, 720.0F},
-        .resizable = true
-    };
+    BackendConfig config = {.title = "osu-stuff", .size = {1280.0F, 720.0F}, .resizable = true};
 
     AppUI app(runtime, std::make_unique<SdlBackend>(config));
 
@@ -66,8 +64,17 @@ static int run_app() {
 }
 
 int main() {
+    SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "5");
+
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         LOG_ERROR("SDL_Init(): {}", SDL_GetError());
+        return 1;
+    }
+
+    std::atexit(SDL_Quit);
+
+    if (!AudioManager::instance().ready()) {
+        LOG_ERROR("AudioManager: {}", SDL_GetError());
         return 1;
     }
 
@@ -75,7 +82,5 @@ int main() {
         std::filesystem::current_path(base_path);
     }
 
-    const auto exit_code = run_app();
-    SDL_Quit();
-    return exit_code;
+    return run_app();
 }

@@ -15,10 +15,6 @@ public:
         return true;
     }
 
-    void mark_changed() {
-        m_changed = true;
-    }
-
     [[nodiscard]] bool changed() const {
         return m_changed;
     }

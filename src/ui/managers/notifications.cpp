@@ -14,6 +14,7 @@ UINotificationManager::UINotificationManager(UI& ui)
     set_visible(true);
     set_input_mode(InputMode::None);
     m_more_notifications.set_id("notifications-more");
+    m_more_notifications.set_input_router(&ui.input_router());
 }
 
 bool UINotificationManager::add(std::unique_ptr<UINotification> notification) {

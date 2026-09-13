@@ -4,9 +4,6 @@
 [submodule "vendor/miniz"]
 	path = vendor/miniz
 	url = https://github.com/richgel999/miniz
-[submodule "vendor/SDL"]
-	path = vendor/SDL
-	url = https://github.com/libsdl-org/SDL
 [submodule "vendor/realm-cpp"]
 	path = vendor/realm-cpp
 	url = https://github.com/mezleca/realm-cpp
@@ -31,3 +28,9 @@
 [submodule "vendor/imgui-ui"]
 	path = vendor/imgui-ui
 	url = https://github.com/mezleca/imgui-ui.git
+[submodule "vendor/SDL3_mixer"]
+	path = vendor/SDL3_mixer
+	url = https://github.com/libsdl-org/SDL_mixer
+[submodule "vendor/sdl"]
+	path = vendor/sdl
+	url = https://github.com/libsdl-org/SDL

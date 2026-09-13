@@ -9,6 +9,7 @@ using namespace ui;
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
 UINotification::UINotification(UI& ui) : Container({}, "Notification"), m_ui(ui) {
+    set_input_mode(InputMode::Blocker);
     m_offset.duration = 0.2F;
     update_layout_placement();
 }

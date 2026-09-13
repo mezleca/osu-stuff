@@ -83,13 +83,11 @@ public:
 
 private:
     void add_label(std::string label) {
-        auto& label_widget = add<TextWidget>(std::move(label));
-        label_widget.set_font(m_ui.get_font("Torus Bold", 18));
+        add<TextWidget>(std::move(label)).set_font(m_ui.get_font("Torus Bold", 18));
     }
 
     void add_checkbox(std::string label) {
         auto& checkbox = add<CheckboxWidget>(m_ui, m_binding.value(), std::move(label));
-        checkbox.set_font(m_ui.get_font("Torus Bold", 18));
         checkbox.set_on_change([this] { m_binding.commit(); });
         m_widget = &checkbox;
     }
@@ -108,8 +106,6 @@ private:
     void add_input() {
         if constexpr (std::is_same_v<T, std::string>) {
             auto& input = add<TextInputWidget>(m_ui, m_binding.value());
-            input.set_font(m_ui.get_primary_font(20));
-
             configure_input(input, {12.0F, 11.0F});
             input.set_on_change([this] { m_binding.commit(); });
             m_widget = &input;
@@ -132,9 +128,7 @@ class ConfigDropdownField final : public ConfigFieldBase {
 public:
     ConfigDropdownField(UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options)
         : ConfigFieldBase(ui), m_binding(std::move(binding)) {
-        auto& label = add<TextWidget>(std::move(info.label));
-        label.set_font(m_ui.get_font("Torus Bold", 18));
-
+        add<TextWidget>(std::move(info.label));
         add_description(std::move(info.description));
 
         auto& dropdown = add<DropdownWidget>(m_ui, m_binding.value(), std::move(options));

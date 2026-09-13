@@ -12,23 +12,6 @@
 #include <utility>
 #include <vector>
 
-struct TaskBase {
-    virtual void execute() = 0;
-    virtual ~TaskBase() = default;
-};
-
-template <typename F>
-struct Task : TaskBase {
-public:
-    explicit Task(F&& f) : func(std::move(f)) {}
-    void execute() {
-        func();
-    }
-
-private:
-    F func;
-};
-
 struct ThreadPool {
 public:
     void initialize();
@@ -50,9 +33,7 @@ public:
                 throw std::runtime_error("enqueue on stopped ThreadPool");
             }
 
-            auto wrapped_task = [task]() { (*task)(); };
-
-            tasks.emplace(std::make_unique<Task<decltype(wrapped_task)>>(std::move(wrapped_task)));
+            tasks.emplace([task] { (*task)(); });
         }
 
         cv.notify_one();
@@ -62,7 +43,7 @@ public:
 private:
     bool stop = false;
     std::vector<std::thread> workers;
-    std::queue<std::unique_ptr<TaskBase>> tasks;
+    std::queue<std::function<void()>> tasks;
     std::mutex queue_mutex;
     std::condition_variable cv;
-} inline g_thread_pool;
+};

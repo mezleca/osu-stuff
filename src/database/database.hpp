@@ -31,10 +31,6 @@ public:
         m_saver(m_value);
     }
 
-    void refresh() {
-        m_value = m_loader();
-    }
-
 private:
     Loader m_loader;
     Saver m_saver;
@@ -50,7 +46,6 @@ public:
     void initialize();
     [[nodiscard]] bool initialized() const;
     [[nodiscard]] Config get();
-    [[nodiscard]] Config* get_ptr();
     [[nodiscard]] std::chrono::time_point<std::chrono::system_clock> last_update() const;
 
     template <typename Loader, typename Saver>
@@ -78,7 +73,6 @@ private:
 
     std::filesystem::path m_path;
     std::unique_ptr<realm::db> m_database;
-    std::unique_ptr<Config> m_config;
     std::chrono::time_point<std::chrono::system_clock> m_last_update;
 };
 

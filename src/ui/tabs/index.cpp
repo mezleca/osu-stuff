@@ -416,31 +416,30 @@ private:
 
 IndexTab::IndexTab(UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager)
     : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {
-    if (OSU_STUFF_ENABLE_PROFILING != 0) {
-        m_context_menu = &ui.root().add<ContextMenuWidget>(
-            ui, ContextMenuItems{
-                    ContextMenuItem::action("reload"),
-                    ContextMenuItem::submenu("options", {ContextMenuItem::action("inspect")}),
-                }
-        );
-        m_modal_manager = &ui.root().add<UIModalManager>(ui);
-    }
+    m_context_menu = &ui.root().add<ContextMenuWidget>(
+        ui, ContextMenuItems{
+                ContextMenuItem::action("reload"),
+                ContextMenuItem::submenu("options", {ContextMenuItem::action("inspect")}),
+            }
+    );
+    m_modal_manager = &ui.root().add<UIModalManager>(ui);
 }
 
 void IndexTab::setup() {
-    if (OSU_STUFF_ENABLE_PROFILING != 0) {
-        const Theme& theme = ui().theme();
-
-        m_visual_test_layout =
-            &add<VisualTestContainer>(ui(), m_tasks, m_notification_manager, *m_modal_manager, *m_context_menu, theme);
-    }
+#ifndef NDEBUG
+    const Theme& theme = ui().theme();
+    m_visual_test_layout =
+        &add<VisualTestContainer>(ui(), m_tasks, m_notification_manager, *m_modal_manager, *m_context_menu, theme);
+#endif
 }
 
 void IndexTab::render() {
     ImGui::TextUnformatted("osu-stuff");
 
-    if (OSU_STUFF_ENABLE_PROFILING != 0) {
-        m_visual_test_layout->set_size({grow(), px(ImGui::GetContentRegionAvail().y)});
-        m_visual_test_layout->draw();
+    if (m_visual_test_layout == nullptr) {
+        return;
     }
+
+    m_visual_test_layout->set_size({grow(), px(ImGui::GetContentRegionAvail().y)});
+    m_visual_test_layout->draw();
 }

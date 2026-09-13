@@ -13,8 +13,6 @@
 #include <string_view>
 #include <utility>
 
-using JsonResponse = nlohmann::json;
-using ApiResponse = std::pair<int, std::optional<nlohmann::json>>;
 using TimePoint = std::chrono::system_clock::time_point;
 
 struct OAuthAuthRequest {

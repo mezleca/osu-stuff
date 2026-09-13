@@ -13,7 +13,7 @@ void ThreadPool::initialize() {
     for (int i = 0; i < count; i++) {
         workers.emplace_back([this]() {
             while (true) {
-                std::unique_ptr<TaskBase> task;
+                std::function<void()> task;
 
                 {
                     std::unique_lock<std::mutex> lock(queue_mutex);
@@ -28,7 +28,7 @@ void ThreadPool::initialize() {
                     tasks.pop();
                 }
 
-                task->execute();
+                task();
             }
         });
     }

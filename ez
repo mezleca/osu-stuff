@@ -16,12 +16,13 @@ from typing import Protocol, cast
 CWD = Path.cwd()
 SYSTEM = platform.system()
 BINARY_NAME = "osu-stuff"
-RELEASE_VERSION = "v2.7.4"
+RELEASE_VERSION = "v3.0.0-alpha-0"
 IS_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 
 class Arguments(Protocol):
     command: str
     build_type: str | None
+    target: str | None
     test_id: str | None
     platform: str
     run: bool
@@ -31,11 +32,14 @@ class Arguments(Protocol):
 
 # --- utils ---
 
-NOTES_FILE = CWD / "changelog" / "notes.md"
-
-def run(cmd: str | list[str], check: bool = True, env: Mapping[str, str] | None = None, capture: bool = False) -> tuple[int, str]:
+def run(
+    cmd: str | list[str],
+    check: bool = True,
+    env: Mapping[str, str] | None = None,
+    capture: bool = False,
+    cwd: Path = CWD,
+) -> tuple[int, str]:
     display = cmd if isinstance(cmd, str) else subprocess.list2cmdline(list(cmd))
-    is_linux = SYSTEM == "Linux"
     print(f"exec: {display}")
     result = subprocess.run(
         cmd,
@@ -44,8 +48,8 @@ def run(cmd: str | list[str], check: bool = True, env: Mapping[str, str] | None 
         capture_output=capture,
         text=capture,
         encoding="utf-8",
-        cwd=str(CWD),
-        check=not is_linux
+        cwd=str(cwd),
+        check=False,
     )
 
     if check and result.returncode != 0:
@@ -54,11 +58,11 @@ def run(cmd: str | list[str], check: bool = True, env: Mapping[str, str] | None 
 
     return result.returncode, result.stdout or ""
 
-def clear_dir(dir: Path) -> None:
-    if os.path.islink(dir):
-        os.unlink(dir)
+def clear_dir(path: Path) -> None:
+    if os.path.islink(path):
+        os.unlink(path)
     else:
-        shutil.rmtree(dir)
+        shutil.rmtree(path)
 
 def tool_exists(tool: str) -> None:
     if shutil.which(tool) is None:
@@ -66,39 +70,7 @@ def tool_exists(tool: str) -> None:
         sys.exit(1)
 
 def get_cpu_count() -> int:
-    if SYSTEM == "Linux":
-        result = subprocess.run("nproc", shell=True, capture_output=True, text=True, check=False)
-        cores = result.stdout.strip()
-        return int(cores) if cores.isdigit() else os.cpu_count() or 4
     return os.cpu_count() or 4
-
-def has_system_sdl3() -> bool:
-    if SYSTEM != "Linux":
-        return False
-
-    if shutil.which("pkg-config") is None:
-        return False
-
-    result = subprocess.run(
-        ["pkg-config", "--exists", "sdl3"],
-        cwd=str(CWD), check=False
-    )
-    return result.returncode == 0
-
-def should_use_vendored_sdl(target_platform: str) -> bool:
-    if target_platform == "windows":
-        return True
-
-    if target_platform == "linux":
-        return not has_system_sdl3()
-
-    if SYSTEM == "Windows":
-        return True
-
-    if SYSTEM == "Linux":
-        return not has_system_sdl3()
-
-    return False
 
 def get_vcvarsall_script() -> Path | None:
     candidates = [
@@ -172,6 +144,10 @@ def format_code() -> None:
     _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' src)")
     _ = run("clang-format -i $(rg --files -g '*.{h,hpp,cpp,cc,cxx}' tests)")
 
+# --- release metadata ---
+
+NOTES_FILE = CWD / "changelog" / "notes.md"
+
 def print_release_version() -> None:
     print(RELEASE_VERSION)
 
@@ -199,7 +175,7 @@ def parse_release_note(version: str, dest: str) -> None:
 # --- cmake / build ---
 
 BUILD_DIR = CWD / "build"
-DIST_DIR = CWD / "dist"
+RUNTIME_RESOURCES_DIR = CWD / "resources" / "runtime"
 
 def get_build_dir(build_type: str) -> Path:
     return BUILD_DIR / "release" if build_type == "release" else BUILD_DIR / "debug"
@@ -212,7 +188,7 @@ def copy_compile_commands(build_dir: Path) -> None:
     if source.exists():
         _ = shutil.copy2(source, BUILD_DIR / "compile_commands.json")
 
-def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> list[str]:
+def build_configure_cmd(build_type: str, build_tests: bool = False) -> list[str]:
     cmake_type = "Debug" if build_type == "debug" else "Release"
     build_dir = get_build_dir(build_type)
     cmd = [
@@ -225,7 +201,6 @@ def build_configure_cmd(build_type: str, build_tests: bool = False, use_vendored
         f"-DOSU_STUFF_BUILD_TESTS={'ON' if build_tests else 'OFF'}",
         f"-DCMAKE_BUILD_TYPE={cmake_type}",
         f"-DOUTPUT_NAME={BINARY_NAME}",
-        f"-DUSE_VENDORED_SDL={'ON' if use_vendored_sdl else 'OFF'}",
     ]
 
     if IS_CI and SYSTEM != "Windows":
@@ -282,7 +257,7 @@ def clean() -> int:
         print("[ez] permission denied")
         return 1
 
-def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
+def configure_linux(build_type: str, build_tests: bool = False) -> int:
     build_dir = get_build_dir(build_type)
     cache = build_dir / "CMakeCache.txt"
 
@@ -290,14 +265,14 @@ def configure_linux(build_type: str, build_tests: bool = False, use_vendored_sdl
         cache.unlink()
 
     build_dir.mkdir(parents=True, exist_ok=True)
-    cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
+    cmd = build_configure_cmd(build_type, build_tests)
     cmd.extend([
         "-DCMAKE_C_COMPILER=clang",
         "-DCMAKE_CXX_COMPILER=clang++",
     ])
     return run(cmd)[0]
 
-def configure_windows(build_type: str, build_tests: bool = False, use_vendored_sdl: bool = False) -> int:
+def configure_windows(build_type: str, build_tests: bool = False) -> int:
     build_dir = get_build_dir(build_type)
     cache = build_dir / "CMakeCache.txt"
     env = load_msvc_env()
@@ -306,18 +281,16 @@ def configure_windows(build_type: str, build_tests: bool = False, use_vendored_s
         cache.unlink()
 
     build_dir.mkdir(parents=True, exist_ok=True)
-    cmd = build_configure_cmd(build_type, build_tests, use_vendored_sdl)
+    cmd = build_configure_cmd(build_type, build_tests)
     return run(cmd, env=env)[0]
 
 def configure(build_type: str, target_platform: str, build_tests: bool = False) -> int:
     is_windows = target_platform == "windows" or (target_platform == "auto" and SYSTEM == "Windows")
     is_linux   = target_platform == "linux"   or (target_platform == "auto" and SYSTEM == "Linux")
-    use_vendored_sdl = should_use_vendored_sdl(target_platform)
-
     if is_windows:
-        code = configure_windows(build_type, build_tests, use_vendored_sdl)
+        code = configure_windows(build_type, build_tests)
     elif is_linux:
-        code = configure_linux(build_type, build_tests, use_vendored_sdl)
+        code = configure_linux(build_type, build_tests)
     else:
         print(f"[ez] unsupported platform: {SYSTEM}")
         return 1
@@ -326,6 +299,25 @@ def configure(build_type: str, target_platform: str, build_tests: bool = False) 
         copy_compile_commands(get_build_dir(build_type))
 
     return code
+
+def compile_project(build_type: str) -> int:
+    env = load_msvc_env() if SYSTEM == "Windows" else None
+    build_dir = get_build_dir(build_type)
+    code, _ = run([
+        "cmake",
+        "--build",
+        str(build_dir),
+        "--parallel",
+        str(get_cpu_count()),
+    ], env=env)
+
+    if code == 0:
+        copy_compile_commands(build_dir)
+
+    return code
+
+def prepare_resources(build_dir: Path) -> None:
+    _ = shutil.copytree(RUNTIME_RESOURCES_DIR, build_dir / "resources", dirs_exist_ok=True)
 
 def build(build_type: str | None, should_run: bool) -> int:
     selected_build_type = get_selected_build_type(build_type)
@@ -340,21 +332,11 @@ def build(build_type: str | None, should_run: bool) -> int:
     if needs_configure and configure(selected_build_type, "auto", build_tests=should_build_tests) != 0:
         return 1
 
-    env = load_msvc_env() if SYSTEM == "Windows" else None
-    build_dir = get_build_dir(selected_build_type)
-    code, _ = run([
-        "cmake",
-        "--build",
-        str(build_dir),
-        "--parallel",
-        str(get_cpu_count()),
-    ], env=env)
-
+    code = compile_project(selected_build_type)
     if code != 0:
         return code
 
-    copy_compile_commands(build_dir)
-    prepare_resources(build_dir)
+    prepare_resources(get_build_dir(selected_build_type))
 
     if should_run:
         return run_binary(selected_build_type)
@@ -562,23 +544,11 @@ def build_tests(build_type: str | None) -> int:
     if needs_configure and configure(selected_build_type, "auto", build_tests=True) != 0:
         return 1
 
-    env = load_msvc_env() if SYSTEM == "Windows" else None
-    build_dir = get_build_dir(selected_build_type)
-    code, _ = run([
-        "cmake",
-        "--build",
-        str(build_dir),
-        "--parallel",
-        str(get_cpu_count()),
-    ], env=env)
-
-    if code == 0:
-        copy_compile_commands(build_dir)
-
-    return code
+    return compile_project(selected_build_type)
 
 # --- packaging / release ---
 
+DIST_DIR = CWD / "dist"
 FLATPAK_BUILD_DIR = DIST_DIR / "flatpak-build"
 FLATPAK_REPO_DIR = DIST_DIR / "flatpak-repo"
 FLATPAK_STATE_DIR = DIST_DIR / ".flatpak-builder"
@@ -590,14 +560,13 @@ APPIMAGE_APPDIR = APPIMAGE_BUILD_DIR / "AppDir"
 APPIMAGE_PATH = DIST_DIR / f"{BINARY_NAME}-x86_64.AppImage"
 PORTABLE_DIR = DIST_DIR / f"{BINARY_NAME}-portable"
 PORTABLE_ARCHIVE_PATH = DIST_DIR / f"{BINARY_NAME}-portable.zip"
+INNO_STAGE_DIR = DIST_DIR / "inno-stage"
+INNO_OUTPUT_DIR = DIST_DIR / "inno"
 PACKAGING_DIR = CWD / "resources" / "packaging"
-RUNTIME_RESOURCES_DIR = CWD / "resources" / "runtime"
 RUNTIME_ICON_PATH = RUNTIME_RESOURCES_DIR / "icons" / "icon.png"
 FLATPAK_ICON_PATH = PACKAGING_DIR / "flatpak" / f"{FLATPAK_APP_ID}.png"
 APPIMAGE_ICON_PATH = PACKAGING_DIR / f"{FLATPAK_APP_ID}.png"
-
-def prepare_resources(build_dir: Path) -> None:
-    _ = shutil.copytree(RUNTIME_RESOURCES_DIR, build_dir / "resources", dirs_exist_ok=True)
+INNO_SCRIPT_PATH = PACKAGING_DIR / "windows" / "osu-stuff.iss"
 
 def package(package_type: str | None) -> int:
     selected_package_type = package_type or "flatpak"
@@ -609,8 +578,7 @@ def package(package_type: str | None) -> int:
         return package_appimage()
 
     if selected_package_type == "inno":
-        print("[ez] not implemented yet")
-        return 1
+        return package_inno()
 
     if selected_package_type == "portable":
         return package_portable()
@@ -623,22 +591,69 @@ def package_portable() -> int:
         print("[ez] portable packages can only be built on Windows")
         return 1
 
-    if build("release", False) != 0:
+    if prepare_windows_distribution(PORTABLE_DIR) != 0:
         return 1
-
-    if PORTABLE_DIR.exists():
-        clear_dir(PORTABLE_DIR)
-
-    build_dir = get_build_dir("release")
-    PORTABLE_DIR.mkdir(parents=True)
-    _ = shutil.copy2(build_dir / f"{BINARY_NAME}.exe", PORTABLE_DIR)
-    _ = shutil.copytree(build_dir / "resources", PORTABLE_DIR / "resources")
-
-    for dll in build_dir.glob("*.dll"):
-        _ = shutil.copy2(dll, PORTABLE_DIR)
 
     _ = shutil.make_archive(str(PORTABLE_ARCHIVE_PATH.with_suffix("")), "zip", PORTABLE_DIR.parent, PORTABLE_DIR.name)
     return 0
+
+def prepare_windows_distribution(destination: Path) -> int:
+    if build("release", False) != 0:
+        return 1
+
+    if destination.exists() or destination.is_symlink():
+        clear_dir(destination)
+
+    build_dir = get_build_dir("release")
+    destination.mkdir(parents=True)
+    _ = shutil.copy2(build_dir / f"{BINARY_NAME}.exe", destination)
+    _ = shutil.copytree(build_dir / "resources", destination / "resources")
+
+    for dll in build_dir.glob("*.dll"):
+        _ = shutil.copy2(dll, destination)
+
+    return 0
+
+def find_inno_setup_compiler() -> Path | None:
+    configured_path = os.environ.get("INNO_SETUP_COMPILER")
+    candidates = [Path(configured_path) if configured_path else None]
+
+    for variable in ("ProgramFiles(x86)", "ProgramFiles"):
+        directory = os.environ.get(variable)
+        if directory:
+            candidates.append(Path(directory) / "Inno Setup 6" / "ISCC.exe")
+
+    executable = shutil.which("ISCC.exe") or shutil.which("iscc")
+    if executable:
+        candidates.append(Path(executable))
+
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file():
+            return candidate
+
+    return None
+
+def package_inno() -> int:
+    if SYSTEM != "Windows":
+        print("[ez] Inno Setup packages can only be built on Windows")
+        return 1
+
+    compiler = find_inno_setup_compiler()
+    if compiler is None:
+        print("[ez] Inno Setup compiler not found\nset INNO_SETUP_COMPILER or install Inno Setup 6")
+        return 1
+
+    if prepare_windows_distribution(INNO_STAGE_DIR) != 0:
+        return 1
+
+    INNO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return run([
+        str(compiler),
+        f"/DSourceDir={INNO_STAGE_DIR}",
+        f"/DOutputDir={INNO_OUTPUT_DIR}",
+        f"/DAppVersion={RELEASE_VERSION.removeprefix('v')}",
+        str(INNO_SCRIPT_PATH),
+    ], check=False)[0]
 
 def package_appimage() -> int:
     linuxdeploy = find_linuxdeploy()
@@ -734,7 +749,102 @@ def package_flatpak() -> int:
 
     return bundle_code
 
-def run_binary(build_type: str = "release") -> int:
+# --- Wine ---
+
+LOCAL_DATA_DIR = Path.home() / ".local" / "share" / BINARY_NAME
+WINE_CACHE_DIR = LOCAL_DATA_DIR / "wine"
+WINE_PREFIX = LOCAL_DATA_DIR / "wine-prefix"
+WINE_ARCHIVE_URL = (
+    "https://github.com/NelloKudo/WineBuilder/releases/download/wine-osu-cachyos-v11.0-1/"
+    "wine-osu-cachy-winello-fonts-wow64-11.0-1-x86_64.tar.xz"
+)
+WINE_ARCHIVE_PATH = WINE_CACHE_DIR / WINE_ARCHIVE_URL.rsplit("/", 1)[-1]
+WINE_RUNNER_DIR = WINE_CACHE_DIR / "runner"
+
+def find_wine_binary() -> Path | None:
+    candidates = tuple(
+        path for path in WINE_RUNNER_DIR.rglob("wine")
+        if path.parent.name == "bin" and os.access(path, os.X_OK)
+    )
+    return candidates[0] if len(candidates) == 1 else None
+
+def ensure_wine_runner() -> Path | None:
+    wine = find_wine_binary()
+    if wine is not None:
+        return wine
+
+    WINE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    if not WINE_ARCHIVE_PATH.exists():
+        print(f"[ez] downloading Wine runner from {WINE_ARCHIVE_URL}")
+        _ = urllib.request.urlretrieve(WINE_ARCHIVE_URL, WINE_ARCHIVE_PATH)
+
+    if WINE_RUNNER_DIR.exists() or WINE_RUNNER_DIR.is_symlink():
+        clear_dir(WINE_RUNNER_DIR)
+
+    WINE_RUNNER_DIR.mkdir(parents=True)
+    with tarfile.open(WINE_ARCHIVE_PATH, "r:xz") as archive:
+        archive.extractall(WINE_RUNNER_DIR)
+
+    wine = find_wine_binary()
+    if wine is None:
+        print("[ez] Wine runner archive does not contain bin/wine")
+    return wine
+
+def get_wine_environment(wine: Path) -> dict[str, str]:
+    env = {"WINEDEBUG": "-all"} | os.environ | {"WINEPREFIX": str(WINE_PREFIX), "WINE": str(wine)}
+    wineserver = wine.with_name("wineserver")
+    if wineserver.is_file():
+        env["WINESERVER"] = str(wineserver)
+    return env
+
+def ensure_wine_prefix(wine: Path) -> bool:
+    environment = get_wine_environment(wine)
+    if not (WINE_PREFIX / "system.reg").is_file():
+        WINE_PREFIX.mkdir(parents=True, exist_ok=True)
+        environment = environment | {"WINEARCH": "win64"}
+        if run([str(wine), "wineboot", "--init"], env=environment, check=False)[0] != 0:
+            return False
+
+    runtime_marker = WINE_PREFIX / ".vcrun2022"
+    if runtime_marker.is_file():
+        return True
+
+    if shutil.which("winetricks") is None:
+        print("[ez] winetricks not found")
+        return False
+
+    if run(["winetricks", "-q", "vcrun2022"], env=environment, check=False)[0] != 0:
+        return False
+
+    runtime_marker.touch()
+    return True
+
+def run_wine_target(target: Path) -> int:
+    target = target.expanduser().resolve()
+    if not target.is_file():
+        print(f"[ez] executable not found: {target}")
+        return 1
+
+    wine = ensure_wine_runner()
+    if wine is None or not ensure_wine_prefix(wine):
+        return 1
+
+    return run(
+        [str(wine), str(target)],
+        env=get_wine_environment(wine),
+        check=False,
+        cwd=target.parent,
+    )[0]
+
+# --- running ---
+
+def run_binary(build_type: str = "release", target: str | None = None) -> int:
+    if target is not None:
+        target_path = Path(target)
+        if SYSTEM == "Linux":
+            return run_wine_target(target_path)
+        return run([str(target_path.expanduser().resolve())])[0]
+
     build_dir = get_build_dir(build_type)
     binary = build_dir / BINARY_NAME
     if SYSTEM == "Windows":
@@ -746,7 +856,7 @@ def run_binary(build_type: str = "release") -> int:
 
     env = os.environ.copy()
     env["ENABLE_DEBUGGER"] = "1"
-    return run(str(binary), env=env)[0]
+    return run([str(binary)], env=env)[0]
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="build script for c++ projects")
@@ -787,6 +897,7 @@ def main() -> None:
 
     run_parser = subparsers.add_parser("run")
     _ = run_parser.add_argument("--type", choices=["debug", "release"], dest="build_type")
+    _ = run_parser.add_argument("target", nargs="?", help="Windows executable to run through Wine on Linux")
 
     _ = subparsers.add_parser("release-version")
 
@@ -817,7 +928,7 @@ def main() -> None:
         "format": format_code,
         "clean": clean,
         "check": lambda: check(args.build_type),
-        "run": lambda: run_binary(get_selected_build_type(args.build_type)),
+        "run": lambda: run_binary(get_selected_build_type(args.build_type), args.target),
         "release-version": print_release_version,
         "parse-note": lambda: parse_release_note(args.version, args.dest),
         "tests": lambda: run_tests(args.build_type, args.test_id),
