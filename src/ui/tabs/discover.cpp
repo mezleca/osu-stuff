@@ -3,13 +3,10 @@
 
 using namespace ui;
 
-DiscoverTab::DiscoverTab(UI& ui) : UITab(ui, "discover") {}
+DiscoverTab::DiscoverTab() : UITab("discover") {}
 
 void DiscoverTab::setup() {
-    m_content_layout = &add<StackContainer>("##discover-content");
+    m_content_layout = &add<Container>("##discover-content");
+    m_content_layout->set_size({grow(), grow()});
     m_content_layout->add<TextWidget>("discover");
-}
-
-void DiscoverTab::render() {
-    m_content_layout->draw();
 }

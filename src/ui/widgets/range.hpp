@@ -5,13 +5,9 @@
 #include <string>
 
 class AppRangeThumbNode;
-namespace ui {
-    class UI;
-}
-
 class RangeWidget final : public ui::Widget {
 public:
-    RangeWidget(ui::UI& ui, float& minimum, float& maximum, std::string id = {});
+    RangeWidget(float& minimum, float& maximum, std::string id = {});
 
     RangeWidget& set_label(std::string label);
     RangeWidget& set_bounds(float minimum, float maximum);
@@ -21,15 +17,15 @@ public:
     [[nodiscard]] ui::Widget& maximum_thumb();
 
 private:
+    void apply_theme_defaults(const ui::Theme& theme) override;
+    void on_measure() override;
     bool paint() override;
-    void configure_default_styles();
     void normalize_values();
     void update_value_from_input(float track_start, float track_width, float minimum_x, float maximum_x);
     void draw_track(ui::Rect track, float minimum_x, float maximum_x, float thumb_width);
     void draw_children() override;
     [[nodiscard]] float value_position(float value, float track_start, float track_width) const;
 
-    ui::UI& m_ui;
     AppRangeThumbNode* m_minimum_thumb = nullptr;
     AppRangeThumbNode* m_maximum_thumb = nullptr;
     float* m_minimum;

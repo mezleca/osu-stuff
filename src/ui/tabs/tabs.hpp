@@ -1,31 +1,25 @@
 #pragma once
 
-#include <ui/tree/node.hpp>
+#include <ui/layout/container.hpp>
 
 #include <string>
 #include <utility>
 
-namespace ui {
-    class UI;
-}
-
-class UITab : public ui::Node {
+class UITab : public ui::Container {
 public:
-    UITab(ui::UI& ui, std::string id) : ui::Node(std::move(id)), m_ui(ui) {}
-
-    void draw() override;
+    explicit UITab(std::string id) : ui::Container(std::move(id), "Tab") {
+        set_size({ui::grow(), ui::grow()});
+    }
 
 protected:
     [[nodiscard]] ui::UI& ui() {
-        return m_ui;
+        return surface();
     }
 
 private:
     void initialize();
     void on_update(float dt) override;
     virtual void setup() = 0;
-    virtual void render() = 0;
 
-    ui::UI& m_ui;
     bool m_initialized = false;
 };

@@ -21,16 +21,15 @@ struct ConfigFieldInfo {
     std::string description;
 };
 
-class ConfigFieldBase : public StackContainer {
+class ConfigFieldBase : public Container {
 protected:
-    explicit ConfigFieldBase(UI& ui) : StackContainer({}, StackDirection::Vertical), m_ui(ui) {
+    ConfigFieldBase() : Container({}, StackDirection::Vertical) {
         set_spacing(7.0F);
         set_size({grow(), fit()});
         configure_all_styles([](Style& style) { style.padding({5.0F, 5.0F}); });
     }
 
-    void configure_input(StyledNode& input, ImVec2 padding) {
-        const Theme& theme = m_ui.theme();
+    void configure_input(StyledNode& input, ImVec2 padding, const Theme& theme) {
         input.configure_all_styles([padding](Style& style) { style.padding(padding); });
         input.configure_style(StyleType::DEFAULT, [&theme](Style& style) {
             style.background_color(theme.background_tertiary_color);
@@ -42,10 +41,7 @@ protected:
             return;
         }
 
-        const Theme& theme = m_ui.theme();
         m_description = &add<TextWidget>(std::move(description));
-        m_description->set_font(m_ui.get_font("Torus Bold", 17));
-        m_description->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
     }
 
     void align_description(float x) {
@@ -59,17 +55,25 @@ protected:
         });
     }
 
-    UI& m_ui;
     Widget* m_widget = nullptr;
     TextWidget* m_description = nullptr;
 
-private:
+    void apply_theme_defaults(const Theme& theme) override {
+        Container::apply_theme_defaults(theme);
+
+        if (m_description == nullptr) {
+            return;
+        }
+
+        m_description->set_font(surface().get_font("Torus Bold", 17));
+        m_description->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
+    }
 };
 
 template <typename T>
 class ConfigField final : public ConfigFieldBase {
 public:
-    ConfigField(UI& ui, DatabaseBinding<T> binding, ConfigFieldInfo info) : ConfigFieldBase(ui), m_binding(std::move(binding)) {
+    ConfigField(DatabaseBinding<T> binding, ConfigFieldInfo info) : ConfigFieldBase(), m_binding(std::move(binding)) {
         if constexpr (std::is_same_v<T, bool>) {
             add_checkbox(std::move(info.label));
             add_description(std::move(info.description));
@@ -83,11 +87,11 @@ public:
 
 private:
     void add_label(std::string label) {
-        add<TextWidget>(std::move(label)).set_font(m_ui.get_font("Torus Bold", 18));
+        m_label = &add<TextWidget>(std::move(label));
     }
 
     void add_checkbox(std::string label) {
-        auto& checkbox = add<CheckboxWidget>(m_ui, m_binding.value(), std::move(label));
+        auto& checkbox = add<CheckboxWidget>(m_binding.value(), std::move(label));
         checkbox.set_on_change([this] { m_binding.commit(); });
         m_widget = &checkbox;
     }
@@ -105,15 +109,11 @@ private:
 
     void add_input() {
         if constexpr (std::is_same_v<T, std::string>) {
-            auto& input = add<TextInputWidget>(m_ui, m_binding.value());
-            configure_input(input, {12.0F, 11.0F});
+            auto& input = add<TextInputWidget>(m_binding.value());
             input.set_on_change([this] { m_binding.commit(); });
             m_widget = &input;
-        } else if constexpr (requires { NumberInputWidget(m_ui, m_binding.value()); }) {
-            auto& input = add<NumberInputWidget>(m_ui, m_binding.value());
-            input.set_font(m_ui.get_font("Torus Bold", 18));
-
-            configure_input(input, {10.0F, 5.0F});
+        } else if constexpr (requires { NumberInputWidget(m_binding.value()); }) {
+            auto& input = add<NumberInputWidget>(m_binding.value());
             input.set_on_change([this] { m_binding.commit(); });
             m_widget = &input;
         } else {
@@ -121,35 +121,55 @@ private:
         }
     }
 
+    void apply_theme_defaults(const Theme& theme) override {
+        ConfigFieldBase::apply_theme_defaults(theme);
+
+        if (m_label != nullptr) {
+            m_label->set_font(surface().get_font("Torus Bold", 18));
+        }
+
+        if constexpr (std::is_same_v<T, std::string>) {
+            configure_input(*m_widget, {12.0F, 11.0F}, theme);
+        } else if constexpr (!std::is_same_v<T, bool>) {
+            m_widget->set_font(surface().get_font("Torus Bold", 18));
+            configure_input(*m_widget, {10.0F, 5.0F}, theme);
+        }
+    }
+
     DatabaseBinding<T> m_binding;
+    TextWidget* m_label = nullptr;
 };
 
 class ConfigDropdownField final : public ConfigFieldBase {
 public:
-    ConfigDropdownField(UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options)
-        : ConfigFieldBase(ui), m_binding(std::move(binding)) {
+    ConfigDropdownField(DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options)
+        : ConfigFieldBase(), m_binding(std::move(binding)) {
         add<TextWidget>(std::move(info.label));
         add_description(std::move(info.description));
 
-        auto& dropdown = add<DropdownWidget>(m_ui, m_binding.value(), std::move(options));
-        configure_input(dropdown.trigger(), {10.0F, 6.0F});
+        auto& dropdown = add<DropdownWidget>(m_binding.value(), std::move(options));
         dropdown.set_on_change([this] { m_binding.commit(); });
         m_widget = &dropdown;
     }
 
 private:
+    void apply_theme_defaults(const Theme& theme) override {
+        ConfigFieldBase::apply_theme_defaults(theme);
+        configure_input(static_cast<DropdownWidget&>(*m_widget).trigger(), {10.0F, 6.0F}, theme);
+    }
+
     DatabaseBinding<std::string> m_binding;
 };
 
 template <typename T>
-static ConfigField<T>& add_config_field(Container& parent, UI& ui, DatabaseBinding<T> binding, ConfigFieldInfo info) {
-    return parent.add<ConfigField<T>>(ui, std::move(binding), std::move(info));
+static ConfigField<T>& add_config_field(Container& parent, DatabaseBinding<T> binding, ConfigFieldInfo info) {
+    return parent.add<ConfigField<T>>(std::move(binding), std::move(info));
 }
 
 static ConfigDropdownField& add_config_dropdown(
-    Container& parent, UI& ui, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options
+    Container& parent, DatabaseBinding<std::string> binding, ConfigFieldInfo info, std::vector<DropdownOption> options
 ) {
-    return parent.add<ConfigDropdownField>(ui, std::move(binding), std::move(info), std::move(options));
+    return parent.add<ConfigDropdownField>(std::move(binding), std::move(info), std::move(options));
 }
 
 static DatabaseBinding<std::string> bind_osu_client_type(AppDatabase& app_database) {
@@ -165,16 +185,14 @@ static DatabaseBinding<std::string> bind_osu_client_type(AppDatabase& app_databa
     );
 }
 
-ConfigTab::ConfigTab(UI& ui) : UITab(ui, "config") {}
+ConfigTab::ConfigTab() : UITab("config") {}
 
 void ConfigTab::setup() {
-    m_content_layout = &add<StackContainer>("##config-content");
+    m_content_layout = &add<Container>("##config-content");
+    m_content_layout->set_size({grow(), grow()});
     m_content_layout->set_spacing(6.0F);
     m_content_layout->set_scrollable(true);
-    const Theme& theme = ui().theme();
-    m_content_layout->configure_all_styles([&theme](Style& style) {
-        style.padding({theme.content_padding, theme.content_padding});
-    });
+    m_content_layout->configure_all_styles([](Style& style) { style.padding({12.0F, 12.0F}); });
 
     if (database == nullptr) {
         LOG_WARN("[ConfigTab] cant build config layout (database is nullptr)");
@@ -186,37 +204,30 @@ void ConfigTab::setup() {
 
 void ConfigTab::build() {
     // credentials(id): https://osu.ppy.sh/home/account/edit#oauth
-    add_config_field(*m_content_layout, ui(), DATABASE_FIELD(database, credentials->id), {"osu! id", "OAuth application ID"});
+    add_config_field(*m_content_layout, DATABASE_FIELD(database, credentials->id), {"osu! id", "OAuth application ID"});
 
     // credentials(secret): https://osu.ppy.sh/home/account/edit#oauth
     add_config_field(
-        *m_content_layout, ui(), DATABASE_FIELD(database, credentials->secret), {"osu! secret", "OAuth application SECRET"}
+        *m_content_layout, DATABASE_FIELD(database, credentials->secret), {"osu! secret", "OAuth application SECRET"}
     );
 
     // stable path
     add_config_field(
-        *m_content_layout, ui(), DATABASE_FIELD(database, osu_data->stable_path), {"stable location", "osu! stable location"}
+        *m_content_layout, DATABASE_FIELD(database, osu_data->stable_path), {"stable location", "osu! stable location"}
     );
 
     // lazer path
-    add_config_field(
-        *m_content_layout, ui(), DATABASE_FIELD(database, osu_data->lazer_path), {"lazer location", "lazer location"}
-    );
+    add_config_field(*m_content_layout, DATABASE_FIELD(database, osu_data->lazer_path), {"lazer location", "lazer location"});
 
     // client mode
     add_config_dropdown(
-        *m_content_layout, ui(), bind_osu_client_type(*database), {"current osu client", "select current osu client"},
+        *m_content_layout, bind_osu_client_type(*database), {"current osu client", "select current osu client"},
         {{"stable", "stable"}, {"lazer", "lazer"}}
     );
 
     // radio: background image
     add_config_field(
-        *m_content_layout, ui(), DATABASE_FIELD(database, radio_background),
+        *m_content_layout, DATABASE_FIELD(database, radio_background),
         {"radio background", "enable background image in radio tab"}
     );
-}
-
-void ConfigTab::render() {
-    m_content_layout->set_size({grow(), px(ImGui::GetContentRegionAvail().y)});
-    m_content_layout->draw();
 }

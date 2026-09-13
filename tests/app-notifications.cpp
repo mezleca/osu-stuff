@@ -14,7 +14,7 @@ using namespace ui;
 TEST_CASE("non-persistent notifications close after their duration") {
     class TimedNotification final : public UINotification {
     public:
-        explicit TimedNotification(UI& ui) : UINotification(ui) {}
+        TimedNotification() : UINotification() {}
 
         void close() override {
             if (m_closing) {
@@ -29,8 +29,8 @@ TEST_CASE("non-persistent notifications close after their duration") {
     };
 
     Runtime runtime;
-    UI surface(runtime, {.backend = ui_test::make_backend()});
-    TimedNotification notification(surface);
+    UI surface(runtime, {.backend = ui_test::make_backend(), .file_dialog_backend = nullptr});
+    TimedNotification notification;
 
     REQUIRE(notification.persistent);
     notification.duration = 1.0F;

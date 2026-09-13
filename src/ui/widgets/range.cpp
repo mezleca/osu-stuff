@@ -46,30 +46,29 @@ private:
     std::string m_text;
 };
 
-RangeWidget::RangeWidget(UI& ui, float& minimum, float& maximum, std::string id)
-    : Widget(std::move(id), "Range"), m_ui(ui), m_minimum(&minimum), m_maximum(&maximum) {
+RangeWidget::RangeWidget(float& minimum, float& maximum, std::string id)
+    : Widget(std::move(id), "Range"), m_minimum(&minimum), m_maximum(&maximum) {
     m_minimum_thumb = &add<AppRangeThumbNode>("minimum-thumb");
     m_maximum_thumb = &add<AppRangeThumbNode>("maximum-thumb");
-    configure_default_styles();
 }
 
-void RangeWidget::configure_default_styles() {
-    const Theme& theme = m_ui.theme();
+void RangeWidget::apply_theme_defaults(const Theme& theme) {
+    UI& ui = surface();
 
     configure_all_styles([&theme](Style& style) {
         style.color(theme.text_color)
             .background_color(theme.controls.background_color)
             .border_color(theme.controls.border_color, 0.15F)
-            .padding({10.0F, 6.0F})
+            .padding({10.0F, 8.0F})
             .border(BORDER_ALL)
             .border_radius(theme.controls.rounding)
-            .border_thickness(theme.controls.border_thickness + 1.0F);
+            .border_thickness(theme.controls.border_thickness);
     });
 
     configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_hover_color); });
     configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color); });
 
-    ImFont* value_font = m_ui.get_secondary_font(13);
+    ImFont* value_font = ui.get_secondary_font(13);
     const auto configure_thumb = [&theme](AppRangeThumbNode& thumb) {
         thumb.configure_all_styles([&theme](Style& style) {
             style.color(theme.background_color).background_color(theme.text_color).border_radius(theme.controls.rounding);
@@ -83,7 +82,12 @@ void RangeWidget::configure_default_styles() {
 }
 
 RangeWidget& RangeWidget::set_label(std::string label) {
+    if (m_label == label) {
+        return *this;
+    }
+
     m_label = std::move(label);
+    invalidate_measure();
     return *this;
 }
 
@@ -114,6 +118,12 @@ Widget& RangeWidget::maximum_thumb() {
 
 void RangeWidget::draw_children() {
     // thumbs are drawn after the track resolves their rectangles.
+}
+
+void RangeWidget::on_measure() {
+    const float label_height = m_label.empty() ? 0.0F : ImGui::GetTextLineHeightWithSpacing();
+    const float control_height = ImGui::GetFrameHeight() + computed_style().padding().y * 2.0F;
+    set_measured_size({0.0F, label_height + control_height}, false, true);
 }
 
 void RangeWidget::normalize_values() {
@@ -166,7 +176,7 @@ void RangeWidget::draw_track(Rect track, float minimum_x, float maximum_x, float
 
     draw_frame_surface(draw_list, track, current_style);
     draw_list.AddRectFilled(
-        {minimum_x, track.min.y}, {maximum_x, track.max.y}, ImGui::GetColorU32(m_ui.theme().accent_color),
+        {minimum_x, track.min.y}, {maximum_x, track.max.y}, ImGui::GetColorU32(surface().theme().accent_color),
         current_style.border_radius()
     );
 
@@ -183,15 +193,15 @@ void RangeWidget::draw_track(Rect track, float minimum_x, float maximum_x, float
 bool RangeWidget::paint() {
     normalize_values();
 
+    const ImVec2 origin = ImGui::GetCursorPos();
     const float label_height = m_label.empty() ? 0.0F : ImGui::GetTextLineHeightWithSpacing();
     const float height = std::max(0.0F, layout().size().y - label_height);
     const float width = layout().size().x > 0.0F ? layout().size().x : ImGui::GetContentRegionAvail().x;
 
     ImGui::PushID(this);
-    const float content_x = ImGui::GetCursorPosX();
     if (!m_label.empty()) {
         ImGui::TextUnformatted(m_label.c_str());
-        ImGui::SetCursorPosX(content_x);
+        ImGui::SetCursorPosX(origin.x);
     }
 
     ImGui::InvisibleButton("##range", {width, height});
@@ -199,7 +209,7 @@ bool RangeWidget::paint() {
     const ImVec2 track_min = ImGui::GetItemRectMin();
     const ImVec2 track_max = ImGui::GetItemRectMax();
     const Rect track{track_min, track_max};
-    const float thumb_width = std::min(height, 32.0F);
+    const float thumb_width = height;
     const float value_track_start = track_min.x + (thumb_width * 0.5F);
     const float value_track_width = std::max(0.0F, track_max.x - track_min.x - thumb_width);
 
@@ -212,6 +222,7 @@ bool RangeWidget::paint() {
     maximum_x = value_position(*m_maximum, value_track_start, value_track_width);
     draw_track(track, minimum_x, maximum_x, thumb_width);
 
+    ImGui::SetCursorPos({origin.x, origin.y + layout().size().y});
     ImGui::PopID();
     return true;
 }

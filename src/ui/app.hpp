@@ -4,7 +4,6 @@
 
 #include <ui/ui.hpp>
 #include <ui/backends/sdl/backend.hpp>
-#include <SDL3/SDL_events.h>
 #include <memory>
 #include <vector>
 
@@ -20,12 +19,10 @@ struct TabEntry {
 class AppUI {
 public:
     AppUI(ui::Runtime& runtime, std::unique_ptr<ui::Backend> backend);
-    ~AppUI();
 
+    void process_events();
     void render();
-    void process_sdl_event(SDL_Event* event);
 
-    [[nodiscard]] bool ready() const;
     [[nodiscard]] bool done() const;
 
 private:

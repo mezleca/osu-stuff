@@ -8,7 +8,7 @@ using namespace ui;
 
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
-UINotification::UINotification(UI& ui) : Container({}, "Notification"), m_ui(ui) {
+UINotification::UINotification() : Container({}, "Notification") {
     set_input_mode(InputMode::Blocker);
     m_offset.duration = 0.2F;
     update_layout_placement();
@@ -92,47 +92,18 @@ ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor 
     return accent_color;
 }
 
-LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level, std::string text)
-    : UINotification(ui), m_level(level) {
+LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::string text) : UINotification(), m_level(level) {
     set_type_name("LogNotification");
-    Style& hover_style = style(StyleType::HOVER);
-    Style& active_style = style(StyleType::ACTIVE);
-
-    const Theme& theme = m_ui.theme();
-    auto* close_icon = m_ui.runtime().textures().find("x-icon");
-    ImFont* torus_semi = m_ui.get_font("Torus SemiBold", 16);
-
-    configure_all_styles([&theme](Style& style) {
-        style.color(theme.text_color)
-            .border_color(theme.border_color, 0.15F)
-            .background_color(theme.background_color)
-            .padding({8.0F, 16.0F})
-            .border_radius(4.0F)
-            .border_thickness(1.0F)
-            .border(BORDER_ALL);
-    });
-
-    set_font(torus_semi);
-
-    const ImColor level_border_color = border_color(m_level, theme.accent_color);
-
-    active_style.border_color(level_border_color);
-    hover_style.border_color(level_border_color);
 
     m_text_node = &add<TextWidget>(std::move(text));
-    m_text_node->set_font(torus_semi);
-    m_text_node->set_wrap(256.0F - CLOSE_ICON_SIZE.x - 8.0F);
 
     m_icon = &add<ImageWidget>();
     m_icon->set_input_mode(InputMode::Target);
-    m_icon->set_texture(close_icon);
     m_icon->set_layout({
         .size = {px(CLOSE_ICON_SIZE.x), px(CLOSE_ICON_SIZE.y)},
         .placement = {.anchor = Anchor::CenterLeft, .origin = Anchor::CenterLeft},
         .in_flow = false,
     });
-
-    m_icon->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
 
     m_icon->set_on_event([this](UiEvent& event) {
         if (event.type != EventType::Click) {
@@ -147,6 +118,30 @@ LogNotificationWidget::LogNotificationWidget(UI& ui, LogNotificationLevel level,
 
         event.mark_handled();
     });
+}
+
+void LogNotificationWidget::apply_theme_defaults(const Theme& theme) {
+    UI& ui = surface();
+    ImFont* font = ui.get_font("Torus SemiBold", 16);
+    const ImColor level_border_color = border_color(m_level, theme.accent_color);
+
+    configure_all_styles([&theme](Style& style) {
+        style.color(theme.text_color)
+            .border_color(theme.border_color, 0.15F)
+            .background_color(theme.background_color)
+            .padding({8.0F, 16.0F})
+            .border_radius(4.0F)
+            .border_thickness(1.0F)
+            .border(BORDER_ALL);
+    });
+    configure_style(StyleType::HOVER, [level_border_color](Style& style) { style.border_color(level_border_color); });
+    configure_style(StyleType::ACTIVE, [level_border_color](Style& style) { style.border_color(level_border_color); });
+
+    set_font(font);
+    m_text_node->set_font(font);
+    m_text_node->set_wrap(256.0F - CLOSE_ICON_SIZE.x - 8.0F);
+    m_icon->set_texture(ui.runtime().textures().find("x-icon"));
+    m_icon->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
 }
 
 void LogNotificationWidget::close() {

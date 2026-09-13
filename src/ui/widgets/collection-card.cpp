@@ -6,38 +6,16 @@ using namespace ui;
 constexpr float ALPHA_ANIM_DURATION = 0.15F;
 constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
 
-CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name) : Container({}, "CollectionCard"), m_ui(ui) {
+CollectionCardWidget::CollectionCardWidget(std::string name) : Container({}, "CollectionCard") {
     set_input_mode(InputMode::Target);
-    const Theme& theme = m_ui.theme();
-
-    auto* music_icon = m_ui.runtime().textures().find("music-icon");
-
-    set_font(m_ui.get_font("Torus SemiBold", 18));
     set_size({grow(), px(50.0F)});
 
-    configure_all_styles([&theme](Style& style) {
-        style.padding({theme.content_padding, 0.0F})
-            .border(BORDER_ALL)
-            .border_thickness(1.0F)
-            .border_color(with_alpha(theme.accent_color, 0.0F), ALPHA_ANIM_DURATION)
-            .background_color(with_alpha(theme.button_active_color, 0.0F), ALPHA_ANIM_DURATION);
-    });
-
-    configure_style(StyleType::ACTIVE, [&theme](Style& style) {
-        style.border_color(theme.accent_color, ALPHA_ANIM_DURATION)
-            .background_color(theme.button_active_color, ALPHA_ANIM_DURATION);
-    });
-
-    configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_color, ALPHA_ANIM_DURATION); });
-
     m_icon = &add<ImageWidget>();
-    m_icon->set_texture(music_icon)
-        .set_layout({
-            .size = {px(ICON_SIZE.x), px(ICON_SIZE.y)},
-            .placement = {.anchor = Anchor::CenterLeft, .origin = Anchor::CenterLeft},
-            .in_flow = false,
-        });
-    m_icon->configure_all_styles([&](Style& style) { style.color(theme.accent_color); });
+    m_icon->set_layout({
+        .size = {px(ICON_SIZE.x), px(ICON_SIZE.y)},
+        .placement = {.anchor = Anchor::CenterLeft, .origin = Anchor::CenterLeft},
+        .in_flow = false,
+    });
 
     m_title = &add<TextWidget>(std::move(name));
     m_title->set_layout({
@@ -52,12 +30,33 @@ CollectionCardWidget::CollectionCardWidget(UI& ui, std::string name) : Container
     });
 
     m_count_label = &add<TextWidget>("0 maps");
-    m_count_label->set_font(m_ui.get_font("Torus SemiBold", 14));
     m_count_label->set_layout({
         .size = {fit(), fit()},
         .placement = {.anchor = Anchor::CenterRight, .origin = Anchor::CenterRight},
         .in_flow = false,
     });
+}
+
+void CollectionCardWidget::apply_theme_defaults(const Theme& theme) {
+    UI& ui = surface();
+    set_font(ui.get_font("Torus SemiBold", 18));
+    configure_all_styles([&theme](Style& style) {
+        style.padding({12.0F, 0.0F})
+            .border(BORDER_ALL)
+            .border_thickness(1.0F)
+            .border_color(with_alpha(theme.accent_color, 0.0F), ALPHA_ANIM_DURATION)
+            .background_color(with_alpha(theme.button_active_color, 0.0F), ALPHA_ANIM_DURATION);
+    });
+    configure_style(StyleType::ACTIVE, [&theme](Style& style) {
+        style.border_color(theme.accent_color, ALPHA_ANIM_DURATION)
+            .background_color(theme.button_active_color, ALPHA_ANIM_DURATION);
+    });
+    configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_color, ALPHA_ANIM_DURATION); });
+
+    m_icon->set_texture(ui.runtime().textures().find("music-icon"));
+    m_icon->configure_all_styles([&theme](Style& style) { style.color(theme.accent_color); });
+    m_title->set_font(ui.get_font("Torus SemiBold", 18));
+    m_count_label->set_font(ui.get_font("Torus SemiBold", 14));
 }
 
 void CollectionCardWidget::set_selected(bool value) {

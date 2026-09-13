@@ -7,8 +7,8 @@ using namespace ui;
 
 static constexpr float TAB_TRANSITION_DURATION = 0.3F;
 
-TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title)
-    : Widget({}, "TabButton"), m_name(std::move(name)), m_ui(ui), m_draw_line(line), m_title(title) {
+TabButtonWidget::TabButtonWidget(std::string name, bool line, bool title)
+    : Widget({}, "TabButton"), m_name(std::move(name)), m_draw_line(line), m_title(title) {
 
     if (line) {
         const auto set_float = [this](StyleType type, const char* name, float value, float duration) {
@@ -22,9 +22,9 @@ TabButtonWidget::TabButtonWidget(UI& ui, std::string name, bool line, bool title
         set_float(StyleType::ACTIVE, "line_alpha", 1.0f, TAB_TRANSITION_DURATION);
         set_float(StyleType::ACTIVE, "line_width", 1.0f, TAB_TRANSITION_DURATION);
     }
+}
 
-    const Theme& theme = m_ui.theme();
-
+void TabButtonWidget::apply_theme_defaults(const Theme& theme) {
     configure_all_styles([this, &theme](Style& style) {
         style.color(m_title ? theme.accent_color : theme.text_secondary_color, TAB_TRANSITION_DURATION)
             .background_color(theme.transparent)
@@ -54,7 +54,7 @@ bool TabButtonWidget::paint() {
             const float full_width = rect_max.x - rect_min.x;
             const float line_width = full_width * math_utils::smoothstep(line_width_t->value);
             const ImVec2 line_position = {rect_min.x + ((full_width - line_width) * 0.5f), rect_max.y + LINE_OFFSET};
-            ImVec4 line_color = m_ui.theme().accent_color;
+            ImVec4 line_color = surface().theme().accent_color;
             line_color.w *= line_alpha->value;
 
             ImGui::GetWindowDrawList()->AddRectFilled(

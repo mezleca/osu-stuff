@@ -10,10 +10,13 @@
 namespace ui_test {
     class TestBackend final : public ui::Backend {
     public:
+        explicit TestBackend(ImVec2 display_size) : m_display_size(display_size) {}
+
         bool initialize() override {
             return true;
         }
 
+        void process_events(ui::UI&) override {}
         bool initialize_imgui() override {
             return true;
         }
@@ -32,12 +35,15 @@ namespace ui_test {
         }
 
         ImVec2 display_size() const override {
-            return config().size;
+            return m_display_size;
         }
+
+    private:
+        ImVec2 m_display_size;
     };
 
-    inline std::unique_ptr<ui::Backend> make_backend() {
-        return std::make_unique<TestBackend>();
+    inline std::unique_ptr<ui::Backend> make_backend(ImVec2 display_size = {1280.0F, 720.0F}) {
+        return std::make_unique<TestBackend>(display_size);
     }
 
     class ImGuiContext {

@@ -6,8 +6,6 @@
 #include "../widgets/notification.hpp"
 #include "../widgets/range.hpp"
 
-#include <ui/constants.hpp>
-#include <ui/style/theme.hpp>
 #include <ui/widgets/button.hpp>
 #include <ui/widgets/checkbox.hpp>
 #include <ui/widgets/context-menu.hpp>
@@ -16,7 +14,8 @@
 #include <ui/widgets/number-input.hpp>
 #include <ui/widgets/text-input.hpp>
 #include <ui/widgets/text.hpp>
-#include <ui/layout/stack-container.hpp>
+#include <ui/layout/container.hpp>
+#include <ui/layout/tree-container.hpp>
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <array>
@@ -26,39 +25,18 @@
 
 using namespace ui;
 
-class AnchorVisualTestNode final : public Container {
+class NotificationVisualTestNode final : public Container {
 public:
-    AnchorVisualTestNode(std::string id, std::string label, Anchor anchor, Anchor origin, ImVec2 offset, const Theme& theme)
-        : Container(std::move(id)) {
-        set_layout({
-            .size = {px(240.0F), px(110.0F)},
-            .placement = {.anchor = anchor, .origin = origin, .offset = offset},
-            .in_flow = false,
-        });
-        configure_all_styles([&theme](Style& style) {
-            style.padding({16.0F, 16.0F}).border(BORDER_ALL).border_color(theme.border_color);
-        });
-        add<TextWidget>(std::move(label));
-    }
-};
-
-class NotificationVisualTestNode final : public StackContainer {
-public:
-    NotificationVisualTestNode(
-        UI& surface, UINotificationManager& notification_manager, UIModalManager& modal_manager, const Theme& theme
-    )
-        : StackContainer("notification-test", StackDirection::Horizontal), m_modal_manager(modal_manager), m_ui(surface),
+    NotificationVisualTestNode(UINotificationManager& notification_manager, UIModalManager& modal_manager)
+        : Container("notification-test", StackDirection::Horizontal), m_modal_manager(modal_manager),
           m_manager(notification_manager) {
         set_size({grow(), px(120.0F)});
         set_spacing(8.0F);
-        configure_all_styles([&theme](Style& style) {
-            style.padding({8.0F, 8.0F}).border(BORDER_ALL).border_color(theme.border_color);
-        });
 
         m_count_text = &add<TextWidget>("notifications: 0");
-        m_add_button = &add<ButtonWidget>(m_ui, "add notification", LayoutSize{px(180.0F), px(30.0F)});
-        m_open_modal_button = &add<ButtonWidget>(m_ui, "open modal", LayoutSize{px(180.0F), px(30.0F)});
-        m_clear_button = &add<ButtonWidget>(m_ui, "clear notifications", LayoutSize{px(180.0F), px(30.0F)});
+        m_add_button = &add<ButtonWidget>("add notification", LayoutSize{px(180.0F), px(30.0F)});
+        m_open_modal_button = &add<ButtonWidget>("open modal", LayoutSize{px(180.0F), px(30.0F)});
+        m_clear_button = &add<ButtonWidget>("clear notifications", LayoutSize{px(180.0F), px(30.0F)});
 
         m_add_button->set_on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
@@ -68,7 +46,7 @@ public:
             const auto level = m_manager.count() % 2 == 0 ? LogNotificationLevel::INFO : LogNotificationLevel::WARN;
             const std::string text =
                 m_manager.count() == 0 ? "small notification test" : "a not so small, kinda big but enormous notification test";
-            m_manager.add(std::make_unique<LogNotificationWidget>(m_ui, level, text));
+            m_manager.add(level, text);
             event.mark_handled();
         });
 
@@ -92,8 +70,15 @@ public:
     }
 
 protected:
+    void apply_theme_defaults(const Theme& theme) override {
+        Container::apply_theme_defaults(theme);
+        configure_all_styles([&theme](Style& style) {
+            style.padding({8.0F, 8.0F}).border(BORDER_ALL).border_color(theme.border_color);
+        });
+    }
+
     void on_update(float dt) override {
-        StackContainer::on_update(dt);
+        Container::on_update(dt);
         m_count_text->set_text(std::format("notifications: {}", m_manager.count()));
         m_clear_button->set_visible(m_manager.count() > 0);
     }
@@ -105,10 +90,10 @@ private:
 
         modal.add<TextWidget>("hello from modal");
 
-        auto& input = modal.add<TextInputWidget>(m_ui, modal_input, "##modal-input");
-        auto& close_button = modal.add<ButtonWidget>(m_ui, "close modal", LayoutSize{px(160.0F), px(36.0F)});
+        auto& input = modal.add<TextInputWidget>(modal_input, "##modal-input");
+        auto& close_button = modal.add<ButtonWidget>("close modal", LayoutSize{px(160.0F), px(36.0F)});
 
-        input.set_size({px(400.0F), px(36.0F)});
+        input.set_size({px(400.0F), fit()});
 
         close_button.set_on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
@@ -121,7 +106,6 @@ private:
     }
 
     UIModalManager& m_modal_manager;
-    UI& m_ui;
     UINotificationManager& m_manager;
     TextWidget* m_count_text = nullptr;
     ButtonWidget* m_add_button = nullptr;
@@ -129,75 +113,73 @@ private:
     ButtonWidget* m_clear_button = nullptr;
 };
 
-class WidgetVisualTestNode final : public StackContainer {
+class WidgetVisualTestNode final : public Container {
 public:
-    WidgetVisualTestNode(UI& surface, ContextMenuWidget& context_menu)
-        : StackContainer("widget-test"), m_ui(surface), m_text_value("editable text") {
+    explicit WidgetVisualTestNode(ContextMenuWidget& context_menu) : Container("widget-test"), m_text_value("editable text") {
         set_size({grow(), px(360.0F)});
         set_spacing(10.0F);
         set_scrollable(true);
         set_input_mode(InputMode::Target);
 
-        configure_all_styles([this](Style& style) {
-            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(m_ui.theme().border_color);
-        });
+        m_button = &add<ButtonWidget>("button", LayoutSize{px(160.0F), px(36.0F)});
 
-        m_button = &add<ButtonWidget>(m_ui, "button", LayoutSize{px(160.0F), px(36.0F)});
+        auto& text_input = add<TextInputWidget>(m_text_value, "##widget-test-text");
+        text_input.set_size({px(380.0F), fit()});
 
-        auto& text_input = add<TextInputWidget>(m_ui, m_text_value, "##widget-test-text");
-        text_input.set_size({px(380.0F), px(44.0F)});
-
-        auto& number_input = add<NumberInputWidget>(m_ui, m_number_value, "widget-test-number");
-        number_input.set_label("number input").set_range(0.0, 100.0).set_size({px(380.0F), px(36.0F)});
+        auto& number_input = add<NumberInputWidget>(m_number_value, "widget-test-number");
+        number_input.set_label("number input").set_range(0.0, 100.0).set_size({px(380.0F), fit()});
 
         auto& dropdown = add<DropdownWidget>(
-            m_ui, m_dropdown_value, std::vector<DropdownOption>{{"recent", "recent"}, {"title", "title"}, {"artist", "artist"}},
-            "widget-test-dropdown"
+            m_dropdown_value, std::vector<DropdownOption>{{"recent", "recent"}, {"title", "title"}, {"artist", "artist"}},
+            "widget-test-sort"
         );
-        dropdown.set_label("sort by").set_size({px(380.0F), px(62.0F)});
+        dropdown.set_label("sort by").set_size({px(380.0F), fit()});
 
         auto& dialog_mode = add<DropdownWidget>(
-            m_ui, m_dialog_mode,
+            m_dialog_mode,
             std::vector<DropdownOption>{{"file", "file"}, {"multiple files", "multiple files"}, {"folder", "folder"}},
-            "widget-test-dropdown"
+            "widget-test-dialog-mode"
         );
-        dialog_mode.set_label("dialog mode").set_size({px(380.0F), px(62.0F)});
+        dialog_mode.set_label("dialog mode").set_size({px(380.0F), fit()});
 
-        auto& default_folder = add<TextInputWidget>(m_ui, m_default_folder, "##default-folder");
+        auto& default_folder = add<TextInputWidget>(m_default_folder, "##default-folder");
         default_folder.set_visible(false);
 
         dialog_mode.set_on_change([this, &default_folder]() { default_folder.set_visible(m_dialog_mode == "folder"); });
 
-        auto& file_dialog = add<FileDialogWidget>(m_ui, "file dialog placeholder");
+        auto& file_dialog = add<FileDialogWidget>("file dialog placeholder");
         file_dialog.set_on_event([this, &file_dialog](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
 
             static const std::array<FileDialogFilter, 1> source_filters{{{"source files", "cpp,c"}}};
+            FileDialogOptions options{};
+            options.filters = source_filters;
 
             if (m_dialog_mode == "file") {
-                const FileDialogResult result = file_dialog.select_file({.filters = source_filters});
+                const FileDialogResult result = file_dialog.select_file(options);
                 if (result.accepted() && !result.paths.empty()) file_dialog.set_value(result.paths.front().string());
             } else if (m_dialog_mode == "multiple files") {
-                const FileDialogResult result = file_dialog.select_files({.filters = source_filters});
+                const FileDialogResult result = file_dialog.select_files(options);
                 if (result.accepted()) file_dialog.set_value(std::format("selected {} file(s)", result.paths.size()));
             } else {
-                const FileDialogResult result = file_dialog.select_folder(std::filesystem::path{m_default_folder});
+                options.filters = {};
+                options.default_path = m_default_folder;
+                const FileDialogResult result = file_dialog.select_folder(options);
                 if (result.accepted() && !result.paths.empty()) file_dialog.set_value(result.paths.front().string());
             }
 
             event.mark_handled();
         });
 
-        auto& range = add<RangeWidget>(m_ui, m_range_minimum, m_range_maximum, "widget-test-range");
-        range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({px(380.0F), px(60.0F)});
+        auto& range = add<RangeWidget>(m_range_minimum, m_range_maximum, "widget-test-range");
+        range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({px(380.0F), fit()});
 
-        auto& checkbox = add<CheckboxWidget>(m_ui, m_checked, "checkbox", "widget-test-checkbox");
-        checkbox.set_size({grow(), px(30.0F)});
+        add<CheckboxWidget>(m_checked, "checkbox", "widget-test-checkbox");
 
-        auto& radio = add<CheckboxWidget>(m_ui, m_radio_selected, "radio", "widget-test-radio");
-        radio.set_type(CheckboxType::Radio).set_size({grow(), px(30.0F)});
+        auto& radio = add<CheckboxWidget>(m_radio_selected, "radio", "widget-test-radio");
+        radio.set_type(CheckboxType::Radio);
 
         set_on_event([&context_menu](UiEvent& event) {
             if (event.type == EventType::ContextClick) {
@@ -219,7 +201,13 @@ public:
     }
 
 private:
-    UI& m_ui;
+    void apply_theme_defaults(const Theme& theme) override {
+        Container::apply_theme_defaults(theme);
+        configure_all_styles([&theme](Style& style) {
+            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(theme.border_color);
+        });
+    }
+
     std::string m_text_value;
     std::string m_default_folder = "/";
     std::string m_dropdown_value = "recent";
@@ -238,20 +226,17 @@ struct PlaceholderTodo {
     bool completed;
 };
 
-class TaskVisualTestNode final : public StackContainer {
+class TaskVisualTestNode final : public Container {
 public:
-    TaskVisualTestNode(UI& surface, TaskScheduler& tasks, UINotificationManager& notification_manager)
-        : StackContainer("task-test"), m_ui(surface), m_notification_manager(notification_manager), m_task(tasks) {
+    TaskVisualTestNode(TaskScheduler& tasks, UINotificationManager& notification_manager)
+        : Container("task-test"), m_notification_manager(notification_manager), m_task(tasks) {
         set_size({grow(), px(170.0F)});
         set_spacing(10.0F);
-        configure_all_styles([this](Style& style) {
-            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(m_ui.theme().border_color);
-        });
 
         m_status = &add<TextWidget>("idle");
         m_result = &add<TextWidget>("result: none");
-        m_start = &add<ButtonWidget>(m_ui, "fetch placeholder todo", LayoutSize{px(220.0F), px(36.0F)});
-        m_cancel = &add<ButtonWidget>(m_ui, "cancel", LayoutSize{px(120.0F), px(36.0F)});
+        m_start = &add<ButtonWidget>("fetch placeholder todo", LayoutSize{px(220.0F), px(36.0F)});
+        m_cancel = &add<ButtonWidget>("cancel", LayoutSize{px(120.0F), px(36.0F)});
 
         m_start->set_on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
@@ -276,13 +261,20 @@ public:
 
 protected:
     void on_update(float dt) override {
-        StackContainer::on_update(dt);
+        Container::on_update(dt);
         const bool running = m_task.running();
         m_start->set_visible(!running);
         m_cancel->set_visible(running);
     }
 
 private:
+    void apply_theme_defaults(const Theme& theme) override {
+        Container::apply_theme_defaults(theme);
+        configure_all_styles([&theme](Style& style) {
+            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(theme.border_color);
+        });
+    }
+
     void start_request() {
         const bool started = m_task.start(
             [](TaskContext& context) -> TaskResult<PlaceholderTodo> {
@@ -351,10 +343,9 @@ private:
             },
             [this](std::string update) {
                 m_status->set_text(update);
-                auto notification = std::make_unique<LogNotificationWidget>(m_ui, LogNotificationLevel::INFO, std::move(update));
-                notification->duration = 4.0F;
-                notification->persistent = false;
-                m_notification_manager.add(std::move(notification));
+                auto& notification = m_notification_manager.add(LogNotificationLevel::INFO, std::move(update));
+                notification.duration = 4.0F;
+                notification.persistent = false;
             }
         );
 
@@ -363,7 +354,6 @@ private:
         }
     }
 
-    UI& m_ui;
     UINotificationManager& m_notification_manager;
     TaskSlot m_task;
     TextWidget* m_status = nullptr;
@@ -375,71 +365,29 @@ private:
 class VisualTestContainer final : public Container {
 public:
     VisualTestContainer(
-        UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager, UIModalManager& modal,
-        ContextMenuWidget& context_menu, const Theme& theme
+        TaskScheduler& tasks, UINotificationManager& notification_manager, UIModalManager& modal, ContextMenuWidget& context_menu
     )
         : Container("visual-tests") {
         set_scrollable(true);
-        m_notifications = &add<NotificationVisualTestNode>(ui, notification_manager, modal, theme);
-        m_widgets = &add<WidgetVisualTestNode>(ui, context_menu);
-        m_tasks = &add<TaskVisualTestNode>(ui, tasks, notification_manager);
+        auto& tests = add<TreeContainer>("ui visual tests");
+        tests.add<TreeContainer>("notifications").add<NotificationVisualTestNode>(notification_manager, modal);
+        tests.add<TreeContainer>("widgets").add<WidgetVisualTestNode>(context_menu);
+        tests.add<TreeContainer>("tasks").add<TaskVisualTestNode>(tasks, notification_manager);
     }
-
-private:
-    void draw_children() override {
-        if (!ImGui::TreeNodeEx("ui visual tests")) {
-            return;
-        }
-
-        if (ImGui::TreeNodeEx("notifications")) {
-            m_notifications->draw();
-            ImGui::TreePop();
-        }
-
-        if (ImGui::TreeNodeEx("widgets")) {
-            m_widgets->draw();
-            ImGui::TreePop();
-        }
-
-        if (ImGui::TreeNodeEx("tasks")) {
-            m_tasks->draw();
-            ImGui::TreePop();
-        }
-
-        ImGui::TreePop();
-    }
-
-    NotificationVisualTestNode* m_notifications = nullptr;
-    WidgetVisualTestNode* m_widgets = nullptr;
-    TaskVisualTestNode* m_tasks = nullptr;
 };
 
-IndexTab::IndexTab(UI& ui, TaskScheduler& tasks, UINotificationManager& notification_manager)
-    : UITab(ui, "index"), m_tasks(tasks), m_notification_manager(notification_manager) {
-    m_context_menu = &ui.root().add<ContextMenuWidget>(
-        ui, ContextMenuItems{
-                ContextMenuItem::action("reload"),
-                ContextMenuItem::submenu("options", {ContextMenuItem::action("inspect")}),
-            }
-    );
-    m_modal_manager = &ui.root().add<UIModalManager>(ui);
-}
+IndexTab::IndexTab(TaskScheduler& tasks, UINotificationManager& notification_manager)
+    : UITab("index"), m_tasks(tasks), m_notification_manager(notification_manager) {}
 
 void IndexTab::setup() {
+    UI& surface = ui();
+    m_context_menu = &surface.root().add<ContextMenuWidget>(ContextMenuItems{
+        ContextMenuItem::action("reload"),
+        ContextMenuItem::submenu("options", {ContextMenuItem::action("inspect")}),
+    });
+    m_modal_manager = &surface.root().add<UIModalManager>();
 #ifndef NDEBUG
-    const Theme& theme = ui().theme();
-    m_visual_test_layout =
-        &add<VisualTestContainer>(ui(), m_tasks, m_notification_manager, *m_modal_manager, *m_context_menu, theme);
+    m_visual_test_layout = &add<VisualTestContainer>(m_tasks, m_notification_manager, *m_modal_manager, *m_context_menu);
+    m_visual_test_layout->set_size({grow(), grow()});
 #endif
-}
-
-void IndexTab::render() {
-    ImGui::TextUnformatted("osu-stuff");
-
-    if (m_visual_test_layout == nullptr) {
-        return;
-    }
-
-    m_visual_test_layout->set_size({grow(), px(ImGui::GetContentRegionAvail().y)});
-    m_visual_test_layout->draw();
 }

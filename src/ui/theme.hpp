@@ -13,10 +13,7 @@ constexpr ImVec4 COLOR_YELLOW = ImVec4(1.0f, 1.0f, 95.0f / 255.0f, 1.0f);
 
 inline ui::Theme make_theme() {
     ui::Theme theme{};
-    theme.content_padding = 12.0F;
-    theme.box_rounding = 4.0F;
     theme.controls.rounding = 4.0F;
-    theme.checkbox_rounding = 2.0F;
     theme.controls.border_thickness = 1.0F;
     theme.controls.thumb_size = 12.0F;
 
@@ -25,7 +22,7 @@ inline ui::Theme make_theme() {
     theme.background_color = {30.0F / 255.0F, 30.0F / 255.0F, 30.0F / 255.0F, 1.0F};
     theme.background_secondary_color = {42.0F / 255.0F, 42.0F / 255.0F, 42.0F / 255.0F, 1.0F};
     theme.background_tertiary_color = {26.0F / 255.0F, 26.0F / 255.0F, 26.0F / 255.0F, 1.0F};
-    theme.scrollbar_background_color = {0.0F, 0.0F, 0.0F, 0.0F};
+    theme.scrollbar.background_color = {0.0F, 0.0F, 0.0F, 0.0F};
     theme.header_background_color = {36.0F / 255.0F, 36.0F / 255.0F, 36.0F / 255.0F, 1.0F};
     theme.text_color = {247.0F / 255.0F, 250.0F / 255.0F, 251.0F / 252.0F, 1.0F};
     theme.text_secondary_color = {203.0F / 255.0F, 213.0F / 255.0F, 224.0F / 255.0F, 1.0F};

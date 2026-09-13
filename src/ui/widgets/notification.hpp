@@ -9,10 +9,6 @@
 #include <string>
 #include <string_view>
 
-namespace ui {
-    class UI;
-}
-
 enum class NotificationPosition {
     Left,
     Right,
@@ -20,7 +16,7 @@ enum class NotificationPosition {
 
 class UINotification : public ui::Container {
 public:
-    explicit UINotification(ui::UI& ui);
+    UINotification();
 
     float duration = 5.0F;
     bool persistent = true;
@@ -37,7 +33,6 @@ protected:
 
     void update_layout_placement();
 
-    ui::UI& m_ui;
     ui::Vec2Value m_offset;
     ui::Vec2Value m_current_offset;
     float m_elapsed = 0.0F;
@@ -55,7 +50,7 @@ enum class LogNotificationLevel : int32_t {
 
 class LogNotificationWidget : public UINotification {
 public:
-    LogNotificationWidget(ui::UI& ui, LogNotificationLevel level, std::string text);
+    LogNotificationWidget(LogNotificationLevel level, std::string text);
 
     void close() override;
     void set_text(std::string_view text);
@@ -64,6 +59,7 @@ public:
 
 private:
     static ImColor border_color(LogNotificationLevel level, ImColor accent_color);
+    void apply_theme_defaults(const ui::Theme& theme) override;
     bool paint() override;
     void on_measure() override;
     void draw_children() override;

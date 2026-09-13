@@ -4,13 +4,9 @@
 #include <ui/widgets/text.hpp>
 #include <ui/widgets/image.hpp>
 
-namespace ui {
-    class UI;
-}
-
 class CollectionCardWidget : public ui::Container {
 public:
-    CollectionCardWidget(ui::UI& ui, std::string name);
+    explicit CollectionCardWidget(std::string name);
 
     void set_text(std::string text);
     void set_count(std::string count);
@@ -19,10 +15,10 @@ public:
     [[nodiscard]] bool is_selected() const;
 
 protected:
+    void apply_theme_defaults(const ui::Theme& theme) override;
     void input_state_changed() override;
 
 private:
-    ui::UI& m_ui;
     ui::ImageWidget* m_icon = nullptr;
     ui::TextWidget* m_title = nullptr;
     ui::TextWidget* m_count_label = nullptr;

@@ -7,10 +7,8 @@
 
 using namespace ui;
 
-UIModalManager::UIModalManager(UI& ui)
-    : LayerContainer("modal-layer"), m_input_router(ui.input_router()),
-      m_panel(add<StackContainer>("modal-panel", StackDirection::Vertical)) {
-    const Theme& theme = ui.theme();
+UIModalManager::UIModalManager()
+    : LayerContainer("modal-layer"), m_panel(add<Container>("modal-panel", StackDirection::Vertical)) {
 
     set_type_name("ModalManager");
     set_visible(false);
@@ -27,7 +25,10 @@ UIModalManager::UIModalManager(UI& ui)
         .placement = {.anchor = Anchor::Center, .origin = Anchor::Center},
         .in_flow = false,
     });
+}
 
+void UIModalManager::apply_theme_defaults(const Theme& theme) {
+    LayerContainer::apply_theme_defaults(theme);
     m_panel.configure_all_styles([&theme](Style& style) {
         style.padding({24.0F, 24.0F})
             .background_color(theme.background_color)
@@ -37,12 +38,12 @@ UIModalManager::UIModalManager(UI& ui)
     });
 }
 
-StackContainer& UIModalManager::open(std::string id) {
+Container& UIModalManager::open(std::string id) {
     m_panel.clear();
     m_panel.set_id(std::move(id));
     m_panel.set_visible(true);
     set_visible(true);
-    m_input_router.set_focus(*this);
+    surface().input_router().set_focus(*this);
     return m_panel;
 }
 
@@ -53,8 +54,8 @@ void UIModalManager::close() {
 
     m_panel.set_visible(false);
     set_visible(false);
-    m_input_router.clear_focus(*this);
-    m_input_router.release_pointer(*this);
+    surface().input_router().clear_focus(*this);
+    surface().input_router().release_pointer(*this);
 }
 
 bool UIModalManager::is_open() const {
