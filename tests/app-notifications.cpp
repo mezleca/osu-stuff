@@ -3,8 +3,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <imgui.h>
-#include <ui/runtime.hpp>
-#include <ui/ui.hpp>
+#include <imgui-ui/runtime.hpp>
+#include <imgui-ui/surface.hpp>
 
 #include <filesystem>
 #include <memory>
@@ -29,7 +29,7 @@ TEST_CASE("non-persistent notifications close after their duration") {
     };
 
     Runtime runtime;
-    UI surface(runtime, {.backend = ui_test::make_backend(), .file_dialog_backend = nullptr});
+    Surface surface(runtime, {.backend = ui_test::make_backend(), .file_dialog_backend = nullptr});
     TimedNotification notification;
 
     REQUIRE(notification.persistent);

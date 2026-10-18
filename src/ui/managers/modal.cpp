@@ -1,7 +1,7 @@
 #include "modal.hpp"
 
-#include <ui/style/theme.hpp>
-#include <ui/ui.hpp>
+#include <imgui-ui/style/theme.hpp>
+#include <imgui-ui/surface.hpp>
 
 #include <utility>
 
@@ -15,7 +15,7 @@ UIModalManager::UIModalManager()
     set_input_mode(InputMode::Blocker);
 
     configure_all_styles([](Style& style) {
-        style.padding({}).background_color(ImColor{0.0F, 0.0F, 0.0F, 0.42F}).border(BORDER_NONE);
+        style.padding({}).background_color(rgba(0.0F, 0.0F, 0.0F, 0.42F)).border(BorderEdge{0.0F, BorderType::None});
     });
 
     m_panel.set_visible(false);
@@ -32,7 +32,7 @@ void UIModalManager::apply_theme_defaults(const Theme& theme) {
     m_panel.configure_all_styles([&theme](Style& style) {
         style.padding({24.0F, 24.0F})
             .background_color(theme.background_color)
-            .border(BORDER_ALL)
+            .border(BorderEdge{1.0F, BorderType::Solid})
             .border_color(theme.accent_color)
             .border_radius(8.0F);
     });
@@ -43,7 +43,7 @@ Container& UIModalManager::open(std::string id) {
     m_panel.set_id(std::move(id));
     m_panel.set_visible(true);
     set_visible(true);
-    surface().input_router().set_focus(*this);
+    surface().input_router().set_focus(this);
     return m_panel;
 }
 
@@ -54,7 +54,7 @@ void UIModalManager::close() {
 
     m_panel.set_visible(false);
     set_visible(false);
-    surface().input_router().clear_focus(*this);
+    surface().input_router().set_focus(nullptr);
     surface().input_router().release_pointer(*this);
 }
 
@@ -62,7 +62,7 @@ bool UIModalManager::is_open() const {
     return visible() && m_panel.visible();
 }
 
-void UIModalManager::on_event(UiEvent& event) {
+void UIModalManager::event(UiEvent& event) {
     if (!is_open()) {
         return;
     }
@@ -73,11 +73,12 @@ void UIModalManager::on_event(UiEvent& event) {
 
     if (escape || outside) {
         close();
+        event.block_native_input();
         event.stop_propagation();
         return;
     }
 
-    if (::contains(EventMask::Pointer, event_mask(event.type))) {
+    if (ui::contains(EventMask::Pointer, event_mask(event.type))) {
         event.mark_handled();
     }
 }

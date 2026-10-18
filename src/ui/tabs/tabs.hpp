@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/layout/container.hpp>
+#include <imgui-ui/layout/container.hpp>
 
 #include <string>
 #include <utility>
@@ -12,7 +12,7 @@ public:
     }
 
 protected:
-    [[nodiscard]] ui::UI& ui() {
+    [[nodiscard]] ui::Surface& ui() {
         return surface();
     }
 

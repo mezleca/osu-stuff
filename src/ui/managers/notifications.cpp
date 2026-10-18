@@ -1,6 +1,6 @@
 #include "./notifications.hpp"
-#include <ui/ui.hpp>
-#include <ui/tree/node.hpp>
+#include <imgui-ui/surface.hpp>
+#include <imgui-ui/tree/node.hpp>
 
 #include <algorithm>
 #include <format>
@@ -37,13 +37,13 @@ bool UINotificationManager::remove(UINotification* to_remove) {
         return false;
     }
 
-    return Node::remove(*to_remove) != nullptr;
+    return Node::remove(*to_remove);
 }
 
 UINotification* UINotificationManager::get(size_t index) {
     for (const auto& child : children()) {
         auto* notification = dynamic_cast<UINotification*>(child.get());
-        if (notification == nullptr || notification == m_more_notifications) {
+        if (notification == nullptr || notification == m_more_notifications || notification->removal_pending()) {
             continue;
         }
 
@@ -58,7 +58,7 @@ UINotification* UINotificationManager::get(size_t index) {
 size_t UINotificationManager::count() const {
     return std::count_if(children().begin(), children().end(), [this](const auto& child) {
         const auto* notification = dynamic_cast<const UINotification*>(child.get());
-        return notification != nullptr && notification != m_more_notifications;
+        return notification != nullptr && notification != m_more_notifications && !notification->removal_pending();
     });
 }
 
@@ -80,22 +80,22 @@ void UINotificationManager::set_position(NotificationPosition position) {
 }
 
 void UINotificationManager::clear_notifications() {
-    while (UINotification* notification = get(0)) {
-        Node::remove(*notification);
+    for (const auto& child : children()) {
+        if (child.get() != m_more_notifications) Node::remove(*child);
     }
 }
 
 void UINotificationManager::draw_children() {
     const ImVec2 available = layout().size();
     const float top = m_header_height + SPACING;
-    const float more_height = std::max(48.0F, m_more_notifications->layout().preferred_size().y);
+    const float more_height = std::max(48.0F, m_more_notifications->layout().intrinsic_size().y);
     const float height = std::max(0.0F, std::min(available.y * STACK_HEIGHT_RATIO, available.y - top - more_height - SPACING));
     const bool left = m_position == NotificationPosition::Left;
 
     std::vector<UINotification*> notifications;
     for (auto it = children().rbegin(); it != children().rend(); ++it) {
         auto* notification = dynamic_cast<UINotification*>(it->get());
-        if (notification == nullptr || notification == m_more_notifications) {
+        if (notification == nullptr || notification == m_more_notifications || notification->removal_pending()) {
             continue;
         }
 
@@ -113,7 +113,7 @@ void UINotificationManager::draw_children() {
 
     for (size_t index = 0; index < notifications.size(); ++index) {
         UINotification& notification = *notifications[index];
-        const float notification_height = std::max(48.0F, notification.layout().preferred_size().y);
+        const float notification_height = std::max(48.0F, notification.layout().intrinsic_size().y);
         notification.set_overlay_position(m_position);
         notification.set_target_offset({left ? EDGE_INSET : -EDGE_INSET, top + offset});
         if (offset + notification_height > height) {

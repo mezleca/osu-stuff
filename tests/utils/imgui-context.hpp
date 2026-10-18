@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/backends/backend.hpp>
+#include <imgui-ui/backends/backend.hpp>
 
 #include <imgui.h>
 
@@ -16,13 +16,15 @@ namespace ui_test {
             return true;
         }
 
-        void process_events(ui::UI&) override {}
+        void process_events(ui::Surface&) override {}
         bool initialize_imgui() override {
             return true;
         }
 
         void shutdown_imgui() override {}
-        void begin_frame(ImVec4) override {}
+        void begin_frame(ui::Color) override {
+            ImGui::GetIO().DisplaySize = m_display_size;
+        }
         void set_mouse_cursor(ImGuiMouseCursor) override {}
         void render(ImDrawData*) override {}
 

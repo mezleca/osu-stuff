@@ -2,8 +2,8 @@
 
 #include "../tasks/tasks.hpp"
 
-#include <ui/ui.hpp>
-#include <ui/backends/sdl/backend.hpp>
+#include <imgui-ui/surface.hpp>
+#include <imgui-ui/backends/sdl/backend.hpp>
 #include <memory>
 #include <vector>
 
@@ -28,7 +28,7 @@ public:
 private:
     void configure_debugger();
 
-    ui::UI m_ui;
+    ui::Surface m_ui;
     TaskScheduler m_tasks;
     std::vector<TabEntry> m_tabs;
     UINotificationManager* m_notification_manager = nullptr;

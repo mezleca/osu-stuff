@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../widgets/notification.hpp"
-#include <ui/layout/layer-container.hpp>
+#include <imgui-ui/layout/layer-container.hpp>
 
 #include <string>
 #include <vector>
@@ -17,10 +17,6 @@ public:
     [[nodiscard]] size_t count() const;
 
     void set_position(NotificationPosition position);
-
-    [[nodiscard]] bool accepts_input() const override {
-        return false;
-    }
 
     void set_header_height(float height) {
         m_header_height = height;

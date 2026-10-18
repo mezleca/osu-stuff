@@ -1,6 +1,3 @@
-#include <ui/ui.hpp>
-#include <ui/backends/opengl/texture-loader.hpp>
-#include <ui/backends/sdl/backend.hpp>
 #include "audio/audio-manager.hpp"
 #include "database/database.hpp"
 #include "ui/app.hpp"
@@ -8,6 +5,10 @@
 #include "utils/log.hpp"
 #include "utils/paths.hpp"
 
+#include <imgui-ui/surface.hpp>
+#include <imgui-ui/runtime.hpp>
+#include <imgui-ui/backends/opengl/texture-loader.hpp>
+#include <imgui-ui/backends/sdl/backend.hpp>
 #include <SDL3/SDL.h>
 #include <filesystem>
 #include <memory>
@@ -46,7 +47,7 @@ static int run_app() {
     {
         Runtime runtime({
             .theme = make_theme(),
-            .texture_loader = std::make_unique<OpenGLTextureLoader>(),
+            .texture_loader = std::make_unique<OpenGLTextureLoader>()
         });
 
         runtime.fonts().add("Torus Regular", resources_path / "fonts/Torus-Regular.ttf");
@@ -76,6 +77,10 @@ static int run_app() {
 }
 
 int main() {
+    // prefeer wayland over xwayland
+#if defined(__linux__)
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland,x11");
+#endif
     SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "5");
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {

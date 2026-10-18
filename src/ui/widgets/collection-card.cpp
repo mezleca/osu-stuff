@@ -1,12 +1,14 @@
 #include "collection-card.hpp"
-#include <ui/ui.hpp>
+
+#include <imgui-ui/runtime.hpp>
+#include <imgui-ui/surface.hpp>
 
 using namespace ui;
 
 constexpr float ALPHA_ANIM_DURATION = 0.15F;
 constexpr ImVec2 ICON_SIZE = {16.0f, 16.0f};
 
-CollectionCardWidget::CollectionCardWidget(std::string name) : Container({}, "CollectionCard") {
+CollectionCardWidget::CollectionCardWidget(std::string name) : Widget({}, "CollectionCard") {
     set_input_mode(InputMode::Target);
     set_size({grow(), px(50.0F)});
 
@@ -38,25 +40,25 @@ CollectionCardWidget::CollectionCardWidget(std::string name) : Container({}, "Co
 }
 
 void CollectionCardWidget::apply_theme_defaults(const Theme& theme) {
-    UI& ui = surface();
-    set_font(ui.get_font("Torus SemiBold", 18));
-    configure_all_styles([&theme](Style& style) {
+    Surface& ui = surface();
+    const ImVec4 accent = theme.accent_color;
+    const ImVec4 active = theme.button_active_color;
+    set_font(ui.get_font("Torus SemiBold"), 18.0F);
+    configure_all_styles([accent, active](Style& style) {
         style.padding({12.0F, 0.0F})
-            .border(BORDER_ALL)
-            .border_thickness(1.0F)
-            .border_color(with_alpha(theme.accent_color, 0.0F), ALPHA_ANIM_DURATION)
-            .background_color(with_alpha(theme.button_active_color, 0.0F), ALPHA_ANIM_DURATION);
+            .border(BorderEdge{1.0F, BorderType::Solid})
+            .border_color(rgba(accent.x, accent.y, accent.z, 0.0F), ALPHA_ANIM_DURATION)
+            .background_color(rgba(active.x, active.y, active.z, 0.0F), ALPHA_ANIM_DURATION);
     });
-    configure_style(StyleType::ACTIVE, [&theme](Style& style) {
-        style.border_color(theme.accent_color, ALPHA_ANIM_DURATION)
-            .background_color(theme.button_active_color, ALPHA_ANIM_DURATION);
-    });
-    configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_color, ALPHA_ANIM_DURATION); });
+    style(StyleType::ACTIVE)
+        .border_color(theme.accent_color, ALPHA_ANIM_DURATION)
+        .background_color(theme.button_active_color, ALPHA_ANIM_DURATION);
+    style(StyleType::HOVER).border_color(theme.accent_color, ALPHA_ANIM_DURATION);
 
     m_icon->set_texture(ui.runtime().textures().find("music-icon"));
     m_icon->configure_all_styles([&theme](Style& style) { style.color(theme.accent_color); });
-    m_title->set_font(ui.get_font("Torus SemiBold", 18));
-    m_count_label->set_font(ui.get_font("Torus SemiBold", 14));
+    m_title->set_font(ui.get_font("Torus SemiBold"), 18.0F);
+    m_count_label->set_font(ui.get_font("Torus SemiBold"), 14.0F);
 }
 
 void CollectionCardWidget::set_selected(bool value) {

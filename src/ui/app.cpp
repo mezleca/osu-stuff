@@ -5,8 +5,9 @@
 #include "../utils/log.hpp"
 #include "widgets/tab-button.hpp"
 
-#include <ui/diagnostics/debugger.hpp>
-#include <ui/layout/container.hpp>
+#include <imgui-ui/runtime.hpp>
+#include <imgui-ui/diagnostics/debugger.hpp>
+#include <imgui-ui/layout/container.hpp>
 #include <cstdlib>
 #include <string_view>
 #include <utility>
@@ -28,11 +29,11 @@ public:
 protected:
     void apply_theme_defaults(const Theme& theme) override {
         Container::apply_theme_defaults(theme);
-        set_font(surface().get_font("Torus Bold", 20));
+        set_font(surface().get_font("Torus Bold"), 20.0F);
         configure_all_styles([&theme](Style& style) {
             style.padding({12.0F, 12.0F})
                 .background_color(theme.header_background_color)
-                .border(BORDER_BOTTOM)
+                .border_bottom(1.0F)
                 .border_color(theme.header_border_color);
         });
     }
@@ -55,7 +56,7 @@ public:
 protected:
     void apply_theme_defaults(const Theme& theme) override {
         Container::apply_theme_defaults(theme);
-        set_font(surface().get_font("Torus Regular", 20));
+        set_font(surface().get_font("Torus Regular"), 20.0F);
     }
 };
 
@@ -69,7 +70,6 @@ AppUI::AppUI(Runtime& runtime, std::unique_ptr<Backend> backend)
           runtime, {.backend = std::move(backend), .enable_debugger = debugger_enabled_from_env(), .file_dialog_backend = nullptr}
       ) {
     m_ui.set_primary_font(runtime.fonts().find("Torus SemiBold"));
-    m_ui.set_secondary_font(runtime.fonts().find("Torus SemiBold"));
 
     auto& app_layout = m_ui.root().add<AppLayoutNode>();
     auto& header = app_layout.add<AppHeaderNode>(m_header_end_height);
@@ -95,7 +95,7 @@ AppUI::AppUI(Runtime& runtime, std::unique_ptr<Backend> backend)
     initial_tab.set_visible(true);
 
     for (auto& entry : m_tabs) {
-        entry.button->set_on_event([this, current_tab = entry.tab](UiEvent& event) {
+        entry.button->on_event([this, current_tab = entry.tab](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }

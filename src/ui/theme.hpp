@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/style/theme.hpp>
+#include <imgui-ui/style/theme.hpp>
 
 constexpr float HEADER_TABS_GAP = 15.0f;
 constexpr float LINE_HEIGHT = 2.0f;

@@ -1,8 +1,8 @@
 #include "range.hpp"
 
-#include <ui/imgui/draw.hpp>
-#include <ui/ui.hpp>
-
+#include <imgui-ui/imgui/painter.hpp>
+#include <imgui-ui/surface.hpp>
+#include <imgui-ui/runtime.hpp>
 #include <imgui.h>
 
 #include <algorithm>
@@ -26,18 +26,19 @@ private:
         const ComputedStyle& current_style = computed_style();
         ImDrawList& draw_list = *ImGui::GetWindowDrawList();
         set_visual_rect(m_rect);
-        const ImVec2 padding = current_style.padding();
-        const ImVec2 minimum = {m_rect.min.x + padding.x, m_rect.min.y + padding.y};
-        const ImVec2 maximum = {m_rect.max.x - padding.x, m_rect.max.y - padding.y};
+        const BoxInsets padding = current_style.padding();
+        const ImVec2 minimum = {m_rect.min.x + padding.left, m_rect.min.y + padding.top};
+        const ImVec2 maximum = {m_rect.max.x - padding.right, m_rect.max.y - padding.bottom};
 
-        draw_frame(draw_list, {minimum, maximum}, current_style);
+        const Painter paint(draw_list, &paint_state(), effect_registry());
+        paint.frame({minimum, maximum}, current_style);
 
         const ImVec2 text_size = ImGui::CalcTextSize(m_text.c_str());
         const ImVec2 text_position = {
             minimum.x + ((maximum.x - minimum.x - text_size.x) * 0.5F),
             minimum.y + ((maximum.y - minimum.y - text_size.y) * 0.5F),
         };
-        draw_text(draw_list, text_position, current_style.color().get_col(), m_text);
+        paint.text(text_position, current_style.color().value, m_text);
 
         return true;
     }
@@ -53,22 +54,22 @@ RangeWidget::RangeWidget(float& minimum, float& maximum, std::string id)
 }
 
 void RangeWidget::apply_theme_defaults(const Theme& theme) {
-    UI& ui = surface();
+    Surface& ui = surface();
 
     configure_all_styles([&theme](Style& style) {
         style.color(theme.text_color)
             .background_color(theme.controls.background_color)
             .border_color(theme.controls.border_color, 0.15F)
             .padding({10.0F, 8.0F})
-            .border(BORDER_ALL)
-            .border_radius(theme.controls.rounding)
-            .border_thickness(theme.controls.border_thickness);
+            .border(BorderEdge{theme.controls.border_thickness, BorderType::Solid})
+            .border_radius(theme.controls.rounding);
     });
 
-    configure_style(StyleType::HOVER, [&theme](Style& style) { style.border_color(theme.accent_hover_color); });
-    configure_style(StyleType::ACTIVE, [&theme](Style& style) { style.border_color(theme.accent_color); });
+    style(StyleType::HOVER).border_color(theme.accent_hover_color);
+    style(StyleType::ACTIVE).border_color(theme.accent_color);
 
-    ImFont* value_font = ui.get_secondary_font(13);
+    ImFont* smaller_font = ui.get_primary_font();
+
     const auto configure_thumb = [&theme](AppRangeThumbNode& thumb) {
         thumb.configure_all_styles([&theme](Style& style) {
             style.color(theme.background_color).background_color(theme.text_color).border_radius(theme.controls.rounding);
@@ -77,8 +78,8 @@ void RangeWidget::apply_theme_defaults(const Theme& theme) {
 
     configure_thumb(*m_minimum_thumb);
     configure_thumb(*m_maximum_thumb);
-    m_minimum_thumb->set_font(value_font);
-    m_maximum_thumb->set_font(value_font);
+    m_minimum_thumb->set_font(smaller_font, 13.0F);
+    m_maximum_thumb->set_font(smaller_font, 13.0F);
 }
 
 RangeWidget& RangeWidget::set_label(std::string label) {
@@ -121,9 +122,11 @@ void RangeWidget::draw_children() {
 }
 
 void RangeWidget::on_measure() {
+    ImGui::PushFont(font());
     const float label_height = m_label.empty() ? 0.0F : ImGui::GetTextLineHeightWithSpacing();
-    const float control_height = ImGui::GetFrameHeight() + computed_style().padding().y * 2.0F;
-    set_measured_size({0.0F, label_height + control_height}, false, true);
+    const float control_height = ImGui::GetFrameHeight();
+    ImGui::PopFont();
+    set_measured_content_size({0.0F, label_height + control_height});
 }
 
 void RangeWidget::normalize_values() {
@@ -173,11 +176,11 @@ void RangeWidget::update_value_from_input(float track_start, float track_width, 
 void RangeWidget::draw_track(Rect track, float minimum_x, float maximum_x, float thumb_width) {
     const ComputedStyle& current_style = computed_style();
     ImDrawList& draw_list = *ImGui::GetWindowDrawList();
+    const Painter paint(draw_list, &paint_state(), effect_registry());
 
-    draw_frame_surface(draw_list, track, current_style);
-    draw_list.AddRectFilled(
-        {minimum_x, track.min.y}, {maximum_x, track.max.y}, ImGui::GetColorU32(surface().theme().accent_color),
-        current_style.border_radius()
+    paint.frame_surface(track, current_style);
+    paint.rect_filled(
+        {{minimum_x, track.min.y}, {maximum_x, track.max.y}}, surface().theme().accent_color, current_style.border_radius()
     );
 
     const float thumb_half = thumb_width * 0.5F;
@@ -187,7 +190,7 @@ void RangeWidget::draw_track(Rect track, float minimum_x, float maximum_x, float
     m_minimum_thumb->draw();
     m_maximum_thumb->draw();
 
-    draw_border(draw_list, track, current_style, current_style.border_color().value);
+    paint.border(track, current_style, current_style.border_color().value);
 }
 
 bool RangeWidget::paint() {

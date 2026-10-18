@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ui/layout/container.hpp>
-#include <ui/widgets/text.hpp>
-#include <ui/widgets/image.hpp>
+#include <imgui-ui/widgets/widget.hpp>
+#include <imgui-ui/widgets/text.hpp>
+#include <imgui-ui/widgets/image.hpp>
 
-class CollectionCardWidget : public ui::Container {
+class CollectionCardWidget : public ui::Widget {
 public:
     explicit CollectionCardWidget(std::string name);
 

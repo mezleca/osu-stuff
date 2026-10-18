@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/layout/layer-container.hpp>
+#include <imgui-ui/layout/layer-container.hpp>
 
 #include <string>
 
@@ -15,7 +15,7 @@ public:
 
 private:
     void apply_theme_defaults(const ui::Theme& theme) override;
-    void on_event(ui::UiEvent& event) override;
+    void event(ui::UiEvent& event) override;
 
     ui::Container& m_panel;
 };

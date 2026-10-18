@@ -1,5 +1,5 @@
 #include "detail.hpp"
-#include <ui/widgets/text.hpp>
+#include <imgui-ui/widgets/text.hpp>
 
 using namespace ui;
 

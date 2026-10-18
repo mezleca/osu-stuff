@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/widgets/widget.hpp>
+#include <imgui-ui/widgets/widget.hpp>
 
 #include <string>
 

@@ -6,16 +6,16 @@
 #include "../widgets/notification.hpp"
 #include "../widgets/range.hpp"
 
-#include <ui/widgets/button.hpp>
-#include <ui/widgets/checkbox.hpp>
-#include <ui/widgets/context-menu.hpp>
-#include <ui/widgets/dropdown.hpp>
-#include <ui/widgets/file-dialog.hpp>
-#include <ui/widgets/number-input.hpp>
-#include <ui/widgets/text-input.hpp>
-#include <ui/widgets/text.hpp>
-#include <ui/layout/container.hpp>
-#include <ui/layout/tree-container.hpp>
+#include <imgui-ui/widgets/button.hpp>
+#include <imgui-ui/widgets/checkbox.hpp>
+#include <imgui-ui/widgets/context-menu.hpp>
+#include <imgui-ui/widgets/dropdown.hpp>
+#include <imgui-ui/widgets/file-dialog.hpp>
+#include <imgui-ui/widgets/number-input.hpp>
+#include <imgui-ui/widgets/text-input.hpp>
+#include <imgui-ui/widgets/text.hpp>
+#include <imgui-ui/layout/container.hpp>
+#include <imgui-ui/layout/tree-container.hpp>
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <array>
@@ -38,7 +38,7 @@ public:
         m_open_modal_button = &add<ButtonWidget>("open modal", LayoutSize{px(180.0F), px(30.0F)});
         m_clear_button = &add<ButtonWidget>("clear notifications", LayoutSize{px(180.0F), px(30.0F)});
 
-        m_add_button->set_on_event([this](UiEvent& event) {
+        m_add_button->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -50,7 +50,7 @@ public:
             event.mark_handled();
         });
 
-        m_open_modal_button->set_on_event([this](UiEvent& event) {
+        m_open_modal_button->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -59,7 +59,7 @@ public:
             event.mark_handled();
         });
 
-        m_clear_button->set_on_event([this](UiEvent& event) {
+        m_clear_button->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -73,7 +73,7 @@ protected:
     void apply_theme_defaults(const Theme& theme) override {
         Container::apply_theme_defaults(theme);
         configure_all_styles([&theme](Style& style) {
-            style.padding({8.0F, 8.0F}).border(BORDER_ALL).border_color(theme.border_color);
+            style.padding({8.0F, 8.0F}).border(BorderEdge{1.0F, BorderType::Solid}).border_color(theme.border_color);
         });
     }
 
@@ -90,12 +90,12 @@ private:
 
         modal.add<TextWidget>("hello from modal");
 
-        auto& input = modal.add<TextInputWidget>(modal_input, "##modal-input");
+        auto& input = modal.add<TextInputWidget>(modal_input, std::string{}, LabelPlacement::Inline, "##modal-input");
         auto& close_button = modal.add<ButtonWidget>("close modal", LayoutSize{px(160.0F), px(36.0F)});
 
         input.set_size({px(400.0F), fit()});
 
-        close_button.set_on_event([this](UiEvent& event) {
+        close_button.on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -113,9 +113,9 @@ private:
     ButtonWidget* m_clear_button = nullptr;
 };
 
-class WidgetVisualTestNode final : public Container {
+class WidgetVisualTestNode final : public Widget {
 public:
-    explicit WidgetVisualTestNode(ContextMenuWidget& context_menu) : Container("widget-test"), m_text_value("editable text") {
+    explicit WidgetVisualTestNode(ContextMenuWidget& context_menu) : Widget("widget-test"), m_text_value("editable text") {
         set_size({grow(), px(360.0F)});
         set_spacing(10.0F);
         set_scrollable(true);
@@ -123,10 +123,11 @@ public:
 
         m_button = &add<ButtonWidget>("button", LayoutSize{px(160.0F), px(36.0F)});
 
-        auto& text_input = add<TextInputWidget>(m_text_value, "##widget-test-text");
+        auto& text_input =
+            add<TextInputWidget>(m_text_value, std::string{}, LabelPlacement::Inline, "##widget-test-text");
         text_input.set_size({px(380.0F), fit()});
 
-        auto& number_input = add<NumberInputWidget>(m_number_value, "widget-test-number");
+        auto& number_input = add<NumberInputWidget<float>>(m_number_value, "widget-test-number");
         number_input.set_label("number input").set_range(0.0, 100.0).set_size({px(380.0F), fit()});
 
         auto& dropdown = add<DropdownWidget>(
@@ -142,13 +143,14 @@ public:
         );
         dialog_mode.set_label("dialog mode").set_size({px(380.0F), fit()});
 
-        auto& default_folder = add<TextInputWidget>(m_default_folder, "##default-folder");
+        auto& default_folder =
+            add<TextInputWidget>(m_default_folder, std::string{}, LabelPlacement::Inline, "##default-folder");
         default_folder.set_visible(false);
 
-        dialog_mode.set_on_change([this, &default_folder]() { default_folder.set_visible(m_dialog_mode == "folder"); });
+        dialog_mode.on_change([this, &default_folder]() { default_folder.set_visible(m_dialog_mode == "folder"); });
 
         auto& file_dialog = add<FileDialogWidget>("file dialog placeholder");
-        file_dialog.set_on_event([this, &file_dialog](UiEvent& event) {
+        file_dialog.on_event([this, &file_dialog](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -158,15 +160,15 @@ public:
             options.filters = source_filters;
 
             if (m_dialog_mode == "file") {
-                const FileDialogResult result = file_dialog.select_file(options);
+                const FileDialogResult result = file_dialog.show_dialog(FileDialogOperation::OpenFile, options);
                 if (result.accepted() && !result.paths.empty()) file_dialog.set_value(result.paths.front().string());
             } else if (m_dialog_mode == "multiple files") {
-                const FileDialogResult result = file_dialog.select_files(options);
+                const FileDialogResult result = file_dialog.show_dialog(FileDialogOperation::OpenFiles, options);
                 if (result.accepted()) file_dialog.set_value(std::format("selected {} file(s)", result.paths.size()));
             } else {
                 options.filters = {};
                 options.default_path = m_default_folder;
-                const FileDialogResult result = file_dialog.select_folder(options);
+                const FileDialogResult result = file_dialog.show_dialog(FileDialogOperation::SelectFolder, options);
                 if (result.accepted() && !result.paths.empty()) file_dialog.set_value(result.paths.front().string());
             }
 
@@ -176,12 +178,12 @@ public:
         auto& range = add<RangeWidget>(m_range_minimum, m_range_maximum, "widget-test-range");
         range.set_label("difficulty range").set_bounds(0.0F, 10.0F).set_step(0.1F).set_size({px(380.0F), fit()});
 
-        add<CheckboxWidget>(m_checked, "checkbox", "widget-test-checkbox");
+        add<CheckboxWidget>(m_checked, "checkbox", LabelPlacement::Inline, "widget-test-checkbox");
 
-        auto& radio = add<CheckboxWidget>(m_radio_selected, "radio", "widget-test-radio");
+        auto& radio = add<CheckboxWidget>(m_radio_selected, "radio", LabelPlacement::Inline, "widget-test-radio");
         radio.set_type(CheckboxType::Radio);
 
-        set_on_event([&context_menu](UiEvent& event) {
+        on_event([&context_menu](UiEvent& event) {
             if (event.type == EventType::ContextClick) {
                 context_menu.open_at(event.position);
                 event.mark_handled();
@@ -189,7 +191,7 @@ public:
             }
         });
 
-        m_button->set_on_event([this](UiEvent& event) {
+        m_button->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -204,7 +206,7 @@ private:
     void apply_theme_defaults(const Theme& theme) override {
         Container::apply_theme_defaults(theme);
         configure_all_styles([&theme](Style& style) {
-            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(theme.border_color);
+            style.padding({12.0F, 12.0F}).border(BorderEdge{1.0F, BorderType::Solid}).border_color(theme.border_color);
         });
     }
 
@@ -238,7 +240,7 @@ public:
         m_start = &add<ButtonWidget>("fetch placeholder todo", LayoutSize{px(220.0F), px(36.0F)});
         m_cancel = &add<ButtonWidget>("cancel", LayoutSize{px(120.0F), px(36.0F)});
 
-        m_start->set_on_event([this](UiEvent& event) {
+        m_start->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -247,7 +249,7 @@ public:
             event.mark_handled();
         });
 
-        m_cancel->set_on_event([this](UiEvent& event) {
+        m_cancel->on_event([this](UiEvent& event) {
             if (event.type != EventType::Click) {
                 return;
             }
@@ -271,7 +273,7 @@ private:
     void apply_theme_defaults(const Theme& theme) override {
         Container::apply_theme_defaults(theme);
         configure_all_styles([&theme](Style& style) {
-            style.padding({12.0F, 12.0F}).border(BORDER_ALL).border_color(theme.border_color);
+            style.padding({12.0F, 12.0F}).border(BorderEdge{1.0F, BorderType::Solid}).border_color(theme.border_color);
         });
     }
 
@@ -380,7 +382,7 @@ IndexTab::IndexTab(TaskScheduler& tasks, UINotificationManager& notification_man
     : UITab("index"), m_tasks(tasks), m_notification_manager(notification_manager) {}
 
 void IndexTab::setup() {
-    UI& surface = ui();
+    Surface& surface = ui();
     m_context_menu = &surface.root().add<ContextMenuWidget>(ContextMenuItems{
         ContextMenuItem::action("reload"),
         ContextMenuItem::submenu("options", {ContextMenuItem::action("inspect")}),

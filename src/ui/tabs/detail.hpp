@@ -1,8 +1,8 @@
 #pragma once
 
 #include "tabs.hpp"
-#include <ui/layout/container.hpp>
-#include <ui/layout/resizable-container.hpp>
+#include <imgui-ui/layout/container.hpp>
+#include <imgui-ui/layout/resizable-container.hpp>
 
 class TaskScheduler;
 

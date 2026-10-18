@@ -1,6 +1,6 @@
 #include "tab-button.hpp"
 #include "../theme.hpp"
-#include <ui/ui.hpp>
+#include <imgui-ui/surface.hpp>
 #include "utils/math.hpp"
 
 using namespace ui;
@@ -9,6 +9,7 @@ static constexpr float TAB_TRANSITION_DURATION = 0.3F;
 
 TabButtonWidget::TabButtonWidget(std::string name, bool line, bool title)
     : Widget({}, "TabButton"), m_name(std::move(name)), m_draw_line(line), m_title(title) {
+    set_size({fit(), fit()});
 
     if (line) {
         const auto set_float = [this](StyleType type, const char* name, float value, float duration) {
@@ -34,14 +35,32 @@ void TabButtonWidget::apply_theme_defaults(const Theme& theme) {
     style(StyleType::ACTIVE).color(theme.accent_color);
 }
 
+void TabButtonWidget::set_selected(bool value) {
+    if (m_selected == value) return;
+
+    m_selected = value;
+    if (m_selected) {
+        set_visual_style(StyleType::ACTIVE);
+        return;
+    }
+
+    const InputState& input = input_state();
+    set_interaction_style(input.hovered, input.active, input.focused);
+}
+
 void TabButtonWidget::on_measure() {
     m_name.set_font(font());
     const ImVec2 text_size = m_name.text_size();
-    set_measured_size({text_size.x + 16.0F, text_size.y + 12.0F}, true, true);
+    set_measured_content_size(text_size);
+}
+
+void TabButtonWidget::input_state_changed() {
+    StyledNode::input_state_changed();
+    if (m_selected) set_visual_style(StyleType::ACTIVE);
 }
 
 bool TabButtonWidget::paint() {
-    const Style& style = this->style();
+    const ComputedStyle& style = computed_style();
     const bool pressed = ImGui::Button(m_name.c_str());
 
     if (m_draw_line) {

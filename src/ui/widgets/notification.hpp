@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ui/layout/container.hpp>
-#include <ui/widgets/text.hpp>
-#include <ui/widgets/image.hpp>
+#include <imgui-ui/layout/container.hpp>
+#include <imgui-ui/widgets/text.hpp>
+#include <imgui-ui/widgets/image.hpp>
 
 #include <functional>
 #include <cstdint>
@@ -30,6 +30,7 @@ public:
 
 protected:
     void on_update(float dt) override;
+    void on_draw_end() override;
 
     void update_layout_placement();
 
@@ -58,7 +59,7 @@ public:
     std::function<void()> m_onclose = nullptr;
 
 private:
-    static ImColor border_color(LogNotificationLevel level, ImColor accent_color);
+    static ui::Color border_color(LogNotificationLevel level, const ui::Color& accent_color);
     void apply_theme_defaults(const ui::Theme& theme) override;
     bool paint() override;
     void on_measure() override;

@@ -1,7 +1,8 @@
 #include "notification.hpp"
-#include <ui/ui.hpp>
 #include "../theme.hpp"
 
+#include <imgui-ui/runtime.hpp>
+#include <imgui-ui/surface.hpp>
 #include <algorithm>
 
 using namespace ui;
@@ -9,7 +10,8 @@ using namespace ui;
 static constexpr ImVec2 CLOSE_ICON_SIZE = {16, 16};
 
 UINotification::UINotification() : Container({}, "Notification") {
-    set_input_mode(InputMode::Blocker);
+    set_size({fit(), fit()});
+    set_input_mode(InputMode::Target);
     m_offset.duration = 0.2F;
     update_layout_placement();
 }
@@ -51,6 +53,9 @@ UINotification& UINotification::set_target_offset(ImVec2 value, bool instant) {
 }
 
 void UINotification::on_update(float dt) {
+    m_current_offset.tick(m_offset, dt);
+    update_layout_placement();
+
     if (persistent || m_closing) {
         return;
     }
@@ -62,12 +67,13 @@ void UINotification::on_update(float dt) {
 }
 
 void UINotification::update_layout_placement() {
-    const Anchor anchor = m_position == NotificationPosition::Left ? Anchor::TopLeft : Anchor::TopRight;
-    const Anchor origin = anchor == Anchor::TopLeft ? Anchor::TopLeft : Anchor::TopRight;
+    const ImVec2 anchor = m_position == NotificationPosition::Left ? Anchor::TopLeft : Anchor::TopRight;
+    const ImVec2 origin = anchor;
     const LayoutConfig& current = layout().config();
     const Placement& placement = current.placement;
-    if (!current.in_flow && placement.anchor == anchor && placement.origin == origin &&
-        placement.offset.x == m_current_offset.value.x && placement.offset.y == m_current_offset.value.y) {
+    if (!current.in_flow && placement.anchor.x == anchor.x && placement.anchor.y == anchor.y &&
+        placement.origin.x == origin.x && placement.origin.y == origin.y && placement.offset.x == m_current_offset.value.x &&
+        placement.offset.y == m_current_offset.value.y) {
         return;
     }
 
@@ -77,7 +83,14 @@ void UINotification::update_layout_placement() {
     set_layout(config);
 }
 
-ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor accent_color) {
+void UINotification::on_draw_end() {
+    Container::on_draw_end();
+
+    // block pointer targets behind this notification without restricting keyboard input to its subtree.
+    if (accepts_input()) surface().input_router().register_blocker(*this, layout().visual_rect());
+}
+
+Color LogNotificationWidget::border_color(LogNotificationLevel level, const Color& accent_color) {
     switch (level) {
         case LogNotificationLevel::INFO:
             return COLOR_BLUE;
@@ -92,7 +105,7 @@ ImColor LogNotificationWidget::border_color(LogNotificationLevel level, ImColor 
     return accent_color;
 }
 
-LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::string text) : UINotification(), m_level(level) {
+LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::string text) : m_level(level) {
     set_type_name("LogNotification");
 
     m_text_node = &add<TextWidget>(std::move(text));
@@ -105,7 +118,7 @@ LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::st
         .in_flow = false,
     });
 
-    m_icon->set_on_event([this](UiEvent& event) {
+    m_icon->on_event([this](UiEvent& event) {
         if (event.type != EventType::Click) {
             return;
         }
@@ -121,9 +134,9 @@ LogNotificationWidget::LogNotificationWidget(LogNotificationLevel level, std::st
 }
 
 void LogNotificationWidget::apply_theme_defaults(const Theme& theme) {
-    UI& ui = surface();
-    ImFont* font = ui.get_font("Torus SemiBold", 16);
-    const ImColor level_border_color = border_color(m_level, theme.accent_color);
+    Surface& ui = surface();
+    ImFont* font = ui.get_font("Torus SemiBold");
+    const Color level_border_color = border_color(m_level, theme.accent_color);
 
     configure_all_styles([&theme](Style& style) {
         style.color(theme.text_color)
@@ -131,15 +144,17 @@ void LogNotificationWidget::apply_theme_defaults(const Theme& theme) {
             .background_color(theme.background_color)
             .padding({8.0F, 16.0F})
             .border_radius(4.0F)
-            .border_thickness(1.0F)
-            .border(BORDER_ALL);
+            .border(BorderEdge{1.0F, BorderType::Solid});
     });
-    configure_style(StyleType::HOVER, [level_border_color](Style& style) { style.border_color(level_border_color); });
-    configure_style(StyleType::ACTIVE, [level_border_color](Style& style) { style.border_color(level_border_color); });
+    style(StyleType::HOVER).border_color(level_border_color);
+    style(StyleType::ACTIVE).border_color(level_border_color);
 
-    set_font(font);
-    m_text_node->set_font(font);
-    m_text_node->set_wrap(256.0F - CLOSE_ICON_SIZE.x - 8.0F);
+    set_font(font, 16.0F);
+    m_text_node->set_font(font, 16.0F);
+    // reserve the frame insets and close icon before measuring wrapped text.
+    const float icon_width = m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.x + 5.0F;
+    const float frame_inset = (computed_style().padding().left + computed_style().border_thickness()) * 2.0F;
+    m_text_node->set_wrap(256.0F - frame_inset - icon_width);
     m_icon->set_texture(ui.runtime().textures().find("x-icon"));
     m_icon->configure_all_styles([&theme](Style& style) { style.color(theme.text_secondary_color); });
 }
@@ -160,19 +175,16 @@ void LogNotificationWidget::set_text(std::string_view text) {
 }
 
 void LogNotificationWidget::on_measure() {
-    const Style& current_style = style();
-    const ImVec2 padding = current_style.padding();
     const ImVec2 text_size = m_text_node->layout().intrinsic_size();
     auto icon_layout = m_icon->layout().config();
     icon_layout.placement.offset = {text_size.x + 5.0F, 0.0F};
     m_icon->set_layout(icon_layout);
 
     const float icon_width = m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.x + 5.0F;
-    const float content_width = text_size.x + icon_width + (padding.x * 2.0F);
-    const float content_height =
-        std::max(text_size.y, m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.y) + (padding.y * 2.0F);
-
-    set_measured_size({std::clamp(content_width, 48.0F, 256.0F), std::clamp(content_height, 48.0F, 196.0F)}, true, true);
+    const ImVec2 size = outer_size(
+        {text_size.x + icon_width, std::max(text_size.y, m_level == LogNotificationLevel::PLACEHOLDER ? 0.0F : CLOSE_ICON_SIZE.y)}
+    );
+    set_measured_size({std::clamp(size.x, 48.0F, 256.0F), std::clamp(size.y, 48.0F, 196.0F)});
 }
 
 bool LogNotificationWidget::paint() {
@@ -190,14 +202,10 @@ void LogNotificationWidget::draw_children() {
 }
 
 void LogNotificationWidget::on_draw_end() {
-    const float dt = ImGui::GetIO().DeltaTime;
-    Container::on_draw_end();
+    UINotification::on_draw_end();
 
     if (m_closing) {
         set_enabled(false);
         set_interaction_style(false, false);
     }
-
-    m_current_offset.tick(m_offset, dt);
-    update_layout_placement();
 }
